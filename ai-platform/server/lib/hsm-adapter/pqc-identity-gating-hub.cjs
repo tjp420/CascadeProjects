@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 71: PQC Identity Gating Hub.
@@ -18,20 +18,20 @@
  * @module hsm-adapter/pqc-identity-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  COMPLETED: 'completed',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  COMPLETED: "completed",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcIdentityGatingHub {
@@ -65,35 +65,81 @@ class PqcIdentityGatingHub {
   initializePool(request) {
     _validateInitRequest(this.policy, request);
     if (this._pools.size >= this._maxPools) {
-      throw new HsmAdapterError('IDGATE_MAX_POOLS',
-        `maximum ${this._maxPools} pools reached`);
+      throw new HsmAdapterError(
+        "IDGATE_MAX_POOLS",
+        `maximum ${this._maxPools} pools reached`,
+      );
     }
-    if (this.policy.requireIdentityInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireIdentityInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.identityInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.identityInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('IDGATE_IDENTITY_INITIALIZER_UNATTESTED', 'identity initializer attestation invalid');
+          throw new HsmAdapterError(
+            "IDGATE_IDENTITY_INITIALIZER_UNATTESTED",
+            "identity initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('IDGATE_IDENTITY_INITIALIZER_UNATTESTED', 'identity initializer attestation invalid');
+        throw new HsmAdapterError(
+          "IDGATE_IDENTITY_INITIALIZER_UNATTESTED",
+          "identity initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('IDGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('IDGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.attestationContractLifetimeSeconds === 'number' && request.attestationContractLifetimeSeconds > (this.policy.maxAttestationContractLifetimeSeconds || 31536000)) {
-      throw new HsmAdapterError('IDGATE_CONTRACT_LIFETIME_EXCEEDED', `attestation contract lifetime seconds ${request.attestationContractLifetimeSeconds} exceeds maximum ${this.policy.maxAttestationContractLifetimeSeconds}`);
+    if (
+      typeof request.attestationContractLifetimeSeconds === "number" &&
+      request.attestationContractLifetimeSeconds >
+        (this.policy.maxAttestationContractLifetimeSeconds || 31536000)
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_CONTRACT_LIFETIME_EXCEEDED",
+        `attestation contract lifetime seconds ${request.attestationContractLifetimeSeconds} exceeds maximum ${this.policy.maxAttestationContractLifetimeSeconds}`,
+      );
     }
-    if (typeof request.credentialDepth === 'number' && request.credentialDepth > (this.policy.maxCredentialDepth || 16)) {
-      throw new HsmAdapterError('IDGATE_CREDENTIAL_DEPTH_EXCEEDED', `credential depth ${request.credentialDepth} exceeds maximum ${this.policy.maxCredentialDepth}`);
+    if (
+      typeof request.credentialDepth === "number" &&
+      request.credentialDepth > (this.policy.maxCredentialDepth || 16)
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_CREDENTIAL_DEPTH_EXCEEDED",
+        `credential depth ${request.credentialDepth} exceeds maximum ${this.policy.maxCredentialDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('IDGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "IDGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -101,9 +147,11 @@ class PqcIdentityGatingHub {
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
       blindedRawCredentialCommitment: request.blindedRawCredentialCommitment,
-      blindedAttributeMetricCommitment: request.blindedAttributeMetricCommitment,
+      blindedAttributeMetricCommitment:
+        request.blindedAttributeMetricCommitment,
       blindedIdentityHashCommitment: request.blindedIdentityHashCommitment,
-      attestationContractLifetimeSeconds: request.attestationContractLifetimeSeconds,
+      attestationContractLifetimeSeconds:
+        request.attestationContractLifetimeSeconds,
       credentialDepth: request.credentialDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
@@ -118,7 +166,7 @@ class PqcIdentityGatingHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('IDENTITY_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("IDENTITY_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -130,11 +178,16 @@ class PqcIdentityGatingHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('IDGATE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "IDGATE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('IDGATE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "IDGATE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -146,17 +199,26 @@ class PqcIdentityGatingHub {
         successCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'auto',
+          poolId: req.poolId || "auto",
           initialized: false,
-          error: err.code || 'IDGATE_BATCH_ERROR',
+          error: err.code || "IDGATE_BATCH_ERROR",
         });
         failedCount++;
       }
     }
     if (this._audit) {
-      this._audit('IDGATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+      this._audit("IDGATE_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -176,7 +238,7 @@ class PqcIdentityGatingHub {
   markAttributeClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("IDGATE_NOT_FOUND", `pool ${poolId} not found`);
     }
     pool.attributeClaimVerified = true;
     return pool;
@@ -189,49 +251,73 @@ class PqcIdentityGatingHub {
    */
   rebalanceCredentialDepth(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('IDGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "IDGATE_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "IDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('IDGATE_NOT_REBALANCEABLE',
-        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('IDGATE_REBALANCE_DIRECTION_INVALID',
-        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+      throw new HsmAdapterError(
+        "IDGATE_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(", ")}`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('IDGATE_REBALANCE_AMOUNT_INVALID',
-        'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = pool.rebalanceEpoch + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
       direction,
       rebalanceAmount: request.rebalanceAmount,
       rebalanceEpoch: newEpoch,
-      newCredentialDepth: request.newCredentialDepth !== undefined ? request.newCredentialDepth : pool.credentialDepth,
+      newCredentialDepth:
+        request.newCredentialDepth !== undefined
+          ? request.newCredentialDepth
+          : pool.credentialDepth,
       rebalancedAt: Math.floor(Date.now() / 1000),
     };
     this._rebalances.set(rebalanceId, rebalance);
     this._rebalanceCount++;
     if (request.newCredentialDepth !== undefined) {
       if (request.newCredentialDepth > (this.policy.maxCredentialDepth || 16)) {
-        throw new HsmAdapterError('IDGATE_CREDENTIAL_DEPTH_EXCEEDED',
-          `new credential depth ${request.newCredentialDepth} exceeds maximum ${this.policy.maxCredentialDepth}`);
+        throw new HsmAdapterError(
+          "IDGATE_CREDENTIAL_DEPTH_EXCEEDED",
+          `new credential depth ${request.newCredentialDepth} exceeds maximum ${this.policy.maxCredentialDepth}`,
+        );
       }
       pool.credentialDepth = request.newCredentialDepth;
     }
     if (this._audit) {
-      this._audit('IDGATE_CREDENTIAL_DEPTH_REBALANCED', { ...rebalance });
+      this._audit("IDGATE_CREDENTIAL_DEPTH_REBALANCED", { ...rebalance });
     }
     return rebalance;
   }
@@ -254,30 +340,52 @@ class PqcIdentityGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "IDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.attributeClaimVerified) {
-      throw new HsmAdapterError('IDGATE_ATTRIBUTE_CLAIM_NOT_VERIFIED', `pool ${request.poolId} attribute claim not verified`);
+      throw new HsmAdapterError(
+        "IDGATE_ATTRIBUTE_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} attribute claim not verified`,
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('IDGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "IDGATE_CLEARING_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('IDGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "IDGATE_CLEARING_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minAttestationQuorum || 3)) {
-      throw new HsmAdapterError('IDGATE_COMPLETION_QUORUM_INSUFFICIENT', `attestation signatures ${signatures.length} below minimum ${this.policy.minAttestationQuorum}`);
+      throw new HsmAdapterError(
+        "IDGATE_COMPLETION_QUORUM_INSUFFICIENT",
+        `attestation signatures ${signatures.length} below minimum ${this.policy.minAttestationQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     pool.status = POOL_STATUS.COMPLETED;
     pool.gatingCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -286,7 +394,7 @@ class PqcIdentityGatingHub {
     };
     this._completeCount++;
     if (this._audit) {
-      this._audit('SOVEREIGN_IDENTITY_GATING_COMPLETED', { ...completion });
+      this._audit("SOVEREIGN_IDENTITY_GATING_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -298,41 +406,58 @@ class PqcIdentityGatingHub {
    */
   settlePool(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('IDGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "IDGATE_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "IDGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (pool.status !== POOL_STATUS.COMPLETED) {
-      throw new HsmAdapterError('IDGATE_NOT_COMPLETED',
-        `pool ${request.poolId} status is ${pool.status}, expected completed`);
+      throw new HsmAdapterError(
+        "IDGATE_NOT_COMPLETED",
+        `pool ${request.poolId} status is ${pool.status}, expected completed`,
+      );
     }
-    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
-      throw new HsmAdapterError('IDGATE_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    if (!request.targetChainId || typeof request.targetChainId !== "string") {
+      throw new HsmAdapterError(
+        "IDGATE_SETTLE_CHAIN_MISSING",
+        "targetChainId is required for settlement",
+      );
     }
     if (request.targetChainId !== pool.targetChainId) {
-      throw new HsmAdapterError('IDGATE_SETTLE_CHAIN_MISMATCH',
-        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+      throw new HsmAdapterError(
+        "IDGATE_SETTLE_CHAIN_MISMATCH",
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
     const settlement = {
       settlementId,
       poolId: request.poolId,
       targetChainId: request.targetChainId,
-      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
-        .update(`${request.poolId}:${request.targetChainId}:${now}`)
-        .digest('hex'),
+      settlementProofHash:
+        request.settlementProofHash ||
+        crypto
+          .createHash("sha256")
+          .update(`${request.poolId}:${request.targetChainId}:${now}`)
+          .digest("hex"),
       settledAt: now,
     };
     pool.status = POOL_STATUS.SETTLED;
-    pool.settlementStatus = 'settled';
+    pool.settlementStatus = "settled";
     pool.settledAt = now;
     this._settlements.set(request.poolId, settlement);
     this._settleCount++;
     if (this._audit) {
-      this._audit('IDGATE_SETTLED', { ...settlement });
+      this._audit("IDGATE_SETTLED", { ...settlement });
     }
     return settlement;
   }
@@ -346,27 +471,36 @@ class PqcIdentityGatingHub {
   aggregateCommitteeSignatures(poolId, partialSignatures) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("IDGATE_NOT_FOUND", `pool ${poolId} not found`);
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('IDGATE_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "IDGATE_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minAttestationQuorum || 3)) {
-      throw new HsmAdapterError('IDGATE_COMPLETION_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minAttestationQuorum || 3}`);
+      throw new HsmAdapterError(
+        "IDGATE_COMPLETION_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minAttestationQuorum || 3}`,
+      );
     }
-    const aggregatedSig = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSig = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: aggregatedSig,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('IDGATE_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("IDGATE_SIGNATURES_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -379,21 +513,28 @@ class PqcIdentityGatingHub {
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('IDGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError("IDGATE_NOT_FOUND", `pool ${poolId} not found`);
     }
-    if (pool.status === POOL_STATUS.COMPLETED || pool.status === POOL_STATUS.SETTLED) {
-      throw new HsmAdapterError('IDGATE_ALREADY_COMPLETED',
-        `pool ${poolId} has been completed/settled and cannot be cancelled`);
+    if (
+      pool.status === POOL_STATUS.COMPLETED ||
+      pool.status === POOL_STATUS.SETTLED
+    ) {
+      throw new HsmAdapterError(
+        "IDGATE_ALREADY_COMPLETED",
+        `pool ${poolId} has been completed/settled and cannot be cancelled`,
+      );
     }
     if (pool.status === POOL_STATUS.CANCELLED) {
-      throw new HsmAdapterError('IDGATE_ALREADY_CANCELLED',
-        `pool ${poolId} is already cancelled`);
+      throw new HsmAdapterError(
+        "IDGATE_ALREADY_CANCELLED",
+        `pool ${poolId} is already cancelled`,
+      );
     }
     pool.status = POOL_STATUS.CANCELLED;
     pool.cancelledAt = Math.floor(Date.now() / 1000);
     this._cancelCount++;
     if (this._audit) {
-      this._audit('IDGATE_CANCELLED', { poolId });
+      this._audit("IDGATE_CANCELLED", { poolId });
     }
     return { poolId, cancelled: true };
   }
@@ -412,7 +553,7 @@ class PqcIdentityGatingHub {
    * @returns {object[]}
    */
   getPools() {
-    return Array.from(this._pools.values()).map(p => ({
+    return Array.from(this._pools.values()).map((p) => ({
       poolId: p.poolId,
       sourceTenantId: p.sourceTenantId,
       targetChainId: p.targetChainId,
@@ -456,28 +597,59 @@ class PqcIdentityGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('IDGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "IDGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedRawCredentialCommitment || !request.blindedAttributeMetricCommitment || !request.blindedIdentityHashCommitment) {
-    throw new HsmAdapterError('IDGATE_FIELDS_MISSING', 'blindedRawCredentialCommitment, blindedAttributeMetricCommitment, and blindedIdentityHashCommitment are required');
+  if (
+    !request.blindedRawCredentialCommitment ||
+    !request.blindedAttributeMetricCommitment ||
+    !request.blindedIdentityHashCommitment
+  ) {
+    throw new HsmAdapterError(
+      "IDGATE_FIELDS_MISSING",
+      "blindedRawCredentialCommitment, blindedAttributeMetricCommitment, and blindedIdentityHashCommitment are required",
+    );
   }
-  if (typeof request.attestationContractLifetimeSeconds !== 'number') {
-    throw new HsmAdapterError('IDGATE_FIELDS_MISSING', 'attestationContractLifetimeSeconds is required');
+  if (typeof request.attestationContractLifetimeSeconds !== "number") {
+    throw new HsmAdapterError(
+      "IDGATE_FIELDS_MISSING",
+      "attestationContractLifetimeSeconds is required",
+    );
   }
-  if (typeof request.credentialDepth !== 'number') {
-    throw new HsmAdapterError('IDGATE_FIELDS_MISSING', 'credentialDepth is required');
+  if (typeof request.credentialDepth !== "number") {
+    throw new HsmAdapterError(
+      "IDGATE_FIELDS_MISSING",
+      "credentialDepth is required",
+    );
   }
-  if (policy.requireIdentityInitializerAttestation && !request.identityInitializerAttestation) {
-    throw new HsmAdapterError('IDGATE_IDENTITY_INITIALIZER_ATTESTATION_MISSING', 'identity initializer attestation is required');
+  if (
+    policy.requireIdentityInitializerAttestation &&
+    !request.identityInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "IDGATE_IDENTITY_INITIALIZER_ATTESTATION_MISSING",
+      "identity initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('IDGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "IDGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('IDGATE_CLEARING_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "IDGATE_CLEARING_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

@@ -1,50 +1,121 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Rules Authoring Guide</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-  body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;padding:28px}
-  .container{max-width:900px;margin:0 auto;background:#fff;padding:28px;border-radius:8px;box-shadow:0 6px 18px rgba(12,15,20,0.06)}
-  pre{background:#0b1220;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto}
-  code{background:#eef2f6;padding:2px 4px;border-radius:4px}
-  h1,h2,h3{color:#0b1220}
-  a{color:#0b66ff}
-  </style></head><body><div class="container"><h1>Rules Authoring Guide</h1><h1>SimpleBeacon Rules — Quickstart</h1>
-<p></p>
-<p>This folder contains example rule blueprints and a tiny test harness for validating custom enterprise rules.</p>
-<p></p>
-<p>Getting started</p>
-<p></p>
-<ul>
-<li>Validate rules locally:</li>
-</ul>
-<p></p>
-<pre><code>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rules Authoring Guide</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body {
+        font-family: Inter, system-ui, Arial, Helvetica, sans-serif;
+        background: #f6f7f9;
+        color: #111;
+        padding: 28px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 28px;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(12, 15, 20, 0.06);
+      }
+      pre {
+        background: #0b1220;
+        color: #e6edf3;
+        padding: 12px;
+        border-radius: 6px;
+        overflow: auto;
+      }
+      code {
+        background: #eef2f6;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #0b1220;
+      }
+      a {
+        color: #0b66ff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Rules Authoring Guide</h1>
+      <h1>SimpleBeacon Rules — Quickstart</h1>
+      <p></p>
+      <p>
+        This folder contains example rule blueprints and a tiny test harness for
+        validating custom enterprise rules.
+      </p>
+      <p></p>
+      <p>Getting started</p>
+      <p></p>
+      <ul>
+        <li>Validate rules locally:</li>
+      </ul>
+      <p></p>
+      <pre><code>
 node packages/simplebeacon-cli/scripts/validate-custom-rules.js --rules-dir ./.simplebeacon/rules/
 </code></pre>
-<p></p>
-<ul>
-<li>Run the provided harness (executes the validator):</li>
-</ul>
-<p></p>
-<pre><code>
+      <p></p>
+      <ul>
+        <li>Run the provided harness (executes the validator):</li>
+      </ul>
+      <p></p>
+      <pre><code>
 node ./.simplebeacon/rules/__tests__/rules.test.js
 </code></pre>
-<p></p>
-<p>Authoring tips</p>
-<p></p>
-<ul>
-<li>Regex rules: provide a <code>matcher.type: 'regex'</code> with <code>pattern</code> and <code>paths</code> array. Optionally include a <code>fix</code> with <code>type: 'replace'</code>, <code>pattern</code> and <code>replacement</code>.</li>
-<li>AST rules: provide <code>matcher.type: 'ast'</code> with <code>language: 'javascript'</code> and a <code>visitor</code> function that accepts <code>{ ast, file, report }</code>.</li>
-<li>Lightweight CI: Validators will gracefully fallback to a regex advisory scan if <code>@babel/traverse</code> is not available. To enable full AST checks, add <code>@babel/traverse</code> to <code>packages/simplebeacon-cli</code> dependencies.</li>
-</ul>
-<p></p>
-<p>Remediation guidance</p>
-<p></p>
-<ul>
-<li>The <code>fix</code> entry is used by the <code>remediate</code> CLI to apply deterministic string replacements. Prefer conservative, reviewable replacements and always include guidance in the <code>guidance</code> field.</li>
-</ul>
-<p></p>
-<p>Examples</p>
-<p></p>
-<ul>
-<li>See <code>auth-secret-leak.js</code> for a regex-based credential detection example.</li>
-<li>See <code>insecure-llm-telemetry.js</code> for an AST-based example with a safe runtime fallback.</li>
-</ul>
-<p></p></div></body></html>
+      <p></p>
+      <p>Authoring tips</p>
+      <p></p>
+      <ul>
+        <li>
+          Regex rules: provide a <code>matcher.type: 'regex'</code> with
+          <code>pattern</code> and <code>paths</code> array. Optionally include
+          a <code>fix</code> with <code>type: 'replace'</code>,
+          <code>pattern</code> and <code>replacement</code>.
+        </li>
+        <li>
+          AST rules: provide <code>matcher.type: 'ast'</code> with
+          <code>language: 'javascript'</code> and a
+          <code>visitor</code> function that accepts
+          <code>{ ast, file, report }</code>.
+        </li>
+        <li>
+          Lightweight CI: Validators will gracefully fallback to a regex
+          advisory scan if <code>@babel/traverse</code> is not available. To
+          enable full AST checks, add <code>@babel/traverse</code> to
+          <code>packages/simplebeacon-cli</code> dependencies.
+        </li>
+      </ul>
+      <p></p>
+      <p>Remediation guidance</p>
+      <p></p>
+      <ul>
+        <li>
+          The <code>fix</code> entry is used by the <code>remediate</code> CLI
+          to apply deterministic string replacements. Prefer conservative,
+          reviewable replacements and always include guidance in the
+          <code>guidance</code> field.
+        </li>
+      </ul>
+      <p></p>
+      <p>Examples</p>
+      <p></p>
+      <ul>
+        <li>
+          See <code>auth-secret-leak.js</code> for a regex-based credential
+          detection example.
+        </li>
+        <li>
+          See <code>insecure-llm-telemetry.js</code> for an AST-based example
+          with a safe runtime fallback.
+        </li>
+      </ul>
+      <p></p>
+    </div>
+  </body>
+</html>

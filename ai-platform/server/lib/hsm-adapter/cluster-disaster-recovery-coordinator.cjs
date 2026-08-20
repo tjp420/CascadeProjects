@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 43B: Cluster disaster recovery coordinator.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/cluster-disaster-recovery-coordinator
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ClusterDisasterRecoveryCoordinator {
   /**
@@ -36,9 +36,16 @@ class ClusterDisasterRecoveryCoordinator {
    */
   heartbeat(regionId, timestamp, latencyMs) {
     if (!this.regions.has(regionId)) {
-      throw new HsmAdapterError('DR_UNKNOWN_REGION', `region ${regionId} is not registered`);
+      throw new HsmAdapterError(
+        "DR_UNKNOWN_REGION",
+        `region ${regionId} is not registered`,
+      );
     }
-    this._heartbeatLog.set(regionId, { timestamp, latencyMs, receivedAt: Date.now() });
+    this._heartbeatLog.set(regionId, {
+      timestamp,
+      latencyMs,
+      receivedAt: Date.now(),
+    });
     return { ok: true, regionId, latencyMs };
   }
 
@@ -50,21 +57,27 @@ class ClusterDisasterRecoveryCoordinator {
    */
   voteFailover(regionId, voterId) {
     if (this._failedRegions.has(regionId)) {
-      return { voted: false, reason: 'region already marked failed' };
+      return { voted: false, reason: "region already marked failed" };
     }
     const last = this._heartbeatLog.get(regionId);
     const maxLatency = this.policy.maxCrossRegionHeartbeatLatencyMs || 5000;
     if (last && last.latencyMs <= maxLatency) {
-      return { voted: false, reason: 'region is healthy' };
+      return { voted: false, reason: "region is healthy" };
     }
-    if (!this._failoverVotes.has(regionId)) this._failoverVotes.set(regionId, new Set());
+    if (!this._failoverVotes.has(regionId))
+      this._failoverVotes.set(regionId, new Set());
     this._failoverVotes.get(regionId).add(voterId);
     const votes = this._failoverVotes.get(regionId).size;
     const quorum = this.policy.minFailoverQuorumNodes || 3;
     if (votes >= quorum) {
       this._failedRegions.add(regionId);
       if (this._audit) {
-        this._audit('REGIONAL_FAILOVER_INITIATED', { regionId, votes, quorum, voters: [...this._failoverVotes.get(regionId)] });
+        this._audit("REGIONAL_FAILOVER_INITIATED", {
+          regionId,
+          votes,
+          quorum,
+          voters: [...this._failoverVotes.get(regionId)],
+        });
       }
       return { initiated: true, regionId, votes };
     }
@@ -79,17 +92,26 @@ class ClusterDisasterRecoveryCoordinator {
    */
   operatorOverride(regionId, operatorToken) {
     const allowedModes = this.policy.allowedFailoverModes || [];
-    if (!allowedModes.includes('operator-override')) {
-      throw new HsmAdapterError('DR_MODE_BLOCKED', 'operator-override failover is not allowed');
+    if (!allowedModes.includes("operator-override")) {
+      throw new HsmAdapterError(
+        "DR_MODE_BLOCKED",
+        "operator-override failover is not allowed",
+      );
     }
-    if (operatorToken !== 'valid-operator-token') {
-      throw new HsmAdapterError('DR_UNAUTHORIZED', 'operator override token is invalid');
+    if (operatorToken !== "valid-operator-token") {
+      throw new HsmAdapterError(
+        "DR_UNAUTHORIZED",
+        "operator override token is invalid",
+      );
     }
     this._failedRegions.add(regionId);
     if (this._audit) {
-      this._audit('REGIONAL_FAILOVER_INITIATED', { regionId, mode: 'operator-override' });
+      this._audit("REGIONAL_FAILOVER_INITIATED", {
+        regionId,
+        mode: "operator-override",
+      });
     }
-    return { initiated: true, regionId, mode: 'operator-override' };
+    return { initiated: true, regionId, mode: "operator-override" };
   }
 
   /**

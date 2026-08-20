@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                            |
+| ---------------- | ---------------------------------------------------------------- |
 | Feature / change | Track 19: Homomorphic Payload Masking & Encrypted-State Querying |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track19-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                            |
+| Date             | 2026-08-01                                                       |
+| Branch           | `feature/track19-groundwork`                                     |
+| Packages touched | ai-platform                                                      |
 
 ## Scope
 
@@ -66,54 +66,54 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Homomorphic masker tests pass | `cd ai-platform && npx jest --config jest.config.cjs homomorphic-masking` | [ ] |
-| L1-03 | Encrypted search token tests pass | `cd ai-platform && npx jest --config jest.config.cjs encrypted-search-token` | [ ] |
-| L1-04 | Crypto policy tests still pass | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ] |
-| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-06 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-07 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                | Command / method                                                             | Pass |
+| ----- | ------------------------------------ | ---------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files       | `node -c <file>`                                                             | [ ]  |
+| L1-02 | Homomorphic masker tests pass        | `cd ai-platform && npx jest --config jest.config.cjs homomorphic-masking`    | [ ]  |
+| L1-03 | Encrypted search token tests pass    | `cd ai-platform && npx jest --config jest.config.cjs encrypted-search-token` | [ ]  |
+| L1-04 | Crypto policy tests still pass       | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine`   | [ ]  |
+| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test`                                                 | [ ]  |
+| L1-06 | SimpleBeacon full gate               | `npx simplebeacon scan --full --gate --format json`                          | [ ]  |
+| L1-07 | No secrets in diff                   | `git diff --cached`                                                          | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Blind and unmask an integer | `masker.blind(100n)` then `unmask(c, r)` | Returns `100n` | [ ] |
-| L2-02 | Add two masked integers without unwrapping | `masker.add(c1, c2, r1, r2)` | Returns `(x1 + x2) mod p` | [ ] |
-| L2-03 | Generate matching search tokens with same salt and query | `token.generate('foo')` x2 | Both return identical 32-byte token | [ ] |
-| L2-04 | Different salts produce different tokens | `token.generate('foo', saltA)` vs `saltB` | Tokens differ | [ ] |
-| L2-05 | Token rotation preserves matching during grace window | `rotate()`, then match old token | Old token still valid | [ ] |
-| L2-06 | Policy rejects excessive modulus bits | `validate('t1', 'homomorphic', { maxModulusBits: 4096 })` | Throws `POLICY_VIOLATION_BLOCKED` | [ ] |
+| ID    | Scenario                                                 | Steps                                                     | Expected                            | Pass |
+| ----- | -------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------- | ---- |
+| L2-01 | Blind and unmask an integer                              | `masker.blind(100n)` then `unmask(c, r)`                  | Returns `100n`                      | [ ]  |
+| L2-02 | Add two masked integers without unwrapping               | `masker.add(c1, c2, r1, r2)`                              | Returns `(x1 + x2) mod p`           | [ ]  |
+| L2-03 | Generate matching search tokens with same salt and query | `token.generate('foo')` x2                                | Both return identical 32-byte token | [ ]  |
+| L2-04 | Different salts produce different tokens                 | `token.generate('foo', saltA)` vs `saltB`                 | Tokens differ                       | [ ]  |
+| L2-05 | Token rotation preserves matching during grace window    | `rotate()`, then match old token                          | Old token still valid               | [ ]  |
+| L2-06 | Policy rejects excessive modulus bits                    | `validate('t1', 'homomorphic', { maxModulusBits: 4096 })` | Throws `POLICY_VIOLATION_BLOCKED`   | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Unmasking with wrong blinding factor fails | Throws `INVALID_BLIND` | [ ] |
-| L3-02 | Input `>= p` is reduced modulo `p` | `blind(p + 5n)` is equivalent to `5n` | [ ] |
-| L3-03 | Expired tokens are rejected | `rotate(); wait(tokenExpiryMs + 1); match` throws `TOKEN_EXPIRED` | [ ] |
-| L3-04 | Existing Tracks 10–18 tests still pass | No regressions | [ ] |
+| ID    | Case                                       | Expected                                                          | Pass |
+| ----- | ------------------------------------------ | ----------------------------------------------------------------- | ---- |
+| L3-01 | Unmasking with wrong blinding factor fails | Throws `INVALID_BLIND`                                            | [ ]  |
+| L3-02 | Input `>= p` is reduced modulo `p`         | `blind(p + 5n)` is equivalent to `5n`                             | [ ]  |
+| L3-03 | Expired tokens are rejected                | `rotate(); wait(tokenExpiryMs + 1); match` throws `TOKEN_EXPIRED` | [ ]  |
+| L3-04 | Existing Tracks 10–18 tests still pass     | No regressions                                                    | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Blinding factors are uniformly random and never logged | [ ] |
-| S-02 | Raw plaintext never appears in masked or tokenized output | [ ] |
-| S-03 | `HOMOMORPHIC_OVERFLOW` is thrown before any result exceeds `2p` | [ ] |
-| S-04 | Expired search salts are zeroized | [ ] |
+| ID   | Requirement                                                     | Pass |
+| ---- | --------------------------------------------------------------- | ---- |
+| S-01 | Blinding factors are uniformly random and never logged          | [ ]  |
+| S-02 | Raw plaintext never appears in masked or tokenized output       | [ ]  |
+| S-03 | `HOMOMORPHIC_OVERFLOW` is thrown before any result exceeds `2p` | [ ]  |
+| S-04 | Expired search salts are zeroized                               | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

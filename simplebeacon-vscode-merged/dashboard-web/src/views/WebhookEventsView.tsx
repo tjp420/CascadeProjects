@@ -193,7 +193,9 @@ export function WebhookEventsView() {
               {statusTypes.map((status) => (
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex h-2 w-2 rounded-full ${STATUS_COLORS[status]?.split(' ')[0] || 'bg-gray-400'}`} />
+                    <span
+                      className={`inline-flex h-2 w-2 rounded-full ${STATUS_COLORS[status]?.split(' ')[0] || 'bg-gray-400'}`}
+                    />
                     <span className="text-sm capitalize">{status}</span>
                   </div>
                   <Badge variant="secondary">{stats.byStatus[status]}</Badge>
@@ -212,7 +214,11 @@ export function WebhookEventsView() {
           onChange={(e) => setFilterType(e.target.value)}
         >
           <option value="">All types</option>
-          {eventTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          {eventTypes.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
         </select>
         <select
           className="h-8 rounded-md border border-input bg-background px-2 text-sm"
@@ -220,10 +226,21 @@ export function WebhookEventsView() {
           onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="">All statuses</option>
-          {statusTypes.map((s) => <option key={s} value={s}>{s}</option>)}
+          {statusTypes.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </select>
         {(filterType || filterStatus) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterType(''); setFilterStatus(''); }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterType('');
+              setFilterStatus('');
+            }}
+          >
             Clear
           </Button>
         )}
@@ -243,7 +260,9 @@ export function WebhookEventsView() {
             <div className="text-center py-8">
               <Clock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">No webhook events recorded yet.</p>
-              <p className="text-xs text-muted-foreground mt-1">Events will appear here when Stripe sends webhooks to your endpoint.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Events will appear here when Stripe sends webhooks to your endpoint.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -255,16 +274,18 @@ export function WebhookEventsView() {
                     key={evt.eventId}
                     className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors"
                   >
-                    <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${isCritical ? 'text-red-500' : 'text-muted-foreground'}`} />
+                    <Icon
+                      className={`h-5 w-5 mt-0.5 shrink-0 ${isCritical ? 'text-red-500' : 'text-muted-foreground'}`}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-mono font-medium">{evt.eventType}</span>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[evt.status] || STATUS_COLORS.processed}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[evt.status] || STATUS_COLORS.processed}`}
+                        >
                           {evt.status}
                         </span>
-                        {evt.amount && (
-                          <span className="text-xs text-muted-foreground">{evt.amount}</span>
-                        )}
+                        {evt.amount && <span className="text-xs text-muted-foreground">{evt.amount}</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span>{timeAgo(evt.timestamp)}</span>

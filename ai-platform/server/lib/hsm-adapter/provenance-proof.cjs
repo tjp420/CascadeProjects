@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 16: Decentralized provenance proof.
@@ -10,10 +10,10 @@
  * @module hsm-adapter/provenance-proof
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
-const DEFAULT_HASH = 'sha256';
+const DEFAULT_HASH = "sha256";
 
 function _canonicalJson(obj) {
   const sorted = {};
@@ -30,11 +30,14 @@ class ProvenanceProof {
    * @returns {object}
    */
   static create(record) {
-    if (!record || typeof record !== 'object' || !record.kekId) {
-      throw new HsmAdapterError('INVALID_INPUT', 'record must be a valid provenance record');
+    if (!record || typeof record !== "object" || !record.kekId) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "record must be a valid provenance record",
+      );
     }
     return {
-      version: '1.0.0',
+      version: "1.0.0",
       record,
     };
   }
@@ -46,20 +49,23 @@ class ProvenanceProof {
    * @returns {boolean}
    */
   static verify(proof, rootPublicKey) {
-    if (!proof || typeof proof !== 'object' || !proof.record) {
-      throw new HsmAdapterError('INVALID_INPUT', 'proof must contain a record');
+    if (!proof || typeof proof !== "object" || !proof.record) {
+      throw new HsmAdapterError("INVALID_INPUT", "proof must contain a record");
     }
     const record = proof.record;
     const { signature, ...unsigned } = record;
     const payload = _canonicalJson(unsigned);
     const valid = crypto.verify(
       DEFAULT_HASH,
-      Buffer.from(payload, 'utf8'),
+      Buffer.from(payload, "utf8"),
       rootPublicKey,
-      Buffer.from(signature, 'base64')
+      Buffer.from(signature, "base64"),
     );
     if (!valid) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance proof signature verification failed');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance proof signature verification failed",
+      );
     }
     return true;
   }

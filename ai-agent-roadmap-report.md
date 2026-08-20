@@ -74,7 +74,7 @@ Generated from: `j:/Downloads/roadmap-ai_agent-2026-07-07.json`
   - Snippet: `console.error('Unexpected PostgreSQL pool error:', err.message);`
   - Description: Review && remediate: "console.error('Unexpected PostgreSQL pool error:', err.message);" in api-server/lib/db.cjs:18
 - **api-server/migrations/run-migrations.cjs:43**
-  - Snippet: `console.log(`  SKIP ${file}`);`
+  - Snippet: `console.log(` SKIP ${file}`);`
   - Description: Review && remediate: "console.log(`  SKIP ${file}`);" in api-server/migrations/run-migrations.cjs:43
 
 ## Next Steps

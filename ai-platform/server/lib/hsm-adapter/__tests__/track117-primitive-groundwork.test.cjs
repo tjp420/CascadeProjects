@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 117 Primitive Groundwork — BFT Shard Sync Policy Formalization
@@ -11,22 +11,25 @@
  * - All 7 telemetry counters registered in hsm-metrics.cjs
  */
 
-const { CryptoPolicyEngine, DEFAULT_POLICY } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
-const hsmMetrics = require('../hsm-metrics.cjs');
+const {
+  CryptoPolicyEngine,
+  DEFAULT_POLICY,
+} = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
+const hsmMetrics = require("../hsm-metrics.cjs");
 
-describe('Track 117 primitive groundwork — bftShardSync policy formalization', () => {
-  test('GROUND-117-01: schema validation rejects malformed config', () => {
+describe("Track 117 primitive groundwork — bftShardSync policy formalization", () => {
+  test("GROUND-117-01: schema validation rejects malformed config", () => {
     const engine = new CryptoPolicyEngine({ default: {} });
 
     // Helper: verify a config throws HsmAdapterError with POLICY_VIOLATION_BLOCKED
     function expectViolation(config) {
       try {
-        engine.validate('t1', 'bftShardSync', config);
-        throw new Error('expected validation to throw');
+        engine.validate("t1", "bftShardSync", config);
+        throw new Error("expected validation to throw");
       } catch (e) {
         expect(e).toBeInstanceOf(HsmAdapterError);
-        expect(e.code).toBe('POLICY_VIOLATION_BLOCKED');
+        expect(e.code).toBe("POLICY_VIOLATION_BLOCKED");
       }
     }
 
@@ -52,12 +55,12 @@ describe('Track 117 primitive groundwork — bftShardSync policy formalization',
     expectViolation({ maxShardsPerCluster: 9999 });
   });
 
-  test('GROUND-117-02: DEFAULT_POLICY merges cleanly with tenant overrides', () => {
+  test("GROUND-117-02: DEFAULT_POLICY merges cleanly with tenant overrides", () => {
     const policy = {
-      version: '0.0.0',
+      version: "0.0.0",
       default: {},
       tenants: {
-        'tenant-117-override': {
+        "tenant-117-override": {
           bftShardSync: {
             lagThreshold: 16,
             maxCatchUpBatchSize: 32,
@@ -67,7 +70,7 @@ describe('Track 117 primitive groundwork — bftShardSync policy formalization',
     };
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    const resolved = engine.getPolicy('tenant-117-override');
+    const resolved = engine.getPolicy("tenant-117-override");
     expect(resolved).toBeDefined();
     expect(resolved.bftShardSync).toBeDefined();
     // Overridden values
@@ -81,34 +84,36 @@ describe('Track 117 primitive groundwork — bftShardSync policy formalization',
     expect(resolved.bftShardSync.maxShardsPerCluster).toBe(128);
   });
 
-  test('GROUND-117-03: all 7 bftShardSync telemetry counters register and expose', () => {
+  test("GROUND-117-03: all 7 bftShardSync telemetry counters register and expose", () => {
     const metrics = hsmMetrics.getMetrics();
     const requiredCounters = [
-      'hsm_shard_append_total',
-      'hsm_shard_ack_total',
-      'hsm_shard_commit_total',
-      'hsm_shard_catchup_batch_total',
-      'hsm_shard_byzantine_detected_total',
-      'hsm_shard_lagging_nodes',
-      'hsm_shard_active',
+      "hsm_shard_append_total",
+      "hsm_shard_ack_total",
+      "hsm_shard_commit_total",
+      "hsm_shard_catchup_batch_total",
+      "hsm_shard_byzantine_detected_total",
+      "hsm_shard_lagging_nodes",
+      "hsm_shard_active",
     ];
     for (const counter of requiredCounters) {
       expect(metrics).toHaveProperty(counter);
-      expect(typeof metrics[counter]).toBe('number');
+      expect(typeof metrics[counter]).toBe("number");
     }
   });
 
-  test('GROUND-117-04: all modified files load without error', () => {
+  test("GROUND-117-04: all modified files load without error", () => {
     // Re-require the policy engine to verify it loads cleanly
-    delete require.cache[require.resolve('../crypto-policy-engine.cjs')];
+    delete require.cache[require.resolve("../crypto-policy-engine.cjs")];
     expect(() => {
-      const { CryptoPolicyEngine: CPE } = require('../crypto-policy-engine.cjs');
+      const {
+        CryptoPolicyEngine: CPE,
+      } = require("../crypto-policy-engine.cjs");
       const engine = new CPE({ default: {} });
       expect(engine).toBeInstanceOf(CPE);
     }).not.toThrow();
   });
 
-  test('GROUND-117-05: defaults to strict production hardening limits', () => {
+  test("GROUND-117-05: defaults to strict production hardening limits", () => {
     const defaults = DEFAULT_POLICY.bftShardSync;
     expect(defaults).toBeDefined();
     expect(defaults.minQuorumNodes).toBe(3);
@@ -121,17 +126,19 @@ describe('Track 117 primitive groundwork — bftShardSync policy formalization',
 
     // Verify validate() with empty config passes (uses defaults)
     const engine = new CryptoPolicyEngine({ default: {} });
-    expect(engine.validate('t1', 'bftShardSync', {})).toBe(true);
+    expect(engine.validate("t1", "bftShardSync", {})).toBe(true);
 
     // Verify validate() with valid config within bounds passes
-    expect(engine.validate('t1', 'bftShardSync', {
-      minQuorumNodes: 5,
-      maxCatchUpBatchSize: 32,
-      lagThreshold: 4,
-      byzantineDivergenceThreshold: 50,
-      requireQuorumCommit: true,
-      requireAntiReplay: true,
-      maxShardsPerCluster: 64,
-    })).toBe(true);
+    expect(
+      engine.validate("t1", "bftShardSync", {
+        minQuorumNodes: 5,
+        maxCatchUpBatchSize: 32,
+        lagThreshold: 4,
+        byzantineDivergenceThreshold: 50,
+        requireQuorumCommit: true,
+        requireAntiReplay: true,
+        maxShardsPerCluster: 64,
+      }),
+    ).toBe(true);
   });
 });

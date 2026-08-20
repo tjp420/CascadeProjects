@@ -49,26 +49,44 @@ const TOUR_STEPS = [
 ];
 
 function getCompleted() {
-    try { return localStorage.getItem(TOUR_COMPLETED_KEY) === '1'; } catch { return false; }
+    try {
+        return localStorage.getItem(TOUR_COMPLETED_KEY) === '1';
+    } catch {
+        return false;
+    }
 }
 
 function setCompleted() {
-    try { localStorage.setItem(TOUR_COMPLETED_KEY, '1'); } catch { /* ignore */ }
+    try {
+        localStorage.setItem(TOUR_COMPLETED_KEY, '1');
+    } catch {
+        /* ignore */
+    }
 }
 
 function getSavedStep() {
     try {
         const raw = localStorage.getItem(TOUR_STEP_KEY);
         return raw ? parseInt(raw, 10) : 0;
-    } catch { return 0; }
+    } catch {
+        return 0;
+    }
 }
 
 function saveStep(step) {
-    try { localStorage.setItem(TOUR_STEP_KEY, String(step)); } catch { /* ignore */ }
+    try {
+        localStorage.setItem(TOUR_STEP_KEY, String(step));
+    } catch {
+        /* ignore */
+    }
 }
 
 function clearStep() {
-    try { localStorage.removeItem(TOUR_STEP_KEY); } catch { /* ignore */ }
+    try {
+        localStorage.removeItem(TOUR_STEP_KEY);
+    } catch {
+        /* ignore */
+    }
 }
 
 export function shouldShowTour() {
@@ -118,7 +136,7 @@ export class GuidedTour {
     _createOverlay() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'guided-tour-overlay';
-        this.overlay.addEventListener('click', (e) => {
+        this.overlay.addEventListener('click', e => {
             if (e.target === this.overlay) {
                 this.stop();
             }
@@ -169,8 +187,9 @@ export class GuidedTour {
             <h3 class="guided-tour-title" id="tour-title">${step.title}</h3>
             <p class="guided-tour-body">${step.body}</p>
             <div class="guided-tour-dots">
-                ${TOUR_STEPS.map((_, i) => 
-                    `<span class="guided-tour-dot ${i === this.currentStep ? 'active' : ''} ${i < this.currentStep ? 'done' : ''}"></span>`
+                ${TOUR_STEPS.map(
+                    (_, i) =>
+                        `<span class="guided-tour-dot ${i === this.currentStep ? 'active' : ''} ${i < this.currentStep ? 'done' : ''}"></span>`
                 ).join('')}
             </div>
             <div class="guided-tour-actions">
@@ -200,7 +219,7 @@ export class GuidedTour {
                 const rect = targetEl.getBoundingClientRect();
                 const tooltipRect = tooltip.getBoundingClientRect();
                 let top = rect.bottom + padding;
-                let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
 
                 if (top + tooltipRect.height > window.innerHeight - 20) {
                     top = rect.top - tooltipRect.height - padding;
@@ -217,8 +236,7 @@ export class GuidedTour {
                 targetEl.classList.add('guided-tour-highlight');
                 // scroll into view after positioning so the browser can optimize.
                 requestAnimationFrame(() => targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-            }
-            else {
+            } else {
                 tooltip.style.top = '50%';
                 tooltip.style.left = '50%';
                 tooltip.style.transform = 'translate(-50%, -50%)';
@@ -232,15 +250,17 @@ export class GuidedTour {
             if (isLast) {
                 this.complete();
             } else {
-                document.querySelectorAll('.guided-tour-highlight').forEach(el => 
-                    el.classList.remove('guided-tour-highlight'));
+                document
+                    .querySelectorAll('.guided-tour-highlight')
+                    .forEach(el => el.classList.remove('guided-tour-highlight'));
                 this._goToStep(this.currentStep + 1);
             }
         });
 
         tooltip.querySelector('#tour-back')?.addEventListener('click', () => {
-            document.querySelectorAll('.guided-tour-highlight').forEach(el => 
-                el.classList.remove('guided-tour-highlight'));
+            document
+                .querySelectorAll('.guided-tour-highlight')
+                .forEach(el => el.classList.remove('guided-tour-highlight'));
             this._goToStep(this.currentStep - 1);
         });
 

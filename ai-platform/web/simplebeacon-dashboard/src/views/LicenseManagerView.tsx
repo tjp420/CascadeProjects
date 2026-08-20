@@ -1,20 +1,35 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
+import { useState, useCallback, useEffect } from "react";
 import {
-  Users, RefreshCw, AlertCircle, UserPlus, Trash2, Copy, CheckCircle2,
-  Clock, Mail, Loader2, Crown,
-} from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
-import { toast } from 'sonner';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  Users,
+  RefreshCw,
+  AlertCircle,
+  UserPlus,
+  Trash2,
+  Copy,
+  CheckCircle2,
+  Clock,
+  Mail,
+  Loader2,
+  Crown,
+} from "lucide-react";
+import { apiUrl, authHeaders } from "@/config";
+import { toast } from "sonner";
 
 interface Seat {
   seatId: string;
   email: string;
-  status: 'active' | 'pending';
+  status: "active" | "pending";
   inviteToken: string | null;
   invitedAt: string;
   activatedAt: string | null;
@@ -33,7 +48,7 @@ interface SeatRoster {
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
@@ -43,10 +58,10 @@ function timeAgo(iso: string): string {
 
 function tierDisplayName(tier: string): string {
   const names: Record<string, string> = {
-    developer: 'Developer',
-    team_pro: 'Team Pro',
-    enterprise: 'Enterprise',
-    pro: 'Pro (Legacy)',
+    developer: "Developer",
+    team_pro: "Team Pro",
+    enterprise: "Enterprise",
+    pro: "Pro (Legacy)",
   };
   return names[tier] || tier;
 }
@@ -55,7 +70,7 @@ export function LicenseManagerView() {
   const [roster, setRoster] = useState<SeatRoster | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [revokingSeatId, setRevokingSeatId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -64,12 +79,14 @@ export function LicenseManagerView() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(apiUrl('/license/seats'), {
+      const res = await fetch(apiUrl("/license/seats"), {
         headers: { ...authHeaders() },
       });
       if (!res.ok) {
         if (res.status === 403) {
-          setError('No active license found. Purchase a Team Pro or Enterprise plan to manage seats.');
+          setError(
+            "No active license found. Purchase a Team Pro or Enterprise plan to manage seats.",
+          );
           return;
         }
         throw new Error(`HTTP ${res.status}`);
@@ -82,11 +99,11 @@ export function LicenseManagerView() {
         maxSeats: data.maxSeats ?? 0,
         seatsUsed: data.seatsUsed ?? 0,
         seatsRemaining: data.seatsRemaining ?? 0,
-        tier: data.tier || 'free',
+        tier: data.tier || "free",
         ...data,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to load seat roster');
+      setError(err.message || "Failed to load seat roster");
     } finally {
       setLoading(false);
     }
@@ -98,50 +115,54 @@ export function LicenseManagerView() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      toast.error('Email is required');
+      toast.error("Email is required");
       return;
     }
     setInviting(true);
     try {
-      const res = await fetch(apiUrl('/license/seats/invite'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      const res = await fetch(apiUrl("/license/seats/invite"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ email: inviteEmail.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.message || data.error || 'Failed to send invitation');
+        toast.error(data.message || data.error || "Failed to send invitation");
         return;
       }
       toast.success(`Invitation created for ${inviteEmail.trim()}`);
-      setInviteEmail('');
+      setInviteEmail("");
       await fetchRoster();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send invitation');
+      toast.error(err.message || "Failed to send invitation");
     } finally {
       setInviting(false);
     }
   };
 
   const handleRevoke = async (seatId: string, email: string) => {
-    if (!confirm(`Revoke seat access for ${email}? This will deactivate their license immediately.`)) {
+    if (
+      !confirm(
+        `Revoke seat access for ${email}? This will deactivate their license immediately.`,
+      )
+    ) {
       return;
     }
     setRevokingSeatId(seatId);
     try {
       const res = await fetch(apiUrl(`/license/seats/revoke/${seatId}`), {
-        method: 'DELETE',
+        method: "DELETE",
         headers: { ...authHeaders() },
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.message || data.error || 'Failed to revoke seat');
+        toast.error(data.message || data.error || "Failed to revoke seat");
         return;
       }
       toast.success(`Seat revoked for ${email}`);
       await fetchRoster();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to revoke seat');
+      toast.error(err.message || "Failed to revoke seat");
     } finally {
       setRevokingSeatId(null);
     }
@@ -153,10 +174,10 @@ export function LicenseManagerView() {
     try {
       await navigator.clipboard.writeText(link);
       setCopiedToken(token);
-      toast.success('Invitation link copied to clipboard');
+      toast.success("Invitation link copied to clipboard");
       setTimeout(() => setCopiedToken(null), 2000);
     } catch {
-      toast.error('Failed to copy link');
+      toast.error("Failed to copy link");
     }
   };
 
@@ -172,7 +193,9 @@ export function LicenseManagerView() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <AlertCircle className="h-10 w-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground text-center max-w-md">{error}</p>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          {error}
+        </p>
         <Button variant="outline" size="sm" onClick={fetchRoster}>
           <RefreshCw className="h-4 w-4" /> Retry
         </Button>
@@ -183,7 +206,10 @@ export function LicenseManagerView() {
   if (!roster) return null;
 
   const allSeats = [...(roster.seats || []), ...(roster.pendingInvites || [])];
-  const seatUtilization = roster.maxSeats === Infinity ? 0 : (roster.seatsUsed / roster.maxSeats) * 100;
+  const seatUtilization =
+    roster.maxSeats === Infinity
+      ? 0
+      : (roster.seatsUsed / roster.maxSeats) * 100;
   const isUnlimited = roster.maxSeats === Infinity;
 
   return (
@@ -198,10 +224,16 @@ export function LicenseManagerView() {
                 License Seat Management
               </CardTitle>
               <CardDescription>
-                Manage developer seats for your {tierDisplayName(roster.tier)} plan
+                Manage developer seats for your {tierDisplayName(roster.tier)}{" "}
+                plan
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchRoster} disabled={loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRoster}
+              disabled={loading}
+            >
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>
@@ -225,8 +257,11 @@ export function LicenseManagerView() {
               <Progress
                 value={seatUtilization}
                 indicatorClassName={
-                  seatUtilization >= 100 ? 'bg-destructive' :
-                  seatUtilization >= 80 ? 'bg-yellow-500' : 'bg-primary'
+                  seatUtilization >= 100
+                    ? "bg-destructive"
+                    : seatUtilization >= 80
+                      ? "bg-yellow-500"
+                      : "bg-primary"
                 }
               />
             )}
@@ -256,7 +291,8 @@ export function LicenseManagerView() {
           <CardContent className="py-6">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <AlertCircle className="h-5 w-5 text-yellow-500" />
-              All {roster.maxSeats} seats are in use. Revoke a seat to invite a new developer.
+              All {roster.maxSeats} seats are in use. Revoke a seat to invite a
+              new developer.
             </div>
           </CardContent>
         </Card>
@@ -275,12 +311,21 @@ export function LicenseManagerView() {
                 placeholder="developer@team.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !inviting && handleInvite()}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !inviting && handleInvite()
+                }
                 disabled={inviting}
                 className="flex-1"
               />
-              <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
-                {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              <Button
+                onClick={handleInvite}
+                disabled={inviting || !inviteEmail.trim()}
+              >
+                {inviting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
                 Send Invite
               </Button>
             </div>
@@ -307,7 +352,7 @@ export function LicenseManagerView() {
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="flex-shrink-0">
-                      {seat.status === 'active' ? (
+                      {seat.status === "active" ? (
                         <CheckCircle2 className="h-5 w-5 text-green-500" />
                       ) : (
                         <Clock className="h-5 w-5 text-yellow-500" />
@@ -315,27 +360,29 @@ export function LicenseManagerView() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{seat.email}</span>
+                        <span className="text-sm font-medium truncate">
+                          {seat.email}
+                        </span>
                         <Badge
                           variant="secondary"
                           className={
-                            seat.status === 'active'
-                              ? 'bg-green-500/15 text-green-700 dark:text-green-400'
-                              : 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400'
+                            seat.status === "active"
+                              ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                              : "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400"
                           }
                         >
                           {seat.status}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {seat.status === 'active' && seat.activatedAt
+                        {seat.status === "active" && seat.activatedAt
                           ? `Activated ${timeAgo(seat.activatedAt)}`
                           : `Invited ${timeAgo(seat.invitedAt)}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {seat.status === 'pending' && seat.inviteToken && (
+                    {seat.status === "pending" && seat.inviteToken && (
                       <Button
                         variant="ghost"
                         size="sm"

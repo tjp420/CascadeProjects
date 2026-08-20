@@ -7,6 +7,7 @@ This guide explains how to configure Stripe for live mode to accept payments for
 You need to create the following products in your Stripe Dashboard:
 
 ### 1. Teams Monthly Subscription
+
 - **Product Name:** Teams Monthly
 - **Price ID:** `STRIPE_PRICE_ID_TEAMS_MONTHLY`
 - **Price:** $99/month (adjust as needed)
@@ -14,6 +15,7 @@ You need to create the following products in your Stripe Dashboard:
 - **Interval:** Month
 
 ### 2. Teams Annual Subscription
+
 - **Product Name:** Teams Annual
 - **Price ID:** `STRIPE_PRICE_ID_TEAMS_ANNUAL`
 - **Price:** $999/year (adjust as needed)
@@ -21,24 +23,28 @@ You need to create the following products in your Stripe Dashboard:
 - **Interval:** Year
 
 ### 3. Executive Clearance (One-time)
+
 - **Product Name:** Executive Risk Certificate
 - **Price ID:** `STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE`
 - **Price:** $499.00
 - **Type:** One-time payment
 
 ### 4. Instant Report (One-time)
+
 - **Product Name:** Website Security Report
 - **Price ID:** `STRIPE_PRICE_ID_INSTANT_REPORT`
 - **Price:** $19.00
 - **Type:** One-time payment
 
 ### 5. EU AI Act Sprint (One-time)
+
 - **Product Name:** EU AI Act Sprint
 - **Price ID:** `STRIPE_PRICE_ID_EU_AI_ACT_SPRINT`
 - **Price:** $2,499.00
 - **Type:** One-time payment
 
 ### 6. Continuous Shield (Subscription)
+
 - **Product Name:** Continuous Shield
 - **Price ID:** `STRIPE_PRICE_ID_CONTINUOUS_SHIELD`
 - **Price:** $1,499.00/month
@@ -46,6 +52,7 @@ You need to create the following products in your Stripe Dashboard:
 - **Interval:** Month
 
 ### 7. Runtime Shield (Subscription)
+
 - **Product Name:** Runtime Shield
 - **Price ID:** `STRIPE_PRICE_ID_RUNTIME_SHIELD`
 - **Price:** $2,999.00/month
@@ -55,11 +62,13 @@ You need to create the following products in your Stripe Dashboard:
 ## Setup Steps
 
 ### 1. Create Stripe Account (if not already done)
+
 - Go to https://dashboard.stripe.com/register
 - Complete the registration process
 - Verify your email and business information
 
 ### 2. Switch to Live Mode
+
 - In the Stripe Dashboard, toggle from "Test mode" to "Live mode"
 - Complete the onboarding requirements (bank account, business details, etc.)
 
@@ -140,12 +149,14 @@ openssl rand -hex 32
 The billing system sends confirmation emails with license tokens. Configure one of:
 
 **Option A: Resend (Recommended)**
+
 ```bash
 RESEND_API_KEY=re_...
 RESEND_FROM=onboarding@simplebeacon.com
 ```
 
 **Option B: SMTP**
+
 ```bash
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=465
@@ -190,21 +201,25 @@ Before going live:
 ## Troubleshooting
 
 ### Webhook not receiving events
+
 - Check the endpoint URL is correct and accessible
 - Verify the webhook secret matches
 - Check Stripe dashboard webhook delivery logs
 
 ### Email not sending
+
 - Verify email service credentials
 - Check the email queue directory for failed attempts
 - Test email service independently
 
 ### License token invalid
+
 - Verify `SIMPLEBEACON_LICENSE_SECRET` matches between backend and extension
 - Check the token is not expired
 - Ensure the token is being passed correctly in the extension
 
 ### Price ID not found
+
 - Verify the Price ID is correct (starts with `price_`)
 - Check you're using the correct mode (test vs live)
 - Ensure the product is active in Stripe Dashboard
@@ -212,6 +227,7 @@ Before going live:
 ## Next Steps
 
 After Stripe configuration is complete:
+
 1. Complete the end-to-end license flow test
 2. Set up the marketing site domain
 3. Configure the billing webhook endpoints

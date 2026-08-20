@@ -21,7 +21,7 @@ for (let i = startIdx + 'const layoutHtml = '.length; i < content.length; i++) {
     } else {
       depth--;
     }
-  } else if (content[i] === '$' && content[i+1] === '{') {
+  } else if (content[i] === '$' && content[i + 1] === '{') {
     // We need to skip nested template literals - but in the compiled JS, the layoutHtml
     // is a simple template literal without nested backticks (they are escaped)
   }

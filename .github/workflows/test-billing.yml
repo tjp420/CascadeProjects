@@ -2,12 +2,12 @@ name: "💳 Billing Pipeline Verification"
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'ai-platform/**'
-      - '.github/workflows/test-billing.yml'
+      - "ai-platform/**"
+      - ".github/workflows/test-billing.yml"
 
 jobs:
   verify-billing:
@@ -33,9 +33,9 @@ jobs:
       - name: 🟢 Set up Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: 'ai-platform/package.json'
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "ai-platform/package.json"
 
       - name: 📦 Install application dependencies
         run: |
@@ -47,12 +47,12 @@ jobs:
           cd ai-platform
           npm run test:billing
         env:
-          PORT: '58000'
-          STRIPE_SECRET_KEY: 'sk_test_placeholder'
-          STRIPE_WEBHOOK_SECRET: 'whsec_test_secret_placeholder_54200'
-          SUPPORT_EMAIL: 'support@simplebeacon.ai'
-          ADMIN_THROTTLE_DISABLE_REDIS: 'false'
-          ALLOW_DEV_EPHEMERAL_SECRETS: 'true'
-          NODE_ENV: 'development'
-          REDIS_URL: 'redis://localhost:6379'
-          CI_BILLING_TIMEOUT: '90'
+          PORT: "58000"
+          STRIPE_SECRET_KEY: "sk_test_placeholder"
+          STRIPE_WEBHOOK_SECRET: "whsec_test_secret_placeholder_54200"
+          SUPPORT_EMAIL: "support@simplebeacon.ai"
+          ADMIN_THROTTLE_DISABLE_REDIS: "false"
+          ALLOW_DEV_EPHEMERAL_SECRETS: "true"
+          NODE_ENV: "development"
+          REDIS_URL: "redis://localhost:6379"
+          CI_BILLING_TIMEOUT: "90"

@@ -1,61 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>SimpleBeacon Security & Trust</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    body { max-width: 800px; margin: 0 auto; padding: 40px 24px; color: #F3F4F6; background: #0B1120; font-family: Inter, sans-serif; line-height: 1.7; }
-    h1 { font-size: 2rem; margin-bottom: 8px; }
-    h2 { font-size: 1.2rem; margin-top: 32px; margin-bottom: 12px; color: #60A5FA; }
-    p { color: #9CA3AF; margin-bottom: 16px; }
-    ul { color: #9CA3AF; padding-left: 20px; }
-    li { margin-bottom: 8px; }
-    .badge { display: inline-block; background: rgba(37,99,235,0.12); color: #60A5FA; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(37,99,235,0.2); margin-right: 6px; }
-    a { color: #60A5FA; }
-  </style>
-</head>
-<body>
-  <h1>Security & Trust</h1>
-  <p style="color:#9CA3AF;">Last updated: June 2026</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+        <title>SimpleBeacon Security & Trust</title>
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            body {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 40px 24px;
+                color: #f3f4f6;
+                background: #0b1120;
+                font-family: Inter, sans-serif;
+                line-height: 1.7;
+            }
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 8px;
+            }
+            h2 {
+                font-size: 1.2rem;
+                margin-top: 32px;
+                margin-bottom: 12px;
+                color: #60a5fa;
+            }
+            p {
+                color: #9ca3af;
+                margin-bottom: 16px;
+            }
+            ul {
+                color: #9ca3af;
+                padding-left: 20px;
+            }
+            li {
+                margin-bottom: 8px;
+            }
+            .badge {
+                display: inline-block;
+                background: rgba(37, 99, 235, 0.12);
+                color: #60a5fa;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                margin-right: 6px;
+            }
+            a {
+                color: #60a5fa;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Security & Trust</h1>
+        <p style="color: #9ca3af">Last updated: June 2026</p>
 
-  <h2>Zero-Upload Architecture</h2>
-  <p>SimpleBeacon is designed so that your source code never leaves your infrastructure:</p>
-  <ul>
-    <li><strong>CLI:</strong> Runs entirely offline. No network calls unless you explicitly pass <code>--upload</code>.</li>
-    <li><strong>Browser Sandbox:</strong> Executes in your browser's memory. Wiped when the tab closes.</li>
-    <li><strong>IDE Extension:</strong> Shells out to local CLI. No cloud API involved.</li>
-  </ul>
+        <h2>Zero-Upload Architecture</h2>
+        <p>SimpleBeacon is designed so that your source code never leaves your infrastructure:</p>
+        <ul>
+            <li>
+                <strong>CLI:</strong> Runs entirely offline. No network calls unless you explicitly pass
+                <code>--upload</code>.
+            </li>
+            <li><strong>Browser Sandbox:</strong> Executes in your browser's memory. Wiped when the tab closes.</li>
+            <li><strong>IDE Extension:</strong> Shells out to local CLI. No cloud API involved.</li>
+        </ul>
 
-  <h2>Data Residency</h2>
-  <p>When you do use cloud features (e.g., team dashboard), your data stays in your chosen region:</p>
-  <ul>
-    <li><span class="badge">EU</span> Frankfurt, Germany (AWS eu-central-1)</li>
-    <li><span class="badge">US</span> Virginia, USA (AWS us-east-1)</li>
-  </ul>
-  <p>No cross-border data transfer. GDPR compliant by design.</p>
+        <h2>Data Residency</h2>
+        <p>When you do use cloud features (e.g., team dashboard), your data stays in your chosen region:</p>
+        <ul>
+            <li><span class="badge">EU</span> Frankfurt, Germany (AWS eu-central-1)</li>
+            <li><span class="badge">US</span> Virginia, USA (AWS us-east-1)</li>
+        </ul>
+        <p>No cross-border data transfer. GDPR compliant by design.</p>
 
-  <h2>Self-Hosting</h2>
-  <p>Enterprise customers receive a Docker image of the SimpleBeacon platform. Run it:</p>
-  <ul>
-    <li>On-premise</li>
-    <li>In a private VPC</li>
-    <li>Air-gapped (no internet required after initial image pull)</li>
-  </ul>
-  <p>Offline license tokens are validated locally using HMAC-SHA256. No license server to contact.</p>
+        <h2>Self-Hosting</h2>
+        <p>Enterprise customers receive a Docker image of the SimpleBeacon platform. Run it:</p>
+        <ul>
+            <li>On-premise</li>
+            <li>In a private VPC</li>
+            <li>Air-gapped (no internet required after initial image pull)</li>
+        </ul>
+        <p>Offline license tokens are validated locally using HMAC-SHA256. No license server to contact.</p>
 
-  <h2>Cryptographic Integrity</h2>
-  <p>Every scan report can be integrity-verified:</p>
-  <ul>
-    <li>SHA-256 hash of the JSON report output</li>
-    <li>HMAC-signed with your project-specific license secret</li>
-    <li>Auditors can verify reports without logging into SimpleBeacon</li>
-  </ul>
+        <h2>Cryptographic Integrity</h2>
+        <p>Every scan report can be integrity-verified:</p>
+        <ul>
+            <li>SHA-256 hash of the JSON report output</li>
+            <li>HMAC-signed with your project-specific license secret</li>
+            <li>Auditors can verify reports without logging into SimpleBeacon</li>
+        </ul>
 
-  <h2>Contact</h2>
-  <p>Security questions? <a href="mailto:security@simplebeacon.ai">security@simplebeacon.ai</a></p>
-  <p><a href="pricing.html">&larr; Back to Pricing</a></p>
-</body>
+        <h2>Contact</h2>
+        <p>Security questions? <a href="mailto:security@simplebeacon.ai">security@simplebeacon.ai</a></p>
+        <p><a href="pricing.html">&larr; Back to Pricing</a></p>
+    </body>
 </html>

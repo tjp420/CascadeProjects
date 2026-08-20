@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       otp:
-        description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
+        description: "6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)"
         required: false
         type: string
   release:
@@ -32,7 +32,7 @@ jobs:
   build-check:
     name: Build & Pack (checks)
     runs-on: ubuntu-latest
-    if: false  # DISABLED — unified-release.yml handles npm publishing
+    if: false # DISABLED — unified-release.yml handles npm publishing
     outputs:
       package-tgz: ${{ steps.pack.outputs.tgz_path }}
     steps:
@@ -42,7 +42,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Run tests and smoke checks
         working-directory: packages/simplebeacon-cli
@@ -99,8 +99,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Publish to npm
         env:

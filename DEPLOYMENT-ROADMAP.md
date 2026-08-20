@@ -3,6 +3,7 @@
 ## Current State
 
 Right now everything lives in `coming-soon/` as a full-stack monolith:
+
 - Static HTML pages (index.html, pricing.html, upload.html)
 - Express API server (server.cjs)
 - File uploads, scan processing, certificate generation
@@ -70,32 +71,33 @@ Right now everything lives in `coming-soon/` as a full-stack monolith:
 
 ### Cloudflare Pages (Static Site)
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Landing page |
-| `pricing.html` | Pricing + checkout |
-| `upload.html` | Report upload + certificate generation |
-| `certificate-upload.html` | Certificate download page |
-| `community.html` | Community page |
-| `contact.html` | Contact form |
-| `landing.html` | Alternate landing |
-| `privacy.html` | Privacy policy |
-| `terms.html` | Terms of service |
-| `refund.html` | Refund policy |
-| `sample-report.html` | Sample report preview |
-| `sample-certificate.html` | Sample certificate preview |
-| `styles.css` | All styles |
-| `app-links.js` | Frontend utilities |
-| `contact.js` | Contact form handler |
-| `favicon.svg` | Favicon |
-| `robots.txt` | SEO |
-| `sitemap.xml` | SEO |
+| File                      | Purpose                                |
+| ------------------------- | -------------------------------------- |
+| `index.html`              | Landing page                           |
+| `pricing.html`            | Pricing + checkout                     |
+| `upload.html`             | Report upload + certificate generation |
+| `certificate-upload.html` | Certificate download page              |
+| `community.html`          | Community page                         |
+| `contact.html`            | Contact form                           |
+| `landing.html`            | Alternate landing                      |
+| `privacy.html`            | Privacy policy                         |
+| `terms.html`              | Terms of service                       |
+| `refund.html`             | Refund policy                          |
+| `sample-report.html`      | Sample report preview                  |
+| `sample-certificate.html` | Sample certificate preview             |
+| `styles.css`              | All styles                             |
+| `app-links.js`            | Frontend utilities                     |
+| `contact.js`              | Contact form handler                   |
+| `favicon.svg`             | Favicon                                |
+| `robots.txt`              | SEO                                    |
+| `sitemap.xml`             | SEO                                    |
 
 **No backend logic. No secrets. Pure static HTML/CSS/JS.**
 
 ### Cloudflare Workers (Edge Functions)
 
 Optional but recommended:
+
 - **Rate limiting** — protect Render API from abuse
 - **Bot detection** — block scrapers before they hit Render
 - **CORS** — handle preflight at edge, reduce Render load
@@ -104,15 +106,15 @@ Optional but recommended:
 
 ### Render (Node.js Backend)
 
-| Service | Purpose |
-|---------|---------|
-| `coming-soon/server.cjs` | API server (Express) |
-| File upload handler | Receives .zip / directory uploads |
-| Scan engine | Runs simplebeacon CLI |
-| Certificate generator | Creates signed PDFs |
-| Billing webhook | Stripe webhooks |
-| Email queue | Queues certificate emails |
-| Subscription store | Manages license tokens |
+| Service                  | Purpose                           |
+| ------------------------ | --------------------------------- |
+| `coming-soon/server.cjs` | API server (Express)              |
+| File upload handler      | Receives .zip / directory uploads |
+| Scan engine              | Runs simplebeacon CLI             |
+| Certificate generator    | Creates signed PDFs               |
+| Billing webhook          | Stripe webhooks                   |
+| Email queue              | Queues certificate emails         |
+| Subscription store       | Manages license tokens            |
 
 ---
 
@@ -156,11 +158,13 @@ fetch('https://api.simplebeacon.com/api/analyze/upload-directory', {
 ### 1.3 Add CORS to Render API
 
 ```javascript
-const cors = require('cors');
-app.use(cors({
-    origin: ['https://simplebeacon.com', 'https://simplebeacon.pages.dev'],
-    credentials: true
-}));
+const cors = require("cors");
+app.use(
+  cors({
+    origin: ["https://simplebeacon.com", "https://simplebeacon.pages.dev"],
+    credentials: true,
+  }),
+);
 ```
 
 ---
@@ -218,7 +222,7 @@ services:
       - key: PORT
         value: 10000
       - key: SIMPLEBEACON_LICENSE_SECRET
-        sync: false  # Set in Render dashboard
+        sync: false # Set in Render dashboard
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: RESEND_API_KEY
@@ -246,22 +250,22 @@ git push origin main
 ```javascript
 // coming-soon/_worker.js
 export default {
-    async fetch(request, env, ctx) {
-        const url = new URL(request.url);
-        
-        // Rate limiting
-        const clientIP = request.headers.get('CF-Connecting-IP');
-        const rateLimitKey = `ratelimit:${clientIP}`;
-        
-        // Bot detection
-        const userAgent = request.headers.get('User-Agent') || '';
-        if (isBot(userAgent)) {
-            return new Response('Bot detected', { status: 403 });
-        }
-        
-        // Pass through to Pages static content
-        return env.ASSETS.fetch(request);
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // Rate limiting
+    const clientIP = request.headers.get("CF-Connecting-IP");
+    const rateLimitKey = `ratelimit:${clientIP}`;
+
+    // Bot detection
+    const userAgent = request.headers.get("User-Agent") || "";
+    if (isBot(userAgent)) {
+      return new Response("Bot detected", { status: 403 });
     }
+
+    // Pass through to Pages static content
+    return env.ASSETS.fetch(request);
+  },
 };
 ```
 
@@ -285,9 +289,9 @@ CNAME api.simplebeacon.com    → simplebeacon-api.onrender.com
 
 ### 5.2 Page Rules
 
-| Rule | Action |
-|------|--------|
-| `simplebeacon.com/api/*` | Forward to `api.simplebeacon.com` |
+| Rule                         | Action                            |
+| ---------------------------- | --------------------------------- |
+| `simplebeacon.com/api/*`     | Forward to `api.simplebeacon.com` |
 | `simplebeacon.com/uploads/*` | Forward to `api.simplebeacon.com` |
 
 ---
@@ -296,59 +300,59 @@ CNAME api.simplebeacon.com    → simplebeacon-api.onrender.com
 
 ### Files to Move
 
-| From | To | Status |
-|------|-----|--------|
-| `coming-soon/server.cjs` | `api-server/server.js` | ☐ |
-| `coming-soon/.env` | `api-server/.env` + Render env vars | ☐ |
-| `coming-soon/subscriptions.json` | `api-server/data/` or PostgreSQL | ☐ |
-| `coming-soon/.simplebeacon/` | `api-server/.simplebeacon/` | ☐ |
+| From                             | To                                  | Status |
+| -------------------------------- | ----------------------------------- | ------ |
+| `coming-soon/server.cjs`         | `api-server/server.js`              | ☐      |
+| `coming-soon/.env`               | `api-server/.env` + Render env vars | ☐      |
+| `coming-soon/subscriptions.json` | `api-server/data/` or PostgreSQL    | ☐      |
+| `coming-soon/.simplebeacon/`     | `api-server/.simplebeacon/`         | ☐      |
 
 ### Files to Remove from Frontend
 
-| File | Reason |
-|------|--------|
-| `server.cjs` | Backend logic |
-| `package.json` (backend deps) | Frontend has no deps |
-| `.env` | Secrets don't belong in static site |
-| `subscriptions.json` | User data |
-| `error.log` | Server logs |
-| `node_modules/` | Backend dependencies |
-| `start-server.bat` | Local dev only |
-| `stop-server.bat` | Local dev only |
+| File                          | Reason                              |
+| ----------------------------- | ----------------------------------- |
+| `server.cjs`                  | Backend logic                       |
+| `package.json` (backend deps) | Frontend has no deps                |
+| `.env`                        | Secrets don't belong in static site |
+| `subscriptions.json`          | User data                           |
+| `error.log`                   | Server logs                         |
+| `node_modules/`               | Backend dependencies                |
+| `start-server.bat`            | Local dev only                      |
+| `stop-server.bat`             | Local dev only                      |
 
 ### Frontend Changes Needed
 
-| Change | File | Description |
-|--------|------|-------------|
-| API base URL | `upload.html`, `contact.js` | Point to `api.simplebeacon.com` |
-| CORS headers | All fetch calls | Add `credentials: 'include'` |
-| Stripe keys | `pricing.html` | Use publishable key only |
-| WebSocket | `scan-status.html` | Connect to `wss://api.simplebeacon.com` |
+| Change       | File                        | Description                             |
+| ------------ | --------------------------- | --------------------------------------- |
+| API base URL | `upload.html`, `contact.js` | Point to `api.simplebeacon.com`         |
+| CORS headers | All fetch calls             | Add `credentials: 'include'`            |
+| Stripe keys  | `pricing.html`              | Use publishable key only                |
+| WebSocket    | `scan-status.html`          | Connect to `wss://api.simplebeacon.com` |
 
 ---
 
 ## Security Benefits of This Split
 
-| Risk | Before (All on Render) | After (Split) |
-|------|------------------------|---------------|
-| .env exposure | `express.static(__dirname)` serves everything | Cloudflare Pages has no .env |
-| Server code leak | `server.cjs` downloadable | Backend not in static deploy |
-| DDoS on API | Everything on one origin | Cloudflare absorbs DDoS |
-| Geo latency | Render US-East only | Cloudflare edge cache globally |
-| Secret scanning | `node_modules` exposed | Frontend has no secrets |
+| Risk             | Before (All on Render)                        | After (Split)                  |
+| ---------------- | --------------------------------------------- | ------------------------------ |
+| .env exposure    | `express.static(__dirname)` serves everything | Cloudflare Pages has no .env   |
+| Server code leak | `server.cjs` downloadable                     | Backend not in static deploy   |
+| DDoS on API      | Everything on one origin                      | Cloudflare absorbs DDoS        |
+| Geo latency      | Render US-East only                           | Cloudflare edge cache globally |
+| Secret scanning  | `node_modules` exposed                        | Frontend has no secrets        |
 
 ---
 
 ## Cost Estimate
 
-| Service | Plan | Monthly |
-|---------|------|---------|
-| Cloudflare Pages | Free | $0 |
-| Cloudflare Workers | Free tier (100k/day) | $0 |
-| Render API | Standard ($7/mo) | $7 |
-| Render PostgreSQL | Starter ($7/mo) | $7 |
-| Render Redis | Free tier | $0 |
-| **Total** | | **$14/mo** |
+| Service            | Plan                 | Monthly    |
+| ------------------ | -------------------- | ---------- |
+| Cloudflare Pages   | Free                 | $0         |
+| Cloudflare Workers | Free tier (100k/day) | $0         |
+| Render API         | Standard ($7/mo)     | $7         |
+| Render PostgreSQL  | Starter ($7/mo)      | $7         |
+| Render Redis       | Free tier            | $0         |
+| **Total**          |                      | **$14/mo** |
 
 ---
 
@@ -368,6 +372,7 @@ CNAME api.simplebeacon.com    → simplebeacon-api.onrender.com
 ## Current Blockers
 
 Before starting migration:
+
 - [ ] Fix `express.static(__dirname)` vulnerability (done today)
 - [ ] Resolve 38 gate-blocking scan findings
 - [ ] Validate all API endpoints work when called cross-origin
@@ -398,5 +403,5 @@ git push origin main
 
 ---
 
-*Generated: 2026-06-05*
-*Next review: After gate-blocking issues are resolved*
+_Generated: 2026-06-05_
+_Next review: After gate-blocking issues are resolved_

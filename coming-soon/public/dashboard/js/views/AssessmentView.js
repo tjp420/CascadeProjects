@@ -8,38 +8,38 @@ import { showLoginModal } from '../components/LoginModal.js';
  * Assessment view.
  */
 export class AssessmentView {
-  constructor(app) {
-    this.app = app;
-    this.busy = false;
-    this.report = null;
-    this.recent = assessmentService.getRecentAssessments();
-    this.form = {
-      company: '',
-      email: '',
-      repoUrl: '',
-      projectPath: '',
-      assessmentType: 'mna-audit'
-    };
-  }
+    constructor(app) {
+        this.app = app;
+        this.busy = false;
+        this.report = null;
+        this.recent = assessmentService.getRecentAssessments();
+        this.form = {
+            company: '',
+            email: '',
+            repoUrl: '',
+            projectPath: '',
+            assessmentType: 'mna-audit'
+        };
+    }
 
-  renderRuleRow(rule) {
-    const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
-    const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
-    return `
+    renderRuleRow(rule) {
+        const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
+        const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
+        return `
       <tr>
         <td><span class="severity-pill ${cls}">${icon} ${escapeHtml(rule.id)}</span></td>
         <td>${escapeHtml(rule.title)}</td>
         <td>${escapeHtml(rule.evidence || '—')}</td>
       </tr>
     `;
-  }
+    }
 
-  renderReportDetail(assessment) {
-    const summary = assessment.executiveSummary || {};
-    const checklist = assessment.complianceChecklist || {};
-    const rules = checklist.rules || [];
+    renderReportDetail(assessment) {
+        const summary = assessment.executiveSummary || {};
+        const checklist = assessment.complianceChecklist || {};
+        const rules = checklist.rules || [];
 
-    return `
+        return `
       <div class="card mt-4">
         <div class="card-header">
           <span class="card-title">Assessment report</span>
@@ -52,48 +52,56 @@ export class AssessmentView {
           <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">${summary.highIssues ?? 0}</span></div>
           <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">${escapeHtml(assessment.metadata?.expiresAt || '—')}</span></div>
         </div>
-        ${rules.length ? `
+        ${
+            rules.length
+                ? `
           <div class="section-heading" style="padding:0 var(--space-4)"><h2>Corporate safety checklist</h2></div>
           <table class="results-table">
             <thead><tr><th>Rule</th><th>Title</th><th>Evidence</th></tr></thead>
-            <tbody>${rules.map((r) => this.renderRuleRow(r)).join('')}</tbody>
+            <tbody>${rules.map(r => this.renderRuleRow(r)).join('')}</tbody>
           </table>
-        ` : ''}
+        `
+                : ''
+        }
         <div class="card-actions" style="padding:var(--space-4)">
           <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl(assessment.metadata?.assessmentId)}" download>Download JSON</a>
         </div>
       </div>
     `;
-  }
-
-  renderRecentList() {
-    if (!this.recent.length) {
-      return '<p class="text-muted">No assessments yet — run your first scan above.</p>';
     }
-    return `
+
+    renderRecentList() {
+        if (!this.recent.length) {
+            return '<p class="text-muted">No assessments yet — run your first scan above.</p>';
+        }
+        return `
       <table class="results-table">
         <thead><tr><th>Company</th><th>ID</th><th>When</th><th></th></tr></thead>
         <tbody>
-          ${this.recent.map((item) => `
+          ${this.recent
+              .map(
+                  item => `
             <tr>
               <td>${escapeHtml(item.company)}</td>
               <td><code>${escapeHtml(item.assessmentId)}</code></td>
               <td>${escapeHtml(new Date(item.createdAt).toLocaleString())}</td>
               <td><button type="button" class="btn btn-ghost btn-sm" data-open-assessment="${escapeHtml(item.assessmentId)}">View</button></td>
             </tr>
-          `).join('')}
+          `
+              )
+              .join('')}
         </tbody>
       </table>
     `;
-  }
+    }
 
-  render() {
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-    const authed = authService.isAuthenticated();
-    const selectedId = this.app.state.routeParams?.id;
+    render() {
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        const authed = authService.isAuthenticated();
+        const selectedId = this.app.state.routeParams?.id;
 
-el.innerHTML = `
+        el.innerHTML = `
       <h1 class="page-title">Assessment Portal</h1>
   <div style="position:absolute; right:16px; top:16px">
     <button id="assessments-export-btn" class="btn btn-ghost btn-sm">Export</button>
@@ -115,12 +123,16 @@ el.innerHTML = `
             <span class="input-label">Git repo URL ${authed ? '(public or signed-in)' : '(required)'}</span>
             <input class="input" name="repoUrl" placeholder="https://github.com/org/repo" value="${escapeHtml(this.form.repoUrl)}">
           </label>
-          ${authed ? `
+          ${
+              authed
+                  ? `
           <label class="input-group">
             <span class="input-label">Local project path (signed-in only)</span>
             <input class="input" name="projectPath" placeholder="C:\\\\Projects\\\\client-repo" value="${escapeHtml(this.form.projectPath)}">
-          </label>` : `
-          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`}
+          </label>`
+                  : `
+          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`
+          }
           <div class="card-actions">
             <button type="submit" class="btn btn-primary" ${this.busy ? 'disabled' : ''}>
               ${this.busy ? 'Scanning…' : 'Run assessment scan'}
@@ -137,108 +149,109 @@ el.innerHTML = `
       <div id="assessment-detail">${this.report ? this.renderReportDetail(this.report) : ''}</div>
     `;
 
-    el.querySelector('#assessment-form')?.addEventListener('submit', (e) => this.onSubmit(e));
-    el.querySelector('#assessments-export-btn')?.addEventListener('click', () => this.onExport());
-    el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        this.app.navigate('assessments', { id: btn.dataset.openAssessment });
-      });
-    });
+        el.querySelector('#assessment-form')?.addEventListener('submit', e => this.onSubmit(e));
+        el.querySelector('#assessments-export-btn')?.addEventListener('click', () => this.onExport());
+        el.querySelectorAll('[data-open-assessment]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.app.navigate('assessments', { id: btn.dataset.openAssessment });
+            });
+        });
 
-    if (selectedId && this.report?.metadata?.assessmentId === selectedId) {
-      // detail rendered inline below
+        if (selectedId && this.report?.metadata?.assessmentId === selectedId) {
+            // detail rendered inline below
+        }
+
+        return el;
     }
 
-    return el;
-  }
-
-  onExport() {
-    try {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        recent: this.recent || [],
-        report: this.report || null,
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `assessments-export-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      showToast('Export failed: ' + String(err), 'error');
-    }
-  }
-
-  async loadReport(assessmentId) {
-    const data = await assessmentService.fetchReport(assessmentId);
-    this.report = data.assessment;
-    this.app.refreshCurrentView();
-  }
-
-  async onSubmit(e) {
-    e.preventDefault();
-    if (this.busy) return;
-
-    const fd = new FormData(e.target);
-    const payload = {
-      company: String(fd.get('company') || '').trim(),
-      email: String(fd.get('email') || '').trim(),
-      repoUrl: String(fd.get('repoUrl') || '').trim() || undefined,
-      projectPath: String(fd.get('projectPath') || '').trim() || undefined,
-      assessmentType: this.form.assessmentType
-    };
-
-    if (!payload.repoUrl && !payload.projectPath) {
-      showToast('Provide a repo URL or sign in with a local project path', 'error');
-      return;
+    onExport() {
+        try {
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                recent: this.recent || [],
+                report: this.report || null
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `assessments-export-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast('Export failed: ' + String(err), 'error');
+        }
     }
 
-    if (payload.projectPath && !authService.isAuthenticated()) {
-      showLoginModal({ onSuccess: () => e.target.requestSubmit() });
-      return;
+    async loadReport(assessmentId) {
+        const data = await assessmentService.fetchReport(assessmentId);
+        this.report = data.assessment;
+        this.app.refreshCurrentView();
     }
 
-    this.busy = true;
-    this.app.refreshCurrentView();
-    showToast('Running Simplebeacon assessment…', 'info');
+    async onSubmit(e) {
+        e.preventDefault();
+        if (this.busy) return;
 
-    try {
-      const result = await assessmentService.runAssessment(payload);
-      this.recent = assessmentService.getRecentAssessments();
-      showToast(`Assessment complete — ${result.assessmentId}`, 'success');
-      this.app.navigate('assessments', { id: result.assessmentId });
-      const data = await assessmentService.fetchReport(result.assessmentId);
-      this.report = data.assessment;
-    } catch (err) {
-      if (err.status === 401) {
-        showLoginModal({ onSuccess: () => e.target.requestSubmit() });
-      } else {
-        showToast(err.message, 'error');
-      }
-    } finally {
-      this.busy = false;
-      this.app.refreshCurrentView();
-    }
-  }
+        const fd = new FormData(e.target);
+        const payload = {
+            company: String(fd.get('company') || '').trim(),
+            email: String(fd.get('email') || '').trim(),
+            repoUrl: String(fd.get('repoUrl') || '').trim() || undefined,
+            projectPath: String(fd.get('projectPath') || '').trim() || undefined,
+            assessmentType: this.form.assessmentType
+        };
 
-  mount(container) {
-    const selectedId = this.app.state.routeParams?.id;
-    if (selectedId) {
-      if (this.report?.metadata?.assessmentId !== selectedId) {
-        assessmentService.fetchReport(selectedId)
-          .then((data) => {
+        if (!payload.repoUrl && !payload.projectPath) {
+            showToast('Provide a repo URL or sign in with a local project path', 'error');
+            return;
+        }
+
+        if (payload.projectPath && !authService.isAuthenticated()) {
+            showLoginModal({ onSuccess: () => e.target.requestSubmit() });
+            return;
+        }
+
+        this.busy = true;
+        this.app.refreshCurrentView();
+        showToast('Running Simplebeacon assessment…', 'info');
+
+        try {
+            const result = await assessmentService.runAssessment(payload);
+            this.recent = assessmentService.getRecentAssessments();
+            showToast(`Assessment complete — ${result.assessmentId}`, 'success');
+            this.app.navigate('assessments', { id: result.assessmentId });
+            const data = await assessmentService.fetchReport(result.assessmentId);
             this.report = data.assessment;
+        } catch (err) {
+            if (err.status === 401) {
+                showLoginModal({ onSuccess: () => e.target.requestSubmit() });
+            } else {
+                showToast(err.message, 'error');
+            }
+        } finally {
+            this.busy = false;
             this.app.refreshCurrentView();
-          })
-          .catch((err) => showToast(err.message, 'error'));
-      }
-    } else {
-      this.report = null;
+        }
     }
-    this.recent = assessmentService.getRecentAssessments();
-container.innerHTML = '';
-    container.appendChild(this.render());
-  }
+
+    mount(container) {
+        const selectedId = this.app.state.routeParams?.id;
+        if (selectedId) {
+            if (this.report?.metadata?.assessmentId !== selectedId) {
+                assessmentService
+                    .fetchReport(selectedId)
+                    .then(data => {
+                        this.report = data.assessment;
+                        this.app.refreshCurrentView();
+                    })
+                    .catch(err => showToast(err.message, 'error'));
+            }
+        } else {
+            this.report = null;
+        }
+        this.recent = assessmentService.getRecentAssessments();
+        container.innerHTML = '';
+        container.appendChild(this.render());
+    }
 }

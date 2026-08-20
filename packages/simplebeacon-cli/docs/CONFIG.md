@@ -2,11 +2,11 @@
 
 ## Profiles
 
-| Profile | Use case | Rules enabled |
-|---------|----------|---------------|
-| `minimal` | Any repo, quick start | credentials, production-leak |
-| `standard` | Generic projects with mock JSON | all rules, generic fiction patterns |
-| `cascade` | ai-platform dashboard monorepo | all rules + cascade anchors and allowlists |
+| Profile    | Use case                        | Rules enabled                              |
+| ---------- | ------------------------------- | ------------------------------------------ |
+| `minimal`  | Any repo, quick start           | credentials, production-leak               |
+| `standard` | Generic projects with mock JSON | all rules, generic fiction patterns        |
+| `cascade`  | ai-platform dashboard monorepo  | all rules + cascade anchors and allowlists |
 
 ```bash
 npx simplebeacon init --profile minimal
@@ -83,17 +83,22 @@ Starting with the **Startup** tier, you can customize which scanners run and how
 {
   "profile": "standard",
   "scanners": {
-    "credential_leak": { "enabled": true, "action": "BLOCK", "severity": "high" },
-    "hallucinated_urls": { "enabled": true, "action": "WARN", "severity": "medium" },
+    "credential_leak": {
+      "enabled": true,
+      "action": "BLOCK",
+      "severity": "high"
+    },
+    "hallucinated_urls": {
+      "enabled": true,
+      "action": "WARN",
+      "severity": "medium"
+    },
     "fictional_kpis": { "enabled": false },
     "mock_data_paths": { "enabled": true, "action": "WARN" },
     "debug_artifacts": { "enabled": true, "action": "WARN" },
     "eu_ai_act": { "enabled": false, "action": "BLOCK" }
   },
-  "allowlist": [
-    "sandbox.internal-api.local",
-    "://company.com"
-  ],
+  "allowlist": ["sandbox.internal-api.local", "://company.com"],
   "gate": {
     "failOn": ["high"],
     "warnOn": ["medium", "low"]
@@ -103,20 +108,20 @@ Starting with the **Startup** tier, you can customize which scanners run and how
 
 ### Scanner actions
 
-| Action | Behavior |
-|---|---|
-| `BLOCK` | Fails the gate if findings detected |
-| `WARN` | Reports findings but does not fail the gate |
-| `SKIP` | Disables the scanner entirely |
+| Action  | Behavior                                    |
+| ------- | ------------------------------------------- |
+| `BLOCK` | Fails the gate if findings detected         |
+| `WARN`  | Reports findings but does not fail the gate |
+| `SKIP`  | Disables the scanner entirely               |
 
 ### Tier-gated config rights
 
-| Tier | Config rights |
-|---|---|
-| **Developer (Free)** | Fixed `standard` profile only. Custom `scanners` and `allowlist` are ignored. |
-| **Startup ($49)** | Can toggle scanners ON/OFF. `allowlist` is ignored. |
-| **Growth ($149)** | Full scanner toggles + `allowlist` for internal URLs. |
-| **Enterprise (Custom)** | Full config + custom rule development. |
+| Tier                    | Config rights                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| **Developer (Free)**    | Fixed `standard` profile only. Custom `scanners` and `allowlist` are ignored. |
+| **Startup ($49)**       | Can toggle scanners ON/OFF. `allowlist` is ignored.                           |
+| **Growth ($149)**       | Full scanner toggles + `allowlist` for internal URLs.                         |
+| **Enterprise (Custom)** | Full config + custom rule development.                                        |
 
 ### Allowlist
 
@@ -124,11 +129,7 @@ The `allowlist` array contains URL substrings that should never be flagged as ha
 
 ```json
 {
-  "allowlist": [
-    "internal-api.company.com",
-    "staging.local",
-    "://company.com"
-  ]
+  "allowlist": ["internal-api.company.com", "staging.local", "://company.com"]
 }
 ```
 

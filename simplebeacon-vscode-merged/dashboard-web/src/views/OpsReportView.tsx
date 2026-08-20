@@ -150,23 +150,19 @@ export function OpsReportView() {
   };
 
   // Compute metrics from events
-  const last24hEvents = events.filter(
-    (e) => Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000
-  );
+  const last24hEvents = events.filter((e) => Date.now() - new Date(e.timestamp).getTime() < 24 * 60 * 60 * 1000);
 
-  const failureCount = last24hEvents.filter((e) =>
-    e.eventType.includes('payment_failed') || e.eventType.includes('dispute')
+  const failureCount = last24hEvents.filter(
+    (e) => e.eventType.includes('payment_failed') || e.eventType.includes('dispute')
   ).length;
 
-  const successCount = last24hEvents.filter((e) =>
-    e.eventType === 'checkout.session.completed' || e.eventType === 'invoice.paid'
+  const successCount = last24hEvents.filter(
+    (e) => e.eventType === 'checkout.session.completed' || e.eventType === 'invoice.paid'
   ).length;
 
   const errorCount = last24hEvents.filter((e) => e.status === 'error').length;
 
-  const failureRate = last24hEvents.length > 0
-    ? ((failureCount / last24hEvents.length) * 100).toFixed(1)
-    : '0.0';
+  const failureRate = last24hEvents.length > 0 ? ((failureCount / last24hEvents.length) * 100).toFixed(1) : '0.0';
 
   // Build hourly distribution for last 24h
   const hourlyBuckets: Record<string, number> = {};
@@ -203,11 +199,7 @@ export function OpsReportView() {
 
   // Critical events (failures, disputes, errors)
   const criticalEvents = last24hEvents
-    .filter((e) =>
-      e.eventType.includes('payment_failed') ||
-      e.eventType.includes('dispute') ||
-      e.status === 'error'
-    )
+    .filter((e) => e.eventType.includes('payment_failed') || e.eventType.includes('dispute') || e.status === 'error')
     .slice(0, 10);
 
   return (
@@ -221,17 +213,8 @@ export function OpsReportView() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTriggerReport}
-            disabled={triggering}
-          >
-            {triggering ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+          <Button variant="outline" size="sm" onClick={handleTriggerReport} disabled={triggering}>
+            {triggering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="ml-2">Send Report</span>
           </Button>
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
@@ -380,9 +363,7 @@ export function OpsReportView() {
                 <div key={type} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <Icon
-                        className={`h-4 w-4 ${meta.critical ? 'text-red-500' : 'text-muted-foreground'}`}
-                      />
+                      <Icon className={`h-4 w-4 ${meta.critical ? 'text-red-500' : 'text-muted-foreground'}`} />
                       <span className="font-medium">{meta.label}</span>
                     </div>
                     <span className="font-mono text-muted-foreground">{count}</span>
@@ -412,9 +393,7 @@ export function OpsReportView() {
                 .sort()
                 .map(([status, count]) => (
                   <div key={status} className="flex items-center justify-between">
-                    <Badge className={STATUS_COLORS[status] || 'bg-gray-500/15 text-gray-600'}>
-                      {status}
-                    </Badge>
+                    <Badge className={STATUS_COLORS[status] || 'bg-gray-500/15 text-gray-600'}>{status}</Badge>
                     <span className="font-mono text-sm">{count}</span>
                   </div>
                 ))}
@@ -457,9 +436,7 @@ export function OpsReportView() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Scheduled Hour</span>
-                  <span className="text-sm font-mono">
-                    {reportStatus.scheduledHour}:00 (local)
-                  </span>
+                  <span className="text-sm font-mono">{reportStatus.scheduledHour}:00 (local)</span>
                 </div>
               </>
             ) : (
@@ -473,9 +450,7 @@ export function OpsReportView() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Critical Events — Last 24h</CardTitle>
-          <CardDescription>
-            Payment failures, disputes, and processing errors requiring attention
-          </CardDescription>
+          <CardDescription>Payment failures, disputes, and processing errors requiring attention</CardDescription>
         </CardHeader>
         <CardContent>
           {criticalEvents.length === 0 ? (
@@ -503,13 +478,9 @@ export function OpsReportView() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {evt.amount && (
-                        <span className="text-xs font-mono text-muted-foreground">{evt.amount}</span>
-                      )}
+                      {evt.amount && <span className="text-xs font-mono text-muted-foreground">{evt.amount}</span>}
                       <Badge className={STATUS_COLORS[evt.status] || ''}>{evt.status}</Badge>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {timeAgo(evt.timestamp)}
-                      </span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(evt.timestamp)}</span>
                     </div>
                   </div>
                 );
@@ -522,9 +493,7 @@ export function OpsReportView() {
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <BarChart3 className="h-3.5 w-3.5" />
-        <span>
-          Data from webhook event log · {stats?.total || 0} total events recorded
-        </span>
+        <span>Data from webhook event log · {stats?.total || 0} total events recorded</span>
       </div>
     </div>
   );

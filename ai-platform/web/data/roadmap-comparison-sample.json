@@ -12,12 +12,8 @@
     "status": "complete",
     "completionRate": 100
   },
-  "insights": [
-    {}
-  ],
-  "recommendations": [
-    {}
-  ],
+  "insights": [{}],
+  "recommendations": [{}],
   "visualComparison": {
     "summary": "Good match",
     "details": []

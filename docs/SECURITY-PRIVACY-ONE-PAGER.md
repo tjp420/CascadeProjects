@@ -21,12 +21,12 @@ This document provides the technical evidence and verification steps for securit
 
 SimpleBeacon's browser-based scanning engine uses the **File System Access API** and **Web Workers** to compute compliance scans within an isolated browser container:
 
-| Layer | Technology | Data Boundary |
-|-------|-----------|---------------|
-| File access | `showDirectoryPicker()` / `webkitGetAsEntry()` | User-granted, ephemeral — no persistence |
-| Compute | Web Workers (`scan-worker.js`) | Isolated thread, no DOM access, no network fetch |
-| Pattern matching | Deterministic regex rules (compiled locally) | No LLM calls, no cloud inference |
-| Report storage | In-memory + optional local download | Never written to SimpleBeacon servers |
+| Layer            | Technology                                     | Data Boundary                                    |
+| ---------------- | ---------------------------------------------- | ------------------------------------------------ |
+| File access      | `showDirectoryPicker()` / `webkitGetAsEntry()` | User-granted, ephemeral — no persistence         |
+| Compute          | Web Workers (`scan-worker.js`)                 | Isolated thread, no DOM access, no network fetch |
+| Pattern matching | Deterministic regex rules (compiled locally)   | No LLM calls, no cloud inference                 |
+| Report storage   | In-memory + optional local download            | Never written to SimpleBeacon servers            |
 
 ### What This Means
 
@@ -41,18 +41,23 @@ SimpleBeacon's browser-based scanning engine uses the **File System Access API**
 Technical buyers can verify Zero Data Custody in under 60 seconds:
 
 ### Step 1: Open Network Inspector
+
 Press `F12` in your browser and navigate to the **Network** tab. Filter by `Fetch/XHR`.
 
 ### Step 2: Drop Your Code
+
 Drag and drop your project repository folder onto the SimpleBeacon dashboard scan zone at `https://simplebeacon.ai/dashboard/#/analyze`.
 
 ### Step 3: Verify Zero Traffic
+
 Observe the Network tab during the scan. You will see:
+
 - **Zero** `POST` or `PUT` requests containing file contents
 - **Zero** requests to any `/api/scan` or `/api/analyze` endpoint during the analysis loop
 - **Only** the initial static asset loads (cached after first visit)
 
 ### Step 4: Pull the Plug (Optional)
+
 Disconnect your internet connection entirely (turn off Wi-Fi, unplug Ethernet). Run another scan. The scan will complete at full speed with zero network connectivity — proving the engine is 100% local.
 
 ---
@@ -81,6 +86,7 @@ npx simplebeacon scan --offline --gate
 ```
 
 When run with `--offline`:
+
 - All heuristic rules compile locally from the cached npm package
 - Zero network requests are made (no telemetry, no auth checks, no update pings)
 - The scan report is written to a local JSON file
@@ -105,14 +111,14 @@ This proves the analysis is a **deterministic string-matching operation** runnin
 
 ## 6. Data Processing Agreement (DPA) Summary
 
-| Data Category | Collected | Stored | Transmitted |
-|--------------|-----------|--------|-------------|
-| Source code / file contents | No | No | No |
-| Scan findings / issue lists | Local only | Local only | No |
-| Project names | Hashed only | Hashed only | Hashed only |
-| Aggregate metrics (file counts, gate pass/fail) | Yes | Yes (server) | Yes (anonymized) |
-| Authentication tokens | Yes | Yes (server) | Yes (encrypted in transit) |
-| Billing metadata | Yes | Yes (Stripe) | Yes (via Stripe) |
+| Data Category                                   | Collected   | Stored       | Transmitted                |
+| ----------------------------------------------- | ----------- | ------------ | -------------------------- |
+| Source code / file contents                     | No          | No           | No                         |
+| Scan findings / issue lists                     | Local only  | Local only   | No                         |
+| Project names                                   | Hashed only | Hashed only  | Hashed only                |
+| Aggregate metrics (file counts, gate pass/fail) | Yes         | Yes (server) | Yes (anonymized)           |
+| Authentication tokens                           | Yes         | Yes (server) | Yes (encrypted in transit) |
+| Billing metadata                                | Yes         | Yes (Stripe) | Yes (via Stripe)           |
 
 ### Compliance Posture
 
@@ -148,4 +154,4 @@ For security questions, compliance documentation, or enterprise procurement:
 
 ---
 
-*This document is provided for informational purposes and does not constitute a binding legal agreement. For contractual terms, refer to the SimpleBeacon Terms of Service and Enterprise Service Agreement.*
+_This document is provided for informational purposes and does not constitute a binding legal agreement. For contractual terms, refer to the SimpleBeacon Terms of Service and Enterprise Service Agreement._

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 84: ZK Proposal Claim Validator.
@@ -15,8 +15,8 @@
  * @module hsm-adapter/zk-proposal-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkProposalClaimValidator {
   /**
@@ -43,62 +43,119 @@ class ZkProposalClaimValidator {
   verifyProposalClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('TREASURYCLAIM_HUB_MISSING', 'DAO treasury management gating hub is required');
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_HUB_MISSING",
+        "DAO treasury management gating hub is required",
+      );
     }
-    if (this.policy.requireTreasuryOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireTreasuryOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.treasuryOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.treasuryOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TREASURYCLAIM_COMMITTEE_UNATTESTED', 'treasury oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "TREASURYCLAIM_COMMITTEE_UNATTESTED",
+            "treasury oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TREASURYCLAIM_COMMITTEE_UNATTESTED', 'treasury oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "TREASURYCLAIM_COMMITTEE_UNATTESTED",
+          "treasury oversight committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TREASURYCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('TREASURYCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkProposalRangeProofHash || typeof request.zkProposalRangeProofHash !== 'string') {
+    if (
+      !request.zkProposalRangeProofHash ||
+      typeof request.zkProposalRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TREASURYCLAIM_ZK_PROOF_MISSING', 'zero-knowledge proposal range proof hash is required');
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge proposal range proof hash is required",
+      );
     }
-    if (!request.aggregateSignature || typeof request.aggregateSignature !== 'string') {
+    if (
+      !request.aggregateSignature ||
+      typeof request.aggregateSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TREASURYCLAIM_AGGREGATE_SIG_MISSING', 'aggregate signature is required');
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_AGGREGATE_SIG_MISSING",
+        "aggregate signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TREASURYCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.proposalWindowSeconds === 'number' && request.proposalWindowSeconds > (this.policy.maxProposalWindowSeconds || 2592000)) {
+    if (
+      typeof request.proposalWindowSeconds === "number" &&
+      request.proposalWindowSeconds >
+        (this.policy.maxProposalWindowSeconds || 2592000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TREASURYCLAIM_PROPOSAL_WINDOW_OUT_OF_BOUNDS', `proposal window seconds ${request.proposalWindowSeconds} exceeds maximum ${this.policy.maxProposalWindowSeconds}`);
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_PROPOSAL_WINDOW_OUT_OF_BOUNDS",
+        `proposal window seconds ${request.proposalWindowSeconds} exceeds maximum ${this.policy.maxProposalWindowSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TREASURYCLAIM_DUPLICATE', `proposal claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "TREASURYCLAIM_DUPLICATE",
+        `proposal claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedProposalExecutionCommitment: request.blindedProposalExecutionCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedProposalExecutionCommitment:
+        request.blindedProposalExecutionCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkProposalRangeProofHash: request.zkProposalRangeProofHash,
-      treasuryOversightCommitteeAttestationHash: request.treasuryOversightCommitteeAttestationHash || 'unspecified',
+      treasuryOversightCommitteeAttestationHash:
+        request.treasuryOversightCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markProposalClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_PROPOSAL_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_PROPOSAL_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -126,7 +183,10 @@ class ZkProposalClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderProposalClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderProposalClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -134,10 +194,19 @@ class ZkProposalClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TREASURYCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TREASURYCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireTreasuryOversightCommitteeAttestation && !request.treasuryOversightCommitteeAttestation) {
-    throw new HsmAdapterError('TREASURYCLAIM_ATTESTATION_MISSING', 'treasury oversight committee attestation is required');
+  if (
+    policy.requireTreasuryOversightCommitteeAttestation &&
+    !request.treasuryOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TREASURYCLAIM_ATTESTATION_MISSING",
+      "treasury oversight committee attestation is required",
+    );
   }
 }
 

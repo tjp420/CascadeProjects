@@ -4,23 +4,39 @@
  */
 
 function isDevelopment() {
-  return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development';
+  return (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NODE_ENV === "development"
+  );
 }
 
 function isProduction() {
-  return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production';
+  return (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NODE_ENV === "production"
+  );
 }
 
 function isTest() {
-  return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test';
+  return (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NODE_ENV === "test"
+  );
 }
 
 function isStaging() {
-  return typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'staging';
+  return (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.NODE_ENV === "staging"
+  );
 }
 
 function isCI() {
-  if (typeof process === 'undefined' || !process.env) return false;
+  if (typeof process === "undefined" || !process.env) return false;
   return Boolean(process.env.CI || process.env.CONTINUOUS_INTEGRATION);
 }
 
@@ -31,7 +47,7 @@ function isCI() {
  * @returns {any}
  */
 function env(key, fallback) {
-  if (typeof process === 'undefined' || !process.env) return fallback;
+  if (typeof process === "undefined" || !process.env) return fallback;
   const val = process.env[key];
   return val === undefined ? fallback : val;
 }
@@ -72,8 +88,8 @@ function envBool(key, fallback) {
   const val = env(key);
   if (val === undefined) return fallback;
   const lowered = val.toLowerCase();
-  if (['true', '1', 'yes', 'on'].includes(lowered)) return true;
-  if (['false', '0', 'no', 'off'].includes(lowered)) return false;
+  if (["true", "1", "yes", "on"].includes(lowered)) return true;
+  if (["false", "0", "no", "off"].includes(lowered)) return false;
   return fallback;
 }
 
@@ -86,7 +102,10 @@ function envBool(key, fallback) {
 function envArray(key, fallback) {
   const val = env(key);
   if (val === undefined) return fallback || [];
-  return val.split(',').map((s) => s.trim()).filter(Boolean);
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -116,5 +135,5 @@ module.exports = Object.freeze({
   envFloat,
   envBool,
   envArray,
-  envJson
+  envJson,
 });

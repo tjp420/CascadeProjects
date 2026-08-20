@@ -4,11 +4,11 @@ Opt-in **Hybrid Local Intelligence** for SimpleBeacon. Runs entirely on the deve
 
 ## Tiers
 
-| Tier | Engine | When |
-|------|--------|------|
-| **1a** | Deterministic structural scanner | Always (zero extra deps) |
-| **1b** | Tree-sitter WASM | When `web-tree-sitter` + grammar `.wasm` files are present |
-| **2** | Local SLM (`LLAMA_CPP_BIN`) | High-risk snippets only, opt-in |
+| Tier   | Engine                           | When                                                       |
+| ------ | -------------------------------- | ---------------------------------------------------------- |
+| **1a** | Deterministic structural scanner | Always (zero extra deps)                                   |
+| **1b** | Tree-sitter WASM                 | When `web-tree-sitter` + grammar `.wasm` files are present |
+| **2**  | Local SLM (`LLAMA_CPP_BIN`)      | High-risk snippets only, opt-in                            |
 
 ## Install
 

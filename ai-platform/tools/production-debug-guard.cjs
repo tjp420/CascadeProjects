@@ -8,16 +8,17 @@
  *   node tools/production-debug-guard.js [--strict] [--report <path>]
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const args = process.argv.slice(2);
-const strict = args.includes('--strict');
-const reportArg = args.indexOf('--report');
+const strict = args.includes("--strict");
+const reportArg = args.indexOf("--report");
 const reportPath = reportArg !== -1 ? args[reportArg + 1] : null;
 
-const PRODUCTION_PATHS = ['server', 'src', 'web/simplebeacon-dashboard'];
-const SKIP_DIRS = /node_modules|coverage|dist|build|\.git|\.simplebeacon|test-cert|simplebeacon-rule-tests/;
+const PRODUCTION_PATHS = ["server", "src", "web/simplebeacon-dashboard"];
+const SKIP_DIRS =
+  /node_modules|coverage|dist|build|\.git|\.simplebeacon|test-cert|simplebeacon-rule-tests/;
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts)|\.d\.ts$/;
 
 const FINDINGS = [];
@@ -30,8 +31,8 @@ function shouldSkip(filePath) {
 
 function scanFile(filePath) {
   if (shouldSkip(filePath)) return;
-  const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
   const relative = path.relative(process.cwd(), filePath);
 
   lines.forEach((line, idx) => {
@@ -42,8 +43,8 @@ function scanFile(filePath) {
       FINDINGS.push({
         file: relative,
         line: lineNum,
-        type: 'console-log',
-        snippet: line.trim().slice(0, 120)
+        type: "console-log",
+        snippet: line.trim().slice(0, 120),
       });
     }
 
@@ -52,19 +53,22 @@ function scanFile(filePath) {
       FINDINGS.push({
         file: relative,
         line: lineNum,
-        type: 'debugger',
-        snippet: line.trim().slice(0, 120)
+        type: "debugger",
+        snippet: line.trim().slice(0, 120),
       });
     }
 
     if (strict) {
       // In strict mode, also flag TODO/FIXME in production source
-      if (/\b(TODO|FIXME|HACK|XXX)\b/.test(line) && !line.includes('simplebeacon:production-leak-intent')) {
+      if (
+        /\b(TODO|FIXME|HACK|XXX)\b/.test(line) &&
+        !line.includes("simplebeacon:production-leak-intent")
+      ) {
         FINDINGS.push({
           file: relative,
           line: lineNum,
-          type: 'todo-marker',
-          snippet: line.trim().slice(0, 120)
+          type: "todo-marker",
+          snippet: line.trim().slice(0, 120),
         });
       }
     }
@@ -84,7 +88,7 @@ function walk(dir) {
   }
 }
 
-const baseDir = path.join(__dirname, '..');
+const baseDir = path.join(__dirname, "..");
 process.chdir(baseDir);
 
 for (const scanPath of PRODUCTION_PATHS) {
@@ -101,8 +105,8 @@ for (const f of rootFiles) {
     FINDINGS.push({
       file: f,
       line: 0,
-      type: 'temp-file',
-      snippet: f
+      type: "temp-file",
+      snippet: f,
     });
   }
 }
@@ -111,7 +115,7 @@ const report = {
   scannedAt: new Date().toISOString(),
   strict,
   totalFindings: FINDINGS.length,
-  findings: FINDINGS
+  findings: FINDINGS,
 };
 
 if (reportPath) {
@@ -120,23 +124,32 @@ if (reportPath) {
     fs.mkdirSync(outDir, { recursive: true });
   }
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  process.stderr.write([`Debug-artifact guard report written to ${reportPath}`].join(" ") + "\n");
+  process.stderr.write(
+    [`Debug-artifact guard report written to ${reportPath}`].join(" ") + "\n",
+  );
 }
 
 if (FINDINGS.length === 0) {
   process.stdout.write(
-    ['PASS — No debug artifacts detected in production paths.'].join(" ") + "\n"
+    ["PASS — No debug artifacts detected in production paths."].join(" ") +
+      "\n",
   );
   process.exit(0);
 } else {
   process.stderr.write(
-    [`WARN — ${FINDINGS.length} debug artifact(s) found in production paths:`].join(" ") + "\n"
+    [
+      `WARN — ${FINDINGS.length} debug artifact(s) found in production paths:`,
+    ].join(" ") + "\n",
   );
   for (const f of FINDINGS.slice(0, 20)) {
-    process.stderr.write([`  [${f.type}] ${f.file}:${f.line}  ${f.snippet}`].join(" ") + "\n");
+    process.stderr.write(
+      [`  [${f.type}] ${f.file}:${f.line}  ${f.snippet}`].join(" ") + "\n",
+    );
   }
   if (FINDINGS.length > 20) {
-    process.stderr.write([`  ... and ${FINDINGS.length - 20} more`].join(" ") + "\n");
+    process.stderr.write(
+      [`  ... and ${FINDINGS.length - 20} more`].join(" ") + "\n",
+    );
   }
   process.exit(strict ? 1 : 0);
 }

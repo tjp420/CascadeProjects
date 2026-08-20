@@ -66,13 +66,8 @@
     "pass": true,
     "blockingCount": 0,
     "warningCount": 1,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "score": 100
   },
   "scan_summary": {

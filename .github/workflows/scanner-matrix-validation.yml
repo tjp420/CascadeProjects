@@ -8,15 +8,15 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - 'packages/simplebeacon-cli/src/**'
-      - 'packages/simplebeacon-cli/tests/fixtures/true-positives/**'
-      - 'packages/simplebeacon-cli/tests/matrix-validation.test.js'
-      - '.github/workflows/scanner-matrix-validation.yml'
+      - "packages/simplebeacon-cli/src/**"
+      - "packages/simplebeacon-cli/tests/fixtures/true-positives/**"
+      - "packages/simplebeacon-cli/tests/matrix-validation.test.js"
+      - ".github/workflows/scanner-matrix-validation.yml"
   push:
     branches: [main, develop]
     paths:
-      - 'packages/simplebeacon-cli/src/**'
-      - 'packages/simplebeacon-cli/tests/fixtures/true-positives/**'
+      - "packages/simplebeacon-cli/src/**"
+      - "packages/simplebeacon-cli/tests/fixtures/true-positives/**"
 
 permissions:
   contents: read

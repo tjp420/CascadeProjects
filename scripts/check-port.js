@@ -1,23 +1,23 @@
 #!/usr/bin/env node
-const net = require('net');
+const net = require("net");
 
-function isPortOpen(port, host = '127.0.0.1', timeout = 400) {
+function isPortOpen(port, host = "127.0.0.1", timeout = 400) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     let finished = false;
     socket.setTimeout(timeout);
-    socket.once('connect', () => {
+    socket.once("connect", () => {
       finished = true;
       socket.destroy();
       resolve(true);
     });
-    socket.once('timeout', () => {
+    socket.once("timeout", () => {
       if (finished) return;
       finished = true;
       socket.destroy();
       resolve(false);
     });
-    socket.once('error', () => {
+    socket.once("error", () => {
       if (finished) return;
       finished = true;
       resolve(false);
@@ -43,16 +43,21 @@ async function main() {
   }
 
   if (used.length > 0) {
-    console.error(`[check-port] Conflict: port(s) in use: ${used.join(', ')}.`);
-    console.error('[check-port] Stop the conflicting process(es) or change the PORT environment variable and retry.');
+    console.error(`[check-port] Conflict: port(s) in use: ${used.join(", ")}.`);
+    console.error(
+      "[check-port] Stop the conflicting process(es) or change the PORT environment variable and retry.",
+    );
     process.exit(1);
   }
 
-  console.log('[check-port] No conflicting ports detected.');
+  console.log("[check-port] No conflicting ports detected.");
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error('[check-port] Unexpected error:', err && err.stack ? err.stack : err);
+  console.error(
+    "[check-port] Unexpected error:",
+    err && err.stack ? err.stack : err,
+  );
   process.exit(2);
 });

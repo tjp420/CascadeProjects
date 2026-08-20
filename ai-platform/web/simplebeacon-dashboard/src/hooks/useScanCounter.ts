@@ -1,14 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useFeatureAccess } from './useFeatureAccess';
-import { apiUrl, waitForApiBase } from '@/config';
+import { useState, useCallback, useEffect } from "react";
+import { useFeatureAccess } from "./useFeatureAccess";
+import { apiUrl, waitForApiBase } from "@/config";
 
-const STORAGE_KEY = 'sb_scan_count';
-const MONTH_KEY = 'sb_scan_month';
+const STORAGE_KEY = "sb_scan_count";
+const MONTH_KEY = "sb_scan_month";
 const RESET_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getStoredMonth(): number {
   try {
-    return parseInt(localStorage.getItem(MONTH_KEY) || '0', 10);
+    return parseInt(localStorage.getItem(MONTH_KEY) || "0", 10);
   } catch {
     return 0;
   }
@@ -16,7 +16,7 @@ function getStoredMonth(): number {
 
 function getStoredCount(): number {
   try {
-    return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    return parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
   } catch {
     return 0;
   }
@@ -27,7 +27,9 @@ function setStoredCount(count: number) {
     localStorage.setItem(STORAGE_KEY, String(count));
     const now = Date.now();
     localStorage.setItem(MONTH_KEY, String(now));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function shouldReset(): boolean {
@@ -51,20 +53,23 @@ export function useScanCounter() {
     // Sync with backend if authenticated
     (async () => {
       try {
-        const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token');
+        const token =
+          localStorage.getItem("sb_token") || localStorage.getItem("sb-token");
         if (!token) return;
         await waitForApiBase();
-        const resp = await fetch(apiUrl('/scans/count'), {
+        const resp = await fetch(apiUrl("/scans/count"), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (resp.ok) {
           const data = await resp.json();
-          if (typeof data.count === 'number') {
+          if (typeof data.count === "number") {
             setScanCount(data.count);
             setStoredCount(data.count);
           }
         }
-      } catch { /* ignore — use local count */ }
+      } catch {
+        /* ignore — use local count */
+      }
     })();
   }, []);
 
@@ -76,24 +81,36 @@ export function useScanCounter() {
 
     // Best-effort backend sync
     try {
-      const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token');
+      const token =
+        localStorage.getItem("sb_token") || localStorage.getItem("sb-token");
       if (token) {
         await waitForApiBase();
-        await fetch(apiUrl('/scans/increment'), {
-          method: 'POST',
+        await fetch(apiUrl("/scans/increment"), {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
       }
-    } catch { /* ignore — local count is the source of truth for free tier */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore — local count is the source of truth for free tier */
+    } finally {
+      setLoading(false);
+    }
   }, [scanCount]);
 
   const remaining = Math.max(0, capabilities.maxScans - scanCount);
-  const limitReached = capabilities.maxScans !== Infinity && scanCount >= capabilities.maxScans;
+  const limitReached =
+    capabilities.maxScans !== Infinity && scanCount >= capabilities.maxScans;
   const canScan = !limitReached && !loading;
 
-  return { scanCount, remaining, limitReached, canScan, increment, maxScans: capabilities.maxScans };
+  return {
+    scanCount,
+    remaining,
+    limitReached,
+    canScan,
+    increment,
+    maxScans: capabilities.maxScans,
+  };
 }

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Unified SIEM Security Broker
@@ -31,12 +31,22 @@
  * @module server/lib/siem/siem-broker
  */
 
-const crypto = require('crypto');
-const EventEmitter = require('events');
-const { tagSIEMEvent, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const crypto = require("crypto");
+const EventEmitter = require("events");
+const {
+  tagSIEMEvent,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require("../replication-tenant-context.cjs");
 
-const VALID_SEVERITIES = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'FATAL']);
-const BYPASS_SEVERITIES = new Set(['CRITICAL', 'FATAL']);
+const VALID_SEVERITIES = new Set([
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
+  "FATAL",
+]);
+const BYPASS_SEVERITIES = new Set(["CRITICAL", "FATAL"]);
 
 /**
  * SiemSecurityBroker — unified observability surface for security events.
@@ -52,7 +62,7 @@ class SiemSecurityBroker extends EventEmitter {
     super();
     this.maxTokens = config.rateLimitMaxTokens || 100;
     this.refillRate = config.rateLimitRefillRateMs || 1000;
-    this.strategy = config.transportStrategy || 'HYBRID';
+    this.strategy = config.transportStrategy || "HYBRID";
     this.tokens = this.maxTokens;
     this._lastRefill = Date.now();
 
@@ -87,14 +97,17 @@ class SiemSecurityBroker extends EventEmitter {
    */
   logEvent(payload) {
     try {
-      if (!payload || typeof payload !== 'object') {
-        throw new Error('INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC');
+      if (!payload || typeof payload !== "object") {
+        throw new Error("INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC");
       }
-      if (!payload.siemSeverity || !VALID_SEVERITIES.has(payload.siemSeverity)) {
-        throw new Error('INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC');
+      if (
+        !payload.siemSeverity ||
+        !VALID_SEVERITIES.has(payload.siemSeverity)
+      ) {
+        throw new Error("INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC");
       }
       if (!payload.siemCategory) {
-        throw new Error('INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC');
+        throw new Error("INVALID_TELEMETRY_FRAME_MISSING_MANDATORY_METRIC");
       }
 
       const isHighPriority = BYPASS_SEVERITIES.has(payload.siemSeverity);
@@ -102,7 +115,7 @@ class SiemSecurityBroker extends EventEmitter {
       // Rate limiting — CRITICAL/FATAL bypass
       if (!isHighPriority && !this._consumeToken()) {
         this._metrics.siem_events_dropped_total += 1;
-        this.emit('telemetry_dropped', {
+        this.emit("telemetry_dropped", {
           category: payload.siemCategory,
           severity: payload.siemSeverity,
           timestamp: Date.now(),
@@ -121,7 +134,10 @@ class SiemSecurityBroker extends EventEmitter {
     } catch (err) {
       // Fail-silent: never throw to the caller
       try {
-        this.emit('broker_error', { error: err.message, timestamp: Date.now() });
+        this.emit("broker_error", {
+          error: err.message,
+          timestamp: Date.now(),
+        });
       } catch {}
       return false;
     }
@@ -179,9 +195,9 @@ class SiemSecurityBroker extends EventEmitter {
       timestamp: new Date().toISOString(),
       siemSeverity: source.siemSeverity,
       siemCategory: source.siemCategory,
-      siemSource: source.siemSource || 'unknown',
+      siemSource: source.siemSource || "unknown",
       metadata: source.context || {},
-      runtimeEnvironment: process.env.NODE_ENV || 'production',
+      runtimeEnvironment: process.env.NODE_ENV || "production",
     });
   }
 
@@ -201,32 +217,32 @@ class SiemSecurityBroker extends EventEmitter {
         eventId: event.eventId,
         timestamp: event.timestamp,
         siemCategory: event.siemCategory,
-        error: 'serialization_failed',
+        error: "serialization_failed",
       });
     }
 
     switch (this.strategy) {
-      case 'STREAMING':
+      case "STREAMING":
         // All events stream directly via Winston transport
-        this.emit('transport_winston_stream', event);
+        this.emit("transport_winston_stream", event);
         break;
 
-      case 'STDOUT_ONLY':
+      case "STDOUT_ONLY":
         // Ideal for serverless or sidecar proxies (FluentBit/Vector)
-        process.stdout.write(rawOutputString + '\n');
+        process.stdout.write(rawOutputString + "\n");
         break;
 
-      case 'HYBRID':
+      case "HYBRID":
       default:
         if (forceImmediateStream) {
           // CRITICAL/FATAL: direct stream to Winston
-          this.emit('transport_winston_stream', event);
+          this.emit("transport_winston_stream", event);
         } else {
           // Lower severity: push to batched HTTPS exporter
-          this.emit('transport_batch_queue', event);
+          this.emit("transport_batch_queue", event);
         }
         // Always write to stdout for log collector pickup
-        process.stdout.write(rawOutputString + '\n');
+        process.stdout.write(rawOutputString + "\n");
         break;
     }
   }
@@ -288,24 +304,30 @@ const RESERVE_FLOOR_RATIO = 0.2; // each node keeps at least 20% of its fair sha
  * @param {number} [opts.syncIntervalMs] — gossip interval (default 5000ms)
  */
 SiemSecurityBroker.prototype.enableDistributedSync = function (opts) {
-  if (!opts || typeof opts.nodeCount !== 'number' || opts.nodeCount < 1) {
-    throw new Error('enableDistributedSync: nodeCount must be a positive integer');
+  if (!opts || typeof opts.nodeCount !== "number" || opts.nodeCount < 1) {
+    throw new Error(
+      "enableDistributedSync: nodeCount must be a positive integer",
+    );
   }
   this._distNodeCount = opts.nodeCount;
-  this._nodeId = opts.nodeId || 'node-1';
-  this._sendToPeers = typeof opts.sendFn === 'function' ? opts.sendFn : null;
+  this._nodeId = opts.nodeId || "node-1";
+  this._sendToPeers = typeof opts.sendFn === "function" ? opts.sendFn : null;
   this._syncInterval = opts.syncIntervalMs || SYNC_INTERVAL_MS;
   this._peerBuckets = new Map(); // nodeId -> { localTokens, maxLocalTokens, weight, lastSeen }
   this._distEnabled = true;
 
   // Node capacity weight (default 1 = homogeneous cluster)
-  const weight = typeof opts.weight === 'number' && opts.weight > 0
-    ? Math.floor(opts.weight)
-    : 1;
+  const weight =
+    typeof opts.weight === "number" && opts.weight > 0
+      ? Math.floor(opts.weight)
+      : 1;
   this._nodeWeight = weight;
 
   // Adjust local capacity to fair share
-  const fairShare = Math.max(1, Math.floor(this.maxTokens / this._distNodeCount));
+  const fairShare = Math.max(
+    1,
+    Math.floor(this.maxTokens / this._distNodeCount),
+  );
   this._fairShare = fairShare;
   this._reserveFloor = Math.max(1, Math.floor(fairShare * RESERVE_FLOOR_RATIO));
   // If current tokens exceed fair share, cap them
@@ -329,7 +351,7 @@ SiemSecurityBroker.prototype._broadcastBucketState = function () {
   if (!this._distEnabled || !this._sendToPeers) return;
   try {
     this._sendToPeers({
-      type: 'SIEM_BUCKET_SYNC',
+      type: "SIEM_BUCKET_SYNC",
       from: this._nodeId,
       localTokens: this.tokens,
       maxLocalTokens: this._fairShare,
@@ -345,11 +367,12 @@ SiemSecurityBroker.prototype._broadcastBucketState = function () {
  * @param {object} msg — { from, localTokens, maxLocalTokens, timestamp }
  */
 SiemSecurityBroker.prototype.handlePeerSync = function (msg) {
-  if (!this._distEnabled || !msg || msg.type !== 'SIEM_BUCKET_SYNC') return;
+  if (!this._distEnabled || !msg || msg.type !== "SIEM_BUCKET_SYNC") return;
   try {
-    const peerWeight = typeof msg.weight === 'number' && msg.weight > 0
-      ? Math.floor(msg.weight)
-      : 1;
+    const peerWeight =
+      typeof msg.weight === "number" && msg.weight > 0
+        ? Math.floor(msg.weight)
+        : 1;
     this._peerBuckets.set(msg.from, {
       localTokens: msg.localTokens,
       maxLocalTokens: msg.maxLocalTokens,
@@ -382,7 +405,7 @@ SiemSecurityBroker.prototype._recalculateWeightedFairShare = function () {
   let knownWeight = this._nodeWeight;
   let knownPeers = 0;
   for (const peer of this._peerBuckets.values()) {
-    knownWeight += (peer.weight || 1);
+    knownWeight += peer.weight || 1;
     knownPeers++;
   }
 
@@ -393,15 +416,19 @@ SiemSecurityBroker.prototype._recalculateWeightedFairShare = function () {
   const totalWeight = knownWeight + unknownNodes; // unknown nodes default to weight 1
 
   // Weighted fair share: maxTokens * (localWeight / totalWeight)
-  const weightedFairShare = Math.max(1, Math.floor(
-    this.maxTokens * (this._nodeWeight / totalWeight)
-  ));
+  const weightedFairShare = Math.max(
+    1,
+    Math.floor(this.maxTokens * (this._nodeWeight / totalWeight)),
+  );
 
   // Only update if the value actually changed (avoid churn)
   if (weightedFairShare === this._fairShare) return;
 
   this._fairShare = weightedFairShare;
-  this._reserveFloor = Math.max(1, Math.floor(weightedFairShare * RESERVE_FLOOR_RATIO));
+  this._reserveFloor = Math.max(
+    1,
+    Math.floor(weightedFairShare * RESERVE_FLOOR_RATIO),
+  );
 
   // If current tokens exceed the new fair share, cap them
   if (this.tokens > weightedFairShare) {
@@ -416,7 +443,7 @@ SiemSecurityBroker.prototype._recalculateWeightedFairShare = function () {
  * @returns {number} — number of tokens granted (0 if none)
  */
 SiemSecurityBroker.prototype.handleTokenRequest = function (msg) {
-  if (!this._distEnabled || !msg || msg.type !== 'SIEM_TOKEN_REQUEST') return 0;
+  if (!this._distEnabled || !msg || msg.type !== "SIEM_TOKEN_REQUEST") return 0;
   try {
     this._metrics.siem_token_requests_received_total += 1;
     const requested = Math.min(msg.requested || 0, this._fairShare);
@@ -430,7 +457,7 @@ SiemSecurityBroker.prototype.handleTokenRequest = function (msg) {
     // Send grant response
     if (this._sendToPeers) {
       this._sendToPeers({
-        type: 'SIEM_TOKEN_GRANT',
+        type: "SIEM_TOKEN_GRANT",
         from: this._nodeId,
         to: msg.from,
         granted,
@@ -449,7 +476,7 @@ SiemSecurityBroker.prototype.handleTokenRequest = function (msg) {
  * @param {object} msg — { from, granted }
  */
 SiemSecurityBroker.prototype.handleTokenGrant = function (msg) {
-  if (!this._distEnabled || !msg || msg.type !== 'SIEM_TOKEN_GRANT') return;
+  if (!this._distEnabled || !msg || msg.type !== "SIEM_TOKEN_GRANT") return;
   try {
     if (msg.to !== this._nodeId) return; // not for us
     const space = this.maxTokens - this.tokens;
@@ -472,22 +499,25 @@ SiemSecurityBroker.prototype._borrowFromPeers = function () {
   // Sort peers by weight descending — high-weight (core) nodes have more
   // surplus capacity and should be preferred lenders over low-weight (edge) nodes.
   const sortedPeers = [...this._peerBuckets.entries()].sort(
-    (a, b) => (b[1].weight || 1) - (a[1].weight || 1)
+    (a, b) => (b[1].weight || 1) - (a[1].weight || 1),
   );
 
   for (const [peerId, peer] of sortedPeers) {
     if (borrowed >= needed) break;
     // Use the peer's own reserve floor (proportional to their weight/fair share)
     // rather than this node's reserve floor, since high-weight peers have more surplus.
-    const peerReserveFloor = Math.max(1, Math.floor(
-      (peer.maxLocalTokens || this._fairShare) * RESERVE_FLOOR_RATIO
-    ));
+    const peerReserveFloor = Math.max(
+      1,
+      Math.floor(
+        (peer.maxLocalTokens || this._fairShare) * RESERVE_FLOOR_RATIO,
+      ),
+    );
     const peerSurplus = peer.localTokens - peerReserveFloor;
     if (peerSurplus > 0) {
       // Send token request to this peer
       try {
         this._sendToPeers({
-          type: 'SIEM_TOKEN_REQUEST',
+          type: "SIEM_TOKEN_REQUEST",
           from: this._nodeId,
           to: peerId,
           requested: Math.min(needed - borrowed, peerSurplus),
@@ -526,7 +556,7 @@ SiemSecurityBroker.prototype.getDistributedState = function () {
   // Calculate total cluster weight for diagnostics
   let clusterWeight = this._nodeWeight;
   for (const peer of this._peerBuckets.values()) {
-    clusterWeight += (peer.weight || 1);
+    clusterWeight += peer.weight || 1;
   }
   return {
     enabled: true,
@@ -570,7 +600,8 @@ SiemSecurityBroker.prototype.getClusterTelemetry = function () {
       siem_tokens_borrowed_total: metrics.siem_tokens_borrowed_total,
       siem_tokens_granted_total: metrics.siem_tokens_granted_total,
       siem_token_requests_sent_total: metrics.siem_token_requests_sent_total,
-      siem_token_requests_received_total: metrics.siem_token_requests_received_total,
+      siem_token_requests_received_total:
+        metrics.siem_token_requests_received_total,
       currentTokens: metrics.currentTokens,
     },
   };

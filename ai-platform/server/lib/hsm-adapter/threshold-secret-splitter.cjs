@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 17: Threshold secret splitter (Shamir's Secret Sharing).
@@ -11,8 +11,8 @@
  * @module hsm-adapter/threshold-secret-splitter
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 // 256-bit safe prime used as the finite field modulus: 2^256 - 189.
 const PRIME = (1n << 256n) - 189n;
@@ -83,19 +83,31 @@ class ThresholdSecretSplitter {
    */
   split(secret, total, threshold, custodianIds) {
     if (!Buffer.isBuffer(secret)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'secret must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "secret must be a Buffer");
     }
     if (!Number.isInteger(total) || !Number.isInteger(threshold)) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', 'total and threshold must be integers');
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        "total and threshold must be integers",
+      );
     }
     if (threshold < 1 || total < 1 || threshold > total) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`);
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`,
+      );
     }
     if (total > this._maxTotal) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `total (${total}) exceeds maximum ${this._maxTotal}`);
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `total (${total}) exceeds maximum ${this._maxTotal}`,
+      );
     }
     if (!Array.isArray(custodianIds) || custodianIds.length !== total) {
-      throw new HsmAdapterError('INVALID_INPUT', `custodianIds array must contain exactly ${total} entries`);
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        `custodianIds array must contain exactly ${total} entries`,
+      );
     }
 
     const chunks = [];
@@ -114,7 +126,7 @@ class ThresholdSecretSplitter {
       for (let i = 0; i < total; i++) {
         const x = BigInt(i + 1);
         const y = _evaluatePolynomial(coefficients, x);
-        ys.push(_bigIntToBytes(y, 32).toString('base64'));
+        ys.push(_bigIntToBytes(y, 32).toString("base64"));
       }
       shardYs.push(ys);
     }

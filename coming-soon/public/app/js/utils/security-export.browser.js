@@ -4,11 +4,7 @@
 
  */
 
-
-
 const SECURITY_RULES_EVALUATED = ['credentials', 'production-leak'];
-
-
 
 /**
  * Redact project path for export.
@@ -17,24 +13,21 @@ const SECURITY_RULES_EVALUATED = ['credentials', 'production-leak'];
  * @returns {any}
  */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+    if (rawPath == null || rawPath === '') return rawPath;
 
-  if (rawPath == null || rawPath === '') return rawPath;
+    const normalized = String(rawPath).replace(/\\/g, '/');
 
-  const normalized = String(rawPath).replace(/\\/g, '/');
+    if (
+        /^[a-zA-Z]:\//.test(normalized) ||
+        normalized.startsWith('/Users/') ||
+        normalized.startsWith('/home/') ||
+        normalized.includes('CascadeProjects')
+    ) {
+        return projectLabel;
+    }
 
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
-
-    return projectLabel;
-
-  }
-
-  return normalized;
-
+    return normalized;
 }
-
-
 
 /**
  * Project label from path.
@@ -42,16 +35,12 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
+    const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
 
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
 
-  const parts = normalized.split('/').filter(Boolean);
-
-  return parts[parts.length - 1] || 'ai-platform';
-
+    return parts[parts.length - 1] || 'ai-platform';
 }
-
-
 
 /**
  * Relativize scan paths.
@@ -60,28 +49,22 @@ function projectLabelFromPath(projectPath) {
  * @returns {any}
  */
 function relativizeScanPaths(scanPaths, projectRoot) {
+    const root = String(projectRoot || '')
+        .replace(/\\/g, '/')
+        .replace(/\/$/, '');
 
-  const root = String(projectRoot || '').replace(/\\/g, '/').replace(/\/$/, '');
+    const rootLower = root.toLowerCase();
 
-  const rootLower = root.toLowerCase();
+    return (scanPaths || []).map(entry => {
+        let rel = String(entry).replace(/\\/g, '/');
 
-  return (scanPaths || []).map((entry) => {
+        if (root && rel.toLowerCase().startsWith(rootLower)) {
+            rel = rel.slice(root.length).replace(/^\//, '');
+        }
 
-    let rel = String(entry).replace(/\\/g, '/');
-
-    if (root && rel.toLowerCase().startsWith(rootLower)) {
-
-      rel = rel.slice(root.length).replace(/^\//, '');
-
-    }
-
-    return redactProjectPathForExport(rel, projectLabelFromPath(root)) || entry;
-
-  });
-
+        return redactProjectPathForExport(rel, projectLabelFromPath(root)) || entry;
+    });
 }
-
-
 
 /**
  * Dedupe export notes.
@@ -89,64 +72,42 @@ function relativizeScanPaths(scanPaths, projectRoot) {
  * @returns {any}
  */
 function dedupeExportNotes(notes = []) {
+    const seen = new Set();
 
-  const seen = new Set();
+    const out = [];
 
-  const out = [];
+    for (const note of notes.filter(Boolean)) {
+        const text = String(note);
 
-  for (const note of notes.filter(Boolean)) {
+        const normalized = text.replace(/\s+/g, ' ').trim().toLowerCase();
 
-    const text = String(note);
+        const scopeKey = /security scanner export — credential and production-leak/i.test(normalized)
+            ? 'security-scope-note'
+            : /production-leak match\(es\) suppressed by intent/i.test(normalized)
+              ? 'suppressed-intent-note'
+              : /clean export \(0 findings\)/i.test(normalized)
+                ? 'clean-export-note'
+                : /finding\(s\) exported — review recommendations/i.test(normalized)
+                  ? 'findings-exported-note'
+                  : /compliance headline securityscore/i.test(normalized)
+                    ? 'compliance-score-note'
+                    : /optimizationcompliance \(/i.test(normalized)
+                      ? 'optimization-compliance-note'
+                      : /scan gate\.pass .* differs from compliance headline/i.test(normalized)
+                        ? 'gate-reconciliation-note'
+                        : /compliance headline snapshot .* predates scan/i.test(normalized)
+                          ? 'compliance-freshness-note'
+                          : normalized;
 
-    const normalized = text.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (seen.has(scopeKey)) continue;
 
-    const scopeKey = /security scanner export — credential and production-leak/i.test(normalized)
+        seen.add(scopeKey);
 
-      ? 'security-scope-note'
+        out.push(text.trim());
+    }
 
-      : /production-leak match\(es\) suppressed by intent/i.test(normalized)
-
-        ? 'suppressed-intent-note'
-
-        : /clean export \(0 findings\)/i.test(normalized)
-
-          ? 'clean-export-note'
-
-          : /finding\(s\) exported — review recommendations/i.test(normalized)
-
-            ? 'findings-exported-note'
-
-            : /compliance headline securityscore/i.test(normalized)
-
-              ? 'compliance-score-note'
-
-              : /optimizationcompliance \(/i.test(normalized)
-
-                ? 'optimization-compliance-note'
-
-                : /scan gate\.pass .* differs from compliance headline/i.test(normalized)
-
-                  ? 'gate-reconciliation-note'
-
-                  : /compliance headline snapshot .* predates scan/i.test(normalized)
-
-                    ? 'compliance-freshness-note'
-
-                    : normalized;
-
-    if (seen.has(scopeKey)) continue;
-
-    seen.add(scopeKey);
-
-    out.push(text.trim());
-
-  }
-
-  return out.slice(0, 8);
-
+    return out.slice(0, 8);
 }
-
-
 
 /**
  * Parse timestamp.
@@ -154,16 +115,12 @@ function dedupeExportNotes(notes = []) {
  * @returns {any}
  */
 function parseTimestamp(isoTimestamp) {
+    if (isoTimestamp == null || isoTimestamp === '') return null;
 
-  if (isoTimestamp == null || isoTimestamp === '') return null;
+    const ms = Date.parse(String(isoTimestamp));
 
-  const ms = Date.parse(String(isoTimestamp));
-
-  return Number.isFinite(ms) ? ms : null;
-
+    return Number.isFinite(ms) ? ms : null;
 }
-
-
 
 /**
  * Normalize compliance input.
@@ -171,24 +128,18 @@ function parseTimestamp(isoTimestamp) {
  * @returns {any}
  */
 function normalizeComplianceInput(compliance) {
+    if (!compliance) return null;
 
-  if (!compliance) return null;
+    return {
+        securityScore: compliance.securityScore ?? null,
 
-  return {
+        gatePass: compliance.gatePass ?? null,
 
-    securityScore: compliance.securityScore ?? null,
+        optimizationCompliance: compliance.optimizationCompliance ?? null,
 
-    gatePass: compliance.gatePass ?? null,
-
-    optimizationCompliance: compliance.optimizationCompliance ?? null,
-
-    generatedAt: compliance.generatedAt ?? compliance.headlineGeneratedAt ?? null
-
-  };
-
+        generatedAt: compliance.generatedAt ?? compliance.headlineGeneratedAt ?? null
+    };
 }
-
-
 
 /**
  * Resolve compliance headline generated at.
@@ -196,14 +147,10 @@ function normalizeComplianceInput(compliance) {
  * @returns {any}
  */
 function resolveComplianceHeadlineGeneratedAt(compliance) {
+    if (!compliance) return null;
 
-  if (!compliance) return null;
-
-  return compliance.generatedAt ?? compliance.headlineGeneratedAt ?? null;
-
+    return compliance.generatedAt ?? compliance.headlineGeneratedAt ?? null;
 }
-
-
 
 /**
  * Sanitize scan scope for security export.
@@ -211,34 +158,25 @@ function resolveComplianceHeadlineGeneratedAt(compliance) {
  * @returns {any}
  */
 function sanitizeScanScopeForSecurityExport(scanScope) {
+    if (!scanScope) return null;
 
-  if (!scanScope) return null;
+    const rulesEnabled = Array.isArray(scanScope.rulesEnabled) ? scanScope.rulesEnabled : [];
 
-  const rulesEnabled = Array.isArray(scanScope.rulesEnabled) ? scanScope.rulesEnabled : [];
+    const securityRulesEvaluated = rulesEnabled.filter(rule => SECURITY_RULES_EVALUATED.includes(rule));
 
-  const securityRulesEvaluated = rulesEnabled.filter((rule) => SECURITY_RULES_EVALUATED.includes(rule));
+    return {
+        profile: scanScope.profile ?? null,
 
-  return {
+        productionPaths: scanScope.productionPaths ?? null,
 
-    profile: scanScope.profile ?? null,
+        rulesEnabled,
 
-    productionPaths: scanScope.productionPaths ?? null,
+        securityRulesEvaluated: securityRulesEvaluated.length ? securityRulesEvaluated : [...SECURITY_RULES_EVALUATED],
 
-    rulesEnabled,
-
-    securityRulesEvaluated: securityRulesEvaluated.length
-
-      ? securityRulesEvaluated
-
-      : [...SECURITY_RULES_EVALUATED],
-
-    securityScopeNote: 'Findings in this export use credentials + production-leak only; rulesEnabled reflects the full gate scan profile.'
-
-  };
-
+        securityScopeNote:
+            'Findings in this export use credentials + production-leak only; rulesEnabled reflects the full gate scan profile.'
+    };
 }
-
-
 
 /**
  * Sanitize compliance for security export.
@@ -247,50 +185,44 @@ function sanitizeScanScopeForSecurityExport(scanScope) {
  * @returns {any}
  */
 function sanitizeComplianceForSecurityExport(compliance, report) {
+    if (!compliance) return null;
 
-  if (!compliance) return null;
+    const scanGatePass = report?.gate?.pass ?? null;
 
-  const scanGatePass = report?.gate?.pass ?? null;
+    const headlineGatePass = compliance.gatePass ?? null;
 
-  const headlineGatePass = compliance.gatePass ?? null;
+    const gateReconciled = scanGatePass != null && headlineGatePass != null && scanGatePass === headlineGatePass;
 
-  const gateReconciled = scanGatePass != null && headlineGatePass != null && scanGatePass === headlineGatePass;
+    return {
+        securityScore: compliance.securityScore ?? null,
 
-  return {
+        gatePass: headlineGatePass,
 
-    securityScore: compliance.securityScore ?? null,
+        optimizationCompliance: compliance.optimizationCompliance ?? null,
 
-    gatePass: headlineGatePass,
+        provenance:
+            resolveComplianceHeadlineGeneratedAt(compliance) || compliance.securityScore != null
+                ? 'live-optimization-api'
+                : 'unknown',
 
-    optimizationCompliance: compliance.optimizationCompliance ?? null,
+        headlineGeneratedAt: resolveComplianceHeadlineGeneratedAt(compliance),
 
-    provenance: resolveComplianceHeadlineGeneratedAt(compliance) || compliance.securityScore != null
+        optimizationComplianceNote:
+            'Repository-health optimization band — not credential/production-leak finding counts.',
 
-      ? 'live-optimization-api'
+        securityScoreNote:
+            'Headline securityScore reflects live gate/trust snapshot — distinct from finding severity counts in this export.',
 
-      : 'unknown',
-
-    headlineGeneratedAt: resolveComplianceHeadlineGeneratedAt(compliance),
-
-    optimizationComplianceNote: 'Repository-health optimization band — not credential/production-leak finding counts.',
-
-    securityScoreNote: 'Headline securityScore reflects live gate/trust snapshot — distinct from finding severity counts in this export.',
-
-    ...(gateReconciled ? {} : {
-
-      gateReconciliationNote: scanGatePass != null && headlineGatePass != null
-
-        ? `Scan gate.pass (${scanGatePass}) differs from compliance headline gatePass (${headlineGatePass}) — prefer scan.gate for rule evidence.`
-
-        : null
-
-    })
-
-  };
-
+        ...(gateReconciled
+            ? {}
+            : {
+                  gateReconciliationNote:
+                      scanGatePass != null && headlineGatePass != null
+                          ? `Scan gate.pass (${scanGatePass}) differs from compliance headline gatePass (${headlineGatePass}) — prefer scan.gate for rule evidence.`
+                          : null
+              })
+    };
 }
-
-
 
 /**
  * Sanitize finding for export.
@@ -299,20 +231,14 @@ function sanitizeComplianceForSecurityExport(compliance, report) {
  * @returns {any}
  */
 function sanitizeFindingForExport(finding, projectLabel) {
+    if (!finding) return finding;
 
-  if (!finding) return finding;
+    return {
+        ...finding,
 
-  return {
-
-    ...finding,
-
-    file: finding.file ? redactProjectPathForExport(finding.file, projectLabel) : finding.file
-
-  };
-
+        file: finding.file ? redactProjectPathForExport(finding.file, projectLabel) : finding.file
+    };
 }
-
-
 
 /**
  * Build security export notes.
@@ -322,86 +248,56 @@ function sanitizeFindingForExport(finding, projectLabel) {
  * @returns {any}
  */
 function buildSecurityExportNotes(report, findings = [], compliance = null) {
+    const notes = [
+        'Security scanner export — credential and production-leak rules only; not npm audit or penetration testing.'
+    ];
 
-  const notes = [
+    const suppressed = report?.productionLeakSuppressedIntent ?? 0;
 
-    'Security scanner export — credential and production-leak rules only; not npm audit or penetration testing.'
+    if (suppressed > 0) {
+        notes.push(
+            `${suppressed} production-leak match(es) suppressed by intent annotation — not counted as findings.`
+        );
+    }
 
-  ];
+    if (findings.length === 0 && report?.gate?.pass) {
+        notes.push(
+            'Clean export (0 findings) attests no credential or production-leak patterns in last scan scope — not SimpleBeacon vendor handoff clearance.'
+        );
+    } else if (findings.length > 0) {
+        notes.push(`${findings.length} finding(s) exported — review recommendations before merge.`);
+    }
 
-  const suppressed = report?.productionLeakSuppressedIntent ?? 0;
+    if (compliance?.securityScore != null) {
+        notes.push(
+            `Compliance headline securityScore (${compliance.securityScore}) is a live gate/trust snapshot — see compliance.securityScoreNote.`
+        );
+    }
 
-  if (suppressed > 0) {
+    if (compliance?.optimizationCompliance) {
+        notes.push(
+            `optimizationCompliance (${compliance.optimizationCompliance}) labels repository-health posture — see compliance.optimizationComplianceNote.`
+        );
+    }
 
-    notes.push(
+    const freshnessNote = buildComplianceFreshnessNote(compliance, report);
 
-      `${suppressed} production-leak match(es) suppressed by intent annotation — not counted as findings.`
+    if (freshnessNote) {
+        notes.push(freshnessNote);
+    }
 
-    );
+    const scanGatePass = report?.gate?.pass;
 
-  }
+    const headlineGatePass = compliance?.gatePass;
 
-  if (findings.length === 0 && report?.gate?.pass) {
+    if (scanGatePass != null && headlineGatePass != null && scanGatePass !== headlineGatePass) {
+        notes.push(
+            `Scan gate.pass (${scanGatePass}) differs from compliance headline gatePass (${headlineGatePass}) — prefer scan.gate for rule evidence.`
+        );
+    }
 
-    notes.push(
-
-      'Clean export (0 findings) attests no credential or production-leak patterns in last scan scope — not SimpleBeacon vendor handoff clearance.'
-
-    );
-
-  } else if (findings.length > 0) {
-
-    notes.push(`${findings.length} finding(s) exported — review recommendations before merge.`);
-
-  }
-
-  if (compliance?.securityScore != null) {
-
-    notes.push(
-
-      `Compliance headline securityScore (${compliance.securityScore}) is a live gate/trust snapshot — see compliance.securityScoreNote.`
-
-    );
-
-  }
-
-  if (compliance?.optimizationCompliance) {
-
-    notes.push(
-
-      `optimizationCompliance (${compliance.optimizationCompliance}) labels repository-health posture — see compliance.optimizationComplianceNote.`
-
-    );
-
-  }
-
-  const freshnessNote = buildComplianceFreshnessNote(compliance, report);
-
-  if (freshnessNote) {
-
-    notes.push(freshnessNote);
-
-  }
-
-  const scanGatePass = report?.gate?.pass;
-
-  const headlineGatePass = compliance?.gatePass;
-
-  if (scanGatePass != null && headlineGatePass != null && scanGatePass !== headlineGatePass) {
-
-    notes.push(
-
-      `Scan gate.pass (${scanGatePass}) differs from compliance headline gatePass (${headlineGatePass}) — prefer scan.gate for rule evidence.`
-
-    );
-
-  }
-
-  return dedupeExportNotes(notes);
-
+    return dedupeExportNotes(notes);
 }
-
-
 
 /**
  * Build compliance freshness note.
@@ -410,20 +306,16 @@ function buildSecurityExportNotes(report, findings = [], compliance = null) {
  * @returns {any}
  */
 function buildComplianceFreshnessNote(compliance, report) {
+    const headlineAt = parseTimestamp(resolveComplianceHeadlineGeneratedAt(compliance));
 
-  const headlineAt = parseTimestamp(resolveComplianceHeadlineGeneratedAt(compliance));
+    const scanAt = parseTimestamp(report?.generatedAt);
 
-  const scanAt = parseTimestamp(report?.generatedAt);
+    if (headlineAt == null || scanAt == null || headlineAt >= scanAt) return null;
 
-  if (headlineAt == null || scanAt == null || headlineAt >= scanAt) return null;
+    const headlineLabel = resolveComplianceHeadlineGeneratedAt(compliance);
 
-  const headlineLabel = resolveComplianceHeadlineGeneratedAt(compliance);
-
-  return `Compliance headline snapshot (${headlineLabel}) predates scan (${report.generatedAt}) — scan.gate and findings reflect fresher evidence.`;
-
+    return `Compliance headline snapshot (${headlineLabel}) predates scan (${report.generatedAt}) — scan.gate and findings reflect fresher evidence.`;
 }
-
-
 
 /**
  * Build security hygiene summary.
@@ -431,32 +323,26 @@ function buildComplianceFreshnessNote(compliance, report) {
  * @returns {any}
  */
 function buildSecurityHygieneSummary(summary) {
+    if (!summary) return null;
 
-  if (!summary) return null;
+    return {
+        scanClean: summary.scanClean ?? null,
 
-  return {
+        totalFindings: summary.totalFindings ?? null,
 
-    scanClean: summary.scanClean ?? null,
+        credentialFindings: summary.credentialFindings ?? null,
 
-    totalFindings: summary.totalFindings ?? null,
+        productionLeakFindings: summary.productionLeakFindings ?? null,
 
-    credentialFindings: summary.credentialFindings ?? null,
+        gatePass: summary.gatePass ?? null,
 
-    productionLeakFindings: summary.productionLeakFindings ?? null,
+        gateBlockingCount: summary.gateBlockingCount ?? null,
 
-    gatePass: summary.gatePass ?? null,
+        productionLeakSuppressedIntent: summary.productionLeakSuppressedIntent ?? null,
 
-    gateBlockingCount: summary.gateBlockingCount ?? null,
-
-    productionLeakSuppressedIntent: summary.productionLeakSuppressedIntent ?? null,
-
-    attestationNote: summary.attestationNote ?? null
-
-  };
-
+        attestationNote: summary.attestationNote ?? null
+    };
 }
-
-
 
 /**
  * Build scan report from security export.
@@ -464,38 +350,33 @@ function buildSecurityHygieneSummary(summary) {
  * @returns {any}
  */
 function buildScanReportFromSecurityExport(bundle = {}) {
+    const summary = bundle.summary || {};
 
-  const summary = bundle.summary || {};
+    const scan = bundle.scan || {};
 
-  const scan = bundle.scan || {};
+    return {
+        generatedAt: scan.generatedAt ?? summary.generatedAt ?? null,
 
-  return {
+        projectRoot: scan.projectRoot ?? null,
 
-    generatedAt: scan.generatedAt ?? summary.generatedAt ?? null,
+        scanPaths: scan.scanPaths ?? null,
 
-    projectRoot: scan.projectRoot ?? null,
+        credentialScanned: scan.credentialScanned ?? summary.credentialScanned ?? null,
 
-    scanPaths: scan.scanPaths ?? null,
+        credentialFindings: summary.credentialFindings ?? null,
 
-    credentialScanned: scan.credentialScanned ?? summary.credentialScanned ?? null,
+        productionLeakScanned: scan.productionLeakScanned ?? summary.productionLeakScanned ?? null,
 
-    credentialFindings: summary.credentialFindings ?? null,
+        productionLeakFindings: summary.productionLeakFindings ?? null,
 
-    productionLeakScanned: scan.productionLeakScanned ?? summary.productionLeakScanned ?? null,
+        productionLeakSuppressedIntent:
+            scan.productionLeakSuppressedIntent ?? summary.productionLeakSuppressedIntent ?? null,
 
-    productionLeakFindings: summary.productionLeakFindings ?? null,
+        gate: scan.gate ?? null,
 
-    productionLeakSuppressedIntent: scan.productionLeakSuppressedIntent ?? summary.productionLeakSuppressedIntent ?? null,
-
-    gate: scan.gate ?? null,
-
-    scanScope: scan.scanScope ?? null
-
-  };
-
+        scanScope: scan.scanScope ?? null
+    };
 }
-
-
 
 /**
  * Build security export summary.
@@ -505,72 +386,56 @@ function buildScanReportFromSecurityExport(bundle = {}) {
  * @returns {any}
  */
 export function buildSecurityExportSummary(report, findings = [], compliance = null) {
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
 
-  const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const finding of findings) {
+        const band = String(finding.severity || 'medium').toLowerCase();
 
+        const increment = finding.count ?? 1;
 
+        if (band === 'critical') severityCounts.critical += increment;
+        else if (band === 'high') severityCounts.high += increment;
+        else if (band === 'medium') severityCounts.medium += increment;
+        else severityCounts.low += increment;
+    }
 
-  for (const finding of findings) {
+    const credentialFindings =
+        report?.credentialFindings ??
+        findings.filter(f => /credential/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
 
-    const band = String(finding.severity || 'medium').toLowerCase();
+    const productionLeakFindings =
+        report?.productionLeakFindings ??
+        findings.filter(f => /production leak/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
 
-    const increment = finding.count ?? 1;
+    return {
+        credentialScanned: report?.credentialScanned ?? null,
 
-    if (band === 'critical') severityCounts.critical += increment;
+        credentialFindings,
 
-    else if (band === 'high') severityCounts.high += increment;
+        productionLeakScanned: report?.productionLeakScanned ?? null,
 
-    else if (band === 'medium') severityCounts.medium += increment;
+        productionLeakFindings,
 
-    else severityCounts.low += increment;
+        productionLeakSuppressedIntent: report?.productionLeakSuppressedIntent ?? null,
 
-  }
+        totalFindings: findings.reduce((sum, f) => sum + (f.count ?? 1), 0),
 
+        severityCounts,
 
+        gatePass: report?.gate?.pass ?? compliance?.gatePass ?? null,
 
-  const credentialFindings = report?.credentialFindings
+        gateBlockingCount: report?.gate?.blockingCount ?? null,
 
-    ?? findings.filter((f) => /credential/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
+        generatedAt: report?.generatedAt ?? null,
 
-  const productionLeakFindings = report?.productionLeakFindings
+        securityScore: compliance?.securityScore ?? null,
 
-    ?? findings.filter((f) => /production leak/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
+        scanClean: findings.length === 0,
 
-
-
-  return {
-
-    credentialScanned: report?.credentialScanned ?? null,
-
-    credentialFindings,
-
-    productionLeakScanned: report?.productionLeakScanned ?? null,
-
-    productionLeakFindings,
-
-    productionLeakSuppressedIntent: report?.productionLeakSuppressedIntent ?? null,
-
-    totalFindings: findings.reduce((sum, f) => sum + (f.count ?? 1), 0),
-
-    severityCounts,
-
-    gatePass: report?.gate?.pass ?? compliance?.gatePass ?? null,
-
-    gateBlockingCount: report?.gate?.blockingCount ?? null,
-
-    generatedAt: report?.generatedAt ?? null,
-
-    securityScore: compliance?.securityScore ?? null,
-
-    scanClean: findings.length === 0,
-
-    attestationNote: 'Credential/production-leak hygiene — not Complete scan clearance or vendor handoff certification.'
-
-  };
-
+        attestationNote:
+            'Credential/production-leak hygiene — not Complete scan clearance or vendor handoff certification.'
+    };
 }
-
-
 
 /**
  * Build security export payload.
@@ -580,88 +445,76 @@ export function buildSecurityExportSummary(report, findings = [], compliance = n
  * @returns {any}
  */
 export function buildSecurityExportPayload(report, findings = [], compliance = null) {
+    if (!report) return null;
 
-  if (!report) return null;
+    const normalizedCompliance = normalizeComplianceInput(compliance);
 
-  const normalizedCompliance = normalizeComplianceInput(compliance);
+    const projectLabel = projectLabelFromPath(report.projectRoot);
 
-  const projectLabel = projectLabelFromPath(report.projectRoot);
+    const summary = buildSecurityExportSummary(report, findings, normalizedCompliance);
 
-  const summary = buildSecurityExportSummary(report, findings, normalizedCompliance);
+    const exportNotes = buildSecurityExportNotes(report, findings, normalizedCompliance);
 
-  const exportNotes = buildSecurityExportNotes(report, findings, normalizedCompliance);
+    const sanitizedFindings = findings.map(finding => sanitizeFindingForExport(finding, projectLabel));
 
-  const sanitizedFindings = findings.map((finding) => sanitizeFindingForExport(finding, projectLabel));
+    const scanPaths = relativizeScanPaths(report.scanPaths, report.projectRoot);
 
-  const scanPaths = relativizeScanPaths(report.scanPaths, report.projectRoot);
+    return {
+        type: 'simplebeacon-security-scan-export',
 
+        version: '1.1.0',
 
+        exportVersion: '1.1.0',
 
-  return {
+        exportSanitized: true,
 
-    type: 'simplebeacon-security-scan-export',
+        generatedBy: 'SimpleBeacon',
 
-    version: '1.1.0',
+        title: 'SimpleBeacon Security Scan Export',
 
-    exportVersion: '1.1.0',
+        securityHandoffEligible: false,
 
-    exportSanitized: true,
+        handoffEligible: false,
 
-    generatedBy: 'SimpleBeacon',
+        exportedAt: new Date().toISOString(),
 
-    title: 'SimpleBeacon Security Scan Export',
+        summary,
 
-    securityHandoffEligible: false,
+        hygieneSummary: buildSecurityHygieneSummary(summary),
 
-    handoffEligible: false,
+        scan: {
+            generatedAt: report.generatedAt ?? null,
 
-    exportedAt: new Date().toISOString(),
+            projectRoot: redactProjectPathForExport(report.projectRoot, projectLabel),
 
-    summary,
+            scanPaths,
 
-    hygieneSummary: buildSecurityHygieneSummary(summary),
+            gate: report.gate ?? null,
 
-    scan: {
+            credentialScanned: report.credentialScanned ?? null,
 
-      generatedAt: report.generatedAt ?? null,
+            productionLeakScanned: report.productionLeakScanned ?? null,
 
-      projectRoot: redactProjectPathForExport(report.projectRoot, projectLabel),
+            productionLeakSuppressedIntent: report.productionLeakSuppressedIntent ?? null,
 
-      scanPaths,
+            scanScope: sanitizeScanScopeForSecurityExport(report.scanScope)
+        },
 
-      gate: report.gate ?? null,
+        compliance: sanitizeComplianceForSecurityExport(normalizedCompliance, report),
 
-      credentialScanned: report.credentialScanned ?? null,
+        findings: sanitizedFindings,
 
-      productionLeakScanned: report.productionLeakScanned ?? null,
+        exportNotes,
 
-      productionLeakSuppressedIntent: report.productionLeakSuppressedIntent ?? null,
+        disclaimers: [
+            'Credential and production-leak rules only — not npm audit or penetration testing.',
 
-      scanScope: sanitizeScanScopeForSecurityExport(report.scanScope)
+            'A clean export (0 findings) attests no matching patterns in last scan scope.',
 
-    },
-
-    compliance: sanitizeComplianceForSecurityExport(normalizedCompliance, report),
-
-    findings: sanitizedFindings,
-
-    exportNotes,
-
-    disclaimers: [
-
-      'Credential and production-leak rules only — not npm audit or penetration testing.',
-
-      'A clean export (0 findings) attests no matching patterns in last scan scope.',
-
-      'Absolute host paths are redacted to project label in exports.'
-
-    ]
-
-  };
-
+            'Absolute host paths are redacted to project label in exports.'
+        ]
+    };
 }
-
-
 
 /**
  * Sanitize security scan export.
@@ -669,22 +522,16 @@ export function buildSecurityExportPayload(report, findings = [], compliance = n
  * @returns {any}
  */
 export function sanitizeSecurityScanExport(bundle) {
+    if (!bundle || bundle.type !== 'simplebeacon-security-scan-export') return bundle;
 
-  if (!bundle || bundle.type !== 'simplebeacon-security-scan-export') return bundle;
+    return buildSecurityExportPayload(
+        buildScanReportFromSecurityExport(bundle),
 
-  return buildSecurityExportPayload(
+        bundle.findings || [],
 
-    buildScanReportFromSecurityExport(bundle),
-
-    bundle.findings || [],
-
-    bundle.compliance
-
-  );
-
+        bundle.compliance
+    );
 }
-
-
 
 /**
  * Security export filename.
@@ -692,14 +539,10 @@ export function sanitizeSecurityScanExport(bundle) {
  * @returns {any}
  */
 export function securityExportFilename(date = new Date()) {
+    const stamp = date.toISOString().slice(0, 10);
 
-  const stamp = date.toISOString().slice(0, 10);
-
-  return `security-scan-${stamp}.json`;
-
+    return `security-scan-${stamp}.json`;
 }
-
-
 
 /**
  * Can export security scan.
@@ -707,9 +550,5 @@ export function securityExportFilename(date = new Date()) {
  * @returns {any}
  */
 export function canExportSecurityScan(report) {
-
-  return Boolean(report && (report.generatedAt || report.gate != null || report.credentialScanned != null));
-
+    return Boolean(report && (report.generatedAt || report.gate != null || report.credentialScanned != null));
 }
-
-

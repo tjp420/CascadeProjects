@@ -20,7 +20,5 @@
   "insights": [
     { "title": "All tools operational", "description": "No issues detected" }
   ],
-  "activity": [
-    { "event": "scan", "timestamp": "2026-07-18T00:00:00Z" }
-  ]
+  "activity": [{ "event": "scan", "timestamp": "2026-07-18T00:00:00Z" }]
 }

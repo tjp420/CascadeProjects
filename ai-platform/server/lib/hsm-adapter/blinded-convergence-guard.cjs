@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 55: Blinded convergence guard.
@@ -12,8 +12,8 @@
  * @module hsm-adapter/blinded-convergence-guard
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class BlindedConvergenceGuard {
   /**
@@ -26,7 +26,7 @@ class BlindedConvergenceGuard {
     this.policy = options.policy || {};
     this._maxConsecutiveFaults = options.maxConsecutiveFaults || 3;
     this._audit = options.audit || null;
-    this._committeeBlindingFactor = crypto.randomBytes(32).toString('hex');
+    this._committeeBlindingFactor = crypto.randomBytes(32).toString("hex");
     this._peerFaults = new Map();
     this._bannedPeers = new Set();
   }
@@ -38,13 +38,25 @@ class BlindedConvergenceGuard {
    * @returns {string}
    */
   blind(rawTagHash, blindingGroup) {
-    if (typeof rawTagHash !== 'string' || !rawTagHash) {
-      throw new HsmAdapterError('CONVERGENCE_TAG_INVALID', 'raw tag hash is required');
+    if (typeof rawTagHash !== "string" || !rawTagHash) {
+      throw new HsmAdapterError(
+        "CONVERGENCE_TAG_INVALID",
+        "raw tag hash is required",
+      );
     }
-    if (blindingGroup && !this.policy.permittedBlindingGroups.includes(blindingGroup)) {
-      throw new HsmAdapterError('CONVERGENCE_BLINDING_GROUP_BLOCKED', `blinding group ${blindingGroup} is not permitted; allowed: ${this.policy.permittedBlindingGroups.join(', ')}`);
+    if (
+      blindingGroup &&
+      !this.policy.permittedBlindingGroups.includes(blindingGroup)
+    ) {
+      throw new HsmAdapterError(
+        "CONVERGENCE_BLINDING_GROUP_BLOCKED",
+        `blinding group ${blindingGroup} is not permitted; allowed: ${this.policy.permittedBlindingGroups.join(", ")}`,
+      );
     }
-    return crypto.createHash('sha256').update(`${rawTagHash}:${this._committeeBlindingFactor}:${blindingGroup}`).digest('hex');
+    return crypto
+      .createHash("sha256")
+      .update(`${rawTagHash}:${this._committeeBlindingFactor}:${blindingGroup}`)
+      .digest("hex");
   }
 
   /**
@@ -54,12 +66,16 @@ class BlindedConvergenceGuard {
    * @returns {boolean}
    */
   validateToken(peerId, token) {
-    if (!token || typeof token.chunkId !== 'string' || typeof token.ciphertextTagHash !== 'string') {
-      this._recordFault(peerId, 'malformed token structure');
+    if (
+      !token ||
+      typeof token.chunkId !== "string" ||
+      typeof token.ciphertextTagHash !== "string"
+    ) {
+      this._recordFault(peerId, "malformed token structure");
       return false;
     }
     if (token.ciphertextTagHash.length !== 64) {
-      this._recordFault(peerId, 'ciphertext tag hash length invalid');
+      this._recordFault(peerId, "ciphertext tag hash length invalid");
       return false;
     }
     return true;
@@ -76,7 +92,11 @@ class BlindedConvergenceGuard {
     if (count >= this._maxConsecutiveFaults) {
       this._bannedPeers.add(peerId);
       if (this._audit) {
-        this._audit('PEER_BANNED_MALFORMED_CHUNK', { peerId, faults: count, reason });
+        this._audit("PEER_BANNED_MALFORMED_CHUNK", {
+          peerId,
+          faults: count,
+          reason,
+        });
       }
     }
   }

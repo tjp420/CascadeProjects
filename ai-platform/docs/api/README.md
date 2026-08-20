@@ -36,6 +36,7 @@ curl -X POST http://localhost:55000/api/auth/login \
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -66,9 +67,11 @@ curl -X POST http://localhost:55000/api/auth/refresh \
 ### Authentication Endpoints
 
 #### POST /api/auth/login
+
 Authenticate user and return JWT tokens.
 
 **Request Body:**
+
 ```json
 {
   "email": "<your-email>",
@@ -77,6 +80,7 @@ Authenticate user and return JWT tokens.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -93,9 +97,11 @@ Authenticate user and return JWT tokens.
 ```
 
 #### POST /api/auth/refresh
+
 Refresh access token using refresh token.
 
 **Request Body:**
+
 ```json
 {
   "refreshToken": "refresh-token"
@@ -103,6 +109,7 @@ Refresh access token using refresh token.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -116,14 +123,17 @@ Refresh access token using refresh token.
 ```
 
 #### GET /api/auth/me
+
 Get current user information.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "user": {
@@ -140,9 +150,11 @@ Authorization: Bearer <jwt-token>
 ### Platform Endpoints
 
 #### GET /api/health
+
 Health check endpoint (public).
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -154,9 +166,11 @@ Health check endpoint (public).
 ```
 
 #### GET /api/platform/status
+
 Platform status and feature availability (public).
 
 **Response:**
+
 ```json
 {
   "phase": 1,
@@ -174,9 +188,11 @@ Platform status and feature availability (public).
 ### Simplebeacon Endpoints
 
 #### GET /api/simplebeacon/entitlements
+
 Get user entitlements and feature access (public).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -189,14 +205,17 @@ Get user entitlements and feature access (public).
 ```
 
 #### GET /api/simplebeacon/user/ai-keys
+
 Get user's AI provider configurations.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -218,23 +237,28 @@ Authorization: Bearer <jwt-token>
 ```
 
 #### GET /api/simplebeacon/report
+
 Get Simplebeacon scan report for a project.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Query Parameters:**
+
 - `projectPath` (required): Path to project directory
 - `profile` (optional): Scan profile (default: "eu-ai-act")
 
 **Example:**
+
 ```
 GET /api/simplebeacon/report?projectPath=/path/to/project&profile=eu-ai-act
 ```
 
 **Response:**
+
 ```json
 {
   "type": "simplebeacon-report",
@@ -269,14 +293,17 @@ GET /api/simplebeacon/report?projectPath=/path/to/project&profile=eu-ai-act
 ```
 
 #### POST /api/simplebeacon/scan
+
 Run a new Simplebeacon scan.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "projectPath": "/path/to/project",
@@ -289,6 +316,7 @@ Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -303,18 +331,22 @@ Authorization: Bearer <jwt-token>
 ### Analysis Endpoints
 
 #### GET /api/analyze/inventory
+
 Get project inventory and file analysis.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Query Parameters:**
+
 - `projectPath` (required): Path to project directory
 - `profile` (optional): Analysis profile
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -342,14 +374,17 @@ Authorization: Bearer <jwt-token>
 ```
 
 #### POST /api/analyze/compliance-checklist
+
 Run compliance analysis.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "projectPath": "/path/to/project",
@@ -358,6 +393,7 @@ Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -393,15 +429,18 @@ Authorization: Bearer <jwt-token>
 ### Upload Endpoints
 
 #### POST /api/upload
+
 Upload files for analysis.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 Content-Type: multipart/form-data
 ```
 
 **Request Body:**
+
 ```
 file: <file-data>
 projectPath: "/path/to/project"
@@ -409,6 +448,7 @@ profile: "eu-ai-act"
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -423,14 +463,17 @@ profile: "eu-ai-act"
 ### Metrics Endpoints
 
 #### GET /api/metrics/path-health
+
 Get path health metrics and statistics.
 
 **Headers:**
+
 ```
 Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -468,14 +511,14 @@ All endpoints return consistent error responses:
 
 ### Common Error Codes
 
-| Status Code | Description | Example |
-|-------------|-------------|---------|
-| 400 | Bad Request | Invalid parameters |
-| 401 | Unauthorized | Missing or invalid token |
-| 403 | Forbidden | Insufficient permissions |
-| 404 | Not Found | Resource not found |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Server error |
+| Status Code | Description           | Example                  |
+| ----------- | --------------------- | ------------------------ |
+| 400         | Bad Request           | Invalid parameters       |
+| 401         | Unauthorized          | Missing or invalid token |
+| 403         | Forbidden             | Insufficient permissions |
+| 404         | Not Found             | Resource not found       |
+| 429         | Too Many Requests     | Rate limit exceeded      |
+| 500         | Internal Server Error | Server error             |
 
 ### Rate Limiting
 
@@ -488,7 +531,7 @@ All endpoints return consistent error responses:
 ### JavaScript/Node.js
 
 ```javascript
-const axios = require('axios');
+const axios = require("axios");
 
 class SimplebeaconAPI {
   constructor(baseURL, token) {
@@ -499,19 +542,19 @@ class SimplebeaconAPI {
   async login(email, password) {
     const response = await axios.post(`${this.baseURL}/api/auth/login`, {
       email,
-      password
+      password,
     });
     this.token = response.data.token;
     return response.data;
   }
 
-  async getReport(projectPath, profile = 'eu-ai-act') {
+  async getReport(projectPath, profile = "eu-ai-act") {
     const response = await axios.get(
       `${this.baseURL}/api/simplebeacon/report`,
       {
         params: { projectPath, profile },
-        headers: { Authorization: `Bearer ${this.token}` }
-      }
+        headers: { Authorization: `Bearer ${this.token}` },
+      },
     );
     return response.data;
   }
@@ -521,17 +564,17 @@ class SimplebeaconAPI {
       `${this.baseURL}/api/simplebeacon/scan`,
       { projectPath, ...options },
       {
-        headers: { Authorization: `Bearer ${this.token}` }
-      }
+        headers: { Authorization: `Bearer ${this.token}` },
+      },
     );
     return response.data;
   }
 }
 
 // Usage
-const api = new SimplebeaconAPI('http://localhost:55000');
-await api.login('<your-email>', '<your-password>');
-const report = await api.getReport('/path/to/project');
+const api = new SimplebeaconAPI("http://localhost:55000");
+await api.login("<your-email>", "<your-password>");
+const report = await api.getReport("/path/to/project");
 ```
 
 ### Python
@@ -544,7 +587,7 @@ class SimplebeaconAPI:
         self.base_url = base_url
         self.token = token
         self.session = requests.Session()
-        
+
     def login(self, email, password):
         response = self.session.post(
             f"{self.base_url}/api/auth/login",
@@ -552,7 +595,7 @@ class SimplebeaconAPI:
         )
         self.token = response.json()["token"]
         return response.json()
-    
+
     def get_report(self, project_path, profile="eu-ai-act"):
         headers = {"Authorization": f"Bearer {self.token}"}
         params = {"projectPath": project_path, "profile": profile}
@@ -608,13 +651,13 @@ curl -X POST http://localhost:55000/api/webhooks/configure \
 
 ## Rate Limits
 
-| Endpoint Type | Rate Limit | Window |
-|---------------|-------------|---------|
-| Authentication | 100/hour | 1 hour |
-| Scanning | 50/hour | 1 hour |
-| Analysis | 200/hour | 1 hour |
-| Upload | 20/hour | 1 hour |
-| Metrics | 1000/hour | 1 hour |
+| Endpoint Type  | Rate Limit | Window |
+| -------------- | ---------- | ------ |
+| Authentication | 100/hour   | 1 hour |
+| Scanning       | 50/hour    | 1 hour |
+| Analysis       | 200/hour   | 1 hour |
+| Upload         | 20/hour    | 1 hour |
+| Metrics        | 1000/hour  | 1 hour |
 
 ## Support
 

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Hardware Attestation Verifier.
@@ -16,19 +16,27 @@
  * @module hsm-adapter/hardware-attestation-verify
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { MOCK_SIGNING_SECRET, _canonical } = require('./mock-tpm-quote-generator.cjs');
-const { CertChainValidator } = require('./cert-chain-validator.cjs');
-const { RootTrustStore } = require('./root-trust-store.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  MOCK_SIGNING_SECRET,
+  _canonical,
+} = require("./mock-tpm-quote-generator.cjs");
+const { CertChainValidator } = require("./cert-chain-validator.cjs");
+const { RootTrustStore } = require("./root-trust-store.cjs");
 
 // ── Security invariants (hardcoded — NOT Helm-configurable) ──────────
-const ATTESTATION_NONCE_TTL_MS = 5 * 60 * 1000;    // 5 minutes
-const ATTESTATION_TIMESTAMP_SKEW_MS = 10 * 1000;    // ±10 seconds
-const ATTESTATION_MAX_AGE_SECONDS = 60;              // 60 seconds
-const ATTESTATION_NONCE_BYTES = 32;                  // 256-bit nonce
+const ATTESTATION_NONCE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const ATTESTATION_TIMESTAMP_SKEW_MS = 10 * 1000; // ±10 seconds
+const ATTESTATION_MAX_AGE_SECONDS = 60; // 60 seconds
+const ATTESTATION_NONCE_BYTES = 32; // 256-bit nonce
 
-const SUPPORTED_PROFILES = new Set(['tpm2', 'sev-snp', 'sgx', 'mock-authority']);
+const SUPPORTED_PROFILES = new Set([
+  "tpm2",
+  "sev-snp",
+  "sgx",
+  "mock-authority",
+]);
 
 // ── SEV-SNP Attestation Report Structure ──────────────────────────────
 //
@@ -64,13 +72,13 @@ const SUPPORTED_PROFILES = new Set(['tpm2', 'sev-snp', 'sgx', 'mock-authority'])
 // VERSION, POLICY, and SIGNATURE.
 
 const SEV_SNP_REPORT_SIZE = 4096;
-const SEV_SNP_REPORT_DATA_OFFSET = 0xC0;     // 48 bytes — user nonce
+const SEV_SNP_REPORT_DATA_OFFSET = 0xc0; // 48 bytes — user nonce
 const SEV_SNP_REPORT_DATA_SIZE = 48;
-const SEV_SNP_MEASUREMENT_OFFSET = 0xF0;     // 48 bytes — MRENCLAVE
+const SEV_SNP_MEASUREMENT_OFFSET = 0xf0; // 48 bytes — MRENCLAVE
 const SEV_SNP_MEASUREMENT_SIZE = 48;
-const SEV_SNP_VERSION_OFFSET = 0x00;         // 4 bytes
-const SEV_SNP_POLICY_OFFSET = 0x08;          // 4 bytes
-const SEV_SNP_SIGNATURE_OFFSET = 0x2D0;      // 512 bytes
+const SEV_SNP_VERSION_OFFSET = 0x00; // 4 bytes
+const SEV_SNP_POLICY_OFFSET = 0x08; // 4 bytes
+const SEV_SNP_SIGNATURE_OFFSET = 0x2d0; // 512 bytes
 
 // ── SGX DCAP Quote Structure ──────────────────────────────────────────
 //
@@ -94,15 +102,15 @@ const SEV_SNP_SIGNATURE_OFFSET = 0x2D0;      // 512 bytes
 //   0x1C   484  REPORT_BODY
 //   0x200  var  SIGNATURE
 
-const SGX_QUOTE_HEADER_SIZE = 0x1C;          // 28 bytes
-const SGX_MRENCLAVE_OFFSET = 0x00;           // within report body
+const SGX_QUOTE_HEADER_SIZE = 0x1c; // 28 bytes
+const SGX_MRENCLAVE_OFFSET = 0x00; // within report body
 const SGX_MRENCLAVE_SIZE = 16;
-const SGX_MRSIGNER_OFFSET = 0x10;            // within report body
+const SGX_MRSIGNER_OFFSET = 0x10; // within report body
 const SGX_MRSIGNER_SIZE = 16;
-const SGX_ISVPRODID_OFFSET = 0x20;           // within report body
+const SGX_ISVPRODID_OFFSET = 0x20; // within report body
 const SGX_ISVPRODID_SIZE = 2;
-const SGX_REPORT_DATA_OFFSET = 0x2E;         // within report body (actually 0x68 in full quote)
-const SGX_REPORT_DATA_SIZE = 16;             // SGX report data is 16 bytes (we pad nonce to fit)
+const SGX_REPORT_DATA_OFFSET = 0x2e; // within report body (actually 0x68 in full quote)
+const SGX_REPORT_DATA_SIZE = 16; // SGX report data is 16 bytes (we pad nonce to fit)
 
 // In a full SGX quote, the report body starts at offset SGX_QUOTE_HEADER_SIZE
 const SGX_REPORT_BODY_OFFSET = SGX_QUOTE_HEADER_SIZE;
@@ -120,7 +128,12 @@ class HardwareAttestationVerifier {
    */
   constructor(options = {}) {
     this._expectedMeasurements = options.expectedMeasurements || {};
-    this._allowedAuthorities = options.allowedAuthorities || ['tpm2', 'sev-snp', 'sgx', 'mock-authority'];
+    this._allowedAuthorities = options.allowedAuthorities || [
+      "tpm2",
+      "sev-snp",
+      "sgx",
+      "mock-authority",
+    ];
     this._audit = options.audit || null;
     this._broker = options.broker || null;
     this._certChainValidator = options.certChainValidator || null;
@@ -138,7 +151,7 @@ class HardwareAttestationVerifier {
     // Lazy pruning: clean expired challenges and nonces
     this._pruneExpired();
 
-    const nonce = crypto.randomBytes(ATTESTATION_NONCE_BYTES).toString('hex');
+    const nonce = crypto.randomBytes(ATTESTATION_NONCE_BYTES).toString("hex");
     const issuedAt = Date.now();
     this._pendingChallenges.set(sandboxId, { nonce, issuedAt });
     return { nonce, issuedAt };
@@ -157,8 +170,15 @@ class HardwareAttestationVerifier {
     if (!challenge) {
       // Prune other expired entries, then fail
       this._pruneExpired();
-      this._emitSIEM('ATTESTATION_CHALLENGE_MISSING', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_challenge_missing' });
-      throw new HsmAdapterError('ATTESTATION_CHALLENGE_MISSING', `no pending challenge for sandbox ${sandboxId}`);
+      this._emitSIEM("ATTESTATION_CHALLENGE_MISSING", {
+        sandboxId,
+        siemSeverity: "high",
+        siemCategory: "attestation_challenge_missing",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_CHALLENGE_MISSING",
+        `no pending challenge for sandbox ${sandboxId}`,
+      );
     }
 
     const now = Date.now();
@@ -167,72 +187,169 @@ class HardwareAttestationVerifier {
       this._pendingChallenges.delete(sandboxId);
       // Prune other expired entries
       this._pruneExpired();
-      this._emitSIEM('ATTESTATION_CHALLENGE_EXPIRED', { sandboxId, challengeAgeMs: challengeAge, siemSeverity: 'high', siemCategory: 'attestation_challenge_expired' });
-      throw new HsmAdapterError('ATTESTATION_CHALLENGE_EXPIRED', `challenge expired ${challengeAge}ms ago (TTL: ${ATTESTATION_NONCE_TTL_MS}ms)`);
+      this._emitSIEM("ATTESTATION_CHALLENGE_EXPIRED", {
+        sandboxId,
+        challengeAgeMs: challengeAge,
+        siemSeverity: "high",
+        siemCategory: "attestation_challenge_expired",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_CHALLENGE_EXPIRED",
+        `challenge expired ${challengeAge}ms ago (TTL: ${ATTESTATION_NONCE_TTL_MS}ms)`,
+      );
     }
 
     // Lazy pruning of other expired entries
     this._pruneExpired();
 
     // 2. Validate attestation document structure
-    if (!attestation || typeof attestation !== 'object') {
-      this._emitSIEM('ATTESTATION_INVALID_DOCUMENT', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_invalid_document' });
-      throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation document missing or invalid');
+    if (!attestation || typeof attestation !== "object") {
+      this._emitSIEM("ATTESTATION_INVALID_DOCUMENT", {
+        sandboxId,
+        siemSeverity: "high",
+        siemCategory: "attestation_invalid_document",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID_DOCUMENT",
+        "attestation document missing or invalid",
+      );
     }
 
     // 3. Verify nonce matches
     if (!attestation.nonce) {
-      this._emitSIEM('ATTESTATION_CHALLENGE_MISSING', { sandboxId, reason: 'nonce field missing', siemSeverity: 'high', siemCategory: 'attestation_challenge_missing' });
-      throw new HsmAdapterError('ATTESTATION_CHALLENGE_MISSING', 'attestation nonce missing');
+      this._emitSIEM("ATTESTATION_CHALLENGE_MISSING", {
+        sandboxId,
+        reason: "nonce field missing",
+        siemSeverity: "high",
+        siemCategory: "attestation_challenge_missing",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_CHALLENGE_MISSING",
+        "attestation nonce missing",
+      );
     }
     if (attestation.nonce !== challenge.nonce) {
-      this._emitSIEM('ATTESTATION_NONCE_MISMATCH', { sandboxId, expected: challenge.nonce.slice(0, 8) + '...', received: attestation.nonce.slice(0, 8) + '...', siemSeverity: 'high', siemCategory: 'attestation_nonce_mismatch' });
-      throw new HsmAdapterError('ATTESTATION_NONCE_MISMATCH', 'attestation nonce does not match challenge');
+      this._emitSIEM("ATTESTATION_NONCE_MISMATCH", {
+        sandboxId,
+        expected: challenge.nonce.slice(0, 8) + "...",
+        received: attestation.nonce.slice(0, 8) + "...",
+        siemSeverity: "high",
+        siemCategory: "attestation_nonce_mismatch",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_NONCE_MISMATCH",
+        "attestation nonce does not match challenge",
+      );
     }
 
     // 4. Check timestamp skew
-    if (typeof attestation.timestamp !== 'number') {
-      this._emitSIEM('ATTESTATION_INVALID_DOCUMENT', { sandboxId, reason: 'timestamp missing', siemSeverity: 'high', siemCategory: 'attestation_invalid_document' });
-      throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation timestamp missing');
+    if (typeof attestation.timestamp !== "number") {
+      this._emitSIEM("ATTESTATION_INVALID_DOCUMENT", {
+        sandboxId,
+        reason: "timestamp missing",
+        siemSeverity: "high",
+        siemCategory: "attestation_invalid_document",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID_DOCUMENT",
+        "attestation timestamp missing",
+      );
     }
     const skew = Math.abs(now - attestation.timestamp);
     if (skew > ATTESTATION_TIMESTAMP_SKEW_MS) {
-      this._emitSIEM('TIMESTAMP_SKEW', { sandboxId, skewMs: skew, maxSkewMs: ATTESTATION_TIMESTAMP_SKEW_MS, siemSeverity: 'high', siemCategory: 'attestation_timestamp_skew' });
-      throw new HsmAdapterError('TIMESTAMP_SKEW', `timestamp skew ${skew}ms exceeds max ${ATTESTATION_TIMESTAMP_SKEW_MS}ms`);
+      this._emitSIEM("TIMESTAMP_SKEW", {
+        sandboxId,
+        skewMs: skew,
+        maxSkewMs: ATTESTATION_TIMESTAMP_SKEW_MS,
+        siemSeverity: "high",
+        siemCategory: "attestation_timestamp_skew",
+      });
+      throw new HsmAdapterError(
+        "TIMESTAMP_SKEW",
+        `timestamp skew ${skew}ms exceeds max ${ATTESTATION_TIMESTAMP_SKEW_MS}ms`,
+      );
     }
 
     // 5. Replay protection: reject if nonce seen before
     const seenAt = this._seenNonces.get(attestation.nonce);
-    if (seenAt && (now - seenAt) <= ATTESTATION_NONCE_TTL_MS) {
-      this._emitSIEM('ATTESTATION_REPLAY_DETECTED', { sandboxId, noncePrefix: attestation.nonce.slice(0, 8) + '...', siemSeverity: 'high', siemCategory: 'attestation_replay_detected' });
-      throw new HsmAdapterError('ATTESTATION_REPLAY_DETECTED', 'nonce replay detected');
+    if (seenAt && now - seenAt <= ATTESTATION_NONCE_TTL_MS) {
+      this._emitSIEM("ATTESTATION_REPLAY_DETECTED", {
+        sandboxId,
+        noncePrefix: attestation.nonce.slice(0, 8) + "...",
+        siemSeverity: "high",
+        siemCategory: "attestation_replay_detected",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_REPLAY_DETECTED",
+        "nonce replay detected",
+      );
     }
 
     // 6. Verify authority
     if (!attestation.authority) {
-      this._emitSIEM('ATTESTATION_INVALID_DOCUMENT', { sandboxId, reason: 'authority missing', siemSeverity: 'high', siemCategory: 'attestation_invalid_document' });
-      throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation authority missing');
+      this._emitSIEM("ATTESTATION_INVALID_DOCUMENT", {
+        sandboxId,
+        reason: "authority missing",
+        siemSeverity: "high",
+        siemCategory: "attestation_invalid_document",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_INVALID_DOCUMENT",
+        "attestation authority missing",
+      );
     }
     if (!this._allowedAuthorities.includes(attestation.authority)) {
-      this._emitSIEM('ATTESTATION_UNTRUSTED_AUTHORITY', { sandboxId, authority: attestation.authority, siemSeverity: 'high', siemCategory: 'attestation_untrusted_authority' });
-      throw new HsmAdapterError('ATTESTATION_UNTRUSTED_AUTHORITY', `authority ${attestation.authority} is not trusted`);
+      this._emitSIEM("ATTESTATION_UNTRUSTED_AUTHORITY", {
+        sandboxId,
+        authority: attestation.authority,
+        siemSeverity: "high",
+        siemCategory: "attestation_untrusted_authority",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_UNTRUSTED_AUTHORITY",
+        `authority ${attestation.authority} is not trusted`,
+      );
     }
 
     // 7. Verify measurement (PCR or MRENCLAVE)
     const measurement = this._verifyMeasurement(attestation);
     if (!measurement) {
-      this._emitSIEM('ATTESTATION_UNTRUSTED_MEASUREMENT', { sandboxId, authority: attestation.authority, siemSeverity: 'high', siemCategory: 'attestation_untrusted_measurement' });
-      throw new HsmAdapterError('ATTESTATION_UNTRUSTED_MEASUREMENT', 'attestation measurement does not match expected values');
+      this._emitSIEM("ATTESTATION_UNTRUSTED_MEASUREMENT", {
+        sandboxId,
+        authority: attestation.authority,
+        siemSeverity: "high",
+        siemCategory: "attestation_untrusted_measurement",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_UNTRUSTED_MEASUREMENT",
+        "attestation measurement does not match expected values",
+      );
     }
 
     // 8. Verify signature
     if (!attestation.signature) {
-      this._emitSIEM('ATTESTATION_SIGNATURE_INVALID', { sandboxId, reason: 'signature missing', siemSeverity: 'high', siemCategory: 'attestation_signature_invalid' });
-      throw new HsmAdapterError('ATTESTATION_SIGNATURE_INVALID', 'attestation signature missing');
+      this._emitSIEM("ATTESTATION_SIGNATURE_INVALID", {
+        sandboxId,
+        reason: "signature missing",
+        siemSeverity: "high",
+        siemCategory: "attestation_signature_invalid",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_SIGNATURE_INVALID",
+        "attestation signature missing",
+      );
     }
     if (!this._verifySignature(attestation)) {
-      this._emitSIEM('ATTESTATION_SIGNATURE_INVALID', { sandboxId, reason: 'signature mismatch', siemSeverity: 'high', siemCategory: 'attestation_signature_invalid' });
-      throw new HsmAdapterError('ATTESTATION_SIGNATURE_INVALID', 'attestation signature verification failed');
+      this._emitSIEM("ATTESTATION_SIGNATURE_INVALID", {
+        sandboxId,
+        reason: "signature mismatch",
+        siemSeverity: "high",
+        siemCategory: "attestation_signature_invalid",
+      });
+      throw new HsmAdapterError(
+        "ATTESTATION_SIGNATURE_INVALID",
+        "attestation signature verification failed",
+      );
     }
 
     // 9. Record nonce for replay protection
@@ -256,20 +373,24 @@ class HardwareAttestationVerifier {
       return null;
     }
 
-    if (attestation.authority === 'tpm2') {
+    if (attestation.authority === "tpm2") {
       // Verify PCR values
-      if (!attestation.pcrs || typeof attestation.pcrs !== 'object') return null;
+      if (!attestation.pcrs || typeof attestation.pcrs !== "object")
+        return null;
       if (!expected.pcrs) return null;
       for (const [pcrIndex, expectedValue] of Object.entries(expected.pcrs)) {
         const actual = attestation.pcrs[pcrIndex];
         if (!actual || actual !== expectedValue) return null;
       }
       // Measurement = hash of all PCR values
-      const pcrConcat = Object.keys(attestation.pcrs).sort().map((k) => attestation.pcrs[k]).join('');
-      return crypto.createHash('sha256').update(pcrConcat).digest('hex');
+      const pcrConcat = Object.keys(attestation.pcrs)
+        .sort()
+        .map((k) => attestation.pcrs[k])
+        .join("");
+      return crypto.createHash("sha256").update(pcrConcat).digest("hex");
     }
 
-    if (attestation.authority === 'sev-snp') {
+    if (attestation.authority === "sev-snp") {
       // If the attestation has a raw binary report, parse it
       if (attestation.rawReport) {
         const parsed = parseSevSnpReport(attestation.rawReport);
@@ -280,14 +401,22 @@ class HardwareAttestationVerifier {
         // Verify the REPORT_DATA contains the nonce (padded to 48 bytes)
         if (attestation.nonce) {
           const expectedReportData = Buffer.concat([
-            Buffer.from(attestation.nonce, 'hex'),
-            Buffer.alloc(SEV_SNP_REPORT_DATA_SIZE - Buffer.from(attestation.nonce, 'hex').length),
-          ]).toString('hex');
+            Buffer.from(attestation.nonce, "hex"),
+            Buffer.alloc(
+              SEV_SNP_REPORT_DATA_SIZE -
+                Buffer.from(attestation.nonce, "hex").length,
+            ),
+          ]).toString("hex");
           if (parsed.reportData !== expectedReportData) return null;
         }
         // Verify policy constraints if configured
-        if (expected.policy !== undefined && parsed.policy !== expected.policy) return null;
-        if (expected.minVersion !== undefined && parsed.version < expected.minVersion) return null;
+        if (expected.policy !== undefined && parsed.policy !== expected.policy)
+          return null;
+        if (
+          expected.minVersion !== undefined &&
+          parsed.version < expected.minVersion
+        )
+          return null;
         return parsed.measurement;
       }
       // Fallback: pre-parsed attestation with mrenclave field (backward compat)
@@ -297,7 +426,7 @@ class HardwareAttestationVerifier {
       return attestation.mrenclave;
     }
 
-    if (attestation.authority === 'sgx') {
+    if (attestation.authority === "sgx") {
       // If the attestation has a raw binary quote, parse it
       if (attestation.rawQuote) {
         const parsed = parseSgxQuote(attestation.rawQuote);
@@ -306,13 +435,20 @@ class HardwareAttestationVerifier {
         if (!expected.mrenclave) return null;
         if (parsed.mrenclave !== expected.mrenclave) return null;
         // Verify MRSIGNER if configured
-        if (expected.mrsigner && parsed.mrsigner !== expected.mrsigner) return null;
+        if (expected.mrsigner && parsed.mrsigner !== expected.mrsigner)
+          return null;
         // Verify ISVPRODID if configured
-        if (expected.isvProdId !== undefined && parsed.isvProdId !== expected.isvProdId) return null;
+        if (
+          expected.isvProdId !== undefined &&
+          parsed.isvProdId !== expected.isvProdId
+        )
+          return null;
         // Verify REPORT_DATA contains the nonce (padded to 16 bytes)
         if (attestation.nonce) {
-          const nonceBytes = Buffer.from(attestation.nonce, 'hex');
-          const noncePrefix = nonceBytes.slice(0, SGX_REPORT_DATA_SIZE).toString('hex');
+          const nonceBytes = Buffer.from(attestation.nonce, "hex");
+          const noncePrefix = nonceBytes
+            .slice(0, SGX_REPORT_DATA_SIZE)
+            .toString("hex");
           if (parsed.reportData !== noncePrefix) return null;
         }
         return parsed.mrenclave;
@@ -321,23 +457,35 @@ class HardwareAttestationVerifier {
       if (!attestation.mrenclave) return null;
       if (!expected.mrenclave) return null;
       if (attestation.mrenclave !== expected.mrenclave) return null;
-      if (expected.mrsigner && attestation.mrsigner && attestation.mrsigner !== expected.mrsigner) return null;
-      if (expected.isvProdId !== undefined && attestation.isvProdId !== undefined &&
-          attestation.isvProdId !== expected.isvProdId) return null;
+      if (
+        expected.mrsigner &&
+        attestation.mrsigner &&
+        attestation.mrsigner !== expected.mrsigner
+      )
+        return null;
+      if (
+        expected.isvProdId !== undefined &&
+        attestation.isvProdId !== undefined &&
+        attestation.isvProdId !== expected.isvProdId
+      )
+        return null;
       return attestation.mrenclave;
     }
 
-    if (attestation.authority === 'mock-authority') {
+    if (attestation.authority === "mock-authority") {
       // Mock authority: validate PCR values if configured, otherwise trust signature
       if (expected.pcrs && attestation.pcrs) {
         for (const [pcrIndex, expectedValue] of Object.entries(expected.pcrs)) {
           const actual = attestation.pcrs[pcrIndex];
           if (!actual || actual !== expectedValue) return null;
         }
-        const pcrConcat = Object.keys(attestation.pcrs).sort().map((k) => attestation.pcrs[k]).join('');
-        return crypto.createHash('sha256').update(pcrConcat).digest('hex');
+        const pcrConcat = Object.keys(attestation.pcrs)
+          .sort()
+          .map((k) => attestation.pcrs[k])
+          .join("");
+        return crypto.createHash("sha256").update(pcrConcat).digest("hex");
       }
-      return 'mock';
+      return "mock";
     }
 
     return null;
@@ -350,7 +498,10 @@ class HardwareAttestationVerifier {
    */
   _verifySignature(attestation) {
     const canonical = _canonical(attestation);
-    const expected = crypto.createHmac('sha256', MOCK_SIGNING_SECRET).update(canonical).digest('hex');
+    const expected = crypto
+      .createHmac("sha256", MOCK_SIGNING_SECRET)
+      .update(canonical)
+      .digest("hex");
     return attestation.signature === expected;
   }
 
@@ -384,9 +535,9 @@ class HardwareAttestationVerifier {
   _emitSIEM(event, data) {
     if (this._broker) {
       this._broker.logEvent({
-        siemSeverity: (data.siemSeverity || 'high').toUpperCase(),
+        siemSeverity: (data.siemSeverity || "high").toUpperCase(),
         siemCategory: data.siemCategory || event.toLowerCase(),
-        siemSource: 'hardware-attestation-verify',
+        siemSource: "hardware-attestation-verify",
         context: { event, sandboxId: data.sandboxId, ...data },
       });
     } else if (this._audit) {
@@ -413,11 +564,14 @@ class HardwareAttestationVerifier {
    */
   _validateCertificateChain({ authority, leafCertificate, certificateChain }) {
     const errors = [];
-    const leaf = leafCertificate
-      || (certificateChain && certificateChain.length ? certificateChain[0] : null);
+    const leaf =
+      leafCertificate ||
+      (certificateChain && certificateChain.length
+        ? certificateChain[0]
+        : null);
 
     if (!leaf) {
-      errors.push('no leaf certificate provided');
+      errors.push("no leaf certificate provided");
       return { valid: false, errors };
     }
 
@@ -431,18 +585,20 @@ class HardwareAttestationVerifier {
       validator = new CertChainValidator({
         pinnedRootFingerprints: this._rootTrustStore.getPinnedFingerprints(),
       });
-      if (authority === 'sev-snp') {
+      if (authority === "sev-snp") {
         validator.addRootCA(this._rootTrustStore.getAmdArk());
         validator.addIntermediateCA(this._rootTrustStore.getAmdAsk());
         pinnedRoot = this._rootTrustStore.getAmdArk();
-      } else if (authority === 'sgx') {
+      } else if (authority === "sgx") {
         validator.addRootCA(this._rootTrustStore.getIntelRootCA());
         validator.addIntermediateCA(this._rootTrustStore.getIntelPckCA());
         pinnedRoot = this._rootTrustStore.getIntelRootCA();
       }
     } else {
       // No chain validation configured — fail closed if a cert was provided
-      errors.push('no certificate chain validator or root trust store configured');
+      errors.push(
+        "no certificate chain validator or root trust store configured",
+      );
       return { valid: false, errors };
     }
 
@@ -458,12 +614,23 @@ class HardwareAttestationVerifier {
       result = validator.validateChain(certificateChain[0]);
     } else if (pinnedRoot) {
       // Use explicit vendor chain
-      if (authority === 'sev-snp') {
-        result = validator.validateSevSnpChain(leaf, this._rootTrustStore.getAmdAsk(), pinnedRoot);
-      } else if (authority === 'sgx') {
-        result = validator.validateSgxChain(leaf, this._rootTrustStore.getIntelPckCA(), pinnedRoot);
+      if (authority === "sev-snp") {
+        result = validator.validateSevSnpChain(
+          leaf,
+          this._rootTrustStore.getAmdAsk(),
+          pinnedRoot,
+        );
+      } else if (authority === "sgx") {
+        result = validator.validateSgxChain(
+          leaf,
+          this._rootTrustStore.getIntelPckCA(),
+          pinnedRoot,
+        );
       } else {
-        result = { valid: false, errors: ['unknown authority for chain validation: ' + authority] };
+        result = {
+          valid: false,
+          errors: ["unknown authority for chain validation: " + authority],
+        };
       }
     } else {
       result = validator.validateChain(leaf);
@@ -472,12 +639,12 @@ class HardwareAttestationVerifier {
     const publicKey = result.valid ? validator.extractPublicKey(leaf) : null;
 
     if (!result.valid) {
-      this._emitSIEM('ATTESTATION_CHAIN_INVALID', {
-        sandboxId: 'unknown',
+      this._emitSIEM("ATTESTATION_CHAIN_INVALID", {
+        sandboxId: "unknown",
         authority,
         errors: result.errors,
-        siemSeverity: 'high',
-        siemCategory: 'attestation_chain_invalid',
+        siemSeverity: "high",
+        siemCategory: "attestation_chain_invalid",
       });
     }
 
@@ -496,9 +663,9 @@ class HardwareAttestationVerifier {
   _verifyEcdsaSignature(attestation, publicKey) {
     if (!publicKey) return false;
     try {
-      const data = Buffer.from(attestation.signedData, 'hex');
-      const signature = Buffer.from(attestation.rawSignature, 'hex');
-      const algorithm = attestation.authority === 'sgx' ? 'sha256' : 'sha384';
+      const data = Buffer.from(attestation.signedData, "hex");
+      const signature = Buffer.from(attestation.rawSignature, "hex");
+      const algorithm = attestation.authority === "sgx" ? "sha256" : "sha384";
       return crypto.verify(algorithm, data, publicKey, signature);
     } catch {
       return false;
@@ -541,14 +708,28 @@ module.exports = {
 
 function parseSevSnpReport(rawReport) {
   try {
-    const buf = Buffer.isBuffer(rawReport) ? rawReport : Buffer.from(rawReport, 'hex');
+    const buf = Buffer.isBuffer(rawReport)
+      ? rawReport
+      : Buffer.from(rawReport, "hex");
     if (buf.length < SEV_SNP_REPORT_SIZE) return null;
 
     const version = buf.readUInt32LE(SEV_SNP_VERSION_OFFSET);
     const policy = buf.readUInt32LE(SEV_SNP_POLICY_OFFSET);
-    const reportData = buf.subarray(SEV_SNP_REPORT_DATA_OFFSET, SEV_SNP_REPORT_DATA_OFFSET + SEV_SNP_REPORT_DATA_SIZE).toString('hex');
-    const measurement = buf.subarray(SEV_SNP_MEASUREMENT_OFFSET, SEV_SNP_MEASUREMENT_OFFSET + SEV_SNP_MEASUREMENT_SIZE).toString('hex');
-    const signature = buf.subarray(SEV_SNP_SIGNATURE_OFFSET, SEV_SNP_SIGNATURE_OFFSET + 512).toString('hex');
+    const reportData = buf
+      .subarray(
+        SEV_SNP_REPORT_DATA_OFFSET,
+        SEV_SNP_REPORT_DATA_OFFSET + SEV_SNP_REPORT_DATA_SIZE,
+      )
+      .toString("hex");
+    const measurement = buf
+      .subarray(
+        SEV_SNP_MEASUREMENT_OFFSET,
+        SEV_SNP_MEASUREMENT_OFFSET + SEV_SNP_MEASUREMENT_SIZE,
+      )
+      .toString("hex");
+    const signature = buf
+      .subarray(SEV_SNP_SIGNATURE_OFFSET, SEV_SNP_SIGNATURE_OFFSET + 512)
+      .toString("hex");
 
     return { version, policy, reportData, measurement, signature };
   } catch {
@@ -566,20 +747,37 @@ function parseSevSnpReport(rawReport) {
 
 function parseSgxQuote(rawQuote) {
   try {
-    const buf = Buffer.isBuffer(rawQuote) ? rawQuote : Buffer.from(rawQuote, 'hex');
+    const buf = Buffer.isBuffer(rawQuote)
+      ? rawQuote
+      : Buffer.from(rawQuote, "hex");
     // Minimum size: header (28) + report body (384) = 412 bytes
     if (buf.length < SGX_QUOTE_HEADER_SIZE + 384) return null;
 
     // Report body starts after the quote header
     const rb = SGX_REPORT_BODY_OFFSET;
-    const mrenclave = buf.subarray(rb + SGX_MRENCLAVE_OFFSET, rb + SGX_MRENCLAVE_OFFSET + SGX_MRENCLAVE_SIZE).toString('hex');
-    const mrsigner = buf.subarray(rb + SGX_MRSIGNER_OFFSET, rb + SGX_MRSIGNER_OFFSET + SGX_MRSIGNER_SIZE).toString('hex');
+    const mrenclave = buf
+      .subarray(
+        rb + SGX_MRENCLAVE_OFFSET,
+        rb + SGX_MRENCLAVE_OFFSET + SGX_MRENCLAVE_SIZE,
+      )
+      .toString("hex");
+    const mrsigner = buf
+      .subarray(
+        rb + SGX_MRSIGNER_OFFSET,
+        rb + SGX_MRSIGNER_OFFSET + SGX_MRSIGNER_SIZE,
+      )
+      .toString("hex");
     const isvProdId = buf.readUInt16LE(rb + SGX_ISVPRODID_OFFSET);
     const isvSvn = buf.readUInt16LE(rb + SGX_ISVPRODID_OFFSET + 2);
     // SGX report data is at offset 0x68 within the report body (after attributes)
     // For DCAP quotes, REPORT_DATA is at offset 0x68 from report body start
     const sgxReportDataOffset = 0x68;
-    const reportData = buf.subarray(rb + sgxReportDataOffset, rb + sgxReportDataOffset + SGX_REPORT_DATA_SIZE).toString('hex');
+    const reportData = buf
+      .subarray(
+        rb + sgxReportDataOffset,
+        rb + sgxReportDataOffset + SGX_REPORT_DATA_SIZE,
+      )
+      .toString("hex");
 
     return { mrenclave, mrsigner, isvProdId, isvSvn, reportData };
   } catch {

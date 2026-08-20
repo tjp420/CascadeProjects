@@ -13,24 +13,24 @@ global:
   scrape_timeout: 10s
   external_labels:
     cluster: ai-platform-prod
-    replica: '{{.ExternalURL}}'
+    replica: "{{.ExternalURL}}"
 
 rule_files:
-  - 'prometheus-mesh-alerts.yml'
+  - "prometheus-mesh-alerts.yml"
 
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: ['alertmanager.monitoring.svc.cluster.local:9093']
+        - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
 
 scrape_configs:
-  - job_name: 'ai-platform-agentic-orchestration'
-    metrics_path: '/api/agentic/metrics'
-    bearer_token_file: '/var/run/secrets/kubernetes.io/serviceaccount/token'
-    scheme: 'https'
+  - job_name: "ai-platform-agentic-orchestration"
+    metrics_path: "/api/agentic/metrics"
+    bearer_token_file: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    scheme: "https"
     tls_config:
       insecure_skip_verify: false
-      ca_file: '/etc/prometheus/certs/ca.crt'
+      ca_file: "/etc/prometheus/certs/ca.crt"
     kubernetes_sd_configs:
       - role: endpoints
         namespaces:
@@ -38,14 +38,15 @@ scrape_configs:
             - ai-platform
         selectors:
           - role: endpoints
-            label: 'app.kubernetes.io/name=hsm-vault-mesh'
+            label: "app.kubernetes.io/name=hsm-vault-mesh"
     relabel_configs:
       - source_labels: [__meta_kubernetes_endpoint_port_name]
         action: keep
-        regex: 'http-metrics'
-      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+        regex: "http-metrics"
+      - source_labels:
+          [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
         target_label: job
-        regex: '([^;]+);([^;]+)'
-        replacement: '${1}/${2}'
+        regex: "([^;]+);([^;]+)"
+        replacement: "${1}/${2}"
       - source_labels: [__meta_kubernetes_pod_name]
         target_label: pod

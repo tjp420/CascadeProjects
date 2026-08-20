@@ -1,20 +1,38 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { encrypt, decrypt, isEncrypted, encryptObject, decryptObject } = require('./crypto-utils.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const {
+  encrypt,
+  decrypt,
+  isEncrypted,
+  encryptObject,
+  decryptObject,
+} = require("./crypto-utils.cjs");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'alert-rules.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "alert-rules.json",
+);
 const MAX_RULES_PER_ORG = 100;
 
-const SENSITIVE_TOP_LEVEL = ['webhookUrl'];
-const SENSITIVE_DEST_FIELDS = ['url', 'secret', 'previousSecret', 'routingKey', 'email', 'to', 'webhookUrl'];
+const SENSITIVE_TOP_LEVEL = ["webhookUrl"];
+const SENSITIVE_DEST_FIELDS = [
+  "url",
+  "secret",
+  "previousSecret",
+  "routingKey",
+  "email",
+  "to",
+  "webhookUrl",
+];
 
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { rules: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     const store = JSON.parse(raw);
     // Migrate: encrypt any plaintext sensitive fields in existing rules
     let migrated = false;
@@ -26,9 +44,12 @@ function readStore() {
           migrated = true;
         }
       }
-      if (rule.destination && typeof rule.destination === 'object') {
+      if (rule.destination && typeof rule.destination === "object") {
         for (const field of SENSITIVE_DEST_FIELDS) {
-          if (rule.destination[field] && !isEncrypted(rule.destination[field])) {
+          if (
+            rule.destination[field] &&
+            !isEncrypted(rule.destination[field])
+          ) {
             rule.destination[field] = encrypt(rule.destination[field]);
             migrated = true;
           }
@@ -55,17 +76,17 @@ function makeKey(orgId, id) {
 // ΓöÇΓöÇ Rule CRUD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 const EVENT_TYPES = [
-  'critical_finding',
-  'sla_breached',
-  'gate_failed',
-  'guardrail_blocked',
-  'audit_delete',
-  'eval_failure',
-  'audit_chain_broken',
-  'guardrail_anomaly_spike',
+  "critical_finding",
+  "sla_breached",
+  "gate_failed",
+  "guardrail_blocked",
+  "audit_delete",
+  "eval_failure",
+  "audit_chain_broken",
+  "guardrail_anomaly_spike",
 ];
 
-const DESTINATION_TYPES = ['webhook', 'slack', 'email', 'pagerduty'];
+const DESTINATION_TYPES = ["webhook", "slack", "email", "pagerduty"];
 
 function decryptRule(rule) {
   if (!rule) return null;
@@ -75,7 +96,7 @@ function decryptRule(rule) {
       result[field] = decrypt(result[field]);
     }
   }
-  if (result.destination && typeof result.destination === 'object') {
+  if (result.destination && typeof result.destination === "object") {
     result.destination = { ...result.destination };
     for (const field of SENSITIVE_DEST_FIELDS) {
       if (result.destination[field] && isEncrypted(result.destination[field])) {
@@ -112,9 +133,9 @@ function setRule(ruleId, rule, orgId) {
   const key = makeKey(orgId, ruleId);
   const existing = store.rules[key];
   // Encrypt sensitive fields at rest
-  const webhookUrl = rule.webhookUrl ? encrypt(rule.webhookUrl) : '';
+  const webhookUrl = rule.webhookUrl ? encrypt(rule.webhookUrl) : "";
   let destination = {};
-  if (rule.destination && typeof rule.destination === 'object') {
+  if (rule.destination && typeof rule.destination === "object") {
     destination = { ...rule.destination };
     for (const field of SENSITIVE_DEST_FIELDS) {
       if (destination[field] && !isEncrypted(destination[field])) {
@@ -125,15 +146,15 @@ function setRule(ruleId, rule, orgId) {
   store.rules[key] = {
     id: ruleId,
     orgId,
-    name: rule.name || 'Untitled Rule',
+    name: rule.name || "Untitled Rule",
     enabled: rule.enabled !== false,
-    eventType: rule.eventType || 'critical_finding',
-    destinationType: rule.destinationType || 'webhook',
+    eventType: rule.eventType || "critical_finding",
+    destinationType: rule.destinationType || "webhook",
     webhookUrl,
     destination,
     threshold: rule.threshold || 1,
     cooldownMinutes: rule.cooldownMinutes || 0,
-    severityFilter: rule.severityFilter || 'all',
+    severityFilter: rule.severityFilter || "all",
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     lastFiredAt: null,
@@ -180,12 +201,14 @@ function findMatchingRules(orgId, eventType, context) {
       if (!r.enabled) return false;
       if (r.eventType !== eventType) return false;
       // Severity filter
-      if (r.severityFilter && r.severityFilter !== 'all') {
-        if (context?.severity && context.severity !== r.severityFilter) return false;
+      if (r.severityFilter && r.severityFilter !== "all") {
+        if (context?.severity && context.severity !== r.severityFilter)
+          return false;
       }
       // Cooldown check
       if (r.cooldownMinutes > 0 && r.lastFiredAt) {
-        const elapsed = (Date.now() - new Date(r.lastFiredAt).getTime()) / 60000;
+        const elapsed =
+          (Date.now() - new Date(r.lastFiredAt).getTime()) / 60000;
         if (elapsed < r.cooldownMinutes) return false;
       }
       return true;
@@ -218,25 +241,29 @@ const DEFAULT_GRACE_WINDOW_MS = 24 * 60 * 60 * 1000;
  * @returns {{ success: boolean, rule?: object, error?: string }}
  */
 function rotateSecret(ruleId, orgId, newSecret) {
-  if (!newSecret || typeof newSecret !== 'string') {
-    return { success: false, error: 'newSecret is required' };
+  if (!newSecret || typeof newSecret !== "string") {
+    return { success: false, error: "newSecret is required" };
   }
   if (newSecret.length < 16) {
-    return { success: false, error: 'newSecret must be at least 16 characters' };
+    return {
+      success: false,
+      error: "newSecret must be at least 16 characters",
+    };
   }
 
   const store = readStore();
   const key = makeKey(orgId, ruleId);
   const rule = store.rules[key];
-  if (!rule) return { success: false, error: 'Rule not found' };
+  if (!rule) return { success: false, error: "Rule not found" };
 
   // Decrypt current secret to move it to previousSecret
-  const currentDecrypted = rule.destination?.secret && isEncrypted(rule.destination.secret)
-    ? decrypt(rule.destination.secret)
-    : (rule.destination?.secret || '');
+  const currentDecrypted =
+    rule.destination?.secret && isEncrypted(rule.destination.secret)
+      ? decrypt(rule.destination.secret)
+      : rule.destination?.secret || "";
 
   // Ensure destination object exists
-  if (!rule.destination || typeof rule.destination !== 'object') {
+  if (!rule.destination || typeof rule.destination !== "object") {
     rule.destination = {};
   }
 
@@ -264,7 +291,13 @@ function getRotationStatus(ruleId, orgId, graceWindowMs) {
   const gw = graceWindowMs || DEFAULT_GRACE_WINDOW_MS;
   const rule = getRule(ruleId, orgId);
   if (!rule) {
-    return { hasPreviousSecret: false, rotatedAt: null, graceWindowEndsAt: null, graceActive: false, graceWindowMs: gw };
+    return {
+      hasPreviousSecret: false,
+      rotatedAt: null,
+      graceWindowEndsAt: null,
+      graceActive: false,
+      graceWindowMs: gw,
+    };
   }
   const rotatedAt = rule.destination?.secretRotatedAt || null;
   const hasPrevious = Boolean(rule.destination?.previousSecret);
@@ -296,7 +329,7 @@ function clearPreviousSecret(ruleId, orgId, force) {
   const store = readStore();
   const key = makeKey(orgId, ruleId);
   const rule = store.rules[key];
-  if (!rule) return { success: false, cleared: false, error: 'Rule not found' };
+  if (!rule) return { success: false, cleared: false, error: "Rule not found" };
 
   if (!rule.destination?.previousSecret) {
     return { success: true, cleared: false };
@@ -326,7 +359,7 @@ function clearPreviousSecret(ruleId, orgId, force) {
  * @returns {string} hex-encoded secret
  */
 function generateSecret(bytes) {
-  return crypto.randomBytes(bytes || 32).toString('hex');
+  return crypto.randomBytes(bytes || 32).toString("hex");
 }
 
 /**
@@ -359,7 +392,7 @@ function purgeExpiredPreviousSecrets(graceWindowMs) {
         orgId: rule.orgId,
         ruleName: rule.name,
         purged: true,
-        reason: 'missing_rotated_at_timestamp',
+        reason: "missing_rotated_at_timestamp",
       });
       continue;
     }
@@ -375,7 +408,7 @@ function purgeExpiredPreviousSecrets(graceWindowMs) {
         orgId: rule.orgId,
         ruleName: rule.name,
         purged: true,
-        reason: 'grace_window_expired',
+        reason: "grace_window_expired",
         rotatedAt,
         expiredAt: new Date(expiresAt).toISOString(),
       });
@@ -385,7 +418,7 @@ function purgeExpiredPreviousSecrets(graceWindowMs) {
         orgId: rule.orgId,
         ruleName: rule.name,
         purged: false,
-        reason: 'grace_window_active',
+        reason: "grace_window_active",
         rotatedAt,
         expiresAt: new Date(expiresAt).toISOString(),
       });

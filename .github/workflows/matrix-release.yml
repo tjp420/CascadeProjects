@@ -70,7 +70,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 'Resolve bump type (hybrid: labels first, then commits)'
+      - name: "Resolve bump type (hybrid: labels first, then commits)"
         id: resolve
         shell: bash
         run: |
@@ -129,7 +129,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install CLI dependencies
         working-directory: packages/simplebeacon-cli
@@ -273,7 +273,7 @@ jobs:
         if: steps.scope-check.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Bump version
         id: bump

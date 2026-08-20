@@ -136,13 +136,19 @@
   body {
     background-color: var(--background);
     color: var(--text-primary);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Ensure consistent text-size adjustment across browsers */
-  html, :host {
+  html,
+  :host {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
   }
@@ -170,7 +176,9 @@
    When the dashboard is embedded (sb_parent_urlbar=1, sb_website_mode=1, or data-ide-embed)
    hosts sometimes inject inline `height` or CSS variables that break scrolling. Neutralize
    those here so embedded previews keep correct layout and scrolling. */
-html[data-parent-urlbar='1'], html[data-ide-embed='1'], html[data-embed-mode='1'] {
+html[data-parent-urlbar='1'],
+html[data-ide-embed='1'],
+html[data-embed-mode='1'] {
   --embed-top-shim: 0px !important;
 }
 html[data-parent-urlbar='1'] body,
@@ -189,4 +197,3 @@ html[data-embed-mode='1'] #app-main {
   height: auto !important;
   min-height: 0 !important;
 }
-

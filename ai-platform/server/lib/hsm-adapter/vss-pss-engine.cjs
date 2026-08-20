@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 55: Zero-Knowledge Verifiable Secret Sharing (VSS) and
@@ -23,8 +23,8 @@
  * @module hsm-adapter/vss-pss-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxParticipants: 16,
@@ -38,27 +38,27 @@ const DEFAULT_OPTIONS = {
 };
 
 const VSS_STATUS = {
-  PENDING: 'pending',
-  DEALT: 'dealt',
-  VERIFIED: 'verified',
-  COMPLAINT: 'complaint',
-  DISQUALIFIED: 'disqualified',
-  COMPLETED: 'completed',
+  PENDING: "pending",
+  DEALT: "dealt",
+  VERIFIED: "verified",
+  COMPLAINT: "complaint",
+  DISQUALIFIED: "disqualified",
+  COMPLETED: "completed",
 };
 
 const EPOCH_STATUS = {
-  ACTIVE: 'active',
-  EXPIRED: 'expired',
-  TRANSITIONING: 'transitioning',
+  ACTIVE: "active",
+  EXPIRED: "expired",
+  TRANSITIONING: "transitioning",
 };
 
 const SHARE_STATUS = {
-  PENDING: 'pending',
-  VERIFIED: 'verified',
-  INVALID: 'invalid',
-  EXPIRED: 'expired',
-  COMPROMISED: 'compromised',
-  REFRESHED: 'refreshed',
+  PENDING: "pending",
+  VERIFIED: "verified",
+  INVALID: "invalid",
+  EXPIRED: "expired",
+  COMPROMISED: "compromised",
+  REFRESHED: "refreshed",
 };
 
 // Prime field for polynomial arithmetic (2^256 - 189)
@@ -98,12 +98,17 @@ class VssPssEngine {
   startEpoch(epochId) {
     this._currentEpoch++;
     if (this._currentEpoch > this.maxEpochs) {
-      throw new HsmAdapterError('MAX_EPOCHS_REACHED',
-        `maximum ${this.maxEpochs} epochs reached`);
+      throw new HsmAdapterError(
+        "MAX_EPOCHS_REACHED",
+        `maximum ${this.maxEpochs} epochs reached`,
+      );
     }
     const id = epochId || `epoch-${this._currentEpoch}`;
     if (this._epochs.has(id)) {
-      throw new HsmAdapterError('EPOCH_ALREADY_EXISTS', `epoch ${id} already exists`);
+      throw new HsmAdapterError(
+        "EPOCH_ALREADY_EXISTS",
+        `epoch ${id} already exists`,
+      );
     }
     const now = Date.now();
     const epoch = {
@@ -117,8 +122,8 @@ class VssPssEngine {
       complaintCount: 0,
     };
     this._epochs.set(id, epoch);
-    if (typeof this._audit === 'function') {
-      this._audit('EPOCH_STARTED', { epochId: id, number: this._currentEpoch });
+    if (typeof this._audit === "function") {
+      this._audit("EPOCH_STARTED", { epochId: id, number: this._currentEpoch });
     }
     return { epochId: id, number: this._currentEpoch, status: epoch.status };
   }
@@ -130,10 +135,16 @@ class VssPssEngine {
   expireEpoch(epochId) {
     const epoch = this._epochs.get(epochId);
     if (!epoch) {
-      throw new HsmAdapterError('EPOCH_NOT_FOUND', `epoch ${epochId} not found`);
+      throw new HsmAdapterError(
+        "EPOCH_NOT_FOUND",
+        `epoch ${epochId} not found`,
+      );
     }
     if (epoch.status === EPOCH_STATUS.EXPIRED) {
-      throw new HsmAdapterError('EPOCH_ALREADY_EXPIRED', `epoch ${epochId} is already expired`);
+      throw new HsmAdapterError(
+        "EPOCH_ALREADY_EXPIRED",
+        `epoch ${epochId} is already expired`,
+      );
     }
     epoch.status = EPOCH_STATUS.EXPIRED;
     // Mark all shares in this epoch's sessions as expired
@@ -147,8 +158,8 @@ class VssPssEngine {
         }
       }
     }
-    if (typeof this._audit === 'function') {
-      this._audit('EPOCH_EXPIRED', { epochId });
+    if (typeof this._audit === "function") {
+      this._audit("EPOCH_EXPIRED", { epochId });
     }
     return { epochId, expired: true };
   }
@@ -165,37 +176,55 @@ class VssPssEngine {
    * @returns {object} VSS deal result with shares and commitments
    */
   dealSecret(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'deal config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "deal config is required");
     }
-    if (!config.sessionId || typeof config.sessionId !== 'string') {
-      throw new HsmAdapterError('INVALID_SESSION_ID', 'sessionId must be a non-empty string');
+    if (!config.sessionId || typeof config.sessionId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_SESSION_ID",
+        "sessionId must be a non-empty string",
+      );
     }
     if (this._sessions.has(config.sessionId)) {
-      throw new HsmAdapterError('SESSION_ALREADY_EXISTS', `session ${config.sessionId} already exists`);
+      throw new HsmAdapterError(
+        "SESSION_ALREADY_EXISTS",
+        `session ${config.sessionId} already exists`,
+      );
     }
     if (!Buffer.isBuffer(config.secret) || config.secret.length === 0) {
-      throw new HsmAdapterError('INVALID_SECRET', 'secret must be a non-empty Buffer');
+      throw new HsmAdapterError(
+        "INVALID_SECRET",
+        "secret must be a non-empty Buffer",
+      );
     }
     const threshold = config.threshold;
     const participants = config.participants;
-    if (typeof threshold !== 'number' || threshold < this.minThreshold) {
-      throw new HsmAdapterError('INVALID_THRESHOLD',
-        `threshold must be at least ${this.minThreshold}`);
+    if (typeof threshold !== "number" || threshold < this.minThreshold) {
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        `threshold must be at least ${this.minThreshold}`,
+      );
     }
-    if (typeof participants !== 'number' || participants < threshold) {
-      throw new HsmAdapterError('INVALID_PARTICIPANTS',
-        `participants must be >= threshold (${threshold})`);
+    if (typeof participants !== "number" || participants < threshold) {
+      throw new HsmAdapterError(
+        "INVALID_PARTICIPANTS",
+        `participants must be >= threshold (${threshold})`,
+      );
     }
     if (participants > this.maxParticipants) {
-      throw new HsmAdapterError('TOO_MANY_PARTICIPANTS',
-        `${participants} exceeds max ${this.maxParticipants}`);
+      throw new HsmAdapterError(
+        "TOO_MANY_PARTICIPANTS",
+        `${participants} exceeds max ${this.maxParticipants}`,
+      );
     }
-    const participantIds = config.participantIds ||
+    const participantIds =
+      config.participantIds ||
       Array.from({ length: participants }, (_, i) => `node-${i + 1}`);
     if (participantIds.length !== participants) {
-      throw new HsmAdapterError('PARTICIPANT_ID_MISMATCH',
-        `expected ${participants} participantIds, got ${participantIds.length}`);
+      throw new HsmAdapterError(
+        "PARTICIPANT_ID_MISMATCH",
+        `expected ${participants} participantIds, got ${participantIds.length}`,
+      );
     }
     // Convert secret to BigInt
     const secretInt = _bytesToBigInt(config.secret) % FIELD_PRIME;
@@ -207,7 +236,10 @@ class VssPssEngine {
     // Compute public commitments: C_j = g^{a_j} (Feldman-style)
     // We use hash-based commitments for simulation
     const commitments = coeffs.map((c, j) =>
-      crypto.createHash('sha256').update(`commit:${j}:${c.toString(16)}`).digest('hex')
+      crypto
+        .createHash("sha256")
+        .update(`commit:${j}:${c.toString(16)}`)
+        .digest("hex"),
     );
     // Compute shares: s_i = f(i) for i = 1..n
     const shares = new Map();
@@ -250,8 +282,8 @@ class VssPssEngine {
         epoch.sessions.push(config.sessionId);
       }
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SECRET_DEALT', {
+    if (typeof this._audit === "function") {
+      this._audit("SECRET_DEALT", {
         sessionId: config.sessionId,
         threshold,
         participants,
@@ -277,14 +309,26 @@ class VssPssEngine {
   verifyShare(sessionId, nodeId) {
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     const share = session.shares.get(nodeId);
     if (!share) {
-      throw new HsmAdapterError('SHARE_NOT_FOUND', `share for node ${nodeId} not found`);
+      throw new HsmAdapterError(
+        "SHARE_NOT_FOUND",
+        `share for node ${nodeId} not found`,
+      );
     }
     if (share.status === SHARE_STATUS.VERIFIED) {
-      return { sessionId, nodeId, verified: true, status: share.status, alreadyVerified: true };
+      return {
+        sessionId,
+        nodeId,
+        verified: true,
+        status: share.status,
+        alreadyVerified: true,
+      };
     }
     // Verify: recompute expected commitment from share
     // In Feldman VSS: g^{s_i} should equal product of C_j^{i^j}
@@ -300,8 +344,8 @@ class VssPssEngine {
       share.status = SHARE_STATUS.INVALID;
       session.invalidShares++;
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SHARE_VERIFIED', { sessionId, nodeId, verified });
+    if (typeof this._audit === "function") {
+      this._audit("SHARE_VERIFIED", { sessionId, nodeId, verified });
     }
     return {
       sessionId,
@@ -324,22 +368,33 @@ class VssPssEngine {
   fileComplaint(sessionId, fromNode, againstNode, reason) {
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     if (session.complaints.length >= this.maxComplaintsPerEpoch) {
-      throw new HsmAdapterError('MAX_COMPLAINTS_REACHED',
-        `maximum ${this.maxComplaintsPerEpoch} complaints per session`);
+      throw new HsmAdapterError(
+        "MAX_COMPLAINTS_REACHED",
+        `maximum ${this.maxComplaintsPerEpoch} complaints per session`,
+      );
     }
     if (!session.shares.has(fromNode)) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${fromNode} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${fromNode} is not a participant`,
+      );
     }
     if (!session.shares.has(againstNode)) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${againstNode} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${againstNode} is not a participant`,
+      );
     }
     const complaint = {
       from: fromNode,
       against: againstNode,
-      reason: reason || 'unspecified',
+      reason: reason || "unspecified",
       filedAt: Date.now(),
     };
     session.complaints.push(complaint);
@@ -349,8 +404,8 @@ class VssPssEngine {
       const epoch = this._epochs.get(session.epochId);
       if (epoch) epoch.complaintCount++;
     }
-    if (typeof this._audit === 'function') {
-      this._audit('COMPLAINT_FILED', { sessionId, fromNode, againstNode });
+    if (typeof this._audit === "function") {
+      this._audit("COMPLAINT_FILED", { sessionId, fromNode, againstNode });
     }
     return { sessionId, complaint, totalComplaints: session.complaints.length };
   }
@@ -364,18 +419,33 @@ class VssPssEngine {
   disqualifyNode(sessionId, nodeId, reason) {
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     if (!session.shares.has(nodeId)) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${nodeId} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${nodeId} is not a participant`,
+      );
     }
     session.disqualified.add(nodeId);
     const share = session.shares.get(nodeId);
     share.status = SHARE_STATUS.INVALID;
-    if (typeof this._audit === 'function') {
-      this._audit('NODE_DISQUALIFIED', { sessionId, nodeId, reason: reason || 'unspecified' });
+    if (typeof this._audit === "function") {
+      this._audit("NODE_DISQUALIFIED", {
+        sessionId,
+        nodeId,
+        reason: reason || "unspecified",
+      });
     }
-    return { sessionId, nodeId, disqualified: true, reason: reason || 'unspecified' };
+    return {
+      sessionId,
+      nodeId,
+      disqualified: true,
+      reason: reason || "unspecified",
+    };
   }
 
   /**
@@ -387,27 +457,44 @@ class VssPssEngine {
   reconstructSecret(sessionId, nodeIds) {
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     if (!Array.isArray(nodeIds) || nodeIds.length < session.threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_SHARES',
-        `need at least ${session.threshold} shares, got ${nodeIds ? nodeIds.length : 0}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_SHARES",
+        `need at least ${session.threshold} shares, got ${nodeIds ? nodeIds.length : 0}`,
+      );
     }
     // Collect verified shares
     const points = [];
     for (const nodeId of nodeIds) {
       const share = session.shares.get(nodeId);
       if (!share) {
-        throw new HsmAdapterError('SHARE_NOT_FOUND', `share for node ${nodeId} not found`);
+        throw new HsmAdapterError(
+          "SHARE_NOT_FOUND",
+          `share for node ${nodeId} not found`,
+        );
       }
       if (session.disqualified.has(nodeId)) {
-        throw new HsmAdapterError('NODE_DISQUALIFIED', `node ${nodeId} is disqualified`);
+        throw new HsmAdapterError(
+          "NODE_DISQUALIFIED",
+          `node ${nodeId} is disqualified`,
+        );
       }
       if (share.status === SHARE_STATUS.EXPIRED) {
-        throw new HsmAdapterError('SHARE_EXPIRED', `share for node ${nodeId} is expired`);
+        throw new HsmAdapterError(
+          "SHARE_EXPIRED",
+          `share for node ${nodeId} is expired`,
+        );
       }
       if (share.status === SHARE_STATUS.INVALID) {
-        throw new HsmAdapterError('SHARE_INVALID', `share for node ${nodeId} is invalid`);
+        throw new HsmAdapterError(
+          "SHARE_INVALID",
+          `share for node ${nodeId} is invalid`,
+        );
       }
       points.push({ x: BigInt(share.index), y: share.value });
       if (points.length >= session.threshold) break;
@@ -429,8 +516,11 @@ class VssPssEngine {
     if (this._completedSessions.length > this._maxHistory) {
       this._completedSessions.shift();
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SECRET_RECONSTRUCTED', { sessionId, sharesUsed: points.length });
+    if (typeof this._audit === "function") {
+      this._audit("SECRET_RECONSTRUCTED", {
+        sessionId,
+        sharesUsed: points.length,
+      });
     }
     return {
       sessionId,
@@ -449,18 +539,30 @@ class VssPssEngine {
    */
   refreshShares(sessionId, newEpochId) {
     if (!this.enableProactiveRefresh) {
-      throw new HsmAdapterError('PROACTIVE_REFRESH_DISABLED', 'proactive refresh is disabled');
+      throw new HsmAdapterError(
+        "PROACTIVE_REFRESH_DISABLED",
+        "proactive refresh is disabled",
+      );
     }
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     const epoch = this._epochs.get(newEpochId);
     if (!epoch) {
-      throw new HsmAdapterError('EPOCH_NOT_FOUND', `epoch ${newEpochId} not found`);
+      throw new HsmAdapterError(
+        "EPOCH_NOT_FOUND",
+        `epoch ${newEpochId} not found`,
+      );
     }
     if (epoch.status !== EPOCH_STATUS.ACTIVE) {
-      throw new HsmAdapterError('EPOCH_NOT_ACTIVE', `epoch ${newEpochId} is not active`);
+      throw new HsmAdapterError(
+        "EPOCH_NOT_ACTIVE",
+        `epoch ${newEpochId} is not active`,
+      );
     }
     // Mark old shares as refreshed
     for (const share of session.shares.values()) {
@@ -475,7 +577,10 @@ class VssPssEngine {
     }
     // Update commitments
     const newCommitments = newCoeffs.map((c, j) =>
-      crypto.createHash('sha256').update(`commit:${j}:${c.toString(16)}`).digest('hex')
+      crypto
+        .createHash("sha256")
+        .update(`commit:${j}:${c.toString(16)}`)
+        .digest("hex"),
     );
     session.coeffs = newCoeffs;
     session.commitments = newCommitments;
@@ -492,8 +597,8 @@ class VssPssEngine {
     session.epochId = newEpochId;
     epoch.sessions.push(sessionId);
     epoch.refreshCount++;
-    if (typeof this._audit === 'function') {
-      this._audit('SHARES_REFRESHED', { sessionId, newEpochId });
+    if (typeof this._audit === "function") {
+      this._audit("SHARES_REFRESHED", { sessionId, newEpochId });
     }
     return {
       sessionId,
@@ -513,14 +618,22 @@ class VssPssEngine {
   recoverShare(sessionId, nodeId, helperNodes) {
     const session = this._sessions.get(sessionId);
     if (!session) {
-      throw new HsmAdapterError('SESSION_NOT_FOUND', `session ${sessionId} not found`);
+      throw new HsmAdapterError(
+        "SESSION_NOT_FOUND",
+        `session ${sessionId} not found`,
+      );
     }
     if (!session.shares.has(nodeId)) {
-      throw new HsmAdapterError('NODE_NOT_PARTICIPANT', `node ${nodeId} is not a participant`);
+      throw new HsmAdapterError(
+        "NODE_NOT_PARTICIPANT",
+        `node ${nodeId} is not a participant`,
+      );
     }
     if (!Array.isArray(helperNodes) || helperNodes.length < session.threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_HELPERS',
-        `need at least ${session.threshold} helper nodes, got ${helperNodes ? helperNodes.length : 0}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_HELPERS",
+        `need at least ${session.threshold} helper nodes, got ${helperNodes ? helperNodes.length : 0}`,
+      );
     }
     // Mark old share as compromised
     const share = session.shares.get(nodeId);
@@ -530,8 +643,12 @@ class VssPssEngine {
     const recoveredValue = _evaluatePolynomial(session.coeffs, x);
     share.value = recoveredValue;
     share.status = SHARE_STATUS.PENDING;
-    if (typeof this._audit === 'function') {
-      this._audit('SHARE_RECOVERED', { sessionId, nodeId, helperCount: helperNodes.length });
+    if (typeof this._audit === "function") {
+      this._audit("SHARE_RECOVERED", {
+        sessionId,
+        nodeId,
+        helperCount: helperNodes.length,
+      });
     }
     return {
       sessionId,
@@ -611,7 +728,7 @@ class VssPssEngine {
    * @returns {object[]}
    */
   getEpochs() {
-    return Array.from(this._epochs.values()).map(e => ({
+    return Array.from(this._epochs.values()).map((e) => ({
       epochId: e.epochId,
       number: e.number,
       status: e.status,
@@ -625,7 +742,7 @@ class VssPssEngine {
    * @returns {object[]}
    */
   getCompletedSessions(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._completedSessions.slice(-n);
   }
 
@@ -766,11 +883,17 @@ function _lagrangeInterpolate(points) {
     for (let j = 0; j < points.length; j++) {
       if (i === j) continue;
       // numerator *= (0 - x_j) = -x_j
-      numerator = (numerator * ((-points[j].x % FIELD_PRIME) + FIELD_PRIME)) % FIELD_PRIME;
+      numerator =
+        (numerator * ((-points[j].x % FIELD_PRIME) + FIELD_PRIME)) %
+        FIELD_PRIME;
       // denominator *= (x_i - x_j)
-      denominator = (denominator * (((points[i].x - points[j].x) % FIELD_PRIME) + FIELD_PRIME)) % FIELD_PRIME;
+      denominator =
+        (denominator *
+          (((points[i].x - points[j].x) % FIELD_PRIME) + FIELD_PRIME)) %
+        FIELD_PRIME;
     }
-    const lagrangeCoeff = (numerator * _modInv(denominator, FIELD_PRIME)) % FIELD_PRIME;
+    const lagrangeCoeff =
+      (numerator * _modInv(denominator, FIELD_PRIME)) % FIELD_PRIME;
     secret = (secret + points[i].y * lagrangeCoeff) % FIELD_PRIME;
   }
   return secret;

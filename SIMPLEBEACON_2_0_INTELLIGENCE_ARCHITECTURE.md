@@ -54,69 +54,69 @@ Phase 2 Intelligence transforms SimpleBeacon from a passive scanner into an acti
 
 Tracks every AI-generated fix attempt for analytics and improvement.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID PK | Unique fix attempt ID |
-| `scan_id` | UUID FK | Links to originating scan |
-| `finding_id` | TEXT | SimpleBeacon finding identifier |
-| `file_path` | TEXT | Relative path within repo |
-| `issue_type` | TEXT | e.g., "credential-leak", "llm-slop" |
-| `severity` | ENUM | critical / high / medium / low |
-| `model_used` | TEXT | e.g., "llama3.2:latest", "gpt-4o" |
-| `provider` | ENUM | local / cloud / gguf |
-| `prompt_tokens` | INTEGER | Token count of sent prompt |
-| `response_tokens` | INTEGER | Token count of model response |
-| `latency_ms` | INTEGER | Round-trip time |
-| `status` | ENUM | pending / applied / rejected / failed / dry-run |
-| `search_snippet` | TEXT | Original code (hashed for privacy) |
-| `replace_snippet` | TEXT | Proposed replacement (hashed) |
-| `syntax_valid` | BOOLEAN | Did `node -c` pass after patch? |
-| `tests_pass` | BOOLEAN | Did test suite pass after patch? |
-| `user_accepted` | BOOLEAN | Did user click "Accept Fix"? |
-| `rejection_reason` | TEXT | Why user rejected (optional) |
-| `created_at` | TIMESTAMP | Attempt timestamp |
-| `applied_at` | TIMESTAMP | When patch was written to disk |
+| Column             | Type      | Description                                     |
+| ------------------ | --------- | ----------------------------------------------- |
+| `id`               | UUID PK   | Unique fix attempt ID                           |
+| `scan_id`          | UUID FK   | Links to originating scan                       |
+| `finding_id`       | TEXT      | SimpleBeacon finding identifier                 |
+| `file_path`        | TEXT      | Relative path within repo                       |
+| `issue_type`       | TEXT      | e.g., "credential-leak", "llm-slop"             |
+| `severity`         | ENUM      | critical / high / medium / low                  |
+| `model_used`       | TEXT      | e.g., "llama3.2:latest", "gpt-4o"               |
+| `provider`         | ENUM      | local / cloud / gguf                            |
+| `prompt_tokens`    | INTEGER   | Token count of sent prompt                      |
+| `response_tokens`  | INTEGER   | Token count of model response                   |
+| `latency_ms`       | INTEGER   | Round-trip time                                 |
+| `status`           | ENUM      | pending / applied / rejected / failed / dry-run |
+| `search_snippet`   | TEXT      | Original code (hashed for privacy)              |
+| `replace_snippet`  | TEXT      | Proposed replacement (hashed)                   |
+| `syntax_valid`     | BOOLEAN   | Did `node -c` pass after patch?                 |
+| `tests_pass`       | BOOLEAN   | Did test suite pass after patch?                |
+| `user_accepted`    | BOOLEAN   | Did user click "Accept Fix"?                    |
+| `rejection_reason` | TEXT      | Why user rejected (optional)                    |
+| `created_at`       | TIMESTAMP | Attempt timestamp                               |
+| `applied_at`       | TIMESTAMP | When patch was written to disk                  |
 
 ### 3.2 Context Cache Table (`context_cache`)
 
 Stores extracted snippets to avoid re-reading files for overlapping findings.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `cache_key` | TEXT PK | `sha256(filePath + startLine + endLine)` |
-| `file_path` | TEXT | Absolute path |
-| `start_line` | INTEGER | 0-indexed start |
-| `end_line` | INTEGER | 0-indexed end |
-| `content_hash` | TEXT | `sha256(snippet_content)` |
-| `content` | TEXT | Cached snippet text |
-| `expires_at` | TIMESTAMP | TTL (default: 1 hour) |
+| Column         | Type      | Description                              |
+| -------------- | --------- | ---------------------------------------- |
+| `cache_key`    | TEXT PK   | `sha256(filePath + startLine + endLine)` |
+| `file_path`    | TEXT      | Absolute path                            |
+| `start_line`   | INTEGER   | 0-indexed start                          |
+| `end_line`     | INTEGER   | 0-indexed end                            |
+| `content_hash` | TEXT      | `sha256(snippet_content)`                |
+| `content`      | TEXT      | Cached snippet text                      |
+| `expires_at`   | TIMESTAMP | TTL (default: 1 hour)                    |
 
 ### 3.3 Feedback Store Table (`fix_feedback`)
 
 Captures user thumbs-up/down on fixes for reinforcement learning.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID PK | Unique feedback ID |
-| `fix_attempt_id` | UUID FK | Links to fix_attempts |
-| `rating` | INTEGER | -1 (bad), 0 (neutral), +1 (good) |
-| `comment` | TEXT | Optional user explanation |
-| `created_at` | TIMESTAMP | Feedback timestamp |
+| Column           | Type      | Description                      |
+| ---------------- | --------- | -------------------------------- |
+| `id`             | UUID PK   | Unique feedback ID               |
+| `fix_attempt_id` | UUID FK   | Links to fix_attempts            |
+| `rating`         | INTEGER   | -1 (bad), 0 (neutral), +1 (good) |
+| `comment`        | TEXT      | Optional user explanation        |
+| `created_at`     | TIMESTAMP | Feedback timestamp               |
 
 ### 3.4 Model Performance Table (`model_performance`)
 
 Tracks per-model success rates to auto-select the best model.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `model_id` | TEXT PK | e.g., "llama3.2:latest" |
-| `issue_type` | TEXT PK | e.g., "credential-leak" |
-| `attempts` | INTEGER | Total fixes attempted |
-| `applied` | INTEGER | Count applied to disk |
-| `syntax_valid` | INTEGER | Count passing syntax check |
-| `user_accepted` | INTEGER | Count user-approved |
-| `avg_latency_ms` | INTEGER | Average round-trip time |
-| `updated_at` | TIMESTAMP | Last update |
+| Column           | Type      | Description                |
+| ---------------- | --------- | -------------------------- |
+| `model_id`       | TEXT PK   | e.g., "llama3.2:latest"    |
+| `issue_type`     | TEXT PK   | e.g., "credential-leak"    |
+| `attempts`       | INTEGER   | Total fixes attempted      |
+| `applied`        | INTEGER   | Count applied to disk      |
+| `syntax_valid`   | INTEGER   | Count passing syntax check |
+| `user_accepted`  | INTEGER   | Count user-approved        |
+| `avg_latency_ms` | INTEGER   | Average round-trip time    |
+| `updated_at`     | TIMESTAMP | Last update                |
 
 ---
 
@@ -144,11 +144,11 @@ For a model with context window `C` (e.g., 4096, 8192, 128K):
 
 ```typescript
 function calculateContextLines(contextWindow: number): number {
-    const overhead = 450; // system + issue + metadata + output
-    const available = contextWindow - overhead;
-    const avgTokensPerLine = 8; // heuristic for code
-    const maxLines = Math.floor(available / avgTokensPerLine);
-    return Math.min(maxLines, 120); // cap at 120 lines for readability
+  const overhead = 450; // system + issue + metadata + output
+  const available = contextWindow - overhead;
+  const avgTokensPerLine = 8; // heuristic for code
+  const maxLines = Math.floor(available / avgTokensPerLine);
+  return Math.min(maxLines, 120); // cap at 120 lines for readability
 }
 ```
 
@@ -177,25 +177,25 @@ For files >500 lines, the fix engine may need broader context:
 
 ```typescript
 interface PromptTemplate {
-    id: string;           // e.g., "fix-credential-leak"
-    systemPrompt: string; // Role definition
-    userPromptTemplate: string; // Mustache-style template
-    requiredContext: ('snippet' | 'filePath' | 'language' | 'imports')[];
-    maxTokens: number;
-    temperature: number;
+  id: string; // e.g., "fix-credential-leak"
+  systemPrompt: string; // Role definition
+  userPromptTemplate: string; // Mustache-style template
+  requiredContext: ("snippet" | "filePath" | "language" | "imports")[];
+  maxTokens: number;
+  temperature: number;
 }
 ```
 
 **Template Registry:**
 
-| Template ID | Purpose | Temperature |
-|-------------|---------|-------------|
-| `fix-credential-leak` | Extract secret to env var | 0.0 |
-| `fix-llm-slop` | Remove placeholder comments | 0.0 |
-| `fix-hardcoded-url` | Parameterize URL | 0.0 |
-| `fix-empty-catch` | Add proper error handling | 0.0 |
-| `fix-missing-strict` | Add 'use strict' | 0.0 |
-| `explain-issue` | Explain why finding matters | 0.3 |
+| Template ID           | Purpose                     | Temperature |
+| --------------------- | --------------------------- | ----------- |
+| `fix-credential-leak` | Extract secret to env var   | 0.0         |
+| `fix-llm-slop`        | Remove placeholder comments | 0.0         |
+| `fix-hardcoded-url`   | Parameterize URL            | 0.0         |
+| `fix-empty-catch`     | Add proper error handling   | 0.0         |
+| `fix-missing-strict`  | Add 'use strict'            | 0.0         |
+| `explain-issue`       | Explain why finding matters | 0.3         |
 
 ### 5.2 Prompt Caching
 
@@ -209,7 +209,7 @@ Prompts are cached by `sha256(templateId + issueType + snippetHash)`:
 
 All model outputs pass through `ResponseNormalizer`:
 
-1. **Strip markdown fences** (```json ... ```)
+1. **Strip markdown fences** (`json ... `)
 2. **Extract first JSON object** via regex `/\{[\s\S]*?\}/`
 3. **Validate schema** — must have `search` and `replace` string fields
 4. **Safety check** — `search` must exist in original snippet
@@ -219,13 +219,13 @@ All model outputs pass through `ResponseNormalizer`:
 
 ```typescript
 const RETRY_POLICY = {
-    maxRetries: 2,
-    backoffMs: [1000, 3000], // 1s, then 3s
-    onFailure: [
-        'expandContextLines',   // Retry 1: give model more context
-        'simplifyPrompt',      // Retry 2: shorter, clearer prompt
-        'fallbackToManual'      // Final: mark as "needs manual review"
-    ]
+  maxRetries: 2,
+  backoffMs: [1000, 3000], // 1s, then 3s
+  onFailure: [
+    "expandContextLines", // Retry 1: give model more context
+    "simplifyPrompt", // Retry 2: shorter, clearer prompt
+    "fallbackToManual", // Final: mark as "needs manual review"
+  ],
 };
 ```
 
@@ -275,6 +275,7 @@ Every applied fix writes to a `.simplebeacon/fix-backups/` directory:
 ```
 
 Rollback command:
+
 ```bash
 simplebeacon fix rollback --id <fixAttemptId>
 # or
@@ -289,37 +290,35 @@ simplebeacon fix rollback --file src/utils/auth.js --last 1
 
 ```typescript
 interface ModelAdapter {
-    readonly name: string;
-    readonly supportsStreaming: boolean;
-    readonly maxContextTokens: number;
-    
-    generate(prompt: string, options: GenerateOptions): Promise<ModelResponse>;
-    testConnection(): Promise<{ ok: boolean; latencyMs: number }>;
-    countTokens(text: string): number; // approximate
+  readonly name: string;
+  readonly supportsStreaming: boolean;
+  readonly maxContextTokens: number;
+
+  generate(prompt: string, options: GenerateOptions): Promise<ModelResponse>;
+  testConnection(): Promise<{ ok: boolean; latencyMs: number }>;
+  countTokens(text: string): number; // approximate
 }
 ```
 
 ### 7.2 Adapters
 
-| Adapter | Backend | Context Window | Local? |
-|---------|---------|---------------|--------|
-| `OllamaAdapter` | Ollama HTTP API | Model-dependent (4K–128K) | Yes |
-| `GGUFAdapter` | node-llama-cpp / llama-node | Model-dependent | Yes |
-| `OpenAIAdapter` | OpenAI API | 128K | No (cloud) |
-| `AnthropicAdapter` | Claude API | 200K | No (cloud) |
+| Adapter            | Backend                     | Context Window            | Local?     |
+| ------------------ | --------------------------- | ------------------------- | ---------- |
+| `OllamaAdapter`    | Ollama HTTP API             | Model-dependent (4K–128K) | Yes        |
+| `GGUFAdapter`      | node-llama-cpp / llama-node | Model-dependent           | Yes        |
+| `OpenAIAdapter`    | OpenAI API                  | 128K                      | No (cloud) |
+| `AnthropicAdapter` | Claude API                  | 200K                      | No (cloud) |
 
 ### 7.3 Auto-Selection
 
 ```typescript
 function selectAdapter(preferences: UserPreferences): ModelAdapter {
-    if (preferences.offline) {
-        // Try Ollama first, then fall back to GGUF
-        return ollamaAdapter.isAvailable() 
-            ? ollamaAdapter 
-            : ggufAdapter;
-    }
-    // Online: use highest-performing model from model_performance table
-    return getBestModelFromHistory(preferences.issueType);
+  if (preferences.offline) {
+    // Try Ollama first, then fall back to GGUF
+    return ollamaAdapter.isAvailable() ? ollamaAdapter : ggufAdapter;
+  }
+  // Online: use highest-performing model from model_performance table
+  return getBestModelFromHistory(preferences.issueType);
 }
 ```
 
@@ -329,13 +328,13 @@ function selectAdapter(preferences: UserPreferences): ModelAdapter {
 
 ### 8.1 Metrics
 
-| Metric | Target | Alert Threshold |
-|--------|--------|-----------------|
-| Fix generation latency (p95) | <3s | >10s |
-| Syntax validation pass rate | >85% | <70% |
-| User acceptance rate | >60% | <40% |
-| Cache hit rate | >30% | <10% |
-| Token utilization | <80% of context | >95% |
+| Metric                       | Target          | Alert Threshold |
+| ---------------------------- | --------------- | --------------- |
+| Fix generation latency (p95) | <3s             | >10s            |
+| Syntax validation pass rate  | >85%            | <70%            |
+| User acceptance rate         | >60%            | <40%            |
+| Cache hit rate               | >30%            | <10%            |
+| Token utilization            | <80% of context | >95%            |
 
 ### 8.2 Tracing
 
@@ -361,13 +360,13 @@ Every fix attempt gets a trace ID:
 
 ### 9.1 Data Boundaries
 
-| Data | Stored Where | Encrypted? | Retention |
-|------|-----------|------------|-----------|
-| Code snippets | Context cache (local SQLite) | AES-256-GCM | 1 hour TTL |
-| Fix history | `.simplebeacon/fix-history.db` | AES-256-GCM | 90 days |
-| User feedback | `.simplebeacon/fix-feedback.db` | AES-256-GCM | 1 year |
-| Model prompts | Never persisted | N/A | Ephemeral |
-| Model responses | Never persisted | N/A | Ephemeral |
+| Data            | Stored Where                    | Encrypted?  | Retention  |
+| --------------- | ------------------------------- | ----------- | ---------- |
+| Code snippets   | Context cache (local SQLite)    | AES-256-GCM | 1 hour TTL |
+| Fix history     | `.simplebeacon/fix-history.db`  | AES-256-GCM | 90 days    |
+| User feedback   | `.simplebeacon/fix-feedback.db` | AES-256-GCM | 1 year     |
+| Model prompts   | Never persisted                 | N/A         | Ephemeral  |
+| Model responses | Never persisted                 | N/A         | Ephemeral  |
 
 ### 9.2 Cloud Safety
 
@@ -432,4 +431,4 @@ simplebeacon fix history [--file <path>] [--since 2026-06-01]
 
 ---
 
-*This document is a living design. Update as implementation progresses.*
+_This document is a living design. Update as implementation progresses._

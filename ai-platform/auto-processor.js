@@ -3,47 +3,56 @@
 
 /**
  * SimpleBeacon Automated Private Processor
- * 
+ *
  * A headless background service that automatically processes files from an input directory,
  * sanitizes PII locally, runs analysis via local Ollama, and exports reports.
- * 
+ *
  * Privacy guarantee: All PII is stripped before data reaches the AI engine.
  * Offline-only: Processes strictly via local Ollama (OLLAMA_BASE_URL env var).
  */
 
-const constants = require('./server/config/constants.cjs');
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import chokidar from 'chokidar';
-import { createRequire } from 'module';
+const constants = require("./server/config/constants.cjs");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import chokidar from "chokidar";
+import { createRequire } from "module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 // Import shared privacy utilities from server/lib
-const { sanitizePrivacyData } = require('./server/lib/privacy-utils.cjs');
-const logger = require('./server/lib/app-logger.cjs');
+const { sanitizePrivacyData } = require("./server/lib/privacy-utils.cjs");
+const logger = require("./server/lib/app-logger.cjs");
 
 // Configuration
 let fileWatcher = null; // simplebeacon-ignore memory-leak — chokidar watcher is intentionally long-lived for background file processing
 const activeTimers = new Set();
-const WATCH_DIR = path.resolve(__dirname, './incoming_user_data');
-const OUTPUT_DIR = path.resolve(__dirname, './processed_reports');
-const ARCHIVE_DIR = path.resolve(__dirname, './processed_archive');
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'; // simplebeacon-ignore hardcoded-url — default localhost Ollama endpoint, override with OLLAMA_BASE_URL env var
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
+const WATCH_DIR = path.resolve(__dirname, "./incoming_user_data");
+const OUTPUT_DIR = path.resolve(__dirname, "./processed_reports");
+const ARCHIVE_DIR = path.resolve(__dirname, "./processed_archive");
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434"; // simplebeacon-ignore hardcoded-url — default localhost Ollama endpoint, override with OLLAMA_BASE_URL env var
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "unbreakable-oracle:latest";
 const OLLAMA_NUM_CTX = parseInt(process.env.OLLAMA_NUM_CTX, 10) || 8192;
-const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
-const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
-const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
-const log = (...args) => { if (PROCESSOR_DEBUG) logger.info(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
-const logError = (...args) => { if (PROCESSOR_DEBUG) logger.error(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const OFFLINE_MODE =
+  process.env.SIMPLEBEACON_OFFLINE === "true" ||
+  process.env.NODE_ENV === "production";
+const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === "true";
+const MAX_FILE_SIZE_MB = parseInt(
+  process.env.PROCESSOR_MAX_FILE_SIZE_MB || "50",
+  10,
+);
+const log = (...args) => {
+  if (PROCESSOR_DEBUG) logger.info(...args);
+}; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const logError = (...args) => {
+  if (PROCESSOR_DEBUG) logger.error(...args);
+}; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
 const timestamp = () => new Date().toISOString();
 
 // Ensure directories exist
-[WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
+[WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     log(`Created directory: ${dir}`);
@@ -57,7 +66,10 @@ async function fetchWithTimeout(url, options = {}, ms = constants.TIMEOUT_2M) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
     return response;
   } finally {
     clearTimeout(timer);
@@ -68,8 +80,8 @@ async function analyzeWithOllama(prompt) {
   const url = `${OLLAMA_BASE_URL}/api/generate`;
 
   const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: OLLAMA_MODEL,
       prompt,
@@ -79,17 +91,19 @@ async function analyzeWithOllama(prompt) {
         top_p: 0.9,
         num_ctx: OLLAMA_NUM_CTX,
         num_predict: constants.BYTES_PER_KB,
-        repeat_penalty: 1.1
-      }
-    })
+        repeat_penalty: 1.1,
+      },
+    }),
   });
 
   if (!response.ok) {
-    throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Ollama request failed: ${response.status} ${response.statusText}`,
+    );
   }
 
   const data = await response.json();
-  return data.response || '';
+  return data.response || "";
 }
 
 /**
@@ -105,12 +119,20 @@ async function processFile(filePath) {
     // 1. Read input file (with size guard) using streaming read to avoid large allocations
     const stats = fs.statSync(filePath);
     if (stats.size > MAX_FILE_SIZE_MB * constants.BYTES_PER_MB) {
-      throw new Error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit: ${filename} (${Math.round(stats.size / 1024 / 1024)}MB)`);
+      throw new Error(
+        `File exceeds ${MAX_FILE_SIZE_MB}MB limit: ${filename} (${Math.round(stats.size / 1024 / 1024)}MB)`,
+      );
     }
-    const { readTextFileWithLimit, redactTextSecrets } = require('./server/lib/recoverable-io.cjs');
-    let rawData = '';
+    const {
+      readTextFileWithLimit,
+      redactTextSecrets,
+    } = require("./server/lib/recoverable-io.cjs");
+    let rawData = "";
     try {
-      rawData = await readTextFileWithLimit(filePath, Math.min(stats.size, MAX_FILE_SIZE_MB * constants.BYTES_PER_MB));
+      rawData = await readTextFileWithLimit(
+        filePath,
+        Math.min(stats.size, MAX_FILE_SIZE_MB * constants.BYTES_PER_MB),
+      );
       rawData = redactTextSecrets(rawData);
     } catch (err) {
       throw new Error(`Failed to read input file safely: ${err.message}`);
@@ -145,14 +167,14 @@ Provide a structured report with findings and recommendations.`;
         processedAt: new Date().toISOString(),
         processingTimeMs: Date.now() - startTime,
         ollamaModel: OLLAMA_MODEL,
-        offlineMode: OFFLINE_MODE
+        offlineMode: OFFLINE_MODE,
       },
       analysis: analysisResult,
       sanitization: {
         piiRemoved: rawData !== cleanData,
         originalLength: rawData.length,
-        sanitizedLength: cleanData.length
-      }
+        sanitizedLength: cleanData.length,
+      },
     };
 
     // 5. Save report
@@ -166,19 +188,26 @@ Provide a structured report with findings and recommendations.`;
     fs.renameSync(filePath, archivePath);
     log(`[${timestamp()}] Archived to: ${archivePath}`);
 
-    log(`[${timestamp()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`);
-
+    log(
+      `[${timestamp()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`,
+    );
   } catch (error) {
-    logError(`[${timestamp()}] ❌ Failed to process ${filename}:`, error.message);
+    logError(
+      `[${timestamp()}] ❌ Failed to process ${filename}:`,
+      error.message,
+    );
 
     // Move failed file to error subdirectory
     if (fs.existsSync(filePath)) {
-      const errorDir = path.join(ARCHIVE_DIR, 'errors');
+      const errorDir = path.join(ARCHIVE_DIR, "errors");
       if (!fs.existsSync(errorDir)) fs.mkdirSync(errorDir, { recursive: true });
       try {
         fs.renameSync(filePath, path.join(errorDir, `${filename}.error`));
       } catch (renameErr) {
-        logError(`[${timestamp()}] Could not archive failed file ${filename}:`, renameErr.message);
+        logError(
+          `[${timestamp()}] Could not archive failed file ${filename}:`,
+          renameErr.message,
+        );
       }
     }
   }
@@ -201,7 +230,10 @@ async function processExistingFiles() {
       try {
         await processFile(fullPath);
       } catch (err) {
-        logError(`[${timestamp()}] Failed to process existing file ${file}:`, err.message);
+        logError(
+          `[${timestamp()}] Failed to process existing file ${file}:`,
+          err.message,
+        );
       }
     }
   }
@@ -219,45 +251,56 @@ function setupFileWatcher() {
     persistent: true,
     awaitWriteFinish: {
       stabilityThreshold: FILE_STABILITY_MS,
-      pollInterval: 100
-    }
+      pollInterval: 100,
+    },
   });
 
   fileWatcher
-    .on('add', filePath => {
+    .on("add", (filePath) => {
       // Debounce: only process if file is stable (not being written)
       const timer = setTimeout(() => {
         activeTimers.delete(timer);
         if (fs.existsSync(filePath)) {
-          processFile(filePath).catch(err => {
-            logError(`[${timestamp()}] Unhandled error processing ${filePath}:`, err.message);
+          processFile(filePath).catch((err) => {
+            logError(
+              `[${timestamp()}] Unhandled error processing ${filePath}:`,
+              err.message,
+            );
           });
         }
       }, 2500);
       activeTimers.add(timer);
     })
-    .on('error', error => {
+    .on("error", (error) => {
       logError(`[${timestamp()}] Watcher error:`, error);
     });
 
-  log(`[${timestamp()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`);
+  log(
+    `[${timestamp()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`,
+  );
 }
 
 /**
  * Main entry point
  */
 async function main() {
-  log('⚡ SimpleBeacon Automated Private Service starting...');
+  log("⚡ SimpleBeacon Automated Private Service starting...");
   log(`📁 Watch directory: ${WATCH_DIR}`);
   log(`📁 Output directory: ${OUTPUT_DIR}`);
   log(`🤖 Ollama URL: ${OLLAMA_BASE_URL}`);
   log(`🤖 Ollama Model: ${OLLAMA_MODEL}`);
-  log(`🔒 Offline Mode: ${OFFLINE_MODE ? 'ENFORCED' : 'WARNING - NOT ENFORCED'}`);
-  log('');
+  log(
+    `🔒 Offline Mode: ${OFFLINE_MODE ? "ENFORCED" : "WARNING - NOT ENFORCED"}`,
+  );
+  log("");
 
   // Verify Ollama is accessible
   try {
-    const testResponse = await fetchWithTimeout(`${OLLAMA_BASE_URL}/api/tags`, {}, constants.TIMEOUT_5S);
+    const testResponse = await fetchWithTimeout(
+      `${OLLAMA_BASE_URL}/api/tags`,
+      {},
+      constants.TIMEOUT_5S,
+    );
     if (!testResponse.ok) {
       throw new Error(`Ollama returned ${testResponse.status}`);
     }
@@ -274,27 +317,33 @@ async function main() {
   // Start file watcher
   setupFileWatcher();
 
-  log('');
-  log('⚡ SimpleBeacon Automated Private Service is running in headless mode...');
-  log('Press Ctrl+C to stop');
+  log("");
+  log(
+    "⚡ SimpleBeacon Automated Private Service is running in headless mode...",
+  );
+  log("Press Ctrl+C to stop");
 }
 
 // Handle graceful shutdown
 async function shutdown() {
-  log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
-  activeTimers.forEach(timer => clearTimeout(timer));
+  log("\n⚡ Shutting down SimpleBeacon Automated Private Service...");
+  activeTimers.forEach((timer) => clearTimeout(timer));
   activeTimers.clear();
   if (fileWatcher) {
-    try { await fileWatcher.close(); } catch (e) { /* ignore */ }
+    try {
+      await fileWatcher.close();
+    } catch (e) {
+      /* ignore */
+    }
     fileWatcher = null;
   }
   process.exit(0);
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 // Start the service
-main().catch(error => {
-  logError('Fatal error starting service:', error);
+main().catch((error) => {
+  logError("Fatal error starting service:", error);
   process.exit(1);
 });

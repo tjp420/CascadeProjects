@@ -1,6 +1,11 @@
 {
   "policyId": "invalid-threshold-policy",
-  "latticeParams": { "scheme": "ModuleLWE", "n": 1024, "q": 4194305, "sigma": 3.2 },
+  "latticeParams": {
+    "scheme": "ModuleLWE",
+    "n": 1024,
+    "q": 4194305,
+    "sigma": 3.2
+  },
   "thresholdParams": { "nShares": 5, "threshold": 6 },
   "participants": [
     { "id": "a", "role": "signer" },

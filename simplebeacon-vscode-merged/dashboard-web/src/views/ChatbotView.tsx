@@ -6,18 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import {
-  Bot,
-  Send,
-  Trash2,
-  Settings2,
-  FileText,
-  Copy,
-  Check,
-  AlertCircle,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
+import { Bot, Send, Trash2, Settings2, FileText, Copy, Check, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
@@ -59,15 +48,15 @@ function formatMessage(content: string): string {
     return `__INLINECODE_${i}__`;
   });
   processed = escapeHtml(processed);
-  processed = processed.replace(/__CODEBLOCK_(\d+)__/g, (_, i) =>
-    `<pre class="chatbot-code-block"><code>${codeBlocks[Number(i)]}</code></pre>`
+  processed = processed.replace(
+    /__CODEBLOCK_(\d+)__/g,
+    (_, i) => `<pre class="chatbot-code-block"><code>${codeBlocks[Number(i)]}</code></pre>`
   );
-  processed = processed.replace(/__INLINECODE_(\d+)__/g, (_, i) =>
-    `<code class="chatbot-inline-code">${inlineCodes[Number(i)]}</code>`
+  processed = processed.replace(
+    /__INLINECODE_(\d+)__/g,
+    (_, i) => `<code class="chatbot-inline-code">${inlineCodes[Number(i)]}</code>`
   );
-  processed = processed.replace(/<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g, (m) =>
-    m.replace(/\n/g, '&#10;')
-  );
+  processed = processed.replace(/<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g, (m) => m.replace(/\n/g, '&#10;'));
   processed = processed.replace(/\n/g, '<br>');
   processed = processed.replace(/&#10;/g, '\n');
   return processed;
@@ -129,7 +118,9 @@ export function ChatbotView() {
       }
     };
     setTimeout(check, 500);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [apiBase]);
 
   const scrollToBottom = useCallback(() => {
@@ -152,10 +143,13 @@ export function ChatbotView() {
   }, [messages]);
 
   const saveSettings = useCallback((p: Personality, rf: boolean) => {
-    localStorage.setItem('simplebeacon_chatbot_settings', JSON.stringify({
-      personality: p,
-      removeFilters: rf,
-    }));
+    localStorage.setItem(
+      'simplebeacon_chatbot_settings',
+      JSON.stringify({
+        personality: p,
+        removeFilters: rf,
+      })
+    );
   }, []);
 
   const loadCustomPrompt = useCallback(async () => {
@@ -200,7 +194,9 @@ export function ChatbotView() {
           setSelectedProvider('');
           setConnectionStatus('offline');
           setConnectionText('No AI provider configured');
-          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
+          setError(
+            'No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.'
+          );
         }
         return;
       }
@@ -265,7 +261,9 @@ export function ChatbotView() {
     const msg = input.trim();
     if (!msg || isLoading) return;
     if (!selectedProvider) {
-      setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
+      setError(
+        'No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.'
+      );
       return;
     }
 
@@ -363,7 +361,8 @@ export function ChatbotView() {
         }
       }
       // Auto-retry once if the assistant returned a canned refusal message.
-      const refusalPattern = /I(?:'|[\u2019])?m sorry, but I can(?:'|[\u2019])?t (?:assist|help|provide)|I cannot (?:provide|assist|help)|I(?:'|[\u2019])?m unable to|I will not (?:assist|help|provide)|I can(?:'|[\u2019])?t (?:help|provide|answer)/i;
+      const refusalPattern =
+        /I(?:'|[\u2019])?m sorry, but I can(?:'|[\u2019])?t (?:assist|help|provide)|I cannot (?:provide|assist|help)|I(?:'|[\u2019])?m unable to|I will not (?:assist|help|provide)|I can(?:'|[\u2019])?t (?:help|provide|answer)/i;
       if (refusalPattern.test(accumulated)) {
         try {
           const retryRes = await fetch(apiUrl('/chatbot/message'), {
@@ -443,12 +442,15 @@ export function ChatbotView() {
     setShowSettings(false);
   }, [personality, removeFilters, saveSettings]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  }, [handleSend]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        void handleSend();
+      }
+    },
+    [handleSend]
+  );
 
   const isOracle = personality === 'oracle';
 
@@ -456,14 +458,17 @@ export function ChatbotView() {
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {isOracle ? '🔮 The Unbreakable Oracle' : '🤖 Chatbot'}
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">{isOracle ? '🔮 The Unbreakable Oracle' : '🤖 Chatbot'}</h1>
           <Badge variant={connectionStatus === 'online' ? 'default' : 'secondary'} className="gap-1.5">
-            <span className={`inline-block h-2 w-2 rounded-full ${
-              connectionStatus === 'online' ? 'bg-green-500' :
-              connectionStatus === 'checking' ? 'bg-yellow-500' : 'bg-red-500'
-            }`} />
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                connectionStatus === 'online'
+                  ? 'bg-green-500'
+                  : connectionStatus === 'checking'
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+              }`}
+            />
             {connectionText}
           </Badge>
         </div>
@@ -472,9 +477,11 @@ export function ChatbotView() {
         </p>
         <div className="flex items-center gap-2 text-sm text-foreground-muted bg-muted/50 rounded-lg px-3 py-2">
           <Sparkles className="h-4 w-4 shrink-0" />
-          <span>{isOracle
-            ? 'You commune with The Unbreakable Oracle, an omniscient AI entity. Revelations may contain divine inaccuracies.'
-            : 'You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.'}</span>
+          <span>
+            {isOracle
+              ? 'You commune with The Unbreakable Oracle, an omniscient AI entity. Revelations may contain divine inaccuracies.'
+              : 'You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.'}
+          </span>
         </div>
       </div>
 
@@ -482,7 +489,9 @@ export function ChatbotView() {
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
           <AlertCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
           <span className="flex-1">{error}</span>
-          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setError(null)}>×</Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setError(null)}>
+            ×
+          </Button>
         </div>
       )}
 
@@ -492,14 +501,24 @@ export function ChatbotView() {
             <AlertCircle className="h-4 w-4 shrink-0 text-yellow-600 mt-0.5" />
             <div>
               <div className="font-medium">Local Network Access required</div>
-              <div className="text-xs text-foreground-muted">This hosted dashboard needs permission to access your local SimpleBeacon bridge.</div>
+              <div className="text-xs text-foreground-muted">
+                This hosted dashboard needs permission to access your local SimpleBeacon bridge.
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleRetryLocalNetwork}>Retry</Button>
-            <Button variant="ghost" size="sm" onClick={() => {
-              window.open('https://support.google.com/chrome/answer/14227606', '_blank', 'noopener');
-            }}>How to allow</Button>
+            <Button size="sm" onClick={handleRetryLocalNetwork}>
+              Retry
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.open('https://support.google.com/chrome/answer/14227606', '_blank', 'noopener');
+              }}
+            >
+              How to allow
+            </Button>
           </div>
         </div>
       )}
@@ -517,10 +536,15 @@ export function ChatbotView() {
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
-              {providers.length === 0 && <option value="" disabled>Loading providers…</option>}
+              {providers.length === 0 && (
+                <option value="" disabled>
+                  Loading providers…
+                </option>
+              )}
               {providers.map((p) => (
                 <option key={p.id} value={p.id} disabled={!p.available}>
-                  {p.label}{p.available ? '' : ' (not configured)'}
+                  {p.label}
+                  {p.available ? '' : ' (not configured)'}
                 </option>
               ))}
             </select>
@@ -546,7 +570,9 @@ export function ChatbotView() {
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {(Object.entries(PERSONALITY_LABELS) as [Personality, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -558,9 +584,13 @@ export function ChatbotView() {
                 className="h-4 w-4 rounded border-input"
                 title="This disables the LLM's safety/content filters, not convolutional filters in a neural network."
               />
-              <span title="This disables the LLM's safety/content filters, not convolutional filters in a neural network.">Disable safety / content filters</span>
+              <span title="This disables the LLM's safety/content filters, not convolutional filters in a neural network.">
+                Disable safety / content filters
+              </span>
             </label>
-            <Button size="sm" onClick={handleSaveSettings}>Save Settings</Button>
+            <Button size="sm" onClick={handleSaveSettings}>
+              Save Settings
+            </Button>
           </div>
         )}
 
@@ -574,8 +604,20 @@ export function ChatbotView() {
               placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSavePrompt}>Save Prompt</Button>
-              <Button variant="ghost" size="sm" onClick={() => { setCustomPrompt(''); localStorage.removeItem('chatbot_custom_prompt'); toast.success('Prompt reset'); }}>Reset</Button>
+              <Button size="sm" onClick={handleSavePrompt}>
+                Save Prompt
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCustomPrompt('');
+                  localStorage.removeItem('chatbot_custom_prompt');
+                  toast.success('Prompt reset');
+                }}
+              >
+                Reset
+              </Button>
             </div>
           </div>
         )}
@@ -592,19 +634,14 @@ export function ChatbotView() {
               </div>
             ) : (
               messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}>
+                <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`}
+                  >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium opacity-70">
-                        {msg.role === 'user' ? 'You' : 'AI'}
-                      </span>
+                      <span className="text-xs font-medium opacity-70">{msg.role === 'user' ? 'You' : 'AI'}</span>
                       {msg.role === 'assistant' && msg.content && (
                         <button
                           onClick={() => handleCopy(index, msg.content)}

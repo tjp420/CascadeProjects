@@ -1,10 +1,10 @@
-const { jest: _jest } = require('@jest/globals');
+const { jest: _jest } = require("@jest/globals");
 
-describe('requireDashboardWrite middleware', () => {
+describe("requireDashboardWrite middleware", () => {
   beforeEach(() => jest.resetModules());
 
-  test('returns 401 when no user', () => {
-    const auth = require('../auth.cjs');
+  test("returns 401 when no user", () => {
+    const auth = require("../auth.cjs");
     const req = {};
     const json = jest.fn();
     const res = { status: jest.fn(() => ({ json })) };
@@ -16,9 +16,11 @@ describe('requireDashboardWrite middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('returns 403 when user lacks access', () => {
-    const auth = require('../auth.cjs');
-    const req = { user: { id: 'u1', trustLevel: 'bronze', role: '', features: [] } };
+  test("returns 403 when user lacks access", () => {
+    const auth = require("../auth.cjs");
+    const req = {
+      user: { id: "u1", trustLevel: "bronze", role: "", features: [] },
+    };
     const json = jest.fn();
     const res = { status: jest.fn(() => ({ json })) };
     const next = jest.fn();
@@ -29,9 +31,11 @@ describe('requireDashboardWrite middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('calls next when user has access', () => {
-    const auth = require('../auth.cjs');
-    const req = { user: { id: 'u2', trustLevel: 'gold', role: '', features: [] } };
+  test("calls next when user has access", () => {
+    const auth = require("../auth.cjs");
+    const req = {
+      user: { id: "u2", trustLevel: "gold", role: "", features: [] },
+    };
     const res = {};
     const next = jest.fn();
 

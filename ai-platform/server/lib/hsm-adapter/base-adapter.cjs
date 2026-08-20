@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 10 / 13 / 15: Abstract HSM adapter base class.
@@ -25,8 +25,8 @@ const {
   serialize,
   deserialize,
   KeyringValidationError,
-} = require('../keyring-serializer.cjs');
-const { FipsSelfTestRunner } = require('./fips-self-test-runner.cjs');
+} = require("../keyring-serializer.cjs");
+const { FipsSelfTestRunner } = require("./fips-self-test-runner.cjs");
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -182,7 +182,9 @@ function getZkSnarkVerifierEngine() {
 // Track 58: Module-level registry for the active MultiKeyFheRelinearizationEngine instance.
 let _activeMultiKeyFheRelinearizationEngine = null;
 
-function registerMultiKeyFheRelinearizationEngine(multiKeyFheRelinearizationEngine) {
+function registerMultiKeyFheRelinearizationEngine(
+  multiKeyFheRelinearizationEngine,
+) {
   _activeMultiKeyFheRelinearizationEngine = multiKeyFheRelinearizationEngine;
 }
 
@@ -215,7 +217,9 @@ function getMixnetBlindTransactionEngine() {
 // Track 61: Module-level registry for the active RecursiveProofAggregationEngine instance.
 let _activeRecursiveProofAggregationEngine = null;
 
-function registerRecursiveProofAggregationEngine(recursiveProofAggregationEngine) {
+function registerRecursiveProofAggregationEngine(
+  recursiveProofAggregationEngine,
+) {
   _activeRecursiveProofAggregationEngine = recursiveProofAggregationEngine;
 }
 
@@ -240,7 +244,7 @@ function getMusig2Orchestrator() {
 class HsmAdapterError extends Error {
   constructor(code, message) {
     super(message);
-    this.name = 'HsmAdapterError';
+    this.name = "HsmAdapterError";
     this.code = code;
   }
 }
@@ -277,9 +281,12 @@ class BaseHsmAdapter {
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
-      throw new HsmAdapterError('ABSTRACT_INSTANTIATION', 'BaseHsmAdapter is abstract; instantiate a concrete subclass');
+      throw new HsmAdapterError(
+        "ABSTRACT_INSTANTIATION",
+        "BaseHsmAdapter is abstract; instantiate a concrete subclass",
+      );
     }
-    this.providerName = options.providerName || 'base';
+    this.providerName = options.providerName || "base";
     this.logger = options.logger || null;
     this._policyEngine = options.policyEngine || null;
     this._evictionEngine = options.volatileEvictionEngine || null;
@@ -307,7 +314,8 @@ class BaseHsmAdapter {
     if (this._zkRangeProofSolvency) {
       registerZkRangeProofSolvency(this._zkRangeProofSolvency);
     }
-    this._thresholdDecryptionCircuit = options.thresholdDecryptionCircuit || null;
+    this._thresholdDecryptionCircuit =
+      options.thresholdDecryptionCircuit || null;
     if (this._thresholdDecryptionCircuit) {
       registerThresholdDecryptionCircuit(this._thresholdDecryptionCircuit);
     }
@@ -323,21 +331,28 @@ class BaseHsmAdapter {
     if (this._zkSnarkVerifierEngine) {
       registerZkSnarkVerifierEngine(this._zkSnarkVerifierEngine);
     }
-    this._multiKeyFheRelinearizationEngine = options.multiKeyFheRelinearizationEngine || null;
+    this._multiKeyFheRelinearizationEngine =
+      options.multiKeyFheRelinearizationEngine || null;
     if (this._multiKeyFheRelinearizationEngine) {
-      registerMultiKeyFheRelinearizationEngine(this._multiKeyFheRelinearizationEngine);
+      registerMultiKeyFheRelinearizationEngine(
+        this._multiKeyFheRelinearizationEngine,
+      );
     }
     this._vdfTimeLockEngine = options.vdfTimeLockEngine || null;
     if (this._vdfTimeLockEngine) {
       registerVdfTimeLockEngine(this._vdfTimeLockEngine);
     }
-    this._mixnetBlindTransactionEngine = options.mixnetBlindTransactionEngine || null;
+    this._mixnetBlindTransactionEngine =
+      options.mixnetBlindTransactionEngine || null;
     if (this._mixnetBlindTransactionEngine) {
       registerMixnetBlindTransactionEngine(this._mixnetBlindTransactionEngine);
     }
-    this._recursiveProofAggregationEngine = options.recursiveProofAggregationEngine || null;
+    this._recursiveProofAggregationEngine =
+      options.recursiveProofAggregationEngine || null;
     if (this._recursiveProofAggregationEngine) {
-      registerRecursiveProofAggregationEngine(this._recursiveProofAggregationEngine);
+      registerRecursiveProofAggregationEngine(
+        this._recursiveProofAggregationEngine,
+      );
     }
     this._musig2Orchestrator = options.musig2Orchestrator || null;
     if (this._musig2Orchestrator) {
@@ -355,12 +370,16 @@ class BaseHsmAdapter {
    */
   async initialize() {
     if (this._initialized) return;
-    if (this._policyEngine && this._policyEngine.getPolicy('default').fips && this._policyEngine.getPolicy('default').fips.enabled) {
+    if (
+      this._policyEngine &&
+      this._policyEngine.getPolicy("default").fips &&
+      this._policyEngine.getPolicy("default").fips.enabled
+    ) {
       FipsSelfTestRunner.executePowerOnSelfTests();
     }
     await this._initialize();
     this._initialized = true;
-    this._log('info', `HSM adapter initialized: ${this.providerName}`);
+    this._log("info", `HSM adapter initialized: ${this.providerName}`);
   }
 
   /**
@@ -368,7 +387,10 @@ class BaseHsmAdapter {
    * @returns {Promise<void>}
    */
   async _initialize() {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._initialize() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._initialize() not implemented`,
+    );
   }
 
   /**
@@ -377,7 +399,10 @@ class BaseHsmAdapter {
    */
   _ensureInitialized() {
     if (!this._initialized) {
-      throw new HsmAdapterError('NOT_INITIALIZED', `${this.providerName} adapter not initialized; call initialize() first`);
+      throw new HsmAdapterError(
+        "NOT_INITIALIZED",
+        `${this.providerName} adapter not initialized; call initialize() first`,
+      );
     }
   }
 
@@ -387,8 +412,11 @@ class BaseHsmAdapter {
    * @private
    */
   _ensureTenant(tenantId) {
-    if (typeof tenantId !== 'string' || tenantId.length === 0) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', 'tenantId must be a non-empty string');
+    if (typeof tenantId !== "string" || tenantId.length === 0) {
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        "tenantId must be a non-empty string",
+      );
     }
   }
 
@@ -404,20 +432,23 @@ class BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     this._checkTemporalGuard();
-    await this._requireConsensus('createKEK', { tenantId, meta });
+    await this._requireConsensus("createKEK", { tenantId, meta });
     const kekId = await this._createKEK(tenantId, meta);
     this._evictionEngine?.register(tenantId, kekId, async (id, reason) => {
       try {
         await this.zeroize(tenantId, id, reason);
       } catch (err) {
-        this._log('warn', 'eviction zeroize failed', { error: err.message });
+        this._log("warn", "eviction zeroize failed", { error: err.message });
       }
     });
     return kekId;
   }
 
   async _createKEK(_tenantId, _meta) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._createKEK() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._createKEK() not implemented`,
+    );
   }
 
   /**
@@ -431,7 +462,7 @@ class BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(plaintext)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "plaintext must be a Buffer");
     }
     this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
@@ -439,7 +470,10 @@ class BaseHsmAdapter {
   }
 
   async _wrap(_tenantId, _kekId, _plaintext) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._wrap() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._wrap() not implemented`,
+    );
   }
 
   /**
@@ -453,11 +487,13 @@ class BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "wrapped must be a Buffer");
     }
     this._checkTemporalGuard();
 
-    const escrow = this._escrowBroker ? this._escrowBroker.requireToken(kekId, tenantId, token) : null;
+    const escrow = this._escrowBroker
+      ? this._escrowBroker.requireToken(kekId, tenantId, token)
+      : null;
     const effectiveTenantId = escrow ? escrow.sourceTenantId : tenantId;
 
     this._evictionEngine?.touch(effectiveTenantId, kekId);
@@ -465,7 +501,10 @@ class BaseHsmAdapter {
   }
 
   async _unwrap(_tenantId, _kekId, _wrapped) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._unwrap() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._unwrap() not implemented`,
+    );
   }
 
   /**
@@ -479,20 +518,23 @@ class BaseHsmAdapter {
     this._ensureTenant(tenantId);
     this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, oldKekId);
-    await this._requireConsensus('rotateKEK', { tenantId, oldKekId });
+    await this._requireConsensus("rotateKEK", { tenantId, oldKekId });
     const newKekId = await this._rotateKEK(tenantId, oldKekId);
     this._evictionEngine?.register(tenantId, newKekId, async (id, reason) => {
       try {
         await this.zeroize(tenantId, id, reason);
       } catch (err) {
-        this._log('warn', 'eviction zeroize failed', { error: err.message });
+        this._log("warn", "eviction zeroize failed", { error: err.message });
       }
     });
     return newKekId;
   }
 
   async _rotateKEK(_tenantId, _oldKekId) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._rotateKEK() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._rotateKEK() not implemented`,
+    );
   }
 
   /**
@@ -507,7 +549,10 @@ class BaseHsmAdapter {
   }
 
   async _listKEKs(_tenantId) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._listKEKs() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._listKEKs() not implemented`,
+    );
   }
 
   // ── Zeroization & eviction ─────────────────────────────────────────
@@ -519,17 +564,20 @@ class BaseHsmAdapter {
    * @param {string} [reason='explicit']
    * @returns {Promise<boolean>}
    */
-  async zeroize(tenantId, kekId, reason = 'explicit') {
+  async zeroize(tenantId, kekId, reason = "explicit") {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     const info = await this._zeroize(tenantId, kekId);
     this._evictionEngine?.unregister(tenantId, kekId);
-    this._audit('KEY_ZEROIZED', { tenantId, kekId, reason, ...info });
+    this._audit("KEY_ZEROIZED", { tenantId, kekId, reason, ...info });
     return true;
   }
 
   async _zeroize(_tenantId, _kekId) {
-    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._zeroize() not implemented`);
+    throw new HsmAdapterError(
+      "NOT_IMPLEMENTED",
+      `${this.providerName}._zeroize() not implemented`,
+    );
   }
 
   /**
@@ -537,10 +585,10 @@ class BaseHsmAdapter {
    * @param {string} [reason='explicit']
    * @returns {Promise<void>}
    */
-  async evictInactive(reason = 'explicit') {
+  async evictInactive(reason = "explicit") {
     this._ensureInitialized();
     await this._evictionEngine?.evictAll(reason);
-    this._audit('KEY_EVICTED', { reason });
+    this._audit("KEY_EVICTED", { reason });
   }
 
   // ── Threshold cryptography ─────────────────────────────────────────
@@ -557,11 +605,18 @@ class BaseHsmAdapter {
   async splitKey(tenantId, secret, total, threshold, custodianIds) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    this._policyEngine?.validate(tenantId, 'threshold', { threshold, total });
-    const { ThresholdSecretSplitter } = require('./threshold-secret-splitter.cjs');
+    this._policyEngine?.validate(tenantId, "threshold", { threshold, total });
+    const {
+      ThresholdSecretSplitter,
+    } = require("./threshold-secret-splitter.cjs");
     const splitter = new ThresholdSecretSplitter();
     const shards = splitter.split(secret, total, threshold, custodianIds);
-    this._audit('KEY_SHARD_GENERATED', { tenantId, total, threshold, custodians: custodianIds });
+    this._audit("KEY_SHARD_GENERATED", {
+      tenantId,
+      total,
+      threshold,
+      custodians: custodianIds,
+    });
     return shards;
   }
 
@@ -575,10 +630,14 @@ class BaseHsmAdapter {
   async recoverKey(tenantId, shards, threshold) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    const { ThresholdKeyRecoverer } = require('./threshold-key-recoverer.cjs');
+    const { ThresholdKeyRecoverer } = require("./threshold-key-recoverer.cjs");
     const recoverer = new ThresholdKeyRecoverer();
     const secret = recoverer.recover(shards, threshold);
-    this._audit('KEY_RECONSTRUCTION_SUCCESS', { tenantId, threshold, shardCount: shards.length });
+    this._audit("KEY_RECONSTRUCTION_SUCCESS", {
+      tenantId,
+      threshold,
+      shardCount: shards.length,
+    });
     return secret;
   }
 
@@ -590,8 +649,11 @@ class BaseHsmAdapter {
    */
   createRatchet(rootKey, options = {}) {
     this._ensureInitialized();
-    const { CryptographicRatchet } = require('./cryptographic-ratchet.cjs');
-    return new CryptographicRatchet(rootKey, { logger: this.logger, ...options });
+    const { CryptographicRatchet } = require("./cryptographic-ratchet.cjs");
+    return new CryptographicRatchet(rootKey, {
+      logger: this.logger,
+      ...options,
+    });
   }
 
   /**
@@ -601,7 +663,7 @@ class BaseHsmAdapter {
    */
   createHomomorphicMasker(options = {}) {
     this._ensureInitialized();
-    const { HomomorphicMasker } = require('./homomorphic-masker.cjs');
+    const { HomomorphicMasker } = require("./homomorphic-masker.cjs");
     return new HomomorphicMasker({ logger: this.logger, ...options });
   }
 
@@ -612,7 +674,7 @@ class BaseHsmAdapter {
    */
   createSearchTokenizer(options = {}) {
     this._ensureInitialized();
-    const { EncryptedSearchToken } = require('./encrypted-search-token.cjs');
+    const { EncryptedSearchToken } = require("./encrypted-search-token.cjs");
     return new EncryptedSearchToken({ logger: this.logger, ...options });
   }
 
@@ -625,8 +687,11 @@ class BaseHsmAdapter {
   createPqcHybridKeypair(tenantId, options = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
-    const adapter = new PqcHybridAdapter(tenantId, { logger: this.logger, ...options });
+    const { PqcHybridAdapter } = require("./pqc-hybrid-adapter.cjs");
+    const adapter = new PqcHybridAdapter(tenantId, {
+      logger: this.logger,
+      ...options,
+    });
     return adapter.generateRecipientKeypair();
   }
 
@@ -640,7 +705,7 @@ class BaseHsmAdapter {
   hybridEncapsulate(tenantId, recipient, options = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const { PqcHybridAdapter } = require("./pqc-hybrid-adapter.cjs");
     const adapter = new PqcHybridAdapter(tenantId, {
       logger: this.logger,
       policyEngine: this._policyEngine,
@@ -659,7 +724,7 @@ class BaseHsmAdapter {
   hybridDecapsulate(tenantId, payload, options = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const { PqcHybridAdapter } = require("./pqc-hybrid-adapter.cjs");
     const adapter = new PqcHybridAdapter(tenantId, {
       logger: this.logger,
       policyEngine: this._policyEngine,
@@ -667,7 +732,6 @@ class BaseHsmAdapter {
     });
     return adapter.decapsulate(payload);
   }
-
 
   /**
    * Create a zero-knowledge identity verifier.
@@ -678,8 +742,8 @@ class BaseHsmAdapter {
   createZkpVerifier(tenantId, options = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    this._policyEngine?.validate(tenantId, 'zkp', options);
-    const { ZkIdentityVerifier } = require('./zk-identity-verifier.cjs');
+    this._policyEngine?.validate(tenantId, "zkp", options);
+    const { ZkIdentityVerifier } = require("./zk-identity-verifier.cjs");
     return new ZkIdentityVerifier({ logger: this.logger, ...options });
   }
 
@@ -693,9 +757,16 @@ class BaseHsmAdapter {
   createHardwareTokenSplitter(tenantId, attestationRoot, options = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    this._policyEngine?.validate(tenantId, 'zkp', { tokenExpiryMs: options.tokenExpiryMs });
-    const { EphemeralHardwareTokenSplitter } = require('./ephemeral-hardware-token-splitter.cjs');
-    return new EphemeralHardwareTokenSplitter(attestationRoot, { logger: this.logger, ...options });
+    this._policyEngine?.validate(tenantId, "zkp", {
+      tokenExpiryMs: options.tokenExpiryMs,
+    });
+    const {
+      EphemeralHardwareTokenSplitter,
+    } = require("./ephemeral-hardware-token-splitter.cjs");
+    return new EphemeralHardwareTokenSplitter(attestationRoot, {
+      logger: this.logger,
+      ...options,
+    });
   }
   // ── High-level keyring export / import ─────────────────────────────
 
@@ -712,8 +783,16 @@ class BaseHsmAdapter {
     const local = Date.now();
     const drift = Math.abs(local - consensus);
     if (drift > this._timeAnchor.maxDriftMs) {
-      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
-      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
+      this._audit("TEMPORAL_DRIFT_BLOCKED", {
+        drift,
+        maxDriftMs: this._timeAnchor.maxDriftMs,
+        consensus,
+        local,
+      });
+      throw new HsmAdapterError(
+        "TEMPORAL_DRIFT_BLOCKED",
+        `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`,
+      );
     }
   }
 
@@ -735,11 +814,24 @@ class BaseHsmAdapter {
     this._ensureTenant(tenantId);
     if (!this._timeAnchor) return;
     const consensus = this._timeAnchor.consensusTimestamp();
-    const max = typeof toleranceMs === 'number' ? toleranceMs : this._timeAnchor.maxDriftMs;
+    const max =
+      typeof toleranceMs === "number"
+        ? toleranceMs
+        : this._timeAnchor.maxDriftMs;
     const drift = Math.abs(localTimestamp - consensus);
-    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok: drift <= max });
+    this._audit("TEMPORAL_DRIFT_BLOCKED", {
+      tenantId,
+      drift,
+      max,
+      consensus,
+      localTimestamp,
+      ok: drift <= max,
+    });
     if (drift > max) {
-      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
+      throw new HsmAdapterError(
+        "TEMPORAL_DRIFT_BLOCKED",
+        `temporal drift ${drift}ms exceeds ${max}ms`,
+      );
     }
   }
 
@@ -756,8 +848,12 @@ class BaseHsmAdapter {
       // Direct pass-through to the unified binary pipeline
       return serialize(keyringData, masterKek);
     } catch (error) {
-      const code = error instanceof KeyringValidationError ? error.code : 'EXPORT_FAILED';
-      throw new HsmAdapterError(code, `HSM Export pipeline failure: ${error.message}`);
+      const code =
+        error instanceof KeyringValidationError ? error.code : "EXPORT_FAILED";
+      throw new HsmAdapterError(
+        code,
+        `HSM Export pipeline failure: ${error.message}`,
+      );
     }
   }
 
@@ -769,13 +865,19 @@ class BaseHsmAdapter {
    */
   async importKeyring(binaryEnvelope, masterKek) {
     this._ensureInitialized();
-    await this._requireConsensus('importKeyring', { envelopeSize: binaryEnvelope?.length || 0 });
+    await this._requireConsensus("importKeyring", {
+      envelopeSize: binaryEnvelope?.length || 0,
+    });
     try {
       // Integrity check is handled implicitly inside unwrapPad
       return deserialize(binaryEnvelope, masterKek);
     } catch (error) {
-      const code = error instanceof KeyringValidationError ? error.code : 'IMPORT_FAILED';
-      throw new HsmAdapterError(code, `HSM Import pipeline failure: ${error.message}`);
+      const code =
+        error instanceof KeyringValidationError ? error.code : "IMPORT_FAILED";
+      throw new HsmAdapterError(
+        code,
+        `HSM Import pipeline failure: ${error.message}`,
+      );
     }
   }
 
@@ -794,16 +896,27 @@ class BaseHsmAdapter {
   async _requireConsensus(operation, command) {
     if (!this._consensusEngine) return; // no consensus engine — local mode
     const state = this._consensusEngine.getState();
-    if (state.state !== 'leader') {
-      throw new HsmAdapterError('CONSENSUS_NOT_LEADER',
-        `keyring ${operation} blocked: node ${this._consensusEngine.nodeId} is not leader (state: ${state.state})`);
+    if (state.state !== "leader") {
+      throw new HsmAdapterError(
+        "CONSENSUS_NOT_LEADER",
+        `keyring ${operation} blocked: node ${this._consensusEngine.nodeId} is not leader (state: ${state.state})`,
+      );
     }
-    const result = await this._consensusEngine.appendAndReplicate({ operation, ...command });
+    const result = await this._consensusEngine.appendAndReplicate({
+      operation,
+      ...command,
+    });
     if (!result.committed) {
-      throw new HsmAdapterError('CONSENSUS_COMMIT_FAILED',
-        `keyring ${operation} blocked: quorum not reached (${result.replicas} replicas, need ${state.quorumNodes})`);
+      throw new HsmAdapterError(
+        "CONSENSUS_COMMIT_FAILED",
+        `keyring ${operation} blocked: quorum not reached (${result.replicas} replicas, need ${state.quorumNodes})`,
+      );
     }
-    this._audit('CONSENSUS_GATED_COMMIT', { operation, index: result.index, replicas: result.replicas });
+    this._audit("CONSENSUS_GATED_COMMIT", {
+      operation,
+      index: result.index,
+      replicas: result.replicas,
+    });
   }
 
   // ── Track 30 identity ratchet telemetry hooks ──────────────────────
@@ -814,7 +927,7 @@ class BaseHsmAdapter {
    */
   emitIdentityRatchetStepped(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_RATCHET_STEPPED', info);
+    this._audit("IDENTITY_RATCHET_STEPPED", info);
   }
 
   /**
@@ -823,7 +936,7 @@ class BaseHsmAdapter {
    */
   emitMfaTokenAuthenticated(info = {}) {
     this._ensureInitialized();
-    this._audit('MFA_TOKEN_AUTHENTICATED', info);
+    this._audit("MFA_TOKEN_AUTHENTICATED", info);
   }
 
   // ── Track 31 governance telemetry hooks ────────────────────────────
@@ -834,7 +947,7 @@ class BaseHsmAdapter {
    */
   emitGovernanceProposalInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('GOVERNANCE_PROPOSAL_INITIATED', info);
+    this._audit("GOVERNANCE_PROPOSAL_INITIATED", info);
   }
 
   /**
@@ -843,7 +956,7 @@ class BaseHsmAdapter {
    */
   emitPolicyConsensusCommitted(info = {}) {
     this._ensureInitialized();
-    this._audit('POLICY_CONSENSUS_COMMITTED', info);
+    this._audit("POLICY_CONSENSUS_COMMITTED", info);
   }
 
   // ── Track 41 hardware enclave telemetry hooks ─────────────────────
@@ -854,7 +967,7 @@ class BaseHsmAdapter {
    */
   emitEnclaveHardwareBootstrapped(info = {}) {
     this._ensureInitialized();
-    this._audit('ENCLAVE_HARDWARE_BOOTSTRAPPED', info);
+    this._audit("ENCLAVE_HARDWARE_BOOTSTRAPPED", info);
   }
 
   /**
@@ -863,7 +976,7 @@ class BaseHsmAdapter {
    */
   emitAttestationChallengeVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ATTESTATION_CHALLENGE_VERIFIED', info);
+    this._audit("ATTESTATION_CHALLENGE_VERIFIED", info);
   }
 
   /**
@@ -872,7 +985,7 @@ class BaseHsmAdapter {
    */
   emitEnclaveKeyProvisioned(info = {}) {
     this._ensureInitialized();
-    this._audit('ENCLAVE_KEY_PROVISIONED', info);
+    this._audit("ENCLAVE_KEY_PROVISIONED", info);
   }
 
   // ── Track 42 resharding telemetry hooks ────────────────────────────
@@ -883,7 +996,7 @@ class BaseHsmAdapter {
    */
   emitCommitteeReshardingInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('COMMITTEE_RESHARDING_INITIATED', info);
+    this._audit("COMMITTEE_RESHARDING_INITIATED", info);
   }
 
   /**
@@ -892,7 +1005,7 @@ class BaseHsmAdapter {
    */
   emitEphemeralShareRatcheted(info = {}) {
     this._ensureInitialized();
-    this._audit('EPHEMERAL_SHARE_RATCHETED', info);
+    this._audit("EPHEMERAL_SHARE_RATCHETED", info);
   }
 
   // ── Track 43 disaster recovery telemetry hooks ────────────────────
@@ -903,7 +1016,7 @@ class BaseHsmAdapter {
    */
   emitRegionalFailoverInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('REGIONAL_FAILOVER_INITIATED', info);
+    this._audit("REGIONAL_FAILOVER_INITIATED", info);
   }
 
   /**
@@ -912,7 +1025,7 @@ class BaseHsmAdapter {
    */
   emitStandbyClusterProvisioned(info = {}) {
     this._ensureInitialized();
-    this._audit('STANDBY_CLUSTER_PROVISIONED', info);
+    this._audit("STANDBY_CLUSTER_PROVISIONED", info);
   }
 
   // ── Track 44 confidential issuance telemetry hooks ─────────────────
@@ -923,7 +1036,7 @@ class BaseHsmAdapter {
    */
   emitConfidentialTokenMinted(info = {}) {
     this._ensureInitialized();
-    this._audit('CONFIDENTIAL_TOKEN_MINTED', info);
+    this._audit("CONFIDENTIAL_TOKEN_MINTED", info);
   }
 
   /**
@@ -932,7 +1045,7 @@ class BaseHsmAdapter {
    */
   emitIssuanceProofValidated(info = {}) {
     this._ensureInitialized();
-    this._audit('ISSUANCE_PROOF_VALIDATED', info);
+    this._audit("ISSUANCE_PROOF_VALIDATED", info);
   }
 
   // ── Track 45 cross-tenant audit telemetry hooks ────────────────────
@@ -943,7 +1056,7 @@ class BaseHsmAdapter {
    */
   emitCrossTenantAccessRecognized(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_TENANT_ACCESS_RECOGNIZED', info);
+    this._audit("CROSS_TENANT_ACCESS_RECOGNIZED", info);
   }
 
   /**
@@ -952,7 +1065,7 @@ class BaseHsmAdapter {
    */
   emitAuditReceiptChained(info = {}) {
     this._ensureInitialized();
-    this._audit('AUDIT_RECEIPT_CHAINED', info);
+    this._audit("AUDIT_RECEIPT_CHAINED", info);
   }
 
   /**
@@ -961,11 +1074,13 @@ class BaseHsmAdapter {
    * @param {string} [tenantId='default']
    * @returns {object}
    */
-  recognizeCrossTenantAccess(request, tenantId = 'default') {
+  recognizeCrossTenantAccess(request, tenantId = "default") {
     this._ensureInitialized();
     const tenantPolicy = this._policyEngine?.getPolicy(tenantId) || {};
     const policy = tenantPolicy.crossTenantAudit || {};
-    const { CrossTenantAccessAuditor } = require('./cross-tenant-access-auditor.cjs');
+    const {
+      CrossTenantAccessAuditor,
+    } = require("./cross-tenant-access-auditor.cjs");
     const auditor = new CrossTenantAccessAuditor({
       policy,
       audit: this._audit.bind(this),
@@ -981,7 +1096,7 @@ class BaseHsmAdapter {
    */
   emitHomomorphicContractExecuted(info = {}) {
     this._ensureInitialized();
-    this._audit('HOMOMORPHIC_CONTRACT_EXECUTED', info);
+    this._audit("HOMOMORPHIC_CONTRACT_EXECUTED", info);
   }
 
   /**
@@ -990,7 +1105,7 @@ class BaseHsmAdapter {
    */
   emitZkRangeProofVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_RANGE_PROOF_VERIFIED', info);
+    this._audit("ZK_RANGE_PROOF_VERIFIED", info);
   }
 
   // ── Track 47 hardware root rotation telemetry hooks ────────────────
@@ -1001,7 +1116,7 @@ class BaseHsmAdapter {
    */
   emitEnclaveRootRotationInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('ENCLAVE_ROOT_ROTATION_INITIATED', info);
+    this._audit("ENCLAVE_ROOT_ROTATION_INITIATED", info);
   }
 
   /**
@@ -1010,7 +1125,7 @@ class BaseHsmAdapter {
    */
   emitHardwareSeedCommitted(info = {}) {
     this._ensureInitialized();
-    this._audit('HARDWARE_SEED_COMMITTED', info);
+    this._audit("HARDWARE_SEED_COMMITTED", info);
   }
 
   // ── Track 48 PQC asset bridge telemetry hooks ─────────────────────
@@ -1021,7 +1136,7 @@ class BaseHsmAdapter {
    */
   emitBridgeTransferInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('BRIDGE_TRANSFER_INITIATED', info);
+    this._audit("BRIDGE_TRANSFER_INITIATED", info);
   }
 
   /**
@@ -1030,7 +1145,7 @@ class BaseHsmAdapter {
    */
   emitCrossChainClaimValidated(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_CHAIN_CLAIM_VALIDATED', info);
+    this._audit("CROSS_CHAIN_CLAIM_VALIDATED", info);
   }
 
   /**
@@ -1039,7 +1154,7 @@ class BaseHsmAdapter {
    */
   emitEscrowReleaseFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('ESCROW_RELEASE_FINALIZED', info);
+    this._audit("ESCROW_RELEASE_FINALIZED", info);
   }
 
   // ── Track 49 homomorphic DB lookup telemetry hooks ─────────────────
@@ -1050,7 +1165,7 @@ class BaseHsmAdapter {
    */
   emitHomomorphicDbQueryInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('HOMOMORPHIC_DB_QUERY_INITIATED', info);
+    this._audit("HOMOMORPHIC_DB_QUERY_INITIATED", info);
   }
 
   /**
@@ -1059,7 +1174,7 @@ class BaseHsmAdapter {
    */
   emitZkLookupMatchVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_LOOKUP_MATCH_VERIFIED', info);
+    this._audit("ZK_LOOKUP_MATCH_VERIFIED", info);
   }
 
   // ── Track 50 ZK cross-chain settlement telemetry hooks ─────────────
@@ -1070,7 +1185,7 @@ class BaseHsmAdapter {
    */
   emitCrossChainSettlementInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_CHAIN_SETTLEMENT_INITIATED', info);
+    this._audit("CROSS_CHAIN_SETTLEMENT_INITIATED", info);
   }
 
   /**
@@ -1079,7 +1194,7 @@ class BaseHsmAdapter {
    */
   emitZkSettlementFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_SETTLEMENT_FINALIZED', info);
+    this._audit("ZK_SETTLEMENT_FINALIZED", info);
   }
 
   // ── Track 51 PQC identity hub telemetry hooks ──────────────────────
@@ -1090,7 +1205,7 @@ class BaseHsmAdapter {
    */
   emitPqcIdentityHubRegistered(info = {}) {
     this._ensureInitialized();
-    this._audit('PQC_IDENTITY_HUB_REGISTERED', info);
+    this._audit("PQC_IDENTITY_HUB_REGISTERED", info);
   }
 
   /**
@@ -1099,7 +1214,7 @@ class BaseHsmAdapter {
    */
   emitIdentityIssuanceQuorumCommitted(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_ISSUANCE_QUORUM_COMMITTED', info);
+    this._audit("IDENTITY_ISSUANCE_QUORUM_COMMITTED", info);
   }
 
   // ── Track 52 ZK access token attestation telemetry hooks ───────────
@@ -1110,7 +1225,7 @@ class BaseHsmAdapter {
    */
   emitZkAccessTokenIssued(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ACCESS_TOKEN_ISSUED', info);
+    this._audit("ZK_ACCESS_TOKEN_ISSUED", info);
   }
 
   /**
@@ -1119,7 +1234,7 @@ class BaseHsmAdapter {
    */
   emitAttestationContractVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ATTESTATION_CONTRACT_VERIFIED', info);
+    this._audit("ATTESTATION_CONTRACT_VERIFIED", info);
   }
 
   // ── Track 53 Homomorphic key sharding telemetry hooks ─────────────
@@ -1130,7 +1245,7 @@ class BaseHsmAdapter {
    */
   emitHomomorphicShardDispersed(info = {}) {
     this._ensureInitialized();
-    this._audit('HOMOMORPHIC_SHARD_DISPERSED', info);
+    this._audit("HOMOMORPHIC_SHARD_DISPERSED", info);
   }
 
   /**
@@ -1139,7 +1254,7 @@ class BaseHsmAdapter {
    */
   emitCrossPlatformCombinerVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_PLATFORM_COMBINER_VERIFIED', info);
+    this._audit("CROSS_PLATFORM_COMBINER_VERIFIED", info);
   }
 
   // ── Track 54 MPC gated decryption telemetry hooks ─────────────────
@@ -1150,7 +1265,7 @@ class BaseHsmAdapter {
    */
   emitMpcCircuitEvaluationInitiated(info = {}) {
     this._ensureInitialized();
-    this._audit('MPC_CIRCUIT_EVALUATION_INITIATED', info);
+    this._audit("MPC_CIRCUIT_EVALUATION_INITIATED", info);
   }
 
   /**
@@ -1159,7 +1274,7 @@ class BaseHsmAdapter {
    */
   emitMpcDecryptionGateUnlocked(info = {}) {
     this._ensureInitialized();
-    this._audit('MPC_DECRYPTION_GATE_UNLOCKED', info);
+    this._audit("MPC_DECRYPTION_GATE_UNLOCKED", info);
   }
 
   // ── Track 55 Encrypted storage deduplication telemetry hooks ──────
@@ -1170,7 +1285,7 @@ class BaseHsmAdapter {
    */
   emitCiphertextTagMatched(info = {}) {
     this._ensureInitialized();
-    this._audit('CIPHERTEXT_TAG_MATCHED', info);
+    this._audit("CIPHERTEXT_TAG_MATCHED", info);
   }
 
   /**
@@ -1179,7 +1294,7 @@ class BaseHsmAdapter {
    */
   emitDuplicateBlockReconciled(info = {}) {
     this._ensureInitialized();
-    this._audit('DUPLICATE_BLOCK_RECONCILED', info);
+    this._audit("DUPLICATE_BLOCK_RECONCILED", info);
   }
 
   // ── Track 56 Encrypted search routing telemetry hooks ────────────
@@ -1190,7 +1305,7 @@ class BaseHsmAdapter {
    */
   emitEncryptedSearchRouted(info = {}) {
     this._ensureInitialized();
-    this._audit('ENCRYPTED_SEARCH_ROUTED', info);
+    this._audit("ENCRYPTED_SEARCH_ROUTED", info);
   }
 
   /**
@@ -1199,7 +1314,7 @@ class BaseHsmAdapter {
    */
   emitMpcIndexMatchVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('MPC_INDEX_MATCH_VERIFIED', info);
+    this._audit("MPC_INDEX_MATCH_VERIFIED", info);
   }
 
   // ── Track 57 PQ identity accumulator telemetry hooks ─────────────
@@ -1210,7 +1325,7 @@ class BaseHsmAdapter {
    */
   emitIdentityAccumulatorUpdated(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_ACCUMULATOR_UPDATED', info);
+    this._audit("IDENTITY_ACCUMULATOR_UPDATED", info);
   }
 
   /**
@@ -1219,7 +1334,7 @@ class BaseHsmAdapter {
    */
   emitZkMembershipClaimValidated(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_MEMBERSHIP_CLAIM_VALIDATED', info);
+    this._audit("ZK_MEMBERSHIP_CLAIM_VALIDATED", info);
   }
 
   // ── Track 58 PQC vesting locks telemetry hooks ───────────────────
@@ -1230,7 +1345,7 @@ class BaseHsmAdapter {
    */
   emitVestingLockInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('VESTING_LOCK_INITIALIZED', info);
+    this._audit("VESTING_LOCK_INITIALIZED", info);
   }
 
   /**
@@ -1239,7 +1354,7 @@ class BaseHsmAdapter {
    */
   emitVestingEpochReleaseClaimed(info = {}) {
     this._ensureInitialized();
-    this._audit('VESTING_EPOCH_RELEASE_CLAIMED', info);
+    this._audit("VESTING_EPOCH_RELEASE_CLAIMED", info);
   }
 
   /**
@@ -1248,7 +1363,7 @@ class BaseHsmAdapter {
    */
   emitVestingEscrowCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('VESTING_ESCROW_COMPLETED', info);
+    this._audit("VESTING_ESCROW_COMPLETED", info);
   }
 
   // ── Track 59 PQC cross-chain governance telemetry hooks ──────────
@@ -1259,7 +1374,7 @@ class BaseHsmAdapter {
    */
   emitCrossChainProposalBroadcast(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_CHAIN_PROPOSAL_BROADCAST', info);
+    this._audit("CROSS_CHAIN_PROPOSAL_BROADCAST", info);
   }
 
   /**
@@ -1268,7 +1383,7 @@ class BaseHsmAdapter {
    */
   emitGovernanceVoteRecorded(info = {}) {
     this._ensureInitialized();
-    this._audit('GOVERNANCE_VOTE_RECORDED', info);
+    this._audit("GOVERNANCE_VOTE_RECORDED", info);
   }
 
   /**
@@ -1277,7 +1392,7 @@ class BaseHsmAdapter {
    */
   emitCrossChainProposalExecuted(info = {}) {
     this._ensureInitialized();
-    this._audit('CROSS_CHAIN_PROPOSAL_EXECUTED', info);
+    this._audit("CROSS_CHAIN_PROPOSAL_EXECUTED", info);
   }
 
   // ── Track 60 PQC homomorphic identity bridge telemetry hooks ─────
@@ -1288,7 +1403,7 @@ class BaseHsmAdapter {
    */
   emitHomomorphicIdentityBridgeInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('HOMOMORPHIC_IDENTITY_BRIDGE_INITIALIZED', info);
+    this._audit("HOMOMORPHIC_IDENTITY_BRIDGE_INITIALIZED", info);
   }
 
   /**
@@ -1297,7 +1412,7 @@ class BaseHsmAdapter {
    */
   emitMpcCrossChainConsensusFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('MPC_CROSS_CHAIN_CONSENSUS_FINALIZED', info);
+    this._audit("MPC_CROSS_CHAIN_CONSENSUS_FINALIZED", info);
   }
 
   // ── Track 61 PQ identity revocation telemetry hooks ──────────────
@@ -1308,7 +1423,7 @@ class BaseHsmAdapter {
    */
   emitIdentityRevocationPublished(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_REVOCATION_PUBLISHED', info);
+    this._audit("IDENTITY_REVOCATION_PUBLISHED", info);
   }
 
   /**
@@ -1317,7 +1432,7 @@ class BaseHsmAdapter {
    */
   emitZkRevocationProofAuthenticated(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_REVOCATION_PROOF_AUTHENTICATED', info);
+    this._audit("ZK_REVOCATION_PROOF_AUTHENTICATED", info);
   }
 
   // ── Track 62 PQ time-locked matrix telemetry hooks ──────────────
@@ -1328,7 +1443,7 @@ class BaseHsmAdapter {
    */
   emitTimeLockMatrixInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('TIME_LOCK_MATRIX_INITIALIZED', info);
+    this._audit("TIME_LOCK_MATRIX_INITIALIZED", info);
   }
 
   /**
@@ -1337,7 +1452,7 @@ class BaseHsmAdapter {
    */
   emitTemporalDecryptionProveVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('TEMPORAL_DECRYPTION_PROVE_VERIFIED', info);
+    this._audit("TEMPORAL_DECRYPTION_PROVE_VERIFIED", info);
   }
 
   // ── Track 63 PQ blind option pools telemetry hooks ──────────────
@@ -1348,7 +1463,7 @@ class BaseHsmAdapter {
    */
   emitBlindOptionPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('BLIND_OPTION_POOL_INITIALIZED', info);
+    this._audit("BLIND_OPTION_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1357,7 +1472,7 @@ class BaseHsmAdapter {
    */
   emitZkMarginAdequacyVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_MARGIN_ADEQUACY_VERIFIED', info);
+    this._audit("ZK_MARGIN_ADEQUACY_VERIFIED", info);
   }
 
   /**
@@ -1366,7 +1481,7 @@ class BaseHsmAdapter {
    */
   emitBlindOptionContractExecuted(info = {}) {
     this._ensureInitialized();
-    this._audit('BLIND_OPTION_CONTRACT_EXECUTED', info);
+    this._audit("BLIND_OPTION_CONTRACT_EXECUTED", info);
   }
 
   // ── Track 64 PQ prediction markets telemetry hooks ──────────────
@@ -1377,7 +1492,7 @@ class BaseHsmAdapter {
    */
   emitPredictionMarketInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('PREDICTION_MARKET_INITIALIZED', info);
+    this._audit("PREDICTION_MARKET_INITIALIZED", info);
   }
 
   /**
@@ -1386,7 +1501,7 @@ class BaseHsmAdapter {
    */
   emitZkResolutionVoteRecorded(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_RESOLUTION_VOTE_RECORDED', info);
+    this._audit("ZK_RESOLUTION_VOTE_RECORDED", info);
   }
 
   /**
@@ -1395,7 +1510,7 @@ class BaseHsmAdapter {
    */
   emitPredictionMarketFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('PREDICTION_MARKET_FINALIZED', info);
+    this._audit("PREDICTION_MARKET_FINALIZED", info);
   }
 
   // ── Track 65 PQ fractional custody telemetry hooks ──────────────
@@ -1406,7 +1521,7 @@ class BaseHsmAdapter {
    */
   emitFractionalVaultInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('FRACTIONAL_VAULT_INITIALIZED', info);
+    this._audit("FRACTIONAL_VAULT_INITIALIZED", info);
   }
 
   /**
@@ -1415,7 +1530,7 @@ class BaseHsmAdapter {
    */
   emitFractionalReleaseSigned(info = {}) {
     this._ensureInitialized();
-    this._audit('FRACTIONAL_RELEASE_SIGNED', info);
+    this._audit("FRACTIONAL_RELEASE_SIGNED", info);
   }
 
   /**
@@ -1424,7 +1539,7 @@ class BaseHsmAdapter {
    */
   emitCustodyVaultLiquidated(info = {}) {
     this._ensureInitialized();
-    this._audit('CUSTODY_VAULT_LIQUIDATED', info);
+    this._audit("CUSTODY_VAULT_LIQUIDATED", info);
   }
 
   // ── Track 66 PQ lending pools telemetry hooks ──────────────
@@ -1435,7 +1550,7 @@ class BaseHsmAdapter {
    */
   emitLendingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('LENDING_POOL_INITIALIZED', info);
+    this._audit("LENDING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1444,7 +1559,7 @@ class BaseHsmAdapter {
    */
   emitZkSolvencyProofVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_SOLVENCY_PROOF_VERIFIED', info);
+    this._audit("ZK_SOLVENCY_PROOF_VERIFIED", info);
   }
 
   /**
@@ -1453,7 +1568,7 @@ class BaseHsmAdapter {
    */
   emitCollateralPoolLiquidated(info = {}) {
     this._ensureInitialized();
-    this._audit('COLLATERAL_POOL_LIQUIDATED', info);
+    this._audit("COLLATERAL_POOL_LIQUIDATED", info);
   }
 
   // ── Track 67 PQ insurance underwriting telemetry hooks ──────────────
@@ -1464,7 +1579,7 @@ class BaseHsmAdapter {
    */
   emitInsurancePoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('INSURANCE_POOL_INITIALIZED', info);
+    this._audit("INSURANCE_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1473,7 +1588,7 @@ class BaseHsmAdapter {
    */
   emitZkClaimEligibilityVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_CLAIM_ELIGIBILITY_VERIFIED', info);
+    this._audit("ZK_CLAIM_ELIGIBILITY_VERIFIED", info);
   }
 
   /**
@@ -1482,7 +1597,7 @@ class BaseHsmAdapter {
    */
   emitUnderwritingPoolLiquidated(info = {}) {
     this._ensureInitialized();
-    this._audit('UNDERWRITING_POOL_LIQUIDATED', info);
+    this._audit("UNDERWRITING_POOL_LIQUIDATED", info);
   }
 
   // ── Track 68 PQ supply chain escrow telemetry hooks ──────────────
@@ -1493,7 +1608,7 @@ class BaseHsmAdapter {
    */
   emitSupplyChainOrderInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SUPPLY_CHAIN_ORDER_INITIALIZED', info);
+    this._audit("SUPPLY_CHAIN_ORDER_INITIALIZED", info);
   }
 
   /**
@@ -1502,7 +1617,7 @@ class BaseHsmAdapter {
    */
   emitZkDeliveryMilestoneVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_DELIVERY_MILESTONE_VERIFIED', info);
+    this._audit("ZK_DELIVERY_MILESTONE_VERIFIED", info);
   }
 
   /**
@@ -1511,7 +1626,7 @@ class BaseHsmAdapter {
    */
   emitProcurementEscrowReleased(info = {}) {
     this._ensureInitialized();
-    this._audit('PROCUREMENT_ESCROW_RELEASED', info);
+    this._audit("PROCUREMENT_ESCROW_RELEASED", info);
   }
 
   // ── Track 69 PQ real estate tokenization telemetry hooks ──────────────
@@ -1522,7 +1637,7 @@ class BaseHsmAdapter {
    */
   emitRealEstatePoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('REAL_ESTATE_POOL_INITIALIZED', info);
+    this._audit("REAL_ESTATE_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1531,7 +1646,7 @@ class BaseHsmAdapter {
    */
   emitZkEncumbranceClearanceVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ENCUMBRANCE_CLEARANCE_VERIFIED', info);
+    this._audit("ZK_ENCUMBRANCE_CLEARANCE_VERIFIED", info);
   }
 
   /**
@@ -1540,7 +1655,7 @@ class BaseHsmAdapter {
    */
   emitTitleDeedTransferFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('TITLE_DEED_TRANSFER_FINALIZED', info);
+    this._audit("TITLE_DEED_TRANSFER_FINALIZED", info);
   }
 
   // ── Track 70 PQ carbon credit tokenization telemetry hooks ──────────────
@@ -1551,7 +1666,7 @@ class BaseHsmAdapter {
    */
   emitCarbonPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('CARBON_POOL_INITIALIZED', info);
+    this._audit("CARBON_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1560,7 +1675,7 @@ class BaseHsmAdapter {
    */
   emitZkRetirementProofVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_RETIREMENT_PROOF_VERIFIED', info);
+    this._audit("ZK_RETIREMENT_PROOF_VERIFIED", info);
   }
 
   /**
@@ -1569,7 +1684,7 @@ class BaseHsmAdapter {
    */
   emitCarbonCreditRetirementFinalized(info = {}) {
     this._ensureInitialized();
-    this._audit('CARBON_CREDIT_RETIREMENT_FINALIZED', info);
+    this._audit("CARBON_CREDIT_RETIREMENT_FINALIZED", info);
   }
 
   // ── Track 71 PQ identity gating telemetry hooks ──────────────
@@ -1580,7 +1695,7 @@ class BaseHsmAdapter {
    */
   emitIdentityGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_GATING_POOL_INITIALIZED', info);
+    this._audit("IDENTITY_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1589,7 +1704,7 @@ class BaseHsmAdapter {
    */
   emitZkAttributeClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ATTRIBUTE_CLAIM_VERIFIED', info);
+    this._audit("ZK_ATTRIBUTE_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1598,7 +1713,7 @@ class BaseHsmAdapter {
    */
   emitSovereignIdentityGatingCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('SOVEREIGN_IDENTITY_GATING_COMPLETED', info);
+    this._audit("SOVEREIGN_IDENTITY_GATING_COMPLETED", info);
   }
 
   // ── Track 72 PQ health data gating telemetry hooks ──────────────
@@ -1609,7 +1724,7 @@ class BaseHsmAdapter {
    */
   emitHealthGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('HEALTH_GATING_POOL_INITIALIZED', info);
+    this._audit("HEALTH_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1618,7 +1733,7 @@ class BaseHsmAdapter {
    */
   emitZkHealthClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_HEALTH_CLAIM_VERIFIED', info);
+    this._audit("ZK_HEALTH_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1627,7 +1742,7 @@ class BaseHsmAdapter {
    */
   emitHealthRecordGatingCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('HEALTH_RECORD_GATING_COMPLETED', info);
+    this._audit("HEALTH_RECORD_GATING_COMPLETED", info);
   }
 
   // ── Track 73 PQ education credential gating telemetry hooks ──────────────
@@ -1638,7 +1753,7 @@ class BaseHsmAdapter {
    */
   emitEducationGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('EDUCATION_GATING_POOL_INITIALIZED', info);
+    this._audit("EDUCATION_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1647,7 +1762,7 @@ class BaseHsmAdapter {
    */
   emitZkAcademicClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ACADEMIC_CLAIM_VERIFIED', info);
+    this._audit("ZK_ACADEMIC_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1656,7 +1771,7 @@ class BaseHsmAdapter {
    */
   emitCredentialAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('CREDENTIAL_ACCREDITATION_COMPLETED', info);
+    this._audit("CREDENTIAL_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 74 PQ patent verification gating telemetry hooks ──────────────
@@ -1667,7 +1782,7 @@ class BaseHsmAdapter {
    */
   emitPatentGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('PATENT_GATING_POOL_INITIALIZED', info);
+    this._audit("PATENT_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1676,7 +1791,7 @@ class BaseHsmAdapter {
    */
   emitZkPatentClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_PATENT_CLAIM_VERIFIED', info);
+    this._audit("ZK_PATENT_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1685,7 +1800,7 @@ class BaseHsmAdapter {
    */
   emitPatentLicenseAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('PATENT_LICENSE_ACCREDITATION_COMPLETED', info);
+    this._audit("PATENT_LICENSE_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 75 PQ energy certificate gating telemetry hooks ──────────────
@@ -1696,7 +1811,7 @@ class BaseHsmAdapter {
    */
   emitEnergyGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('ENERGY_GATING_POOL_INITIALIZED', info);
+    this._audit("ENERGY_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1705,7 +1820,7 @@ class BaseHsmAdapter {
    */
   emitZkEnergyClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ENERGY_CLAIM_VERIFIED', info);
+    this._audit("ZK_ENERGY_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1714,7 +1829,7 @@ class BaseHsmAdapter {
    */
   emitCertificateTradingAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('CERTIFICATE_TRADING_ACCREDITATION_COMPLETED', info);
+    this._audit("CERTIFICATE_TRADING_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 76 PQ supply chain provenance gating telemetry hooks ──────────────
@@ -1725,7 +1840,7 @@ class BaseHsmAdapter {
    */
   emitSupplyChainGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SUPPLY_CHAIN_GATING_POOL_INITIALIZED', info);
+    this._audit("SUPPLY_CHAIN_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1734,7 +1849,7 @@ class BaseHsmAdapter {
    */
   emitZkProvenanceClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_PROVENANCE_CLAIM_VERIFIED', info);
+    this._audit("ZK_PROVENANCE_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1743,7 +1858,7 @@ class BaseHsmAdapter {
    */
   emitComponentLineageAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('COMPONENT_LINEAGE_ACCREDITATION_COMPLETED', info);
+    this._audit("COMPONENT_LINEAGE_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 77 PQ biometric verification gating telemetry hooks ──────────────
@@ -1754,7 +1869,7 @@ class BaseHsmAdapter {
    */
   emitBiometricGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('BIOMETRIC_GATING_POOL_INITIALIZED', info);
+    this._audit("BIOMETRIC_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1763,7 +1878,7 @@ class BaseHsmAdapter {
    */
   emitZkBiometricClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_BIOMETRIC_CLAIM_VERIFIED', info);
+    this._audit("ZK_BIOMETRIC_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1772,7 +1887,7 @@ class BaseHsmAdapter {
    */
   emitLivenessAttestationAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('LIVENESS_ATTESTATION_ACCREDITATION_COMPLETED', info);
+    this._audit("LIVENESS_ATTESTATION_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 78 PQ financial derivatives gating telemetry hooks ──────────────
@@ -1783,7 +1898,7 @@ class BaseHsmAdapter {
    */
   emitDerivativeGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('DERIVATIVE_GATING_POOL_INITIALIZED', info);
+    this._audit("DERIVATIVE_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1792,7 +1907,7 @@ class BaseHsmAdapter {
    */
   emitZkDerivativeClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_DERIVATIVE_CLAIM_VERIFIED', info);
+    this._audit("ZK_DERIVATIVE_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1801,7 +1916,7 @@ class BaseHsmAdapter {
    */
   emitCounterpartyRiskAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('COUNTERPARTY_RISK_ACCREDITATION_COMPLETED', info);
+    this._audit("COUNTERPARTY_RISK_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 79 PQ clinical trial verification gating telemetry hooks ──────────────
@@ -1812,7 +1927,7 @@ class BaseHsmAdapter {
    */
   emitClinicalTrialGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('CLINICAL_TRIAL_GATING_POOL_INITIALIZED', info);
+    this._audit("CLINICAL_TRIAL_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1821,7 +1936,7 @@ class BaseHsmAdapter {
    */
   emitZkTrialClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_TRIAL_CLAIM_VERIFIED', info);
+    this._audit("ZK_TRIAL_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1830,7 +1945,7 @@ class BaseHsmAdapter {
    */
   emitCohortAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('COHORT_ACCREDITATION_COMPLETED', info);
+    this._audit("COHORT_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 80 PQ VRF audit sortition gating telemetry hooks ──────────────
@@ -1841,7 +1956,7 @@ class BaseHsmAdapter {
    */
   emitSortitionGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SORTITION_GATING_POOL_INITIALIZED', info);
+    this._audit("SORTITION_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1850,7 +1965,7 @@ class BaseHsmAdapter {
    */
   emitZkSortitionClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_SORTITION_CLAIM_VERIFIED', info);
+    this._audit("ZK_SORTITION_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1859,7 +1974,7 @@ class BaseHsmAdapter {
    */
   emitValidatorAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('VALIDATOR_ACCREDITATION_COMPLETED', info);
+    this._audit("VALIDATOR_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 81 PQ cross-border logistics gating telemetry hooks ──────────────
@@ -1870,7 +1985,7 @@ class BaseHsmAdapter {
    */
   emitLogisticsGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('LOGISTICS_GATING_POOL_INITIALIZED', info);
+    this._audit("LOGISTICS_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1879,7 +1994,7 @@ class BaseHsmAdapter {
    */
   emitZkManifestClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_MANIFEST_CLAIM_VERIFIED', info);
+    this._audit("ZK_MANIFEST_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1888,7 +2003,7 @@ class BaseHsmAdapter {
    */
   emitCarrierAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('CARRIER_ACCREDITATION_COMPLETED', info);
+    this._audit("CARRIER_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 82 PQ AI model training gating telemetry hooks ──────────────
@@ -1899,7 +2014,7 @@ class BaseHsmAdapter {
    */
   emitTrainingGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('TRAINING_GATING_POOL_INITIALIZED', info);
+    this._audit("TRAINING_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1908,7 +2023,7 @@ class BaseHsmAdapter {
    */
   emitZkTrainingClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_TRAINING_CLAIM_VERIFIED', info);
+    this._audit("ZK_TRAINING_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1917,7 +2032,7 @@ class BaseHsmAdapter {
    */
   emitModelAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('MODEL_ACCREDITATION_COMPLETED', info);
+    this._audit("MODEL_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 83 PQ scientific reproducibility gating telemetry hooks ──────────────
@@ -1928,7 +2043,7 @@ class BaseHsmAdapter {
    */
   emitResearchGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('RESEARCH_GATING_POOL_INITIALIZED', info);
+    this._audit("RESEARCH_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1937,7 +2052,7 @@ class BaseHsmAdapter {
    */
   emitZkReplicationClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_REPLICATION_CLAIM_VERIFIED', info);
+    this._audit("ZK_REPLICATION_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1946,7 +2061,7 @@ class BaseHsmAdapter {
    */
   emitPeerReviewAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('PEER_REVIEW_ACCREDITATION_COMPLETED', info);
+    this._audit("PEER_REVIEW_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 84 PQ DAO treasury management gating telemetry hooks ──────────────
@@ -1957,7 +2072,7 @@ class BaseHsmAdapter {
    */
   emitTreasuryGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('TREASURY_GATING_POOL_INITIALIZED', info);
+    this._audit("TREASURY_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1966,7 +2081,7 @@ class BaseHsmAdapter {
    */
   emitZkProposalClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_PROPOSAL_CLAIM_VERIFIED', info);
+    this._audit("ZK_PROPOSAL_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -1975,7 +2090,7 @@ class BaseHsmAdapter {
    */
   emitVoterAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('VOTER_ACCREDITATION_COMPLETED', info);
+    this._audit("VOTER_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 85 PQ telecom routing gating telemetry hooks ──────────────
@@ -1986,7 +2101,7 @@ class BaseHsmAdapter {
    */
   emitTelecomRoutingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('TELECOM_ROUTING_POOL_INITIALIZED', info);
+    this._audit("TELECOM_ROUTING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -1995,7 +2110,7 @@ class BaseHsmAdapter {
    */
   emitZkBandwidthClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_BANDWIDTH_CLAIM_VERIFIED', info);
+    this._audit("ZK_BANDWIDTH_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2004,7 +2119,7 @@ class BaseHsmAdapter {
    */
   emitRoutingAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('ROUTING_ACCREDITATION_COMPLETED', info);
+    this._audit("ROUTING_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 86 PQ health insurance claim auditing gating telemetry hooks ──
@@ -2015,7 +2130,7 @@ class BaseHsmAdapter {
    */
   emitInsuranceGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('INSURANCE_GATING_POOL_INITIALIZED', info);
+    this._audit("INSURANCE_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2024,7 +2139,7 @@ class BaseHsmAdapter {
    */
   emitZkClaimAuditVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_CLAIM_AUDIT_VERIFIED', info);
+    this._audit("ZK_CLAIM_AUDIT_VERIFIED", info);
   }
 
   /**
@@ -2033,7 +2148,7 @@ class BaseHsmAdapter {
    */
   emitActuarialAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('ACTUARIAL_ACCREDITATION_COMPLETED', info);
+    this._audit("ACTUARIAL_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 87 PQ space-asset telemetry gating telemetry hooks ─────────
@@ -2044,7 +2159,7 @@ class BaseHsmAdapter {
    */
   emitOrbitalGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('ORBITAL_GATING_POOL_INITIALIZED', info);
+    this._audit("ORBITAL_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2053,7 +2168,7 @@ class BaseHsmAdapter {
    */
   emitZkTelemetryClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_TELEMETRY_CLAIM_VERIFIED', info);
+    this._audit("ZK_TELEMETRY_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2062,7 +2177,7 @@ class BaseHsmAdapter {
    */
   emitOrbitalAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('ORBITAL_ACCREDITATION_COMPLETED', info);
+    this._audit("ORBITAL_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 88 PQ water rights allocation gating telemetry hooks ───────
@@ -2073,7 +2188,7 @@ class BaseHsmAdapter {
    */
   emitWaterGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('WATER_GATING_POOL_INITIALIZED', info);
+    this._audit("WATER_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2082,7 +2197,7 @@ class BaseHsmAdapter {
    */
   emitZkWaterClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_WATER_CLAIM_VERIFIED', info);
+    this._audit("ZK_WATER_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2091,7 +2206,7 @@ class BaseHsmAdapter {
    */
   emitWatershedAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('WATERSHED_ACCREDITATION_COMPLETED', info);
+    this._audit("WATERSHED_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 89 PQ nuclear safeguards monitoring gating telemetry hooks ─
@@ -2102,7 +2217,7 @@ class BaseHsmAdapter {
    */
   emitNuclearGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('NUCLEAR_GATING_POOL_INITIALIZED', info);
+    this._audit("NUCLEAR_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2111,7 +2226,7 @@ class BaseHsmAdapter {
    */
   emitZkSafeguardsClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_SAFEGUARDS_CLAIM_VERIFIED', info);
+    this._audit("ZK_SAFEGUARDS_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2120,7 +2235,7 @@ class BaseHsmAdapter {
    */
   emitNuclearAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('NUCLEAR_ACCREDITATION_COMPLETED', info);
+    this._audit("NUCLEAR_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 90 PQ wildlife conservation tracking gating telemetry hooks ─
@@ -2131,7 +2246,7 @@ class BaseHsmAdapter {
    */
   emitWildlifeGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('WILDLIFE_GATING_POOL_INITIALIZED', info);
+    this._audit("WILDLIFE_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2140,7 +2255,7 @@ class BaseHsmAdapter {
    */
   emitZkConservationClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_CONSERVATION_CLAIM_VERIFIED', info);
+    this._audit("ZK_CONSERVATION_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2149,7 +2264,7 @@ class BaseHsmAdapter {
    */
   emitBiodiversityAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('BIODIVERSITY_ACCREDITATION_COMPLETED', info);
+    this._audit("BIODIVERSITY_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 91 PQ smart-grid micro-transaction gating telemetry hooks ─
@@ -2160,7 +2275,7 @@ class BaseHsmAdapter {
    */
   emitSmartGridGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SMARTGRID_GATING_POOL_INITIALIZED', info);
+    this._audit("SMARTGRID_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2169,7 +2284,7 @@ class BaseHsmAdapter {
    */
   emitZkMicroTransactionClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_MICRO_TRANSACTION_CLAIM_VERIFIED', info);
+    this._audit("ZK_MICRO_TRANSACTION_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2178,7 +2293,7 @@ class BaseHsmAdapter {
    */
   emitLoadBalanceAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('LOAD_BALANCE_ACCREDITATION_COMPLETED', info);
+    this._audit("LOAD_BALANCE_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 92 PQ global health epidemiological surveillance hooks ────
@@ -2189,7 +2304,7 @@ class BaseHsmAdapter {
    */
   emitEpidemiologyGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('EPIDEMIOLOGY_GATING_POOL_INITIALIZED', info);
+    this._audit("EPIDEMIOLOGY_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2198,7 +2313,7 @@ class BaseHsmAdapter {
    */
   emitZkEpidemiologicalClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_EPIDEMIOLOGICAL_CLAIM_VERIFIED', info);
+    this._audit("ZK_EPIDEMIOLOGICAL_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2207,7 +2322,7 @@ class BaseHsmAdapter {
    */
   emitOutbreakAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('OUTBREAK_ACCREDITATION_COMPLETED', info);
+    this._audit("OUTBREAK_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 93 PQ cultural heritage provenance gating telemetry hooks ─
@@ -2218,7 +2333,7 @@ class BaseHsmAdapter {
    */
   emitHeritageGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('HERITAGE_GATING_POOL_INITIALIZED', info);
+    this._audit("HERITAGE_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2227,7 +2342,7 @@ class BaseHsmAdapter {
    */
   emitZkAuthenticationClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_AUTHENTICATION_CLAIM_VERIFIED', info);
+    this._audit("ZK_AUTHENTICATION_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2236,7 +2351,7 @@ class BaseHsmAdapter {
    */
   emitProvenanceAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('PROVENANCE_ACCREDITATION_COMPLETED', info);
+    this._audit("PROVENANCE_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 94 PQ ocean fisheries allocation gating telemetry hooks ──
@@ -2247,7 +2362,7 @@ class BaseHsmAdapter {
    */
   emitFisheriesGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('FISHERIES_GATING_POOL_INITIALIZED', info);
+    this._audit("FISHERIES_GATING_POOL_INITIALIZED", info);
   }
 
   /**
@@ -2256,7 +2371,7 @@ class BaseHsmAdapter {
    */
   emitZkCatchClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_CATCH_CLAIM_VERIFIED', info);
+    this._audit("ZK_CATCH_CLAIM_VERIFIED", info);
   }
 
   /**
@@ -2265,7 +2380,7 @@ class BaseHsmAdapter {
    */
   emitQuotaAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('QUOTA_ACCREDITATION_COMPLETED', info);
+    this._audit("QUOTA_ACCREDITATION_COMPLETED", info);
   }
 
   // ── Track 95 PQ deep-sea mineral rights gating telemetry hooks ──
@@ -2276,8 +2391,12 @@ class BaseHsmAdapter {
    */
   emitSeabedGatingPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SEABED_GATING_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_seabed_gating_pool_initialized_total'); } catch { }
+    this._audit("SEABED_GATING_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_seabed_gating_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2286,8 +2405,12 @@ class BaseHsmAdapter {
    */
   emitZkExtractionClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_EXTRACTION_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_extraction_claim_verified_total'); } catch { }
+    this._audit("ZK_EXTRACTION_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_extraction_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2296,8 +2419,12 @@ class BaseHsmAdapter {
    */
   emitLeaseAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('LEASE_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_lease_accreditation_completed_total'); } catch { }
+    this._audit("LEASE_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_lease_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 96 PQ polar research data gating telemetry hooks ──
@@ -2308,8 +2435,12 @@ class BaseHsmAdapter {
    */
   emitPolarResearchPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('POLAR_RESEARCH_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_polar_research_pool_initialized_total'); } catch { }
+    this._audit("POLAR_RESEARCH_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_polar_research_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2318,8 +2449,12 @@ class BaseHsmAdapter {
    */
   emitZkResearchClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_RESEARCH_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_research_claim_verified_total'); } catch { }
+    this._audit("ZK_RESEARCH_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_research_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2328,8 +2463,12 @@ class BaseHsmAdapter {
    */
   emitDataAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('DATA_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_data_accreditation_completed_total'); } catch { }
+    this._audit("DATA_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_data_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 97 stratospheric aerosol monitoring gating telemetry hooks ──
@@ -2340,8 +2479,12 @@ class BaseHsmAdapter {
    */
   emitStratosphericMonitoringPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('STRATOSPHERIC_MONITORING_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_strato_pool_initialized_total'); } catch { }
+    this._audit("STRATOSPHERIC_MONITORING_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_strato_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2350,8 +2493,12 @@ class BaseHsmAdapter {
    */
   emitZkAerosolClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_AEROSOL_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_aerosol_claim_verified_total'); } catch { }
+    this._audit("ZK_AEROSOL_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_aerosol_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2360,8 +2507,12 @@ class BaseHsmAdapter {
    */
   emitDeploymentAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('DEPLOYMENT_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_deployment_accreditation_completed_total'); } catch { }
+    this._audit("DEPLOYMENT_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_deployment_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 98 orbital debris tracking gating telemetry hooks ────────
@@ -2372,8 +2523,12 @@ class BaseHsmAdapter {
    */
   emitOrbitalDebrisPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('ORBITAL_DEBRIS_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_orbigo_pool_initialized_total'); } catch { }
+    this._audit("ORBITAL_DEBRIS_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_orbigo_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2382,8 +2537,12 @@ class BaseHsmAdapter {
    */
   emitZkDebrisClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_DEBRIS_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_debris_claim_verified_total'); } catch { }
+    this._audit("ZK_DEBRIS_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_debris_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2392,8 +2551,12 @@ class BaseHsmAdapter {
    */
   emitCollisionAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('COLLISION_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_collision_accreditation_completed_total'); } catch { }
+    this._audit("COLLISION_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_collision_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 99 genomic privacy compliance gating telemetry hooks ────
@@ -2404,8 +2567,12 @@ class BaseHsmAdapter {
    */
   emitGenomicCompliancePoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('GENOMIC_COMPLIANCE_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_genogo_pool_initialized_total'); } catch { }
+    this._audit("GENOMIC_COMPLIANCE_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_genogo_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2414,8 +2581,12 @@ class BaseHsmAdapter {
    */
   emitZkGenomicClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_GENOMIC_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_genomic_claim_verified_total'); } catch { }
+    this._audit("ZK_GENOMIC_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_genomic_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2424,8 +2595,12 @@ class BaseHsmAdapter {
    */
   emitConsentAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('CONSENT_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_consent_accreditation_completed_total'); } catch { }
+    this._audit("CONSENT_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_consent_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 100 quantum sensor calibration gating telemetry hooks ───
@@ -2436,8 +2611,12 @@ class BaseHsmAdapter {
    */
   emitQuantumCalibrationPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('QUANTUM_CALIBRATION_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_quantgo_pool_initialized_total'); } catch { }
+    this._audit("QUANTUM_CALIBRATION_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_quantgo_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2446,8 +2625,12 @@ class BaseHsmAdapter {
    */
   emitZkQuantumClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_QUANTUM_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_quantum_claim_verified_total'); } catch { }
+    this._audit("ZK_QUANTUM_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_quantum_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2456,8 +2639,12 @@ class BaseHsmAdapter {
    */
   emitCalibrationAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('CALIBRATION_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_calibration_accreditation_completed_total'); } catch { }
+    this._audit("CALIBRATION_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_calibration_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 101 neural network inference integrity gating telemetry hooks
@@ -2468,8 +2655,12 @@ class BaseHsmAdapter {
    */
   emitNeuralInferencePoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('NEURAL_INFERENCE_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_neurgo_pool_initialized_total'); } catch { }
+    this._audit("NEURAL_INFERENCE_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_neurgo_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2478,8 +2669,12 @@ class BaseHsmAdapter {
    */
   emitZkNeuralClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_NEURAL_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_neural_claim_verified_total'); } catch { }
+    this._audit("ZK_NEURAL_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_neural_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2488,8 +2683,12 @@ class BaseHsmAdapter {
    */
   emitInferenceAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('INFERENCE_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_inference_accreditation_completed_total'); } catch { }
+    this._audit("INFERENCE_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_inference_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 102 autonomous vehicle fleet coordination gating telemetry hooks
@@ -2500,8 +2699,12 @@ class BaseHsmAdapter {
    */
   emitAutonomousCoordinationPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('AUTONOMOUS_COORDINATION_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_autogo_pool_initialized_total'); } catch { }
+    this._audit("AUTONOMOUS_COORDINATION_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_autogo_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2510,8 +2713,12 @@ class BaseHsmAdapter {
    */
   emitZkAutonomousClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_AUTONOMOUS_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_autonomous_claim_verified_total'); } catch { }
+    this._audit("ZK_AUTONOMOUS_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_autonomous_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2520,8 +2727,12 @@ class BaseHsmAdapter {
    */
   emitCoordinationAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('COORDINATION_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_coordination_accreditation_completed_total'); } catch { }
+    this._audit("COORDINATION_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_coordination_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 103 supply chain resilience integrity gating telemetry hooks
@@ -2532,8 +2743,12 @@ class BaseHsmAdapter {
    */
   emitSupplyChainResiliencePoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('SUPPLY_CHAIN_RESILIENCE_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_resiliogate_pool_initialized_total'); } catch { }
+    this._audit("SUPPLY_CHAIN_RESILIENCE_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_resiliogate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2542,8 +2757,12 @@ class BaseHsmAdapter {
    */
   emitZkResilienceClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_RESILIENCE_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_resilience_claim_verified_total'); } catch { }
+    this._audit("ZK_RESILIENCE_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_resilience_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2552,8 +2771,12 @@ class BaseHsmAdapter {
    */
   emitResilienceAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('RESILIENCE_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_resilience_accreditation_completed_total'); } catch { }
+    this._audit("RESILIENCE_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_resilience_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 104 smart-contract verifiable execution gating telemetry hooks
@@ -2564,8 +2787,12 @@ class BaseHsmAdapter {
    */
   emitExecutionPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('EXECUTION_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_execgate_pool_initialized_total'); } catch { }
+    this._audit("EXECUTION_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_execgate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2574,8 +2801,12 @@ class BaseHsmAdapter {
    */
   emitZkExecutionClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_EXECUTION_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_execution_claim_verified_total'); } catch { }
+    this._audit("ZK_EXECUTION_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_execution_claim_verified_total",
+      );
+    } catch {}
   }
 
   /**
@@ -2584,148 +2815,236 @@ class BaseHsmAdapter {
    */
   emitExecutionAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('EXECUTION_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_execution_accreditation_completed_total'); } catch { }
+    this._audit("EXECUTION_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_execution_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 105 decentralized identity proof gating telemetry hooks
 
   emitIdentityPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('IDENTITY_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_didgate_pool_initialized_total'); } catch { }
+    this._audit("IDENTITY_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_didgate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkIdentityClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_IDENTITY_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_identity_claim_verified_total'); } catch { }
+    this._audit("ZK_IDENTITY_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_identity_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitRevocationAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('REVOCATION_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_revocation_accreditation_completed_total'); } catch { }
+    this._audit("REVOCATION_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_revocation_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 106 cross-shard asset teleportation gating telemetry hooks
 
   emitTeleportationPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('TELEPORTATION_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_teleportgate_pool_initialized_total'); } catch { }
+    this._audit("TELEPORTATION_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_teleportgate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkTeleportClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_TELEPORT_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_teleport_claim_verified_total'); } catch { }
+    this._audit("ZK_TELEPORT_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_teleport_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitFinalityAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('FINALITY_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_finality_accreditation_completed_total'); } catch { }
+    this._audit("FINALITY_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_finality_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 107 decentralized energy grid balancing gating telemetry hooks
 
   emitEnergyGridPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('ENERGY_GRID_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_gridgate_pool_initialized_total'); } catch { }
+    this._audit("ENERGY_GRID_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_gridgate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkEnergyGridClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_ENERGY_GRID_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_energy_grid_claim_verified_total'); } catch { }
+    this._audit("ZK_ENERGY_GRID_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_energy_grid_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitBalancingAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('BALANCING_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_balancing_accreditation_completed_total'); } catch { }
+    this._audit("BALANCING_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_balancing_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 108 space-based laser communication mesh gating telemetry hooks
 
   emitLaserMeshPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('LASER_MESH_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_lasergate_pool_initialized_total'); } catch { }
+    this._audit("LASER_MESH_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_lasergate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkLaserMeshClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_LASER_MESH_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_laser_mesh_claim_verified_total'); } catch { }
+    this._audit("ZK_LASER_MESH_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_laser_mesh_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitHandoffAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('HANDOFF_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_handoff_accreditation_completed_total'); } catch { }
+    this._audit("HANDOFF_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_handoff_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 109 quantum key distribution link-switch gating telemetry hooks
 
   emitQkdLinkPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('QKD_LINK_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_qkdswitchgate_pool_initialized_total'); } catch { }
+    this._audit("QKD_LINK_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_qkdswitchgate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkQkdLinkClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_QKD_LINK_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_qkd_link_claim_verified_total'); } catch { }
+    this._audit("ZK_QKD_LINK_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_qkd_link_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitEntanglementAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('ENTANGLEMENT_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_entanglement_accreditation_completed_total'); } catch { }
+    this._audit("ENTANGLEMENT_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_entanglement_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Track 110 holographic storage content-addressable gating telemetry hooks
 
   emitHolographicPoolInitialized(info = {}) {
     this._ensureInitialized();
-    this._audit('HOLOGRAPHIC_POOL_INITIALIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_hologate_pool_initialized_total'); } catch { }
+    this._audit("HOLOGRAPHIC_POOL_INITIALIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_hologate_pool_initialized_total",
+      );
+    } catch {}
   }
 
   emitZkHolographicClaimVerified(info = {}) {
     this._ensureInitialized();
-    this._audit('ZK_HOLOGRAPHIC_CLAIM_VERIFIED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_holographic_claim_verified_total'); } catch { }
+    this._audit("ZK_HOLOGRAPHIC_CLAIM_VERIFIED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_zk_holographic_claim_verified_total",
+      );
+    } catch {}
   }
 
   emitPhaseAccreditationCompleted(info = {}) {
     this._ensureInitialized();
-    this._audit('PHASE_ACCREDITATION_COMPLETED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_phase_accreditation_completed_total'); } catch { }
+    this._audit("PHASE_ACCREDITATION_COMPLETED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_phase_accreditation_completed_total",
+      );
+    } catch {}
   }
 
   // ── Cluster keyring primitive authorization telemetry hooks
 
   emitPrimitivePoolAuthorized(info = {}) {
     this._ensureInitialized();
-    this._audit('PRIMITIVE_POOL_AUTHORIZED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_pool_authorized_total'); } catch { }
+    this._audit("PRIMITIVE_POOL_AUTHORIZED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_primitive_pool_authorized_total",
+      );
+    } catch {}
   }
 
   emitPrimitivePoolSynced(info = {}) {
     this._ensureInitialized();
-    this._audit('PRIMITIVE_POOL_SYNCED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_pool_synced_total'); } catch { }
+    this._audit("PRIMITIVE_POOL_SYNCED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_primitive_pool_synced_total",
+      );
+    } catch {}
   }
 
   emitPrimitiveAuthorizationRevoked(info = {}) {
     this._ensureInitialized();
-    this._audit('PRIMITIVE_AUTHORIZATION_REVOKED', info);
-    try { require('./hsm-metrics.cjs').incrementCounter('hsm_primitive_authorization_revoked_total'); } catch { }
+    this._audit("PRIMITIVE_AUTHORIZATION_REVOKED", info);
+    try {
+      require("./hsm-metrics.cjs").incrementCounter(
+        "hsm_primitive_authorization_revoked_total",
+      );
+    } catch {}
   }
 
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
@@ -2736,11 +3055,13 @@ class BaseHsmAdapter {
    */
   emitNodeRecoveryStarted(info = {}) {
     this._ensureInitialized();
-    this._audit('NODE_RECOVERY_STARTED', info);
+    this._audit("NODE_RECOVERY_STARTED", info);
     try {
-      const metrics = require('./hsm-metrics.cjs');
-      metrics.incrementCounter('hsm_recovery_started_total');
-    } catch { /* metrics module optional */ }
+      const metrics = require("./hsm-metrics.cjs");
+      metrics.incrementCounter("hsm_recovery_started_total");
+    } catch {
+      /* metrics module optional */
+    }
   }
 
   /**
@@ -2749,26 +3070,39 @@ class BaseHsmAdapter {
    */
   emitNodeRecoverySynced(info = {}) {
     this._ensureInitialized();
-    this._audit('NODE_RECOVERY_SYNCED', info);
+    this._audit("NODE_RECOVERY_SYNCED", info);
     try {
-      const metrics = require('./hsm-metrics.cjs');
-      metrics.incrementCounter('hsm_recovery_synced_total');
-      if (typeof info.batchesApplied === 'number') {
-        metrics.incrementCounter('hsm_recovery_catchup_batches_total', info.batchesApplied);
+      const metrics = require("./hsm-metrics.cjs");
+      metrics.incrementCounter("hsm_recovery_synced_total");
+      if (typeof info.batchesApplied === "number") {
+        metrics.incrementCounter(
+          "hsm_recovery_catchup_batches_total",
+          info.batchesApplied,
+        );
       }
-    } catch { /* metrics module optional */ }
+    } catch {
+      /* metrics module optional */
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
     if (!this.logger || !this.logger[level]) return;
-    this.logger[level](message, { sub: 'hsm-adapter', provider: this.providerName, ...extra });
+    this.logger[level](message, {
+      sub: "hsm-adapter",
+      provider: this.providerName,
+      ...extra,
+    });
   }
 
   _audit(event, extra = {}) {
     if (!this.logger || !this.logger.info) return;
-    this.logger.info(event, { sub: 'hsm-adapter', provider: this.providerName, ...extra });
+    this.logger.info(event, {
+      sub: "hsm-adapter",
+      provider: this.providerName,
+      ...extra,
+    });
   }
 }
 

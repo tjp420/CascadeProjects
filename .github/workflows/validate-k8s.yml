@@ -3,8 +3,8 @@ name: Validate Kubernetes YAML & Helm
 on:
   pull_request:
     paths:
-      - 'monitoring/**'
-      - 'charts/**'
+      - "monitoring/**"
+      - "charts/**"
 
 jobs:
   validate:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install yamllint
         run: |
@@ -38,4 +38,4 @@ jobs:
       - name: Kubeval validation
         uses: instrumenta/kubeval-action@v2
         with:
-          files: 'monitoring/**/*.yaml'
+          files: "monitoring/**/*.yaml"

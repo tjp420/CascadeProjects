@@ -208,16 +208,35 @@ export function FineTuningCurationView() {
           <Label htmlFor="ft-q">Search</Label>
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input id="ft-q" className="pl-8" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} placeholder="keyword..." />
+            <Input
+              id="ft-q"
+              className="pl-8"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+              placeholder="keyword..."
+            />
           </div>
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-minRating">Min Score</Label>
-          <Input id="ft-minRating" type="number" min={0} max={10} value={filters.minRating} onChange={(e) => setFilters((f) => ({ ...f, minRating: e.target.value }))} />
+          <Input
+            id="ft-minRating"
+            type="number"
+            min={0}
+            max={10}
+            value={filters.minRating}
+            onChange={(e) => setFilters((f) => ({ ...f, minRating: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-minTurns">Min Turns</Label>
-          <Input id="ft-minTurns" type="number" min={1} value={filters.minTurns} onChange={(e) => setFilters((f) => ({ ...f, minTurns: e.target.value }))} />
+          <Input
+            id="ft-minTurns"
+            type="number"
+            min={1}
+            value={filters.minTurns}
+            onChange={(e) => setFilters((f) => ({ ...f, minTurns: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-label">Label</Label>
@@ -228,24 +247,50 @@ export function FineTuningCurationView() {
             className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
           >
             <option value="">any</option>
-            {LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
+            {LABELS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
           </select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-operation">Operation</Label>
-          <Input id="ft-operation" value={filters.operation} onChange={(e) => setFilters((f) => ({ ...f, operation: e.target.value }))} />
+          <Input
+            id="ft-operation"
+            value={filters.operation}
+            onChange={(e) => setFilters((f) => ({ ...f, operation: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-startDate">Start</Label>
-          <Input id="ft-startDate" type="date" value={filters.startDate} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
+          <Input
+            id="ft-startDate"
+            type="date"
+            value={filters.startDate}
+            onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ft-endDate">End</Label>
-          <Input id="ft-endDate" type="date" value={filters.endDate} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+          <Input
+            id="ft-endDate"
+            type="date"
+            value={filters.endDate}
+            onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
+          />
         </div>
         <div className="lg:col-span-4 flex gap-2">
           <Button onClick={applyFilter}>Apply filters</Button>
-          <Button variant="outline" onClick={() => { setFilters({ q: '', minRating: '', minTurns: '', label: '', operation: '', startDate: '', endDate: '' }); setPage(1); }}>Reset</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setFilters({ q: '', minRating: '', minTurns: '', label: '', operation: '', startDate: '', endDate: '' });
+              setPage(1);
+            }}
+          >
+            Reset
+          </Button>
         </div>
       </div>
 
@@ -254,10 +299,20 @@ export function FineTuningCurationView() {
           {result ? `${result.count} of ${result.total} entries (page ${result.page})` : 'Loading...'}
         </div>
         <div className="flex items-center gap-2">
-          <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
-            {FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
+          <select
+            value={exportFormat}
+            onChange={(e) => setExportFormat(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+          >
+            {FORMATS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
           </select>
-          <Button onClick={exportDataset}><Download className="mr-2 h-4 w-4" /> Export</Button>
+          <Button onClick={exportDataset}>
+            <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
         </div>
       </div>
 
@@ -280,31 +335,49 @@ export function FineTuningCurationView() {
               </tr>
             </thead>
             <tbody>
-              {result?.entries?.length ? result.entries.map((e) => (
-                <tr key={e.eventId} className="border-t hover:bg-muted/50">
-                  <td className="p-2">{e.score}</td>
-                  <td className="p-2">{e.turns}</td>
-                  <td className="p-2 capitalize">{e.label}</td>
-                  <td className="p-2">{e.model}</td>
-                  <td className="p-2 max-w-xs truncate" title={e.input}>{e.input}</td>
-                  <td className="p-2 max-w-xs truncate" title={e.output}>{e.output}</td>
-                  <td className="p-2">
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={selected[e.eventId] || e.label}
-                        onChange={(ev) => setSelected((s) => ({ ...s, [e.eventId]: ev.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                      >
-                        {LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                      <Button size="sm" variant="ghost" onClick={() => labelEntry(e.eventId, selected[e.eventId] || e.label)}>
-                        <Tag className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {result?.entries?.length ? (
+                result.entries.map((e) => (
+                  <tr key={e.eventId} className="border-t hover:bg-muted/50">
+                    <td className="p-2">{e.score}</td>
+                    <td className="p-2">{e.turns}</td>
+                    <td className="p-2 capitalize">{e.label}</td>
+                    <td className="p-2">{e.model}</td>
+                    <td className="p-2 max-w-xs truncate" title={e.input}>
+                      {e.input}
+                    </td>
+                    <td className="p-2 max-w-xs truncate" title={e.output}>
+                      {e.output}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={selected[e.eventId] || e.label}
+                          onChange={(ev) => setSelected((s) => ({ ...s, [e.eventId]: ev.target.value }))}
+                          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                        >
+                          {LABELS.map((l) => (
+                            <option key={l} value={l}>
+                              {l}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => labelEntry(e.eventId, selected[e.eventId] || e.label)}
+                        >
+                          <Tag className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                    No entries found.
                   </td>
                 </tr>
-              )) : (
-                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No entries found.</td></tr>
               )}
             </tbody>
           </table>
@@ -312,11 +385,34 @@ export function FineTuningCurationView() {
       )}
 
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><ChevronLeft className="h-4 w-4" /></Button>
-        <Input type="number" min={1} max={totalPages} value={page} onChange={(e) => setPage(Math.max(1, Math.min(totalPages, Number(e.target.value))))} className="w-20" />
+        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Input
+          type="number"
+          min={1}
+          max={totalPages}
+          value={page}
+          onChange={(e) => setPage(Math.max(1, Math.min(totalPages, Number(e.target.value))))}
+          className="w-20"
+        />
         <span className="text-sm text-muted-foreground">of {totalPages}</span>
-        <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}><ChevronRight className="h-4 w-4" /></Button>
-        <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <select
+          value={limit}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setPage(1);
+          }}
+          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+        >
           <option value={10}>10</option>
           <option value={25}>25</option>
           <option value={50}>50</option>
@@ -332,7 +428,9 @@ export function FineTuningCurationView() {
             {datasets.map((d) => (
               <li key={d.filename} className="flex justify-between p-2 border rounded bg-card">
                 <span>{d.filename}</span>
-                <span className="text-muted-foreground">{new Date(d.createdAt).toLocaleString()} · {(d.sizeBytes / 1024).toFixed(1)} KB</span>
+                <span className="text-muted-foreground">
+                  {new Date(d.createdAt).toLocaleString()} · {(d.sizeBytes / 1024).toFixed(1)} KB
+                </span>
               </li>
             ))}
           </ul>

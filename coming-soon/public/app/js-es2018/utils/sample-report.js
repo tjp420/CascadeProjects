@@ -195,7 +195,8 @@ export function generateSampleReport() {
             filePath: 'Dockerfile',
             file: 'Dockerfile',
             line: null,
-            description: 'Docker image missing HEALTHCHECK instruction — orchestrator cannot detect unhealthy containers',
+            description:
+                'Docker image missing HEALTHCHECK instruction — orchestrator cannot detect unhealthy containers',
             confidence: 1.0,
             count: 1,
             affectedFiles: ['Dockerfile'],
@@ -215,14 +216,14 @@ export function generateSampleReport() {
             count: 1,
             affectedFiles: ['src/config.js'],
             metadata: { rule: 'SB-SEC-007', engine: 'hardcoded-url-scanner' }
-        },
+        }
     ];
 
     const severityCounts = {
         critical: rawIssues.filter(i => i.severity === 'critical').length,
         high: rawIssues.filter(i => i.severity === 'high').length,
         medium: rawIssues.filter(i => i.severity === 'medium').length,
-        low: rawIssues.filter(i => i.severity === 'low').length,
+        low: rawIssues.filter(i => i.severity === 'low').length
     };
 
     const blockingIssues = rawIssues.filter(i => ['critical', 'high'].includes(i.severity));
@@ -233,7 +234,7 @@ export function generateSampleReport() {
         reportVersion: 2,
         scan_summary: {
             status: 'FAILED',
-            block_merge: true,
+            block_merge: true
         },
         generatedAt: now,
         generatedBy: 'simplebeacon-cli v2.1.0 (sample report)',
@@ -244,7 +245,7 @@ export function generateSampleReport() {
         repositoryInventory: {
             totalFiles: 247,
             totalFolders: 28,
-            projectRoot,
+            projectRoot
         },
         mockSampleFiles: 3,
         totalFiles: 247,
@@ -317,7 +318,7 @@ export function generateSampleReport() {
         severityCounts,
         mockDataCategories: {
             duplicateKpis: 2,
-            staleSamples: 1,
+            staleSamples: 1
         },
         compliance: {
             checked: true,
@@ -325,8 +326,8 @@ export function generateSampleReport() {
             checklist: [
                 { check: 'no-hardcoded-credentials', status: 'fail' },
                 { check: 'no-env-in-git', status: 'fail' },
-                { check: 'npm-no-critical-high', status: 'pass' },
-            ],
+                { check: 'npm-no-critical-high', status: 'pass' }
+            ]
         },
         detectedIssues: rawIssues,
         rawIssues,
@@ -334,7 +335,7 @@ export function generateSampleReport() {
         sampleFiles: ['web/data/dashboard-sample.json', 'web/data/metrics-sample.json'],
         scanScope: {
             paths: ['src', 'server', 'config'],
-            fullDirectoryScan: false,
+            fullDirectoryScan: false
         },
         gate: {
             pass: false,
@@ -352,13 +353,13 @@ export function generateSampleReport() {
                 severity: i.severity,
                 type: i.type,
                 count: 1,
-                filePath: i.filePath,
+                filePath: i.filePath
             })),
             remediation: [
                 'Rotate exposed GCP and Azure keys immediately',
                 'Remove .env from git history using BFG Repo-Cleaner',
-                'Revoke hardcoded OAuth token on Google Cloud Console',
-            ],
+                'Revoke hardcoded OAuth token on Google Cloud Console'
+            ]
         },
         scanErrors: [],
         ruleTimings: [
@@ -366,7 +367,7 @@ export function generateSampleReport() {
             { rule: 'security-pattern-scanner', elapsedMs: 850 },
             { rule: 'llm-slop-scanner', elapsedMs: 420 },
             { rule: 'env-in-git-scanner', elapsedMs: 180 },
-            { rule: 'hardcoded-url-scanner', elapsedMs: 95 },
+            { rule: 'hardcoded-url-scanner', elapsedMs: 95 }
         ],
         slowestRule: { rule: 'credential-scanner', ms: 1200 },
         totalScanTimeMs: 2745,
@@ -376,7 +377,11 @@ export function generateSampleReport() {
         tier: 'developer',
         sandbox: {},
         consolidation: { duplicateGroups: 2, potentialSavings: '12 KB' },
-        codebase: { totalFiles: 247, totalLines: 18450, languages: { javascript: 180, typescript: 15, json: 12, other: 40 } },
+        codebase: {
+            totalFiles: 247,
+            totalLines: 18450,
+            languages: { javascript: 180, typescript: 15, json: 12, other: 40 }
+        },
         dataQuality: { invalidJsonCount: 0, emptyJsonCount: 1, duplicateGroups: 2 },
         cleanup: { debugArtifacts: 0, mockFiles: 3 },
         fileReduction: { removableFiles: 8, potentialReduction: '340 KB' },
@@ -389,7 +394,7 @@ export function generateSampleReport() {
             score: 72,
             missingCritical: [],
             missingRecommended: ['CHANGELOG.md', '.dockerignore'],
-            summary: 'NEEDS WORK — 2 recommended files missing.',
+            summary: 'NEEDS WORK — 2 recommended files missing.'
         },
         remediationPhases: [
             {
@@ -400,10 +405,10 @@ export function generateSampleReport() {
                 tasks: [
                     { description: 'Rotate 3 exposed credentials', type: 'fix', done: false },
                     { description: 'Add .env to .gitignore', type: 'fix', done: false },
-                    { description: 'Revoke OAuth token', type: 'fix', done: false },
+                    { description: 'Revoke OAuth token', type: 'fix', done: false }
                 ],
                 progress: 0,
-                status: 'pending',
+                status: 'pending'
             },
             {
                 id: 'security',
@@ -414,11 +419,11 @@ export function generateSampleReport() {
                     { description: 'Remove privileged mode from Dockerfile', type: 'fix', done: false },
                     { description: 'Add non-root USER to Dockerfile', type: 'fix', done: false },
                     { description: 'Remove suspicious package "expresss"', type: 'fix', done: false },
-                    { description: 'Remove malicious postinstall script', type: 'fix', done: false },
+                    { description: 'Remove malicious postinstall script', type: 'fix', done: false }
                 ],
                 progress: 0,
-                status: 'pending',
-            },
+                status: 'pending'
+            }
         ],
         fileInventory: {
             sourceCode: 180,
@@ -427,18 +432,18 @@ export function generateSampleReport() {
             docs: 8,
             buildArtifacts: 2,
             testFixtures: 35,
-            other: 5,
+            other: 5
         },
         removableFiles: [
             { path: 'node_modules/.cache/', reason: 'Build cache' },
             { path: 'dist/bundle.min.js', reason: 'Generated build artifact' },
-            { path: 'coverage/', reason: 'Test coverage report' },
+            { path: 'coverage/', reason: 'Test coverage report' }
         ],
         removableFilesTotal: 8,
         diagnosticReport: {
             rawFiles: 247,
             filteredFiles: 198,
-            scanErrors: 0,
+            scanErrors: 0
         },
         qualityScorecard: {
             accuracy: 70,
@@ -446,15 +451,15 @@ export function generateSampleReport() {
             consistency: 90,
             timeliness: 100,
             validity: 72,
-            integrity: 70,
+            integrity: 70
         },
         summary: {
             gatePass: false,
             qualityScore: 72,
             totalFiles: 247,
-            totalLines: 18450,
+            totalLines: 18450
         },
         sanitized: false,
-        sanitizedAt: null,
+        sanitizedAt: null
     };
 }

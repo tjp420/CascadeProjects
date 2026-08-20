@@ -1,9 +1,13 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'deployment-gates.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "deployment-gates.json",
+);
 
 const DEFAULT_POLICY = {
   minPostureScore: 70,
@@ -19,7 +23,7 @@ const DEFAULT_POLICY = {
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { policies: {}, history: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     return JSON.parse(raw);
   } catch {
     return { policies: {}, history: {} };
@@ -33,7 +37,7 @@ function writeStore(store) {
 }
 
 function makePolicyKey(orgId) {
-  return orgId || 'default';
+  return orgId || "default";
 }
 
 function makeHistoryKey(orgId, id) {
@@ -46,7 +50,12 @@ function getPolicy(orgId) {
   const store = readStore();
   const key = makePolicyKey(orgId);
   if (store.policies[key]) return store.policies[key];
-  return { ...DEFAULT_POLICY, orgId: key, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  return {
+    ...DEFAULT_POLICY,
+    orgId: key,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function setPolicy(orgId, config) {
@@ -55,14 +64,33 @@ function setPolicy(orgId, config) {
   const existing = store.policies[key];
   store.policies[key] = {
     orgId: key,
-    minPostureScore: config.minPostureScore !== undefined ? config.minPostureScore : DEFAULT_POLICY.minPostureScore,
-    maxCritical: config.maxCritical !== undefined ? config.maxCritical : DEFAULT_POLICY.maxCritical,
-    maxHigh: config.maxHigh !== undefined ? config.maxHigh : DEFAULT_POLICY.maxHigh,
-    maxMedium: config.maxMedium !== undefined ? config.maxMedium : DEFAULT_POLICY.maxMedium,
+    minPostureScore:
+      config.minPostureScore !== undefined
+        ? config.minPostureScore
+        : DEFAULT_POLICY.minPostureScore,
+    maxCritical:
+      config.maxCritical !== undefined
+        ? config.maxCritical
+        : DEFAULT_POLICY.maxCritical,
+    maxHigh:
+      config.maxHigh !== undefined ? config.maxHigh : DEFAULT_POLICY.maxHigh,
+    maxMedium:
+      config.maxMedium !== undefined
+        ? config.maxMedium
+        : DEFAULT_POLICY.maxMedium,
     maxLow: config.maxLow !== undefined ? config.maxLow : DEFAULT_POLICY.maxLow,
-    blockOnGateFail: config.blockOnGateFail !== undefined ? config.blockOnGateFail : DEFAULT_POLICY.blockOnGateFail,
-    blockOnSlaBreached: config.blockOnSlaBreached !== undefined ? config.blockOnSlaBreached : DEFAULT_POLICY.blockOnSlaBreached,
-    blockOnUnticketedCritical: config.blockOnUnticketedCritical !== undefined ? config.blockOnUnticketedCritical : DEFAULT_POLICY.blockOnUnticketedCritical,
+    blockOnGateFail:
+      config.blockOnGateFail !== undefined
+        ? config.blockOnGateFail
+        : DEFAULT_POLICY.blockOnGateFail,
+    blockOnSlaBreached:
+      config.blockOnSlaBreached !== undefined
+        ? config.blockOnSlaBreached
+        : DEFAULT_POLICY.blockOnSlaBreached,
+    blockOnUnticketedCritical:
+      config.blockOnUnticketedCritical !== undefined
+        ? config.blockOnUnticketedCritical
+        : DEFAULT_POLICY.blockOnUnticketedCritical,
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -76,7 +104,7 @@ function getHistory(orgId, limit) {
   const store = readStore();
   const scoped = [];
   for (const [key, val] of Object.entries(store.history || {})) {
-    if (val.orgId === (orgId || 'default')) scoped.push(val);
+    if (val.orgId === (orgId || "default")) scoped.push(val);
   }
   scoped.sort((a, b) => b.evaluatedAt.localeCompare(a.evaluatedAt));
   const max = limit || 50;
@@ -89,7 +117,7 @@ function recordEvaluation(orgId, result) {
   const id = result.evaluationId;
   const key = makeHistoryKey(orgId, id);
   store.history[key] = {
-    orgId: orgId || 'default',
+    orgId: orgId || "default",
     evaluationId: id,
     pass: result.pass,
     failures: result.failures || [],
@@ -104,7 +132,7 @@ function recordEvaluation(orgId, result) {
   };
   // Cap history at 500 entries per org
   const orgEntries = Object.entries(store.history)
-    .filter(([, v]) => v.orgId === (orgId || 'default'))
+    .filter(([, v]) => v.orgId === (orgId || "default"))
     .sort((a, b) => b[1].evaluatedAt.localeCompare(a[1].evaluatedAt));
   if (orgEntries.length > 500) {
     for (const [k] of orgEntries.slice(500)) {

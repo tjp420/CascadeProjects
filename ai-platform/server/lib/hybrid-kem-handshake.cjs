@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Hybrid KEM Handshake for cluster keyring sync (Track 6).
@@ -24,35 +24,36 @@
  * @module hybrid-kem-handshake
  */
 
-const crypto = require('crypto');
-const mlkem = require('./vendor/mlkem.cjs');
-const resumption = require('./hybrid-kem-resumption.cjs');
+const crypto = require("crypto");
+const mlkem = require("./vendor/mlkem.cjs");
+const resumption = require("./hybrid-kem-resumption.cjs");
 
-const HKDF_SALT = 'simplebeacon:hybrid:v1';
-const HKDF_INFO = 'session:keyring';
+const HKDF_SALT = "simplebeacon:hybrid:v1";
+const HKDF_INFO = "session:keyring";
 const SESSION_KEY_LEN = 32;
-const HANDSHAKE_LABEL = 'hybrid-kem';
+const HANDSHAKE_LABEL = "hybrid-kem";
 const MAX_HANDSHAKE_MSG_BYTES = 1 << 16; // 64 KB
 
-const PFS_SALT = 'simplebeacon:pfs:v1';
-const PFS_INFO = 'pfs:root';
+const PFS_SALT = "simplebeacon:pfs:v1";
+const PFS_INFO = "pfs:root";
 const REKEY_INTERVAL_SEC = parseInt(process.env.REKEY_INTERVAL_SEC, 10) || 3600;
-const MAX_QUEUE_BYTES = parseInt(process.env.HYBRID_MAX_QUEUE_BYTES, 10) || (16 * 1024 * 1024);
+const MAX_QUEUE_BYTES =
+  parseInt(process.env.HYBRID_MAX_QUEUE_BYTES, 10) || 16 * 1024 * 1024;
 
 const REKEY_STATES = {
-  IDLE: 'IDLE',
-  ACTIVE: 'ACTIVE',
-  REKEYING: 'REKEYING',
+  IDLE: "IDLE",
+  ACTIVE: "ACTIVE",
+  REKEYING: "REKEYING",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function _toHex(buf) {
-  return Buffer.from(buf).toString('hex');
+  return Buffer.from(buf).toString("hex");
 }
 
 function _fromHex(hex) {
-  return new Uint8Array(Buffer.from(hex, 'hex'));
+  return new Uint8Array(Buffer.from(hex, "hex"));
 }
 
 /**
@@ -64,21 +65,37 @@ function _fromHex(hex) {
  * @throws {Error} if validation fails
  */
 function _validateHandshakeMessage(msg, expectedFields, fieldLengths) {
-  if (!msg || typeof msg !== 'object') {
-    throw new Error('hybrid handshake: invalid message object');
+  if (!msg || typeof msg !== "object") {
+    throw new Error("hybrid handshake: invalid message object");
   }
   for (const field of expectedFields) {
     if (!(field in msg)) {
-      throw new Error('hybrid handshake: missing field ' + field);
+      throw new Error("hybrid handshake: missing field " + field);
     }
-    if (typeof msg[field] !== 'string') {
-      throw new Error('hybrid handshake: field ' + field + ' must be a hex string');
+    if (typeof msg[field] !== "string") {
+      throw new Error(
+        "hybrid handshake: field " + field + " must be a hex string",
+      );
     }
     if (!/^[0-9a-f]+$/.test(msg[field])) {
-      throw new Error('hybrid handshake: field ' + field + ' must be lowercase hex');
+      throw new Error(
+        "hybrid handshake: field " + field + " must be lowercase hex",
+      );
     }
-    if (fieldLengths && fieldLengths[field] && msg[field].length !== fieldLengths[field]) {
-      throw new Error('hybrid handshake: field ' + field + ' has wrong length (expected ' + fieldLengths[field] + ', got ' + msg[field].length + ')');
+    if (
+      fieldLengths &&
+      fieldLengths[field] &&
+      msg[field].length !== fieldLengths[field]
+    ) {
+      throw new Error(
+        "hybrid handshake: field " +
+          field +
+          " has wrong length (expected " +
+          fieldLengths[field] +
+          ", got " +
+          msg[field].length +
+          ")",
+      );
     }
   }
 }
@@ -95,7 +112,7 @@ function deriveSessionKey(ecdhSecret, mlkemSecret) {
     Buffer.from(mlkemSecret),
   ]);
   const prk = crypto.hkdfSync(
-    'sha256',
+    "sha256",
     ikm,
     HKDF_SALT,
     HKDF_INFO,
@@ -116,17 +133,17 @@ function _readMessage(socket, timeoutMs) {
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      socket.removeListener('data', onData);
-      socket.removeListener('close', onClose);
-      socket.removeListener('error', onError);
-      reject(new Error('hybrid handshake read timeout'));
+      socket.removeListener("data", onData);
+      socket.removeListener("close", onClose);
+      socket.removeListener("error", onError);
+      reject(new Error("hybrid handshake read timeout"));
     }, timeoutMs);
 
     function cleanup() {
       clearTimeout(timer);
-      socket.removeListener('data', onData);
-      socket.removeListener('close', onClose);
-      socket.removeListener('error', onError);
+      socket.removeListener("data", onData);
+      socket.removeListener("close", onClose);
+      socket.removeListener("error", onError);
     }
 
     function onData(chunk) {
@@ -136,7 +153,7 @@ function _readMessage(socket, timeoutMs) {
         if (length > MAX_HANDSHAKE_MSG_BYTES) {
           settled = true;
           cleanup();
-          reject(new Error('hybrid handshake message exceeds 64 KB'));
+          reject(new Error("hybrid handshake message exceeds 64 KB"));
           return;
         }
         if (buffer.length >= 4 + length) {
@@ -144,9 +161,9 @@ function _readMessage(socket, timeoutMs) {
           settled = true;
           cleanup();
           try {
-            resolve(JSON.parse(body.toString('utf8')));
+            resolve(JSON.parse(body.toString("utf8")));
           } catch (e) {
-            reject(new Error('hybrid handshake: invalid JSON'));
+            reject(new Error("hybrid handshake: invalid JSON"));
           }
         }
       }
@@ -156,7 +173,7 @@ function _readMessage(socket, timeoutMs) {
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error('hybrid handshake: socket closed during read'));
+      reject(new Error("hybrid handshake: socket closed during read"));
     }
 
     function onError(err) {
@@ -166,9 +183,9 @@ function _readMessage(socket, timeoutMs) {
       reject(err);
     }
 
-    socket.on('data', onData);
-    socket.once('close', onClose);
-    socket.once('error', onError);
+    socket.on("data", onData);
+    socket.once("close", onClose);
+    socket.once("error", onError);
   });
 }
 
@@ -177,7 +194,7 @@ function _readMessage(socket, timeoutMs) {
  */
 function _sendMessage(socket, obj) {
   const json = JSON.stringify(obj);
-  const body = Buffer.from(json, 'utf8');
+  const body = Buffer.from(json, "utf8");
   const header = Buffer.alloc(4);
   header.writeUInt32BE(body.length, 0);
   socket.write(Buffer.concat([header, body]));
@@ -199,11 +216,14 @@ function _sendMessage(socket, obj) {
  */
 async function createClientHandshaker(socket, opts = {}) {
   const timeoutMs = opts.timeoutMs || 15000;
-  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === '1';
+  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === "1";
 
   // 1. Generate classical X25519 keypair
-  const classicKeyPair = crypto.generateKeyPairSync('x25519');
-  const classicPub = classicKeyPair.publicKey.export({ type: 'spki', format: 'der' });
+  const classicKeyPair = crypto.generateKeyPairSync("x25519");
+  const classicPub = classicKeyPair.publicKey.export({
+    type: "spki",
+    format: "der",
+  });
   // Extract raw 32-byte public key from SPKI wrapper
   const classicPubRaw = classicPub.slice(-32);
 
@@ -223,19 +243,21 @@ async function createClientHandshaker(socket, opts = {}) {
   // Check for downgrade
   if (!serverResp.c_pq) {
     if (!allowDegrade) {
-      throw new Error('quantum_downgrade_rejected: server omitted c_pq');
+      throw new Error("quantum_downgrade_rejected: server omitted c_pq");
     }
     // Permissive mode: classic-only
     if (!serverResp.c_classic) {
-      throw new Error('hybrid handshake: server sent neither c_classic nor c_pq');
+      throw new Error(
+        "hybrid handshake: server sent neither c_classic nor c_pq",
+      );
     }
     const serverEphemeralPub = _fromHex(serverResp.c_classic);
     const ecdhSecret = crypto.diffieHellman({
       privateKey: classicKeyPair.privateKey,
       publicKey: crypto.createPublicKey({
         key: _spkiFromRawX25519(serverEphemeralPub),
-        format: 'der',
-        type: 'spki',
+        format: "der",
+        type: "spki",
       }),
     });
     // Use ECDH-only derivation with zero ML-KEM secret
@@ -250,15 +272,15 @@ async function createClientHandshaker(socket, opts = {}) {
 
   // 6. Compute ECDH shared secret
   if (!serverResp.c_classic) {
-    throw new Error('hybrid handshake: server omitted c_classic');
+    throw new Error("hybrid handshake: server omitted c_classic");
   }
   const serverEphemeralPub = _fromHex(serverResp.c_classic);
   const ecdhSecret = crypto.diffieHellman({
     privateKey: classicKeyPair.privateKey,
     publicKey: crypto.createPublicKey({
       key: _spkiFromRawX25519(serverEphemeralPub),
-      format: 'der',
-      type: 'spki',
+      format: "der",
+      type: "spki",
     }),
   });
 
@@ -267,11 +289,14 @@ async function createClientHandshaker(socket, opts = {}) {
 
   // 8. Verify key-confirmation MAC from server (detects replay/mismatch)
   if (serverResp.mac) {
-    const expectedMac = crypto.createHmac('sha256', sessionKey)
-      .update('server-confirmation')
-      .digest('hex');
+    const expectedMac = crypto
+      .createHmac("sha256", sessionKey)
+      .update("server-confirmation")
+      .digest("hex");
     if (expectedMac !== serverResp.mac) {
-      throw new Error('hybrid handshake: key-confirmation MAC mismatch (possible replay or MITM)');
+      throw new Error(
+        "hybrid handshake: key-confirmation MAC mismatch (possible replay or MITM)",
+      );
     }
   }
 
@@ -292,7 +317,7 @@ async function createClientHandshaker(socket, opts = {}) {
  */
 async function createServerHandshaker(socket, opts = {}) {
   const timeoutMs = opts.timeoutMs || 15000;
-  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === '1';
+  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === "1";
 
   // 1. Read client hello
   const clientHello = await _readMessage(socket, timeoutMs);
@@ -301,31 +326,35 @@ async function createServerHandshaker(socket, opts = {}) {
   // the explicit downgrade branch below can emit quantum_downgrade_rejected
   // (or allow classic-only when QUANTUM_DEGRADE_ALLOWED=1).
   try {
-    _validateHandshakeMessage(clientHello, ['ek_classic']);
+    _validateHandshakeMessage(clientHello, ["ek_classic"]);
   } catch (e) {
     socket.destroy();
-    throw new Error('hybrid handshake abort: invalid client hello — ' + e.message);
+    throw new Error(
+      "hybrid handshake abort: invalid client hello — " + e.message,
+    );
   }
 
   if (!clientHello.ek_classic) {
-    throw new Error('hybrid handshake: client omitted ek_classic');
+    throw new Error("hybrid handshake: client omitted ek_classic");
   }
 
   // Check for PQ downgrade
   if (!clientHello.ek_pq) {
     if (!allowDegrade) {
-      throw new Error('quantum_downgrade_rejected: client omitted ek_pq');
+      throw new Error("quantum_downgrade_rejected: client omitted ek_pq");
     }
     // Permissive mode: classic-only
     const clientClassicPub = _fromHex(clientHello.ek_classic);
-    const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
-    const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+    const ephemeralKeyPair = crypto.generateKeyPairSync("x25519");
+    const ephemeralPubRaw = ephemeralKeyPair.publicKey
+      .export({ type: "spki", format: "der" })
+      .slice(-32);
     const ecdhSecret = crypto.diffieHellman({
       privateKey: ephemeralKeyPair.privateKey,
       publicKey: crypto.createPublicKey({
         key: _spkiFromRawX25519(clientClassicPub),
-        format: 'der',
-        type: 'spki',
+        format: "der",
+        type: "spki",
       }),
     });
     _sendMessage(socket, { c_classic: _toHex(ephemeralPubRaw) });
@@ -335,12 +364,15 @@ async function createServerHandshaker(socket, opts = {}) {
   }
 
   // 2. Generate ECDH ephemeral keypair
-  const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
-  const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+  const ephemeralKeyPair = crypto.generateKeyPairSync("x25519");
+  const ephemeralPubRaw = ephemeralKeyPair.publicKey
+    .export({ type: "spki", format: "der" })
+    .slice(-32);
 
   // 3. Encapsulate ML-KEM shared secret against client's public key
   const clientPqPub = _fromHex(clientHello.ek_pq);
-  const { cipherText, sharedSecret: mlkemSecret } = await mlkem.encapsulate(clientPqPub);
+  const { cipherText, sharedSecret: mlkemSecret } =
+    await mlkem.encapsulate(clientPqPub);
 
   // 4. Compute ECDH shared secret
   const clientClassicPub = _fromHex(clientHello.ek_classic);
@@ -348,8 +380,8 @@ async function createServerHandshaker(socket, opts = {}) {
     privateKey: ephemeralKeyPair.privateKey,
     publicKey: crypto.createPublicKey({
       key: _spkiFromRawX25519(clientClassicPub),
-      format: 'der',
-      type: 'spki',
+      format: "der",
+      type: "spki",
     }),
   });
 
@@ -357,9 +389,10 @@ async function createServerHandshaker(socket, opts = {}) {
   const sessionKey = deriveSessionKey(ecdhSecret, mlkemSecret);
 
   // 6. Compute key-confirmation MAC so the client can detect replay/mismatch
-  const confirmMac = crypto.createHmac('sha256', sessionKey)
-    .update('server-confirmation')
-    .digest('hex');
+  const confirmMac = crypto
+    .createHmac("sha256", sessionKey)
+    .update("server-confirmation")
+    .digest("hex");
 
   // 7. Send server response with confirmation MAC
   _sendMessage(socket, {
@@ -383,7 +416,9 @@ function _spkiFromRawX25519(raw32) {
   //   }
   // Total content = 7 + 35 = 42 bytes; outer SEQUENCE = 30 2a ...
   const der = Buffer.concat([
-    Buffer.from([0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x03, 0x21, 0x00]),
+    Buffer.from([
+      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x03, 0x21, 0x00,
+    ]),
     Buffer.from(raw32),
   ]);
   return der;
@@ -408,7 +443,7 @@ function deriveRekeyRoot(prevRoot, ecdhSecret, mlkemSecret) {
     Buffer.from(mlkemSecret),
   ]);
   const newRoot = crypto.hkdfSync(
-    'sha256',
+    "sha256",
     ikm,
     PFS_SALT,
     PFS_INFO,
@@ -418,34 +453,49 @@ function deriveRekeyRoot(prevRoot, ecdhSecret, mlkemSecret) {
 }
 
 function _rekeyMac(root, label, extras) {
-  const hmac = crypto.createHmac('sha256', root).update(label);
+  const hmac = crypto.createHmac("sha256", root).update(label);
   if (extras) {
     hmac.update(extras);
   }
-  return hmac.digest('hex');
+  return hmac.digest("hex");
 }
 
 async function rekeyAsInitiator(socket, currentRoot, timeoutMs) {
   const tm = timeoutMs || 15000;
 
   // 1. Generate fresh X25519 + ML-KEM ephemeral material
-  const classicKeyPair = crypto.generateKeyPairSync('x25519');
-  const classicPubRaw = classicKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+  const classicKeyPair = crypto.generateKeyPairSync("x25519");
+  const classicPubRaw = classicKeyPair.publicKey
+    .export({ type: "spki", format: "der" })
+    .slice(-32);
   const { publicKey: pqPub, secretKey: pqSk } = await mlkem.keygen();
 
-  _sendMessage(socket, { type: 'REKEY_INIT', ek_classic: _toHex(classicPubRaw), ek_pq: _toHex(pqPub) });
+  _sendMessage(socket, {
+    type: "REKEY_INIT",
+    ek_classic: _toHex(classicPubRaw),
+    ek_pq: _toHex(pqPub),
+  });
 
   // 2. Read responder's reply
   const resp = await _readMessage(socket, tm);
-  if (resp.type !== 'REKEY_RESP' || !resp.c_classic || !resp.c_pq || !resp.mac) {
-    throw new Error('pfs: invalid REKEY_RESP');
+  if (
+    resp.type !== "REKEY_RESP" ||
+    !resp.c_classic ||
+    !resp.c_pq ||
+    !resp.mac
+  ) {
+    throw new Error("pfs: invalid REKEY_RESP");
   }
 
   // 3. Derive secrets
   const serverEphemeralPub = _fromHex(resp.c_classic);
   const ecdhSecret = crypto.diffieHellman({
     privateKey: classicKeyPair.privateKey,
-    publicKey: crypto.createPublicKey({ key: _spkiFromRawX25519(serverEphemeralPub), format: 'der', type: 'spki' }),
+    publicKey: crypto.createPublicKey({
+      key: _spkiFromRawX25519(serverEphemeralPub),
+      format: "der",
+      type: "spki",
+    }),
   });
   const c_pq = _fromHex(resp.c_pq);
   const mlkemSecret = await mlkem.decapsulate(c_pq, pqSk);
@@ -453,14 +503,18 @@ async function rekeyAsInitiator(socket, currentRoot, timeoutMs) {
   const newRoot = deriveRekeyRoot(currentRoot, ecdhSecret, mlkemSecret);
 
   // 4. Verify responder's confirmation MAC
-  const expectedMac = _rekeyMac(newRoot, 'pfs:rekey-resp:', `${resp.c_classic}:${resp.c_pq}`);
+  const expectedMac = _rekeyMac(
+    newRoot,
+    "pfs:rekey-resp:",
+    `${resp.c_classic}:${resp.c_pq}`,
+  );
   if (expectedMac !== resp.mac) {
-    throw new Error('pfs: REKEY_RESP MAC mismatch');
+    throw new Error("pfs: REKEY_RESP MAC mismatch");
   }
 
   // 5. Send our own ACK
-  const ackMac = _rekeyMac(newRoot, 'pfs:rekey-ack:', '');
-  _sendMessage(socket, { type: 'REKEY_ACK', mac: ackMac });
+  const ackMac = _rekeyMac(newRoot, "pfs:rekey-ack:", "");
+  _sendMessage(socket, { type: "REKEY_ACK", mac: ackMac });
 
   return { newRoot, sessionKey: deriveSessionKey(ecdhSecret, mlkemSecret) };
 }
@@ -470,21 +524,28 @@ async function rekeyAsResponder(socket, currentRoot, timeoutMs) {
 
   // 1. Read REKEY_INIT
   const init = await _readMessage(socket, tm);
-  if (init.type !== 'REKEY_INIT' || !init.ek_classic || !init.ek_pq) {
-    throw new Error('pfs: invalid REKEY_INIT');
+  if (init.type !== "REKEY_INIT" || !init.ek_classic || !init.ek_pq) {
+    throw new Error("pfs: invalid REKEY_INIT");
   }
 
   // 2. Generate fresh X25519 ephemeral and encapsulate PQ
-  const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
-  const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+  const ephemeralKeyPair = crypto.generateKeyPairSync("x25519");
+  const ephemeralPubRaw = ephemeralKeyPair.publicKey
+    .export({ type: "spki", format: "der" })
+    .slice(-32);
   const clientPqPub = _fromHex(init.ek_pq);
-  const { cipherText, sharedSecret: mlkemSecret } = await mlkem.encapsulate(clientPqPub);
+  const { cipherText, sharedSecret: mlkemSecret } =
+    await mlkem.encapsulate(clientPqPub);
 
   // 3. Derive ECDH
   const clientClassicPub = _fromHex(init.ek_classic);
   const ecdhSecret = crypto.diffieHellman({
     privateKey: ephemeralKeyPair.privateKey,
-    publicKey: crypto.createPublicKey({ key: _spkiFromRawX25519(clientClassicPub), format: 'der', type: 'spki' }),
+    publicKey: crypto.createPublicKey({
+      key: _spkiFromRawX25519(clientClassicPub),
+      format: "der",
+      type: "spki",
+    }),
   });
 
   const newRoot = deriveRekeyRoot(currentRoot, ecdhSecret, mlkemSecret);
@@ -492,17 +553,26 @@ async function rekeyAsResponder(socket, currentRoot, timeoutMs) {
   // 4. Send REKEY_RESP with confirmation MAC
   const cClassicHex = _toHex(ephemeralPubRaw);
   const cPqHex = _toHex(cipherText);
-  const respMac = _rekeyMac(newRoot, 'pfs:rekey-resp:', `${cClassicHex}:${cPqHex}`);
-  _sendMessage(socket, { type: 'REKEY_RESP', c_classic: cClassicHex, c_pq: cPqHex, mac: respMac });
+  const respMac = _rekeyMac(
+    newRoot,
+    "pfs:rekey-resp:",
+    `${cClassicHex}:${cPqHex}`,
+  );
+  _sendMessage(socket, {
+    type: "REKEY_RESP",
+    c_classic: cClassicHex,
+    c_pq: cPqHex,
+    mac: respMac,
+  });
 
   // 5. Read REKEY_ACK and verify
   const ack = await _readMessage(socket, tm);
-  if (ack.type !== 'REKEY_ACK' || !ack.mac) {
-    throw new Error('pfs: invalid REKEY_ACK');
+  if (ack.type !== "REKEY_ACK" || !ack.mac) {
+    throw new Error("pfs: invalid REKEY_ACK");
   }
-  const expectedAck = _rekeyMac(newRoot, 'pfs:rekey-ack:', '');
+  const expectedAck = _rekeyMac(newRoot, "pfs:rekey-ack:", "");
   if (expectedAck !== ack.mac) {
-    throw new Error('pfs: REKEY_ACK MAC mismatch');
+    throw new Error("pfs: REKEY_ACK MAC mismatch");
   }
 
   return { newRoot, sessionKey: deriveSessionKey(ecdhSecret, mlkemSecret) };
@@ -522,7 +592,7 @@ class HybridSession {
     this.writeQueue = [];
     this.rekeyTimer = null;
     this.timeoutMs = opts.timeoutMs || 15000;
-    if (process.env.NODE_ENV !== 'test') this._startRekeyTimer();
+    if (process.env.NODE_ENV !== "test") this._startRekeyTimer();
   }
 
   _startRekeyTimer() {
@@ -530,7 +600,8 @@ class HybridSession {
     this.rekeyTimer = setInterval(() => {
       this.rekey().catch(() => {});
     }, REKEY_INTERVAL_SEC * 1000);
-    if (this.rekeyTimer && typeof this.rekeyTimer.unref === 'function') this.rekeyTimer.unref();
+    if (this.rekeyTimer && typeof this.rekeyTimer.unref === "function")
+      this.rekeyTimer.unref();
   }
 
   setKeys({ rootKey, sessionKey }) {
@@ -544,11 +615,15 @@ class HybridSession {
       // Enforce a bounded queue to prevent unbounded memory growth
       // during an extended re-key handshake.
       const queuedBytes = this._queuedBytes();
-      const dataBytes = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data);
+      const dataBytes = Buffer.isBuffer(data)
+        ? data.length
+        : Buffer.byteLength(data);
       if (queuedBytes + dataBytes > MAX_QUEUE_BYTES) {
         this.state = REKEY_STATES.IDLE;
-        const err = new Error(`hybrid session: write queue exceeded ${MAX_QUEUE_BYTES} bytes during re-key`);
-        err.code = 'QUEUE_FULL';
+        const err = new Error(
+          `hybrid session: write queue exceeded ${MAX_QUEUE_BYTES} bytes during re-key`,
+        );
+        err.code = "QUEUE_FULL";
         throw err;
       }
       this.writeQueue.push(data);
@@ -574,7 +649,7 @@ class HybridSession {
 
   async rekey() {
     if (this.state === REKEY_STATES.REKEYING) return this.rootKey;
-    if (!this.rootKey) throw new Error('hybrid session: no rootKey for re-key');
+    if (!this.rootKey) throw new Error("hybrid session: no rootKey for re-key");
 
     this.state = REKEY_STATES.REKEYING;
     try {
@@ -620,7 +695,11 @@ class HybridSession {
  */
 function issueTicket({ sessionKey, nodeId, sessionId }, stek, stekId) {
   const sid = sessionId || crypto.randomUUID();
-  return resumption.createTicket({ sessionId: sid, nodeId, prevRoot: sessionKey }, stek, stekId);
+  return resumption.createTicket(
+    { sessionId: sid, nodeId, prevRoot: sessionKey },
+    stek,
+    stekId,
+  );
 }
 
 /**
@@ -639,21 +718,25 @@ function issueTicket({ sessionKey, nodeId, sessionId }, stek, stekId) {
 async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
   const msg = await _readMessage(socket, timeoutMs);
 
-  if (msg.type !== 'RESUMPTION' || typeof msg.ticket !== 'string') {
-    return { resumed: false, reason: 'NOT_RESUMPTION' };
+  if (msg.type !== "RESUMPTION" || typeof msg.ticket !== "string") {
+    return { resumed: false, reason: "NOT_RESUMPTION" };
   }
 
-  const ticket = Buffer.from(msg.ticket, 'base64');
+  const ticket = Buffer.from(msg.ticket, "base64");
 
   try {
-    const result = await resumption.validateTicket(ticket, stekById, bloomFilter);
+    const result = await resumption.validateTicket(
+      ticket,
+      stekById,
+      bloomFilter,
+    );
 
     if (!result.valid) {
-      _sendMessage(socket, { type: 'RESUME_REJECT', reason: result.reason });
+      _sendMessage(socket, { type: "RESUME_REJECT", reason: result.reason });
       return { resumed: false, reason: result.reason };
     }
 
-    _sendMessage(socket, { type: 'RESUMED', session_id: result.sessionId });
+    _sendMessage(socket, { type: "RESUMED", session_id: result.sessionId });
     return {
       resumed: true,
       sessionKey: result.psk,
@@ -662,8 +745,11 @@ async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
     };
   } catch (err) {
     // Bloom-filter / Redis failure: fail closed and force a full handshake
-    _sendMessage(socket, { type: 'RESUME_REJECT', reason: 'BLOOM_FILTER_ERROR' });
-    return { resumed: false, reason: 'BLOOM_FILTER_ERROR' };
+    _sendMessage(socket, {
+      type: "RESUME_REJECT",
+      reason: "BLOOM_FILTER_ERROR",
+    });
+    return { resumed: false, reason: "BLOOM_FILTER_ERROR" };
   }
 }
 

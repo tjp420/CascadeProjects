@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 82: ZK Training Claim Validator.
@@ -14,8 +14,8 @@
  * @module hsm-adapter/zk-training-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkTrainingClaimValidator {
   /**
@@ -42,62 +42,119 @@ class ZkTrainingClaimValidator {
   verifyTrainingClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('TRAINCLAIM_HUB_MISSING', 'AI model training gating hub is required');
+      throw new HsmAdapterError(
+        "TRAINCLAIM_HUB_MISSING",
+        "AI model training gating hub is required",
+      );
     }
-    if (this.policy.requireModelAuditCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireModelAuditCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.modelAuditCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.modelAuditCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TRAINCLAIM_COMMITTEE_UNATTESTED', 'model audit committee attestation invalid');
+          throw new HsmAdapterError(
+            "TRAINCLAIM_COMMITTEE_UNATTESTED",
+            "model audit committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TRAINCLAIM_COMMITTEE_UNATTESTED', 'model audit committee attestation invalid');
+        throw new HsmAdapterError(
+          "TRAINCLAIM_COMMITTEE_UNATTESTED",
+          "model audit committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TRAINCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TRAINCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('TRAINCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "TRAINCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkTrainingRangeProofHash || typeof request.zkTrainingRangeProofHash !== 'string') {
+    if (
+      !request.zkTrainingRangeProofHash ||
+      typeof request.zkTrainingRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRAINCLAIM_ZK_PROOF_MISSING', 'zero-knowledge training range proof hash is required');
+      throw new HsmAdapterError(
+        "TRAINCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge training range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRAINCLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "TRAINCLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRAINCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TRAINCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.trainingWindowSeconds === 'number' && request.trainingWindowSeconds > (this.policy.maxTrainingWindowSeconds || 63072000)) {
+    if (
+      typeof request.trainingWindowSeconds === "number" &&
+      request.trainingWindowSeconds >
+        (this.policy.maxTrainingWindowSeconds || 63072000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRAINCLAIM_TRAINING_WINDOW_OUT_OF_BOUNDS', `training window seconds ${request.trainingWindowSeconds} exceeds maximum ${this.policy.maxTrainingWindowSeconds}`);
+      throw new HsmAdapterError(
+        "TRAINCLAIM_TRAINING_WINDOW_OUT_OF_BOUNDS",
+        `training window seconds ${request.trainingWindowSeconds} exceeds maximum ${this.policy.maxTrainingWindowSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRAINCLAIM_DUPLICATE', `training claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "TRAINCLAIM_DUPLICATE",
+        `training claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedDatasetProvenanceCommitment: request.blindedDatasetProvenanceCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedDatasetProvenanceCommitment:
+        request.blindedDatasetProvenanceCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkTrainingRangeProofHash: request.zkTrainingRangeProofHash,
-      modelAuditCommitteeAttestationHash: request.modelAuditCommitteeAttestationHash || 'unspecified',
+      modelAuditCommitteeAttestationHash:
+        request.modelAuditCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markTrainingClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_TRAINING_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_TRAINING_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -125,7 +182,10 @@ class ZkTrainingClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderTrainingClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderTrainingClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -133,10 +193,19 @@ class ZkTrainingClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TRAINCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TRAINCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireModelAuditCommitteeAttestation && !request.modelAuditCommitteeAttestation) {
-    throw new HsmAdapterError('TRAINCLAIM_ATTESTATION_MISSING', 'model audit committee attestation is required');
+  if (
+    policy.requireModelAuditCommitteeAttestation &&
+    !request.modelAuditCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TRAINCLAIM_ATTESTATION_MISSING",
+      "model audit committee attestation is required",
+    );
   }
 }
 

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       otp:
-        description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
+        description: "6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)"
         required: false
         type: string
 
@@ -21,8 +21,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install and test
         run: |

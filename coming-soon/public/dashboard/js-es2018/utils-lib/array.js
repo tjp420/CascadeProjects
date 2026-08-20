@@ -7,16 +7,14 @@ import { isDefined } from './type.js';
  * @returns {T[]}
  */
 export function unique(arr, keyFn) {
-    if (!Array.isArray(arr))
-        return [];
+    if (!Array.isArray(arr)) return [];
     if (!keyFn || typeof keyFn !== 'function') {
         return [...new Set(arr)];
     }
     const seen = new Set();
-    return arr.filter((item) => {
+    return arr.filter(item => {
         const key = keyFn(item);
-        if (seen.has(key))
-            return false;
+        if (seen.has(key)) return false;
         seen.add(key);
         return true;
     });
@@ -28,8 +26,7 @@ export function unique(arr, keyFn) {
  * @returns {T[]}
  */
 export function compact(arr) {
-    if (!Array.isArray(arr))
-        return [];
+    if (!Array.isArray(arr)) return [];
     return arr.filter(isDefined);
 }
 /**
@@ -40,13 +37,11 @@ export function compact(arr) {
  */
 export function flatten(arr) {
     const result = [];
-    if (!Array.isArray(arr))
-        return result;
+    if (!Array.isArray(arr)) return result;
     for (const item of arr) {
         if (Array.isArray(item)) {
             result.push(...flatten(item));
-        }
-        else {
+        } else {
             result.push(item);
         }
     }
@@ -62,16 +57,12 @@ export function flatten(arr) {
 export function range(start, end, step = 1) {
     const s = end === undefined ? 0 : start;
     const e = end === undefined ? start : end;
-    if (step === 0 || !Number.isFinite(step) || !Number.isFinite(s) || !Number.isFinite(e))
-        return [];
+    if (step === 0 || !Number.isFinite(step) || !Number.isFinite(s) || !Number.isFinite(e)) return [];
     const result = [];
     if (step > 0) {
-        for (let i = s; i < e; i += step)
-            result.push(i);
-    }
-    else {
-        for (let i = s; i > e; i += step)
-            result.push(i);
+        for (let i = s; i < e; i += step) result.push(i);
+    } else {
+        for (let i = s; i > e; i += step) result.push(i);
     }
     return result;
 }
@@ -82,8 +73,7 @@ export function range(start, end, step = 1) {
  * @returns {T[][]}
  */
 export function chunk(arr, size) {
-    if (!Array.isArray(arr))
-        return [];
+    if (!Array.isArray(arr)) return [];
     const chunkSize = Number.isFinite(size) && size >= 1 ? Math.floor(size) : 1;
     const result = [];
     for (let i = 0; i < arr.length; i += chunkSize) {
@@ -98,8 +88,7 @@ export function chunk(arr, size) {
  * @returns {T | undefined}
  */
 export function sample(arr) {
-    if (!Array.isArray(arr) || arr.length === 0)
-        return undefined;
+    if (!Array.isArray(arr) || arr.length === 0) return undefined;
     return arr[Math.floor(Math.random() * arr.length)];
 }
 /**
@@ -109,8 +98,7 @@ export function sample(arr) {
  * @returns {T[]}
  */
 export function shuffle(arr) {
-    if (!Array.isArray(arr))
-        return [];
+    if (!Array.isArray(arr)) return [];
     const result = [...arr];
     for (let i = result.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -125,13 +113,11 @@ export function shuffle(arr) {
  * @returns {T[]}
  */
 export function reverse(arr) {
-    if (!Array.isArray(arr))
-        return [];
+    if (!Array.isArray(arr)) return [];
     return [...arr].reverse();
 }
 export function union(a, b) {
-    if (!Array.isArray(a) || !Array.isArray(b))
-        return [];
+    if (!Array.isArray(a) || !Array.isArray(b)) return [];
     return [...new Set([...a, ...b])];
 }
 /** Return items present in both arrays.
@@ -141,10 +127,9 @@ export function union(a, b) {
  * @returns {T[]}
  */
 export function intersection(a, b) {
-    if (!Array.isArray(a) || !Array.isArray(b))
-        return [];
+    if (!Array.isArray(a) || !Array.isArray(b)) return [];
     const setB = new Set(b);
-    return a.filter((item) => setB.has(item));
+    return a.filter(item => setB.has(item));
 }
 /**
  * Return items in `a` that are not in `b`.
@@ -154,12 +139,10 @@ export function intersection(a, b) {
  * @returns {T[]}
  */
 export function difference(a, b) {
-    if (!Array.isArray(a))
-        return [];
-    if (!Array.isArray(b) || b.length === 0)
-        return [...a];
+    if (!Array.isArray(a)) return [];
+    if (!Array.isArray(b) || b.length === 0) return [...a];
     const setB = new Set(b);
-    return a.filter((item) => !setB.has(item));
+    return a.filter(item => !setB.has(item));
 }
 /**
  * Group array items by a key extracted from each item.
@@ -170,15 +153,13 @@ export function difference(a, b) {
  */
 export function groupBy(arr, keyFn) {
     const map = new Map();
-    if (!Array.isArray(arr) || typeof keyFn !== 'function')
-        return map;
+    if (!Array.isArray(arr) || typeof keyFn !== 'function') return map;
     for (const item of arr) {
         const key = keyFn(item);
         const list = map.get(key);
         if (list) {
             list.push(item);
-        }
-        else {
+        } else {
             map.set(key, [item]);
         }
     }
@@ -194,13 +175,11 @@ export function groupBy(arr, keyFn) {
 export function partition(arr, predicate) {
     const pass = [];
     const fail = [];
-    if (!Array.isArray(arr) || typeof predicate !== 'function')
-        return [pass, fail];
+    if (!Array.isArray(arr) || typeof predicate !== 'function') return [pass, fail];
     for (const item of arr) {
         if (predicate(item)) {
             pass.push(item);
-        }
-        else {
+        } else {
             fail.push(item);
         }
     }
@@ -214,25 +193,18 @@ export function partition(arr, predicate) {
  * @returns {T[]}
  */
 export function sortBy(arr, keyFn, order = 'asc') {
-    if (!Array.isArray(arr))
-        return [];
-    if (typeof keyFn !== 'function')
-        return [...arr];
+    if (!Array.isArray(arr)) return [];
+    if (typeof keyFn !== 'function') return [...arr];
     const sorted = [...arr];
     const dir = order === 'desc' ? -1 : 1;
     sorted.sort((a, b) => {
         const ka = keyFn(a);
         const kb = keyFn(b);
-        if (ka === kb || (ka == null && kb == null))
-            return 0;
-        if (ka == null)
-            return dir;
-        if (kb == null)
-            return -dir;
-        if (typeof ka === 'number' && typeof kb === 'number')
-            return (ka - kb) * dir;
-        if (ka instanceof Date && kb instanceof Date)
-            return (ka.getTime() - kb.getTime()) * dir;
+        if (ka === kb || (ka == null && kb == null)) return 0;
+        if (ka == null) return dir;
+        if (kb == null) return -dir;
+        if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * dir;
+        if (ka instanceof Date && kb instanceof Date) return (ka.getTime() - kb.getTime()) * dir;
         return String(ka).localeCompare(String(kb)) * dir;
     });
     return sorted;
@@ -245,8 +217,7 @@ export function sortBy(arr, keyFn, order = 'asc') {
  * @returns {Record<string, T>}
  */
 export function keyBy(arr, keyFn) {
-    if (!Array.isArray(arr) || typeof keyFn !== 'function')
-        return {};
+    if (!Array.isArray(arr) || typeof keyFn !== 'function') return {};
     const result = {};
     for (const item of arr) {
         const key = keyFn(item);
@@ -266,13 +237,11 @@ export function keyBy(arr, keyFn) {
 export function times(n, fn) {
     const count = Math.max(0, Math.floor(Number(n) || 0));
     const result = [];
-    for (let i = 0; i < count; i++)
-        result.push(fn(i));
+    for (let i = 0; i < count; i++) result.push(fn(i));
     return result;
 }
 export function randomChoice(arr) {
-    if (!Array.isArray(arr) || arr.length === 0)
-        return undefined;
+    if (!Array.isArray(arr) || arr.length === 0) return undefined;
     return arr[Math.floor(Math.random() * arr.length)];
 }
 /**
@@ -283,10 +252,8 @@ export function randomChoice(arr) {
  * @returns {T[]}
  */
 export function ensureArray(value) {
-    if (value == null)
-        return [];
-    if (Array.isArray(value))
-        return value;
+    if (value == null) return [];
+    if (Array.isArray(value)) return value;
     return [value];
 }
 /**
@@ -297,8 +264,7 @@ export function ensureArray(value) {
  * @returns {Record<string, number>}
  */
 export function countBy(arr, iteratee) {
-    if (!Array.isArray(arr) || typeof iteratee !== 'function')
-        return {};
+    if (!Array.isArray(arr) || typeof iteratee !== 'function') return {};
     const map = new Map();
     for (const item of arr) {
         const key = iteratee(item);

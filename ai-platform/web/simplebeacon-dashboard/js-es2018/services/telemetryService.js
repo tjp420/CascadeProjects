@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Dashboard code — security telemetry service
-import { apiBase } from './authService.js?v=20260722bridgefix1';
+import { apiBase } from "./authService.js?v=20260722bridgefix1";
 
 /**
  * Fetch security telemetry from the backend aggregation endpoint.
@@ -7,13 +7,13 @@ import { apiBase } from './authService.js?v=20260722bridgefix1';
  * @returns {Promise<object>} Telemetry data with scrubber, replay, audit, pii stats
  */
 export async function fetchSecurityTelemetry(authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/telemetry`;
   try {
     const resp = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: { ...authHeaders },
-      credentials: 'include',
+      credentials: "include",
     });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -46,18 +46,21 @@ export function buildTelemetrySummary(telemetry) {
       totalEvicted: scrubber.totalEvicted || 0,
       totalExpired: scrubber.totalExpired || 0,
       ttlMs: scrubber.ttlMs || 0,
-      utilization: scrubber.maxScrubbers > 0
-        ? Math.round((scrubber.activeScrubbers / scrubber.maxScrubbers) * 100)
-        : 0,
+      utilization:
+        scrubber.maxScrubbers > 0
+          ? Math.round((scrubber.activeScrubbers / scrubber.maxScrubbers) * 100)
+          : 0,
     },
     replay: {
       totalChecked: replay.totalChecked || 0,
       totalReplays: replay.totalReplays || 0,
       orgCount: replay.orgCount || 0,
       totalFingerprints: replay.totalFingerprints || 0,
-      replayRate: replay.totalChecked > 0
-        ? Math.round((replay.totalReplays / replay.totalChecked) * 10000) / 100
-        : 0,
+      replayRate:
+        replay.totalChecked > 0
+          ? Math.round((replay.totalReplays / replay.totalChecked) * 10000) /
+            100
+          : 0,
     },
     audit: {
       chainValid: audit.chainValid !== undefined ? audit.chainValid : true,

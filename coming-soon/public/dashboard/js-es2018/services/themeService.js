@@ -10,19 +10,16 @@ let _themePollingDisabledUntil = 0;
 function detectIdeTheme() {
     try {
         const bg = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background').trim();
-        if (!bg)
-            return null;
+        if (!bg) return null;
         const hex = bg.replace('#', '');
         const rgb = parseInt(hex, 16);
-        if (isNaN(rgb))
-            return null;
+        if (isNaN(rgb)) return null;
         const r = (rgb >> 16) & 255;
         const g = (rgb >> 8) & 255;
         const b = rgb & 255;
         const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
         return luminance < 0.5 ? 'dark' : 'light';
-    }
-    catch (e) {
+    } catch (e) {
         return null;
     }
 }
@@ -40,7 +37,9 @@ export class ThemeService {
         this._listenForParentTheme();
         if (this.manualOverride) {
             this.apply(this.theme);
-            if (window.__SIMPLEBEACON_ENV__) { this.pollServerTheme(); }
+            if (window.__SIMPLEBEACON_ENV__) {
+                this.pollServerTheme();
+            }
             return;
         }
         const ideTheme = detectIdeTheme();
@@ -58,7 +57,7 @@ export class ThemeService {
     }
     _listenForParentTheme() {
         if (typeof window === 'undefined') return;
-        window.addEventListener('message', (ev) => {
+        window.addEventListener('message', ev => {
             if (ev.data && ev.data.command === 'setTheme' && ev.data.theme) {
                 _themeMessageReceived = true;
                 // Accept theme changes from the VS Code: webview wrapper even when a manual override exists,
@@ -72,15 +71,11 @@ export class ThemeService {
             clearInterval(_globalPollInterval);
         }
         const poll = () => {
-            if (typeof fetch !== 'function')
-                return;
+            if (typeof fetch !== 'function') return;
             if (Date.now() < _themePollingDisabledUntil) return;
-            if (this.manualOverride)
-                return;
-            if (_themeMessageReceived)
-                return;
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden')
-                return;
+            if (this.manualOverride) return;
+            if (_themeMessageReceived) return;
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
             (async () => {
                 try {
                     const resp = await fetchApi(apiUrl('/api/theme'));
@@ -97,10 +92,8 @@ export class ThemeService {
                         return;
                     }
                     const d = await resp.json().catch(() => null);
-                    if (d && d.theme && !this.manualOverride)
-                        this.apply(d.theme);
-                }
-                catch (_) { }
+                    if (d && d.theme && !this.manualOverride) this.apply(d.theme);
+                } catch (_) {}
             })();
         };
         poll();
@@ -108,11 +101,14 @@ export class ThemeService {
     }
     followIde() {
         const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        const applyMq = () => { if (!this.manualOverride) this.set(mq.matches ? 'dark' : 'light'); };
+        const applyMq = () => {
+            if (!this.manualOverride) this.set(mq.matches ? 'dark' : 'light');
+        };
         try {
             mq.addEventListener('change', applyMq);
+        } catch (_) {
+            /* older browsers */
         }
-        catch (_) { /* older browsers */ }
         if (!this.manualOverride) applyMq();
     }
     get() {
@@ -152,11 +148,9 @@ export class ThemeService {
                 if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
                     try {
                         window.lucide.createIcons({ attrs: { 'stroke-width': 2 } });
-                    }
-                    catch (_) { }
+                    } catch (_) {}
                 }
-            }
-            else if (btn.children.length === 0) {
+            } else if (btn.children.length === 0) {
                 const emoji = { dark: '☀️', light: '🌙', fox: '🦊' };
                 btn.textContent = emoji[theme] || '🌙';
             }

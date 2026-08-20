@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-const fs = require('fs');
-const { spawn } = require('child_process');
+const fs = require("fs");
+const { spawn } = require("child_process");
 
 /**
  * @deprecated Use `npx simplebeacon report --enhance` instead.
@@ -10,22 +10,26 @@ const { spawn } = require('child_process');
 function generateAIPrompt(jsonData, clientName) {
   const issues = jsonData.issues || jsonData.detectedIssues || [];
   const summary = jsonData.summary || jsonData;
-  
+
   // Build context for AI
-  const issuesContext = issues.map(issue => `
+  const issuesContext = issues
+    .map(
+      (issue) => `
     - Severity: ${issue.severity || issue.severityBand}
     - Type: ${issue.type}
-    - Location: ${issue.filePath || issue.file}${issue.line ? ` (line ${issue.line})` : ''}
+    - Location: ${issue.filePath || issue.file}${issue.line ? ` (line ${issue.line})` : ""}
     - Description: ${issue.description}
     - Fix: ${issue.recommendedAction || issue.recommendation}
-  `).join('\n');
+  `,
+    )
+    .join("\n");
 
   return `You are a professional security auditor and technical writer. Transform the following security scan findings into a customer-friendly audit report.
 
 CLIENT: ${clientName}
 SCAN SUMMARY:
-- Total files: ${summary.filesAnalyzed || summary.totalFiles || 'N/A'}
-- Gate result: ${summary.gate?.pass ? 'PASS' : 'FAIL'}
+- Total files: ${summary.filesAnalyzed || summary.totalFiles || "N/A"}
+- Gate result: ${summary.gate?.pass ? "PASS" : "FAIL"}
 - Critical issues: ${summary.severityCounts?.critical || 0}
 - High issues: ${summary.severityCounts?.high || 0}
 - Medium issues: ${summary.severityCounts?.medium || 0}
@@ -59,40 +63,45 @@ Generate the complete report now.`;
 function callAIForReport(prompt, apiKey) {
   return new Promise((resolve, reject) => {
     // Using OpenAI API as example - can be adapted for other AI services
-    const process = spawn('curl', [
-      '-X', 'POST',
-      'https://api.openai.com/v1/chat/completions',
-      '-H', 'Content-Type: application/json',
-      '-H', `Authorization: Bearer ${apiKey}`,
-      '-d', JSON.stringify({
-        model: 'gpt-4',
+    const process = spawn("curl", [
+      "-X",
+      "POST",
+      "https://api.openai.com/v1/chat/completions",
+      "-H",
+      "Content-Type: application/json",
+      "-H",
+      `Authorization: Bearer ${apiKey}`,
+      "-d",
+      JSON.stringify({
+        model: "gpt-4",
         messages: [
           {
-            role: 'system',
-            content: 'You are a professional security auditor and technical writer. Transform security findings into customer-friendly audit reports.'
+            role: "system",
+            content:
+              "You are a professional security auditor and technical writer. Transform security findings into customer-friendly audit reports.",
           },
           {
-            role: 'user',
-            content: prompt
-          }
+            role: "user",
+            content: prompt,
+          },
         ],
         temperature: 0.7,
-        max_tokens: 2000
-      })
+        max_tokens: 2000,
+      }),
     ]);
 
-    let output = '';
-    let error = '';
+    let output = "";
+    let error = "";
 
-    process.stdout.on('data', (data) => {
+    process.stdout.on("data", (data) => {
       output += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    process.stderr.on("data", (data) => {
       error += data.toString();
     });
 
-    process.on('close', (code) => {
+    process.on("close", (code) => {
       if (code === 0) {
         try {
           const response = JSON.parse(output);
@@ -109,7 +118,12 @@ function callAIForReport(prompt, apiKey) {
   });
 }
 
-async function generateAIEnhancedReport(jsonData, clientName, assessorName, apiKey) {
+async function generateAIEnhancedReport(
+  jsonData,
+  clientName,
+  assessorName,
+  apiKey,
+) {
   try {
     const prompt = generateAIPrompt(jsonData, clientName);
     const aiContent = await callAIForReport(prompt, apiKey);
@@ -131,24 +145,31 @@ ${aiContent}
 *Report generated using Simplebeacon CLI v1.0.0 with AI-enhanced wording*
 *Technical findings based on static code analysis - AI used for presentation only*`;
   } catch (error) {
-    console.error('❌ AI enhancement failed, falling back to standard report:', error.message);
-    const { compileReport } = require('./build-report');
+    console.error(
+      "❌ AI enhancement failed, falling back to standard report:",
+      error.message,
+    );
+    const { compileReport } = require("./build-report");
     return compileReport(jsonData, clientName, assessorName);
   }
 }
 
 function main() {
   const args = process.argv.slice(2);
-  const clientName = args[0] || 'Client Project';
-  const assessorName = args[1] || 'Simplebeacon Security Audit Service';
-  const inputFile = args[2] || './.simplebeacon/report.json';
-  const outputFile = args[3] || './AI_ENHANCED_AUDIT.md';
+  const clientName = args[0] || "Client Project";
+  const assessorName = args[1] || "Simplebeacon Security Audit Service";
+  const inputFile = args[2] || "./.simplebeacon/report.json";
+  const outputFile = args[3] || "./AI_ENHANCED_AUDIT.md";
   const apiKey = args[4] || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    console.error('❌ Error: OPENAI_API_KEY environment variable or 4th argument required'); // simplebeacon-ignore pii-logging — CLI usage message, not personal data
-    console.error('Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY'); // simplebeacon-ignore pii-logging — CLI usage message
-    console.error('Or set OPENAI_API_KEY environment variable'); // simplebeacon-ignore pii-logging — CLI usage message
+    console.error(
+      "❌ Error: OPENAI_API_KEY environment variable or 4th argument required",
+    ); // simplebeacon-ignore pii-logging — CLI usage message, not personal data
+    console.error(
+      'Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY',
+    ); // simplebeacon-ignore pii-logging — CLI usage message
+    console.error("Or set OPENAI_API_KEY environment variable"); // simplebeacon-ignore pii-logging — CLI usage message
     process.exit(1);
   }
 
@@ -158,20 +179,20 @@ function main() {
       process.exit(1);
     }
 
-    const jsonData = JSON.parse(fs.readFileSync(inputFile, 'utf8'));
-    
+    const jsonData = JSON.parse(fs.readFileSync(inputFile, "utf8"));
+
     generateAIEnhancedReport(jsonData, clientName, assessorName, apiKey)
-      .then(finalReport => {
+      .then((finalReport) => {
         // Atomic write - build entire string in memory, then write once
-        fs.writeFileSync(outputFile, finalReport, 'utf8');
+        fs.writeFileSync(outputFile, finalReport, "utf8");
         console.log(`AI-Enhanced Audit Report generated: ${outputFile}`);
       })
-      .catch(error => {
-        console.error('Error:', error.message);
+      .catch((error) => {
+        console.error("Error:", error.message);
         process.exit(1);
       });
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error("❌ Error:", error.message);
     process.exit(1);
   }
 }

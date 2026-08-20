@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 46: ZK range proof processor.
@@ -9,8 +9,8 @@
  * @module hsm-adapter/zk-range-proof-processor
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkRangeProofProcessor {
   /**
@@ -35,11 +35,25 @@ class ZkRangeProofProcessor {
   generate(contractId, commitment, min, max, workerAttestation) {
     _assertBounds(this.policy, commitment, min, max);
     if (this.policy.requireWorkerAttestation && !workerAttestation) {
-      throw new HsmAdapterError('RANGE_PROOF_ATTESTATION_MISSING', 'worker attestation is required');
+      throw new HsmAdapterError(
+        "RANGE_PROOF_ATTESTATION_MISSING",
+        "worker attestation is required",
+      );
     }
-    const proof = _computeRangeProof(contractId, commitment, min, max, workerAttestation);
+    const proof = _computeRangeProof(
+      contractId,
+      commitment,
+      min,
+      max,
+      workerAttestation,
+    );
     if (this._audit) {
-      this._audit('ZK_RANGE_PROOF_GENERATED', { contractId, min, max, timestamp: Math.floor(Date.now() / 1000) });
+      this._audit("ZK_RANGE_PROOF_GENERATED", {
+        contractId,
+        min,
+        max,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
     }
     return { contractId, commitment, min, max, proof };
   }
@@ -51,7 +65,12 @@ class ZkRangeProofProcessor {
    * @returns {object}
    */
   verify(proofBundle, workerAttestation) {
-    _assertBounds(this.policy, proofBundle.commitment, proofBundle.min, proofBundle.max);
+    _assertBounds(
+      this.policy,
+      proofBundle.commitment,
+      proofBundle.min,
+      proofBundle.max,
+    );
     const expected = _computeRangeProof(
       proofBundle.contractId,
       proofBundle.commitment,
@@ -60,35 +79,62 @@ class ZkRangeProofProcessor {
       workerAttestation,
     );
     if (proofBundle.proof !== expected) {
-      throw new HsmAdapterError('RANGE_PROOF_INVALID', 'zk range proof verification failed');
+      throw new HsmAdapterError(
+        "RANGE_PROOF_INVALID",
+        "zk range proof verification failed",
+      );
     }
     if (this._audit) {
-      this._audit('ZK_RANGE_PROOF_VERIFIED', { contractId: proofBundle.contractId, timestamp: Math.floor(Date.now() / 1000) });
+      this._audit("ZK_RANGE_PROOF_VERIFIED", {
+        contractId: proofBundle.contractId,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
     }
     return { verified: true, contractId: proofBundle.contractId };
   }
 }
 
 function _assertBounds(policy, commitment, min, max) {
-  if (typeof min !== 'number' || typeof max !== 'number' || min >= max) {
-    throw new HsmAdapterError('RANGE_BOUNDS_INVALID', 'range bounds must satisfy min < max');
+  if (typeof min !== "number" || typeof max !== "number" || min >= max) {
+    throw new HsmAdapterError(
+      "RANGE_BOUNDS_INVALID",
+      "range bounds must satisfy min < max",
+    );
   }
   const bitWidth = commitment.value.toString(2).length;
   if (bitWidth > (policy.maxRangeBitWidth || 64)) {
-    throw new HsmAdapterError('RANGE_BIT_WIDTH_EXCEEDED', `commitment bit width ${bitWidth} exceeds maximum ${policy.maxRangeBitWidth}`);
+    throw new HsmAdapterError(
+      "RANGE_BIT_WIDTH_EXCEEDED",
+      `commitment bit width ${bitWidth} exceeds maximum ${policy.maxRangeBitWidth}`,
+    );
   }
-  if (bitWidth < (policy.minRangeBits || 8) || bitWidth > (policy.maxRangeBits || 4096)) {
-    throw new HsmAdapterError('RANGE_BIT_WIDTH_BLOCKED', `commitment bit width ${bitWidth} outside allowed [${policy.minRangeBits}, ${policy.maxRangeBits}]`);
+  if (
+    bitWidth < (policy.minRangeBits || 8) ||
+    bitWidth > (policy.maxRangeBits || 4096)
+  ) {
+    throw new HsmAdapterError(
+      "RANGE_BIT_WIDTH_BLOCKED",
+      `commitment bit width ${bitWidth} outside allowed [${policy.minRangeBits}, ${policy.maxRangeBits}]`,
+    );
   }
   const v = Number(commitment.value);
   if (v < min || v > max) {
-    throw new HsmAdapterError('RANGE_VALUE_OUT_OF_BOUNDS', `encrypted value ${v} outside [${min}, ${max}]`);
+    throw new HsmAdapterError(
+      "RANGE_VALUE_OUT_OF_BOUNDS",
+      `encrypted value ${v} outside [${min}, ${max}]`,
+    );
   }
 }
 
-function _computeRangeProof(contractId, commitment, min, max, workerAttestation) {
+function _computeRangeProof(
+  contractId,
+  commitment,
+  min,
+  max,
+  workerAttestation,
+) {
   const input = `${contractId}:${commitment.commitment}:${min}:${max}:${JSON.stringify(workerAttestation)}`;
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return crypto.createHash("sha256").update(input).digest("hex");
 }
 
 module.exports = { ZkRangeProofProcessor };

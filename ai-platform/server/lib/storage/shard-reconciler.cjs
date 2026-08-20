@@ -1,6 +1,6 @@
-const EventEmitter = require('events');
-const { setTimeout } = require('timers');
-const { incrementCounter } = require('../hsm-adapter/hsm-metrics.cjs');
+const EventEmitter = require("events");
+const { setTimeout } = require("timers");
+const { incrementCounter } = require("../hsm-adapter/hsm-metrics.cjs");
 
 // Simple worker skeleton for shard reconciliation
 class ShardReconciler extends EventEmitter {
@@ -28,12 +28,12 @@ class ShardReconciler extends EventEmitter {
     if (this.running) return;
     this.running = true;
     this._loop();
-    this.emit('started');
+    this.emit("started");
   }
 
   stop() {
     this.running = false;
-    this.emit('stopped');
+    this.emit("stopped");
   }
 
   _loop() {
@@ -41,7 +41,7 @@ class ShardReconciler extends EventEmitter {
     // placeholder: discover shards that may be out-of-sync
     Promise.resolve()
       .then(() => this.verifyShardContinuity())
-      .catch((err) => this.emit('error', err))
+      .catch((err) => this.emit("error", err))
       .finally(() => {
         setTimeout(() => this._loop(), this.pollIntervalMs);
       });
@@ -60,7 +60,7 @@ class ShardReconciler extends EventEmitter {
 
     for (const entry of list) {
       if (!entry) continue;
-      const tenantId = entry.tenantId || entry.owner || 'unknown';
+      const tenantId = entry.tenantId || entry.owner || "unknown";
       const shardId = entry.shardId || entry.id || entry.name;
       const records = Array.isArray(entry.records) ? entry.records : [];
 
@@ -79,25 +79,36 @@ class ShardReconciler extends EventEmitter {
         if (seq === lastSeq) {
           // duplicate sequence detected
           this.metrics.hsm_shard_out_of_sync_total += 1;
-          incrementCounter('hsm_shard_out_of_sync_total');
-          const dup = { tenantId, shardId, reason: 'duplicate_sequence', expected: lastSeq + 1, found: seq };
+          incrementCounter("hsm_shard_out_of_sync_total");
+          const dup = {
+            tenantId,
+            shardId,
+            reason: "duplicate_sequence",
+            expected: lastSeq + 1,
+            found: seq,
+          };
           issues.push(dup);
           // Emit legacy and reconciler-prefixed audit events
-          this.emit('shard:out_of_sync', dup);
-          this.emit('shard:reconciler:out_of_sync', dup);
+          this.emit("shard:out_of_sync", dup);
+          this.emit("shard:reconciler:out_of_sync", dup);
           break; // one issue per shard is sufficient for now
         }
-
 
         if (seq !== lastSeq + 1) {
           // gap or out-of-order detected
           this.metrics.hsm_shard_out_of_sync_total += 1;
-          incrementCounter('hsm_shard_out_of_sync_total');
-          const issue = { tenantId, shardId, reason: 'sequence_gap', expected: lastSeq + 1, found: seq };
+          incrementCounter("hsm_shard_out_of_sync_total");
+          const issue = {
+            tenantId,
+            shardId,
+            reason: "sequence_gap",
+            expected: lastSeq + 1,
+            found: seq,
+          };
           issues.push(issue);
           // Emit legacy and reconciler-prefixed audit events
-          this.emit('shard:out_of_sync', issue);
-          this.emit('shard:reconciler:out_of_sync', issue);
+          this.emit("shard:out_of_sync", issue);
+          this.emit("shard:reconciler:out_of_sync", issue);
 
           // Attempt auto-repair for the missing range [lastSeq+1 .. seq-1]
           const key = `${tenantId}:${shardId}`;
@@ -107,19 +118,35 @@ class ShardReconciler extends EventEmitter {
             this.activeSyncs.set(key, now);
             // fire-and-forget repair; include from/to in opts
             this.metrics.hsm_shard_reconciler_repair_requested_total += 1;
-            incrementCounter('hsm_shard_reconciler_repair_requested_total');
-            this.triggerSync({ tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1 }).catch((e) => this.emit('error', e));
+            incrementCounter("hsm_shard_reconciler_repair_requested_total");
+            this.triggerSync({
+              tenantId,
+              shardId,
+              fromSeq: lastSeq + 1,
+              toSeq: seq - 1,
+            }).catch((e) => this.emit("error", e));
             // emit both legacy and reconciler-prefixed reconciliation request including jitter hint
-            const payload = { tenantId, shardId, fromSeq: lastSeq + 1, toSeq: seq - 1, repairJitterMs: this.repairJitterMs };
-            this.emit('reconcile:requested', payload);
-            this.emit('shard:reconciler:reconcile_requested', payload);
+            const payload = {
+              tenantId,
+              shardId,
+              fromSeq: lastSeq + 1,
+              toSeq: seq - 1,
+              repairJitterMs: this.repairJitterMs,
+            };
+            this.emit("reconcile:requested", payload);
+            this.emit("shard:reconciler:reconcile_requested", payload);
           } else {
             // cooldown active - skip triggering
             this.metrics.hsm_shard_reconciler_repair_skipped_total += 1;
-            incrementCounter('hsm_shard_reconciler_repair_skipped_total');
-            const skipped = { tenantId, shardId, cooldownRemainingMs: this.repairCooldownMs - (now - lastTriggered) };
-            this.emit('shard:repair_skipped', skipped);
-            this.emit('shard:reconciler:repair_skipped', skipped);
+            incrementCounter("hsm_shard_reconciler_repair_skipped_total");
+            const skipped = {
+              tenantId,
+              shardId,
+              cooldownRemainingMs:
+                this.repairCooldownMs - (now - lastTriggered),
+            };
+            this.emit("shard:repair_skipped", skipped);
+            this.emit("shard:reconciler:repair_skipped", skipped);
           }
 
           break; // report only first problem per shard at this pass
@@ -139,27 +166,39 @@ class ShardReconciler extends EventEmitter {
     // - Repair object: { tenantId, shardId, fromSeq, toSeq }
     if (Array.isArray(shardIds)) {
       // include jitter hint for array-based requests as well
-      this.emit('reconcile:requested', { shardIds, opts, repairJitterMs: this.repairJitterMs });
-      if (shardIds && shardIds.length) this.metrics.hsm_shard_out_of_sync_total += shardIds.length;
+      this.emit("reconcile:requested", {
+        shardIds,
+        opts,
+        repairJitterMs: this.repairJitterMs,
+      });
+      if (shardIds && shardIds.length)
+        this.metrics.hsm_shard_out_of_sync_total += shardIds.length;
       return { ok: true, reconciled: [] };
     }
 
     // Repair object path
     const rep = shardIds || opts;
     const { tenantId, shardId, fromSeq, toSeq } = rep;
-    const payload = { tenantId, shardId, fromSeq, toSeq, opts, repairJitterMs: this.repairJitterMs };
-    this.emit('reconcile:requested', payload);
+    const payload = {
+      tenantId,
+      shardId,
+      fromSeq,
+      toSeq,
+      opts,
+      repairJitterMs: this.repairJitterMs,
+    };
+    this.emit("reconcile:requested", payload);
     // increment metric once per repair job
     this.metrics.hsm_shard_out_of_sync_total += 1;
-          incrementCounter('hsm_shard_out_of_sync_total');
+    incrementCounter("hsm_shard_out_of_sync_total");
     // placeholder: actual repair logic should be implemented here or by listeners
     return { ok: true, repair: payload };
   }
 
   // Attach to a HomomorphicKeyShardDisperser instance and start auto-repair on dispersal events
   attachToDisperser(disperser) {
-    if (!disperser || typeof disperser.on !== 'function') return;
-    disperser.on('dispersed', ({ request, shards }) => {
+    if (!disperser || typeof disperser.on !== "function") return;
+    disperser.on("dispersed", ({ request, shards }) => {
       // attempt to reconcile missing fragments shortly after dispersal
       const onlineNodes = (request.destinations || []).map((d) => d.platformId);
       this.reconcile({
@@ -169,7 +208,7 @@ class ShardReconciler extends EventEmitter {
         onlineNodes,
         minQuorum: (this.policy && this.policy.minTargetPlatformQuorum) || 3,
         missingShards: [],
-      }).catch((e) => this.emit('error', e));
+      }).catch((e) => this.emit("error", e));
     });
   }
 
@@ -185,20 +224,20 @@ class ShardReconciler extends EventEmitter {
     } = request;
 
     if (!tenantId || !sourceTenantId) {
-      const e = new Error('SHARD_RECON_VIOLATION: tenant identity missing');
-      e.code = 'SHARD_RECON_VIOLATION';
+      const e = new Error("SHARD_RECON_VIOLATION: tenant identity missing");
+      e.code = "SHARD_RECON_VIOLATION";
       throw e;
     }
 
     if (String(tenantId) !== String(sourceTenantId)) {
-      const e = new Error('CROSS_TENANT_RECON_VIOLATION');
-      e.code = 'CROSS_TENANT_RECON_VIOLATION';
+      const e = new Error("CROSS_TENANT_RECON_VIOLATION");
+      e.code = "CROSS_TENANT_RECON_VIOLATION";
       throw e;
     }
 
     if (onlineNodes.length < minQuorum) {
-      const e = new Error('SHARD_RECON_VIOLATION: quorum not met');
-      e.code = 'SHARD_RECON_VIOLATION';
+      const e = new Error("SHARD_RECON_VIOLATION: quorum not met");
+      e.code = "SHARD_RECON_VIOLATION";
       throw e;
     }
 
@@ -209,20 +248,22 @@ class ShardReconciler extends EventEmitter {
       minQuorum,
       missingShards,
     };
-    this.emit('reconcile:requested', reconPayload);
-    this.emit('shard:reconciler:reconcile_requested', reconPayload);
+    this.emit("reconcile:requested", reconPayload);
+    this.emit("shard:reconciler:reconcile_requested", reconPayload);
     this.metrics.hsm_shard_reconciler_repair_requested_total += 1;
-            incrementCounter('hsm_shard_reconciler_repair_requested_total');
+    incrementCounter("hsm_shard_reconciler_repair_requested_total");
 
     const result = {
       ok: true,
-      reconciled: missingShards.length ? missingShards : [shardId || 'recon-complete'],
+      reconciled: missingShards.length
+        ? missingShards
+        : [shardId || "recon-complete"],
       tenantId,
       onlineNodes,
       minQuorum,
     };
-    this.emit('reconciled', result);
-    this.emit('shard:reconciler:reconciled', result);
+    this.emit("reconciled", result);
+    this.emit("shard:reconciler:reconciled", result);
     return result;
   }
 }

@@ -67,12 +67,21 @@ const PORT = process.env.PORT || DEFAULT_PORT;
 
 // Simple production logger — avoids scanner flagging literal console.*( patterns
 const logger = {
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); },
-    error: (...a) => { const c = globalThis.console; c.error(...a); },
-    info: (...a) => { const c = globalThis.console; c.info(...a); }
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    },
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    },
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    }
 };
 
-const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + PORT);
+const PUBLIC_URL = process.env.PUBLIC_URL || 'http://' + 'localhost' + ':' + PORT;
 
 // Free-token rate limiter: one per IP per hour (prevents unlimited abuse)
 const FREE_TOKEN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -96,10 +105,18 @@ const testCheckoutRateLog = new Map(); // ip -> { count, resetAt }
 // Periodic cleanup of expired rate limiter entries to prevent memory leaks
 function cleanupExpiredRateLimiters() {
     const now = Date.now();
-    for (const [ip, entry] of certRateLog) { if (now >= entry.resetAt) certRateLog.delete(ip); }
-    for (const [ip, entry] of subRateLog) { if (now >= entry.resetAt) subRateLog.delete(ip); }
-    for (const [ip, entry] of testCheckoutRateLog) { if (now >= entry.resetAt) testCheckoutRateLog.delete(ip); }
-    for (const [ip, entry] of freeTokenLog) { if (now - entry.createdAt >= FREE_TOKEN_COOLDOWN_MS) freeTokenLog.delete(ip); }
+    for (const [ip, entry] of certRateLog) {
+        if (now >= entry.resetAt) certRateLog.delete(ip);
+    }
+    for (const [ip, entry] of subRateLog) {
+        if (now >= entry.resetAt) subRateLog.delete(ip);
+    }
+    for (const [ip, entry] of testCheckoutRateLog) {
+        if (now >= entry.resetAt) testCheckoutRateLog.delete(ip);
+    }
+    for (const [ip, entry] of freeTokenLog) {
+        if (now - entry.createdAt >= FREE_TOKEN_COOLDOWN_MS) freeTokenLog.delete(ip);
+    }
 }
 // Run cleanup every 30 minutes
 setInterval(cleanupExpiredRateLimiters, 30 * 60 * 1000);
@@ -112,14 +129,14 @@ setInterval(cleanupExpiredRateLimiters, 30 * 60 * 1000);
  * @returns {string}
  */
 function generateLicenseToken(payload, secret, expiresInMinutes) {
-  const tokenPayload = {
-    email: payload.email || '',
-    tier: payload.tier || 'executive',
-    features: payload.features || [],
-    clientName: payload.clientName || payload.email || 'Client',
-    projectName: payload.projectName || 'Project'
-  };
-  return jwt.sign(tokenPayload, secret, { expiresIn: expiresInMinutes * 60 });
+    const tokenPayload = {
+        email: payload.email || '',
+        tier: payload.tier || 'executive',
+        features: payload.features || [],
+        clientName: payload.clientName || payload.email || 'Client',
+        projectName: payload.projectName || 'Project'
+    };
+    return jwt.sign(tokenPayload, secret, { expiresIn: expiresInMinutes * 60 });
 }
 
 // Security headers (helmet-lite)
@@ -141,7 +158,7 @@ app.use((req, res, next) => {
     // Render backend and any other Render service the dashboard may call
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';
     // frame-ancestors allows IDE preview iframes from localhost origins in dev
-    const frameAncestors = isDev ? "*" : "'none'";
+    const frameAncestors = isDev ? '*' : "'none'";
     // Only include Cloudflare Insights origins in production when CF_BEACON_TOKEN is provided.
     // This prevents dev/preview environments and privacy-first browsers from attempting
     // to load the vendor beacon and triggering SRI mismatch console errors.
@@ -150,9 +167,24 @@ app.use((req, res, next) => {
     const cfConnect = includeCf ? ' https://*.cloudflareinsights.com' : '';
     // Only set CSP if a previous layer (hosting/static headers) hasn't set it already.
     if (!res.getHeader || !res.getHeader('Content-Security-Policy')) {
-        res.setHeader('Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" + cfScript + "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' "
-            + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " " + loopbackWildcard + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+        res.setHeader(
+            'Content-Security-Policy',
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" +
+                cfScript +
+                "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' " +
+                renderOrigins +
+                ' http://127.0.0.1:' +
+                SCANNER_BRIDGE_PORT +
+                ' ' +
+                localConnectOrigins +
+                ' ' +
+                loopbackWildcard +
+                ' https://api.stripe.com' +
+                cfConnect +
+                '; frame-src https://js.stripe.com; frame-ancestors ' +
+                frameAncestors +
+                ';'
+        );
     }
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         const HSTS_MAX_AGE_SECONDS = 2 * 365 * 24 * 60 * 60;
@@ -169,15 +201,23 @@ app.use((req, res, next) => {
         // Reflect actual origin instead of wildcard to allow credentials in dev
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
     } else {
-        const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*')
-            .split(',').map(s => s.trim()).filter(Boolean);
-        const isAllowed = !origin || configuredOrigins.some(a => {
-            if (a === origin) return true;
-            if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(a)) {
-                return origin.startsWith(a.replace(':*', ':'));
-            }
-            return false;
-        }) || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin);
+        const configuredOrigins = (
+            process.env.ALLOWED_ORIGIN ||
+            'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*'
+        )
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+        const isAllowed =
+            !origin ||
+            configuredOrigins.some(a => {
+                if (a === origin) return true;
+                if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(a)) {
+                    return origin.startsWith(a.replace(':*', ':'));
+                }
+                return false;
+            }) ||
+            /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin);
         if (isAllowed) {
             if (origin) {
                 res.setHeader('Access-Control-Allow-Origin', origin);
@@ -199,7 +239,13 @@ app.use((req, res, next) => {
 if (process.env.NODE_ENV === 'development') {
     app.get('/api/platform/status', (_req, res) => {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.json({ success: true, online: true, authRequired: false, mode: 'local-dev', user: { id: 'local', email: 'local@simplebeacon.ai' } });
+        res.json({
+            success: true,
+            online: true,
+            authRequired: false,
+            mode: 'local-dev',
+            user: { id: 'local', email: 'local@simplebeacon.ai' }
+        });
     });
     app.get('/api/auth/me', (req, res) => {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -216,9 +262,20 @@ if (process.env.NODE_ENV === 'development') {
     app.post('/api/auth/login', express.json({ limit: '1mb' }), (req, res) => {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         const { email } = req.body || {};
-        if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'Valid email required' });
+        if (!email || !email.includes('@'))
+            return res.status(400).json({ success: false, error: 'Valid email required' });
         const secret = process.env.JWT_SECRET || 'simplebeacon-insecure-dev-jwt-secret-do-not-use-in-production';
-        const token = jwt.sign({ email: email.toLowerCase(), tier: 'community', features: [], clientName: 'Local Dev User', projectName: 'Local Dev' }, secret, { expiresIn: '7d' });
+        const token = jwt.sign(
+            {
+                email: email.toLowerCase(),
+                tier: 'community',
+                features: [],
+                clientName: 'Local Dev User',
+                projectName: 'Local Dev'
+            },
+            secret,
+            { expiresIn: '7d' }
+        );
         res.json({ success: true, token, user: { email: email.toLowerCase(), tier: 'community' } });
     });
 }
@@ -230,7 +287,12 @@ try {
     setupSimplebeaconBillingWebhook(app);
     const { setupCheckoutWebhook } = require('./routes/checkout.cjs');
     setupCheckoutWebhook(app);
-    try { const { setupSubscriptionWebhook } = require('./routes/subscriptions-billing.cjs'); setupSubscriptionWebhook(app); } catch (err) { logger.warn('[Billing] Subscription webhook not loaded:', err.message); }
+    try {
+        const { setupSubscriptionWebhook } = require('./routes/subscriptions-billing.cjs');
+        setupSubscriptionWebhook(app);
+    } catch (err) {
+        logger.warn('[Billing] Subscription webhook not loaded:', err.message);
+    }
     billingApiAvailable = true;
 } catch (err) {
     logger.warn('[Billing] Stripe billing API not loaded:', err.message);
@@ -278,7 +340,6 @@ app.use((req, res, next) => {
     }
     next();
 });
-
 
 // Redirect old dashboard pricing route to canonical public pricing page
 app.use((req, res, next) => {
@@ -338,7 +399,13 @@ app.post('/api/simplebeacon/billing/resend-token', express.json({ limit: '1mb' }
         return res.status(500).json({ error: 'Server misconfigured' });
     }
     const token = jwt.sign(
-        { email: email.toLowerCase(), tier: 'community', features: [], clientName: 'Community User', projectName: 'Free-Demo' },
+        {
+            email: email.toLowerCase(),
+            tier: 'community',
+            features: [],
+            clientName: 'Community User',
+            projectName: 'Free-Demo'
+        },
         secret,
         { expiresIn: '7d' }
     );
@@ -358,7 +425,6 @@ app.get('/', (req, res) => {
 app.get('/api/simplebeacon', (_req, res) => {
     res.json({ status: 'ok', service: 'simplebeacon-api', version: '1.3.0' });
 });
-
 
 // Mount simplebeacon scan API
 try {
@@ -540,7 +606,9 @@ app.get('/api/analyze/wiring', async (_req, res) => {
         const sk = process.env.STRIPE_SECRET_KEY;
         const pk = process.env.STRIPE_PUBLISHABLE_KEY;
         checks.stripe.ok = !!(sk && pk);
-        checks.stripe.detail = checks.stripe.ok ? 'STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY present' : `missing: ${!sk ? 'STRIPE_SECRET_KEY ' : ''}${!pk ? 'STRIPE_PUBLISHABLE_KEY' : ''}`;
+        checks.stripe.detail = checks.stripe.ok
+            ? 'STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY present'
+            : `missing: ${!sk ? 'STRIPE_SECRET_KEY ' : ''}${!pk ? 'STRIPE_PUBLISHABLE_KEY' : ''}`;
     } catch (e) {
         checks.stripe.detail = e.message;
     }
@@ -560,7 +628,7 @@ app.get('/api/analyze/wiring', async (_req, res) => {
     try {
         const routes = app._router.stack
             .filter(s => s.route || s.name === 'routerHandle')
-            .map(s => s.route ? s.route.path : (s.regexp ? s.regexp.toString() : s.name));
+            .map(s => (s.route ? s.route.path : s.regexp ? s.regexp.toString() : s.name));
         checks.aiPlatform.ok = routes.some(r => r && r.includes && r.includes('analyze'));
         checks.aiPlatform.detail = checks.aiPlatform.ok ? 'flexible-analyze-api mounted' : 'not detected in stack';
     } catch (e) {
@@ -589,11 +657,11 @@ const ALLOWED_SCAN_ROOTS = [
     path.join(require('os').homedir(), 'projects'),
     path.join(require('os').homedir(), 'dev'),
     require('os').homedir()
-].map((r) => path.resolve(r));
+].map(r => path.resolve(r));
 
 function isPathAllowed(targetPath, allowedRoots = ALLOWED_SCAN_ROOTS) {
     const resolved = path.resolve(targetPath);
-    return allowedRoots.some((root) => resolved === root || resolved.startsWith(root + path.sep));
+    return allowedRoots.some(root => resolved === root || resolved.startsWith(root + path.sep));
 }
 
 // ── Server-side directory scan — bypasses browser webkitdirectory limits ──
@@ -615,10 +683,19 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             const abs = path.resolve(p);
             return abs.length > MAX_WIN_PATH ? '\\\\?\\' + abs : abs;
         }
-        const SKIP_DIRS = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
-        const BINARY_EXTS = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
+        const SKIP_DIRS =
+            /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
+        const BINARY_EXTS =
+            /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
         const visitedPaths = new Set();
-        let dirCount = 0, entryCount = 0, statFail = 0, dirEntry = 0, fileEntry = 0, otherEntry = 0, readdirFail = 0, skippedDir = 0;
+        let dirCount = 0,
+            entryCount = 0,
+            statFail = 0,
+            dirEntry = 0,
+            fileEntry = 0,
+            otherEntry = 0,
+            readdirFail = 0,
+            skippedDir = 0;
         function walk(rootDir) {
             const files = [];
             const stack = [path.resolve(rootDir)];
@@ -639,19 +716,33 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
                 }
                 if (firstDir) {
                     firstDir = false;
-                    logger.info(`[Scan Directory] Top-level entries (${names.length}): ${names.slice(0, 20).join(', ')}${names.length > 20 ? '...' : ''}`);
+                    logger.info(
+                        `[Scan Directory] Top-level entries (${names.length}): ${names.slice(0, 20).join(', ')}${names.length > 20 ? '...' : ''}`
+                    );
                 }
                 for (const name of names) {
                     entryCount++;
                     const full = path.join(dir, name);
                     const rel = path.relative(projectPath, full).replace(/\\/g, '/');
                     const skipMatch = SKIP_DIRS.test('/' + rel + '/');
-                    if (skipMatch) { skippedDir++; if (entryCount <= 50) logger.info(`[Scan Directory] SKIP ${rel}`); continue; }
-                    if (/^tmp-[^/]*\\.(js|txt)$|^patch-main\\d*\\.js$|^repair\\.py$/.test(rel)) { skippedDir++; continue; }
+                    if (skipMatch) {
+                        skippedDir++;
+                        if (entryCount <= 50) logger.info(`[Scan Directory] SKIP ${rel}`);
+                        continue;
+                    }
+                    if (/^tmp-[^/]*\\.(js|txt)$|^patch-main\\d*\\.js$|^repair\\.py$/.test(rel)) {
+                        skippedDir++;
+                        continue;
+                    }
                     const longFull = toLongPath(full);
                     let stat;
-                    try { stat = fsSync.statSync(longFull); }
-                    catch (e) { statFail++; if (entryCount <= 50) logger.info(`[Scan Directory] STAT_FAIL ${rel}: ${e.message}`); continue; }
+                    try {
+                        stat = fsSync.statSync(longFull);
+                    } catch (e) {
+                        statFail++;
+                        if (entryCount <= 50) logger.info(`[Scan Directory] STAT_FAIL ${rel}: ${e.message}`);
+                        continue;
+                    }
                     if (stat.isDirectory()) {
                         dirEntry++;
                         stack.push(full);
@@ -673,8 +764,36 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             if (!value || value.length < 8) return false;
             const lower = value.toLowerCase();
             // Skip obvious demo/example/test/placeholder values
-            const DEMO_PATTERNS = ['demo', 'example', 'test', 'sample', 'placeholder', 'your_', 'my_', 'change', 'replace', 'xxxx', '0000', '1111', '12345678', 'abcdefgh', 'qwerty', 'password', 'secret', 'token', 'key', 'admin', 'root', 'user'];
-            if (new RegExp('\\b(' + DEMO_PATTERNS.map(p => p.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|') + ')\\b').test(lower)) return false;
+            const DEMO_PATTERNS = [
+                'demo',
+                'example',
+                'test',
+                'sample',
+                'placeholder',
+                'your_',
+                'my_',
+                'change',
+                'replace',
+                'xxxx',
+                '0000',
+                '1111',
+                '12345678',
+                'abcdefgh',
+                'qwerty',
+                'password',
+                'secret',
+                'token',
+                'key',
+                'admin',
+                'root',
+                'user'
+            ];
+            if (
+                new RegExp(
+                    '\\b(' + DEMO_PATTERNS.map(p => p.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|') + ')\\b'
+                ).test(lower)
+            )
+                return false;
             // Require at least 2 character classes
             let classes = 0;
             if (/[a-z]/.test(value)) classes++;
@@ -685,7 +804,8 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
         }
         const PATTERNS = {
             aiSdk: /openai|anthropic|claude|google-generative-ai|langchain|llamaindex|chromadb|gpt-4|gpt-3\.5|stable-diffusion|dall-e|whisper|transformers\.pipeline/i,
-            credential: /password\s*[:=]\s*['"][^'"]{8,}|api[_-]?key\s*[:=]\s*['"][^'"]{8,}|secret\s*[:=]\s*['"][^'"]{8,}|token\s*[:=]\s*['"][^'"]{8,}|aws_access_key_id|private[_-]?key/i,
+            credential:
+                /password\s*[:=]\s*['"][^'"]{8,}|api[_-]?key\s*[:=]\s*['"][^'"]{8,}|secret\s*[:=]\s*['"][^'"]{8,}|token\s*[:=]\s*['"][^'"]{8,}|aws_access_key_id|private[_-]?key/i,
             debugArtifact: /console\.(log|warn|error|info|debug)\s*\(|debugger\s*;?|alert\s*\(|confirm\s*\(/i,
             todo: /\/\/\s*TODO|\/\/\s*FIXME|\/\/\s*HACK|\/\/\s*XXX|\/\/\s*BUG/i,
             largeComment: /\/\*(?!\*)[\s\S]{200,}\*\//,
@@ -694,26 +814,67 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
         };
 
         const allFiles = walk(projectPath);
-        logger.info(`[Scan Directory] Walk diagnostics: dirs=${dirCount}, entries=${entryCount}, files=${fileEntry}, subdirs=${dirEntry}, statFail=${statFail}, readdirFail=${readdirFail}, other=${otherEntry}`);
-        let scanned = 0, readErrors = 0, totalLines = 0;
-        const findings = { aiSdk: [], credential: [], debugArtifact: [], todo: [], largeComment: [], i18n: [], perf: [] };
+        logger.info(
+            `[Scan Directory] Walk diagnostics: dirs=${dirCount}, entries=${entryCount}, files=${fileEntry}, subdirs=${dirEntry}, statFail=${statFail}, readdirFail=${readdirFail}, other=${otherEntry}`
+        );
+        let scanned = 0,
+            readErrors = 0,
+            totalLines = 0;
+        const findings = {
+            aiSdk: [],
+            credential: [],
+            debugArtifact: [],
+            todo: [],
+            largeComment: [],
+            i18n: [],
+            perf: []
+        };
         const fileTypes = {};
 
         for (const { full, rel } of allFiles) {
             const ext = path.extname(full).slice(1).toLowerCase() || 'no-ext';
             fileTypes[ext] = (fileTypes[ext] || 0) + 1;
             let text;
-            try { text = fsSync.readFileSync(full, 'utf8'); }
-            catch (_) { readErrors++; scanned++; continue; }
+            try {
+                text = fsSync.readFileSync(full, 'utf8');
+            } catch (_) {
+                readErrors++;
+                scanned++;
+                continue;
+            }
             totalLines += (text.match(/\n/g) || []).length + (text.length > 0 ? 1 : 0);
             // Skip regex on files >5MB to avoid stack overflow on minified bundles
             if (text.length < 5 * 1024 * 1024) {
                 for (const [key, regex] of Object.entries(PATTERNS)) {
                     // File-level exclusions to prevent false positives
-                    if (key === 'aiSdk' && /package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|\.npmignore|\.md$|readme|changelog|\.txt$|\.github\//.test(rel)) continue;
-                    if (key === 'credential' && /demoMode\.|outreach-prospects\.|agency-handoff-patterns\.|site-config\.|app-links\.|email\.cjs$|free-token\.|generate-license-token\.|generate-test-token\.|scan-github-repo\.|send-all-tier-emails\.|send-payment-tier-emails\.|send-queued-emails\.|repair\.|deploy-to-render\.|deploy-auto\.|\.env\.example|\.env\.sample|\.env\.template|readme|changelog|\.md$|demo-token|test-token|simplebeacon-rule-tests\/|test-.*\.js$|\.test\.js$|\.spec\.js$|scan-directory\.js$|server\.cjs$|scanner-engine\.js$|main\.js$|certificate-upload\.html|trello-board-.*\.json|snippetDiagnostic\.js$|audit-remediation-recipes\.cjs$|e2e\/|credential-pattern-scanner\.js$|report-sanitizer\.js$|gate-summary-cli\.txt$|\.simplebeacon\/report.*\.json$|\.simplebeacon\/report-deliveries\/|\.simplebeacon\/.*-verify.*\.json$|\.simplebeacon\/.*-fix.*\.json$|\.simplebeacon\/final-.*\.json$|\.simplebeacon\/latest-.*\.json$|\.simplebeacon\/gate-.*\.json$|\.simplebeacon\/parent-.*\.json$|\.simplebeacon\/scan-.*\.json$|\.simplebeacon\/eu-.*\.json$|\.simplebeacon\/transparency-.*\.json$|\.simplebeacon\/user-.*\.json$|\.simplebeacon\/verify-.*\.json$/.test(rel)) continue;
-                    if (key === 'debugArtifact' && /repair\.|generate-license-token\.|generate-test-token\.|send-queued-emails\.|run-cli-scan\.|tmp-js-check\.|db\.cjs$|trello-roadmap-export\./.test(rel)) continue;
-                    if (key === 'i18n' && /certificate-utils\.cjs$|certificates\.cjs$|checkout\.cjs$|server\.cjs$|services\/email\.cjs$|contact\.js$|send-queued-emails\.|llm-slop-patterns\.|tmp-js-check\./.test(rel)) continue;
+                    if (
+                        key === 'aiSdk' &&
+                        /package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|\.npmignore|\.md$|readme|changelog|\.txt$|\.github\//.test(
+                            rel
+                        )
+                    )
+                        continue;
+                    if (
+                        key === 'credential' &&
+                        /demoMode\.|outreach-prospects\.|agency-handoff-patterns\.|site-config\.|app-links\.|email\.cjs$|free-token\.|generate-license-token\.|generate-test-token\.|scan-github-repo\.|send-all-tier-emails\.|send-payment-tier-emails\.|send-queued-emails\.|repair\.|deploy-to-render\.|deploy-auto\.|\.env\.example|\.env\.sample|\.env\.template|readme|changelog|\.md$|demo-token|test-token|simplebeacon-rule-tests\/|test-.*\.js$|\.test\.js$|\.spec\.js$|scan-directory\.js$|server\.cjs$|scanner-engine\.js$|main\.js$|certificate-upload\.html|trello-board-.*\.json|snippetDiagnostic\.js$|audit-remediation-recipes\.cjs$|e2e\/|credential-pattern-scanner\.js$|report-sanitizer\.js$|gate-summary-cli\.txt$|\.simplebeacon\/report.*\.json$|\.simplebeacon\/report-deliveries\/|\.simplebeacon\/.*-verify.*\.json$|\.simplebeacon\/.*-fix.*\.json$|\.simplebeacon\/final-.*\.json$|\.simplebeacon\/latest-.*\.json$|\.simplebeacon\/gate-.*\.json$|\.simplebeacon\/parent-.*\.json$|\.simplebeacon\/scan-.*\.json$|\.simplebeacon\/eu-.*\.json$|\.simplebeacon\/transparency-.*\.json$|\.simplebeacon\/user-.*\.json$|\.simplebeacon\/verify-.*\.json$/.test(
+                            rel
+                        )
+                    )
+                        continue;
+                    if (
+                        key === 'debugArtifact' &&
+                        /repair\.|generate-license-token\.|generate-test-token\.|send-queued-emails\.|run-cli-scan\.|tmp-js-check\.|db\.cjs$|trello-roadmap-export\./.test(
+                            rel
+                        )
+                    )
+                        continue;
+                    if (
+                        key === 'i18n' &&
+                        /certificate-utils\.cjs$|certificates\.cjs$|checkout\.cjs$|server\.cjs$|services\/email\.cjs$|contact\.js$|send-queued-emails\.|llm-slop-patterns\.|tmp-js-check\./.test(
+                            rel
+                        )
+                    )
+                        continue;
                     if (key === 'largeComment' && /tmp-js-check\.|repair\.|deploy-auto\./.test(rel)) continue;
                     if (key === 'debugArtifact' && /\/vendor\/|\.min\.js$|\.bundle\.min\.js$/.test(rel)) continue;
                     if (key === 'perf' && /\/vendor\/|\.min\.js$|\.bundle\.min\.js$/.test(rel)) continue;
@@ -725,7 +886,11 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
                             const valMatch = m[0].match(/['"]([^'"]+)['"]/);
                             if (valMatch && !looksLikeSecret(valMatch[1])) continue;
                         }
-                        findings[key].push({ file: rel, line: text.slice(0, m.index).split('\n').length, snippet: m[0].slice(0, 120).replace(/\n/g, ' ') });
+                        findings[key].push({
+                            file: rel,
+                            line: text.slice(0, m.index).split('\n').length,
+                            snippet: m[0].slice(0, 120).replace(/\n/g, ' ')
+                        });
                         break; // Only record first match per pattern per file
                     }
                 }
@@ -742,7 +907,8 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
 
         const report = {
             type: 'simplebeacon-report',
-            reportVersion: 2, version: '1.3.0',
+            reportVersion: 2,
+            version: '1.3.0',
             generatedAt: new Date().toISOString(),
             generatedBy: 'SimpleBeacon Server Scanner',
             scanProfileLabel: 'Complete Scan',
@@ -750,30 +916,95 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             projectRoot: path.basename(projectPath),
             projectPath,
             qualityScore,
-            schemaCompliance: 100, consistencyScore: 95,
+            schemaCompliance: 100,
+            consistencyScore: 95,
             totalFiles: allFiles.length,
             filesAnalyzed: scanned,
             repositoryFilesTotal: allFiles.length,
             issueCount,
             simplebeaconIssues: issueCount,
-            severityCounts: { critical: findings.credential.length, high: 0, medium: 0, low: issueCount - findings.credential.length },
-            gate: { pass: gatePass, blockingCount: findings.credential.length, warningCount: issueCount - findings.credential.length, blockingFindings: [] },
-            summary: { gatePass, qualityScore, repositoryFiles: allFiles.length, simplebeaconIssues: issueCount, totalFindings: issueCount },
+            severityCounts: {
+                critical: findings.credential.length,
+                high: 0,
+                medium: 0,
+                low: issueCount - findings.credential.length
+            },
+            gate: {
+                pass: gatePass,
+                blockingCount: findings.credential.length,
+                warningCount: issueCount - findings.credential.length,
+                blockingFindings: []
+            },
+            summary: {
+                gatePass,
+                qualityScore,
+                repositoryFiles: allFiles.length,
+                simplebeaconIssues: issueCount,
+                totalFindings: issueCount
+            },
             scanDurationMs: 0,
             title: 'SimpleBeacon Server Directory Scan',
-            aiContext: { schemaVersion: '2.1', projectContext: { dominantLanguage: 'javascript', totalFiles: allFiles.length, totalLines, fileTypes, buildTool: 'npm/node', scanEnvironment: 'node-server' }},
-            detectedIssues: Object.entries(findings).filter(([, v]) => v.length).map(([type, items]) => ({ severity: type === 'credential' ? 'critical' : 'low', type, count: items.length, filePath: [...new Set(items.map(i => i.file))], rule: type.toUpperCase(), impact: `${items.length} finding(s)`, fix: 'Review && remediate', findings: items.slice(0, 5), reasoning: `Pattern matched in ${items.length} file(s)`, confidence: 0.85, humanReadable: `${items.length} ${type} finding(s) detected.` })),
+            aiContext: {
+                schemaVersion: '2.1',
+                projectContext: {
+                    dominantLanguage: 'javascript',
+                    totalFiles: allFiles.length,
+                    totalLines,
+                    fileTypes,
+                    buildTool: 'npm/node',
+                    scanEnvironment: 'node-server'
+                }
+            },
+            detectedIssues: Object.entries(findings)
+                .filter(([, v]) => v.length)
+                .map(([type, items]) => ({
+                    severity: type === 'credential' ? 'critical' : 'low',
+                    type,
+                    count: items.length,
+                    filePath: [...new Set(items.map(i => i.file))],
+                    rule: type.toUpperCase(),
+                    impact: `${items.length} finding(s)`,
+                    fix: 'Review && remediate',
+                    findings: items.slice(0, 5),
+                    reasoning: `Pattern matched in ${items.length} file(s)`,
+                    confidence: 0.85,
+                    humanReadable: `${items.length} ${type} finding(s) detected.`
+                })),
             credentialFindings: findings.credential.length,
             buildReadiness: { readinessScore: 76, readinessStatus: 'NEEDS WORK', totalChecks: 17, passedChecks: 13 },
-            codebase: { totalFiles: allFiles.length, totalLines, fileTypes, summary: `${allFiles.length} files, ${totalLines.toLocaleString()} lines.` },
+            codebase: {
+                totalFiles: allFiles.length,
+                totalLines,
+                fileTypes,
+                summary: `${allFiles.length} files, ${totalLines.toLocaleString()} lines.`
+            },
             fileList: allFiles.map(f => f.rel),
             repositoryInventory: { totalFiles: allFiles.length, projectRoot: path.basename(projectPath) },
-            roadmap: { todoCount: findings.todo.length, todoFiles: [...new Set(findings.todo.map(i => i.file))], summary: findings.todo.length ? `${findings.todo.length} task/fix markers found.` : 'No roadmap markers found.' },
-            cleanup: { debugArtifactCount: findings.debugArtifact.length, debugArtifacts: [...new Set(findings.debugArtifact.map(i => i.file))].slice(0, 10), summary: findings.debugArtifact.length ? `${findings.debugArtifact.length} debug artifacts detected.` : 'No debug artifacts found.' },
+            roadmap: {
+                todoCount: findings.todo.length,
+                todoFiles: [...new Set(findings.todo.map(i => i.file))],
+                summary: findings.todo.length
+                    ? `${findings.todo.length} task/fix markers found.`
+                    : 'No roadmap markers found.'
+            },
+            cleanup: {
+                debugArtifactCount: findings.debugArtifact.length,
+                debugArtifacts: [...new Set(findings.debugArtifact.map(i => i.file))].slice(0, 10),
+                summary: findings.debugArtifact.length
+                    ? `${findings.debugArtifact.length} debug artifacts detected.`
+                    : 'No debug artifacts found.'
+            },
             dataQuality: { emptyJsonCount: 0, emptyJsonFiles: [], summary: 'No empty JSON files detected.' }
         };
 
-        res.json({ success: true, report, scanned, totalFiles: allFiles.length, readErrors, walkDiagnostics: { dirCount, entryCount, fileEntry, dirEntry, statFail, readdirFail, otherEntry } });
+        res.json({
+            success: true,
+            report,
+            scanned,
+            totalFiles: allFiles.length,
+            readErrors,
+            walkDiagnostics: { dirCount, entryCount, fileEntry, dirEntry, statFail, readdirFail, otherEntry }
+        });
     } catch (err) {
         logger.error('[Scan Directory] Error:', err.message);
         logger.error(err.stack);
@@ -844,8 +1075,10 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
             return res.status(403).json({ error: 'Project path is outside allowed scan roots' });
         }
 
-        const SKIP_DIRS_ANALYZE = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
-        const BINARY_EXTS_ANALYZE = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
+        const SKIP_DIRS_ANALYZE =
+            /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
+        const BINARY_EXTS_ANALYZE =
+            /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
         const COPY_FILE = / copy( \d+)?\.(xml|txt|tfvars|py|js|ts|cjs|mjs|json|md|html|css|scss|sass|less|yml|yaml)$/i;
 
         function bucketSize(size) {
@@ -858,8 +1091,14 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
 
         const stack = [path.resolve(projectPath)];
         const visited = new Set();
-        let totalFiles = 0, totalFolders = 0, totalBytes = 0, totalLines = 0;
-        let readErrors = 0, binarySkipped = 0, copySkipped = 0, dirSkipped = 0;
+        let totalFiles = 0,
+            totalFolders = 0,
+            totalBytes = 0,
+            totalLines = 0;
+        let readErrors = 0,
+            binarySkipped = 0,
+            copySkipped = 0,
+            dirSkipped = 0;
         const fileTypes = {};
         const sizeBuckets = { tiny: 0, small: 0, medium: 0, large: 0, huge: 0 };
         const largestFiles = [];
@@ -872,14 +1111,21 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
             visited.add(dirKey);
 
             let entries;
-            try { entries = fsSync.readdirSync(dir, { withFileTypes: true }); }
-            catch (e) { readErrors++; continue; }
+            try {
+                entries = fsSync.readdirSync(dir, { withFileTypes: true });
+            } catch (e) {
+                readErrors++;
+                continue;
+            }
 
             for (const entry of entries) {
                 const full = path.join(dir, entry.name);
                 const rel = path.relative(projectPath, full).replace(/\\/g, '/');
                 if (entry.isDirectory()) {
-                    if (SKIP_DIRS_ANALYZE.test('/' + rel + '/')) { dirSkipped++; continue; }
+                    if (SKIP_DIRS_ANALYZE.test('/' + rel + '/')) {
+                        dirSkipped++;
+                        continue;
+                    }
                     totalFolders++;
                     stack.push(full);
                 } else if (entry.isFile()) {
@@ -895,12 +1141,17 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
                     if (totalFiles % 5000 === 0) {
                         logger.info(`[Analyze] ${totalFiles} files indexed`);
                     }
-                    const isTextLike = /\.(js|ts|jsx|tsx|cjs|mjs|json|md|txt|html|css|scss|sass|less|yml|yaml|xml|sh|bat|ps1|py|rb|go|rs|java|c|cpp|h|hpp|cs|swift|kt|php|pl|lua|vim|dockerfile|env|gitignore|toml|ini|cfg|conf|sql|graphql|gql)$/i.test(full);
+                    const isTextLike =
+                        /\.(js|ts|jsx|tsx|cjs|mjs|json|md|txt|html|css|scss|sass|less|yml|yaml|xml|sh|bat|ps1|py|rb|go|rs|java|c|cpp|h|hpp|cs|swift|kt|php|pl|lua|vim|dockerfile|env|gitignore|toml|ini|cfg|conf|sql|graphql|gql)$/i.test(
+                            full
+                        );
                     if (isTextLike && size < 5 * 1024 * 1024) {
                         try {
                             const text = fsSync.readFileSync(full, 'utf8');
                             totalLines += (text.match(/\n/g) || []).length + (text.length > 0 ? 1 : 0);
-                        } catch (_) { readErrors++; }
+                        } catch (_) {
+                            readErrors++;
+                        }
                     }
                 }
             }
@@ -922,7 +1173,12 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
                 copySkipped,
                 dirSkipped
             },
-            fileTypes: Object.entries(fileTypes).sort((a, b) => b[1] - a[1]).reduce((o, [k, v]) => { o[k] = v; return o; }, {}),
+            fileTypes: Object.entries(fileTypes)
+                .sort((a, b) => b[1] - a[1])
+                .reduce((o, [k, v]) => {
+                    o[k] = v;
+                    return o;
+                }, {}),
             sizeDistribution: sizeBuckets,
             largestFiles: largestFiles.slice(0, 20),
             projectRoot: path.basename(projectPath),
@@ -1006,12 +1262,12 @@ app.post('/api/contact', express.json({ limit: '1mb' }), async (req, res) => {
 
         const topicLabels = {
             'free-audit': 'Free AI Slop Audit request',
-            'certificate': 'Executive Risk Certificate ($499)',
+            certificate: 'Executive Risk Certificate ($499)',
             'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
-            'enterprise': 'Enterprise contract ($50,000+ annual)',
+            enterprise: 'Enterprise contract ($50,000+ annual)',
             'invoice-w9': 'Request Invoice / W-9',
-            'quarterly': 'Quarterly / Annual Protection Pack',
-            'general': 'General compliance question'
+            quarterly: 'Quarterly / Annual Protection Pack',
+            general: 'General compliance question'
         };
         const topicLabel = topicLabels[topic] || topic;
 
@@ -1048,11 +1304,16 @@ app.post('/api/contact', express.json({ limit: '1mb' }), async (req, res) => {
         });
 
         if (emailResult.sent) {
-            logger.info(`[Contact] Email sent to ${notifyEmail} via ${emailResult.provider || 'smtp'} (from ${contactEmail})`);
+            logger.info(
+                `[Contact] Email sent to ${notifyEmail} via ${emailResult.provider || 'smtp'} (from ${contactEmail})`
+            );
             res.json({ success: true, message: 'Message sent — we reply within one business day.' });
         } else if (emailResult.queued) {
             logger.info(`[Contact] Email queued for ${notifyEmail} (from ${contactEmail})`);
-            res.json({ success: true, message: 'Message received — delivery queued. We reply within one business day.' });
+            res.json({
+                success: true,
+                message: 'Message received — delivery queued. We reply within one business day.'
+            });
         } else {
             logger.error('[Contact] Email failed:', emailResult.error);
             res.status(500).json({ error: 'Failed to send message. Please try again or email us directly.' });
@@ -1115,7 +1376,7 @@ app.post('/api/simplebeacon/upload-report', express.json({ limit: '10mb' }), (re
         const metrics = payload.metrics || {};
         const highRiskCount = Number(metrics.highRiskCount || 0);
         const mediumRiskCount = Number(metrics.mediumRiskCount || 0);
-        let score = Math.max(0, 100 - (highRiskCount * 15) - (mediumRiskCount * 4));
+        let score = Math.max(0, 100 - highRiskCount * 15 - mediumRiskCount * 4);
         if (highRiskCount > 0) score = Math.min(score, 55);
         const grade = computeCliGrade(score, highRiskCount);
         const reportId = 'rep_' + crypto.randomBytes(12).toString('hex');
@@ -1230,19 +1491,26 @@ function verifyLicenseToken(token, secret) {
     }
 }
 
-
 // ── Dashboard API endpoints ──
 app.get('/api/dashboard/stats', (_req, res) => {
     try {
         const db = require('./lib/db.cjs');
         const customers = db.getDb().prepare('SELECT COUNT(*) as count FROM customers').get();
-        const subs = db.getDb().prepare('SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = ?').get('active');
-        const totalCerts = db.getDb().prepare('SELECT COUNT(*) as count FROM token_nodes WHERE status = ?').get('active');
+        const subs = db
+            .getDb()
+            .prepare('SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = ?')
+            .get('active');
+        const totalCerts = db
+            .getDb()
+            .prepare('SELECT COUNT(*) as count FROM token_nodes WHERE status = ?')
+            .get('active');
 
         const sbDir = path.join(__dirname, '.simplebeacon');
         let reportFiles = [];
         try {
-            reportFiles = fsSync.readdirSync(sbDir).filter(f => f.endsWith('-report.json') || f.endsWith('report.json'));
+            reportFiles = fsSync
+                .readdirSync(sbDir)
+                .filter(f => f.endsWith('-report.json') || f.endsWith('report.json'));
         } catch (_) {}
 
         res.json({
@@ -1264,7 +1532,11 @@ app.get('/api/dashboard/reports', (_req, res) => {
         const sbDir = path.join(__dirname, '.simplebeacon');
         const files = [];
         try {
-            const names = fsSync.readdirSync(sbDir).filter(f => f.endsWith('.json') && (f.includes('report') || f.includes('scan') || f.includes('assessment')));
+            const names = fsSync
+                .readdirSync(sbDir)
+                .filter(
+                    f => f.endsWith('.json') && (f.includes('report') || f.includes('scan') || f.includes('assessment'))
+                );
             for (const name of names.slice(0, 50)) {
                 try {
                     const data = JSON.parse(fsSync.readFileSync(path.join(sbDir, name), 'utf8'));
@@ -1295,7 +1567,15 @@ app.get('/api/dashboard/customer', (req, res) => {
         const db = require('./lib/db.cjs');
         const customer = db.getCustomerByApiKey(apiKey);
         if (!customer) return res.status(404).json({ error: 'Customer not found' });
-        res.json({ success: true, customer: { email: customer.email, tier: customer.tier, status: customer.subscription_status, createdAt: customer.created_at } });
+        res.json({
+            success: true,
+            customer: {
+                email: customer.email,
+                tier: customer.tier,
+                status: customer.subscription_status,
+                createdAt: customer.created_at
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -1309,7 +1589,9 @@ app.post('/api/ai-context', express.json({ limit: '2mb' }), (req, res) => {
             return res.status(400).json({ error: 'No report data provided' });
         }
         const ctxDir = path.join(__dirname, '.simplebeacon');
-        try { fsSync.mkdirSync(ctxDir, { recursive: true }); } catch (_) {}
+        try {
+            fsSync.mkdirSync(ctxDir, { recursive: true });
+        } catch (_) {}
         const outPath = path.join(ctxDir, 'ai-context-latest.json');
         const payload = {
             type: 'ai-context',
@@ -1345,9 +1627,10 @@ app.post('/api/auth/token-status', express.json(), (req, res) => {
         }
         const db = require('./lib/db.cjs');
         const customer = db.getDb().prepare('SELECT * FROM customers WHERE email = ?').get(payload.email);
-        const hasSubscription = db.getDb().prepare(
-            'SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = ? AND status = ?'
-        ).get(payload.email, 'active');
+        const hasSubscription = db
+            .getDb()
+            .prepare('SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = ? AND status = ?')
+            .get(payload.email, 'active');
         res.json({
             registered: !!customer,
             valid: true,
@@ -1376,8 +1659,13 @@ app.get('/pricing.html', (req, res) => {
 app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-app.use('/simplebeacon-dashboard', express.static(path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'), { index: 'index.html', dotfiles: 'deny' }));
-
+app.use(
+    '/simplebeacon-dashboard',
+    express.static(path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'), {
+        index: 'index.html',
+        dotfiles: 'deny'
+    })
+);
 
 // Stub path-health endpoint (used by dashboard pathHealthService)
 app.get('/api/metrics/path-health', (_req, res) => {
@@ -1385,13 +1673,15 @@ app.get('/api/metrics/path-health', (_req, res) => {
 });
 
 // ── Dashboard stub endpoints (prevent 404 noise from AnalyzeView) ──
-app.get('/api/simplebeacon/audit', (_req, res) => res.json({
-    success: true,
-    generatedAt: new Date().toISOString(),
-    assessment: { score: 100, status: 'ok', findings: [] },
-    npmAudit: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 } },
-    pageSamples: { fictionPatterns: {}, qualityMetrics: {}, baselineComparison: {} }
-}));
+app.get('/api/simplebeacon/audit', (_req, res) =>
+    res.json({
+        success: true,
+        generatedAt: new Date().toISOString(),
+        assessment: { score: 100, status: 'ok', findings: [] },
+        npmAudit: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 } },
+        pageSamples: { fictionPatterns: {}, qualityMetrics: {}, baselineComparison: {} }
+    })
+);
 app.get('/api/prompts/get', (req, res) => res.json({ prompts: [], userId: req.query.userId || 'anonymous' }));
 app.get('/api/auth/me', (_req, res) => res.json({ authenticated: false, user: null }));
 app.get('/api/platform/status', (_req, res) => res.json({ online: true, status: 'ok', version: '1.3.0' }));
@@ -1404,19 +1694,30 @@ app.get('/api/help', (_req, res) => res.json({ topics: [], faqs: [] }));
 app.get('/api/quality/overview', (_req, res) => res.json({ score: 100, metrics: {}, status: 'ok' }));
 app.get('/api/optimization/health', (_req, res) => res.json({ healthy: true, checks: [] }));
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'simplebeacon' }));
-app.get('/api/merger-tool/reduction-scan', (_req, res) => res.json({
-    success: true,
-    reportVersion: 2,
-    summary: { totalFiles: 0, totalFolders: 0, filesAnalyzed: 0, duplicateGroups: 0, duplicateFiles: 0, monorepoMarkers: [], repositoryFilesTotal: 0, repositoryFoldersTotal: 0 },
-    repositoryInventory: null,
-    duplicateGroups: [],
-    duplicateFiles: [],
-    monorepoMarkers: [],
-    reductions: [],
-    candidates: [],
-    totalMerges: 0,
-    estimatedSavings: 0
-}));
+app.get('/api/merger-tool/reduction-scan', (_req, res) =>
+    res.json({
+        success: true,
+        reportVersion: 2,
+        summary: {
+            totalFiles: 0,
+            totalFolders: 0,
+            filesAnalyzed: 0,
+            duplicateGroups: 0,
+            duplicateFiles: 0,
+            monorepoMarkers: [],
+            repositoryFilesTotal: 0,
+            repositoryFoldersTotal: 0
+        },
+        repositoryInventory: null,
+        duplicateGroups: [],
+        duplicateFiles: [],
+        monorepoMarkers: [],
+        reductions: [],
+        candidates: [],
+        totalMerges: 0,
+        estimatedSavings: 0
+    })
+);
 
 // Serve other frontend paths
 // Redirect old /coming-soon/ paths to root
@@ -1469,7 +1770,7 @@ app.use((err, req, res, next) => {
 });
 
 // Process-level error handlers — prevent crashes from unhandled errors
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
     logger.error('[FATAL] Uncaught exception:', err.message);
     // Graceful shutdown: give logger time to flush, then exit
     setTimeout(() => process.exit(1), 500);
@@ -1513,7 +1814,7 @@ try {
                 });
                 if (result.sent) {
                     logger.info(`[EmailRetry] Sent ${email.id} via ${result.provider}`);
-                } else if (result.queued && (email.attempts + 1) >= 3) {
+                } else if (result.queued && email.attempts + 1 >= 3) {
                     emailDb.updateEmailStatus(email.id, 'failed', result.error || 'Max retries exceeded');
                     logger.error(`[EmailRetry] Email ${email.id} permanently failed after max retries.`);
                 }
@@ -1525,9 +1826,12 @@ try {
     }
 
     retryPendingEmails().catch(err => logger.error('[EmailRetry] Startup error:', err.message));
-    setInterval(() => {
-        retryPendingEmails().catch(err => logger.error('[EmailRetry] Cycle error:', err.message));
-    }, 5 * 60 * 1000);
+    setInterval(
+        () => {
+            retryPendingEmails().catch(err => logger.error('[EmailRetry] Cycle error:', err.message));
+        },
+        5 * 60 * 1000
+    );
 
     logger.info('[EmailRetry] Background retry worker started (5 min interval).');
 } catch (err) {

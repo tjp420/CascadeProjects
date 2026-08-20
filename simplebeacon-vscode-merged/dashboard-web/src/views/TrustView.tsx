@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BadgeCheck, ShieldCheck, Activity, FileCheck, TrendingUp, RefreshCw, AlertCircle, Download } from 'lucide-react';
+import {
+  BadgeCheck,
+  ShieldCheck,
+  Activity,
+  FileCheck,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+  Download,
+} from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 
 type SeverityCounts = Record<string, number>;
@@ -110,7 +119,9 @@ export function TrustView() {
   }, [apiBase]);
 
   // simplebeacon-ignore: framework-practices
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handlePublish = async () => {
     try {
@@ -139,7 +150,11 @@ export function TrustView() {
 
   const fmtDate = (s: string | null | undefined) => {
     if (!s) return '—';
-    try { return new Date(s).toLocaleString(); } catch { return s; }
+    try {
+      return new Date(s).toLocaleString();
+    } catch {
+      return s;
+    }
   };
 
   const renderScope = (scope: TrustScope, title: string) => {
@@ -148,9 +163,7 @@ export function TrustView() {
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{title}</CardTitle>
-          <Badge variant={scope.gatePass ? 'default' : 'destructive'}>
-            {scope.gatePass ? 'PASS' : 'FAIL'}
-          </Badge>
+          <Badge variant={scope.gatePass ? 'default' : 'destructive'}>{scope.gatePass ? 'PASS' : 'FAIL'}</Badge>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -173,11 +186,13 @@ export function TrustView() {
           </div>
           {scope.severityCounts && Object.keys(scope.severityCounts).length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {Object.entries(scope.severityCounts).filter(([,v]) => v > 0).map(([k, v]) => (
-                <Badge key={k} variant={k === 'critical' ? 'destructive' : k === 'high' ? 'destructive' : 'outline'}>
-                  {k}: {v}
-                </Badge>
-              ))}
+              {Object.entries(scope.severityCounts)
+                .filter(([, v]) => v > 0)
+                .map(([k, v]) => (
+                  <Badge key={k} variant={k === 'critical' ? 'destructive' : k === 'high' ? 'destructive' : 'outline'}>
+                    {k}: {v}
+                  </Badge>
+                ))}
             </div>
           )}
           {scope.rulesEnabled && scope.rulesEnabled.length > 0 && (
@@ -185,17 +200,15 @@ export function TrustView() {
               <div className="text-xs text-foreground-muted mb-1">Rules Enabled</div>
               <div className="flex flex-wrap gap-1">
                 {scope.rulesEnabled.map((r) => (
-                  <Badge key={r} variant="secondary" className="text-xs">{r}</Badge>
+                  <Badge key={r} variant="secondary" className="text-xs">
+                    {r}
+                  </Badge>
                 ))}
               </div>
             </div>
           )}
-          {scope.scopeNote && (
-            <p className="text-xs text-foreground-muted">{scope.scopeNote}</p>
-          )}
-          <div className="text-xs text-foreground-muted">
-            Last scan: {fmtDate(scope.generatedAt)}
-          </div>
+          {scope.scopeNote && <p className="text-xs text-foreground-muted">{scope.scopeNote}</p>}
+          <div className="text-xs text-foreground-muted">Last scan: {fmtDate(scope.generatedAt)}</div>
         </CardContent>
       </Card>
     );
@@ -316,7 +329,8 @@ export function TrustView() {
             </div>
           </div>
           <div className="text-xs text-foreground-muted">
-            Verification method: {verification.verificationMethod} · Source: {verification.headlineSource} · {verification.headlineReason}
+            Verification method: {verification.verificationMethod} · Source: {verification.headlineSource} ·{' '}
+            {verification.headlineReason}
           </div>
         </CardContent>
       </Card>
@@ -353,7 +367,10 @@ export function TrustView() {
               <div className="mt-4 space-y-2">
                 <div className="text-xs text-foreground-muted">Recent Snapshots</div>
                 {history.entries.slice(0, 5).map((e) => (
-                  <div key={e.verificationId} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <div
+                    key={e.verificationId}
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                  >
                     <div className="flex items-center gap-2">
                       <Badge variant={e.gatePass ? 'default' : 'destructive'} className="text-xs">
                         {e.gatePass ? 'PASS' : 'FAIL'}

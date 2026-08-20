@@ -1,6 +1,7 @@
 # SimpleBeacon Autopilot Roadmap
 
 ## Goal
+
 Reduce human intervention to near-zero. A customer buys a plan, connects their repo, and receives certificates automatically without returning to the dashboard.
 
 ---
@@ -43,15 +44,17 @@ if (hasValidToken() && localStorage.getItem('sb_autoCert') !== 'false') {
 **File:** `js/dashboard/main.js`
 
 Add checkbox near submit button:
+
 ```html
 <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-top:8px;">
-  <input type="checkbox" id="autoCertCheckbox" checked> Auto-generate certificate when scan completes
+    <input type="checkbox" id="autoCertCheckbox" checked /> Auto-generate certificate when scan completes
 </label>
 ```
 
 Persist preference:
+
 ```javascript
-document.getElementById('autoCertCheckbox')?.addEventListener('change', (e) => {
+document.getElementById('autoCertCheckbox')?.addEventListener('change', e => {
     localStorage.setItem('sb_autoCert', e.target.checked);
 });
 ```
@@ -100,14 +103,15 @@ router.post('/api/webhook/github', async (req, res) => {
 **File:** `certificate-upload.html`
 
 Add section:
+
 ```html
 <div id="githubConnectSection" style="margin-top:16px;">
-  <button id="connectGitHubBtn">Connect GitHub Repository</button>
-  <div id="connectedRepos" style="display:none;">
-    <p>Auto-scan on every push to:</p>
-    <ul id="repoList"></ul>
-    <label><input type="checkbox" id="autoScanOnPush" checked> Auto-scan on push</label>
-  </div>
+    <button id="connectGitHubBtn">Connect GitHub Repository</button>
+    <div id="connectedRepos" style="display:none;">
+        <p>Auto-scan on every push to:</p>
+        <ul id="repoList"></ul>
+        <label><input type="checkbox" id="autoScanOnPush" checked /> Auto-scan on push</label>
+    </div>
 </div>
 ```
 
@@ -122,6 +126,7 @@ Add section:
 **File:** `routes/checkout.cjs` — extend `/api/test-checkout`
 
 Store email + token mapping in a JSON file or SQLite:
+
 ```javascript
 const customerDb = path.join(__dirname, '..', 'data', 'customers.json');
 function saveCustomer({ email, token, tier, repo }) {
@@ -136,6 +141,7 @@ function saveCustomer({ email, token, tier, repo }) {
 **New endpoint:** `POST /api/scan-complete`
 
 Called by browser after scan (or by worker after server-side scan):
+
 ```javascript
 router.post('/api/scan-complete', async (req, res) => {
     const { token, reportHash, grade } = req.body;
@@ -166,18 +172,18 @@ router.post('/api/scan-complete', async (req, res) => {
 ```yaml
 name: 'SimpleBeacon Scan'
 inputs:
-  token:
-    description: 'SimpleBeacon license token'
-    required: true
+    token:
+        description: 'SimpleBeacon license token'
+        required: true
 runs:
-  using: 'composite'
-  steps:
-    - run: npx simplebeacon-cli scan --token ${{ inputs.token }} --format json --output report.json
-    - run: npx simplebeacon-cli certify --token ${{ inputs.token }} --report report.json
-    - run: |
-        curl -X POST https://simplebeacon.onrender.com/api/scan-complete \
-          -H "Content-Type: application/json" \
-          -d "{\"token\":\"${{ inputs.token }}\",\"grade\":\"$(cat grade.txt)\"}"
+    using: 'composite'
+    steps:
+        - run: npx simplebeacon-cli scan --token ${{ inputs.token }} --format json --output report.json
+        - run: npx simplebeacon-cli certify --token ${{ inputs.token }} --report report.json
+        - run: |
+              curl -X POST https://simplebeacon.onrender.com/api/scan-complete \
+                -H "Content-Type: application/json" \
+                -d "{\"token\":\"${{ inputs.token }}\",\"grade\":\"$(cat grade.txt)\"}"
 ```
 
 ### 4.2 NPM CLI Package
@@ -232,14 +238,18 @@ async function processQueue() {
 ### 5.2 Server-Side Scan (Optional)
 
 For customers who don't want browser scanning, provide server-side option:
+
 - Clone repo from GitHub webhook
 - Run `simplebeacon-cli` in isolated process
 - Generate certificate server-side
 - Email result
 
 **Note:** This changes the "zero upload" promise. Make it opt-in:
+
 ```html
-<label><input type="checkbox" id="serverSideScan"> Run scan on SimpleBeacon servers (faster, no browser needed)</label>
+<label
+    ><input type="checkbox" id="serverSideScan" /> Run scan on SimpleBeacon servers (faster, no browser needed)</label
+>
 ```
 
 ---
@@ -251,6 +261,7 @@ For customers who don't want browser scanning, provide server-side option:
 **File:** `routes/checkout.cjs`
 
 On `eu_ai_act_sprint` purchase:
+
 ```javascript
 const ticketId = 'EUAIS-' + Date.now().toString(36).toUpperCase();
 const ticket = {
@@ -259,14 +270,22 @@ const ticket = {
     projectName,
     status: 'AWAITING_SCAN',
     createdAt: Date.now(),
-    expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000),
+    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
     analystNotes: []
 };
 saveTicket(ticket);
 
 // Auto-email analyst + customer
-try { await sendEmail({ to: ANALYST_EMAIL, subject: `New EU AI Act Sprint: ${ticketId}`, text: JSON.stringify(ticket) }); } catch(e){}
-try { await sendEmail({ to: email, subject: `EU AI Act Sprint Started — ${ticketId}`, text: `Your 30-day analyst support begins now. Ticket: ${ticketId}` }); } catch(e){}
+try {
+    await sendEmail({ to: ANALYST_EMAIL, subject: `New EU AI Act Sprint: ${ticketId}`, text: JSON.stringify(ticket) });
+} catch (e) {}
+try {
+    await sendEmail({
+        to: email,
+        subject: `EU AI Act Sprint Started — ${ticketId}`,
+        text: `Your 30-day analyst support begins now. Ticket: ${ticketId}`
+    });
+} catch (e) {}
 ```
 
 ### 6.2 Auto-Analyst Dashboard
@@ -276,9 +295,9 @@ try { await sendEmail({ to: email, subject: `EU AI Act Sprint Started — ${tick
 - Poll `/api/tickets` every 30s
 - Show: ticket ID, customer, days remaining, scan status, actions
 - Pre-fill template responses:
-  - "Scan complete, no high-risk indicators found."
-  - "Article 14 oversight docs missing — please see attached checklist."
-  - "Risk classification confirmed: limited risk. Certificate finalized."
+    - "Scan complete, no high-risk indicators found."
+    - "Article 14 oversight docs missing — please see attached checklist."
+    - "Risk classification confirmed: limited risk. Certificate finalized."
 
 ### 6.3 Auto-Responder for Common Cases
 
@@ -316,73 +335,79 @@ router.post('/api/tickets/:id/respond', async (req, res) => {
 const cron = require('node-cron'); // or setInterval
 
 // Daily check for tokens expiring in 7 days
-setInterval(async () => {
-    const customers = loadCustomers();
-    for (const c of customers) {
-        const daysLeft = (c.expiresAt - Date.now()) / (1000 * 60 * 60 * 24);
-        if (daysLeft < 7 && daysLeft > 6) {
-            await sendEmail({
-                to: c.email,
-                subject: 'Your SimpleBeacon token expires in 7 days',
-                text: `Re-scan before ${new Date(c.expiresAt).toLocaleDateString()} to maintain your certificate.`
-            });
+setInterval(
+    async () => {
+        const customers = loadCustomers();
+        for (const c of customers) {
+            const daysLeft = (c.expiresAt - Date.now()) / (1000 * 60 * 60 * 24);
+            if (daysLeft < 7 && daysLeft > 6) {
+                await sendEmail({
+                    to: c.email,
+                    subject: 'Your SimpleBeacon token expires in 7 days',
+                    text: `Re-scan before ${new Date(c.expiresAt).toLocaleDateString()} to maintain your certificate.`
+                });
+            }
         }
-    }
-}, 24 * 60 * 60 * 1000);
+    },
+    24 * 60 * 60 * 1000
+);
 ```
 
 ### 7.2 Weekly Auto-Scan for Connected Repos
 
 ```javascript
 // Every Monday 9am
-setInterval(async () => {
-    const now = new Date();
-    if (now.getDay() === 1 && now.getHours() === 9) {
-        const connected = loadCustomers().filter(c => c.githubRepo);
-        for (const c of connected) {
-            await enqueueScanJob({ repo: c.githubRepo, token: c.token, source: 'scheduled' });
+setInterval(
+    async () => {
+        const now = new Date();
+        if (now.getDay() === 1 && now.getHours() === 9) {
+            const connected = loadCustomers().filter(c => c.githubRepo);
+            for (const c of connected) {
+                await enqueueScanJob({ repo: c.githubRepo, token: c.token, source: 'scheduled' });
+            }
         }
-    }
-}, 60 * 60 * 1000); // Check every hour
+    },
+    60 * 60 * 1000
+); // Check every hour
 ```
 
 ---
 
 ## Quick Wins (Do These First — 1 Day)
 
-| # | Change | File | Impact |
-|---|--------|------|--------|
-| 1 | Auto-generate certificate after scan | `scanner-engine.js` | -1 manual click |
-| 2 | Persist token in URL on certificate page | `certificate-upload.html` | Users don't re-paste token |
-| 3 | Auto-email certificate on generation | `certificate-module.js` + new endpoint | No manual download |
-| 4 | Add "Copy Token" button with one-click | `pricing.html` | Easier token handoff |
-| 5 | Pre-fill token from URL param | `certificate-upload.html` | Zero paste if coming from email |
+| #   | Change                                   | File                                   | Impact                          |
+| --- | ---------------------------------------- | -------------------------------------- | ------------------------------- |
+| 1   | Auto-generate certificate after scan     | `scanner-engine.js`                    | -1 manual click                 |
+| 2   | Persist token in URL on certificate page | `certificate-upload.html`              | Users don't re-paste token      |
+| 3   | Auto-email certificate on generation     | `certificate-module.js` + new endpoint | No manual download              |
+| 4   | Add "Copy Token" button with one-click   | `pricing.html`                         | Easier token handoff            |
+| 5   | Pre-fill token from URL param            | `certificate-upload.html`              | Zero paste if coming from email |
 
 ---
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `routes/webhook.cjs` | GitHub/GitLab push webhook receiver |
-| `routes/tickets.cjs` | Analyst ticket CRUD + auto-responder |
-| `lib/scan-queue.js` | Background job queue |
-| `lib/scheduler.js` | Cron-like recurring scans |
-| `admin/analyst-dashboard.html` | Analyst UI |
-| `js/github-connect.js` | GitHub OAuth flow |
-| `packages/simplebeacon-cli/` | NPM CLI for CI/CD |
-| `.github/actions/simplebeacon-scan/` | GitHub Action |
+| File                                 | Purpose                              |
+| ------------------------------------ | ------------------------------------ |
+| `routes/webhook.cjs`                 | GitHub/GitLab push webhook receiver  |
+| `routes/tickets.cjs`                 | Analyst ticket CRUD + auto-responder |
+| `lib/scan-queue.js`                  | Background job queue                 |
+| `lib/scheduler.js`                   | Cron-like recurring scans            |
+| `admin/analyst-dashboard.html`       | Analyst UI                           |
+| `js/github-connect.js`               | GitHub OAuth flow                    |
+| `packages/simplebeacon-cli/`         | NPM CLI for CI/CD                    |
+| `.github/actions/simplebeacon-scan/` | GitHub Action                        |
 
 ---
 
 ## Success Metrics
 
-| Metric | Before | After Autopilot |
-|--------|--------|-----------------|
-| Manual clicks per certificate | 7 | 1 (buy plan) |
-| Time from push to certificate | 15 min | 3 min |
-| Analyst tickets needing human | 100% | ~20% (high-risk only) |
-| Customer re-engagement rate | Low | High (weekly auto-scans) |
+| Metric                        | Before | After Autopilot          |
+| ----------------------------- | ------ | ------------------------ |
+| Manual clicks per certificate | 7      | 1 (buy plan)             |
+| Time from push to certificate | 15 min | 3 min                    |
+| Analyst tickets needing human | 100%   | ~20% (high-risk only)    |
+| Customer re-engagement rate   | Low    | High (weekly auto-scans) |
 
 ---
 

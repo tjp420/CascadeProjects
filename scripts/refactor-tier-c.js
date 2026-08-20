@@ -1,9 +1,10 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const fs = require('fs');
+const fs = require("fs");
 
 // === structural-intent-scanner.js ===
-const scannerFile = 'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/structural-intent-scanner.js';
-let scanner = fs.readFileSync(scannerFile, 'utf8');
+const scannerFile =
+  "C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/structural-intent-scanner.js";
+let scanner = fs.readFileSync(scannerFile, "utf8");
 
 // 1. Extract findMatchingBrace before extractJsFunctions
 const findMatchingBraceFunc = `function findMatchingBrace(content, openBrace) {
@@ -21,8 +22,8 @@ const findMatchingBraceFunc = `function findMatchingBrace(content, openBrace) {
 `;
 
 scanner = scanner.replace(
-  'function extractJsFunctions(content) {',
-  findMatchingBraceFunc + 'function extractJsFunctions(content) {'
+  "function extractJsFunctions(content) {",
+  findMatchingBraceFunc + "function extractJsFunctions(content) {",
 );
 
 // 2. Simplify the brace-matching block inside extractJsFunctions
@@ -32,7 +33,7 @@ scanner = scanner.replace(
             if (openBrace === -1) continue;
             const end = findMatchingBrace(content, openBrace);
             if (end === -1) continue;
-            const body = content.slice(openBrace + 1, end);`
+            const body = content.slice(openBrace + 1, end);`,
 );
 
 // 3. Extract createCredentialFinding and flatten scanCredentialDictStubs
@@ -69,24 +70,25 @@ function scanCredentialDictStubs(content, filePath, language) {
     }
 
     return findings;
-}`
+}`,
 );
 
-fs.writeFileSync(scannerFile, scanner, 'utf8');
-console.log('✓ structural-intent-scanner.js');
+fs.writeFileSync(scannerFile, scanner, "utf8");
+console.log("✓ structural-intent-scanner.js");
 
 // === vector-cache.js ===
-const vectorFile = 'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/vector-cache.js';
-let vector = fs.readFileSync(vectorFile, 'utf8');
+const vectorFile =
+  "C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/vector-cache.js";
+let vector = fs.readFileSync(vectorFile, "utf8");
 
 // Extract countMatches helper
 vector = vector.replace(
-  'function extractFeatureVector(content, structuralFindings = []) {',
+  "function extractFeatureVector(content, structuralFindings = []) {",
   `function countMatches(content, pattern) {
     return (content.match(pattern) || []).length;
 }
 
-function extractFeatureVector(content, structuralFindings = []) {`
+function extractFeatureVector(content, structuralFindings = []) {`,
 );
 
 // Replace repeated match patterns with countMatches calls
@@ -100,10 +102,10 @@ vector = vector.replace(
     const genericReturns = countMatches(content, new RegExp(\`\\breturn\\s+(\${genericNames})\\b\`, 'gi'));
     const dictAssigns = countMatches(content, new RegExp(\`\\b(\${genericNames})\\s*=\\s*\\{\`, 'gi'));
     const credentialKeys = countMatches(content, /['"]?(secret|token|pass|key|api_key)['"]?\\s*:/gi);
-    const placeholderVals = countMatches(content, /your_|changeme|placeholder/gi);`
+    const placeholderVals = countMatches(content, /your_|changeme|placeholder/gi);`,
 );
 
-fs.writeFileSync(vectorFile, vector, 'utf8');
-console.log('✓ vector-cache.js');
+fs.writeFileSync(vectorFile, vector, "utf8");
+console.log("✓ vector-cache.js");
 
-console.log('\nDone.');
+console.log("\nDone.");

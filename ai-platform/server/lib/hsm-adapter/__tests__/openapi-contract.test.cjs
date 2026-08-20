@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * OpenAPI Specification Contract Tests
@@ -14,28 +14,36 @@
  * - S: No PII, authorization, no real identifiers
  */
 
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml');
-const request = require('supertest');
-const express = require('express');
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+const request = require("supertest");
+const express = require("express");
 
-jest.mock('../../../middleware/authorize.cjs', () => ({
+jest.mock("../../../middleware/authorize.cjs", () => ({
   authorize: () => (req, res, next) => next(),
 }));
 
-jest.mock('../../../lib/admin-throttle.cjs', () => ({
+jest.mock("../../../lib/admin-throttle.cjs", () => ({
   middleware: (req, res, next) => next(),
 }));
 
-jest.mock('../../../lib/hsm-vault.cjs', () => ({
-  hsmHandshake: jest.fn().mockResolvedValue({ status: 'ok' }),
+jest.mock("../../../lib/hsm-vault.cjs", () => ({
+  hsmHandshake: jest.fn().mockResolvedValue({ status: "ok" }),
 }));
 
-const OPENAPI_YML = path.join(__dirname, '..', '..', '..', '..', 'api', 'openapi.yaml');
+const OPENAPI_YML = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "api",
+  "openapi.yaml",
+);
 
 function loadOpenApiDoc() {
-  return yaml.load(fs.readFileSync(OPENAPI_YML, 'utf8'));
+  return yaml.load(fs.readFileSync(OPENAPI_YML, "utf8"));
 }
 
 function createTestApp() {
@@ -43,53 +51,62 @@ function createTestApp() {
   app.use(express.json());
   const cacheKeys = Object.keys(require.cache || {});
   for (const k of cacheKeys) {
-    if (k.endsWith('/server/routes/hsm-vault-routes.cjs') || k.endsWith('\\server\\routes\\hsm-vault-routes.cjs')) {
+    if (
+      k.endsWith("/server/routes/hsm-vault-routes.cjs") ||
+      k.endsWith("\\server\\routes\\hsm-vault-routes.cjs")
+    ) {
       delete require.cache[k];
     }
   }
-  const vaultRoutes = require('../../../routes/hsm-vault-routes.cjs');
-  app.use('/api/vault', vaultRoutes);
+  const vaultRoutes = require("../../../routes/hsm-vault-routes.cjs");
+  app.use("/api/vault", vaultRoutes);
   return app;
 }
 
 // Expected governance paths in OpenAPI spec
 const GOVERNANCE_PREFIXES = [
-  'cluster-isolation',
-  'bft-shard-sync',
-  'distributed-consensus-coordinator',
-  'cross-cluster-migration',
-  'cluster-key-reconciliation',
-  'multiparty-re-keying',
-  'replication-tenant-isolation',
-  'zk-verification-isolation',
+  "cluster-isolation",
+  "bft-shard-sync",
+  "distributed-consensus-coordinator",
+  "cross-cluster-migration",
+  "cluster-key-reconciliation",
+  "multiparty-re-keying",
+  "replication-tenant-isolation",
+  "zk-verification-isolation",
 ];
 
-const SIEM_PATHS = ['/audit/telemetry', '/audit/log', '/audit/export', '/audit/verify-integrity', '/audit/stats'];
+const SIEM_PATHS = [
+  "/audit/telemetry",
+  "/audit/log",
+  "/audit/export",
+  "/audit/verify-integrity",
+  "/audit/stats",
+];
 
 const EXPECTED_TAGS = [
-  'Track114ClusterIsolation',
-  'Track115BftShardSync',
-  'Track118DistributedConsensusCoordinator',
-  'Track119CrossClusterMigration',
-  'Track120ClusterKeyReconciliation',
-  'Track121MultipartyReKeying',
-  'Track124ReplicationTenantIsolation',
-  'Track125ZkVerificationIsolation',
-  'SIEMAudit',
+  "Track114ClusterIsolation",
+  "Track115BftShardSync",
+  "Track118DistributedConsensusCoordinator",
+  "Track119CrossClusterMigration",
+  "Track120ClusterKeyReconciliation",
+  "Track121MultipartyReKeying",
+  "Track124ReplicationTenantIsolation",
+  "Track125ZkVerificationIsolation",
+  "SIEMAudit",
 ];
 
 const ORIGINAL_TRACK79_PATHS = [
-  '/policies',
-  '/policies/{policy_id}',
-  '/policies/{policy_id}/generate-keys',
-  '/keys/{policy_id}/proactive-refresh',
-  '/vrf/evaluate',
-  '/vrf/verify',
-  '/nizk/generate',
-  '/nizk/verify',
+  "/policies",
+  "/policies/{policy_id}",
+  "/policies/{policy_id}/generate-keys",
+  "/keys/{policy_id}/proactive-refresh",
+  "/vrf/evaluate",
+  "/vrf/verify",
+  "/nizk/generate",
+  "/nizk/verify",
 ];
 
-describe('OpenAPI Specification Contract Tests', () => {
+describe("OpenAPI Specification Contract Tests", () => {
   let doc;
   let app;
 
@@ -102,9 +119,9 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── L1-01: YAML validity ───────────────────────────────────────────
-  test('L1-01: openapi.yaml parses as valid YAML with OpenAPI 3.1.0 structure', () => {
+  test("L1-01: openapi.yaml parses as valid YAML with OpenAPI 3.1.0 structure", () => {
     expect(doc).toBeDefined();
-    expect(doc.openapi).toBe('3.1.0');
+    expect(doc.openapi).toBe("3.1.0");
     expect(doc.info).toBeDefined();
     expect(doc.paths).toBeDefined();
     expect(doc.components).toBeDefined();
@@ -113,114 +130,130 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── L1-02: Syntax check on test file itself ────────────────────────
-  test('L1-02: openapi-contract.test.cjs syntax is valid (self-referential)', () => {
+  test("L1-02: openapi-contract.test.cjs syntax is valid (self-referential)", () => {
     // If this test runs, the file syntax is valid
     expect(true).toBe(true);
   });
 
   // ── L2-01: All 18 governance endpoints are documented ──────────────
-  test('L2-01: all 18 Track 114-121 governance endpoints are documented in OpenAPI spec', () => {
+  test("L2-01: all 18 Track 114-121 governance endpoints are documented in OpenAPI spec", () => {
     for (const prefix of GOVERNANCE_PREFIXES) {
-      const policyPath = '/vault/' + prefix + '/policy';
-      const validatePath = '/vault/' + prefix + '/policy/validate';
-      const telemetryPath = '/vault/' + prefix + '/telemetry';
+      const policyPath = "/vault/" + prefix + "/policy";
+      const validatePath = "/vault/" + prefix + "/policy/validate";
+      const telemetryPath = "/vault/" + prefix + "/telemetry";
       expect(doc.paths).toHaveProperty(policyPath);
       expect(doc.paths).toHaveProperty(validatePath);
       expect(doc.paths).toHaveProperty(telemetryPath);
       // Verify methods
-      expect(doc.paths[policyPath]).toHaveProperty('get');
-      expect(doc.paths[validatePath]).toHaveProperty('post');
-      expect(doc.paths[telemetryPath]).toHaveProperty('get');
+      expect(doc.paths[policyPath]).toHaveProperty("get");
+      expect(doc.paths[validatePath]).toHaveProperty("post");
+      expect(doc.paths[telemetryPath]).toHaveProperty("get");
     }
   });
 
   // ── L2-02: All 5 SIEM audit endpoints are documented ───────────────
-  test('L2-02: all 5 SIEM audit endpoints are documented in OpenAPI spec', () => {
+  test("L2-02: all 5 SIEM audit endpoints are documented in OpenAPI spec", () => {
     for (const p of SIEM_PATHS) {
       expect(doc.paths).toHaveProperty(p);
-      expect(doc.paths[p]).toHaveProperty('get');
+      expect(doc.paths[p]).toHaveProperty("get");
     }
   });
 
   // ── L2-03: Policy endpoint schema matches actual response ──────────
-  test('L2-03: policy endpoint schema matches actual route handler response (Track 121)', async () => {
-    const res = await request(app).get('/api/vault/multiparty-re-keying/policy?orgId=test-contract').expect(200);
-    expect(res.body).toHaveProperty('success');
-    expect(res.body).toHaveProperty('orgId', 'test-contract');
-    expect(res.body).toHaveProperty('policy');
+  test("L2-03: policy endpoint schema matches actual route handler response (Track 121)", async () => {
+    const res = await request(app)
+      .get("/api/vault/multiparty-re-keying/policy?orgId=test-contract")
+      .expect(200);
+    expect(res.body).toHaveProperty("success");
+    expect(res.body).toHaveProperty("orgId", "test-contract");
+    expect(res.body).toHaveProperty("policy");
     // Verify schema in spec matches
-    const specPath = doc.paths['/vault/multiparty-re-keying/policy'];
-    const schemaRef = specPath.get.responses['200'].content['application/json'].schema.$ref;
-    expect(schemaRef).toBe('#/components/schemas/PolicyResponse');
+    const specPath = doc.paths["/vault/multiparty-re-keying/policy"];
+    const schemaRef =
+      specPath.get.responses["200"].content["application/json"].schema.$ref;
+    expect(schemaRef).toBe("#/components/schemas/PolicyResponse");
     const schema = doc.components.schemas.PolicyResponse;
-    expect(schema.required).toContain('success');
-    expect(schema.required).toContain('orgId');
-    expect(schema.required).toContain('policy');
+    expect(schema.required).toContain("success");
+    expect(schema.required).toContain("orgId");
+    expect(schema.required).toContain("policy");
   });
 
   // ── L2-04: Validate endpoint schema matches actual response ────────
-  test('L2-04: validate endpoint schema matches actual route handler response (Track 121)', async () => {
-    const res = await request(app).post('/api/vault/multiparty-re-keying/policy/validate').send({ minQuorumNodes: 3 }).expect(200);
-    expect(res.body).toHaveProperty('success', true);
-    expect(res.body).toHaveProperty('valid', true);
+  test("L2-04: validate endpoint schema matches actual route handler response (Track 121)", async () => {
+    const res = await request(app)
+      .post("/api/vault/multiparty-re-keying/policy/validate")
+      .send({ minQuorumNodes: 3 })
+      .expect(200);
+    expect(res.body).toHaveProperty("success", true);
+    expect(res.body).toHaveProperty("valid", true);
     // Verify 400 error schema
-    const specPath = doc.paths['/vault/multiparty-re-keying/policy/validate'];
-    const successSchemaRef = specPath.post.responses['200'].content['application/json'].schema.$ref;
-    expect(successSchemaRef).toBe('#/components/schemas/PolicyValidateResponse');
-    const errorSchemaRef = specPath.post.responses['400'].content['application/json'].schema.$ref;
-    expect(errorSchemaRef).toBe('#/components/schemas/PolicyViolationError');
+    const specPath = doc.paths["/vault/multiparty-re-keying/policy/validate"];
+    const successSchemaRef =
+      specPath.post.responses["200"].content["application/json"].schema.$ref;
+    expect(successSchemaRef).toBe(
+      "#/components/schemas/PolicyValidateResponse",
+    );
+    const errorSchemaRef =
+      specPath.post.responses["400"].content["application/json"].schema.$ref;
+    expect(errorSchemaRef).toBe("#/components/schemas/PolicyViolationError");
   });
 
   // ── L2-05: Telemetry endpoint schema matches actual response ───────
-  test('L2-05: telemetry endpoint schema matches actual route handler response (Track 121)', async () => {
-    const res = await request(app).get('/api/vault/multiparty-re-keying/telemetry?orgId=test-telemetry').expect(200);
-    expect(res.body).toHaveProperty('success');
-    expect(res.body).toHaveProperty('orgId', 'test-telemetry');
-    expect(res.body).toHaveProperty('telemetry');
+  test("L2-05: telemetry endpoint schema matches actual route handler response (Track 121)", async () => {
+    const res = await request(app)
+      .get("/api/vault/multiparty-re-keying/telemetry?orgId=test-telemetry")
+      .expect(200);
+    expect(res.body).toHaveProperty("success");
+    expect(res.body).toHaveProperty("orgId", "test-telemetry");
+    expect(res.body).toHaveProperty("telemetry");
     // Verify schema
-    const specPath = doc.paths['/vault/multiparty-re-keying/telemetry'];
-    const schemaRef = specPath.get.responses['200'].content['application/json'].schema.$ref;
-    expect(schemaRef).toBe('#/components/schemas/TelemetryResponse');
+    const specPath = doc.paths["/vault/multiparty-re-keying/telemetry"];
+    const schemaRef =
+      specPath.get.responses["200"].content["application/json"].schema.$ref;
+    expect(schemaRef).toBe("#/components/schemas/TelemetryResponse");
     const schema = doc.components.schemas.TelemetryResponse;
-    expect(schema.required).toContain('success');
-    expect(schema.required).toContain('orgId');
-    expect(schema.required).toContain('telemetry');
+    expect(schema.required).toContain("success");
+    expect(schema.required).toContain("orgId");
+    expect(schema.required).toContain("telemetry");
   });
 
   // ── L2-06: Error response schema matches POLICY_VIOLATION_BLOCKED ──
-  test('L2-06: error response schema matches actual POLICY_VIOLATION_BLOCKED response', async () => {
-    const res = await request(app).post('/api/vault/multiparty-re-keying/policy/validate').send({ minQuorumNodes: 1 }).expect(400);
-    expect(res.body).toHaveProperty('error', 'POLICY_VIOLATION_BLOCKED');
-    expect(res.body).toHaveProperty('message');
+  test("L2-06: error response schema matches actual POLICY_VIOLATION_BLOCKED response", async () => {
+    const res = await request(app)
+      .post("/api/vault/multiparty-re-keying/policy/validate")
+      .send({ minQuorumNodes: 1 })
+      .expect(400);
+    expect(res.body).toHaveProperty("error", "POLICY_VIOLATION_BLOCKED");
+    expect(res.body).toHaveProperty("message");
     // Verify schema
     const schema = doc.components.schemas.PolicyViolationError;
-    expect(schema.required).toContain('error');
-    expect(schema.required).toContain('message');
-    expect(schema.properties.error.example).toBe('POLICY_VIOLATION_BLOCKED');
+    expect(schema.required).toContain("error");
+    expect(schema.required).toContain("message");
+    expect(schema.properties.error.example).toBe("POLICY_VIOLATION_BLOCKED");
   });
 
   // ── L3-01: Existing Track 79 endpoints unchanged ───────────────────
-  test('L3-01: existing Track 79 endpoints are preserved unchanged', () => {
+  test("L3-01: existing Track 79 endpoints are preserved unchanged", () => {
     for (const p of ORIGINAL_TRACK79_PATHS) {
       expect(doc.paths).toHaveProperty(p);
     }
   });
 
   // ── L3-02: OpenAPI tags organize endpoints by track ────────────────
-  test('L3-02: all 7 new track tags are registered in the tags section', () => {
-    const tagNames = doc.tags.map(t => t.name);
+  test("L3-02: all 7 new track tags are registered in the tags section", () => {
+    const tagNames = doc.tags.map((t) => t.name);
     for (const tag of EXPECTED_TAGS) {
       expect(tagNames).toContain(tag);
     }
   });
 
   // ── L3-03: All new paths require authorization ─────────────────────
-  test('L3-03: all new governance and SIEM paths require adminAll authorization', () => {
+  test("L3-03: all new governance and SIEM paths require adminAll authorization", () => {
     const allNewPaths = [];
     for (const prefix of GOVERNANCE_PREFIXES) {
-      allNewPaths.push('/vault/' + prefix + '/policy');
-      allNewPaths.push('/vault/' + prefix + '/policy/validate');
-      allNewPaths.push('/vault/' + prefix + '/telemetry');
+      allNewPaths.push("/vault/" + prefix + "/policy");
+      allNewPaths.push("/vault/" + prefix + "/policy/validate");
+      allNewPaths.push("/vault/" + prefix + "/telemetry");
     }
     for (const p of SIEM_PATHS) {
       allNewPaths.push(p);
@@ -231,16 +264,16 @@ describe('OpenAPI Specification Contract Tests', () => {
       const method = pathObj.get || pathObj.post;
       expect(method).toBeDefined();
       expect(method.security).toBeDefined();
-      expect(method.security[0]).toHaveProperty('adminAll');
+      expect(method.security[0]).toHaveProperty("adminAll");
     }
   });
 
   // ── L3-04: No ghost paths in OpenAPI spec ──────────────────────────
-  test('L3-04: every governance path in spec corresponds to a real route handler', () => {
+  test("L3-04: every governance path in spec corresponds to a real route handler", () => {
     // Verify that the route handler file contains the route patterns
     const routesContent = fs.readFileSync(
-      path.join(__dirname, '..', '..', '..', 'routes', 'hsm-vault-routes.cjs'),
-      'utf8'
+      path.join(__dirname, "..", "..", "..", "routes", "hsm-vault-routes.cjs"),
+      "utf8",
     );
     for (const prefix of GOVERNANCE_PREFIXES) {
       expect(routesContent).toContain("'/" + prefix + "/policy'");
@@ -249,19 +282,21 @@ describe('OpenAPI Specification Contract Tests', () => {
     }
     // Verify SIEM routes
     const auditContent = fs.readFileSync(
-      path.join(__dirname, '..', '..', '..', 'routes', 'audit-routes.cjs'),
-      'utf8'
+      path.join(__dirname, "..", "..", "..", "routes", "audit-routes.cjs"),
+      "utf8",
     );
     for (const siemPath of SIEM_PATHS) {
-      const routePattern = siemPath.replace('/audit/', '/');
+      const routePattern = siemPath.replace("/audit/", "/");
       expect(auditContent).toContain("'" + routePattern + "'");
     }
   });
 
   // ── L3-05: Schema contract test catches response drift ─────────────
-  test('L3-05: schema contract validates actual response keys match schema properties', async () => {
+  test("L3-05: schema contract validates actual response keys match schema properties", async () => {
     // Test Track 120 policy endpoint
-    const res = await request(app).get('/api/vault/cluster-key-reconciliation/policy').expect(200);
+    const res = await request(app)
+      .get("/api/vault/cluster-key-reconciliation/policy")
+      .expect(200);
     const schema = doc.components.schemas.PolicyResponse;
     // Every required schema field must be in the response
     for (const field of schema.required) {
@@ -275,8 +310,8 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── S-01: No credentials or PII in OpenAPI spec examples ───────────
-  test('S-01: no credentials or PII in OpenAPI spec examples', () => {
-    const yamlText = fs.readFileSync(OPENAPI_YML, 'utf8');
+  test("S-01: no credentials or PII in OpenAPI spec examples", () => {
+    const yamlText = fs.readFileSync(OPENAPI_YML, "utf8");
     expect(yamlText).not.toMatch(/password\s*[:=]\s*["']?[^\s"']+/i);
     expect(yamlText).not.toMatch(/api[_-]?key\s*[:=]\s*["']?[^\s"']+/i);
     expect(yamlText).not.toMatch(/secret\s*[:=]\s*["']?[^\s"']+/i);
@@ -284,12 +319,12 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── S-02: All new paths require authorization ──────────────────────
-  test('S-02: all new paths have security requirements defined', () => {
+  test("S-02: all new paths have security requirements defined", () => {
     const allNewPaths = [];
     for (const prefix of GOVERNANCE_PREFIXES) {
-      allNewPaths.push('/vault/' + prefix + '/policy');
-      allNewPaths.push('/vault/' + prefix + '/policy/validate');
-      allNewPaths.push('/vault/' + prefix + '/telemetry');
+      allNewPaths.push("/vault/" + prefix + "/policy");
+      allNewPaths.push("/vault/" + prefix + "/policy/validate");
+      allNewPaths.push("/vault/" + prefix + "/telemetry");
     }
     for (const p of SIEM_PATHS) {
       allNewPaths.push(p);
@@ -303,85 +338,119 @@ describe('OpenAPI Specification Contract Tests', () => {
   });
 
   // ── S-03: No real tenant IDs, node IDs, or key material in schema examples ──
-  test('S-03: no real tenant IDs, node IDs, or key material in schema examples', () => {
-    const yamlText = fs.readFileSync(OPENAPI_YML, 'utf8');
+  test("S-03: no real tenant IDs, node IDs, or key material in schema examples", () => {
+    const yamlText = fs.readFileSync(OPENAPI_YML, "utf8");
     // No hex strings longer than 16 chars
     expect(yamlText).not.toMatch(/[0-9a-f]{32,}/i);
     // No UUID patterns
-    expect(yamlText).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    expect(yamlText).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
     // No real tenant IDs
     expect(yamlText).not.toMatch(/tenant-[0-9a-f]{16,}/i);
   });
 
   // ── Track 124: Replication Tenant Isolation endpoints ──────────────
-  describe('Track 124: Replication Tenant Isolation', () => {
-    test('L2-06a: replication-tenant-isolation policy endpoint documented', () => {
-      expect(doc.paths['/vault/replication-tenant-isolation/policy']).toBeDefined();
-      expect(doc.paths['/vault/replication-tenant-isolation/policy'].get).toBeDefined();
+  describe("Track 124: Replication Tenant Isolation", () => {
+    test("L2-06a: replication-tenant-isolation policy endpoint documented", () => {
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/policy"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/policy"].get,
+      ).toBeDefined();
     });
 
-    test('L2-06b: replication-tenant-isolation validate endpoint documented', () => {
-      expect(doc.paths['/vault/replication-tenant-isolation/policy/validate']).toBeDefined();
-      expect(doc.paths['/vault/replication-tenant-isolation/policy/validate'].post).toBeDefined();
+    test("L2-06b: replication-tenant-isolation validate endpoint documented", () => {
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/policy/validate"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/policy/validate"].post,
+      ).toBeDefined();
     });
 
-    test('L2-06c: replication-tenant-isolation telemetry endpoint documented', () => {
-      expect(doc.paths['/vault/replication-tenant-isolation/telemetry']).toBeDefined();
-      expect(doc.paths['/vault/replication-tenant-isolation/telemetry'].get).toBeDefined();
+    test("L2-06c: replication-tenant-isolation telemetry endpoint documented", () => {
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/telemetry"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/replication-tenant-isolation/telemetry"].get,
+      ).toBeDefined();
     });
 
-    test('L2-06d: policy endpoint returns 200 with correct schema', async () => {
-      const res = await request(app).get('/api/vault/replication-tenant-isolation/policy');
+    test("L2-06d: policy endpoint returns 200 with correct schema", async () => {
+      const res = await request(app).get(
+        "/api/vault/replication-tenant-isolation/policy",
+      );
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.policy).toBeDefined();
       expect(res.body.policy.requireTenantContext).toBe(true);
     });
 
-    test('L2-06e: validate endpoint accepts valid tenant context', async () => {
+    test("L2-06e: validate endpoint accepts valid tenant context", async () => {
       const res = await request(app)
-        .post('/api/vault/replication-tenant-isolation/policy/validate')
-        .send({ tenantId: 'tenant-1' });
+        .post("/api/vault/replication-tenant-isolation/policy/validate")
+        .send({ tenantId: "tenant-1" });
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.valid).toBe(true);
     });
 
-    test('L2-06f: validate endpoint rejects invalid tenant context', async () => {
+    test("L2-06f: validate endpoint rejects invalid tenant context", async () => {
       const res = await request(app)
-        .post('/api/vault/replication-tenant-isolation/policy/validate')
-        .send({ tenantId: '../bad' });
+        .post("/api/vault/replication-tenant-isolation/policy/validate")
+        .send({ tenantId: "../bad" });
       expect(res.status).toBe(400);
     });
 
-    test('L2-06g: telemetry endpoint returns 200 with counters', async () => {
-      const res = await request(app).get('/api/vault/replication-tenant-isolation/telemetry');
+    test("L2-06g: telemetry endpoint returns 200 with counters", async () => {
+      const res = await request(app).get(
+        "/api/vault/replication-tenant-isolation/telemetry",
+      );
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.telemetry).toBeDefined();
-      expect(res.body.telemetry.hsm_replication_tenant_isolation_violation_total).toBeDefined();
+      expect(
+        res.body.telemetry.hsm_replication_tenant_isolation_violation_total,
+      ).toBeDefined();
     });
   });
 
   // ── Track 125: ZK Verification Tenant Isolation endpoints ──────────
-  describe('Track 125: ZK Verification Tenant Isolation', () => {
-    test('L2-07a: zk-verification-isolation policy endpoint documented', () => {
-      expect(doc.paths['/vault/zk-verification-isolation/policy']).toBeDefined();
-      expect(doc.paths['/vault/zk-verification-isolation/policy'].get).toBeDefined();
+  describe("Track 125: ZK Verification Tenant Isolation", () => {
+    test("L2-07a: zk-verification-isolation policy endpoint documented", () => {
+      expect(
+        doc.paths["/vault/zk-verification-isolation/policy"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/zk-verification-isolation/policy"].get,
+      ).toBeDefined();
     });
 
-    test('L2-07b: zk-verification-isolation validate endpoint documented', () => {
-      expect(doc.paths['/vault/zk-verification-isolation/policy/validate']).toBeDefined();
-      expect(doc.paths['/vault/zk-verification-isolation/policy/validate'].post).toBeDefined();
+    test("L2-07b: zk-verification-isolation validate endpoint documented", () => {
+      expect(
+        doc.paths["/vault/zk-verification-isolation/policy/validate"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/zk-verification-isolation/policy/validate"].post,
+      ).toBeDefined();
     });
 
-    test('L2-07c: zk-verification-isolation telemetry endpoint documented', () => {
-      expect(doc.paths['/vault/zk-verification-isolation/telemetry']).toBeDefined();
-      expect(doc.paths['/vault/zk-verification-isolation/telemetry'].get).toBeDefined();
+    test("L2-07c: zk-verification-isolation telemetry endpoint documented", () => {
+      expect(
+        doc.paths["/vault/zk-verification-isolation/telemetry"],
+      ).toBeDefined();
+      expect(
+        doc.paths["/vault/zk-verification-isolation/telemetry"].get,
+      ).toBeDefined();
     });
 
-    test('L2-07d: policy endpoint returns 200 with governed domains', async () => {
-      const res = await request(app).get('/api/vault/zk-verification-isolation/policy');
+    test("L2-07d: policy endpoint returns 200 with governed domains", async () => {
+      const res = await request(app).get(
+        "/api/vault/zk-verification-isolation/policy",
+      );
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.policy).toBeDefined();
@@ -390,28 +459,32 @@ describe('OpenAPI Specification Contract Tests', () => {
       expect(Array.isArray(res.body.policy.governedDomains)).toBe(true);
     });
 
-    test('L2-07e: validate endpoint accepts valid tenant ID', async () => {
+    test("L2-07e: validate endpoint accepts valid tenant ID", async () => {
       const res = await request(app)
-        .post('/api/vault/zk-verification-isolation/policy/validate')
-        .send({ tenantId: 'tenant-1' });
+        .post("/api/vault/zk-verification-isolation/policy/validate")
+        .send({ tenantId: "tenant-1" });
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.valid).toBe(true);
     });
 
-    test('L2-07f: validate endpoint rejects invalid tenant ID', async () => {
+    test("L2-07f: validate endpoint rejects invalid tenant ID", async () => {
       const res = await request(app)
-        .post('/api/vault/zk-verification-isolation/policy/validate')
-        .send({ tenantId: '../bad' });
+        .post("/api/vault/zk-verification-isolation/policy/validate")
+        .send({ tenantId: "../bad" });
       expect(res.status).toBe(400);
     });
 
-    test('L2-07g: telemetry endpoint returns 200 with ZK counters', async () => {
-      const res = await request(app).get('/api/vault/zk-verification-isolation/telemetry');
+    test("L2-07g: telemetry endpoint returns 200 with ZK counters", async () => {
+      const res = await request(app).get(
+        "/api/vault/zk-verification-isolation/telemetry",
+      );
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.telemetry).toBeDefined();
-      expect(res.body.telemetry.hsm_zk_tenant_isolation_violation_total).toBeDefined();
+      expect(
+        res.body.telemetry.hsm_zk_tenant_isolation_violation_total,
+      ).toBeDefined();
     });
   });
 });

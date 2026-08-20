@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 46: Homomorphic contract engine.
@@ -10,7 +10,7 @@
  * @module hsm-adapter/homomorphic-contract-engine
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const P = 170141183460469231731687303715884105727n;
 const G = 3n;
@@ -41,26 +41,35 @@ class HomomorphicContractEngine {
     if (this.policy.requireWorkerAttestation && this._attestationClient) {
       const result = this._attestationClient.verify(workerAttestation);
       if (!result.verified) {
-        throw new HsmAdapterError('HOMOMORPHIC_WORKER_UNATTESTED', 'worker attestation is not valid');
+        throw new HsmAdapterError(
+          "HOMOMORPHIC_WORKER_UNATTESTED",
+          "worker attestation is not valid",
+        );
       }
     }
     if (!this.policy.allowedOperations.includes(operation)) {
-      throw new HsmAdapterError('HOMOMORPHIC_OPERATION_BLOCKED', `operation ${operation} is not allowed`);
+      throw new HsmAdapterError(
+        "HOMOMORPHIC_OPERATION_BLOCKED",
+        `operation ${operation} is not allowed`,
+      );
     }
     if (!Array.isArray(operands) || operands.length < 2) {
-      throw new HsmAdapterError('HOMOMORPHIC_OPERANDS_INVALID', 'at least two operands are required');
+      throw new HsmAdapterError(
+        "HOMOMORPHIC_OPERANDS_INVALID",
+        "at least two operands are required",
+      );
     }
     let result = operands[0];
     for (let i = 1; i < operands.length; i += 1) {
       const next = operands[i];
-      if (operation === 'add') {
+      if (operation === "add") {
         result = _pedersenAdd(result, next);
-      } else if (operation === 'scalarMul') {
+      } else if (operation === "scalarMul") {
         result = _pedersenScalarMul(result, next.scalar);
       }
     }
     if (this._audit) {
-      this._audit('HOMOMORPHIC_CONTRACT_EXECUTED', {
+      this._audit("HOMOMORPHIC_CONTRACT_EXECUTED", {
         contractId,
         operation,
         resultCommitment: result.commitment,
@@ -76,9 +85,9 @@ class HomomorphicContractEngine {
 }
 
 function _pedersenCommitment(value, blinding) {
-  const v = typeof value === 'bigint' ? value : BigInt(value);
-  const r = typeof blinding === 'bigint' ? blinding : BigInt(blinding);
-  return ((G * v) + (H * r)) % P;
+  const v = typeof value === "bigint" ? value : BigInt(value);
+  const r = typeof blinding === "bigint" ? blinding : BigInt(blinding);
+  return (G * v + H * r) % P;
 }
 
 function _pedersenAdd(a, b) {
@@ -90,7 +99,7 @@ function _pedersenAdd(a, b) {
 }
 
 function _pedersenScalarMul(commitment, scalar) {
-  const s = typeof scalar === 'bigint' ? scalar : BigInt(scalar);
+  const s = typeof scalar === "bigint" ? scalar : BigInt(scalar);
   return {
     value: (commitment.value * s) % P,
     blinding: (commitment.blinding * s) % P,

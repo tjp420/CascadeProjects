@@ -36,35 +36,35 @@ Organization (top-level billing entity)
 
 ### 3.1 Role Hierarchy
 
-| Role | Description | Inherits From |
-|------|-------------|---------------|
-| **Owner** | Full control, billing, can delete workspace | — |
-| **Admin** | Manage members, API keys, gate policies | Owner (minus billing/deletion) |
-| **Manager** | View all scans, create reports, manage schedules | Admin (minus member management) |
-| **Developer** | Run scans, view own findings, apply fixes | Manager (minus reporting/scheduling) |
-| **Viewer** | Read-only access to dashboards and reports | — |
-| **Compliance Officer** | Special role: view all scans, export audit reports, cannot modify | Manager (read-only) |
+| Role                   | Description                                                       | Inherits From                        |
+| ---------------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| **Owner**              | Full control, billing, can delete workspace                       | —                                    |
+| **Admin**              | Manage members, API keys, gate policies                           | Owner (minus billing/deletion)       |
+| **Manager**            | View all scans, create reports, manage schedules                  | Admin (minus member management)      |
+| **Developer**          | Run scans, view own findings, apply fixes                         | Manager (minus reporting/scheduling) |
+| **Viewer**             | Read-only access to dashboards and reports                        | —                                    |
+| **Compliance Officer** | Special role: view all scans, export audit reports, cannot modify | Manager (read-only)                  |
 
 ### 3.2 Permission Matrix
 
-| Permission | Owner | Admin | Manager | Developer | Viewer | Compliance |
-|-----------|-------|-------|---------|-----------|--------|------------|
-| View dashboard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Run scan | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| View findings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Apply auto-fix | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Configure gate policy | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Manage ignore patterns | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Invite members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Remove members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Create API keys | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Revoke API keys | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Generate reports | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Schedule recurring scans | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| View billing | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Delete workspace | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Export audit trail | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
-| View raw logs | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Permission               | Owner | Admin | Manager | Developer | Viewer | Compliance |
+| ------------------------ | ----- | ----- | ------- | --------- | ------ | ---------- |
+| View dashboard           | ✅    | ✅    | ✅      | ✅        | ✅     | ✅         |
+| Run scan                 | ✅    | ✅    | ✅      | ✅        | ❌     | ✅         |
+| View findings            | ✅    | ✅    | ✅      | ✅        | ✅     | ✅         |
+| Apply auto-fix           | ✅    | ✅    | ✅      | ✅        | ❌     | ❌         |
+| Configure gate policy    | ✅    | ✅    | ❌      | ❌        | ❌     | ❌         |
+| Manage ignore patterns   | ✅    | ✅    | ✅      | ❌        | ❌     | ❌         |
+| Invite members           | ✅    | ✅    | ❌      | ❌        | ❌     | ❌         |
+| Remove members           | ✅    | ✅    | ❌      | ❌        | ❌     | ❌         |
+| Create API keys          | ✅    | ✅    | ❌      | ❌        | ❌     | ❌         |
+| Revoke API keys          | ✅    | ✅    | ❌      | ❌        | ❌     | ❌         |
+| Generate reports         | ✅    | ✅    | ✅      | ❌        | ❌     | ✅         |
+| Schedule recurring scans | ✅    | ✅    | ✅      | ❌        | ❌     | ❌         |
+| View billing             | ✅    | ❌    | ❌      | ❌        | ❌     | ❌         |
+| Delete workspace         | ✅    | ❌    | ❌      | ❌        | ❌     | ❌         |
+| Export audit trail       | ✅    | ✅    | ✅      | ❌        | ❌     | ✅         |
+| View raw logs            | ✅    | ✅    | ✅      | ❌        | ❌     | ✅         |
 
 ---
 
@@ -217,6 +217,7 @@ Example: `sb_live_3jK9mNpQr5vWxYzAbCdEfGh`
 ### 5.2 Key Scoping
 
 Keys are scoped to:
+
 1. **Organization** (cannot cross orgs)
 2. **Workspace** (optional — org-level key can access all workspaces)
 3. **Role** (key cannot exceed creator's role)
@@ -288,15 +289,22 @@ CREATE POLICY workspace_isolation ON scans
 ### 7.2 API Middleware
 
 ```typescript
-function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction) {
-    const workspaceId = req.params.workspaceId || req.body.workspaceId;
-    if (!workspaceId) return next(); // org-level request
-    
-    const membership = req.user.memberships.find(m => m.workspace_id === workspaceId);
-    if (!membership) return res.status(403).json({ error: 'Workspace access denied' });
-    
-    req.membership = membership;
-    next();
+function requireWorkspaceAccess(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const workspaceId = req.params.workspaceId || req.body.workspaceId;
+  if (!workspaceId) return next(); // org-level request
+
+  const membership = req.user.memberships.find(
+    (m) => m.workspace_id === workspaceId,
+  );
+  if (!membership)
+    return res.status(403).json({ error: "Workspace access denied" });
+
+  req.membership = membership;
+  next();
 }
 ```
 
@@ -306,18 +314,18 @@ function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction)
 
 ### 8.1 Immutable Events
 
-| Event | Fields | Retention |
-|-------|--------|-----------|
-| `scan:run` | who, workspace, repo, duration, gate result | 7 years |
-| `finding:view` | who, finding_id, source (web/cli/api) | 1 year |
-| `fix:apply` | who, finding_id, file, diff_hash, model_used | 7 years |
-| `fix:rollback` | who, original_fix_id, reason | 7 years |
-| `member:invite` | who, invitee_email, role | 7 years |
-| `member:role_change` | who, target_user, old_role, new_role | 7 years |
-| `api_key:create` | who, key_name, role, scopes | 7 years |
-| `api_key:revoke` | who, key_id, reason | 7 years |
-| `policy:update` | who, old_policy, new_policy | 7 years |
-| `billing:upgrade` | who, old_plan, new_plan | 7 years |
+| Event                | Fields                                       | Retention |
+| -------------------- | -------------------------------------------- | --------- |
+| `scan:run`           | who, workspace, repo, duration, gate result  | 7 years   |
+| `finding:view`       | who, finding_id, source (web/cli/api)        | 1 year    |
+| `fix:apply`          | who, finding_id, file, diff_hash, model_used | 7 years   |
+| `fix:rollback`       | who, original_fix_id, reason                 | 7 years   |
+| `member:invite`      | who, invitee_email, role                     | 7 years   |
+| `member:role_change` | who, target_user, old_role, new_role         | 7 years   |
+| `api_key:create`     | who, key_name, role, scopes                  | 7 years   |
+| `api_key:revoke`     | who, key_id, reason                          | 7 years   |
+| `policy:update`      | who, old_policy, new_policy                  | 7 years   |
+| `billing:upgrade`    | who, old_plan, new_plan                      | 7 years   |
 
 ### 8.2 Export Format
 
@@ -346,18 +354,21 @@ function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction)
 ## 9. Implementation Phases
 
 ### Phase A: Foundation (Week 1–2)
+
 - [ ] Database migrations for orgs, workspaces, members, users
 - [ ] Password-based auth with bcrypt + JWT
 - [ ] Basic RBAC middleware (check role on every route)
 - [ ] API key generation and verification
 
 ### Phase B: Team Features (Week 3–4)
+
 - [ ] Workspace CRUD (create, update, delete)
 - [ ] Member invitation flow (email + token)
 - [ ] Role assignment UI
 - [ ] Workspace-scoped scans and reports
 
 ### Phase C: Enterprise (Week 5–6)
+
 - [ ] SSO (SAML 2.0 + OIDC)
 - [ ] MFA (TOTP)
 - [ ] Audit log viewer (admin-only)
@@ -365,6 +376,7 @@ function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction)
 - [ ] Audit export (CSV, JSON, PDF)
 
 ### Phase D: Hardening (Week 7–8)
+
 - [ ] RLS policies on all tables
 - [ ] Rate limiting per API key
 - [ ] Key rotation reminders
@@ -383,4 +395,4 @@ function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction)
 
 ---
 
-*This document is a living design. Update as requirements evolve.*
+_This document is a living design. Update as requirements evolve._

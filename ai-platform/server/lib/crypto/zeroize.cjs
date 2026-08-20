@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Centralized Memory Zeroization Utility
@@ -62,9 +62,9 @@ function zeroizeBuffer(buf) {
  * @returns {null}
  */
 function zeroizeString(str, encoding) {
-  if (str == null || typeof str !== 'string' || str.length === 0) return null;
+  if (str == null || typeof str !== "string" || str.length === 0) return null;
   try {
-    const buf = Buffer.from(str, encoding || 'utf8');
+    const buf = Buffer.from(str, encoding || "utf8");
     zeroizeBuffer(buf);
   } catch {
     // Swallow — best-effort scrub
@@ -90,15 +90,15 @@ function zeroizeString(str, encoding) {
  * @returns {any} The return value of fn, or rethrows if fn throws
  */
 function withZeroizedBuffer(encoded, fn, encoding) {
-  if (typeof fn !== 'function') {
-    throw new TypeError('withZeroizedBuffer requires a callback function');
+  if (typeof fn !== "function") {
+    throw new TypeError("withZeroizedBuffer requires a callback function");
   }
 
   // If already a Buffer, use directly but still zeroize after
   const isOwnedBuffer = Buffer.isBuffer(encoded);
   const buf = isOwnedBuffer
     ? encoded
-    : Buffer.from(String(encoded), encoding || 'utf8');
+    : Buffer.from(String(encoded), encoding || "utf8");
 
   try {
     return fn(buf);

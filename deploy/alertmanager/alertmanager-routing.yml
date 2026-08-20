@@ -3,8 +3,8 @@
 # into your main `/etc/alertmanager/alertmanager.yml` via YAML merge.
 
 route:
-  receiver: 'default-ops-pager'
-  group_by: ['alertname', 'cluster', 'tier']
+  receiver: "default-ops-pager"
+  group_by: ["alertname", "cluster", "tier"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
@@ -14,50 +14,50 @@ route:
     - match:
         tier: "hardware-security"
         severity: "critical"
-      receiver: 'hsm-critical-security-pager'
+      receiver: "hsm-critical-security-pager"
       continue: true
 
     # Route Non-Blocking Background Scheduler Drift to Standard Triage Channels
     - match:
         tier: "hardware-security"
         severity: "warning"
-      receiver: 'hsm-warning-ops-triage'
+      receiver: "hsm-warning-ops-triage"
 
     # Route Post-Quantum Mesh / Cryptographic Track Anomalies to Dedicated Crypto Ops
     - match_re:
         alertname: "MeshReconciliationBoundaryDrift|MeshReconciliationHighDropRate|MeshStateReconciliationStall|MeshEpochFinalityStall"
-      receiver: 'hsm-crypto-ops-pager'
+      receiver: "hsm-crypto-ops-pager"
       continue: true
 
     - match:
         component: "hsm-mesh-vault"
-      receiver: 'hsm-crypto-ops-pager'
+      receiver: "hsm-crypto-ops-pager"
       continue: true
 
     # Route Shard Repair Pipeline alerts to Crypto Ops
     - match_re:
         alertname: "ShardRepairStallDetected|ShardReassemblyHighFailureRate|ShardOutOfSyncFlood"
-      receiver: 'hsm-crypto-ops-pager'
+      receiver: "hsm-crypto-ops-pager"
       continue: true
 
 # Receivers (placeholders) — configure these to match your Alertmanager secrets/integrations
 receivers:
-  - name: 'default-ops-pager'
+  - name: "default-ops-pager"
     pagerduty_configs:
-      - service_key: '<REPLACE_WITH_DEFAULT_PAGERDUTY_SERVICE_KEY>'
+      - service_key: "<REPLACE_WITH_DEFAULT_PAGERDUTY_SERVICE_KEY>"
 
-  - name: 'hsm-critical-security-pager'
+  - name: "hsm-critical-security-pager"
     pagerduty_configs:
-      - service_key: '<REPLACE_WITH_HSM_CRITICAL_PAGERDUTY_KEY>'
+      - service_key: "<REPLACE_WITH_HSM_CRITICAL_PAGERDUTY_KEY>"
 
-  - name: 'hsm-warning-ops-triage'
+  - name: "hsm-warning-ops-triage"
     email_configs:
-      - to: 'ops@example.com'
+      - to: "ops@example.com"
         send_resolved: true
 
-  - name: 'hsm-crypto-ops-pager'
+  - name: "hsm-crypto-ops-pager"
     pagerduty_configs:
-      - service_key: '<REPLACE_WITH_HSM_CRYPTO_OPS_PAGERDUTY_KEY>'
+      - service_key: "<REPLACE_WITH_HSM_CRYPTO_OPS_PAGERDUTY_KEY>"
 
 # Notes:
 # - Replace placeholder keys and receivers with your production integrations (PagerDuty, OpsGenie, Slack, email, etc.).

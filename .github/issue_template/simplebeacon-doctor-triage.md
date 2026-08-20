@@ -26,4 +26,4 @@ PASTE_YOUR_ENCRYPTED_TOKEN_HERE
 
 ---
 
-*Note: The encrypted token payload uses a localized cryptographic signature salt profile to protect sensitive path contexts during transit. Your underlying codebase remains completely private.*
+_Note: The encrypted token payload uses a localized cryptographic signature salt profile to protect sensitive path contexts during transit. Your underlying codebase remains completely private._

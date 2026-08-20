@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 68: ZK Order Milestone Validator.
@@ -18,28 +18,28 @@
  * @module hsm-adapter/zk-order-milestone-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const MILESTONE_STATUS = {
-  VERIFIED: 'verified',
-  SLASHED: 'slashed',
+  VERIFIED: "verified",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_milestone',
-  DUPLICATE: 'duplicate_milestone',
-  EPOCH_OUT_OF_BOUNDS: 'epoch_out_of_bounds',
-  ORDER_NOT_FOUND: 'order_not_found',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_WINDOW: 'out_of_window',
+  MALFORMED: "malformed_milestone",
+  DUPLICATE: "duplicate_milestone",
+  EPOCH_OUT_OF_BOUNDS: "epoch_out_of_bounds",
+  ORDER_NOT_FOUND: "order_not_found",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_WINDOW: "out_of_window",
 };
 
 const HW_ACCEL_TYPES = {
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkOrderMilestoneValidator {
@@ -74,62 +74,143 @@ class ZkOrderMilestoneValidator {
   verifyMilestone(request) {
     _validateMilestoneRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('MILESTONE_HUB_MISSING', 'supply chain escrow hub is required');
+      throw new HsmAdapterError(
+        "MILESTONE_HUB_MISSING",
+        "supply chain escrow hub is required",
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('MILESTONE_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "MILESTONE_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('MILESTONE_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "MILESTONE_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('MILESTONE_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "MILESTONE_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('MILESTONE_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.BANNED_PEER,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkMilestoneRangeProofHash || typeof request.zkMilestoneRangeProofHash !== 'string') {
+    if (
+      !request.zkMilestoneRangeProofHash ||
+      typeof request.zkMilestoneRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('MILESTONE_ZK_PROOF_MISSING', 'zero-knowledge milestone range proof hash is required');
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.MALFORMED,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_ZK_PROOF_MISSING",
+        "zero-knowledge milestone range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('MILESTONE_PARTIAL_SIG_MISSING', 'partial signature is required');
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.MALFORMED,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const order = this._hub.getOrder(request.orderId);
     if (!order) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.ORDER_NOT_FOUND);
-      throw new HsmAdapterError('MILESTONE_ORDER_NOT_FOUND', `order ${request.orderId} not found`);
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.ORDER_NOT_FOUND,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_ORDER_NOT_FOUND",
+        `order ${request.orderId} not found`,
+      );
     }
-    if (typeof request.deliveryEpoch === 'number' && request.deliveryEpoch > (this.policy.maxProcurementDeliveryEpochs || 30)) {
+    if (
+      typeof request.deliveryEpoch === "number" &&
+      request.deliveryEpoch > (this.policy.maxProcurementDeliveryEpochs || 30)
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.EPOCH_OUT_OF_BOUNDS);
-      throw new HsmAdapterError('MILESTONE_EPOCH_OUT_OF_BOUNDS', `delivery epoch ${request.deliveryEpoch} exceeds maximum ${this.policy.maxProcurementDeliveryEpochs}`);
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.EPOCH_OUT_OF_BOUNDS,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_EPOCH_OUT_OF_BOUNDS",
+        `delivery epoch ${request.deliveryEpoch} exceeds maximum ${this.policy.maxProcurementDeliveryEpochs}`,
+      );
     }
-    const milestoneKey = `${request.orderId}:${request.peerId || 'anonymous'}`;
+    const milestoneKey = `${request.orderId}:${request.peerId || "anonymous"}`;
     if (this._verifiedMilestones.has(milestoneKey)) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.orderId, request.peerId, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('MILESTONE_DUPLICATE', `milestone for order ${request.orderId} already verified`);
+      this._recordSlash(
+        request.orderId,
+        request.peerId,
+        SLASH_REASON.DUPLICATE,
+      );
+      throw new HsmAdapterError(
+        "MILESTONE_DUPLICATE",
+        `milestone for order ${request.orderId} already verified`,
+      );
     }
-    const milestoneId = request.milestoneId || `milestone-${crypto.randomBytes(4).toString('hex')}`;
+    const milestoneId =
+      request.milestoneId ||
+      `milestone-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const milestone = {
       milestoneId,
       orderId: request.orderId,
-      blindedDeliveryQuantityCommitment: request.blindedDeliveryQuantityCommitment || 'unspecified',
-      blindedDeliveryValueCommitment: request.blindedDeliveryValueCommitment || 'unspecified',
+      blindedDeliveryQuantityCommitment:
+        request.blindedDeliveryQuantityCommitment || "unspecified",
+      blindedDeliveryValueCommitment:
+        request.blindedDeliveryValueCommitment || "unspecified",
       zkMilestoneRangeProofHash: request.zkMilestoneRangeProofHash,
-      clearingCommitteeAttestationHash: request.clearingCommitteeAttestationHash || 'unspecified',
+      clearingCommitteeAttestationHash:
+        request.clearingCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
       status: MILESTONE_STATUS.VERIFIED,
     };
@@ -137,7 +218,7 @@ class ZkOrderMilestoneValidator {
     this._hub.markMilestoneVerified(request.orderId);
     this._claimCount++;
     if (this._audit) {
-      this._audit('ZK_DELIVERY_MILESTONE_VERIFIED', { ...milestone });
+      this._audit("ZK_DELIVERY_MILESTONE_VERIFIED", { ...milestone });
     }
     return milestone;
   }
@@ -149,34 +230,51 @@ class ZkOrderMilestoneValidator {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.orderId) {
-      throw new HsmAdapterError('MILESTONE_HW_PROOF_FIELDS_MISSING', 'orderId is required');
+      throw new HsmAdapterError(
+        "MILESTONE_HW_PROOF_FIELDS_MISSING",
+        "orderId is required",
+      );
     }
-    if (typeof request.deliveryQuantity !== 'number' || typeof request.deliveryValue !== 'number') {
-      throw new HsmAdapterError('MILESTONE_HW_PROOF_FIELDS_MISSING',
-        'deliveryQuantity and deliveryValue numbers are required');
+    if (
+      typeof request.deliveryQuantity !== "number" ||
+      typeof request.deliveryValue !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "MILESTONE_HW_PROOF_FIELDS_MISSING",
+        "deliveryQuantity and deliveryValue numbers are required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('MILESTONE_HUB_MISSING', 'supply chain escrow hub is required');
+      throw new HsmAdapterError(
+        "MILESTONE_HUB_MISSING",
+        "supply chain escrow hub is required",
+      );
     }
     const order = this._hub.getOrder(request.orderId);
     if (!order) {
-      throw new HsmAdapterError('MILESTONE_ORDER_NOT_FOUND', `order ${request.orderId} not found`);
+      throw new HsmAdapterError(
+        "MILESTONE_ORDER_NOT_FOUND",
+        `order ${request.orderId} not found`,
+      );
     }
-    const proofHash = crypto.createHash('sha256')
-      .update(`${request.orderId}:${request.deliveryQuantity}:${request.deliveryValue}:${this._hwAccelType}`)
-      .digest('hex');
+    const proofHash = crypto
+      .createHash("sha256")
+      .update(
+        `${request.orderId}:${request.deliveryQuantity}:${request.deliveryValue}:${this._hwAccelType}`,
+      )
+      .digest("hex");
     const proof = {
       zkMilestoneRangeProofHash: proofHash,
       orderId: request.orderId,
       deliveryQuantity: request.deliveryQuantity,
       deliveryValue: request.deliveryValue,
       hwAccelType: this._hwAccelType,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       generatedAt: Math.floor(Date.now() / 1000),
     };
     this._hwProofCount++;
     if (this._audit) {
-      this._audit('MILESTONE_HW_SNARK_PROOF_GENERATED', { ...proof });
+      this._audit("MILESTONE_HW_SNARK_PROOF_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -188,11 +286,16 @@ class ZkOrderMilestoneValidator {
    */
   batchVerifyMilestones(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('MILESTONE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "MILESTONE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('MILESTONE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "MILESTONE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let verifiedCount = 0;
@@ -208,9 +311,9 @@ class ZkOrderMilestoneValidator {
         verifiedCount++;
       } catch (err) {
         results.push({
-          orderId: req.orderId || 'unknown',
+          orderId: req.orderId || "unknown",
           verified: false,
-          error: err.code || 'MILESTONE_BATCH_ERROR',
+          error: err.code || "MILESTONE_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -223,9 +326,18 @@ class ZkOrderMilestoneValidator {
       verifiedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('MILESTONE_BATCH_VERIFIED', { verifiedCount, failedCount, batchSize: requests.length });
+      this._audit("MILESTONE_BATCH_VERIFIED", {
+        verifiedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, verifiedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      verifiedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -236,17 +348,29 @@ class ZkOrderMilestoneValidator {
    */
   validateSlashingWindow(orderId, claimTimestamp) {
     if (!orderId) {
-      throw new HsmAdapterError('MILESTONE_WINDOW_FIELDS_MISSING', 'orderId is required');
+      throw new HsmAdapterError(
+        "MILESTONE_WINDOW_FIELDS_MISSING",
+        "orderId is required",
+      );
     }
-    if (typeof claimTimestamp !== 'number' || claimTimestamp <= 0) {
-      throw new HsmAdapterError('MILESTONE_WINDOW_FIELDS_MISSING', 'claimTimestamp must be a positive number');
+    if (typeof claimTimestamp !== "number" || claimTimestamp <= 0) {
+      throw new HsmAdapterError(
+        "MILESTONE_WINDOW_FIELDS_MISSING",
+        "claimTimestamp must be a positive number",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('MILESTONE_HUB_MISSING', 'supply chain escrow hub is required');
+      throw new HsmAdapterError(
+        "MILESTONE_HUB_MISSING",
+        "supply chain escrow hub is required",
+      );
     }
     const order = this._hub.getOrder(orderId);
     if (!order) {
-      throw new HsmAdapterError('MILESTONE_ORDER_NOT_FOUND', `order ${orderId} not found`);
+      throw new HsmAdapterError(
+        "MILESTONE_ORDER_NOT_FOUND",
+        `order ${orderId} not found`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const maxWindow = (this.policy.maxProcurementDeliveryEpochs || 30) * 86400;
@@ -270,33 +394,47 @@ class ZkOrderMilestoneValidator {
    */
   aggregatePartialSignatures(orderId, partialSignatures) {
     if (!orderId) {
-      throw new HsmAdapterError('MILESTONE_AGG_FIELDS_MISSING', 'orderId is required');
+      throw new HsmAdapterError(
+        "MILESTONE_AGG_FIELDS_MISSING",
+        "orderId is required",
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('MILESTONE_AGG_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "MILESTONE_AGG_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     for (const sig of partialSignatures) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('MILESTONE_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in aggregation`);
+        throw new HsmAdapterError(
+          "MILESTONE_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in aggregation`,
+        );
       }
     }
     if (partialSignatures.length < (this.policy.minOrderMatchingQuorum || 3)) {
-      throw new HsmAdapterError('MILESTONE_AGG_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minOrderMatchingQuorum || 3}`);
+      throw new HsmAdapterError(
+        "MILESTONE_AGG_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minOrderMatchingQuorum || 3}`,
+      );
     }
-    const aggregatedSignature = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSignature = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       orderId,
       signatureCount: partialSignatures.length,
       aggregatedSignature,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('MILESTONE_PARTIAL_SIGS_AGGREGATED', { orderId, count: partialSignatures.length });
+      this._audit("MILESTONE_PARTIAL_SIGS_AGGREGATED", {
+        orderId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -372,7 +510,10 @@ class ZkOrderMilestoneValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderDeliveryAssertions && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderDeliveryAssertions &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -387,22 +528,31 @@ class ZkOrderMilestoneValidator {
   _recordSlash(orderId, peerId, reason) {
     this._slashedMilestones.push({
       orderId,
-      peerId: peerId || 'anonymous',
+      peerId: peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('MILESTONE_SLASHED', { orderId, peerId, reason });
+      this._audit("MILESTONE_SLASHED", { orderId, peerId, reason });
     }
   }
 }
 
 function _validateMilestoneRequest(policy, request) {
   if (!request.orderId) {
-    throw new HsmAdapterError('MILESTONE_FIELDS_MISSING', 'orderId is required');
+    throw new HsmAdapterError(
+      "MILESTONE_FIELDS_MISSING",
+      "orderId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('MILESTONE_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "MILESTONE_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

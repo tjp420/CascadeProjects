@@ -29,14 +29,14 @@ Dashboard Panel Creation Flow
 │                                   └── Sync to browser <-- 1f
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 1a | Command Registration | `showReport` command registered in extension activation | `extension.ts:398` |
-| 1b | Dashboard Creation Invoked | Delegates to EnhancedDashboard facade with current report data | `extension.ts:402` |
-| 1c | Facade Delegation | Facade forwards to EnhancedDashboard30 implementation | `enhancedDashboard.ts:14` |
-| 1d | Webview Panel Created | VSCode API creates new webview panel with scripts enabled | `enhancedDashboard3_0.ts:48` |
-| 1e | HTML Content Set | Dashboard HTML generated and injected into webview | `enhancedDashboard3_0.ts:177` |
-| 1f | Browser Preview Sync | Syncs dashboard HTML to browser preview panel if open | `enhancedDashboard3_0.ts:178` |
+| Location | Title                      | Description                                                    | Path:LineNumber               |
+| -------- | -------------------------- | -------------------------------------------------------------- | ----------------------------- |
+| 1a       | Command Registration       | `showReport` command registered in extension activation        | `extension.ts:398`            |
+| 1b       | Dashboard Creation Invoked | Delegates to EnhancedDashboard facade with current report data | `extension.ts:402`            |
+| 1c       | Facade Delegation          | Facade forwards to EnhancedDashboard30 implementation          | `enhancedDashboard.ts:14`     |
+| 1d       | Webview Panel Created      | VSCode API creates new webview panel with scripts enabled      | `enhancedDashboard3_0.ts:48`  |
+| 1e       | HTML Content Set           | Dashboard HTML generated and injected into webview             | `enhancedDashboard3_0.ts:177` |
+| 1f       | Browser Preview Sync       | Syncs dashboard HTML to browser preview panel if open          | `enhancedDashboard3_0.ts:178` |
 
 ---
 
@@ -65,14 +65,14 @@ Webview-to-Extension Message Flow
         └── Open in editor <-- 2f
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 2a | Browser Message Sent | JavaScript in webview sends command to extension host | `enhancedDashboard2_0.ts:803` |
-| 2b | Message Handler Setup | Extension registers listener for webview messages | `enhancedDashboard3_0.ts:89` |
-| 2c | Command Routing | Message command type determines action to execute | `enhancedDashboard3_0.ts:93` |
-| 2d | Command Execution | VSCode command API invoked to trigger workspace scan | `enhancedDashboard3_0.ts:94` |
-| 2e | File Navigation | `openFile` command opens specific file at line number | `enhancedDashboard3_0.ts:91` |
-| 2f | Editor Opens File | VSCode editor API opens file with cursor at specified line | `enhancedDashboard3_0.ts:92` |
+| Location | Title                 | Description                                                | Path:LineNumber               |
+| -------- | --------------------- | ---------------------------------------------------------- | ----------------------------- |
+| 2a       | Browser Message Sent  | JavaScript in webview sends command to extension host      | `enhancedDashboard2_0.ts:803` |
+| 2b       | Message Handler Setup | Extension registers listener for webview messages          | `enhancedDashboard3_0.ts:89`  |
+| 2c       | Command Routing       | Message command type determines action to execute          | `enhancedDashboard3_0.ts:93`  |
+| 2d       | Command Execution     | VSCode command API invoked to trigger workspace scan       | `enhancedDashboard3_0.ts:94`  |
+| 2e       | File Navigation       | `openFile` command opens specific file at line number      | `enhancedDashboard3_0.ts:91`  |
+| 2f       | Editor Opens File     | VSCode editor API opens file with cursor at specified line | `enhancedDashboard3_0.ts:92`  |
 
 ---
 
@@ -97,15 +97,15 @@ Real-time Monitoring & Live Issue Detection
 │                               └── onLiveFindingsCallback() <-- 3g
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 3a | File Watcher Created | VSCode file system watcher monitors workspace for changes | `realtimeMonitor.ts:230` |
-| 3b | Change Event Handler | File change events trigger analysis pipeline | `realtimeMonitor.ts:231` |
-| 3c | Debounced Analysis | Debounce prevents excessive analysis during rapid edits | `realtimeMonitor.ts:275` |
-| 3d | Analysis Timer | 1-second delay before triggering file analysis | `realtimeMonitor.ts:350` |
-| 3e | File Analysis Triggered | Analyzes file content for security and quality issues | `realtimeMonitor.ts:351` |
-| 3f | Pattern Detection | Runs regex patterns to detect hardcoded secrets, console.logs, etc | `realtimeMonitor.ts:392` |
-| 3g | Callback Invoked | Notifies subscribers with detected issues for dashboard update | `realtimeMonitor.ts:402` |
+| Location | Title                   | Description                                                        | Path:LineNumber          |
+| -------- | ----------------------- | ------------------------------------------------------------------ | ------------------------ |
+| 3a       | File Watcher Created    | VSCode file system watcher monitors workspace for changes          | `realtimeMonitor.ts:230` |
+| 3b       | Change Event Handler    | File change events trigger analysis pipeline                       | `realtimeMonitor.ts:231` |
+| 3c       | Debounced Analysis      | Debounce prevents excessive analysis during rapid edits            | `realtimeMonitor.ts:275` |
+| 3d       | Analysis Timer          | 1-second delay before triggering file analysis                     | `realtimeMonitor.ts:350` |
+| 3e       | File Analysis Triggered | Analyzes file content for security and quality issues              | `realtimeMonitor.ts:351` |
+| 3f       | Pattern Detection       | Runs regex patterns to detect hardcoded secrets, console.logs, etc | `realtimeMonitor.ts:392` |
+| 3g       | Callback Invoked        | Notifies subscribers with detected issues for dashboard update     | `realtimeMonitor.ts:402` |
 
 ---
 
@@ -131,15 +131,15 @@ Real-time Monitor → Extension → Dashboard
     └── visualSidebarProvider <-- extension.ts:307
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 4a | Callback Registration | Extension registers handler for live findings from monitor | `extension.ts:246` |
-| 4b | Issue Transformation | Converts RealtimeIssue format to rawIssues format | `extension.ts:251` |
-| 4c | Report Merge | Live issues merged into current report data structure | `extension.ts:267` |
-| 4d | Dashboard Update | Triggers dashboard panel refresh with updated report | `extension.ts:302` |
-| 4e | Update Delegation | Facade delegates to EnhancedDashboard30 implementation | `enhancedDashboard.ts:6` |
-| 4f | HTML Regeneration | Dashboard HTML regenerated with new findings data | `enhancedDashboard3_0.ts:192` |
-| 4g | Sidebar Update | Sidebar provider also updated with latest report data | `extension.ts:308` |
+| Location | Title                 | Description                                                | Path:LineNumber               |
+| -------- | --------------------- | ---------------------------------------------------------- | ----------------------------- |
+| 4a       | Callback Registration | Extension registers handler for live findings from monitor | `extension.ts:246`            |
+| 4b       | Issue Transformation  | Converts RealtimeIssue format to rawIssues format          | `extension.ts:251`            |
+| 4c       | Report Merge          | Live issues merged into current report data structure      | `extension.ts:267`            |
+| 4d       | Dashboard Update      | Triggers dashboard panel refresh with updated report       | `extension.ts:302`            |
+| 4e       | Update Delegation     | Facade delegates to EnhancedDashboard30 implementation     | `enhancedDashboard.ts:6`      |
+| 4f       | HTML Regeneration     | Dashboard HTML regenerated with new findings data          | `enhancedDashboard3_0.ts:192` |
+| 4g       | Sidebar Update        | Sidebar provider also updated with latest report data      | `extension.ts:308`            |
 
 ---
 
@@ -166,15 +166,15 @@ AI Session Detection & Dashboard Notification
             └── Notify webview of AI edits <-- extension.ts:315
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 5a | Session Tracking | File changes tracked to detect AI editing patterns | `realtimeMonitor.ts:272` |
-| 5b | File Tracking | Modified files accumulated during AI session | `realtimeMonitor.ts:279` |
-| 5c | Session End Timer | 5-second inactivity timer to detect session end | `realtimeMonitor.ts:294` |
-| 5d | Session End Triggered | Timer fires when no changes detected for 5 seconds | `realtimeMonitor.ts:295` |
-| 5e | Callback Invoked | Notifies extension with list of AI-modified files | `realtimeMonitor.ts:315` |
-| 5f | Extension Handler | Extension receives AI session end notification | `extension.ts:312` |
-| 5g | Dashboard Message | Posts `aiSessionEnd` message to dashboard webview | `extension.ts:315` |
+| Location | Title                 | Description                                        | Path:LineNumber          |
+| -------- | --------------------- | -------------------------------------------------- | ------------------------ |
+| 5a       | Session Tracking      | File changes tracked to detect AI editing patterns | `realtimeMonitor.ts:272` |
+| 5b       | File Tracking         | Modified files accumulated during AI session       | `realtimeMonitor.ts:279` |
+| 5c       | Session End Timer     | 5-second inactivity timer to detect session end    | `realtimeMonitor.ts:294` |
+| 5d       | Session End Triggered | Timer fires when no changes detected for 5 seconds | `realtimeMonitor.ts:295` |
+| 5e       | Callback Invoked      | Notifies extension with list of AI-modified files  | `realtimeMonitor.ts:315` |
+| 5f       | Extension Handler     | Extension receives AI session end notification     | `extension.ts:312`       |
+| 5g       | Dashboard Message     | Posts `aiSessionEnd` message to dashboard webview  | `extension.ts:315`       |
 
 ---
 
@@ -201,14 +201,14 @@ VSCode Extension Activation
                             └── vscode.env.openExternal() <-- modernSidebarProvider.ts:190
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 6a | Provider Registration | Sidebar webview provider registered with VSCode | `extension.ts:346` |
-| 6b | Message Listener | Sidebar sets up message handler for user interactions | `modernSidebarProvider.ts:65` |
-| 6c | Command Router | Routes incoming commands to appropriate handlers | `modernSidebarProvider.ts:102` |
-| 6d | Scan Command | User clicked scan button in sidebar | `modernSidebarProvider.ts:103` |
-| 6e | Command Execution | Delegates to registered extension command | `modernSidebarProvider.ts:104` |
-| 6f | Browser Relay | Also forwards command to browser preview via HTTP relay | `modernSidebarProvider.ts:105` |
+| Location | Title                 | Description                                             | Path:LineNumber                |
+| -------- | --------------------- | ------------------------------------------------------- | ------------------------------ |
+| 6a       | Provider Registration | Sidebar webview provider registered with VSCode         | `extension.ts:346`             |
+| 6b       | Message Listener      | Sidebar sets up message handler for user interactions   | `modernSidebarProvider.ts:65`  |
+| 6c       | Command Router        | Routes incoming commands to appropriate handlers        | `modernSidebarProvider.ts:102` |
+| 6d       | Scan Command          | User clicked scan button in sidebar                     | `modernSidebarProvider.ts:103` |
+| 6e       | Command Execution     | Delegates to registered extension command               | `modernSidebarProvider.ts:104` |
+| 6f       | Browser Relay         | Also forwards command to browser preview via HTTP relay | `modernSidebarProvider.ts:105` |
 
 ---
 
@@ -238,29 +238,29 @@ Dashboard HTML Generation Flow
     └── Webview renders dashboard
 ```
 
-| Location | Title | Description | Path:LineNumber |
-|----------|-------|-------------|-----------------|
-| 7a | Category Extraction | Parses report to extract issue categories with counts | `enhancedDashboard3_0.ts:280` |
-| 7b | Findings Extraction | Flattens nested report structure into findings array | `enhancedDashboard3_0.ts:281` |
-| 7c | Format Detection | Detects ScanResult vs CLI report format for parsing | `enhancedDashboard2_0.ts:827` |
-| 7d | JSON Serialization | Serializes findings for injection into dashboard JavaScript | `enhancedDashboard3_0.ts:283` |
-| 7e | HTML Template | Generates complete HTML with embedded data and styles | `enhancedDashboard3_0.ts:301` |
-| 7f | VSCode API Acquisition | Webview JavaScript acquires API for postMessage communication | `webviewPanel.ts:377` |
+| Location | Title                  | Description                                                   | Path:LineNumber               |
+| -------- | ---------------------- | ------------------------------------------------------------- | ----------------------------- |
+| 7a       | Category Extraction    | Parses report to extract issue categories with counts         | `enhancedDashboard3_0.ts:280` |
+| 7b       | Findings Extraction    | Flattens nested report structure into findings array          | `enhancedDashboard3_0.ts:281` |
+| 7c       | Format Detection       | Detects ScanResult vs CLI report format for parsing           | `enhancedDashboard2_0.ts:827` |
+| 7d       | JSON Serialization     | Serializes findings for injection into dashboard JavaScript   | `enhancedDashboard3_0.ts:283` |
+| 7e       | HTML Template          | Generates complete HTML with embedded data and styles         | `enhancedDashboard3_0.ts:301` |
+| 7f       | VSCode API Acquisition | Webview JavaScript acquires API for postMessage communication | `webviewPanel.ts:377`         |
 
 ---
 
 ## Summary of Corrections (vs. Original Codemap)
 
-| Trace | Location | Old Line | New Line | File |
-|-------|----------|----------|----------|------|
-| 1 | 1a | 412 | **398** | `extension.ts` |
-| 1 | 1b | 416 | **402** | `extension.ts` |
-| 5 | 5f | 316 | **312** | `extension.ts` |
-| 5 | 5g | 319 | **315** | `extension.ts` |
-| 6 | 6a | 360 | **346** | `extension.ts` |
-| 7 | 7a | 278 | **280** | `enhancedDashboard3_0.ts` |
-| 7 | 7b | 279 | **281** | `enhancedDashboard3_0.ts` |
-| 7 | 7d | 282 | **283** | `enhancedDashboard3_0.ts` |
-| 7 | 7e | 299 | **301** | `enhancedDashboard3_0.ts` |
+| Trace | Location | Old Line | New Line | File                      |
+| ----- | -------- | -------- | -------- | ------------------------- |
+| 1     | 1a       | 412      | **398**  | `extension.ts`            |
+| 1     | 1b       | 416      | **402**  | `extension.ts`            |
+| 5     | 5f       | 316      | **312**  | `extension.ts`            |
+| 5     | 5g       | 319      | **315**  | `extension.ts`            |
+| 6     | 6a       | 360      | **346**  | `extension.ts`            |
+| 7     | 7a       | 278      | **280**  | `enhancedDashboard3_0.ts` |
+| 7     | 7b       | 279      | **281**  | `enhancedDashboard3_0.ts` |
+| 7     | 7d       | 282      | **283**  | `enhancedDashboard3_0.ts` |
+| 7     | 7e       | 299      | **301**  | `enhancedDashboard3_0.ts` |
 
 All other locations matched the source code exactly.

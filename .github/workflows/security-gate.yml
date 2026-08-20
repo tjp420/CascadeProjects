@@ -3,9 +3,9 @@ name: Security Gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [ main, master ]
+    branches: [main, master]
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 jobs:
   gitleaks:
@@ -45,7 +45,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Audit root dependencies
         run: npm audit --audit-level=high
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Cache npm
         uses: actions/cache@v4
@@ -108,7 +108,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Cache npm
         uses: actions/cache@v4
@@ -147,7 +147,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Cache npm
         uses: actions/cache@v4
@@ -188,7 +188,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm ci
@@ -217,7 +217,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Cache npm
         uses: actions/cache@v4
@@ -235,7 +235,6 @@ jobs:
       - name: Run token registry schema test
         run: |
           node --test ai-platform/server/lib/__tests__/token-registry-schema.test.cjs
-
 
       - name: Run optimized builds
         run: |
@@ -308,10 +307,10 @@ jobs:
         uses: aquasecurity/trivy-action@v0.11.0
         with:
           image-ref: sb-coming-soon:pr
-          format: 'sarif'
+          format: "sarif"
           output: trivy-coming-soon.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
 
       - name: Upload coming-soon SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
@@ -323,10 +322,10 @@ jobs:
         uses: aquasecurity/trivy-action@v0.11.0
         with:
           image-ref: ai-platform-pipeline:pr
-          format: 'sarif'
+          format: "sarif"
           output: trivy-ai-platform.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
 
       - name: Upload ai-platform SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
@@ -360,7 +359,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm ci
@@ -380,10 +379,14 @@ jobs:
         run: |
           node --test ai-platform/server/lib/__tests__/redis-rate-limit-store.test.cjs
 
-
   dashboard-watchdog:
     name: Dashboard Watchdog
-    needs: [simplebeacon-ai-platform, simplebeacon-packages, simplebeacon-coming-soon]
+    needs:
+      [
+        simplebeacon-ai-platform,
+        simplebeacon-packages,
+        simplebeacon-coming-soon,
+      ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -398,7 +401,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Cache npm
         uses: actions/cache@v4

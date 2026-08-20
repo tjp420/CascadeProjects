@@ -3,27 +3,61 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SyntheticTodoMetrics",
   "type": "object",
-  "required": ["scanId","project","timestamp","syntheticTodoCount","syntheticTodoMarkers","syntheticTodoFiles"],
+  "required": [
+    "scanId",
+    "project",
+    "timestamp",
+    "syntheticTodoCount",
+    "syntheticTodoMarkers",
+    "syntheticTodoFiles"
+  ],
   "properties": {
-    "scanId": { "type": "string", "description": "Unique scan run id (UUID or timestamp-id)" },
-    "project": { "type": "string", "description": "Repository or project identifier" },
+    "scanId": {
+      "type": "string",
+      "description": "Unique scan run id (UUID or timestamp-id)"
+    },
+    "project": {
+      "type": "string",
+      "description": "Repository or project identifier"
+    },
     "branch": { "type": "string" },
     "timestamp": { "type": "string", "format": "date-time" },
-    "profile": { "type": "string", "description": "Scan profile used (e.g., full, quick)" },
-    "todoCount": { "type": "integer", "minimum": 0, "description": "User-facing TODO file count" },
-    "syntheticTodoCount": { "type": "integer", "minimum": 0, "description": "Number of files containing synthetic markers" },
-    "syntheticTodoMarkers": { "type": "integer", "minimum": 0, "description": "Total synthetic marker occurrences across files" },
+    "profile": {
+      "type": "string",
+      "description": "Scan profile used (e.g., full, quick)"
+    },
+    "todoCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "User-facing TODO file count"
+    },
+    "syntheticTodoCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of files containing synthetic markers"
+    },
+    "syntheticTodoMarkers": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total synthetic marker occurrences across files"
+    },
     "syntheticTodoFiles": {
       "type": "array",
       "description": "Per-file synthetic marker detail",
       "items": {
         "type": "object",
-        "required": ["path","syntheticMarkCount"],
+        "required": ["path", "syntheticMarkCount"],
         "properties": {
-          "path": { "type": "string", "description": "Workspace-relative file path" },
+          "path": {
+            "type": "string",
+            "description": "Workspace-relative file path"
+          },
           "syntheticMarkCount": { "type": "integer", "minimum": 1 },
           "language": { "type": "string" },
-          "snippet": { "type": "string", "description": "Representative line/snippet (redacted)" }
+          "snippet": {
+            "type": "string",
+            "description": "Representative line/snippet (redacted)"
+          }
         },
         "additionalProperties": false
       }

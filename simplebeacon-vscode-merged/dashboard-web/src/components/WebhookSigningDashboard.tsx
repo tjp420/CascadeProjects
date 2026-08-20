@@ -156,10 +156,17 @@ export function WebhookSigningDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Failed to save config'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to save config');
+        return;
+      }
       toast.success('Signing config saved');
       setConfig(data.config);
-    } catch { toast.error('Failed to save config'); } finally { setSaving(false); }
+    } catch {
+      toast.error('Failed to save config');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleEnabled = async () => {
@@ -172,15 +179,22 @@ export function WebhookSigningDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const resetConfig = async () => {
     try {
       const resp = await fetch(apiUrl('/webhook-signing/config/reset'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Config reset'); fetchAll(); }
-    } catch { toast.error('Failed to reset'); }
+      if (data.success) {
+        toast.success('Config reset');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to reset');
+    }
   };
 
   const generateKey = async () => {
@@ -195,20 +209,30 @@ export function WebhookSigningDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error(data.error?.message || 'Failed to generate key'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error(data.error?.message || 'Failed to generate key');
+        return;
+      }
       toast.success('Key pair generated: ' + data.key.keyId);
       setNewKeyId('');
       setNewKeyOrg('');
       fetchAll();
-    } catch { toast.error('Failed to generate key'); }
+    } catch {
+      toast.error('Failed to generate key');
+    }
   };
 
   const deleteKey = async (keyId: string) => {
     try {
       const resp = await fetch(apiUrl(`/webhook-signing/keys/${keyId}`), { method: 'DELETE', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Key deleted: ' + keyId); fetchAll(); }
-    } catch { toast.error('Failed to delete key'); }
+      if (data.success) {
+        toast.success('Key deleted: ' + keyId);
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to delete key');
+    }
   };
 
   const runTestSign = async () => {
@@ -220,23 +244,44 @@ export function WebhookSigningDashboard() {
         body: JSON.stringify({ payload: testPayload || undefined, keyId: testKeyId || undefined }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Test failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Test failed');
+        return;
+      }
       setTestResult(data.result);
-    } catch { toast.error('Test failed'); } finally { setTesting(false); }
+    } catch {
+      toast.error('Test failed');
+    } finally {
+      setTesting(false);
+    }
   };
 
   const clearDeliveries = async () => {
     try {
       const resp = await fetch(apiUrl('/webhook-signing/deliveries/clear'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success(`Cleared ${data.cleared} delivery records`); fetchAll(); }
-    } catch { toast.error('Failed to clear'); }
+      if (data.success) {
+        toast.success(`Cleared ${data.cleared} delivery records`);
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to clear');
+    }
   };
 
   const formatTime = (ts: string) => {
     if (!ts) return '\u2014';
-    try { return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-    catch { return ts; }
+    try {
+      return new Date(ts).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch {
+      return ts;
+    }
   };
 
   const truncateUrl = (url: string, max = 50) => {
@@ -266,7 +311,8 @@ export function WebhookSigningDashboard() {
                 Webhook Cryptographic Signing Engine
               </CardTitle>
               <CardDescription>
-                Asymmetric RSA/ECDSA payload signing with X-Beacon-Signature-256 headers, retry-backoff tracking, and delivery audit log
+                Asymmetric RSA/ECDSA payload signing with X-Beacon-Signature-256 headers, retry-backoff tracking, and
+                delivery audit log
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchAll}>
@@ -326,7 +372,9 @@ export function WebhookSigningDashboard() {
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="text-xs text-foreground-muted">Keys by algorithm:</span>
               {Object.entries(stats.byAlgorithm).map(([alg, count]) => (
-                <Badge key={alg} variant="outline" className="text-[10px]">{alg}: {count}</Badge>
+                <Badge key={alg} variant="outline" className="text-[10px]">
+                  {alg}: {count}
+                </Badge>
               ))}
             </div>
           )}
@@ -365,15 +413,30 @@ export function WebhookSigningDashboard() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-foreground-muted">Max retries</label>
-                <Input value={maxRetries} onChange={(e) => setMaxRetries(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={maxRetries}
+                  onChange={(e) => setMaxRetries(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Base backoff (ms)</label>
-                <Input value={baseBackoff} onChange={(e) => setBaseBackoff(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={baseBackoff}
+                  onChange={(e) => setBaseBackoff(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Max backoff (ms)</label>
-                <Input value={maxBackoff} onChange={(e) => setMaxBackoff(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={maxBackoff}
+                  onChange={(e) => setMaxBackoff(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Jitter (ms)</label>
@@ -406,7 +469,12 @@ export function WebhookSigningDashboard() {
             </div>
             <div>
               <label className="text-xs text-foreground-muted">Key ID (optional — auto-selects first available)</label>
-              <Input value={testKeyId} onChange={(e) => setTestKeyId(e.target.value)} placeholder="auto" className="text-sm" />
+              <Input
+                value={testKeyId}
+                onChange={(e) => setTestKeyId(e.target.value)}
+                placeholder="auto"
+                className="text-sm"
+              />
             </div>
             <Button variant="outline" size="sm" onClick={runTestSign} disabled={testing}>
               {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
@@ -415,8 +483,12 @@ export function WebhookSigningDashboard() {
             {testResult && (
               <div className="rounded-md border border-border bg-muted/10 p-3 space-y-2 text-xs">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">{testResult.algorithm}</Badge>
-                  <Badge variant="outline" className="text-[10px]">Key: {testResult.keyId}</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {testResult.algorithm}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Key: {testResult.keyId}
+                  </Badge>
                   <Badge variant={testResult.verified ? 'success' : 'destructive'} className="text-[10px]">
                     {testResult.verified ? 'Verified' : 'Failed'}
                   </Badge>
@@ -442,7 +514,12 @@ export function WebhookSigningDashboard() {
           <div className="flex flex-wrap gap-2 items-end">
             <div>
               <label className="text-xs text-foreground-muted">Key ID (optional)</label>
-              <Input value={newKeyId} onChange={(e) => setNewKeyId(e.target.value)} placeholder="auto-generated" className="text-sm w-40" />
+              <Input
+                value={newKeyId}
+                onChange={(e) => setNewKeyId(e.target.value)}
+                placeholder="auto-generated"
+                className="text-sm w-40"
+              />
             </div>
             <div>
               <label className="text-xs text-foreground-muted">Algorithm</label>
@@ -457,7 +534,12 @@ export function WebhookSigningDashboard() {
             </div>
             <div>
               <label className="text-xs text-foreground-muted">Org ID (optional)</label>
-              <Input value={newKeyOrg} onChange={(e) => setNewKeyOrg(e.target.value)} placeholder="org-id" className="text-sm w-32" />
+              <Input
+                value={newKeyOrg}
+                onChange={(e) => setNewKeyOrg(e.target.value)}
+                placeholder="org-id"
+                className="text-sm w-32"
+              />
             </div>
             <Button variant="default" size="sm" onClick={generateKey}>
               <Plus className="h-3.5 w-3.5" /> Generate Key Pair
@@ -470,9 +552,15 @@ export function WebhookSigningDashboard() {
               {keys.map((key) => (
                 <div key={key.keyId} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-[10px]">{key.algorithm}</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {key.algorithm}
+                    </Badge>
                     <span className="font-mono text-foreground">{key.keyId}</span>
-                    {key.orgId && <Badge variant="outline" className="text-[10px]">org: {key.orgId}</Badge>}
+                    {key.orgId && (
+                      <Badge variant="outline" className="text-[10px]">
+                        org: {key.orgId}
+                      </Badge>
+                    )}
                     <span className="text-[10px] text-foreground-muted ml-auto">{formatTime(key.createdAt)}</span>
                     <Button variant="ghost" size="sm" className="h-5 px-1.5" onClick={() => deleteKey(key.keyId)}>
                       <Trash2 className="h-3 w-3 text-destructive" />
@@ -480,7 +568,9 @@ export function WebhookSigningDashboard() {
                   </div>
                   <details className="text-[10px] text-foreground-muted">
                     <summary className="cursor-pointer">Public key (PEM)</summary>
-                    <pre className="mt-1 whitespace-pre-wrap break-all font-mono text-[9px] max-h-[80px] overflow-y-auto">{key.publicKeyPem}</pre>
+                    <pre className="mt-1 whitespace-pre-wrap break-all font-mono text-[9px] max-h-[80px] overflow-y-auto">
+                      {key.publicKeyPem}
+                    </pre>
                   </details>
                 </div>
               ))}
@@ -515,9 +605,23 @@ export function WebhookSigningDashboard() {
                     <Badge variant={del.status === 'success' ? 'success' : 'destructive'} className="text-[10px]">
                       {del.statusCode || del.status}
                     </Badge>
-                    {del.signed && <Badge variant="outline" className="text-[10px]"><ShieldCheck className="h-2.5 w-2.5 mr-0.5" />Signed</Badge>}
-                    {del.retried && <Badge variant="outline" className="text-[10px]"><Clock className="h-2.5 w-2.5 mr-0.5" />Retried</Badge>}
-                    {del.event && <Badge variant="outline" className="text-[10px]">{del.event}</Badge>}
+                    {del.signed && (
+                      <Badge variant="outline" className="text-[10px]">
+                        <ShieldCheck className="h-2.5 w-2.5 mr-0.5" />
+                        Signed
+                      </Badge>
+                    )}
+                    {del.retried && (
+                      <Badge variant="outline" className="text-[10px]">
+                        <Clock className="h-2.5 w-2.5 mr-0.5" />
+                        Retried
+                      </Badge>
+                    )}
+                    {del.event && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {del.event}
+                      </Badge>
+                    )}
                     <span className="text-[10px] text-foreground-muted ml-auto">{formatTime(del.timestamp)}</span>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[10px] text-foreground-muted">
@@ -525,9 +629,7 @@ export function WebhookSigningDashboard() {
                     <span>Latency: {del.latencyMs}ms</span>
                     {del.attempt > 0 && <span>Attempt: {del.attempt}</span>}
                   </div>
-                  {del.error && (
-                    <p className="text-[10px] text-destructive">{del.error}</p>
-                  )}
+                  {del.error && <p className="text-[10px] text-destructive">{del.error}</p>}
                 </div>
               ))}
             </div>

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 85: PQC Telecom Routing Gating Hub.
@@ -15,8 +15,8 @@
  * @module hsm-adapter/pqc-telecom-routing-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqcTelecomRoutingGatingHub {
   /**
@@ -39,32 +39,76 @@ class PqcTelecomRoutingGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
-    if (this.policy.requireCarrierEndpointInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireCarrierEndpointInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.carrierEndpointInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.carrierEndpointInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TELECOMGATE_CARRIER_INITIALIZER_UNATTESTED', 'carrier endpoint initializer attestation invalid');
+          throw new HsmAdapterError(
+            "TELECOMGATE_CARRIER_INITIALIZER_UNATTESTED",
+            "carrier endpoint initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TELECOMGATE_CARRIER_INITIALIZER_UNATTESTED', 'carrier endpoint initializer attestation invalid');
+        throw new HsmAdapterError(
+          "TELECOMGATE_CARRIER_INITIALIZER_UNATTESTED",
+          "carrier endpoint initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TELECOMGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TELECOMGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('TELECOMGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TELECOMGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.allocationWindowSeconds === 'number' && request.allocationWindowSeconds > (this.policy.maxAllocationWindowSeconds || 2592000)) {
-      throw new HsmAdapterError('TELECOMGATE_ALLOCATION_WINDOW_EXCEEDED', `allocation window seconds ${request.allocationWindowSeconds} exceeds maximum ${this.policy.maxAllocationWindowSeconds}`);
+    if (
+      typeof request.allocationWindowSeconds === "number" &&
+      request.allocationWindowSeconds >
+        (this.policy.maxAllocationWindowSeconds || 2592000)
+    ) {
+      throw new HsmAdapterError(
+        "TELECOMGATE_ALLOCATION_WINDOW_EXCEEDED",
+        `allocation window seconds ${request.allocationWindowSeconds} exceeds maximum ${this.policy.maxAllocationWindowSeconds}`,
+      );
     }
-    if (typeof request.networkRoutingDepth === 'number' && request.networkRoutingDepth > (this.policy.maxNetworkRoutingDepth || 32)) {
-      throw new HsmAdapterError('TELECOMGATE_ROUTING_DEPTH_EXCEEDED', `network routing depth ${request.networkRoutingDepth} exceeds maximum ${this.policy.maxNetworkRoutingDepth}`);
+    if (
+      typeof request.networkRoutingDepth === "number" &&
+      request.networkRoutingDepth > (this.policy.maxNetworkRoutingDepth || 32)
+    ) {
+      throw new HsmAdapterError(
+        "TELECOMGATE_ROUTING_DEPTH_EXCEEDED",
+        `network routing depth ${request.networkRoutingDepth} exceeds maximum ${this.policy.maxNetworkRoutingDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('TELECOMGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "TELECOMGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -73,18 +117,19 @@ class PqcTelecomRoutingGatingHub {
       targetChainId: request.targetChainId,
       blindedRoutingVolumeCommitment: request.blindedRoutingVolumeCommitment,
       blindedLatencyBoundCommitment: request.blindedLatencyBoundCommitment,
-      blindedInfrastructureHashCommitment: request.blindedInfrastructureHashCommitment,
+      blindedInfrastructureHashCommitment:
+        request.blindedInfrastructureHashCommitment,
       allocationWindowSeconds: request.allocationWindowSeconds,
       networkRoutingDepth: request.networkRoutingDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: "open",
       bandwidthClaimVerified: false,
       routingAccreditationCompletedAt: null,
     };
     this._pools.set(poolId, pool);
     if (this._audit) {
-      this._audit('TELECOM_ROUTING_POOL_INITIALIZED', { ...pool });
+      this._audit("TELECOM_ROUTING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -106,7 +151,10 @@ class PqcTelecomRoutingGatingHub {
   markBandwidthClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('TELECOMGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "TELECOMGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.bandwidthClaimVerified = true;
     return pool;
@@ -121,30 +169,52 @@ class PqcTelecomRoutingGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('TELECOMGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TELECOMGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.bandwidthClaimVerified) {
-      throw new HsmAdapterError('TELECOMGATE_BANDWIDTH_CLAIM_NOT_VERIFIED', `pool ${request.poolId} bandwidth claim not verified`);
+      throw new HsmAdapterError(
+        "TELECOMGATE_BANDWIDTH_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} bandwidth claim not verified`,
+      );
     }
-    if (this.policy.requireRoutingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireRoutingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.routingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.routingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TELECOMGATE_ROUTING_COMMITTEE_UNATTESTED', 'routing committee attestation invalid');
+          throw new HsmAdapterError(
+            "TELECOMGATE_ROUTING_COMMITTEE_UNATTESTED",
+            "routing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TELECOMGATE_ROUTING_COMMITTEE_UNATTESTED', 'routing committee attestation invalid');
+        throw new HsmAdapterError(
+          "TELECOMGATE_ROUTING_COMMITTEE_UNATTESTED",
+          "routing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minTelecomPeeringQuorum || 3)) {
-      throw new HsmAdapterError('TELECOMGATE_QUORUM_INSUFFICIENT', `telecom peering signatures ${signatures.length} below minimum ${this.policy.minTelecomPeeringQuorum}`);
+      throw new HsmAdapterError(
+        "TELECOMGATE_QUORUM_INSUFFICIENT",
+        `telecom peering signatures ${signatures.length} below minimum ${this.policy.minTelecomPeeringQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = "accredited";
     pool.routingAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -152,7 +222,7 @@ class PqcTelecomRoutingGatingHub {
       completedAt: now,
     };
     if (this._audit) {
-      this._audit('ROUTING_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("ROUTING_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -168,28 +238,59 @@ class PqcTelecomRoutingGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('TELECOMGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "TELECOMGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedRoutingVolumeCommitment || !request.blindedLatencyBoundCommitment || !request.blindedInfrastructureHashCommitment) {
-    throw new HsmAdapterError('TELECOMGATE_FIELDS_MISSING', 'blindedRoutingVolumeCommitment, blindedLatencyBoundCommitment, and blindedInfrastructureHashCommitment are required');
+  if (
+    !request.blindedRoutingVolumeCommitment ||
+    !request.blindedLatencyBoundCommitment ||
+    !request.blindedInfrastructureHashCommitment
+  ) {
+    throw new HsmAdapterError(
+      "TELECOMGATE_FIELDS_MISSING",
+      "blindedRoutingVolumeCommitment, blindedLatencyBoundCommitment, and blindedInfrastructureHashCommitment are required",
+    );
   }
-  if (typeof request.allocationWindowSeconds !== 'number') {
-    throw new HsmAdapterError('TELECOMGATE_FIELDS_MISSING', 'allocationWindowSeconds is required');
+  if (typeof request.allocationWindowSeconds !== "number") {
+    throw new HsmAdapterError(
+      "TELECOMGATE_FIELDS_MISSING",
+      "allocationWindowSeconds is required",
+    );
   }
-  if (typeof request.networkRoutingDepth !== 'number') {
-    throw new HsmAdapterError('TELECOMGATE_FIELDS_MISSING', 'networkRoutingDepth is required');
+  if (typeof request.networkRoutingDepth !== "number") {
+    throw new HsmAdapterError(
+      "TELECOMGATE_FIELDS_MISSING",
+      "networkRoutingDepth is required",
+    );
   }
-  if (policy.requireCarrierEndpointInitializerAttestation && !request.carrierEndpointInitializerAttestation) {
-    throw new HsmAdapterError('TELECOMGATE_CARRIER_ATTESTATION_MISSING', 'carrier endpoint initializer attestation is required');
+  if (
+    policy.requireCarrierEndpointInitializerAttestation &&
+    !request.carrierEndpointInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TELECOMGATE_CARRIER_ATTESTATION_MISSING",
+      "carrier endpoint initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TELECOMGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TELECOMGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireRoutingCommitteeAttestation && !request.routingCommitteeAttestation) {
-    throw new HsmAdapterError('TELECOMGATE_ROUTING_ATTESTATION_MISSING', 'routing committee attestation is required');
+  if (
+    policy.requireRoutingCommitteeAttestation &&
+    !request.routingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TELECOMGATE_ROUTING_ATTESTATION_MISSING",
+      "routing committee attestation is required",
+    );
   }
 }
 

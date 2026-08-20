@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Stage 2: Azure Key Vault Managed HSM adapter.
@@ -20,13 +20,13 @@
  * @module hsm-adapter/azure-keyvault-hsm-adapter
  */
 
-const crypto = require('crypto');
-const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
-const { createCredential } = require('./azure-credential-provider.cjs');
-const { AuditInterceptor } = require('./azure-audit-interceptor.cjs');
+const crypto = require("crypto");
+const { BaseHsmAdapter, HsmAdapterError } = require("./base-adapter.cjs");
+const { createCredential } = require("./azure-credential-provider.cjs");
+const { AuditInterceptor } = require("./azure-audit-interceptor.cjs");
 
 const DEFAULT_KEK_BITS = 256;
-const AES_KW_ALGORITHM = 'A256KW'; // JWA name for RFC 3394 AES-KW with 256-bit key
+const AES_KW_ALGORITHM = "A256KW"; // JWA name for RFC 3394 AES-KW with 256-bit key
 
 // Azure SDK modules loaded lazily via dynamic import (ESM packages)
 let _KeyClient = null;
@@ -34,7 +34,7 @@ let _CryptographyClient = null;
 
 async function loadAzureSDKs() {
   if (_KeyClient && _CryptographyClient) return;
-  const keys = await import('@azure/keyvault-keys');
+  const keys = await import("@azure/keyvault-keys");
   _KeyClient = keys.KeyClient;
   _CryptographyClient = keys.CryptographyClient;
 }
@@ -58,7 +58,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    */
   constructor(options = {}) {
     super({
-      providerName: 'azure-keyvault',
+      providerName: "azure-keyvault",
       logger: options.logger,
       policyEngine: options.policyEngine,
       volatileEvictionEngine: options.volatileEvictionEngine,
@@ -66,18 +66,21 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
     });
 
     if (!options.vaultUrl) {
-      throw new HsmAdapterError('INVALID_CONFIG', 'vaultUrl is required');
+      throw new HsmAdapterError("INVALID_CONFIG", "vaultUrl is required");
     }
     this.vaultUrl = options.vaultUrl;
     this.credentialOptions = options.credentialOptions || {};
     this.kekBits = options.kekBits || DEFAULT_KEK_BITS;
     if (![128, 192, 256].includes(this.kekBits)) {
       throw new HsmAdapterError(
-        'INVALID_KEK_BITS',
-        `kekBits must be 128, 192, or 256; got ${this.kekBits}`
+        "INVALID_KEK_BITS",
+        `kekBits must be 128, 192, or 256; got ${this.kekBits}`,
       );
     }
-    this.retryOptions = options.retryOptions || { maxRetries: 3, retryDelayInMs: 800 };
+    this.retryOptions = options.retryOptions || {
+      maxRetries: 3,
+      retryDelayInMs: 800,
+    };
     this._credential = null;
     this._keyClient = null;
     this._cryptoClients = new Map(); // kekId -> CryptographyClient
@@ -117,8 +120,8 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @private
    */
   _getAlgorithm() {
-    if (this.kekBits === 128) return 'A128KW';
-    if (this.kekBits === 192) return 'A192KW';
+    if (this.kekBits === 128) return "A128KW";
+    if (this.kekBits === 192) return "A192KW";
     return AES_KW_ALGORITHM;
   }
 
@@ -131,7 +134,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    */
   _buildKeyName(tenantId, kekId) {
     // Azure key names: ^[0-9a-zA-Z-]+$, max 127 chars
-    const safeTenant = tenantId.replace(/[^0-9a-zA-Z-]/g, '-').slice(0, 60);
+    const safeTenant = tenantId.replace(/[^0-9a-zA-Z-]/g, "-").slice(0, 60);
     return `${safeTenant}-${kekId}`;
   }
 
@@ -182,7 +185,10 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       this._keyClient = new _KeyClient(this.vaultUrl, this._credential, {
         retryOptions: this.retryOptions,
       });
-      this._auditInterceptor = new AuditInterceptor(this.logger, this.providerName);
+      this._auditInterceptor = new AuditInterceptor(
+        this.logger,
+        this.providerName,
+      );
 
       // Health check: verify HSM is reachable
       // listPropertiesOfKeys should not throw if the vault is accessible
@@ -191,25 +197,37 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         // Consume first item to trigger the API call; empty vault is OK
         await iter.next();
       } catch (err) {
-        if (err.statusCode === 401 || err.code === 'Unauthorized') {
-          throw new HsmAdapterError('AUTH_FAILURE', err.message || 'Azure credential chain exhausted');
+        if (err.statusCode === 401 || err.code === "Unauthorized") {
+          throw new HsmAdapterError(
+            "AUTH_FAILURE",
+            err.message || "Azure credential chain exhausted",
+          );
         }
-        if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT' || err.statusCode >= 500) {
-          throw new HsmAdapterError('CONNECTION_FAILURE', `Cannot reach Managed HSM at ${this.vaultUrl}: ${err.message}`);
+        if (
+          err.code === "ENOTFOUND" ||
+          err.code === "ETIMEDOUT" ||
+          err.statusCode >= 500
+        ) {
+          throw new HsmAdapterError(
+            "CONNECTION_FAILURE",
+            `Cannot reach Managed HSM at ${this.vaultUrl}: ${err.message}`,
+          );
         }
         // 403 or other errors may still mean the vault is reachable but RBAC is misconfigured
         if (err.statusCode === 403) {
           throw new HsmAdapterError(
-            'UNAUTHORIZED_KEY_ACCESS',
-            'Missing RBAC role assignment on Managed HSM pool'
+            "UNAUTHORIZED_KEY_ACCESS",
+            "Missing RBAC role assignment on Managed HSM pool",
           );
         }
         // Other errors: log but don't fail (vault may be empty)
-        this._log('warn', 'HSM health check returned non-fatal error', { error: err.message });
+        this._log("warn", "HSM health check returned non-fatal error", {
+          error: err.message,
+        });
       }
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
-      throw new HsmAdapterError('INIT_FAILURE', err.message || String(err));
+      throw new HsmAdapterError("INIT_FAILURE", err.message || String(err));
     }
   }
 
@@ -221,37 +239,44 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @protected
    */
   async _createKEK(tenantId, meta = {}) {
-    const kekId = crypto.randomBytes(6).toString('hex');
+    const kekId = crypto.randomBytes(6).toString("hex");
     const keyName = this._buildKeyName(tenantId, kekId);
     const keySize = this.kekBits;
 
     try {
       const result = await this._auditInterceptor.wrapCall(
-        'CREATE_KEK',
-        'createKey',
-        () => this._keyClient.createKey(keyName, 'AES', {
-          size: keySize,
-          tags: {
-            tenant: tenantId,
-            created: String(Date.now()),
-            track: 'stage2',
-            ...meta,
-          },
-          hsm: true, // Force HSM-backed key
-        })
+        "CREATE_KEK",
+        "createKey",
+        () =>
+          this._keyClient.createKey(keyName, "AES", {
+            size: keySize,
+            tags: {
+              tenant: tenantId,
+              created: String(Date.now()),
+              track: "stage2",
+              ...meta,
+            },
+            hsm: true, // Force HSM-backed key
+          }),
       );
 
       if (!result) {
-        throw new HsmAdapterError('KEK_GEN_FAILED', 'Azure createKey returned no result');
+        throw new HsmAdapterError(
+          "KEK_GEN_FAILED",
+          "Azure createKey returned no result",
+        );
       }
 
       return kekId;
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
       if (err.statusCode === 409) {
-        throw new HsmAdapterError('KEK_EXISTS', `Key ${keyName} already exists`);
+        throw new HsmAdapterError(
+          "KEK_EXISTS",
+          `Key ${keyName} already exists`,
+        );
       }
-      throw new HsmAdapterError('KEK_GEN_FAILED', err.message || String(err));
+      throw new HsmAdapterError("KEK_GEN_FAILED", err.message || String(err));
     }
   }
 
@@ -269,19 +294,22 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
     try {
       const result = await this._auditInterceptor.wrapCall(
-        'WRAP',
-        'encrypt',
-        () => client.encrypt(algorithm, plaintext)
+        "WRAP",
+        "encrypt",
+        () => client.encrypt(algorithm, plaintext),
       );
 
       if (!result || !result.result) {
-        throw new HsmAdapterError('WRAP_FAILED', 'Azure encrypt returned no result');
+        throw new HsmAdapterError(
+          "WRAP_FAILED",
+          "Azure encrypt returned no result",
+        );
       }
 
       return Buffer.from(result.result);
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
-      throw this._mapAzureError(err, 'encrypt');
+      throw this._mapAzureError(err, "encrypt");
     }
   }
 
@@ -299,19 +327,22 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
     try {
       const result = await this._auditInterceptor.wrapCall(
-        'UNWRAP',
-        'decrypt',
-        () => client.decrypt(algorithm, wrapped)
+        "UNWRAP",
+        "decrypt",
+        () => client.decrypt(algorithm, wrapped),
       );
 
       if (!result || !result.result) {
-        throw new HsmAdapterError('UNWRAP_FAILED', 'Azure decrypt returned no result');
+        throw new HsmAdapterError(
+          "UNWRAP_FAILED",
+          "Azure decrypt returned no result",
+        );
       }
 
       return Buffer.from(result.result);
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
-      throw this._mapAzureError(err, 'decrypt');
+      throw this._mapAzureError(err, "decrypt");
     }
   }
 
@@ -329,14 +360,15 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
     // Trigger server-side rotation on the old key (creates a new version)
     try {
       const oldKeyName = this._buildKeyName(tenantId, oldKekId);
-      await this._auditInterceptor.wrapCall(
-        'ROTATE_KEK',
-        'rotateKey',
-        () => this._keyClient.rotateKey(oldKeyName)
+      await this._auditInterceptor.wrapCall("ROTATE_KEK", "rotateKey", () =>
+        this._keyClient.rotateKey(oldKeyName),
       );
     } catch (err) {
       // Rotation failure is non-fatal — the new KEK is already created
-      this._log('warn', 'Old KEK rotation failed (non-fatal)', { oldKekId, error: err.message });
+      this._log("warn", "Old KEK rotation failed (non-fatal)", {
+        oldKekId,
+        error: err.message,
+      });
     }
 
     // Clear cached crypto client for old KEK
@@ -353,7 +385,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    */
   async _listKEKs(tenantId) {
     const results = [];
-    const expectedPrefix = this._buildKeyName(tenantId, '');
+    const expectedPrefix = this._buildKeyName(tenantId, "");
 
     try {
       const iter = await this._keyClient.listPropertiesOfKeys();
@@ -374,7 +406,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         }
       }
     } catch (err) {
-      throw new HsmAdapterError('LIST_FAILED', err.message || String(err));
+      throw new HsmAdapterError("LIST_FAILED", err.message || String(err));
     }
 
     return results;
@@ -399,7 +431,10 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         await this._keyClient.purgeDeletedKey(keyName);
       } catch (err) {
         // Purge may fail if soft-delete is not configured; non-fatal
-        this._log('warn', 'Purge of deleted key failed (non-fatal)', { kekId, error: err.message });
+        this._log("warn", "Purge of deleted key failed (non-fatal)", {
+          kekId,
+          error: err.message,
+        });
       }
 
       // Clear cached crypto client
@@ -408,9 +443,12 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       return { keyName, deleted: true, purged: true };
     } catch (err) {
       if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
+        throw new HsmAdapterError(
+          "KEK_NOT_FOUND",
+          `KEK ${kekId} not found in vault`,
+        );
       }
-      throw new HsmAdapterError('ZEROIZE_FAILED', err.message || String(err));
+      throw new HsmAdapterError("ZEROIZE_FAILED", err.message || String(err));
     }
   }
 
@@ -424,45 +462,51 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
   _mapAzureError(error, operation) {
     const statusCode = error.statusCode || error.status;
     const azureCode = error.details && error.details.code;
-    const message = azureCode ? `${error.message} (Azure: ${azureCode})` : error.message || String(error);
+    const message = azureCode
+      ? `${error.message} (Azure: ${azureCode})`
+      : error.message || String(error);
 
     if (statusCode === 401) {
-      return new HsmAdapterError('AUTH_FAILURE', message);
+      return new HsmAdapterError("AUTH_FAILURE", message);
     }
     if (statusCode === 403) {
-      return new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', message);
+      return new HsmAdapterError("UNAUTHORIZED_KEY_ACCESS", message);
     }
     if (statusCode === 404) {
-      return new HsmAdapterError('KEK_NOT_FOUND', message);
+      return new HsmAdapterError("KEK_NOT_FOUND", message);
     }
     if (statusCode === 409) {
-      if (operation === 'createKey') {
-        return new HsmAdapterError('KEK_EXISTS', message);
+      if (operation === "createKey") {
+        return new HsmAdapterError("KEK_EXISTS", message);
       }
-      return new HsmAdapterError('CONFLICT', message);
+      return new HsmAdapterError("CONFLICT", message);
     }
     if (statusCode === 429) {
-      return new HsmAdapterError('RATE_LIMITED', message);
+      return new HsmAdapterError("RATE_LIMITED", message);
     }
     if (statusCode === 503) {
-      return new HsmAdapterError('CONNECTION_FAILURE', message);
+      return new HsmAdapterError("CONNECTION_FAILURE", message);
     }
-    if (error.code === 'REQUEST_SEND_ERROR' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-      return new HsmAdapterError('CONNECTION_FAILURE', message);
+    if (
+      error.code === "REQUEST_SEND_ERROR" ||
+      error.code === "ECONNREFUSED" ||
+      error.code === "ETIMEDOUT"
+    ) {
+      return new HsmAdapterError("CONNECTION_FAILURE", message);
     }
-    if (error.code === 'PARSE_ERROR') {
-      return new HsmAdapterError('CONNECTION_FAILURE', message);
+    if (error.code === "PARSE_ERROR") {
+      return new HsmAdapterError("CONNECTION_FAILURE", message);
     }
-    if (error.code === 'DECRYPT_FAILED') {
-      return new HsmAdapterError('UNWRAP_FAILED', message);
+    if (error.code === "DECRYPT_FAILED") {
+      return new HsmAdapterError("UNWRAP_FAILED", message);
     }
-    if (operation === 'encrypt') {
-      return new HsmAdapterError('WRAP_FAILED', message);
+    if (operation === "encrypt") {
+      return new HsmAdapterError("WRAP_FAILED", message);
     }
-    if (operation === 'decrypt') {
-      return new HsmAdapterError('UNWRAP_FAILED', message);
+    if (operation === "decrypt") {
+      return new HsmAdapterError("UNWRAP_FAILED", message);
     }
-    return new HsmAdapterError('UNKNOWN_ERROR', message);
+    return new HsmAdapterError("UNKNOWN_ERROR", message);
   }
 }
 

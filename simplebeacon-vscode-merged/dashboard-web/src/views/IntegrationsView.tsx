@@ -7,8 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
-  MessageSquare, Building2, GitPullRequest, Plus, Trash2, Zap,
-  RefreshCw, CheckCircle2, XCircle, Webhook,
+  MessageSquare,
+  Building2,
+  GitPullRequest,
+  Plus,
+  Trash2,
+  Zap,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Webhook,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -89,7 +97,9 @@ export function IntegrationsView() {
     }
   }, []);
 
-  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
 
   const handleCreate = async () => {
     const form = createForm;
@@ -178,9 +188,9 @@ export function IntegrationsView() {
     const typeDef = types[createForm.type];
     if (!typeDef) return null;
 
-    return typeDef.requiredFields.map(field => (
+    return typeDef.requiredFields.map((field) => (
       <div key={field} className="space-y-2">
-        <Label htmlFor={field}>{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</Label>
+        <Label htmlFor={field}>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
         <Input
           id={field}
           type={typeDef.secretFields.includes(field) ? 'password' : 'text'}
@@ -226,8 +236,10 @@ export function IntegrationsView() {
                 value={createForm.type}
                 onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
               >
-                {Object.values(types).map(t => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
+                {Object.values(types).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
                 ))}
               </select>
               {types[createForm.type] && (
@@ -256,7 +268,9 @@ export function IntegrationsView() {
             <Separator />
             <div className="flex gap-2">
               <Button onClick={handleCreate}>Create Integration</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -272,7 +286,7 @@ export function IntegrationsView() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {configs.map(config => {
+          {configs.map((config) => {
             const typeDef = types[config.type];
             return (
               <Card key={config.configId}>
@@ -294,7 +308,7 @@ export function IntegrationsView() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap gap-1">
-                    {config.events.slice(0, 4).map(ev => (
+                    {config.events.slice(0, 4).map((ev) => (
                       <Badge key={ev} variant="outline" className="text-xs">
                         {events[ev] || ev}
                       </Badge>

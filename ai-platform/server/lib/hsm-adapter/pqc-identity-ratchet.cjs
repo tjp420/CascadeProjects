@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 30: Post-Quantum Identity Ratchet.
@@ -9,15 +9,15 @@
  * @module hsm-adapter/pqc-identity-ratchet
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 function _hashHex(inputs) {
-  const h = crypto.createHash('sha256');
+  const h = crypto.createHash("sha256");
   for (const item of inputs) {
-    h.update(typeof item === 'string' ? item : JSON.stringify(item));
+    h.update(typeof item === "string" ? item : JSON.stringify(item));
   }
-  return h.digest('hex');
+  return h.digest("hex");
 }
 
 class PqcIdentityRatchet {
@@ -32,9 +32,10 @@ class PqcIdentityRatchet {
    */
   constructor(options = {}) {
     this.deviceId = options.deviceId;
-    this.scheme = options.scheme || 'ml-kem-768';
+    this.scheme = options.scheme || "ml-kem-768";
     this.kemLevel = options.kemLevel || 768;
-    this._chainKey = options.chainKey || _hashHex([this.deviceId, this.scheme, 'seed']);
+    this._chainKey =
+      options.chainKey || _hashHex([this.deviceId, this.scheme, "seed"]);
     this._skipped = options.skipped || 0;
     this._audit = options.audit || null;
   }
@@ -46,12 +47,21 @@ class PqcIdentityRatchet {
    */
   step(sharedSecret) {
     if (!sharedSecret) {
-      throw new HsmAdapterError('INVALID_INPUT', 'sharedSecret is required');
+      throw new HsmAdapterError("INVALID_INPUT", "sharedSecret is required");
     }
-    const secret = typeof sharedSecret === 'string' ? sharedSecret : sharedSecret.toString('hex');
-    this._chainKey = _hashHex([this._chainKey, secret, this.scheme, this.kemLevel, this._skipped]);
+    const secret =
+      typeof sharedSecret === "string"
+        ? sharedSecret
+        : sharedSecret.toString("hex");
+    this._chainKey = _hashHex([
+      this._chainKey,
+      secret,
+      this.scheme,
+      this.kemLevel,
+      this._skipped,
+    ]);
     this._skipped += 1;
-    this._emitAudit('IDENTITY_RATCHET_STEPPED', {
+    this._emitAudit("IDENTITY_RATCHET_STEPPED", {
       deviceId: this.deviceId,
       scheme: this.scheme,
       kemLevel: this.kemLevel,

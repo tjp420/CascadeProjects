@@ -1,23 +1,81 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Advanced Guardrails</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-  body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;padding:28px}
-  .container{max-width:900px;margin:0 auto;background:#fff;padding:28px;border-radius:8px;box-shadow:0 6px 18px rgba(12,15,20,0.06)}
-  pre{background:#0b1220;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto}
-  code{background:#eef2f6;padding:2px 4px;border-radius:4px}
-  h1,h2,h3{color:#0b1220}
-  a{color:#0b66ff}
-  </style></head><body><div class="container"><h1>Advanced Guardrails</h1><h1>Advanced Guardrails</h1>
-<p></p>
-<p>This document collects additional guidance for enterprise guardrails and advanced configuration patterns used by SimpleBeacon.</p>
-<p></p>
-<h2>Troubleshooting / Path Resolution</h2>
-<p></p>
-<ul>
-<li>In CI environments and cross-platform runners, file path separators are normalized automatically when authoring custom rule <code>paths</code> and when the bundler collects artifacts. If you see missing files during packaging, ensure your rule patterns do not hardcode backslashes (<code>\\</code>) and prefer forward slashes or glob patterns.</li>
-</ul>
-<p></p>
-<ul>
-<li>Example: use <code>web/simplebeacon-dashboard/assets/**</code> instead of <code>web\\simplebeacon-dashboard\\assets\\**</code>.</li>
-</ul>
-<p></p>
-<p>If you need further help, file an issue and tag <code>@infra-team</code> for assistance.</p>
-<p></p></div></body></html>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Advanced Guardrails</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body {
+        font-family: Inter, system-ui, Arial, Helvetica, sans-serif;
+        background: #f6f7f9;
+        color: #111;
+        padding: 28px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 28px;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(12, 15, 20, 0.06);
+      }
+      pre {
+        background: #0b1220;
+        color: #e6edf3;
+        padding: 12px;
+        border-radius: 6px;
+        overflow: auto;
+      }
+      code {
+        background: #eef2f6;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #0b1220;
+      }
+      a {
+        color: #0b66ff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Advanced Guardrails</h1>
+      <h1>Advanced Guardrails</h1>
+      <p></p>
+      <p>
+        This document collects additional guidance for enterprise guardrails and
+        advanced configuration patterns used by SimpleBeacon.
+      </p>
+      <p></p>
+      <h2>Troubleshooting / Path Resolution</h2>
+      <p></p>
+      <ul>
+        <li>
+          In CI environments and cross-platform runners, file path separators
+          are normalized automatically when authoring custom rule
+          <code>paths</code> and when the bundler collects artifacts. If you see
+          missing files during packaging, ensure your rule patterns do not
+          hardcode backslashes (<code>\\</code>) and prefer forward slashes or
+          glob patterns.
+        </li>
+      </ul>
+      <p></p>
+      <ul>
+        <li>
+          Example: use <code>web/simplebeacon-dashboard/assets/**</code> instead
+          of <code>web\\simplebeacon-dashboard\\assets\\**</code>.
+        </li>
+      </ul>
+      <p></p>
+      <p>
+        If you need further help, file an issue and tag
+        <code>@infra-team</code> for assistance.
+      </p>
+      <p></p>
+    </div>
+  </body>
+</html>

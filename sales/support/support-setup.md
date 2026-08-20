@@ -3,17 +3,18 @@
 ## Support Channels
 
 ### Email Support
+
 - **Primary:** support@simplebeacon.com
 - **Enterprise:** enterprise@simplebeacon.com
 - **Sales:** sales@simplebeacon.com
 
 ### Response Time SLA
 
-| Tier | Response Time | Resolution Time |
-|------|---------------|-----------------|
-| Free | 48 hours | Best effort |
-| Pro | 24 hours | 72 hours |
-| Enterprise | 4 hours | 24 hours |
+| Tier       | Response Time | Resolution Time |
+| ---------- | ------------- | --------------- |
+| Free       | 48 hours      | Best effort     |
+| Pro        | 24 hours      | 72 hours        |
+| Enterprise | 4 hours       | 24 hours        |
 
 ## Email Setup
 
@@ -42,17 +43,20 @@
 ### Option 1: GitHub Issues (Free)
 
 **Pros:**
+
 - Free
 - Public transparency
 - Community contribution
 - Integrates with codebase
 
 **Cons:**
+
 - Public (not ideal for sensitive issues)
 - Limited customization
 - No SLA tracking
 
 **Setup:**
+
 1. Use existing GitHub repo: https://github.com/tjp420/simplebeacon
 2. Create issue templates:
    - Bug report
@@ -70,6 +74,7 @@
 ### Option 2: Help Scout (Recommended)
 
 **Pros:**
+
 - Professional support interface
 - SLA tracking
 - Customer profiles
@@ -77,10 +82,12 @@
 - Multi-channel support
 
 **Cons:**
+
 - Cost ($25+/month)
 - Learning curve
 
 **Setup:**
+
 1. Sign up at https://www.helpscout.com
 2. Configure mailboxes:
    - Support (general inquiries)
@@ -95,12 +102,14 @@
 ### Option 3: Zendesk
 
 **Pros:**
+
 - Enterprise-grade
 - Extensive features
 - Community forums
 - Analytics
 
 **Cons:**
+
 - Expensive ($50+/month)
 - Complex setup
 
@@ -171,13 +180,13 @@
 
 ### Escalation Matrix
 
-| Severity | Tier | Escalation Time | Escalate To |
-|----------|------|-----------------|-------------|
-| Critical | Enterprise | 1 hour | CTO |
-| Critical | Pro | 4 hours | Lead Dev |
-| High | Enterprise | 4 hours | Lead Dev |
-| High | Pro | 24 hours | Senior Dev |
-| Medium | All | 48 hours | Support Lead |
+| Severity | Tier       | Escalation Time | Escalate To  |
+| -------- | ---------- | --------------- | ------------ |
+| Critical | Enterprise | 1 hour          | CTO          |
+| Critical | Pro        | 4 hours         | Lead Dev     |
+| High     | Enterprise | 4 hours         | Lead Dev     |
+| High     | Pro        | 24 hours        | Senior Dev   |
+| Medium   | All        | 48 hours        | Support Lead |
 
 ## Support Templates
 
@@ -300,6 +309,7 @@ Subject: Feature Request: [Feature name]
 ### Reporting
 
 Generate monthly reports:
+
 - Total tickets
 - Average response time
 - Resolution rate
@@ -354,12 +364,12 @@ Generate monthly reports:
 
 ### Estimated Costs
 
-| Item | Monthly Cost | Annual Cost |
-|------|--------------|-------------|
-| Email (Google Workspace) | $6 | $72 |
-| Help Scout | $25 | $300 |
-| GitBook | Free | Free |
-| Total | $31 | $372 |
+| Item                     | Monthly Cost | Annual Cost |
+| ------------------------ | ------------ | ----------- |
+| Email (Google Workspace) | $6           | $72         |
+| Help Scout               | $25          | $300        |
+| GitBook                  | Free         | Free        |
+| Total                    | $31          | $372        |
 
 ### Free Alternative
 
@@ -384,6 +394,7 @@ Generate monthly reports:
 ## Status Page
 
 Consider setting up a status page:
+
 - https://status.simplebeacon.com
 - Shows system status
 - Incident history

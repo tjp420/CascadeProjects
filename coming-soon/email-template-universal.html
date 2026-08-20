@@ -1,307 +1,323 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Your SimpleBeacon Purchase</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0B0F19;
-            color: #F3F4F6;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: linear-gradient(145deg, #151D30, #0F1626);
-            border: 1px solid #1E293B;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-        .header {
-            text-align: center;
-            padding-bottom: 30px;
-            border-bottom: 1px solid #1E293B;
-            margin-bottom: 30px;
-        }
-        .logo { font-size: 2rem; margin-bottom: 10px; }
-        .header h1 {
-            font-size: 1.5rem;
-            margin: 0;
-            background: linear-gradient(135deg, #60A5FA, #2563EB);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .product-name {
-            font-size: 1.1rem;
-            color: #9CA3AF;
-            margin-top: 8px;
-        }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+        <title>Your SimpleBeacon Purchase</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #0b0f19;
+                color: #f3f4f6;
+                margin: 0;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: linear-gradient(145deg, #151d30, #0f1626);
+                border: 1px solid #1e293b;
+                border-radius: 16px;
+                padding: 40px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            }
+            .header {
+                text-align: center;
+                padding-bottom: 30px;
+                border-bottom: 1px solid #1e293b;
+                margin-bottom: 30px;
+            }
+            .logo {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+                margin: 0;
+                background: linear-gradient(135deg, #60a5fa, #2563eb);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .product-name {
+                font-size: 1.1rem;
+                color: #9ca3af;
+                margin-top: 8px;
+            }
 
-        /* Receipt box */
-        .receipt {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .receipt.free {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-        .receipt.enterprise {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: rgba(139, 92, 246, 0.3);
-        }
-        .receipt-amount {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #10B981;
-        }
-        .receipt.free .receipt-amount { color: #60A5FA; }
-        .receipt.enterprise .receipt-amount { color: #A78BFA; }
-        .receipt-meta {
-            font-size: 0.85rem;
-            color: #9CA3AF;
-            margin-top: 6px;
-        }
-        .receipt-invoice {
-            font-size: 0.8rem;
-            color: #6B7280;
-            margin-top: 8px;
-        }
+            /* Receipt box */
+            .receipt {
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                border-radius: 10px;
+                padding: 20px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            .receipt.free {
+                background: rgba(59, 130, 246, 0.1);
+                border-color: rgba(59, 130, 246, 0.3);
+            }
+            .receipt.enterprise {
+                background: rgba(139, 92, 246, 0.1);
+                border-color: rgba(139, 92, 246, 0.3);
+            }
+            .receipt-amount {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: #10b981;
+            }
+            .receipt.free .receipt-amount {
+                color: #60a5fa;
+            }
+            .receipt.enterprise .receipt-amount {
+                color: #a78bfa;
+            }
+            .receipt-meta {
+                font-size: 0.85rem;
+                color: #9ca3af;
+                margin-top: 6px;
+            }
+            .receipt-invoice {
+                font-size: 0.8rem;
+                color: #6b7280;
+                margin-top: 8px;
+            }
 
-        /* Token box */
-        .token-box {
-            background: #0F1626;
-            border: 1px solid #2563EB;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 24px 0;
-            text-align: center;
-        }
-        .token-label {
-            font-size: 0.85rem;
-            color: #9CA3AF;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .token-code {
-            font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
-            font-size: 1.1rem;
-            color: #60A5FA;
-            word-break: break-all;
-            background: rgba(37, 99, 235, 0.1);
-            padding: 12px;
-            border-radius: 8px;
-        }
+            /* Token box */
+            .token-box {
+                background: #0f1626;
+                border: 1px solid #2563eb;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 24px 0;
+                text-align: center;
+            }
+            .token-label {
+                font-size: 0.85rem;
+                color: #9ca3af;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .token-code {
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+                font-size: 1.1rem;
+                color: #60a5fa;
+                word-break: break-all;
+                background: rgba(37, 99, 235, 0.1);
+                padding: 12px;
+                border-radius: 8px;
+            }
 
-        /* CTA */
-        .cta-wrap { text-align: center; }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #2563EB, #1D4ED8);
-            color: white;
-            text-decoration: none;
-            padding: 14px 28px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-align: center;
-            margin: 24px 0;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .cta-button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-        .cta-secondary {
-            display: inline-block;
-            background: transparent;
-            border: 1px solid #2563EB;
-            color: #60A5FA;
-            text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin: 12px 0;
-        }
+            /* CTA */
+            .cta-wrap {
+                text-align: center;
+            }
+            .cta-button {
+                display: inline-block;
+                background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                color: white;
+                text-decoration: none;
+                padding: 14px 28px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 1rem;
+                text-align: center;
+                margin: 24px 0;
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            }
+            .cta-button:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+            }
+            .cta-secondary {
+                display: inline-block;
+                background: transparent;
+                border: 1px solid #2563eb;
+                color: #60a5fa;
+                text-decoration: none;
+                padding: 12px 24px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 0.9rem;
+                margin: 12px 0;
+            }
 
-        /* Steps */
-        .steps {
-            background: rgba(37, 99, 235, 0.05);
-            border: 1px solid rgba(37, 99, 235, 0.2);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .steps h3 {
-            margin: 0 0 16px 0;
-            font-size: 1rem;
-            color: #60A5FA;
-        }
-        .steps ol {
-            margin: 0;
-            padding-left: 20px;
-            color: #9CA3AF;
-            font-size: 0.9rem;
-        }
-        .steps li { margin-bottom: 8px; }
-        .steps code {
-            background: #0F1626;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: "SF Mono", Monaco, monospace;
-            font-size: 0.85rem;
-            color: #60A5FA;
-        }
+            /* Steps */
+            .steps {
+                background: rgba(37, 99, 235, 0.05);
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                border-radius: 10px;
+                padding: 20px;
+                margin: 24px 0;
+            }
+            .steps h3 {
+                margin: 0 0 16px 0;
+                font-size: 1rem;
+                color: #60a5fa;
+            }
+            .steps ol {
+                margin: 0;
+                padding-left: 20px;
+                color: #9ca3af;
+                font-size: 0.9rem;
+            }
+            .steps li {
+                margin-bottom: 8px;
+            }
+            .steps code {
+                background: #0f1626;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: 'SF Mono', Monaco, monospace;
+                font-size: 0.85rem;
+                color: #60a5fa;
+            }
 
-        /* Features list */
-        .features {
-            background: rgba(16, 185, 129, 0.05);
-            border: 1px solid rgba(16, 185, 129, 0.15);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .features h3 {
-            margin: 0 0 12px 0;
-            font-size: 1rem;
-            color: #10B981;
-        }
-        .features ul {
-            margin: 0;
-            padding-left: 20px;
-            color: #9CA3AF;
-            font-size: 0.9rem;
-        }
-        .features li { margin-bottom: 6px; }
+            /* Features list */
+            .features {
+                background: rgba(16, 185, 129, 0.05);
+                border: 1px solid rgba(16, 185, 129, 0.15);
+                border-radius: 10px;
+                padding: 20px;
+                margin: 24px 0;
+            }
+            .features h3 {
+                margin: 0 0 12px 0;
+                font-size: 1rem;
+                color: #10b981;
+            }
+            .features ul {
+                margin: 0;
+                padding-left: 20px;
+                color: #9ca3af;
+                font-size: 0.9rem;
+            }
+            .features li {
+                margin-bottom: 6px;
+            }
 
-        /* Privacy */
-        .privacy-note {
-            background: rgba(245, 158, 11, 0.08);
-            border: 1px solid rgba(245, 158, 11, 0.25);
-            border-radius: 10px;
-            padding: 16px;
-            margin: 24px 0;
-            font-size: 0.85rem;
-            color: #FCD34D;
-        }
-        .privacy-note strong { color: #FBBF24; }
+            /* Privacy */
+            .privacy-note {
+                background: rgba(245, 158, 11, 0.08);
+                border: 1px solid rgba(245, 158, 11, 0.25);
+                border-radius: 10px;
+                padding: 16px;
+                margin: 24px 0;
+                font-size: 0.85rem;
+                color: #fcd34d;
+            }
+            .privacy-note strong {
+                color: #fbbf24;
+            }
 
-        /* Delivery estimate */
-        .delivery {
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 10px;
-            padding: 16px;
-            margin: 24px 0;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #C4B5FD;
-        }
+            /* Delivery estimate */
+            .delivery {
+                background: rgba(139, 92, 246, 0.08);
+                border: 1px solid rgba(139, 92, 246, 0.2);
+                border-radius: 10px;
+                padding: 16px;
+                margin: 24px 0;
+                text-align: center;
+                font-size: 0.9rem;
+                color: #c4b5fd;
+            }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid #1E293B;
-            margin-top: 30px;
-            font-size: 0.8rem;
-            color: #6B7280;
-        }
-        .footer a { color: #60A5FA; text-decoration: none; }
+            /* Footer */
+            .footer {
+                text-align: center;
+                padding-top: 30px;
+                border-top: 1px solid #1e293b;
+                margin-top: 30px;
+                font-size: 0.8rem;
+                color: #6b7280;
+            }
+            .footer a {
+                color: #60a5fa;
+                text-decoration: none;
+            }
 
-        /* Sections controlled by inline styles for email client compatibility */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">🛡️</div>
-            <h1>{{HEADLINE}}</h1>
-            <p class="product-name">{{PRODUCT_NAME}}</p>
-        </div>
-
-        <!-- Receipt / Confirmation -->
-        <div class="receipt {{RECEIPT_CLASS}}">
-            <div class="receipt-amount">{{PRICE}}</div>
-            <div class="receipt-meta">{{PAYMENT_METHOD}} · {{DATE}}</div>
-            <div class="receipt-invoice">{{INVOICE_LINE}}</div>
-        </div>
-
-        <!-- Token (for tiers that have one) -->
-        <div {{TOKEN_STYLE}} id="tokenSection">
-            <div class="token-box">
-                <div class="token-label">Your License Token</div>
-                <div class="token-code">{{LICENSE_TOKEN}}</div>
+            /* Sections controlled by inline styles for email client compatibility */
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">🛡️</div>
+                <h1>{{HEADLINE}}</h1>
+                <p class="product-name">{{PRODUCT_NAME}}</p>
             </div>
-        </div>
 
-        <!-- CTA Buttons -->
-        <div class="cta-wrap">
-            <a href="{{PRIMARY_URL}}" class="cta-button">{{PRIMARY_CTA}}</a>
-        </div>
-        <div class="cta-wrap" {{SECONDARY_STYLE}}>
-            <a href="{{SECONDARY_URL}}" class="cta-secondary">{{SECONDARY_CTA}}</a>
-        </div>
-
-        <!-- Steps / Workflow -->
-        <div class="steps">
-            <h3>{{STEPS_TITLE}}</h3>
-            <ol>
-                {{STEPS_LIST}}
-            </ol>
-        </div>
-
-        <!-- Features (for instant report, etc) -->
-        <div {{FEATURES_STYLE}}>
-            <div class="features">
-                <h3>What's included</h3>
-                <ul>
-                    {{FEATURES_LIST}}
-                </ul>
+            <!-- Receipt / Confirmation -->
+            <div class="receipt {{RECEIPT_CLASS}}">
+                <div class="receipt-amount">{{PRICE}}</div>
+                <div class="receipt-meta">{{PAYMENT_METHOD}} · {{DATE}}</div>
+                <div class="receipt-invoice">{{INVOICE_LINE}}</div>
             </div>
-        </div>
 
-        <!-- Delivery estimate for manual review tiers -->
-        <div {{DELIVERY_STYLE}} id="deliverySection">
-            <div class="delivery">
-                <strong>⏱ {{DELIVERY_HEADLINE}}</strong><br>
-                {{DELIVERY_DETAIL}}
+            <!-- Token (for tiers that have one) -->
+            <div {{TOKEN_STYLE}} id="tokenSection">
+                <div class="token-box">
+                    <div class="token-label">Your License Token</div>
+                    <div class="token-code">{{LICENSE_TOKEN}}</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Privacy -->
-        <div class="privacy-note">
-            <strong>🔒 Privacy-first:</strong> {{PRIVACY_TEXT}}
-        </div>
+            <!-- CTA Buttons -->
+            <div class="cta-wrap">
+                <a href="{{PRIMARY_URL}}" class="cta-button">{{PRIMARY_CTA}}</a>
+            </div>
+            <div class="cta-wrap" {{SECONDARY_STYLE}}>
+                <a href="{{SECONDARY_URL}}" class="cta-secondary">{{SECONDARY_CTA}}</a>
+            </div>
 
-        <!-- Support -->
-        <p style="font-size: 0.9rem; color: #9CA3AF;">
-            {{SUPPORT_TEXT}} <a href="mailto:admin@simplebeacon.ai" style="color: #60A5FA;">admin@simplebeacon.ai</a>
-        </p>
+            <!-- Steps / Workflow -->
+            <div class="steps">
+                <h3>{{STEPS_TITLE}}</h3>
+                <ol>
+                    {{STEPS_LIST}}
+                </ol>
+            </div>
 
-        <!-- Footer -->
-        <div class="footer">
-            <p>SimpleBeacon Engine v1.3.0 — Zero-Dependency Static Analysis</p>
-            <p style="margin-top: 8px;">
-                <a href="https://simplebeacon.ai">Website</a> · 
-                <a href="https://github.com/tjp420/simplebeacon">GitHub</a> · 
-                <a href="mailto:admin@simplebeacon.ai">Support</a>
+            <!-- Features (for instant report, etc) -->
+            <div {{FEATURES_STYLE}}>
+                <div class="features">
+                    <h3>What's included</h3>
+                    <ul>
+                        {{FEATURES_LIST}}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Delivery estimate for manual review tiers -->
+            <div {{DELIVERY_STYLE}} id="deliverySection">
+                <div class="delivery">
+                    <strong>⏱ {{DELIVERY_HEADLINE}}</strong><br />
+                    {{DELIVERY_DETAIL}}
+                </div>
+            </div>
+
+            <!-- Privacy -->
+            <div class="privacy-note"><strong>🔒 Privacy-first:</strong> {{PRIVACY_TEXT}}</div>
+
+            <!-- Support -->
+            <p style="font-size: 0.9rem; color: #9ca3af">
+                {{SUPPORT_TEXT}} <a href="mailto:admin@simplebeacon.ai" style="color: #60a5fa">admin@simplebeacon.ai</a>
             </p>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>SimpleBeacon Engine v1.3.0 — Zero-Dependency Static Analysis</p>
+                <p style="margin-top: 8px">
+                    <a href="https://simplebeacon.ai">Website</a> ·
+                    <a href="https://github.com/tjp420/simplebeacon">GitHub</a> ·
+                    <a href="mailto:admin@simplebeacon.ai">Support</a>
+                </p>
+            </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>

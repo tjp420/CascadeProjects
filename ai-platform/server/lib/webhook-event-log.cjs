@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Webhook Event Log — stores recent Stripe webhook events with rich metadata
@@ -9,13 +9,14 @@
  * dashboard display and monitoring.
  */
 
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
-const PROJECT_ROOT = path.join(__dirname, '..');
-const LOG_PATH = process.env.WEBHOOK_EVENT_LOG
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'webhook-event-log.json');
+const PROJECT_ROOT = path.join(__dirname, "..");
+const LOG_PATH =
+  process.env.WEBHOOK_EVENT_LOG ||
+  path.join(PROJECT_ROOT, ".simplebeacon", "webhook-event-log.json");
 const MAX_EVENTS = 500;
 
 let _cache = null;
@@ -26,7 +27,7 @@ const _writeQueue = [];
 function loadLog() {
   if (!_cacheDirty && _cache) return _cache;
   try {
-    const raw = fs.readFileSync(LOG_PATH, 'utf8');
+    const raw = fs.readFileSync(LOG_PATH, "utf8");
     const parsed = JSON.parse(raw);
     _cache = Array.isArray(parsed.events) ? parsed.events : [];
     _cacheDirty = false;
@@ -40,21 +41,29 @@ function loadLog() {
 
 function persistLog(events) {
   if (_writeInProgress) {
-    return new Promise((resolve, reject) => { _writeQueue.push({ events, resolve, reject }); });
+    return new Promise((resolve, reject) => {
+      _writeQueue.push({ events, resolve, reject });
+    });
   }
   _writeInProgress = true;
 
   async function doWrite(evts) {
     const dir = path.dirname(LOG_PATH);
     await fs.promises.mkdir(dir, { recursive: true });
-    const payload = JSON.stringify({ events: evts, updatedAt: new Date().toISOString(), count: evts.length }, null, 2);
-    const tmpPath = LOG_PATH + '.tmp';
-    await fs.promises.writeFile(tmpPath, payload + '\n', 'utf8');
+    const payload = JSON.stringify(
+      { events: evts, updatedAt: new Date().toISOString(), count: evts.length },
+      null,
+      2,
+    );
+    const tmpPath = LOG_PATH + ".tmp";
+    await fs.promises.writeFile(tmpPath, payload + "\n", "utf8");
     try {
       await fs.promises.rename(tmpPath, LOG_PATH);
     } catch {
-      fs.writeFileSync(LOG_PATH, payload + '\n', 'utf8');
-      try { await fs.promises.unlink(tmpPath).catch(() => {}); } catch {}
+      fs.writeFileSync(LOG_PATH, payload + "\n", "utf8");
+      try {
+        await fs.promises.unlink(tmpPath).catch(() => {});
+      } catch {}
     }
   }
 
@@ -89,14 +98,14 @@ async function logWebhookEvent(entry) {
   const events = loadLog();
   const record = {
     eventId: entry.eventId,
-    eventType: entry.eventType || 'unknown',
+    eventType: entry.eventType || "unknown",
     customerEmail: entry.customerEmail || null,
-    status: entry.status || 'processed',
+    status: entry.status || "processed",
     tier: entry.tier || null,
     amount: entry.amount || null,
     reason: entry.reason || null,
     detail: entry.detail || null,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
   events.unshift(record);
   if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
@@ -105,7 +114,7 @@ async function logWebhookEvent(entry) {
     await persistLog(events);
     _cacheDirty = false;
   } catch (err) {
-    logger.error('[WebhookEventLog] Failed to persist:', err.message);
+    logger.error("[WebhookEventLog] Failed to persist:", err.message);
   }
 }
 
@@ -121,10 +130,10 @@ function getRecentEvents(opts = {}) {
   const events = loadLog();
   let filtered = events;
   if (opts.eventType) {
-    filtered = filtered.filter(e => e.eventType === opts.eventType);
+    filtered = filtered.filter((e) => e.eventType === opts.eventType);
   }
   if (opts.status) {
-    filtered = filtered.filter(e => e.status === opts.status);
+    filtered = filtered.filter((e) => e.status === opts.status);
   }
   const limit = opts.limit || 50;
   return filtered.slice(0, limit);
@@ -153,7 +162,7 @@ function getStats() {
     byType,
     byStatus,
     oldestEvent: events.length > 0 ? events[events.length - 1].timestamp : null,
-    newestEvent: events.length > 0 ? events[0].timestamp : null
+    newestEvent: events.length > 0 ? events[0].timestamp : null,
   };
 }
 
@@ -168,5 +177,5 @@ module.exports = {
   getStats,
   clearCache,
   LOG_PATH,
-  MAX_EVENTS
+  MAX_EVENTS,
 };

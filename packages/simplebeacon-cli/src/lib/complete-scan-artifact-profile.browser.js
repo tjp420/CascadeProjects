@@ -3,9 +3,15 @@
  */
 
 function isBenchmarkCachePath(filePath) {
-  const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
-  return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
-    || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
+  const rel = String(filePath || "")
+    .replace(/\\/g, "/")
+    .toLowerCase();
+  return (
+    rel.includes("/github-cache/") ||
+    rel.startsWith("github-cache/") ||
+    rel.includes("/java-ai-vulnerable/") ||
+    rel.startsWith("java-ai-vulnerable/")
+  );
 }
 
 export function filterPlatformArtifactPaths(entries = []) {
@@ -13,28 +19,31 @@ export function filterPlatformArtifactPaths(entries = []) {
 }
 
 const REGENERABLE_CATEGORIES = new Set([
-  'node_modules',
-  'coverage',
-  '__pycache__',
-  'dist',
-  'build'
+  "node_modules",
+  "coverage",
+  "__pycache__",
+  "dist",
+  "build",
 ]);
 
 const REGENERABLE_PATH_SUFFIXES = [
-  '/node_modules',
-  '/coverage',
-  '/__pycache__',
-  '/dist',
-  '/build'
+  "/node_modules",
+  "/coverage",
+  "/__pycache__",
+  "/dist",
+  "/build",
 ];
 
 function isRegenerableDirectoryEntry(entry = {}) {
-  const category = String(entry.category || '').toLowerCase();
+  const category = String(entry.category || "").toLowerCase();
   if (category && REGENERABLE_CATEGORIES.has(category)) return true;
-  const normalizedPath = String(entry.path || '').replace(/\\/g, '/').toLowerCase();
-  return REGENERABLE_PATH_SUFFIXES.some((suffix) => (
-    normalizedPath.endsWith(suffix) || normalizedPath.includes(`${suffix}/`)
-  ));
+  const normalizedPath = String(entry.path || "")
+    .replace(/\\/g, "/")
+    .toLowerCase();
+  return REGENERABLE_PATH_SUFFIXES.some(
+    (suffix) =>
+      normalizedPath.endsWith(suffix) || normalizedPath.includes(`${suffix}/`),
+  );
 }
 
 export function classifyRegenerableArtifacts(analysis = {}) {
@@ -45,29 +54,30 @@ export function classifyRegenerableArtifacts(analysis = {}) {
   const topDirs = filterPlatformArtifactPaths(fr.topSafeDirectories || []);
 
   if (safeBytes <= 0 && topDirs.length === 0) {
-    return 'empty';
+    return "empty";
   }
 
   if (reviewBytes > 0 || unusedCandidates > 0) {
-    return 'mixed';
+    return "mixed";
   }
 
   if (topDirs.length > 0 && topDirs.every(isRegenerableDirectoryEntry)) {
-    return 'regenerableOnly';
+    return "regenerableOnly";
   }
 
-  return 'mixed';
+  return "mixed";
 }
 
-export function softenPriorityActions(actions = [], artifactProfile = 'mixed') {
-  if (artifactProfile !== 'regenerableOnly') return actions;
+export function softenPriorityActions(actions = [], artifactProfile = "mixed") {
+  if (artifactProfile !== "regenerableOnly") return actions;
   return actions.map((action) => {
-    const title = String(action?.title || '');
+    const title = String(action?.title || "");
     if (!/reclaim build artifact space/i.test(title)) return action;
     return {
       ...action,
-      title: 'Optional disk hygiene',
-      detail: 'Regenerable artifacts only (for example node_modules). Delete when you need space, then run npm install to restore.'
+      title: "Optional disk hygiene",
+      detail:
+        "Regenerable artifacts only (for example node_modules). Delete when you need space, then run npm install to restore.",
     };
   });
 }

@@ -2,15 +2,18 @@
 
 Goal
 ----
+
 Design and integrate a **Shard Reconciler** layer into the HomomorphicKeyShardDisperser stack to ensure partial or dropped shard states automatically trigger authenticated reconciliation cycles, with minimal service disruption and strong cryptographic guarantees.
 
 Motivation
 ----------
+
 - Restore resilience for fragmented key sets during node failure, network partitions, or partial uploads.
 - Prevent stale/inconsistent shard states from blocking decryption or key recovery workflows.
 
 Success criteria
 ----------------
+
 - Deterministic reconciliation that re-assembles valid key material when >= threshold shards available.
 - Tenant-isolated operation: reconciler must respect per-tenant access controls and not leak shard metadata.
 - Audit events emitted for all reconciliation actions (request, accept, apply, fail).
@@ -18,6 +21,7 @@ Success criteria
 
 Phase 1 Plan (Spec-first)
 -------------------------
+
 1. Define state machine and message contract
    - `ReconcileRequest { tenantId, shardIds[], nonce, signer }`
    - `ReconcileAck { requestId, nodeId, proof }`
@@ -48,6 +52,7 @@ Phase 1 Plan (Spec-first)
 
 Initial artifacts to create
 -------------------------
+
 - `ai-platform/server/lib/hsm-adapter/shard-reconciler.cjs` (worker + core functions)
 - `ai-platform/server/routes/internal/shard-reconciler-routes.cjs` (admin trigger)
 - Spec doc (this file)
@@ -55,13 +60,16 @@ Initial artifacts to create
 
 Timing & Owners
 ---------------
+
 - Owner: TBD (suggest: cryptography team lead + infra owner)
 - Estimated Phase 1: 2-3 weeks (spec, core alg, tests, canary)
 
 Next action (automated)
 -----------------------
+
 1. Create branch `feat/shard-reconciler-integration` (done).
 2. Scaffold `shard-reconciler.cjs` with worker skeleton and add a TODO test harness.
 
 ---
+
 For changes, propose follow-ups or request direct implementation on this branch.

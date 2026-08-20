@@ -1,166 +1,365 @@
-<!DOCTYPE html>
+<!doctype html>
 <!-- DPA -->
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Data Processing Agreement — SimpleBeacon</title>
-  <meta name="description" content="SimpleBeacon Data Processing Agreement (DPA) and Data Custody SLA. SimpleBeacon never acts as a data processor or data custodian for client proprietary IP.">
-  <link rel="canonical" href="https://simplebeacon.ai/dpa">
-  <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Data Processing Agreement — SimpleBeacon">
-  <meta property="og:description" content="SimpleBeacon DPA and Data Custody SLA for enterprise security auditors.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://simplebeacon.ai/dpa">
-  <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    body { max-width: 820px; margin: 0 auto; padding: 40px 24px; color: #F3F4F6; background: #0B1120; font-family: Inter, sans-serif; line-height: 1.7; }
-    h1 { font-size: 2rem; margin-bottom: 8px; }
-    h2 { font-size: 1.2rem; margin-top: 36px; margin-bottom: 12px; color: #60A5FA; }
-    h3 { font-size: 1rem; margin-top: 24px; margin-bottom: 8px; color: #93C5FD; }
-    p { color: #9CA3AF; margin-bottom: 16px; }
-    ul { color: #9CA3AF; padding-left: 20px; }
-    li { margin-bottom: 8px; }
-    code { background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #C4B5FD; }
-    .badge { display: inline-block; background: rgba(37,99,235,0.12); color: #60A5FA; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(37,99,235,0.2); margin-right: 6px; }
-    a { color: #60A5FA; }
-    .meta-box { background: rgba(20,20,20,0.5); border: 1px solid #1E293B; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
-    .meta-box p { margin: 4px 0; }
-    .meta-label { color: #6B7280; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
-  </style>
-</head>
-<body>
-  <h1>Data Processing Agreement</h1>
-  <p style="color:#9CA3AF;">Last updated: July 2026</p>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Data Processing Agreement — SimpleBeacon</title>
+        <meta
+            name="description"
+            content="SimpleBeacon Data Processing Agreement (DPA) and Data Custody SLA. SimpleBeacon never acts as a data processor or data custodian for client proprietary IP."
+        />
+        <link rel="canonical" href="https://simplebeacon.ai/dpa" />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="Data Processing Agreement — SimpleBeacon" />
+        <meta
+            property="og:description"
+            content="SimpleBeacon DPA and Data Custody SLA for enterprise security auditors."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/dpa" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            body {
+                max-width: 820px;
+                margin: 0 auto;
+                padding: 40px 24px;
+                color: #f3f4f6;
+                background: #0b1120;
+                font-family: Inter, sans-serif;
+                line-height: 1.7;
+            }
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 8px;
+            }
+            h2 {
+                font-size: 1.2rem;
+                margin-top: 36px;
+                margin-bottom: 12px;
+                color: #60a5fa;
+            }
+            h3 {
+                font-size: 1rem;
+                margin-top: 24px;
+                margin-bottom: 8px;
+                color: #93c5fd;
+            }
+            p {
+                color: #9ca3af;
+                margin-bottom: 16px;
+            }
+            ul {
+                color: #9ca3af;
+                padding-left: 20px;
+            }
+            li {
+                margin-bottom: 8px;
+            }
+            code {
+                background: rgba(99, 102, 241, 0.1);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.85em;
+                color: #c4b5fd;
+            }
+            .badge {
+                display: inline-block;
+                background: rgba(37, 99, 235, 0.12);
+                color: #60a5fa;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                margin-right: 6px;
+            }
+            a {
+                color: #60a5fa;
+            }
+            .meta-box {
+                background: rgba(20, 20, 20, 0.5);
+                border: 1px solid #1e293b;
+                border-radius: 12px;
+                padding: 20px 24px;
+                margin: 24px 0;
+            }
+            .meta-box p {
+                margin: 4px 0;
+            }
+            .meta-label {
+                color: #6b7280;
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Data Processing Agreement</h1>
+        <p style="color: #9ca3af">Last updated: July 2026</p>
 
-  <div class="meta-box">
-    <p><span class="meta-label">Provider:</span> SimpleBeacon (&ldquo;Processor&rdquo;)</p>
-    <p><span class="meta-label">Scope:</span> All paid tiers (Pro, Compliance Suite, Enterprise Air-Gapped)</p>
-    <p><span class="meta-label">Legal basis:</span> GDPR Article 28, UK GDPR Article 28, CCPA &sect;1798.140</p>
-    <p><span class="meta-label">Status:</span> <span class="badge">Active</span> Available for countersignature upon request</p>
-  </div>
+        <div class="meta-box">
+            <p><span class="meta-label">Provider:</span> SimpleBeacon (&ldquo;Processor&rdquo;)</p>
+            <p><span class="meta-label">Scope:</span> All paid tiers (Pro, Compliance Suite, Enterprise Air-Gapped)</p>
+            <p><span class="meta-label">Legal basis:</span> GDPR Article 28, UK GDPR Article 28, CCPA &sect;1798.140</p>
+            <p>
+                <span class="meta-label">Status:</span> <span class="badge">Active</span> Available for countersignature
+                upon request
+            </p>
+        </div>
 
-  <h2>1. Roles and Responsibilities</h2>
-  <p><strong>You (the Client) are the Data Controller.</strong> You determine the purposes and means of processing your source code, scan results, and user data.</p>
-  <p><strong>SimpleBeacon is NOT a Data Processor for your source code.</strong> SimpleBeacon does not receive, process, store, or transmit your proprietary source code, file contents, or repository data at any point during scanning operations. All scanning occurs locally on your infrastructure.</p>
-  <p>SimpleBeacon acts as a <strong>limited Data Processor</strong> only for the following non-source-code data categories:</p>
-  <ul>
-    <li><strong>Account metadata:</strong> email address, tier, license token (for authentication and billing)</li>
-    <li><strong>Billing data:</strong> processed by Stripe (PCI-DSS Level 1 certified) — SimpleBeacon never stores card numbers</li>
-    <li><strong>Anonymized scan statistics:</strong> issue counts, gate pass/fail status (only if team dashboard is enabled; never includes code snippets, file paths, or file contents)</li>
-    <li><strong>Contact form submissions:</strong> name, email, message (processed by Formspree for routing)</li>
-  </ul>
+        <h2>1. Roles and Responsibilities</h2>
+        <p>
+            <strong>You (the Client) are the Data Controller.</strong> You determine the purposes and means of
+            processing your source code, scan results, and user data.
+        </p>
+        <p>
+            <strong>SimpleBeacon is NOT a Data Processor for your source code.</strong> SimpleBeacon does not receive,
+            process, store, or transmit your proprietary source code, file contents, or repository data at any point
+            during scanning operations. All scanning occurs locally on your infrastructure.
+        </p>
+        <p>
+            SimpleBeacon acts as a <strong>limited Data Processor</strong> only for the following non-source-code data
+            categories:
+        </p>
+        <ul>
+            <li>
+                <strong>Account metadata:</strong> email address, tier, license token (for authentication and billing)
+            </li>
+            <li>
+                <strong>Billing data:</strong> processed by Stripe (PCI-DSS Level 1 certified) — SimpleBeacon never
+                stores card numbers
+            </li>
+            <li>
+                <strong>Anonymized scan statistics:</strong> issue counts, gate pass/fail status (only if team dashboard
+                is enabled; never includes code snippets, file paths, or file contents)
+            </li>
+            <li>
+                <strong>Contact form submissions:</strong> name, email, message (processed by Formspree for routing)
+            </li>
+        </ul>
 
-  <h2>2. Zero-Upload Warranty</h2>
-  <p>SimpleBeacon warrants that:</p>
-  <ul>
-    <li>The CLI scanner (<code>simplebeacon scan</code>) makes zero network requests during scanning unless the user explicitly passes <code>--upload</code> to generate a certificate.</li>
-    <li>The browser sandbox scanner executes entirely in the client browser's memory. No source code is transmitted to any server. The sandbox is wiped when the browser tab closes.</li>
-    <li>The VS Code extension shells out to the local CLI. No cloud API is invoked for scanning.</li>
-    <li>The Enterprise Air-Gapped deployment operates with zero internet connectivity after initial Docker image pull. License tokens are validated locally using HMAC-SHA256.</li>
-  </ul>
-  <p>This warranty is enforceable as a Service Level Agreement. Any violation constitutes a material breach of contract.</p>
+        <h2>2. Zero-Upload Warranty</h2>
+        <p>SimpleBeacon warrants that:</p>
+        <ul>
+            <li>
+                The CLI scanner (<code>simplebeacon scan</code>) makes zero network requests during scanning unless the
+                user explicitly passes <code>--upload</code> to generate a certificate.
+            </li>
+            <li>
+                The browser sandbox scanner executes entirely in the client browser's memory. No source code is
+                transmitted to any server. The sandbox is wiped when the browser tab closes.
+            </li>
+            <li>The VS Code extension shells out to the local CLI. No cloud API is invoked for scanning.</li>
+            <li>
+                The Enterprise Air-Gapped deployment operates with zero internet connectivity after initial Docker image
+                pull. License tokens are validated locally using HMAC-SHA256.
+            </li>
+        </ul>
+        <p>
+            This warranty is enforceable as a Service Level Agreement. Any violation constitutes a material breach of
+            contract.
+        </p>
 
-  <h2>3. Data Custody SLA</h2>
-  <p>SimpleBeacon explicitly warrants that it <strong>never acts as a data custodian</strong> for client proprietary IP. Specifically:</p>
-  <ul>
-    <li>SimpleBeacon does not store, cache, or retain client source code on any server, database, or log system.</li>
-    <li>SimpleBeacon does not have access to client repositories, CI/CD pipelines, or development environments.</li>
-    <li>Scan reports and certificates are generated client-side and stored on the client's local filesystem. SimpleBeacon has no copy.</li>
-    <li>The optional team dashboard receives only anonymized aggregate statistics (issue counts, pass/fail). No file names, code snippets, or repository paths are transmitted.</li>
-  </ul>
+        <h2>3. Data Custody SLA</h2>
+        <p>
+            SimpleBeacon explicitly warrants that it <strong>never acts as a data custodian</strong> for client
+            proprietary IP. Specifically:
+        </p>
+        <ul>
+            <li>
+                SimpleBeacon does not store, cache, or retain client source code on any server, database, or log system.
+            </li>
+            <li>
+                SimpleBeacon does not have access to client repositories, CI/CD pipelines, or development environments.
+            </li>
+            <li>
+                Scan reports and certificates are generated client-side and stored on the client's local filesystem.
+                SimpleBeacon has no copy.
+            </li>
+            <li>
+                The optional team dashboard receives only anonymized aggregate statistics (issue counts, pass/fail). No
+                file names, code snippets, or repository paths are transmitted.
+            </li>
+        </ul>
 
-  <h2>4. Sub-Processors</h2>
-  <p>SimpleBeacon uses the following sub-processors for non-source-code data only:</p>
-  <ul>
-    <li><strong>Stripe, Inc.</strong> — Payment processing (PCI-DSS Level 1). Processes card data directly; SimpleBeacon receives only a payment token. <a href="https://stripe.com/privacy">Stripe Privacy Policy</a></li>
-    <li><strong>Cloudflare, Inc.</strong> — CDN, DNS, DDoS protection, and web analytics. Processes IP addresses and request metadata. <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare Privacy Policy</a></li>
-    <li><strong>Formspree, Inc.</strong> — Contact form routing. Processes name, email, and message content. <a href="https://formspree.io/legal/privacy-policy/">Formspree Privacy Policy</a></li>
-    <li><strong>Google (Fonts)</strong> — Font delivery via Google Fonts CDN. Processes IP address for font request. <a href="https://policies.google.com/privacy">Google Privacy Policy</a></li>
-  </ul>
-  <p>Client will be notified at least 30 days in advance of any new sub-processor being added. Client may object to a new sub-processor by terminating their subscription.</p>
+        <h2>4. Sub-Processors</h2>
+        <p>SimpleBeacon uses the following sub-processors for non-source-code data only:</p>
+        <ul>
+            <li>
+                <strong>Stripe, Inc.</strong> — Payment processing (PCI-DSS Level 1). Processes card data directly;
+                SimpleBeacon receives only a payment token.
+                <a href="https://stripe.com/privacy">Stripe Privacy Policy</a>
+            </li>
+            <li>
+                <strong>Cloudflare, Inc.</strong> — CDN, DNS, DDoS protection, and web analytics. Processes IP addresses
+                and request metadata. <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare Privacy Policy</a>
+            </li>
+            <li>
+                <strong>Formspree, Inc.</strong> — Contact form routing. Processes name, email, and message content.
+                <a href="https://formspree.io/legal/privacy-policy/">Formspree Privacy Policy</a>
+            </li>
+            <li>
+                <strong>Google (Fonts)</strong> — Font delivery via Google Fonts CDN. Processes IP address for font
+                request. <a href="https://policies.google.com/privacy">Google Privacy Policy</a>
+            </li>
+        </ul>
+        <p>
+            Client will be notified at least 30 days in advance of any new sub-processor being added. Client may object
+            to a new sub-processor by terminating their subscription.
+        </p>
 
-  <h2>5. Data Subject Rights</h2>
-  <p>Since SimpleBeacon does not process client source code, data subject rights (access, rectification, erasure, portability) apply only to account metadata and anonymized scan statistics. Clients may exercise these rights by emailing <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a>. Requests are fulfilled within 30 days.</p>
-  <p>For source code and scan reports, data subject rights are exercised directly by the client on their local infrastructure — SimpleBeacon has no data to return or delete.</p>
+        <h2>5. Data Subject Rights</h2>
+        <p>
+            Since SimpleBeacon does not process client source code, data subject rights (access, rectification, erasure,
+            portability) apply only to account metadata and anonymized scan statistics. Clients may exercise these
+            rights by emailing <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a>. Requests are fulfilled
+            within 30 days.
+        </p>
+        <p>
+            For source code and scan reports, data subject rights are exercised directly by the client on their local
+            infrastructure — SimpleBeacon has no data to return or delete.
+        </p>
 
-  <h2>6. Breach Notification</h2>
-  <p>In the event of a personal data breach affecting account metadata or billing data, SimpleBeacon will:</p>
-  <ul>
-    <li>Notify the client within 72 hours of becoming aware of the breach (GDPR Article 33 compliant)</li>
-    <li>Provide a detailed description of the breach, likely consequences, and measures taken</li>
-    <li>Cooperate with the client's investigation and regulatory notifications</li>
-  </ul>
-  <p>Since SimpleBeacon does not store source code, a source code data breach is not possible within SimpleBeacon's infrastructure.</p>
+        <h2>6. Breach Notification</h2>
+        <p>In the event of a personal data breach affecting account metadata or billing data, SimpleBeacon will:</p>
+        <ul>
+            <li>Notify the client within 72 hours of becoming aware of the breach (GDPR Article 33 compliant)</li>
+            <li>Provide a detailed description of the breach, likely consequences, and measures taken</li>
+            <li>Cooperate with the client's investigation and regulatory notifications</li>
+        </ul>
+        <p>
+            Since SimpleBeacon does not store source code, a source code data breach is not possible within
+            SimpleBeacon's infrastructure.
+        </p>
 
-  <h2>7. Cross-Border Data Transfers</h2>
-  <p>Account metadata is stored in the client's chosen region:</p>
-  <ul>
-    <li><span class="badge">EU</span> Frankfurt, Germany (AWS eu-central-1)</li>
-    <li><span class="badge">US</span> Virginia, USA (AWS us-east-1)</li>
-  </ul>
-  <p>No cross-border data transfer occurs without explicit client consent. Standard Contractual Clauses (SCCs) are available upon request for clients in the EEA or UK.</p>
+        <h2>7. Cross-Border Data Transfers</h2>
+        <p>Account metadata is stored in the client's chosen region:</p>
+        <ul>
+            <li><span class="badge">EU</span> Frankfurt, Germany (AWS eu-central-1)</li>
+            <li><span class="badge">US</span> Virginia, USA (AWS us-east-1)</li>
+        </ul>
+        <p>
+            No cross-border data transfer occurs without explicit client consent. Standard Contractual Clauses (SCCs)
+            are available upon request for clients in the EEA or UK.
+        </p>
 
-  <h2>8. Security Measures</h2>
-  <p>SimpleBeacon maintains the following technical and organizational security measures:</p>
-  <ul>
-    <li><strong>Encryption in transit:</strong> TLS 1.2+ for all network communication (HSTS enforced)</li>
-    <li><strong>Encryption at rest:</strong> AES-256 for account metadata storage</li>
-    <li><strong>Access control:</strong> Least-privilege IAM; no default access to production data</li>
-    <li><strong>Audit logging:</strong> All authentication and billing events are logged with 90-day retention</li>
-    <li><strong>Vulnerability scanning:</strong> Continuous dependency scanning via Dependabot and npm audit</li>
-    <li><strong>Content Security Policy:</strong> Strict CSP headers enforced on all production pages</li>
-    <li><strong>Incident response:</strong> Documented runbooks with 4-hour response SLA for critical incidents</li>
-  </ul>
+        <h2>8. Security Measures</h2>
+        <p>SimpleBeacon maintains the following technical and organizational security measures:</p>
+        <ul>
+            <li><strong>Encryption in transit:</strong> TLS 1.2+ for all network communication (HSTS enforced)</li>
+            <li><strong>Encryption at rest:</strong> AES-256 for account metadata storage</li>
+            <li><strong>Access control:</strong> Least-privilege IAM; no default access to production data</li>
+            <li>
+                <strong>Audit logging:</strong> All authentication and billing events are logged with 90-day retention
+            </li>
+            <li>
+                <strong>Vulnerability scanning:</strong> Continuous dependency scanning via Dependabot and npm audit
+            </li>
+            <li><strong>Content Security Policy:</strong> Strict CSP headers enforced on all production pages</li>
+            <li>
+                <strong>Incident response:</strong> Documented runbooks with 4-hour response SLA for critical incidents
+            </li>
+        </ul>
 
-  <h2>9. Audit Rights</h2>
-  <p>Clients may audit SimpleBeacon's compliance with this DPA by:</p>
-  <ul>
-    <li>Requesting a SOC 2 Type II report (available annually)</li>
-    <li>Conducting network traffic audits as documented on our <a href="security.html">Security &amp; Trust</a> page</li>
-    <li>Reviewing the <a href="security-whitepaper.html">Technical Whitepaper</a> for architecture details</li>
-    <li>Requesting a live demonstration of air-gapped scanning in their environment</li>
-  </ul>
-  <p>On-site audits are available for Enterprise Air-Gapped clients with 30 days' notice.</p>
+        <h2>9. Audit Rights</h2>
+        <p>Clients may audit SimpleBeacon's compliance with this DPA by:</p>
+        <ul>
+            <li>Requesting a SOC 2 Type II report (available annually)</li>
+            <li>
+                Conducting network traffic audits as documented on our
+                <a href="security.html">Security &amp; Trust</a> page
+            </li>
+            <li>Reviewing the <a href="security-whitepaper.html">Technical Whitepaper</a> for architecture details</li>
+            <li>Requesting a live demonstration of air-gapped scanning in their environment</li>
+        </ul>
+        <p>On-site audits are available for Enterprise Air-Gapped clients with 30 days' notice.</p>
 
-  <h2>10. Deletion on Termination</h2>
-  <p>Upon subscription termination, SimpleBeacon will:</p>
-  <ul>
-    <li>Revoke all license tokens immediately</li>
-    <li>Delete account metadata within 30 days (retained only where required by tax law)</li>
-    <li>Provide a written confirmation of deletion upon request</li>
-    <li>Client scan reports and certificates remain on the client's local filesystem — SimpleBeacon has no copy to delete</li>
-  </ul>
+        <h2>10. Deletion on Termination</h2>
+        <p>Upon subscription termination, SimpleBeacon will:</p>
+        <ul>
+            <li>Revoke all license tokens immediately</li>
+            <li>Delete account metadata within 30 days (retained only where required by tax law)</li>
+            <li>Provide a written confirmation of deletion upon request</li>
+            <li>
+                Client scan reports and certificates remain on the client's local filesystem — SimpleBeacon has no copy
+                to delete
+            </li>
+        </ul>
 
-  <h2>11. Governing Law</h2>
-  <p>This DPA is governed by the laws of the jurisdiction specified in the client's master subscription agreement. For EU clients, the GDPR and relevant member-state implementations apply. For US clients, CCPA and relevant state laws apply.</p>
+        <h2>11. Governing Law</h2>
+        <p>
+            This DPA is governed by the laws of the jurisdiction specified in the client's master subscription
+            agreement. For EU clients, the GDPR and relevant member-state implementations apply. For US clients, CCPA
+            and relevant state laws apply.
+        </p>
 
-  <h2>12. Contact</h2>
-  <p>For DPA execution, audit requests, or data protection inquiries:</p>
-  <p>Email: <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a><br>
-  Subject line: &ldquo;DPA Request &mdash; [Company Name]&rdquo;</p>
-  <p><a href="pricing.html">&larr; Back to Pricing</a> &middot; <a href="security.html">Security &amp; Trust</a> &middot; <a href="security-whitepaper.html">Technical Whitepaper</a></p>
+        <h2>12. Contact</h2>
+        <p>For DPA execution, audit requests, or data protection inquiries:</p>
+        <p>
+            Email: <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a><br />
+            Subject line: &ldquo;DPA Request &mdash; [Company Name]&rdquo;
+        </p>
+        <p>
+            <a href="pricing.html">&larr; Back to Pricing</a> &middot;
+            <a href="security.html">Security &amp; Trust</a> &middot;
+            <a href="security-whitepaper.html">Technical Whitepaper</a>
+        </p>
 
-<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">
-  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
-  <p style="margin:0;">
-    <a href="/sample-report" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;
-    <a href="/pricing" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;
-    <a href="/contact" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;
-    <a href="/faq" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">FAQ</a> &middot;
-    <a href="/blog/case-study-ai-slop-1-25m" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Blog</a> &middot;
-    <a href="/roadmap" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Roadmap</a> &middot;
-    <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;
-    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a> &middot;
-    <a href="/dpa" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">DPA</a> &middot;
-    <a href="/refunds" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Refunds</a>
-  </p>
-</footer>
-  <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
-</body>
+        <footer
+            style="
+                background: #0b0f19;
+                border-top: 1px solid #1e293b;
+                padding: 32px 24px;
+                text-align: center;
+                color: #9ca3af;
+                font-size: 0.85rem;
+            "
+        >
+            <p style="margin: 0 0 12px; color: #f3f4f6">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+            <p style="margin: 0">
+                <a href="/sample-report" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Sample report</a>
+                &middot;
+                <a href="/pricing" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Pricing</a> &middot;
+                <a href="/contact" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Contact</a> &middot;
+                <a href="/faq" style="color: #9ca3af; text-decoration: none; margin: 0 6px">FAQ</a> &middot;
+                <a href="/blog/case-study-ai-slop-1-25m" style="color: #9ca3af; text-decoration: none; margin: 0 6px"
+                    >Blog</a
+                >
+                &middot;
+                <a href="/roadmap" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Roadmap</a> &middot;
+                <a href="/terms" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Terms</a> &middot;
+                <a href="/privacy" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Privacy</a> &middot;
+                <a href="/dpa" style="color: #9ca3af; text-decoration: none; margin: 0 6px">DPA</a> &middot;
+                <a href="/refunds" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Refunds</a>
+            </p>
+        </footer>
+        <script>
+            (function () {
+                try {
+                    var params = new URLSearchParams(window.location.search);
+                    var ref = params.get('ref');
+                    if (!ref) return;
+                    try {
+                        localStorage.setItem('sb_ref_slug', ref);
+                    } catch (_) {}
+                    fetch('/api/referral/capture', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ref: ref, channel: 'web' })
+                    }).catch(function () {});
+                } catch (_) {}
+            })();
+        </script>
+    </body>
 </html>

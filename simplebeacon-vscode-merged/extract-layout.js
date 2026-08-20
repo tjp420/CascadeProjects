@@ -1,6 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const fs = require('fs');
-const content = fs.readFileSync('c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/modernSidebarProvider.js', 'utf8');
+const content = fs.readFileSync(
+  'c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/modernSidebarProvider.js',
+  'utf8'
+);
 
 const startIdx = content.indexOf('const layoutHtml = `');
 if (startIdx === -1) {
@@ -17,52 +20,52 @@ let escapeNext = false;
 
 while (i < content.length) {
   const ch = content[i];
-  
+
   if (escapeNext) {
     escapeNext = false;
     i++;
     continue;
   }
-  
+
   if (ch === '\\') {
     escapeNext = true;
     i++;
     continue;
   }
-  
+
   if (!inString && ch === '\`') {
     // Check if this is inside ${} interpolation
     if (depth === 0) {
       break; // Found closing backtick
     }
   }
-  
-  if (!inString && ch === '$' && content[i+1] === '{') {
+
+  if (!inString && ch === '$' && content[i + 1] === '{') {
     depth++;
     i += 2;
     continue;
   }
-  
+
   if (!inString && ch === '}') {
     depth--;
     i++;
     continue;
   }
-  
+
   if (!inString && (ch === '"' || ch === "'" || ch === '\`')) {
     inString = true;
     stringChar = ch;
     i++;
     continue;
   }
-  
+
   if (inString && ch === stringChar) {
     inString = false;
     stringChar = null;
     i++;
     continue;
   }
-  
+
   i++;
 }
 

@@ -43,8 +43,7 @@ function extractFilePaths(report) {
     const paths = new Set();
     if (report && report.rawIssues) {
         for (const issue of report.rawIssues) {
-            if (issue.filePath || issue.file)
-                paths.add(issue.filePath || issue.file);
+            if (issue.filePath || issue.file) paths.add(issue.filePath || issue.file);
         }
     }
     if (report && report.detectedIssues) {
@@ -58,8 +57,7 @@ function extractFilePaths(report) {
     }
     if (report && report.repositoryInventory && report.repositoryInventory.directoryTree) {
         for (const item of report.repositoryInventory.directoryTree) {
-            if (item.path)
-                paths.add(item.path);
+            if (item.path) paths.add(item.path);
         }
     }
     return Array.from(paths).sort();
@@ -73,12 +71,13 @@ function extractFilePaths(report) {
  */
 function renderTreeHtml(node, name, depth = 0) {
     const keys = Object.keys(node).sort();
-    if (!keys.length)
-        return '';
+    if (!keys.length) return '';
     const indent = depth > 0 ? `<span style="display:inline-block;width:${depth * 16}px"></span>` : '';
     const isLeaf = keys.length === 0 || (keys.length === 1 && Object.keys(node[keys[0]]).length === 0);
     const icon = isLeaf ? '📄' : '📁';
-    const caret = isLeaf ? '' : '<span style="display:inline-block;width:12px;text-align:center;margin-right:2px;cursor:pointer;" class="tree-toggle">▼</span>';
+    const caret = isLeaf
+        ? ''
+        : '<span style="display:inline-block;width:12px;text-align:center;margin-right:2px;cursor:pointer;" class="tree-toggle">▼</span>';
     let html = `<div class="tree-item" style="padding:2px 0;font-family:monospace;font-size:12px;white-space:nowrap;cursor:pointer;" data-name="${escapeHtml(name)}">
     ${indent}${caret}${icon} ${escapeHtml(name)}
   </div>`;
@@ -105,7 +104,7 @@ export class CodeMapView {
         window.setSafeHTML(
             container,
             '<div style="padding:24px;color:#888;font-family:Inter,system-ui,sans-serif;">Loading code map…</div>'
-        );;
+        );
         try {
             const projectPath = this.app.state && this.app.state.lastProjectPath;
             const [report, inventory] = await Promise.allSettled([
@@ -115,8 +114,7 @@ export class CodeMapView {
             const reportData = report.status === 'fulfilled' ? report.value : null;
             const inventoryData = inventory.status === 'fulfilled' ? inventory.value : null;
             this.render(projectPath, reportData, inventoryData);
-        }
-        catch (err) {
+        } catch (err) {
             container.innerHTML = `<div style="padding:24px;color:#ef4444;">Failed to load code map: ${escapeHtml(err.message)}</div>`;
         }
     }
@@ -126,14 +124,35 @@ export class CodeMapView {
         const tree = buildTreeFromPaths(filePaths);
         const extensions = countExtensions(filePaths);
         const extEntries = Object.entries(extensions).sort((a, b) => b[1] - a[1]);
-        const totalFiles = inventory === null || inventory === void 0 ? void 0 : inventory(totalFiles !== null && totalFiles !== undefined ? totalFiles : (filePaths.length !== null && filePaths.length !== undefined ? filePaths.length : 0));
-        const totalFolders = inventory === null || inventory === void 0 ? void 0 : inventory(totalFolders !== null && totalFolders !== undefined ? totalFolders : 0);
-        const qualityScore = report === null || report === void 0 ? void 0 : report(qualityScore !== null && qualityScore !== undefined ? qualityScore : '—');
-        const gatePass = report && ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.call(report, pass !== null && pass !== undefined ? pass : null));
+        const totalFiles =
+            inventory === null || inventory === void 0
+                ? void 0
+                : inventory(
+                      totalFiles !== null && totalFiles !== undefined
+                          ? totalFiles
+                          : filePaths.length !== null && filePaths.length !== undefined
+                            ? filePaths.length
+                            : 0
+                  );
+        const totalFolders =
+            inventory === null || inventory === void 0
+                ? void 0
+                : inventory(totalFolders !== null && totalFolders !== undefined ? totalFolders : 0);
+        const qualityScore =
+            report === null || report === void 0
+                ? void 0
+                : report(qualityScore !== null && qualityScore !== undefined ? qualityScore : '—');
+        const gatePass =
+            report &&
+            ((_a = report.gate) === null || _a === void 0
+                ? void 0
+                : _a.call(report, pass !== null && pass !== undefined ? pass : null));
         const hasTree = Object.keys(tree).length > 0;
-        const langBars = extEntries.slice(0, 8).map(([ext, count]) => {
-            const pct = totalFiles > 0 ? Math.round((count / totalFiles) * 100) : 0;
-            return `
+        const langBars = extEntries
+            .slice(0, 8)
+            .map(([ext, count]) => {
+                const pct = totalFiles > 0 ? Math.round((count / totalFiles) * 100) : 0;
+                return `
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;">
           <span style="width:60px;text-transform:uppercase;font-weight:600;color:#94a3b8;">${escapeHtml(ext)}</span>
           <div style="flex:1;height:18px;background:#1e293b;border-radius:4px;overflow:hidden;">
@@ -142,15 +161,19 @@ export class CodeMapView {
           <span style="width:50px;text-align:right;color:#cbd5e1;font-variant-numeric:tabular-nums;">${formatNumber(count)}</span>
         </div>
       `;
-        }).join('');
+            })
+            .join('');
         const treeHtml = hasTree
-            ? Object.keys(tree).map(k => renderTreeHtml(tree[k], k, 0)).join('')
+            ? Object.keys(tree)
+                  .map(k => renderTreeHtml(tree[k], k, 0))
+                  .join('')
             : '<p style="color:#64748b;font-size:12px;">No file tree available. Run a scan to populate.</p>';
-        const gateBadge = gatePass === true
-            ? '<span style="background:#10b98133;color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">PASS</span>'
-            : gatePass === false
-                ? '<span style="background:#ef444433;color:#f87171;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">FAIL</span>'
-                : '<span style="color:#64748b;font-size:11px;">—</span>';
+        const gateBadge =
+            gatePass === true
+                ? '<span style="background:#10b98133;color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">PASS</span>'
+                : gatePass === false
+                  ? '<span style="background:#ef444433;color:#f87171;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">FAIL</span>'
+                  : '<span style="color:#64748b;font-size:11px;">—</span>';
         this.container.innerHTML = `
       <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;height:100%;padding:16px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;">
         <!-- Sidebar -->
@@ -208,19 +231,16 @@ export class CodeMapView {
     }
     bindEvents() {
         const treeEl = this.container.querySelector('#codemap-tree');
-        if (!treeEl)
-            return;
-        treeEl.addEventListener('click', (e) => {
+        if (!treeEl) return;
+        treeEl.addEventListener('click', e => {
             const item = e.target.closest('.tree-item');
-            if (!item)
-                return;
+            if (!item) return;
             const children = item.nextElementSibling;
             if (children && children.classList.contains('tree-children')) {
                 const isHidden = children.style.display === 'none';
                 children.style.display = isHidden ? '' : 'none';
                 const caret = item.querySelector('.tree-toggle');
-                if (caret)
-                    caret.textContent = isHidden ? '▼' : '▶';
+                if (caret) caret.textContent = isHidden ? '▼' : '▶';
             }
         });
         const expandBtn = this.container.querySelector('#codemap-expand-all');

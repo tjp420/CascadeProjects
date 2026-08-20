@@ -10,12 +10,12 @@ const DIST_ASSETS = path.join(ROOT, 'assets');
 const FILES_TO_COPY = [
   {
     src: path.join(ROOT, 'js-es2018', 'workers', 'scan-wasm-bridge.js'),
-    dest: path.join(DIST_ASSETS, 'scan-wasm-bridge.js')
+    dest: path.join(DIST_ASSETS, 'scan-wasm-bridge.js'),
   },
   {
     src: path.join(ROOT, 'js-es2018', 'utils-lib', 'simplebeaconignore.browser.js'),
-    dest: path.join(DIST_ASSETS, 'simplebeaconignore.browser.js')
-  }
+    dest: path.join(DIST_ASSETS, 'simplebeaconignore.browser.js'),
+  },
 ];
 
 function copyFileSafe(src, dest) {
@@ -33,13 +33,10 @@ function rewriteWorkerImports(scanWorkerPath) {
   const original = fs.readFileSync(scanWorkerPath, 'utf8');
 
   const rewritten = original
-    .replace(
-      /(['"])\.\.\/\.\.\/js-es2018\/workers\/scan-wasm-bridge\.js(?:\?[^'\"]*)?\1/g,
-      "$1./scan-wasm-bridge.js$1"
-    )
+    .replace(/(['"])\.\.\/\.\.\/js-es2018\/workers\/scan-wasm-bridge\.js(?:\?[^'\"]*)?\1/g, '$1./scan-wasm-bridge.js$1')
     .replace(
       /(['"])\.\.\/\.\.\/js-es2018\/utils-lib\/simplebeaconignore\.browser\.js(?:\?[^'\"]*)?\1/g,
-      "$1./simplebeaconignore.browser.js$1"
+      '$1./simplebeaconignore.browser.js$1'
     );
 
   if (original !== rewritten) {

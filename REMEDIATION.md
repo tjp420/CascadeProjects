@@ -8,12 +8,12 @@ Total findings: 11
 
 ## 1. Executive Summary
 
-| Priority | Category | Count | Status |
-|----------|----------|-------|--------|
-| Critical | Credential exposure | 3 | False positives — negative test fixtures |
-| High | Missing environment keys | 2 | To be resolved |
-| Medium | Unused environment keys | 5-6 | Cleanup required |
-| Low | Dependency version drift | 1 | Sync required |
+| Priority | Category                 | Count | Status                                   |
+| -------- | ------------------------ | ----- | ---------------------------------------- |
+| Critical | Credential exposure      | 3     | False positives — negative test fixtures |
+| High     | Missing environment keys | 2     | To be resolved                           |
+| Medium   | Unused environment keys  | 5-6   | Cleanup required                         |
+| Low      | Dependency version drift | 1     | Sync required                            |
 
 **Goal:** Eliminate false-positive credential noise, harden environment-variable hygiene, and eliminate package-version drift so the next scan shows **zero Critical/High** flags.
 
@@ -23,11 +23,11 @@ Total findings: 11
 
 ### 2.1 Affected files
 
-| File | Line | Pattern | Risk |
-|------|------|---------|------|
-| `simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs` | 24 | `database-url` | Review required |
-| `simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs` | 25 | `generic-api-key` | Review required |
-| `simplebeacon-rule-tests/negative-test-2/server/lib/fixtures/leaked-credentials.js` | 11 | `stripe-key` | Review required |
+| File                                                                                | Line | Pattern           | Risk            |
+| ----------------------------------------------------------------------------------- | ---- | ----------------- | --------------- |
+| `simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs`        | 24   | `database-url`    | Review required |
+| `simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs`        | 25   | `generic-api-key` | Review required |
+| `simplebeacon-rule-tests/negative-test-2/server/lib/fixtures/leaked-credentials.js` | 11   | `stripe-key`      | Review required |
 
 ### 2.2 Root cause
 
@@ -77,11 +77,16 @@ Add the following guard in `ai-platform/.github-sync/simplebeacon/src/lib/produc
 
 ```js
 // Near the top of classifyProductionLeakMatch()
-if (/simplebeacon:production-leak-intent:\s*test-negative-case/.test(content || '')) {
+if (
+  /simplebeacon:production-leak-intent:\s*test-negative-case/.test(
+    content || "",
+  )
+) {
   return {
-    intent: 'test-negative-case',
+    intent: "test-negative-case",
     suppress: true,
-    reason: 'Intentional negative test fixture — fake credentials used for scanner validation'
+    reason:
+      "Intentional negative test fixture — fake credentials used for scanner validation",
   };
 }
 ```
@@ -133,14 +138,14 @@ Re-run the environment scanner and confirm `missingEnvKeys === 0`.
 
 Confirmed unused in `ai-platform/.env.example` (from `env-audit.json`):
 
-| Key | Action |
-|-----|--------|
-| `UPLOAD_TEST_URL` | Remove or document |
-| `STRIPE_PRICE_ID_AUDIT` | Remove or document |
+| Key                                   | Action             |
+| ------------------------------------- | ------------------ |
+| `UPLOAD_TEST_URL`                     | Remove or document |
+| `STRIPE_PRICE_ID_AUDIT`               | Remove or document |
 | `STRIPE_PRICE_ID_AGENCY_PROJECT_PACK` | Remove or document |
-| `STRIPE_PRICE_ID_AGENCY_GROWTH_PACK` | Remove or document |
-| `STRIPE_PRICE_ID_WARRANTY_RESCAN` | Remove or document |
-| `STRIPE_CHECKOUT_MODE_TEAMS_ANNUAL` | Remove or document |
+| `STRIPE_PRICE_ID_AGENCY_GROWTH_PACK`  | Remove or document |
+| `STRIPE_PRICE_ID_WARRANTY_RESCAN`     | Remove or document |
+| `STRIPE_CHECKOUT_MODE_TEAMS_ANNUAL`   | Remove or document |
 
 ### 4.2 Remediation steps
 
@@ -165,8 +170,8 @@ npx simplebeacon --profile data-cleanup
 
 `@simplebeacon/intelligence` is pinned to two different versions across sibling `package.json` files:
 
-| File | Version |
-|------|---------|
+| File                                                 | Version |
+| ---------------------------------------------------- | ------- |
 | `ai-platform/packages/simplebeacon-cli/package.json` | `1.0.0` |
 | `ai-platform/.github-sync/simplebeacon/package.json` | `0.1.0` |
 
@@ -212,6 +217,7 @@ npx simplebeacon --gate --profile audit
 ```
 
 **Success criteria:**
+
 - `severityCounts.critical === 0`
 - `severityCounts.high === 0`
 - `workspace.missingEnvKeys === 0`
@@ -220,4 +226,4 @@ npx simplebeacon --gate --profile audit
 
 ---
 
-*Plan generated based on SimpleBeacon scan summary dated 2026-06-01.*
+_Plan generated based on SimpleBeacon scan summary dated 2026-06-01._

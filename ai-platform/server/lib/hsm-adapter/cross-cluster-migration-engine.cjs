@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 34: Cross-Cluster Migration.
@@ -21,26 +21,42 @@
  * @module hsm-adapter/cross-cluster-migration-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  validateTenantContext,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require("../replication-tenant-context.cjs");
 
 // ── Migration states ─────────────────────────────────────────────
 const MIGRATION_STATE = {
-  INITIATED: 'initiated',
-  ATTESTED: 'attested',
-  TRANSFERRING: 'transferring',
-  VERIFYING: 'verifying',
-  COMMITTED: 'committed',
-  ROLLED_BACK: 'rolled_back',
+  INITIATED: "initiated",
+  ATTESTED: "attested",
+  TRANSFERRING: "transferring",
+  VERIFYING: "verifying",
+  COMMITTED: "committed",
+  ROLLED_BACK: "rolled_back",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
 const VALID_TRANSITIONS = {
-  [MIGRATION_STATE.INITIATED]: [MIGRATION_STATE.ATTESTED, MIGRATION_STATE.ROLLED_BACK],
-  [MIGRATION_STATE.ATTESTED]: [MIGRATION_STATE.TRANSFERRING, MIGRATION_STATE.ROLLED_BACK],
-  [MIGRATION_STATE.TRANSFERRING]: [MIGRATION_STATE.VERIFYING, MIGRATION_STATE.ROLLED_BACK],
-  [MIGRATION_STATE.VERIFYING]: [MIGRATION_STATE.COMMITTED, MIGRATION_STATE.ROLLED_BACK],
+  [MIGRATION_STATE.INITIATED]: [
+    MIGRATION_STATE.ATTESTED,
+    MIGRATION_STATE.ROLLED_BACK,
+  ],
+  [MIGRATION_STATE.ATTESTED]: [
+    MIGRATION_STATE.TRANSFERRING,
+    MIGRATION_STATE.ROLLED_BACK,
+  ],
+  [MIGRATION_STATE.TRANSFERRING]: [
+    MIGRATION_STATE.VERIFYING,
+    MIGRATION_STATE.ROLLED_BACK,
+  ],
+  [MIGRATION_STATE.VERIFYING]: [
+    MIGRATION_STATE.COMMITTED,
+    MIGRATION_STATE.ROLLED_BACK,
+  ],
   [MIGRATION_STATE.COMMITTED]: [],
   [MIGRATION_STATE.ROLLED_BACK]: [],
 };
@@ -77,7 +93,7 @@ class MigrationManifest {
       shards: this.shards,
       timestamp: this.timestamp,
     });
-    this.hash = crypto.createHash('sha256').update(payload).digest('hex');
+    this.hash = crypto.createHash("sha256").update(payload).digest("hex");
   }
 
   /**
@@ -109,7 +125,10 @@ class MigrationManifest {
       shards: this.shards,
       timestamp: this.timestamp,
     });
-    const computedHash = crypto.createHash('sha256').update(payload).digest('hex');
+    const computedHash = crypto
+      .createHash("sha256")
+      .update(payload)
+      .digest("hex");
     return computedHash === this.hash;
   }
 
@@ -147,12 +166,21 @@ class CrossClusterMigrationEngine {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    if (!Array.isArray(options.destinationNodes) || options.destinationNodes.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'destinationNodes must be a non-empty array');
+    if (
+      !Array.isArray(options.destinationNodes) ||
+      options.destinationNodes.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "destinationNodes must be a non-empty array",
+      );
     }
     this.destinationNodes = new Set(options.destinationNodes);
-    this.minQuorumNodes = options.minQuorumNodes || Math.floor(options.destinationNodes.length / 2) + 1;
-    this.allowedAttestationAuthorities = options.allowedAttestationAuthorities || ['mock-authority'];
+    this.minQuorumNodes =
+      options.minQuorumNodes ||
+      Math.floor(options.destinationNodes.length / 2) + 1;
+    this.allowedAttestationAuthorities =
+      options.allowedAttestationAuthorities || ["mock-authority"];
     this.requireAttestation = options.requireAttestation !== false;
     this.maxConcurrentMigrations = options.maxConcurrentMigrations || 16;
     this._audit = options.audit || null;
@@ -170,7 +198,7 @@ class CrossClusterMigrationEngine {
   initiate(manifestOptions) {
     if (this._activeMigrationCount >= this.maxConcurrentMigrations) {
       throw new HsmAdapterError(
-        'MIGRATION_CONCURRENCY_LIMIT',
+        "MIGRATION_CONCURRENCY_LIMIT",
         `max concurrent migrations (${this.maxConcurrentMigrations}) reached`,
       );
     }
@@ -191,7 +219,7 @@ class CrossClusterMigrationEngine {
     });
     this._activeMigrationCount++;
 
-    this._emitAudit('MIGRATION_INITIATED', {
+    this._emitAudit("MIGRATION_INITIATED", {
       migrationId,
       sourceCluster: manifest.sourceCluster,
       destinationCluster: manifest.destinationCluster,
@@ -211,16 +239,19 @@ class CrossClusterMigrationEngine {
     const record = this._getMigration(migrationId);
     this._transition(migrationId, MIGRATION_STATE.ATTESTED);
 
-    if (this.requireAttestation && !this.allowedAttestationAuthorities.includes(authority)) {
+    if (
+      this.requireAttestation &&
+      !this.allowedAttestationAuthorities.includes(authority)
+    ) {
       this._transition(migrationId, MIGRATION_STATE.ROLLED_BACK);
       throw new HsmAdapterError(
-        'MIGRATION_ATTESTATION_REJECTED',
+        "MIGRATION_ATTESTATION_REJECTED",
         `attestation authority ${authority} is not allowed`,
       );
     }
 
     record.manifest.attest(authority, token);
-    this._emitAudit('MIGRATION_ATTESTED', { migrationId, authority });
+    this._emitAudit("MIGRATION_ATTESTED", { migrationId, authority });
 
     return record.manifest;
   }
@@ -233,11 +264,14 @@ class CrossClusterMigrationEngine {
     const record = this._getMigration(migrationId);
 
     if (this.requireAttestation && !record.manifest.attestation) {
-      throw new HsmAdapterError('MIGRATION_NOT_ATTESTED', `migration ${migrationId} requires attestation before transfer`);
+      throw new HsmAdapterError(
+        "MIGRATION_NOT_ATTESTED",
+        `migration ${migrationId} requires attestation before transfer`,
+      );
     }
 
     this._transition(migrationId, MIGRATION_STATE.TRANSFERRING);
-    this._emitAudit('MIGRATION_TRANSFER_STARTED', {
+    this._emitAudit("MIGRATION_TRANSFER_STARTED", {
       migrationId,
       shardCount: record.manifest.shards.length,
       totalEntries: record.manifest.totalEntryCount(),
@@ -260,11 +294,15 @@ class CrossClusterMigrationEngine {
     if (!verified) {
       this._transition(migrationId, MIGRATION_STATE.ROLLED_BACK);
       this._activeMigrationCount--;
-      this._emitAudit('MIGRATION_VERIFICATION_FAILED', { migrationId });
-      return { migrationId, status: MIGRATION_STATE.ROLLED_BACK, reason: 'verification failed' };
+      this._emitAudit("MIGRATION_VERIFICATION_FAILED", { migrationId });
+      return {
+        migrationId,
+        status: MIGRATION_STATE.ROLLED_BACK,
+        reason: "verification failed",
+      };
     }
 
-    this._emitAudit('MIGRATION_VERIFIED', { migrationId });
+    this._emitAudit("MIGRATION_VERIFIED", { migrationId });
     return { migrationId, status: MIGRATION_STATE.VERIFYING };
   }
 
@@ -279,20 +317,29 @@ class CrossClusterMigrationEngine {
 
     if (record.state !== MIGRATION_STATE.VERIFYING) {
       throw new HsmAdapterError(
-        'MIGRATION_NOT_VERIFIABLE',
+        "MIGRATION_NOT_VERIFIABLE",
         `migration ${migrationId} is in state ${record.state}, cannot acknowledge`,
       );
     }
 
     record.acks.add(nodeId);
-    this._emitAudit('MIGRATION_ACKED', { migrationId, nodeId, acks: record.acks.size });
+    this._emitAudit("MIGRATION_ACKED", {
+      migrationId,
+      nodeId,
+      acks: record.acks.size,
+    });
 
     // Check if quorum reached
     if (record.acks.size >= this.minQuorumNodes) {
       this._commit(migrationId);
     }
 
-    return { migrationId, nodeId, acks: record.acks.size, committed: record.state === MIGRATION_STATE.COMMITTED };
+    return {
+      migrationId,
+      nodeId,
+      acks: record.acks.size,
+      committed: record.state === MIGRATION_STATE.COMMITTED,
+    };
   }
 
   /**
@@ -303,7 +350,7 @@ class CrossClusterMigrationEngine {
     const record = this._getMigration(migrationId);
     this._transition(migrationId, MIGRATION_STATE.COMMITTED);
     this._activeMigrationCount--;
-    this._emitAudit('MIGRATION_COMMITTED', {
+    this._emitAudit("MIGRATION_COMMITTED", {
       migrationId,
       acks: record.acks.size,
       quorum: this.minQuorumNodes,
@@ -315,17 +362,23 @@ class CrossClusterMigrationEngine {
    * @param {string} migrationId
    * @param {string} [reason]
    */
-  rollback(migrationId, reason = 'manual') {
+  rollback(migrationId, reason = "manual") {
     const record = this._getMigration(migrationId);
     if (record.state === MIGRATION_STATE.COMMITTED) {
-      throw new HsmAdapterError('MIGRATION_ALREADY_COMMITTED', `cannot rollback committed migration ${migrationId}`);
+      throw new HsmAdapterError(
+        "MIGRATION_ALREADY_COMMITTED",
+        `cannot rollback committed migration ${migrationId}`,
+      );
     }
     if (record.state === MIGRATION_STATE.ROLLED_BACK) {
-      throw new HsmAdapterError('MIGRATION_ALREADY_ROLLED_BACK', `migration ${migrationId} already rolled back`);
+      throw new HsmAdapterError(
+        "MIGRATION_ALREADY_ROLLED_BACK",
+        `migration ${migrationId} already rolled back`,
+      );
     }
     this._transition(migrationId, MIGRATION_STATE.ROLLED_BACK);
     this._activeMigrationCount--;
-    this._emitAudit('MIGRATION_ROLLED_BACK', { migrationId, reason });
+    this._emitAudit("MIGRATION_ROLLED_BACK", { migrationId, reason });
     return { migrationId, status: MIGRATION_STATE.ROLLED_BACK, reason };
   }
 
@@ -385,7 +438,10 @@ class CrossClusterMigrationEngine {
   _getMigration(migrationId) {
     const record = this._migrations.get(migrationId);
     if (!record) {
-      throw new HsmAdapterError('MIGRATION_NOT_FOUND', `migration ${migrationId} not found`);
+      throw new HsmAdapterError(
+        "MIGRATION_NOT_FOUND",
+        `migration ${migrationId} not found`,
+      );
     }
     return record;
   }
@@ -396,7 +452,10 @@ class CrossClusterMigrationEngine {
    */
   _validateNode(nodeId) {
     if (!this.destinationNodes.has(nodeId)) {
-      throw new HsmAdapterError('MIGRATION_NODE_UNKNOWN', `node ${nodeId} not in destination cluster`);
+      throw new HsmAdapterError(
+        "MIGRATION_NODE_UNKNOWN",
+        `node ${nodeId} not in destination cluster`,
+      );
     }
   }
 
@@ -410,7 +469,7 @@ class CrossClusterMigrationEngine {
     const allowed = VALID_TRANSITIONS[record.state] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'MIGRATION_INVALID_TRANSITION',
+        "MIGRATION_INVALID_TRANSITION",
         `cannot transition from ${record.state} to ${newState}`,
       );
     }

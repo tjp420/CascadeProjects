@@ -6,7 +6,7 @@
  * transport_winston_stream events and forward them to the Winston logger.
  */
 
-const Transport = require('winston-transport');
+const Transport = require("winston-transport");
 
 let _brokerListener = null;
 
@@ -21,7 +21,7 @@ class SIEMTransport extends Transport {
   }
 
   log(info, callback) {
-    setImmediate(() => this.emit('logged', info));
+    setImmediate(() => this.emit("logged", info));
     // Stub: in production this would POST to the SIEM endpoint
     callback();
   }
@@ -35,15 +35,23 @@ class SIEMTransport extends Transport {
  * @param {object} logger - Winston logger instance
  */
 function connectBroker(broker, logger) {
-  if (!broker || typeof broker.on !== 'function') return;
+  if (!broker || typeof broker.on !== "function") return;
   // Remove any previous listener
   if (_brokerListener) {
-    try { _brokerListener.broker.removeListener('transport_winston_stream', _brokerListener.fn); } catch {}
+    try {
+      _brokerListener.broker.removeListener(
+        "transport_winston_stream",
+        _brokerListener.fn,
+      );
+    } catch {}
   }
   const fn = (event) => {
     try {
-      if (logger && typeof logger.warn === 'function') {
-        const level = event.siemSeverity === 'CRITICAL' || event.siemSeverity === 'FATAL' ? 'error' : 'warn';
+      if (logger && typeof logger.warn === "function") {
+        const level =
+          event.siemSeverity === "CRITICAL" || event.siemSeverity === "FATAL"
+            ? "error"
+            : "warn";
         logger[level](`[SIEM] ${event.siemCategory}`, {
           eventId: event.eventId,
           siemSeverity: event.siemSeverity,
@@ -53,7 +61,7 @@ function connectBroker(broker, logger) {
       }
     } catch {}
   };
-  broker.on('transport_winston_stream', fn);
+  broker.on("transport_winston_stream", fn);
   _brokerListener = { broker, fn };
 }
 
@@ -62,7 +70,12 @@ function connectBroker(broker, logger) {
  */
 function disconnectBroker() {
   if (_brokerListener) {
-    try { _brokerListener.broker.removeListener('transport_winston_stream', _brokerListener.fn); } catch {}
+    try {
+      _brokerListener.broker.removeListener(
+        "transport_winston_stream",
+        _brokerListener.fn,
+      );
+    } catch {}
     _brokerListener = null;
   }
 }

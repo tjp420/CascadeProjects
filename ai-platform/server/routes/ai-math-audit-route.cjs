@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-'use strict';
+"use strict";
 
 /**
  * AI Math Audit route — runs the JS-native ai-math-audit engine.
@@ -10,17 +10,17 @@
  *   Returns JSON report.
  */
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
-const logger = require('../lib/app-logger.cjs');
+const logger = require("../lib/app-logger.cjs");
 const {
   assertSafeProjectPath,
-  resolveDefaultAllowedRoots
-} = require('../lib/path-safety.cjs');
-const { toClientError } = require('../../shared-utils/index.cjs');
-const { runAudit } = require('../lib/ai-math-audit.cjs');
-const { sendError } = require('../lib/response-helpers.cjs');
+  resolveDefaultAllowedRoots,
+} = require("../lib/path-safety.cjs");
+const { toClientError } = require("../../shared-utils/index.cjs");
+const { runAudit } = require("../lib/ai-math-audit.cjs");
+const { sendError } = require("../lib/response-helpers.cjs");
 
 /**
  * Resolve the directory that contains model numerical logs for a project.
@@ -28,14 +28,14 @@ const { sendError } = require('../lib/response-helpers.cjs');
  */
 function resolveLogDir(projectPath) {
   const candidates = [
-    path.join(projectPath, 'model-logs'),
-    path.join(projectPath, 'logs'),
+    path.join(projectPath, "model-logs"),
+    path.join(projectPath, "logs"),
     projectPath,
   ];
   for (const dir of candidates) {
     if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
       // Prefer the first candidate that has at least one .json / .jsonl file
-      const hasLogs = fs.readdirSync(dir).some(f => /\.jsonl?$/.test(f));
+      const hasLogs = fs.readdirSync(dir).some((f) => /\.jsonl?$/.test(f));
       if (hasLogs) return dir;
     }
   }
@@ -51,12 +51,12 @@ function resolveLogDir(projectPath) {
 function setupAiMathAuditRoute(app, baseDir) {
   const allowedRoots = resolveDefaultAllowedRoots(baseDir);
 
-  app.post('/api/analyze/ai-math-audit', async (req, res) => {
+  app.post("/api/analyze/ai-math-audit", async (req, res) => {
     try {
       const body = req.body || {};
-      const rawPath = String(body.projectPath || body.path || '').trim();
+      const rawPath = String(body.projectPath || body.path || "").trim();
       if (!rawPath) {
-        return sendError(res, 400, 'Missing projectPath');
+        return sendError(res, 400, "Missing projectPath");
       }
 
       let projectPath;
@@ -74,7 +74,7 @@ function setupAiMathAuditRoute(app, baseDir) {
 
       return res.json({ success: true, report, projectPath, logDir });
     } catch (err) {
-      logger.error('[AI Math Audit] Error:', err);
+      logger.error("[AI Math Audit] Error:", err);
       return res.status(500).json(toClientError(err));
     }
   });

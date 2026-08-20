@@ -9,5 +9,6 @@ Steps to wire into the extension:
 3. Allow the webview to request updates to `apiBase` by posting `{ type: 'setApiBase', apiBase: 'http://127.0.0.1:53099/api' }`.
 
 Security notes:
+
 - Only honor loopback origins provided by the extension to the webview, do not auto-allow insecure origins from query params.
 - Validate and persist the `apiBase` setting in user settings, not workspace settings, by default.

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 53: Multi-platform shard combiner.
@@ -12,8 +12,8 @@
  * @module hsm-adapter/multi-platform-shard-combiner
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class MultiPlatformShardCombiner {
   /**
@@ -37,7 +37,10 @@ class MultiPlatformShardCombiner {
    */
   initiate(request) {
     if (!request.combinationId || !Array.isArray(request.shards)) {
-      throw new HsmAdapterError('COMBINER_FIELDS_MISSING', 'combinationId and shards are required');
+      throw new HsmAdapterError(
+        "COMBINER_FIELDS_MISSING",
+        "combinationId and shards are required",
+      );
     }
     if (request.shards.length < (this.policy.minTargetPlatformQuorum || 3)) {
       if (this.policy.isolateLowQuorumDestinations) {
@@ -45,14 +48,17 @@ class MultiPlatformShardCombiner {
           this._isolatedDestinations.add(shard.destinationPlatformId);
         }
       }
-      throw new HsmAdapterError('COMBINER_QUORUM_INSUFFICIENT', `shard count ${request.shards.length} below minimum ${this.policy.minTargetPlatformQuorum}`);
+      throw new HsmAdapterError(
+        "COMBINER_QUORUM_INSUFFICIENT",
+        `shard count ${request.shards.length} below minimum ${this.policy.minTargetPlatformQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const session = {
       combinationId: request.combinationId,
       shards: request.shards,
       evaluations: [],
-      status: 'pending',
+      status: "pending",
       initiatedAt: now,
     };
     this._pending.set(request.combinationId, session);
@@ -71,33 +77,51 @@ class MultiPlatformShardCombiner {
   submit(combinationId, platformId, attestation, evaluation, signatureEpoch) {
     const session = this._pending.get(combinationId);
     if (!session) {
-      throw new HsmAdapterError('COMBINER_SESSION_NOT_FOUND', `no pending combination ${combinationId}`);
+      throw new HsmAdapterError(
+        "COMBINER_SESSION_NOT_FOUND",
+        `no pending combination ${combinationId}`,
+      );
     }
     if (this._isolatedDestinations.has(platformId)) {
-      throw new HsmAdapterError('COMBINER_PLATFORM_ISOLATED', `platform ${platformId} is isolated`);
+      throw new HsmAdapterError(
+        "COMBINER_PLATFORM_ISOLATED",
+        `platform ${platformId} is isolated`,
+      );
     }
     if (this.policy.requireDestinationAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(attestation);
         if (!result.verified) {
-          throw new HsmAdapterError('COMBINER_PLATFORM_UNATTESTED', `platform ${platformId} attestation invalid`);
+          throw new HsmAdapterError(
+            "COMBINER_PLATFORM_UNATTESTED",
+            `platform ${platformId} attestation invalid`,
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('COMBINER_PLATFORM_UNATTESTED', `platform ${platformId} attestation invalid`);
+        throw new HsmAdapterError(
+          "COMBINER_PLATFORM_UNATTESTED",
+          `platform ${platformId} attestation invalid`,
+        );
       }
     }
     const now = Math.floor(Date.now() / 1000);
     const age = now - (signatureEpoch || now);
     if (age > (this.policy.signatureTimeoutSeconds || 300)) {
-      throw new HsmAdapterError('COMBINER_SIGNATURE_EXPIRED', `signature age ${age}s exceeds timeout ${this.policy.signatureTimeoutSeconds}s`);
+      throw new HsmAdapterError(
+        "COMBINER_SIGNATURE_EXPIRED",
+        `signature age ${age}s exceeds timeout ${this.policy.signatureTimeoutSeconds}s`,
+      );
     }
     session.evaluations.push({ platformId, evaluation });
     if (session.evaluations.length >= session.shards.length) {
-      session.status = 'verified';
-      const combinedHash = crypto.createHash('sha256').update(session.evaluations.map((e) => e.evaluation).join(',')).digest('hex');
+      session.status = "verified";
+      const combinedHash = crypto
+        .createHash("sha256")
+        .update(session.evaluations.map((e) => e.evaluation).join(","))
+        .digest("hex");
       if (this._audit) {
-        this._audit('CROSS_PLATFORM_COMBINER_VERIFIED', {
+        this._audit("CROSS_PLATFORM_COMBINER_VERIFIED", {
           combinationId,
           evaluations: session.evaluations.length,
           combinedHash,
@@ -105,7 +129,11 @@ class MultiPlatformShardCombiner {
       }
       this._pending.delete(combinationId);
     }
-    return { submitted: true, status: session.status, evaluations: session.evaluations.length };
+    return {
+      submitted: true,
+      status: session.status,
+      evaluations: session.evaluations.length,
+    };
   }
 
   /**

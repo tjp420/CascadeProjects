@@ -3,6 +3,7 @@
 **Scope:** Rolling compatibility shim and client migration plan.
 
 **Tasks:**
+
 - Design hybrid signature verification for backward compatibility
 - Implement server-side shim to accept legacy and hybrid signatures
 - Document client migration paths and SDK changes

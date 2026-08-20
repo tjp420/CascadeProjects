@@ -12,9 +12,7 @@ import { Badge } from '@/components/ui/badge';
  * sandbox, but the browser has network connectivity.
  */
 export function OfflineStatusBadge() {
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);

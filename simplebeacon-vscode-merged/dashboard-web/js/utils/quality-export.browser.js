@@ -4,11 +4,7 @@
 
  */
 
-
-
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
-
-
 
 /**
  * Npm audit summary.
@@ -16,13 +12,11 @@ import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716
  * @returns {any}
  */
 export function npmAuditSummary(audit) {
-
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
 
   const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
 
   return {
-
     dependencies: summary.dependencies ?? deps.total ?? null,
 
     prod: summary.prodDependencies ?? deps.prod ?? null,
@@ -37,15 +31,11 @@ export function npmAuditSummary(audit) {
 
     low: summary.low ?? 0,
 
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? (audit?.vulnerabilities?.length ?? 0),
+    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? audit?.vulnerabilities?.length ?? 0,
 
-    generatedAt: audit?.generatedAt ?? null
-
+    generatedAt: audit?.generatedAt ?? null,
   };
-
 }
-
-
 
 /**
  * Strip internal export fields.
@@ -53,16 +43,12 @@ export function npmAuditSummary(audit) {
  * @returns {any}
  */
 export function stripInternalExportFields(section) {
-
   if (!section || typeof section !== 'object' || Array.isArray(section)) return section;
 
   const { _source, ...rest } = section;
 
   return rest;
-
 }
-
-
 
 /**
  * Resolve section provenance.
@@ -70,7 +56,6 @@ export function stripInternalExportFields(section) {
  * @returns {any}
  */
 export function resolveSectionProvenance(section) {
-
   if (!section || typeof section !== 'object') return 'missing';
 
   if (section._source === 'database' || section._source === 'redis') return section._source;
@@ -78,9 +63,7 @@ export function resolveSectionProvenance(section) {
   if (section.error) return 'error';
 
   if (section.coverageCollection === 'istanbul' || section.dataSource === 'repository-audit') {
-
     return 'repository-audit-live';
-
   }
 
   if (section._source === 'sample') return 'repository-audit-live';
@@ -88,10 +71,7 @@ export function resolveSectionProvenance(section) {
   if (section.generatedAt || section.exportNormalized) return 'live-measured';
 
   return section._source || section.dataSource || 'unknown';
-
 }
-
-
 
 /**
  * Redact project path for export.
@@ -100,30 +80,25 @@ export function resolveSectionProvenance(section) {
  * @returns {any}
  */
 export function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
-
   if (rawPath == null || rawPath === '') return rawPath;
 
   const normalized = String(rawPath).replace(/\\/g, '/');
 
   if (normalized.endsWith('/package.json') || normalized.endsWith('package.json')) {
-
     return `${projectLabel}/package.json`;
-
   }
 
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
-
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
-
   }
 
   return normalized;
-
 }
-
-
 
 /**
  * Project label from path.
@@ -131,16 +106,12 @@ export function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform'
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
-
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
 
   const parts = normalized.split('/').filter(Boolean);
 
   return parts[parts.length - 1] || 'ai-platform';
-
 }
-
-
 
 /**
  * Sanitize coverage export.
@@ -148,32 +119,23 @@ function projectLabelFromPath(projectPath) {
  * @returns {any}
  */
 export function sanitizeCoverageExport(coverage) {
-
   if (!coverage) return null;
 
   const clean = stripInternalExportFields(coverage);
 
   return {
-
     ...clean,
 
     provenance: resolveSectionProvenance(coverage),
 
     lastRun: clean.lastRun ?? clean.testCountGeneratedAt ?? null,
 
-    freshnessNote: clean.lastRun && clean.testCountGeneratedAt
-
-      && Date.parse(clean.testCountGeneratedAt) > Date.parse(clean.lastRun)
-
-      ? `Jest counts refreshed ${clean.testCountGeneratedAt}; Istanbul summary lastRun ${clean.lastRun}.`
-
-      : null
-
+    freshnessNote:
+      clean.lastRun && clean.testCountGeneratedAt && Date.parse(clean.testCountGeneratedAt) > Date.parse(clean.lastRun)
+        ? `Jest counts refreshed ${clean.testCountGeneratedAt}; Istanbul summary lastRun ${clean.lastRun}.`
+        : null,
   };
-
 }
-
-
 
 /**
  * Sanitize security export.
@@ -181,20 +143,14 @@ export function sanitizeCoverageExport(coverage) {
  * @returns {any}
  */
 export function sanitizeSecurityExport(security) {
-
   if (!security) return null;
 
   return {
-
     ...stripInternalExportFields(security),
 
-    provenance: resolveSectionProvenance(security)
-
+    provenance: resolveSectionProvenance(security),
   };
-
 }
-
-
 
 /**
  * Sanitize quality export.
@@ -204,7 +160,6 @@ export function sanitizeSecurityExport(security) {
  * @returns {any}
  */
 export function sanitizeQualityExport(quality, coverage = null, report = null) {
-
   if (!quality) return null;
 
   const clean = stripInternalExportFields(quality);
@@ -221,50 +176,43 @@ export function sanitizeQualityExport(quality, coverage = null, report = null) {
 
   const qualAt = clean.testCountGeneratedAt ?? null;
 
-  const covLabel = coverage?.jestTestsLabel
+  const covLabel =
+    coverage?.jestTestsLabel ?? (covPassed != null && covTotal != null ? `${covPassed}/${covTotal}` : null);
 
-    ?? (covPassed != null && covTotal != null ? `${covPassed}/${covTotal}` : null);
-
-  const qualLabel = clean.jestTestsLabel
-
-    ?? (qualPassed != null && qualTotal != null ? `${qualPassed}/${qualTotal}` : null);
+  const qualLabel =
+    clean.jestTestsLabel ?? (qualPassed != null && qualTotal != null ? `${qualPassed}/${qualTotal}` : null);
 
   let testCountNote = null;
 
   let staleRelativeToCoverage = false;
 
   if (covTotal != null && qualTotal != null && covTotal !== qualTotal) {
-
     staleRelativeToCoverage = true;
 
     const coverageNewer = covAt && qualAt && Date.parse(covAt) >= Date.parse(qualAt);
 
     testCountNote = coverageNewer
-
       ? `Quality panel cached ${qualLabel || qualTotal} tests (${qualAt || 'unknown'}); summary uses fresher coverage Jest snapshot ${covLabel || covTotal} tests (${covAt}).`
-
       : `Quality (${qualLabel || qualTotal}) and coverage (${covLabel || covTotal}) Jest snapshots differ — summary.testsTotal follows coverage section.`;
-
   } else if (covLabel && qualLabel && covLabel !== qualLabel) {
-
     staleRelativeToCoverage = true;
 
     const coverageNewer = covAt && qualAt && Date.parse(covAt) >= Date.parse(qualAt);
 
     testCountNote = coverageNewer
-
       ? `Quality panel cached ${qualLabel} (${qualAt || 'unknown'}); summary uses fresher coverage Jest snapshot ${covLabel} (${covAt}).`
-
       : `Quality (${qualLabel}) and coverage (${covLabel}) Jest snapshots differ — summary follows coverage section.`;
-
-  } else if (covPassed != null && qualPassed != null && covPassed !== qualPassed
-
-    && covTotal != null && qualTotal != null && covTotal === qualTotal) {
-
+  } else if (
+    covPassed != null &&
+    qualPassed != null &&
+    covPassed !== qualPassed &&
+    covTotal != null &&
+    qualTotal != null &&
+    covTotal === qualTotal
+  ) {
     staleRelativeToCoverage = true;
 
     testCountNote = `Quality panel shows ${qualLabel || `${qualPassed}/${qualTotal}`} (${qualAt || 'unknown'}) — coverage Jest snapshot is ${covLabel || `${covPassed}/${covTotal}`} (${covAt}).`;
-
   }
 
   const measuredBaselinesNote = buildMeasuredBaselinesNote(clean, report);
@@ -272,40 +220,29 @@ export function sanitizeQualityExport(quality, coverage = null, report = null) {
   let qualityIssuesNote = null;
 
   if (staleRelativeToCoverage && (clean.issuesFound ?? 0) > 0 && (coverage?.failedTests ?? 0) === 0) {
-
     qualityIssuesNote = `Quality panel issuesFound (${clean.issuesFound}) reflects cached panel snapshot — summary uses coverage Jest snapshot (${coverage?.failedTests ?? 0} failures).`;
-
   }
 
   return {
-
     ...clean,
 
     provenance: resolveSectionProvenance(quality),
 
     ...(staleRelativeToCoverage
-
       ? {
+          staleRelativeToCoverage,
 
-        staleRelativeToCoverage,
+          testCountStale: true,
 
-        testCountStale: true,
+          testCountNote,
 
-        testCountNote,
-
-        ...(qualityIssuesNote ? { qualityIssuesNote } : {})
-
-      }
-
+          ...(qualityIssuesNote ? { qualityIssuesNote } : {}),
+        }
       : {}),
 
-    ...(measuredBaselinesNote ? { measuredBaselinesNote } : {})
-
+    ...(measuredBaselinesNote ? { measuredBaselinesNote } : {}),
   };
-
 }
-
-
 
 /**
  * Dedupe export notes.
@@ -313,39 +250,25 @@ export function sanitizeQualityExport(quality, coverage = null, report = null) {
  * @returns {any}
  */
 function dedupeExportNotes(notes = []) {
-
   const seen = new Set();
 
   const out = [];
 
   for (const note of notes.filter(Boolean)) {
-
     const normalized = String(note).replace(/\s+/g, ' ').trim().toLowerCase();
 
     const scopeKey = /supply-002 hygiene evidence only/i.test(normalized)
-
       ? 'quality-npm-audit-bundle-note'
-
       : /quality\.measuredbaselines .* catalog size/i.test(normalized)
-
         ? 'measured-baselines-note'
-
         : /quality panel cached/i.test(normalized)
-
           ? 'quality-stale-note'
-
           : /quality panel shows/i.test(normalized)
-
             ? 'quality-pass-mismatch-note'
-
             : /quality panel issuesfound/i.test(normalized)
-
               ? 'quality-issues-stale-note'
-
               : /jest counts refreshed .* istanbul summary lastrun/i.test(normalized)
-
                 ? 'coverage-freshness-note'
-
                 : normalized;
 
     if (seen.has(scopeKey)) continue;
@@ -353,14 +276,10 @@ function dedupeExportNotes(notes = []) {
     seen.add(scopeKey);
 
     out.push(normalizeSimpleBeaconBranding(note));
-
   }
 
   return out.slice(0, 8);
-
 }
-
-
 
 /**
  * Normalize simple beacon branding.
@@ -368,12 +287,8 @@ function dedupeExportNotes(notes = []) {
  * @returns {any}
  */
 export function normalizeSimpleBeaconBranding(value) {
-
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
-
 }
-
-
 
 /**
  * Build measured baselines note.
@@ -382,28 +297,21 @@ export function normalizeSimpleBeaconBranding(value) {
  * @returns {any}
  */
 function buildMeasuredBaselinesNote(quality, report = null) {
-
   const catalog = quality?.measuredBaselines;
 
   if (catalog == null) return null;
 
-  const gateLabel = report?.pageSampleSchemaChecked != null
-
-    ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
-
-    : null;
+  const gateLabel =
+    report?.pageSampleSchemaChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
+      : null;
 
   if (gateLabel && Number(catalog) !== Number(gateLabel.split('/')[1])) {
-
     return `quality.measuredBaselines (${catalog}) is page-spec catalog size — latest gate scan validated ${gateLabel} page sample schemas.`;
-
   }
 
   return `quality.measuredBaselines (${catalog}) counts repository baseline page-spec catalog entries — not gate-validated schema pass counts.`;
-
 }
-
-
 
 /**
  * Parse numeric.
@@ -411,16 +319,14 @@ function buildMeasuredBaselinesNote(quality, report = null) {
  * @returns {any}
  */
 function parseNumeric(value) {
-
   if (value == null) return null;
 
-  const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  const match = String(value)
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/);
 
   return match ? Number(match[0]) : null;
-
 }
-
-
 
 /**
  * Sanitize npm audit for quality export.
@@ -429,11 +335,8 @@ function parseNumeric(value) {
  * @returns {any}
  */
 export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
-
   if (!audit || audit.error) {
-
     return audit?.error ? { error: audit.error } : audit || null;
-
   }
 
   const label = projectLabelFromPath(projectPath || audit.projectPath);
@@ -443,19 +346,17 @@ export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
   const { metadata, ...rest } = sanitized;
 
   const exportNotes = dedupeExportNotes([
-
     ...(Array.isArray(rest.exportNotes) ? rest.exportNotes : []),
 
-    ...(Array.isArray(rest.exportNotes) && rest.exportNotes.some((n) => /SUPPLY-002 hygiene evidence only/i.test(String(n)))
-
+    ...(Array.isArray(rest.exportNotes) &&
+    rest.exportNotes.some((n) => /SUPPLY-002 hygiene evidence only/i.test(String(n)))
       ? []
-
-      : ['Quality & Security bundle — npm audit is SUPPLY-002 hygiene evidence only, not SimpleBeacon vendor handoff clearance.'])
-
+      : [
+          'Quality & Security bundle — npm audit is SUPPLY-002 hygiene evidence only, not SimpleBeacon vendor handoff clearance.',
+        ]),
   ]);
 
   return {
-
     ...rest,
 
     projectPath: label,
@@ -473,22 +374,14 @@ export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
     exportNotes,
 
     metadata: metadata
-
       ? {
+          vulnerabilities: metadata.vulnerabilities || null,
 
-        vulnerabilities: metadata.vulnerabilities || null,
-
-        dependencies: metadata.dependencies || null
-
-      }
-
-      : undefined
-
+          dependencies: metadata.dependencies || null,
+        }
+      : undefined,
   };
-
 }
-
-
 
 /**
  * Build export provenance.
@@ -499,22 +392,16 @@ export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
  * @returns {any}
  */
 export function buildExportProvenance({ coverage, security, quality, npmAudit } = {}) {
-
   return {
-
     coverage: resolveSectionProvenance(coverage),
 
     security: resolveSectionProvenance(security),
 
     quality: resolveSectionProvenance(quality),
 
-    npmAudit: npmAudit?.error ? 'error' : (npmAudit ? 'live-npm-audit' : 'missing')
-
+    npmAudit: npmAudit?.error ? 'error' : npmAudit ? 'live-npm-audit' : 'missing',
   };
-
 }
-
-
 
 /**
  * Build quality export bundle.
@@ -526,7 +413,6 @@ export function buildExportProvenance({ coverage, security, quality, npmAudit } 
  * @returns {any}
  */
 export function buildQualityExportBundle({ coverage, security, quality, npmAudit, report } = {}) {
-
   const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
 
   const sanitizedCoverage = sanitizeCoverageExport(coverage);
@@ -536,11 +422,9 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
   const sanitizedQuality = sanitizeQualityExport(quality, coverage, report);
 
   const sanitizedAudit = sanitizeNpmAuditForQualityExport(
-
     npmAudit,
 
     npmAudit?.projectPath || 'ai-platform'
-
   );
 
   const testCountMismatch = sanitizedQuality?.staleRelativeToCoverage === true;
@@ -549,16 +433,12 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
 
   const qualityIssuesNote = sanitizedQuality?.qualityIssuesNote ?? null;
 
-  const gatePageSpecsLabel = report?.pageSampleSchemaChecked != null
-
-    ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
-
-    : null;
-
-
+  const gatePageSpecsLabel =
+    report?.pageSampleSchemaChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
+      : null;
 
   const bundle = {
-
     type: 'simplebeacon-quality-security-export',
 
     version: '1.1.0',
@@ -572,7 +452,6 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
     generatedAt: new Date().toISOString(),
 
     summary: {
-
       lineCoverage: coverage?.overallCoverage ?? coverage?.lineCoverage ?? null,
 
       branchCoverage: coverage?.branchCoverage ?? null,
@@ -585,13 +464,8 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
 
       qualityScore: quality?.overallScore ?? quality?.qualityScore ?? null,
 
-      dependencyVulnerabilities: auditStats?.vulnerabilityTotal
-
-        ?? security?.npmAuditTotal
-
-        ?? security?.openVulnerabilities
-
-        ?? null,
+      dependencyVulnerabilities:
+        auditStats?.vulnerabilityTotal ?? security?.npmAuditTotal ?? security?.openVulnerabilities ?? null,
 
       npmDependencies: auditStats?.dependencies ?? null,
 
@@ -622,21 +496,17 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
       gateValidatedPageSpecs: gatePageSpecsLabel,
 
       ...(testCountMismatch && sanitizedQuality?.testCountNote
-
         ? { qualityTestCountNote: sanitizedQuality.testCountNote, qualityPanelStale: true }
-
         : {}),
 
       ...(qualityIssuesNote ? { qualityIssuesNote } : {}),
 
-      ...(measuredBaselinesNote ? { measuredBaselinesNote } : {})
-
+      ...(measuredBaselinesNote ? { measuredBaselinesNote } : {}),
     },
 
     provenance: buildExportProvenance({ coverage, security, quality, npmAudit }),
 
     disclaimers: [
-
       'Coverage from Istanbul collectCoverageFrom scope — not whole-repository line coverage.',
 
       'Security and quality scores reflect SimpleBeacon gate/schema compliance, not penetration testing.',
@@ -647,8 +517,7 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
 
       'Summary testsTotal follows coverage Jest snapshot — quality panel counts may lag until dashboard refresh.',
 
-      'summary.measuredBaselines is page-spec catalog size — gateValidatedPageSpecs reflects latest scan when present.'
-
+      'summary.measuredBaselines is page-spec catalog size — gateValidatedPageSpecs reflects latest scan when present.',
     ].map((line) => normalizeSimpleBeaconBranding(line)),
 
     coverage: sanitizedCoverage,
@@ -668,7 +537,6 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
     securityHandoffEligible: false,
 
     hygieneSummary: {
-
       lineCoverage: coverage?.overallCoverage ?? coverage?.lineCoverage ?? null,
 
       testsTotal: coverage?.totalTests ?? null,
@@ -683,29 +551,22 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
 
       qualityScore: quality?.overallScore ?? quality?.qualityScore ?? null,
 
-      attestationNote: 'Quality & Security dashboard export — hygiene metrics only, not vendor handoff clearance.'
-
+      attestationNote: 'Quality & Security dashboard export — hygiene metrics only, not vendor handoff clearance.',
     },
 
     exportNotes: dedupeExportNotes([
-
       measuredBaselinesNote,
 
       testCountMismatch ? sanitizedQuality.testCountNote : null,
 
       qualityIssuesNote,
 
-      sanitizedCoverage?.freshnessNote || null
-
-    ])
-
+      sanitizedCoverage?.freshnessNote || null,
+    ]),
   };
 
   return bundle;
-
 }
-
-
 
 /**
  * Sanitize quality security export.
@@ -714,27 +575,20 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
  * @returns {any}
  */
 export function sanitizeQualitySecurityExport(bundle, options = {}) {
-
   if (!bundle || bundle.type !== 'simplebeacon-quality-security-export') return bundle;
 
-  const report = options.report || bundle.report || (
-
-    bundle.summary?.gateValidatedPageSpecs
-
+  const report =
+    options.report ||
+    bundle.report ||
+    (bundle.summary?.gateValidatedPageSpecs
       ? {
+          pageSampleSchemaPassed: parseNumeric(String(bundle.summary.gateValidatedPageSpecs).split('/')[0]),
 
-        pageSampleSchemaPassed: parseNumeric(String(bundle.summary.gateValidatedPageSpecs).split('/')[0]),
-
-        pageSampleSchemaChecked: parseNumeric(String(bundle.summary.gateValidatedPageSpecs).split('/')[1])
-
-      }
-
-      : null
-
-  );
+          pageSampleSchemaChecked: parseNumeric(String(bundle.summary.gateValidatedPageSpecs).split('/')[1]),
+        }
+      : null);
 
   return buildQualityExportBundle({
-
     coverage: bundle.coverage,
 
     security: bundle.security,
@@ -743,13 +597,9 @@ export function sanitizeQualitySecurityExport(bundle, options = {}) {
 
     npmAudit: bundle.npmAudit,
 
-    report
-
+    report,
   });
-
 }
-
-
 
 /**
  * Build npm audit csv.
@@ -757,7 +607,6 @@ export function sanitizeQualitySecurityExport(bundle, options = {}) {
  * @returns {any}
  */
 export function buildNpmAuditCsv(audit) {
-
   if (!audit || audit.error) return null;
 
   const vulnerabilities = audit.vulnerabilities || audit.advisories || [];
@@ -766,23 +615,14 @@ export function buildNpmAuditCsv(audit) {
 
   const header = ['severity', 'package', 'title', 'url'];
 
-  const rows = vulnerabilities.map((v) => [
-
-    v.severity || '',
-
-    v.component || v.name || v.module_name || '',
-
-    v.title || v.overview || '',
-
-    v.url || ''
-
-  ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+  const rows = vulnerabilities.map((v) =>
+    [v.severity || '', v.component || v.name || v.module_name || '', v.title || v.overview || '', v.url || '']
+      .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+      .join(',')
+  );
 
   return [header.join(','), ...rows].join('\n');
-
 }
-
-
 
 /**
  * Build quality summary csv.
@@ -790,24 +630,16 @@ export function buildNpmAuditCsv(audit) {
  * @returns {any}
  */
 export function buildQualitySummaryCsv(bundle) {
-
   if (!bundle?.summary) return null;
 
   const header = ['metric', 'value'];
 
-  const rows = Object.entries(bundle.summary).map(([key, value]) => [
-
-    key,
-
-    value == null ? '' : String(value)
-
-  ].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+  const rows = Object.entries(bundle.summary).map(([key, value]) =>
+    [key, value == null ? '' : String(value)].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+  );
 
   return [header.join(','), ...rows].join('\n');
-
 }
-
-
 
 /**
  * Build quality csv.
@@ -816,16 +648,12 @@ export function buildQualitySummaryCsv(bundle) {
  * @returns {any}
  */
 export function buildQualityCsv({ bundle, npmAudit } = {}) {
-
   const vulnCsv = buildNpmAuditCsv(npmAudit);
 
   if (vulnCsv) return vulnCsv;
 
   return buildQualitySummaryCsv(bundle);
-
 }
-
-
 
 /**
  * Quality export filename.
@@ -833,13 +661,9 @@ export function buildQualityCsv({ bundle, npmAudit } = {}) {
  * @returns {any}
  */
 export function qualityExportFilename(ext = 'json') {
-
   const stamp = new Date().toISOString().slice(0, 10);
 
   if (ext === 'csv') return `quality-security-metrics-${stamp}.csv`;
 
   return `quality-security-export-${stamp}.json`;
-
 }
-
-

@@ -7,10 +7,10 @@
 # ── Security thresholds (application-level) ──────────────────────────
 security:
   # IPC payload limit for mesh worker channels (matches MAX_IPC_PAYLOAD_BYTES)
-  ipcPayloadLimitBytes: 1048576  # 1 MB
+  ipcPayloadLimitBytes: 1048576 # 1 MB
 
   # Sandbox memory entry size limit (matches MAX_MEMORY_ENTRY_BYTES)
-  sandboxMemoryEntryLimitBytes: 65536  # 64 KB
+  sandboxMemoryEntryLimitBytes: 65536 # 64 KB
 
   # Sandbox max memory entries per sandbox (matches MAX_MEMORY_ENTRIES)
   sandboxMemoryMaxEntries: 16
@@ -102,7 +102,7 @@ probes:
 envoy:
   enabled: true
   # Body size limit: 1MB IPC + 1MB overhead for base64/envelope bloating
-  maxRequestBytes: 2097152  # 2 MB
+  maxRequestBytes: 2097152 # 2 MB
   listenerPort: 8080
   backendPort: 3000
   # Structured JSON access logging for SIEM parsing

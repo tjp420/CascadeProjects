@@ -11,9 +11,9 @@
  * @license MIT
  */
 
-const base = require('./jest.config.cjs');
+const base = require("./jest.config.cjs");
 
 module.exports = {
   ...base,
-  setupFilesAfterEnv: []
+  setupFilesAfterEnv: [],
 };

@@ -8,18 +8,21 @@
  *   - compliance-checklist/detectors.js — npm audit + auth profile detection
  */
 
-const fs = require('fs');
-const path = require('path');
-const DEFAULT_CHECKLIST = require('./compliance-checklist.defaults.json');
-const EU_AI_ACT_CHECKLIST = require('./compliance-checklist.eu-ai-act.defaults.json');
-const { evaluateRule } = require('./compliance-rules');
-const { detectNpmAuditSummary, detectProductionAuthProfile } = require('./compliance-checklist/detectors');
+const fs = require("fs");
+const path = require("path");
+const DEFAULT_CHECKLIST = require("./compliance-checklist.defaults.json");
+const EU_AI_ACT_CHECKLIST = require("./compliance-checklist.eu-ai-act.defaults.json");
+const { evaluateRule } = require("./compliance-rules");
+const {
+  detectNpmAuditSummary,
+  detectProductionAuthProfile,
+} = require("./compliance-checklist/detectors");
 
 /** Frozen map of built-in checklist profiles. */
 const CHECKLIST_PROFILES = Object.freeze({
-    default: DEFAULT_CHECKLIST,
-    corporate: DEFAULT_CHECKLIST,
-    'eu-ai-act': EU_AI_ACT_CHECKLIST
+  default: DEFAULT_CHECKLIST,
+  corporate: DEFAULT_CHECKLIST,
+  "eu-ai-act": EU_AI_ACT_CHECKLIST,
 });
 
 /* ── Checklist loading ──────────────────────────────────────────────── */
@@ -30,12 +33,16 @@ const CHECKLIST_PROFILES = Object.freeze({
  * @returns {boolean}
  */
 function isEvaluatedChecklistOutput(custom) {
-    const customRules = Array.isArray(custom?.rules) ? custom.rules : [];
-    if (!customRules.length) return false;
-    if (custom.evaluatedAt || custom.summary?.passed != null || custom.summary?.failed != null) {
-        return true;
-    }
-    return customRules.every((rule) => rule.status != null && !rule.check);
+  const customRules = Array.isArray(custom?.rules) ? custom.rules : [];
+  if (!customRules.length) return false;
+  if (
+    custom.evaluatedAt ||
+    custom.summary?.passed != null ||
+    custom.summary?.failed != null
+  ) {
+    return true;
+  }
+  return customRules.every((rule) => rule.status != null && !rule.check);
 }
 
 /**
@@ -46,18 +53,20 @@ function isEvaluatedChecklistOutput(custom) {
  * @returns {Array<object>} Merged and filtered rule set.
  */
 function mergeChecklistRules(customRules, defaultRules) {
-    const defaultsById = new Map((defaultRules || []).map((rule) => [rule.id, rule]));
-    if (!customRules?.length) return defaultRules;
+  const defaultsById = new Map(
+    (defaultRules || []).map((rule) => [rule.id, rule]),
+  );
+  if (!customRules?.length) return defaultRules;
 
-    const result = new Map(defaultsById);
-    for (const rule of customRules) {
-        const base = result.get(rule.id) || {};
-        const merged = { ...base, ...rule, check: rule.check || base.check };
-        delete merged.status;
-        delete merged.evidence;
-        result.set(rule.id, merged);
-    }
-    return [...result.values()].filter((rule) => rule.check);
+  const result = new Map(defaultsById);
+  for (const rule of customRules) {
+    const base = result.get(rule.id) || {};
+    const merged = { ...base, ...rule, check: rule.check || base.check };
+    delete merged.status;
+    delete merged.evidence;
+    result.set(rule.id, merged);
+  }
+  return [...result.values()].filter((rule) => rule.check);
 }
 
 /**
@@ -69,11 +78,11 @@ function mergeChecklistRules(customRules, defaultRules) {
  * @returns {object} Base checklist object.
  */
 function resolveChecklistBase(options = {}) {
-    const profile = options.checklistProfile || options.profile || 'default';
-    if (!Object.prototype.hasOwnProperty.call(CHECKLIST_PROFILES, profile)) {
-        return DEFAULT_CHECKLIST;
-    }
-    return CHECKLIST_PROFILES[profile];
+  const profile = options.checklistProfile || options.profile || "default";
+  if (!Object.prototype.hasOwnProperty.call(CHECKLIST_PROFILES, profile)) {
+    return DEFAULT_CHECKLIST;
+  }
+  return CHECKLIST_PROFILES[profile];
 }
 
 /**
@@ -82,17 +91,18 @@ function resolveChecklistBase(options = {}) {
  * @returns {{ valid: boolean; errors: string[] }}
  */
 function validateChecklist(checklist) {
-    const errors = [];
-    if (!Array.isArray(checklist.rules)) {
-        errors.push('Missing or non-array "rules"');
-    } else {
-        for (let i = 0; i < checklist.rules.length; i++) {
-            const rule = checklist.rules[i];
-            if (typeof rule.id !== 'string') errors.push(`Rule ${i}: missing "id"`);
-            if (typeof rule.check !== 'string') errors.push(`Rule ${i}: missing "check"`);
-        }
+  const errors = [];
+  if (!Array.isArray(checklist.rules)) {
+    errors.push('Missing or non-array "rules"');
+  } else {
+    for (let i = 0; i < checklist.rules.length; i++) {
+      const rule = checklist.rules[i];
+      if (typeof rule.id !== "string") errors.push(`Rule ${i}: missing "id"`);
+      if (typeof rule.check !== "string")
+        errors.push(`Rule ${i}: missing "check"`);
     }
-    return { valid: errors.length === 0, errors };
+  }
+  return { valid: errors.length === 0, errors };
 }
 
 /**
@@ -104,25 +114,39 @@ function validateChecklist(checklist) {
  * @returns {{ checklist: object; error?: string }}
  */
 function loadComplianceChecklist(projectRoot, options = {}) {
-    const baseChecklist = resolveChecklistBase(options);
-    if (!projectRoot) return { checklist: baseChecklist };
-    const customPath = path.join(path.resolve(projectRoot), '.simplebeacon', 'compliance-checklist.json');
-    if (!fs.existsSync(customPath)) return { checklist: baseChecklist };
-    try {
-        const custom = JSON.parse(fs.readFileSync(customPath, 'utf8'));
-        const defaultRules = baseChecklist.rules || [];
-        const customRules = Array.isArray(custom.rules) ? custom.rules : [];
-        const rules = isEvaluatedChecklistOutput(custom)
-            ? defaultRules
-            : mergeChecklistRules(customRules, defaultRules);
-        const merged = { ...baseChecklist, ...custom, rules: rules.length ? rules : defaultRules };
-        const validation = validateChecklist(merged);
-        return validation.valid
-            ? { checklist: merged }
-            : { checklist: baseChecklist, error: `Invalid custom checklist: ${validation.errors.join('; ')}` };
-    } catch (err) {
-        return { checklist: baseChecklist, error: `Failed to load custom checklist: ${err.message}` };
-    }
+  const baseChecklist = resolveChecklistBase(options);
+  if (!projectRoot) return { checklist: baseChecklist };
+  const customPath = path.join(
+    path.resolve(projectRoot),
+    ".simplebeacon",
+    "compliance-checklist.json",
+  );
+  if (!fs.existsSync(customPath)) return { checklist: baseChecklist };
+  try {
+    const custom = JSON.parse(fs.readFileSync(customPath, "utf8"));
+    const defaultRules = baseChecklist.rules || [];
+    const customRules = Array.isArray(custom.rules) ? custom.rules : [];
+    const rules = isEvaluatedChecklistOutput(custom)
+      ? defaultRules
+      : mergeChecklistRules(customRules, defaultRules);
+    const merged = {
+      ...baseChecklist,
+      ...custom,
+      rules: rules.length ? rules : defaultRules,
+    };
+    const validation = validateChecklist(merged);
+    return validation.valid
+      ? { checklist: merged }
+      : {
+          checklist: baseChecklist,
+          error: `Invalid custom checklist: ${validation.errors.join("; ")}`,
+        };
+  } catch (err) {
+    return {
+      checklist: baseChecklist,
+      error: `Failed to load custom checklist: ${err.message}`,
+    };
+  }
 }
 
 /* ── Evaluation context ──────────────────────────────────────────── */
@@ -141,23 +165,23 @@ const _evalCtxCache = new Map();
  * @returns {object} Context passed to each rule evaluator.
  */
 function buildEvaluationContext(report, options = {}) {
-    const projectRoot = options.projectRoot || report.projectRoot || '';
+  const projectRoot = options.projectRoot || report.projectRoot || "";
 
-    let cached = _evalCtxCache.get(projectRoot);
-    if (!cached) {
-        cached = {
-            npmAudit: detectNpmAuditSummary(projectRoot),
-            productionProfile: detectProductionAuthProfile(projectRoot)
-        };
-        _evalCtxCache.set(projectRoot, cached);
-    }
-
-    return {
-        report,
-        npmAudit: options.npmAudit || cached.npmAudit,
-        productionProfile: options.productionProfile || cached.productionProfile,
-        dataCleanup: options.dataCleanup || null
+  let cached = _evalCtxCache.get(projectRoot);
+  if (!cached) {
+    cached = {
+      npmAudit: detectNpmAuditSummary(projectRoot),
+      productionProfile: detectProductionAuthProfile(projectRoot),
     };
+    _evalCtxCache.set(projectRoot, cached);
+  }
+
+  return {
+    report,
+    npmAudit: options.npmAudit || cached.npmAudit,
+    productionProfile: options.productionProfile || cached.productionProfile,
+    dataCleanup: options.dataCleanup || null,
+  };
 }
 
 /**
@@ -166,11 +190,11 @@ function buildEvaluationContext(report, options = {}) {
  * @returns {string} e.g. "1.5 MB"
  */
 function _formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
 /**
@@ -183,20 +207,20 @@ function _formatBytes(bytes) {
  * @returns {string}
  */
 function buildHeadline(passed, failed, skipped, scored, isEuAiAct) {
-    if (failed === 0 && passed > 0) {
-        return isEuAiAct
-            ? `${passed}/${scored} EU AI Act readiness rules pass — review legal classification before August 2026`
-            : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`;
-    }
-    if (failed > 0) {
-        return isEuAiAct
-            ? `${failed} EU AI Act rule(s) fail — address before August 2026 deadline`
-            : `${failed} rule(s) fail — fix before handing operations to AI-generated code`;
-    }
-    if (skipped === scored + skipped) {
-        return 'Checklist not evaluated — stale compliance output was ignored; re-run assess or compliance';
-    }
-    return 'No scored rules — review scan report manually';
+  if (failed === 0 && passed > 0) {
+    return isEuAiAct
+      ? `${passed}/${scored} EU AI Act readiness rules pass — review legal classification before August 2026`
+      : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`;
+  }
+  if (failed > 0) {
+    return isEuAiAct
+      ? `${failed} EU AI Act rule(s) fail — address before August 2026 deadline`
+      : `${failed} rule(s) fail — fix before handing operations to AI-generated code`;
+  }
+  if (skipped === scored + skipped) {
+    return "Checklist not evaluated — stale compliance output was ignored; re-run assess or compliance";
+  }
+  return "No scored rules — review scan report manually";
 }
 
 /**
@@ -212,55 +236,62 @@ function buildHeadline(passed, failed, skipped, scored, isEuAiAct) {
  * @returns {object} Compliance checklist result.
  */
 function evaluateComplianceChecklist(report, options = {}) {
-    const projectRoot = options.projectRoot || report.projectRoot || '';
-    const { checklist, error } = options.checklist
-        ? { checklist: options.checklist }
-        : loadComplianceChecklist(projectRoot, { checklistProfile: options.checklistProfile });
-    if (error) {
-        console.warn('[compliance-checklist]', error);
-    }
-    const context = buildEvaluationContext(report, options);
-    const rules = (checklist.rules || []).map((rule) => evaluateRule(rule, context));
+  const projectRoot = options.projectRoot || report.projectRoot || "";
+  const { checklist, error } = options.checklist
+    ? { checklist: options.checklist }
+    : loadComplianceChecklist(projectRoot, {
+        checklistProfile: options.checklistProfile,
+      });
+  if (error) {
+    console.warn("[compliance-checklist]", error);
+  }
+  const context = buildEvaluationContext(report, options);
+  const rules = (checklist.rules || []).map((rule) =>
+    evaluateRule(rule, context),
+  );
 
-    const passed = rules.filter((r) => r.status === 'pass').length;
-    const failed = rules.filter((r) => r.status === 'fail').length;
-    const skipped = rules.filter((r) => r.status === 'skip').length;
-    const scored = passed + failed;
-    const score = scored ? Math.round((passed / scored) * 100) : null;
+  const passed = rules.filter((r) => r.status === "pass").length;
+  const failed = rules.filter((r) => r.status === "fail").length;
+  const skipped = rules.filter((r) => r.status === "skip").length;
+  const scored = passed + failed;
+  const score = scored ? Math.round((passed / scored) * 100) : null;
 
-    const isEuAiAct = checklist.extends === 'corporate-safety' || options.checklistProfile === 'eu-ai-act';
+  const isEuAiAct =
+    checklist.extends === "corporate-safety" ||
+    options.checklistProfile === "eu-ai-act";
 
-    return {
-        type: 'simplebeacon-compliance-checklist',
-        version: checklist.version || '1.0.0',
-        title: checklist.title || 'Simplebeacon Corporate Safety Checklist',
-        description: checklist.description || null,
-        evaluatedAt: new Date().toISOString(),
-        projectRoot: projectRoot || report.projectRoot || '',
-        summary: {
-            passed,
-            failed,
-            skipped,
-            total: rules.length,
-            score,
-            readyForAutomation: failed === 0 && passed > 0,
-            checklistProfile: options.checklistProfile || (isEuAiAct ? 'eu-ai-act' : 'default'),
-            headline: buildHeadline(passed, failed, skipped, scored, isEuAiAct)
-        },
-        rules
-    };
+  return {
+    type: "simplebeacon-compliance-checklist",
+    version: checklist.version || "1.0.0",
+    title: checklist.title || "Simplebeacon Corporate Safety Checklist",
+    description: checklist.description || null,
+    evaluatedAt: new Date().toISOString(),
+    projectRoot: projectRoot || report.projectRoot || "",
+    summary: {
+      passed,
+      failed,
+      skipped,
+      total: rules.length,
+      score,
+      readyForAutomation: failed === 0 && passed > 0,
+      checklistProfile:
+        options.checklistProfile || (isEuAiAct ? "eu-ai-act" : "default"),
+      headline: buildHeadline(passed, failed, skipped, scored, isEuAiAct),
+    },
+    rules,
+  };
 }
 
 /* ── Re-exports ────────────────────────────────────────────────────── */
 
 module.exports = {
-    loadComplianceChecklist,
-    evaluateComplianceChecklist,
-    evaluateRule,
-    detectNpmAuditSummary,
-    detectProductionAuthProfile,
-    resolveChecklistBase,
-    DEFAULT_CHECKLIST,
-    EU_AI_ACT_CHECKLIST,
-    CHECKLIST_PROFILES
+  loadComplianceChecklist,
+  evaluateComplianceChecklist,
+  evaluateRule,
+  detectNpmAuditSummary,
+  detectProductionAuthProfile,
+  resolveChecklistBase,
+  DEFAULT_CHECKLIST,
+  EU_AI_ACT_CHECKLIST,
+  CHECKLIST_PROFILES,
 };

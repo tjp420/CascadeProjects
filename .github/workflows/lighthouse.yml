@@ -2,11 +2,11 @@ name: Frontend Performance Audit (LHCI)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
     paths:
-      - 'ai-platform/web/simplebeacon-dashboard/**'
-      - '.github/workflows/lighthouse.yml'
+      - "ai-platform/web/simplebeacon-dashboard/**"
+      - ".github/workflows/lighthouse.yml"
 
 jobs:
   lighthouse-audit:
@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
       - name: Install Application Dependencies

@@ -11,17 +11,20 @@ By accessing or using AI Slop Cop ("the Software"), you agree to be bound by the
 Subject to your compliance with these Terms, SimpleBeacon grants you a limited, non-exclusive, non-transferable license to use AI Slop Cop for the duration of your subscription.
 
 ### 2.1 Free Tier
+
 - Available for personal and commercial use
 - Includes basic scanning capabilities
 - No support guarantee
 
 ### 2.2 Pro Tier
+
 - Requires valid license token
 - Includes all scanning engines
 - Priority support
 - CI/CD gate integration
 
 ### 2.3 Enterprise Tier
+
 - Requires valid license token
 - All Pro features plus:
 - Custom rule configurations
@@ -31,6 +34,7 @@ Subject to your compliance with these Terms, SimpleBeacon grants you a limited, 
 ## 3. Use Restrictions
 
 You may not:
+
 - Reverse engineer, decompile, or disassemble the Software
 - Distribute or sublicense the Software
 - Use the Software to violate any applicable laws
@@ -40,11 +44,13 @@ You may not:
 ## 4. Payment and Subscription
 
 ### 4.1 Fees
+
 - Pro Tier: $9/month or $90/year
 - Enterprise Tier: Custom pricing
 - All fees are non-refundable except as required by law
 
 ### 4.2 Subscription Terms
+
 - Subscriptions auto-renew unless cancelled
 - Cancellations take effect at the end of the current billing period
 - SimpleBeacon reserves the right to change pricing with 30 days notice

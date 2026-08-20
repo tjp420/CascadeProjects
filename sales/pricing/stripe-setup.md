@@ -84,6 +84,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 For local testing:
+
 ```bash
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -155,24 +156,28 @@ Enable Stripe Customer Portal for self-service:
 ## Troubleshooting
 
 ### Webhook not receiving events
+
 - Check webhook URL is correct
 - Verify webhook secret matches
 - Check server logs for errors
 - Test with Stripe CLI: `stripe trigger checkout.session.completed`
 
 ### Token generation failing
+
 - Check token generator script path
 - Verify LICENSE_SECRET is set
 - Check script permissions
 - Test manually: `node generate-license-token.cjs pro`
 
 ### Email not sending
+
 - Verify email credentials
 - Check email service limits
 - Verify email format
 - Check spam folder
 
 ### Payment not completing
+
 - Check Stripe dashboard for errors
 - Verify product is active
 - Check webhook is responding
@@ -181,6 +186,7 @@ Enable Stripe Customer Portal for self-service:
 ## Monitoring
 
 Set up alerts for:
+
 - Failed webhooks
 - Failed payments
 - High refund rates

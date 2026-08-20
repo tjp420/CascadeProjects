@@ -24,9 +24,7 @@ export function WorkspaceSandboxPanel({ summary, loading, error }: WorkspaceSand
           <Shield className="h-5 w-5" />
           Multi-Tenant Sandbox Telemetry
         </CardTitle>
-        <CardDescription>
-          Read-only metadata counts for cryptographic tenant isolation.
-        </CardDescription>
+        <CardDescription>Read-only metadata counts for cryptographic tenant isolation.</CardDescription>
       </CardHeader>
       <CardContent>
         {loading && (
@@ -35,11 +33,7 @@ export function WorkspaceSandboxPanel({ summary, loading, error }: WorkspaceSand
             Loading sandbox telemetry...
           </div>
         )}
-        {error && !loading && (
-          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
+        {error && !loading && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
         {!loading && !error && summary && (
           <div className="grid gap-4 sm:grid-cols-3">
             <SandboxCard
@@ -92,7 +86,9 @@ function SandboxCard({
           </Badge>
         ))}
         {tags.length > 6 && (
-          <Badge variant="secondary" className="text-xs">+{tags.length - 6}</Badge>
+          <Badge variant="secondary" className="text-xs">
+            +{tags.length - 6}
+          </Badge>
         )}
       </div>
     </div>

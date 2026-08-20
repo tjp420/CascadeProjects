@@ -31,18 +31,23 @@ export function adaptCliReport(cliReport) {
     const gate = raw.gate || {};
     const rawIssues = Array.isArray(raw.rawIssues) ? raw.rawIssues : [];
     // Prefer detectedIssues, but fall back to rawIssues if detectedIssues is empty
-    const detectedIssues = (Array.isArray(raw.detectedIssues) && raw.detectedIssues.length > 0)
-        ? raw.detectedIssues
-        : rawIssues;
+    const detectedIssues =
+        Array.isArray(raw.detectedIssues) && raw.detectedIssues.length > 0 ? raw.detectedIssues : rawIssues;
 
     // Normalize detected issues for dashboard consumption
     const normalizedIssues = detectedIssues.map(_normalizeIssue);
 
     // Build severity counts from issues if not present in report
     const rawSev = raw.severityCounts || {};
-    const severityCounts = (rawSev.critical !== undefined || rawSev.high !== undefined)
-        ? { critical: rawSev.critical || 0, high: rawSev.high || 0, medium: rawSev.medium || 0, low: rawSev.low || 0 }
-        : _countSeverities(normalizedIssues);
+    const severityCounts =
+        rawSev.critical !== undefined || rawSev.high !== undefined
+            ? {
+                  critical: rawSev.critical || 0,
+                  high: rawSev.high || 0,
+                  medium: rawSev.medium || 0,
+                  low: rawSev.low || 0
+              }
+            : _countSeverities(normalizedIssues);
 
     // Compute quality score if missing (uses computed severityCounts)
     const qualityScore = _resolveQualityScore(raw, severityCounts, gate);
@@ -58,12 +63,10 @@ export function adaptCliReport(cliReport) {
 
     // Gate status — synthesize blocking/warning counts from severity if missing
     const gatePass = gate.pass === true;
-    const blockingCount = gate.blockingCount !== undefined
-        ? gate.blockingCount
-        : severityCounts.critical + severityCounts.high;
-    const warningCount = gate.warningCount !== undefined
-        ? gate.warningCount
-        : severityCounts.medium + severityCounts.low;
+    const blockingCount =
+        gate.blockingCount !== undefined ? gate.blockingCount : severityCounts.critical + severityCounts.high;
+    const warningCount =
+        gate.warningCount !== undefined ? gate.warningCount : severityCounts.medium + severityCounts.low;
 
     // Rule coverage — which analyzers ran and their finding counts
     const ruleCoverage = _extractRuleCoverage(raw);
@@ -110,7 +113,7 @@ export function adaptCliReport(cliReport) {
             status: gate.status || (gatePass ? 'PASSED' : blockingCount > 0 ? 'BLOCKED' : 'REVIEW'),
             failOn: gate.failOn || [],
             warnOn: gate.warnOn || [],
-            score: qualityScore,
+            score: qualityScore
         },
 
         // Issues
@@ -146,7 +149,7 @@ export function adaptCliReport(cliReport) {
 
         // Sanitization
         sanitized: raw.sanitized || false,
-        sanitizedAt: raw.sanitizedAt || null,
+        sanitizedAt: raw.sanitizedAt || null
     };
 }
 
@@ -183,7 +186,7 @@ export function adaptCliReportHistory(cliReports) {
         return {
             date: r.generatedAt || new Date().toISOString(),
             issueCount: adapted.issueCount,
-            qualityScore: adapted.qualityScore,
+            qualityScore: adapted.qualityScore
         };
     });
 
@@ -193,7 +196,7 @@ export function adaptCliReportHistory(cliReports) {
         return {
             date,
             gate_pass_rate: total > 0 ? passed / total : 0,
-            scan_count: total,
+            scan_count: total
         };
     });
 
@@ -221,9 +224,13 @@ function _extractRuleCoverage(raw) {
         { key: 'deadCodeFilesScanned', findingsKey: 'deadCodeFindings', name: 'Dead Code' },
         { key: 'memoryLeakFilesScanned', findingsKey: 'memoryLeakFindings', name: 'Memory Leak' },
         { key: 'typeSafetyFilesScanned', findingsKey: 'typeSafetyFindings', name: 'Type Safety' },
-        { key: 'hallucinatedImportFilesScanned', findingsKey: 'hallucinatedImportFindings', name: 'Hallucinated Imports' },
+        {
+            key: 'hallucinatedImportFilesScanned',
+            findingsKey: 'hallucinatedImportFindings',
+            name: 'Hallucinated Imports'
+        },
         { key: 'astStructuralFilesScanned', findingsKey: 'astStructuralFindings', name: 'AST Structural' },
-        { key: 'euAiActScanned', findingsKey: 'euAiActFindings', name: 'EU AI Act' },
+        { key: 'euAiActScanned', findingsKey: 'euAiActFindings', name: 'EU AI Act' }
     ];
 
     return rules
@@ -231,7 +238,7 @@ function _extractRuleCoverage(raw) {
         .map(r => ({
             rule: r.name,
             filesScanned: raw[r.key] || 0,
-            findings: raw[r.findingsKey] || 0,
+            findings: raw[r.findingsKey] || 0
         }));
 }
 
@@ -287,7 +294,7 @@ function _normalizeIssue(issue) {
         count: issue.count || 1,
         confidence: issue.confidence || (issue.metadata && issue.metadata.confidence) || null,
         metadata: issue.metadata || {},
-        matches: issue.matches || [],
+        matches: issue.matches || []
     };
 }
 
@@ -329,7 +336,17 @@ function _emptyReport() {
         severityCounts: { critical: 0, high: 0, medium: 0, low: 0 },
         qualityScore: 100,
         qualityScoreHidden: false,
-        gate: { pass: true, blockingCount: 0, warningCount: 0, blockingIssues: [], warningIssues: [], status: 'PASSED', failOn: [], warnOn: [], score: 100 },
+        gate: {
+            pass: true,
+            blockingCount: 0,
+            warningCount: 0,
+            blockingIssues: [],
+            warningIssues: [],
+            status: 'PASSED',
+            failOn: [],
+            warnOn: [],
+            score: 100
+        },
         rawIssues: [],
         detectedIssues: [],
         ruleCoverage: [],
@@ -348,6 +365,6 @@ function _emptyReport() {
         tier: 'unknown',
         tierLimitation: null,
         sanitized: false,
-        sanitizedAt: null,
+        sanitizedAt: null
     };
 }

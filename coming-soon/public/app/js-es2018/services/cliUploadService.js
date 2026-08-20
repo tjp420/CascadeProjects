@@ -4,7 +4,7 @@ import { apiBaseUrl } from '../utils-lib/url.js';
 function apiPrefix() {
     const base = apiBaseUrl();
     // apiBaseUrl returns '/' for relative root when running locally
-    return (base && base !== '/') ? base : '';
+    return base && base !== '/' ? base : '';
 }
 
 let _cliApiKeyPromise = null;
@@ -15,24 +15,22 @@ export async function fetchCliApiKey(options = {}) {
     _cliApiKeyPromise = fetch(`${apiPrefix()}/api/user/api-key`, {
         headers: authService.getAuthHeaders()
     })
-        .then(async (res) => {
-        if (!res.ok)
-            throw new Error('Could not retrieve CLI token');
-        const data = await res.json();
-        if (!data.success)
-            throw new Error(data.error || 'Token unavailable');
-        return data.apiKey;
-    })
-        .catch((err) => {
-        _cliApiKeyPromise = null;
-        throw err;
-    });
+        .then(async res => {
+            if (!res.ok) throw new Error('Could not retrieve CLI token');
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Token unavailable');
+            return data.apiKey;
+        })
+        .catch(err => {
+            _cliApiKeyPromise = null;
+            throw err;
+        });
     return _cliApiKeyPromise;
 }
 
 export async function fetchCliHistory(apiKey) {
     const res = await fetch(`${apiPrefix()}/api/simplebeacon/history`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
+        headers: { Authorization: `Bearer ${apiKey}` }
     });
     if (!res.ok) throw new Error('Could not fetch CLI history');
     const data = await res.json();
@@ -41,7 +39,7 @@ export async function fetchCliHistory(apiKey) {
 
 export async function fetchCliReport(reportId, apiKey) {
     const res = await fetch(`${apiPrefix()}/api/simplebeacon/report/${reportId}`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
+        headers: { Authorization: `Bearer ${apiKey}` }
     });
     if (!res.ok) throw new Error('Could not fetch report');
     const data = await res.json();
@@ -61,7 +59,8 @@ export function renderCliUploadCard(container, apiKey) {
     container.replaceChildren();
     const card = document.createElement('div');
     card.className = 'cli-integration-card';
-    card.style.cssText = 'background:var(--surface); color:var(--text-primary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border); margin-bottom:20px;';
+    card.style.cssText =
+        'background:var(--surface); color:var(--text-primary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border); margin-bottom:20px;';
 
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;';
@@ -70,16 +69,21 @@ export function renderCliUploadCard(container, apiKey) {
     title.style.cssText = 'margin:0; color:var(--primary);';
     const badge = document.createElement('span');
     setText(badge, 'BEST FOR MONOREPOS');
-    badge.style.cssText = 'background:var(--success); font-size:11px; padding:2px 6px; border-radius:4px; font-weight:bold; color:var(--text-inverse);';
+    badge.style.cssText =
+        'background:var(--success); font-size:11px; padding:2px 6px; border-radius:4px; font-weight:bold; color:var(--text-inverse);';
     header.appendChild(title);
     header.appendChild(badge);
 
     const desc = document.createElement('p');
-    setText(desc, 'Bypass browser sandboxes. Scan large codebases, external drives, or any folder directly from your terminal.');
+    setText(
+        desc,
+        'Bypass browser sandboxes. Scan large codebases, external drives, or any folder directly from your terminal.'
+    );
     desc.style.cssText = 'font-size:13px; color:var(--text-secondary); margin:10px 0;';
 
     const codeBox = document.createElement('div');
-    codeBox.style.cssText = 'background:var(--background); padding:12px 70px 12px 12px; border-radius:var(--radius-md); font-family:monospace; font-size:12px; border:1px solid var(--border); position:relative; overflow-x:auto;';
+    codeBox.style.cssText =
+        'background:var(--background); padding:12px 70px 12px 12px; border-radius:var(--radius-md); font-family:monospace; font-size:12px; border:1px solid var(--border); position:relative; overflow-x:auto;';
     const code = document.createElement('code');
     code.id = 'cli-command-string';
     setText(code, buildCliCommand('C:\\\\Projects', apiKey));
@@ -87,7 +91,8 @@ export function renderCliUploadCard(container, apiKey) {
     const copyBtn = document.createElement('button');
     copyBtn.id = 'cli-copy-btn';
     setText(copyBtn, 'Copy');
-    copyBtn.style.cssText = 'position:absolute; right:10px; top:8px; background:var(--surface); border:1px solid var(--border); color:var(--text-secondary); font-size:11px; padding:3px 8px; border-radius:var(--radius-md); cursor:pointer;';
+    copyBtn.style.cssText =
+        'position:absolute; right:10px; top:8px; background:var(--surface); border:1px solid var(--border); color:var(--text-secondary); font-size:11px; padding:3px 8px; border-radius:var(--radius-md); cursor:pointer;';
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(code.textContent);
         setText(copyBtn, 'Copied!');
@@ -128,7 +133,8 @@ export function renderCliReport(report, container) {
     card.style.cssText = `border:2px solid ${badgeColor}; padding:12px; border-radius:6px; background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); margin-bottom:12px;`;
 
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
+    header.style.cssText =
+        'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
     const titleBlock = document.createElement('div');
     const h3 = document.createElement('h3');
     setText(h3, '🛡️ LIVE CLI REPORT SYNCED');
@@ -145,7 +151,8 @@ export function renderCliReport(report, container) {
     header.appendChild(gradeBadge);
 
     const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; font-size:13px;';
+    grid.style.cssText =
+        'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; font-size:13px;';
     const left = document.createElement('div');
     const p1 = document.createElement('p');
     p1.style.margin = '0 0 4px 0';

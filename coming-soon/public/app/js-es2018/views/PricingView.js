@@ -107,7 +107,7 @@ export class PricingView {
             this.app.navigate('register');
         });
 
-        container.querySelectorAll('[data-checkout]').forEach((btn) => {
+        container.querySelectorAll('[data-checkout]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const product = btn.getAttribute('data-checkout');
                 const email = (emailInput?.value || billingService.getEmail() || '').trim();
@@ -119,11 +119,9 @@ export class PricingView {
                 btn.disabled = true;
                 try {
                     await billingService.startCheckout(product, email);
-                }
-                catch (err) {
+                } catch (err) {
                     showToast(err.message || 'Checkout unavailable', 'error');
-                }
-                finally {
+                } finally {
                     btn.disabled = false;
                 }
             });
@@ -135,5 +133,5 @@ export class PricingView {
         }
     }
 
-    destroy() { }
+    destroy() {}
 }

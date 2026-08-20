@@ -17,16 +17,16 @@ on:
   workflow_call:
     inputs:
       files:
-        description: 'Space-separated list of file paths to sign (relative to repo root)'
+        description: "Space-separated list of file paths to sign (relative to repo root)"
         required: true
         type: string
       working-directory:
-        description: 'Working directory for the signing step'
+        description: "Working directory for the signing step"
         required: false
         type: string
-        default: '.'
+        default: "."
       upload-artifacts:
-        description: 'Whether to upload signatures as workflow artifacts'
+        description: "Whether to upload signatures as workflow artifacts"
         required: false
         type: boolean
         default: true
@@ -52,7 +52,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install GPG
         run: |

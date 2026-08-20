@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       run_redis:
-        description: 'Run Redis integration tests'
+        description: "Run Redis integration tests"
         required: false
-        default: 'false'
+        default: "false"
 
 jobs:
   redis-integration:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm ci

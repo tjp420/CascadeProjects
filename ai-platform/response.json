@@ -1,1 +1,974 @@
-{"success":true,"analysisType":"roadmap","aiProvider":"active","roadmapInsightsMode":"off","roadmap":{"type":"dynamic-project-roadmap-analysis","timestamp":"2026-07-25T01:12:23.200Z","generatedAt":"2026-07-25T01:12:23.200Z","generatedBy":"code-roadmap-generator","dataSource":"filesystem-scan","version":"3.1.0","roadmapExportProfile":"filtered-v3.1","inferenceMode":"filesystem + fuzzy-match","projectTitle":"simplebeacon-platform","projectName":"simplebeacon-platform","executiveSummary":{"totalFeatures":4,"completedFeatures":4,"inProgressFeatures":0,"plannedFeatures":0,"completionRate":100,"projectHealth":"Healthy","aiConfidence":null,"analysisDuration":null,"lastUpdated":"2026-07-25T01:12:23.200Z","teamSize":1,"notes":"Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"},"developmentPhases":[{"phase":"Sprint 1: Server & Auth","status":"completed","progress":100,"description":"Canonical server entry and optional JWT auth","features":["Root server delegate","Phase 2 JWT auth"],"milestones":["Single server entry","Auth routes live"]},{"phase":"Sprint 2: Stub APIs & Tests","status":"completed","progress":100,"description":"Stub API routes (48 detected) and null Jest tests (null suites)","features":["Tier-1 stub API routes","Tests pending"],"milestones":["dashboard-stub-api.js","33 tests"]},{"phase":"Sprint 3: Honest Dashboard Data","status":"completed","progress":100,"description":"50/50 page samples with repository-audit analyzers","features":["50/50 PAGE_SAMPLE_SPECS samples","SEC-004 npm audit wired to Security page","Mock scanner pending","File merger reduction scanner"],"milestones":["Repository-audit samples","Mock-data + merger scanners"]},{"phase":"Sprint 4: Production Profile","status":"completed","progress":100,"description":"Docker Phase2, CI smoke test, Istanbul coverage, production profile","features":["docker-compose.phase2.yml present","Istanbul collected in CI","GGUF inference (LLAMA_CPP_BIN/Ollama) — optional","REQUIRE_AUTH production profile ready"],"milestones":["phase2-smoke CI job","Production runbook"]}],"projectOverview":{"projectName":"simplebeacon-platform","projectType":"Scanned Codebase","totalFeatures":4,"completedFeatures":4,"inProgressFeatures":0,"plannedFeatures":0,"completionRate":100,"overallProgress":"Complete","projectHealth":"Healthy","developmentVelocity":"Measured","teamProductivity":"Filesystem scan"},"codeAnalysis":{"structure":{"totalFiles":1428,"codeFiles":1321,"languages":{"other":11,".example":4,".production":1,".v1-internal":1,".md":33,".yml":4,".txt":19,".js":605,".json":91,".cjs":477,".bat":10,".ps1":3,".sh":2,".iss":1,".spec":1,".wxs":1,".log":5,".wasm":4,".yaml":1,".patch-fix":40,".sql":6,".1784040534770":1,".1784041159989":1,".1784042194737":1,".1784042207689":1,".1784042234223":1,".1784042601890":1,".1784042669861":1,".1784042699274":1,".1784043216794":1,".csv":1,".html":5,".css":14,".ico":2,".mjs":16,".ts":8,".svg":3,".toml":2,".rs":2,".map":2,".tsx":42,".tsbuildinfo":1,".py":1},"topDirectories":["assessments","config","data","data-central","docker","google-earthenterprise","local-agent","logs","packages","pipeline","public","reports"]},"dependencies":{"internalCount":773,"externalCount":42,"externalPackages":["fs","path","url","chokidar","module","@eslint/js","globals","http","express","cors","assert","child_process","os","https","web-tree-sitter","util","express-rate-limit","helmet","stripe","crypto","dotenv","archiver","stream","http-errors"],"sampleInternal":["auto-processor.js -> ./server/config/constants.cjs","auto-processor.js -> ./server/lib/privacy-utils.cjs","auto-processor.js -> ./server/lib/app-logger.cjs","auto-processor.js -> ./server/lib/recoverable-io.cjs","jest.config.cjs -> ./server/config/constants.cjs","local-agent/agent.cjs -> ../../packages/simplebeacon-cli/src/index.js","local-agent/agent.test.cjs -> ./agent.cjs","packages/simplebeacon-intelligence/scripts/postinstall.js -> ../src/tree-sitter-loader.js"]},"features":[{"name":"Dashboard Server","category":"Infrastructure","status":"implemented"},{"name":"Phase 2 JWT Auth","category":"Security","status":"implemented"},{"name":"Dashboard Stub API","category":"API","status":"implemented"},{"name":"npm Audit Runner","category":"Security","status":"implemented"},{"name":"File Merger Scanner","category":"Analysis","status":"implemented"},{"name":"Code Roadmap Generator","category":"Planning","status":"implemented"},{"name":"Assessment API","category":"API","status":"implemented"},{"name":"Page Sample Baselines","category":"Data","status":"implemented","count":50},{"name":"Jest Test Files","category":"Testing","status":"implemented","count":33},{"name":"Phase2 Docker Compose","category":"Infrastructure","status":"implemented"},{"name":"GitHub Actions CI","category":"CI","status":"implemented"}],"samples":{"onDisk":0,"withSpecs":50,"specTotal":50,"pageSamplesLabel":"50/50"},"signals":{"serverEntry":true,"phase2Auth":true,"stubApi":true,"fixtureScanner":false,"codeRoadmapGenerator":true,"fileMergerScanner":true,"npmAudit":true,"dockerPhase2":true,"githubCi":true,"istanbulInCi":true,"phase2SmokeInCi":true,"pageSampleDir":true,"buildFromPath":true,"assessmentApi":true,"npmAuditClean":false},"phase2":{"phase":"Phase 2 — Code intelligence","status":"active","dependencyGraph":{"summary":{"nodes":325,"edges":340,"circularCycles":0},"circularDependencies":[],"sampleEdges":[{"from":"auto-processor.js","to":"server/config/constants.cjs","type":"import"},{"from":"auto-processor.js","to":"server/lib/privacy-utils.cjs","type":"import"},{"from":"auto-processor.js","to":"server/lib/app-logger.cjs","type":"import"},{"from":"auto-processor.js","to":"server/lib/recoverable-io.cjs","type":"import"},{"from":"packages/simplebeacon-intelligence/scripts/postinstall.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-loader.js","type":"import"},{"from":"packages/simplebeacon-intelligence/scripts/postinstall.js","to":"packages/simplebeacon-intelligence/src/slm-bridge.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/constants.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/constants.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/structural-intent-scanner.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/vector-cache.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-queries.js","type":"import"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-loader.js","type":"import"}]},"fuzzySimilarity":{"method":"token-jaccard","threshold":0.92,"pairsFound":0,"pairs":[],"gguf":{"available":false,"executable":false,"llamaCppBin":null,"mode":"filesystem-only","semanticSimilarity":"Fuzzy token match only — set LLAMA_CPP_BIN for optional hints","note":"No embedding model run during filesystem scan unless analyze uses model.path"}},"semanticHints":{"enabled":false,"mode":"filesystem-only","hints":[],"note":"Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"},"resourceEstimate":{"teamSize":1,"role":"Solo maintainer","remainingSprints":0,"estimatedHours":0,"hourlyRateUsd":75,"internalBudgetUsd":0,"budgetNote":"Internal notional estimate — not $204k enterprise fiction","sprintBreakdown":[]},"visualization":{"circularDependencyGraph":{"nodes":[],"edges":[]}},"rejectedFiction":{"claims":["85-95% roadmap accuracy guarantees","Multi-FTE team composition from GGUF","$204k budget forecasts from scan"]}},"aiIntegration":{"apis":["/api/:provider","/api/ai-validation/audit","/api/ai-validation/dashboard","/api/ai-validation/results/:scanId","/api/ai-validation/scan","/api/analyze/ai-math-audit","/api/analyze/ai-math-audit/viz","/api/analyze/codebase","/api/analyze/complete-audit-report","/api/analyze/compliance-checklist","/api/analyze/data-cleanup","/api/analyze/eu-ai-act-audit-report","/api/analyze/expert-review","/api/analyze/export-bundle","/api/analyze/flexible","/api/analyze/github-clone","/api/analyze/inventory","/api/analyze/list-directories","/api/analyze/npm-audit","/api/analyze/progress","/api/analyze/providers","/api/analyze/scan","/api/analyze/summary","/api/analyze/test-sources","/api/analyze/understand","/api/analyze/upload-directory","/api/analyze/website","/api/analyze/zscript-report","/api/audit-booking","/api/audit-bookings","/api/auth/login","/api/auth/logout","/api/auth/me","/api/auth/refresh","/api/auth/register","/api/auth/session","/api/auth/token-status","/api/backlog","/api/chatbot/disclosure","/api/chatbot/message","/api/chatbot/providers","/api/code-roadmap/analyze","/api/code-roadmap/export/html","/api/config/pricing","/api/dynamic-roadmap/build-from-path","/api/dynamic-roadmap/health","/api/dynamic-roadmap/history","/api/external/weather"],"apiRouteCount":48,"notes":"Routes scraped from server/ and src/ — docs and archive paths excluded"}},"resourceEstimate":{"teamSize":1,"role":"Solo maintainer","remainingSprints":0,"estimatedHours":0,"hourlyRateUsd":75,"internalBudgetUsd":0,"budgetNote":"Internal notional estimate — not $204k enterprise fiction","sprintBreakdown":[]},"implementationPhases":[{"phase":"Phase 1 — Sprint detection","status":"complete","items":["Filesystem signals","Sprint roadmap","API route counts"]},{"phase":"Phase 2 — Code intelligence","status":"active","items":["Circular dependency detection","Fuzzy similarity pairs","Solo resource estimate","HTML executive export"]},{"phase":"Phase 3 — Optional GGUF","status":"planned","items":["Semantic hints when analyze endpoint wired","Not 85-95% accuracy claims"]}],"featureCategories":[{"category":"Infrastructure","completed":2,"total":2,"completionRate":100},{"category":"Security","completed":2,"total":2,"completionRate":100},{"category":"API","completed":2,"total":2,"completionRate":100},{"category":"Analysis","completed":1,"total":1,"completionRate":100},{"category":"Planning","completed":1,"total":1,"completionRate":100},{"category":"Data","completed":1,"total":1,"completionRate":100},{"category":"Testing","completed":1,"total":1,"completionRate":100},{"category":"CI","completed":1,"total":1,"completionRate":100}],"progressMetrics":{"overall":100,"phases":{"Sprint 1: Server & Auth":100,"Sprint 2: Stub APIs & Tests":100,"Sprint 3: Honest Dashboard Data":100,"Sprint 4: Production Profile":100},"categories":{"AI Tools":100,"Analytics":100,"Development Tools":100,"Infrastructure":100},"metrics":{"codebaseMaturity":100,"featureCompleteness":100,"documentationCoverage":5.055401662049862,"testCoverage":43.08943089430895,"lineCoverage":null,"branchCoverage":null,"jestTests":null,"jestSuites":null,"pageSamples":"50/50","apiRouteCount":48}},"recommendations":{"immediate":["Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"],"shortTerm":["Production deploy sign-off after local auth smoke test passes","Configure LLAMA_CPP_BIN or Ollama for optional semantic hints","Security posture to 80/100 — run npm audit fix on deploy host","Improve documentation coverage"],"longTerm":["Define enterprise scope only after v1.0-internal"],"priorities":{"high":["Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"],"medium":["Production deploy sign-off after local auth smoke test passes","Configure LLAMA_CPP_BIN or Ollama for optional semantic hints","Security posture to 80/100 — run npm audit fix on deploy host"],"low":["Optional GGUF semantic feature extraction"]}},"risks":[],"actionPlan":[],"v1InternalDeploy":{"localStatus":"code_ready","productionStatus":"artifacts_ready","localEnvConfigured":false,"productionEnvConfigured":false,"stripeConfigured":true,"gateRemaining":true,"runbook":"docs/v1-internal-runbook.md","verifyLocal":"npm run verify:v1-internal-profile","verifyProduction":"npm run verify:production-deploy","deploy":"npm run simplebeacon:deploy"},"sourceProjectPath":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","platformRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","rejectedFiction":{"warning":"Enterprise roadmap design claims not produced by this scanner","claims":["Hardcoded GGUF confidence or prediction accuracy percentages","Hardcoded feature totals or completion-rate defaults","85-95% accuracy enhancement guarantees","Multi-FTE team and budget estimation from GGUF","Auto-merge roadmap executor"],"replacedBy":"Sprint deliverable detection from filesystem + package.json + API route counts"},"deprecatedNarrative":{"warning":"RoadmapDataAnalyzer previously returned hardcoded feature totals and completion defaults.","previousTotalFeatures":null,"previousCompletionRate":null},"projectStructure":{"projectRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","platformRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","totalDirectories":48,"totalFiles":115,"mainCategories":{"assessments":{"name":"assessments","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\assessments","exists":true,"fileCount":0,"subdirectoryCount":0,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"config":{"name":"config","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\config","exists":true,"fileCount":2,"subdirectoryCount":0,"fileTypes":{".json":2},"totalSize":2964,"depth":0,"keyFiles":[]},"data":{"name":"data","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data","exists":true,"fileCount":1,"subdirectoryCount":1,"fileTypes":{".json":1},"totalSize":434,"depth":0,"keyFiles":[]},"data-central":{"name":"data-central","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data-central","exists":true,"fileCount":0,"subdirectoryCount":1,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"docker":{"name":"docker","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\docker","exists":true,"fileCount":0,"subdirectoryCount":1,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"google-earthenterprise":{"name":"google-earthenterprise","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\google-earthenterprise","exists":true,"fileCount":0,"subdirectoryCount":0,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"local-agent":{"name":"local-agent","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\local-agent","exists":true,"fileCount":18,"subdirectoryCount":0,"fileTypes":{"":1,".cjs":6,".bat":2,".ps1":2,".sh":1,".iss":1,".json":2,".md":1,".spec":1,".wxs":1},"totalSize":138870,"depth":0,"keyFiles":[{"name":"package-lock.json","size":85529,"type":".json","modified":"2026-07-08T22:17:08.572Z"},{"name":"package.json","size":1643,"type":".json","modified":"2026-07-08T01:20:48.582Z"},{"name":"README.md","size":3626,"type":".md","modified":"2026-07-08T01:39:17.533Z"}]},"logs":{"name":"logs","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\logs","exists":true,"fileCount":1,"subdirectoryCount":0,"fileTypes":{".log":1},"totalSize":899142,"depth":0,"keyFiles":[]},"packages":{"name":"packages","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages","exists":true,"fileCount":0,"subdirectoryCount":2,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"pipeline":{"name":"pipeline","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\pipeline","exists":true,"fileCount":4,"subdirectoryCount":0,"fileTypes":{"":1,".example":1,".yaml":1,".txt":1},"totalSize":1271,"depth":0,"keyFiles":[]},"public":{"name":"public","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\public","exists":true,"fileCount":1,"subdirectoryCount":0,"fileTypes":{".json":1},"totalSize":10016,"depth":0,"keyFiles":[]},"reports":{"name":"reports","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\reports","exists":true,"fileCount":12,"subdirectoryCount":0,"fileTypes":{".md":11,".json":1},"totalSize":36783,"depth":0,"keyFiles":[{"name":"README.md","size":1956,"type":".md","modified":"2026-06-12T12:24:26.220Z"}]},"scripts":{"name":"scripts","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\scripts","exists":true,"fileCount":2,"subdirectoryCount":0,"fileTypes":{".ps1":1,".sh":1},"totalSize":5546,"depth":0,"keyFiles":[]},"server":{"name":"server","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server","exists":true,"fileCount":16,"subdirectoryCount":11,"fileTypes":{".cjs":7,".patch-fix":3,".txt":1,".js":4,".md":1},"totalSize":115247,"depth":0,"keyFiles":[{"name":"README-DLP.md","size":2699,"type":".md","modified":"2026-06-03T05:48:32.013Z"}]},"shared-utils":{"name":"shared-utils","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\shared-utils","exists":true,"fileCount":2,"subdirectoryCount":1,"fileTypes":{".cjs":1,".json":1},"totalSize":634,"depth":0,"keyFiles":[{"name":"package.json","size":207,"type":".json","modified":"2026-07-13T19:57:43.909Z"}]},"src":{"name":"src","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src","exists":true,"fileCount":0,"subdirectoryCount":4,"fileTypes":{},"totalSize":0,"depth":0,"keyFiles":[]},"tests":{"name":"tests","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests","exists":true,"fileCount":17,"subdirectoryCount":3,"fileTypes":{".js":17},"totalSize":117030,"depth":0,"keyFiles":[{"name":"dashboard-vault-auth.test.js","size":7050,"type":".js","modified":"2026-06-23T10:45:51.217Z"},{"name":"server-health.test.js","size":4340,"type":".js","modified":"2026-06-11T13:09:03.518Z"}]},"tools":{"name":"tools","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tools","exists":true,"fileCount":37,"subdirectoryCount":0,"fileTypes":{".cjs":24,".patch-fix":1,".bat":1,".js":11},"totalSize":177986,"depth":0,"keyFiles":[{"name":"start-v1-internal-dashboard.js","size":146,"type":".js","modified":"2026-07-16T07:22:36.978Z"}]},"web":{"name":"web","path":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web","exists":true,"fileCount":2,"subdirectoryCount":5,"fileTypes":{".svg":1,".py":1},"totalSize":14925,"depth":0,"keyFiles":[]}},"note":"Top-level categories only — use platformRoot for sprint metrics; full tree omitted from export"},"codebaseMetrics":{"totalLinesOfCode":36154,"languages":{".js":{"files":15,"lines":2404},".cjs":{"files":179,"lines":33247},".sql":{"files":6,"lines":503}},"testFiles":33,"documentation":{"readmeFiles":52,"totalDocs":52,"coverage":4}},"aiIntegration":{"level":"basic","features":{"analysis":true,"generation":true,"processing":true,"automation":true},"models":["assistant","llama","gguf","gpt","bert"],"apis":["/api/:provider","/api/ai-validation/audit","/api/ai-validation/dashboard","/api/ai-validation/results/:scanId","/api/ai-validation/scan","/api/analyze/ai-math-audit","/api/analyze/ai-math-audit/viz","/api/analyze/codebase","/api/analyze/complete-audit-report","/api/analyze/compliance-checklist","/api/analyze/data-cleanup","/api/analyze/eu-ai-act-audit-report","/api/analyze/expert-review","/api/analyze/export-bundle","/api/analyze/flexible","/api/analyze/github-clone","/api/analyze/inventory","/api/analyze/list-directories","/api/analyze/npm-audit","/api/analyze/progress","/api/analyze/providers","/api/analyze/scan","/api/analyze/summary","/api/analyze/test-sources","/api/analyze/understand","/api/analyze/upload-directory","/api/analyze/website","/api/analyze/zscript-report","/api/audit-booking","/api/audit-bookings","/api/auth/login","/api/auth/logout","/api/auth/me","/api/auth/refresh","/api/auth/register","/api/auth/session","/api/auth/token-status","/api/backlog","/api/chatbot/disclosure","/api/chatbot/message","/api/chatbot/providers","/api/code-roadmap/analyze","/api/code-roadmap/export/html","/api/config/pricing","/api/dynamic-roadmap/build-from-path","/api/dynamic-roadmap/health","/api/dynamic-roadmap/history","/api/external/weather"],"apiRouteCount":48,"confidence":null,"notes":"Routes scraped from server/ and src/ — docs and archive paths excluded"},"scanOptions":{"includePaths":[],"excludePatterns":[]}},"historyEntry":{"id":"scan-1784941943204","projectPath":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","title":"simplebeacon-platform","timestamp":"2026-07-25T01:12:23.204Z","filesScanned":1428,"progressPercent":100,"projectHealth":"Healthy","includePaths":[],"excludePatterns":[]}}
+{
+  "success": true,
+  "analysisType": "roadmap",
+  "aiProvider": "active",
+  "roadmapInsightsMode": "off",
+  "roadmap": {
+    "type": "dynamic-project-roadmap-analysis",
+    "timestamp": "2026-07-25T01:12:23.200Z",
+    "generatedAt": "2026-07-25T01:12:23.200Z",
+    "generatedBy": "code-roadmap-generator",
+    "dataSource": "filesystem-scan",
+    "version": "3.1.0",
+    "roadmapExportProfile": "filtered-v3.1",
+    "inferenceMode": "filesystem + fuzzy-match",
+    "projectTitle": "simplebeacon-platform",
+    "projectName": "simplebeacon-platform",
+    "executiveSummary": {
+      "totalFeatures": 4,
+      "completedFeatures": 4,
+      "inProgressFeatures": 0,
+      "plannedFeatures": 0,
+      "completionRate": 100,
+      "projectHealth": "Healthy",
+      "aiConfidence": null,
+      "analysisDuration": null,
+      "lastUpdated": "2026-07-25T01:12:23.200Z",
+      "teamSize": 1,
+      "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
+    },
+    "developmentPhases": [
+      {
+        "phase": "Sprint 1: Server & Auth",
+        "status": "completed",
+        "progress": 100,
+        "description": "Canonical server entry and optional JWT auth",
+        "features": ["Root server delegate", "Phase 2 JWT auth"],
+        "milestones": ["Single server entry", "Auth routes live"]
+      },
+      {
+        "phase": "Sprint 2: Stub APIs & Tests",
+        "status": "completed",
+        "progress": 100,
+        "description": "Stub API routes (48 detected) and null Jest tests (null suites)",
+        "features": ["Tier-1 stub API routes", "Tests pending"],
+        "milestones": ["dashboard-stub-api.js", "33 tests"]
+      },
+      {
+        "phase": "Sprint 3: Honest Dashboard Data",
+        "status": "completed",
+        "progress": 100,
+        "description": "50/50 page samples with repository-audit analyzers",
+        "features": [
+          "50/50 PAGE_SAMPLE_SPECS samples",
+          "SEC-004 npm audit wired to Security page",
+          "Mock scanner pending",
+          "File merger reduction scanner"
+        ],
+        "milestones": [
+          "Repository-audit samples",
+          "Mock-data + merger scanners"
+        ]
+      },
+      {
+        "phase": "Sprint 4: Production Profile",
+        "status": "completed",
+        "progress": 100,
+        "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+        "features": [
+          "docker-compose.phase2.yml present",
+          "Istanbul collected in CI",
+          "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+          "REQUIRE_AUTH production profile ready"
+        ],
+        "milestones": ["phase2-smoke CI job", "Production runbook"]
+      }
+    ],
+    "projectOverview": {
+      "projectName": "simplebeacon-platform",
+      "projectType": "Scanned Codebase",
+      "totalFeatures": 4,
+      "completedFeatures": 4,
+      "inProgressFeatures": 0,
+      "plannedFeatures": 0,
+      "completionRate": 100,
+      "overallProgress": "Complete",
+      "projectHealth": "Healthy",
+      "developmentVelocity": "Measured",
+      "teamProductivity": "Filesystem scan"
+    },
+    "codeAnalysis": {
+      "structure": {
+        "totalFiles": 1428,
+        "codeFiles": 1321,
+        "languages": {
+          "other": 11,
+          ".example": 4,
+          ".production": 1,
+          ".v1-internal": 1,
+          ".md": 33,
+          ".yml": 4,
+          ".txt": 19,
+          ".js": 605,
+          ".json": 91,
+          ".cjs": 477,
+          ".bat": 10,
+          ".ps1": 3,
+          ".sh": 2,
+          ".iss": 1,
+          ".spec": 1,
+          ".wxs": 1,
+          ".log": 5,
+          ".wasm": 4,
+          ".yaml": 1,
+          ".patch-fix": 40,
+          ".sql": 6,
+          ".1784040534770": 1,
+          ".1784041159989": 1,
+          ".1784042194737": 1,
+          ".1784042207689": 1,
+          ".1784042234223": 1,
+          ".1784042601890": 1,
+          ".1784042669861": 1,
+          ".1784042699274": 1,
+          ".1784043216794": 1,
+          ".csv": 1,
+          ".html": 5,
+          ".css": 14,
+          ".ico": 2,
+          ".mjs": 16,
+          ".ts": 8,
+          ".svg": 3,
+          ".toml": 2,
+          ".rs": 2,
+          ".map": 2,
+          ".tsx": 42,
+          ".tsbuildinfo": 1,
+          ".py": 1
+        },
+        "topDirectories": [
+          "assessments",
+          "config",
+          "data",
+          "data-central",
+          "docker",
+          "google-earthenterprise",
+          "local-agent",
+          "logs",
+          "packages",
+          "pipeline",
+          "public",
+          "reports"
+        ]
+      },
+      "dependencies": {
+        "internalCount": 773,
+        "externalCount": 42,
+        "externalPackages": [
+          "fs",
+          "path",
+          "url",
+          "chokidar",
+          "module",
+          "@eslint/js",
+          "globals",
+          "http",
+          "express",
+          "cors",
+          "assert",
+          "child_process",
+          "os",
+          "https",
+          "web-tree-sitter",
+          "util",
+          "express-rate-limit",
+          "helmet",
+          "stripe",
+          "crypto",
+          "dotenv",
+          "archiver",
+          "stream",
+          "http-errors"
+        ],
+        "sampleInternal": [
+          "auto-processor.js -> ./server/config/constants.cjs",
+          "auto-processor.js -> ./server/lib/privacy-utils.cjs",
+          "auto-processor.js -> ./server/lib/app-logger.cjs",
+          "auto-processor.js -> ./server/lib/recoverable-io.cjs",
+          "jest.config.cjs -> ./server/config/constants.cjs",
+          "local-agent/agent.cjs -> ../../packages/simplebeacon-cli/src/index.js",
+          "local-agent/agent.test.cjs -> ./agent.cjs",
+          "packages/simplebeacon-intelligence/scripts/postinstall.js -> ../src/tree-sitter-loader.js"
+        ]
+      },
+      "features": [
+        {
+          "name": "Dashboard Server",
+          "category": "Infrastructure",
+          "status": "implemented"
+        },
+        {
+          "name": "Phase 2 JWT Auth",
+          "category": "Security",
+          "status": "implemented"
+        },
+        {
+          "name": "Dashboard Stub API",
+          "category": "API",
+          "status": "implemented"
+        },
+        {
+          "name": "npm Audit Runner",
+          "category": "Security",
+          "status": "implemented"
+        },
+        {
+          "name": "File Merger Scanner",
+          "category": "Analysis",
+          "status": "implemented"
+        },
+        {
+          "name": "Code Roadmap Generator",
+          "category": "Planning",
+          "status": "implemented"
+        },
+        {
+          "name": "Assessment API",
+          "category": "API",
+          "status": "implemented"
+        },
+        {
+          "name": "Page Sample Baselines",
+          "category": "Data",
+          "status": "implemented",
+          "count": 50
+        },
+        {
+          "name": "Jest Test Files",
+          "category": "Testing",
+          "status": "implemented",
+          "count": 33
+        },
+        {
+          "name": "Phase2 Docker Compose",
+          "category": "Infrastructure",
+          "status": "implemented"
+        },
+        {
+          "name": "GitHub Actions CI",
+          "category": "CI",
+          "status": "implemented"
+        }
+      ],
+      "samples": {
+        "onDisk": 0,
+        "withSpecs": 50,
+        "specTotal": 50,
+        "pageSamplesLabel": "50/50"
+      },
+      "signals": {
+        "serverEntry": true,
+        "phase2Auth": true,
+        "stubApi": true,
+        "fixtureScanner": false,
+        "codeRoadmapGenerator": true,
+        "fileMergerScanner": true,
+        "npmAudit": true,
+        "dockerPhase2": true,
+        "githubCi": true,
+        "istanbulInCi": true,
+        "phase2SmokeInCi": true,
+        "pageSampleDir": true,
+        "buildFromPath": true,
+        "assessmentApi": true,
+        "npmAuditClean": false
+      },
+      "phase2": {
+        "phase": "Phase 2 — Code intelligence",
+        "status": "active",
+        "dependencyGraph": {
+          "summary": { "nodes": 325, "edges": 340, "circularCycles": 0 },
+          "circularDependencies": [],
+          "sampleEdges": [
+            {
+              "from": "auto-processor.js",
+              "to": "server/config/constants.cjs",
+              "type": "import"
+            },
+            {
+              "from": "auto-processor.js",
+              "to": "server/lib/privacy-utils.cjs",
+              "type": "import"
+            },
+            {
+              "from": "auto-processor.js",
+              "to": "server/lib/app-logger.cjs",
+              "type": "import"
+            },
+            {
+              "from": "auto-processor.js",
+              "to": "server/lib/recoverable-io.cjs",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/scripts/postinstall.js",
+              "to": "packages/simplebeacon-intelligence/src/tree-sitter-loader.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/scripts/postinstall.js",
+              "to": "packages/simplebeacon-intelligence/src/slm-bridge.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/index.js",
+              "to": "packages/simplebeacon-intelligence/src/constants.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/intent-scanner.js",
+              "to": "packages/simplebeacon-intelligence/src/constants.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/intent-scanner.js",
+              "to": "packages/simplebeacon-intelligence/src/structural-intent-scanner.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/intent-scanner.js",
+              "to": "packages/simplebeacon-intelligence/src/vector-cache.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/intent-scanner.js",
+              "to": "packages/simplebeacon-intelligence/src/tree-sitter-queries.js",
+              "type": "import"
+            },
+            {
+              "from": "packages/simplebeacon-intelligence/src/intent-scanner.js",
+              "to": "packages/simplebeacon-intelligence/src/tree-sitter-loader.js",
+              "type": "import"
+            }
+          ]
+        },
+        "fuzzySimilarity": {
+          "method": "token-jaccard",
+          "threshold": 0.92,
+          "pairsFound": 0,
+          "pairs": [],
+          "gguf": {
+            "available": false,
+            "executable": false,
+            "llamaCppBin": null,
+            "mode": "filesystem-only",
+            "semanticSimilarity": "Fuzzy token match only — set LLAMA_CPP_BIN for optional hints",
+            "note": "No embedding model run during filesystem scan unless analyze uses model.path"
+          }
+        },
+        "semanticHints": {
+          "enabled": false,
+          "mode": "filesystem-only",
+          "hints": [],
+          "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+        },
+        "resourceEstimate": {
+          "teamSize": 1,
+          "role": "Solo maintainer",
+          "remainingSprints": 0,
+          "estimatedHours": 0,
+          "hourlyRateUsd": 75,
+          "internalBudgetUsd": 0,
+          "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+          "sprintBreakdown": []
+        },
+        "visualization": {
+          "circularDependencyGraph": { "nodes": [], "edges": [] }
+        },
+        "rejectedFiction": {
+          "claims": [
+            "85-95% roadmap accuracy guarantees",
+            "Multi-FTE team composition from GGUF",
+            "$204k budget forecasts from scan"
+          ]
+        }
+      },
+      "aiIntegration": {
+        "apis": [
+          "/api/:provider",
+          "/api/ai-validation/audit",
+          "/api/ai-validation/dashboard",
+          "/api/ai-validation/results/:scanId",
+          "/api/ai-validation/scan",
+          "/api/analyze/ai-math-audit",
+          "/api/analyze/ai-math-audit/viz",
+          "/api/analyze/codebase",
+          "/api/analyze/complete-audit-report",
+          "/api/analyze/compliance-checklist",
+          "/api/analyze/data-cleanup",
+          "/api/analyze/eu-ai-act-audit-report",
+          "/api/analyze/expert-review",
+          "/api/analyze/export-bundle",
+          "/api/analyze/flexible",
+          "/api/analyze/github-clone",
+          "/api/analyze/inventory",
+          "/api/analyze/list-directories",
+          "/api/analyze/npm-audit",
+          "/api/analyze/progress",
+          "/api/analyze/providers",
+          "/api/analyze/scan",
+          "/api/analyze/summary",
+          "/api/analyze/test-sources",
+          "/api/analyze/understand",
+          "/api/analyze/upload-directory",
+          "/api/analyze/website",
+          "/api/analyze/zscript-report",
+          "/api/audit-booking",
+          "/api/audit-bookings",
+          "/api/auth/login",
+          "/api/auth/logout",
+          "/api/auth/me",
+          "/api/auth/refresh",
+          "/api/auth/register",
+          "/api/auth/session",
+          "/api/auth/token-status",
+          "/api/backlog",
+          "/api/chatbot/disclosure",
+          "/api/chatbot/message",
+          "/api/chatbot/providers",
+          "/api/code-roadmap/analyze",
+          "/api/code-roadmap/export/html",
+          "/api/config/pricing",
+          "/api/dynamic-roadmap/build-from-path",
+          "/api/dynamic-roadmap/health",
+          "/api/dynamic-roadmap/history",
+          "/api/external/weather"
+        ],
+        "apiRouteCount": 48,
+        "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
+      }
+    },
+    "resourceEstimate": {
+      "teamSize": 1,
+      "role": "Solo maintainer",
+      "remainingSprints": 0,
+      "estimatedHours": 0,
+      "hourlyRateUsd": 75,
+      "internalBudgetUsd": 0,
+      "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+      "sprintBreakdown": []
+    },
+    "implementationPhases": [
+      {
+        "phase": "Phase 1 — Sprint detection",
+        "status": "complete",
+        "items": ["Filesystem signals", "Sprint roadmap", "API route counts"]
+      },
+      {
+        "phase": "Phase 2 — Code intelligence",
+        "status": "active",
+        "items": [
+          "Circular dependency detection",
+          "Fuzzy similarity pairs",
+          "Solo resource estimate",
+          "HTML executive export"
+        ]
+      },
+      {
+        "phase": "Phase 3 — Optional GGUF",
+        "status": "planned",
+        "items": [
+          "Semantic hints when analyze endpoint wired",
+          "Not 85-95% accuracy claims"
+        ]
+      }
+    ],
+    "featureCategories": [
+      {
+        "category": "Infrastructure",
+        "completed": 2,
+        "total": 2,
+        "completionRate": 100
+      },
+      {
+        "category": "Security",
+        "completed": 2,
+        "total": 2,
+        "completionRate": 100
+      },
+      { "category": "API", "completed": 2, "total": 2, "completionRate": 100 },
+      {
+        "category": "Analysis",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100
+      },
+      {
+        "category": "Planning",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100
+      },
+      { "category": "Data", "completed": 1, "total": 1, "completionRate": 100 },
+      {
+        "category": "Testing",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100
+      },
+      { "category": "CI", "completed": 1, "total": 1, "completionRate": 100 }
+    ],
+    "progressMetrics": {
+      "overall": 100,
+      "phases": {
+        "Sprint 1: Server & Auth": 100,
+        "Sprint 2: Stub APIs & Tests": 100,
+        "Sprint 3: Honest Dashboard Data": 100,
+        "Sprint 4: Production Profile": 100
+      },
+      "categories": {
+        "AI Tools": 100,
+        "Analytics": 100,
+        "Development Tools": 100,
+        "Infrastructure": 100
+      },
+      "metrics": {
+        "codebaseMaturity": 100,
+        "featureCompleteness": 100,
+        "documentationCoverage": 5.055401662049862,
+        "testCoverage": 43.08943089430895,
+        "lineCoverage": null,
+        "branchCoverage": null,
+        "jestTests": null,
+        "jestSuites": null,
+        "pageSamples": "50/50",
+        "apiRouteCount": 48
+      }
+    },
+    "recommendations": {
+      "immediate": [
+        "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
+      ],
+      "shortTerm": [
+        "Production deploy sign-off after local auth smoke test passes",
+        "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+        "Security posture to 80/100 — run npm audit fix on deploy host",
+        "Improve documentation coverage"
+      ],
+      "longTerm": ["Define enterprise scope only after v1.0-internal"],
+      "priorities": {
+        "high": [
+          "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
+        ],
+        "medium": [
+          "Production deploy sign-off after local auth smoke test passes",
+          "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+          "Security posture to 80/100 — run npm audit fix on deploy host"
+        ],
+        "low": ["Optional GGUF semantic feature extraction"]
+      }
+    },
+    "risks": [],
+    "actionPlan": [],
+    "v1InternalDeploy": {
+      "localStatus": "code_ready",
+      "productionStatus": "artifacts_ready",
+      "localEnvConfigured": false,
+      "productionEnvConfigured": false,
+      "stripeConfigured": true,
+      "gateRemaining": true,
+      "runbook": "docs/v1-internal-runbook.md",
+      "verifyLocal": "npm run verify:v1-internal-profile",
+      "verifyProduction": "npm run verify:production-deploy",
+      "deploy": "npm run simplebeacon:deploy"
+    },
+    "sourceProjectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "rejectedFiction": {
+      "warning": "Enterprise roadmap design claims not produced by this scanner",
+      "claims": [
+        "Hardcoded GGUF confidence or prediction accuracy percentages",
+        "Hardcoded feature totals or completion-rate defaults",
+        "85-95% accuracy enhancement guarantees",
+        "Multi-FTE team and budget estimation from GGUF",
+        "Auto-merge roadmap executor"
+      ],
+      "replacedBy": "Sprint deliverable detection from filesystem + package.json + API route counts"
+    },
+    "deprecatedNarrative": {
+      "warning": "RoadmapDataAnalyzer previously returned hardcoded feature totals and completion defaults.",
+      "previousTotalFeatures": null,
+      "previousCompletionRate": null
+    },
+    "projectStructure": {
+      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+      "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+      "totalDirectories": 48,
+      "totalFiles": 115,
+      "mainCategories": {
+        "assessments": {
+          "name": "assessments",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\assessments",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 0,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "config": {
+          "name": "config",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\config",
+          "exists": true,
+          "fileCount": 2,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".json": 2 },
+          "totalSize": 2964,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "data": {
+          "name": "data",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data",
+          "exists": true,
+          "fileCount": 1,
+          "subdirectoryCount": 1,
+          "fileTypes": { ".json": 1 },
+          "totalSize": 434,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "data-central": {
+          "name": "data-central",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data-central",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 1,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "docker": {
+          "name": "docker",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\docker",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 1,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "google-earthenterprise": {
+          "name": "google-earthenterprise",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\google-earthenterprise",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 0,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "local-agent": {
+          "name": "local-agent",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\local-agent",
+          "exists": true,
+          "fileCount": 18,
+          "subdirectoryCount": 0,
+          "fileTypes": {
+            "": 1,
+            ".cjs": 6,
+            ".bat": 2,
+            ".ps1": 2,
+            ".sh": 1,
+            ".iss": 1,
+            ".json": 2,
+            ".md": 1,
+            ".spec": 1,
+            ".wxs": 1
+          },
+          "totalSize": 138870,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "package-lock.json",
+              "size": 85529,
+              "type": ".json",
+              "modified": "2026-07-08T22:17:08.572Z"
+            },
+            {
+              "name": "package.json",
+              "size": 1643,
+              "type": ".json",
+              "modified": "2026-07-08T01:20:48.582Z"
+            },
+            {
+              "name": "README.md",
+              "size": 3626,
+              "type": ".md",
+              "modified": "2026-07-08T01:39:17.533Z"
+            }
+          ]
+        },
+        "logs": {
+          "name": "logs",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\logs",
+          "exists": true,
+          "fileCount": 1,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".log": 1 },
+          "totalSize": 899142,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "packages": {
+          "name": "packages",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 2,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "pipeline": {
+          "name": "pipeline",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\pipeline",
+          "exists": true,
+          "fileCount": 4,
+          "subdirectoryCount": 0,
+          "fileTypes": { "": 1, ".example": 1, ".yaml": 1, ".txt": 1 },
+          "totalSize": 1271,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "public": {
+          "name": "public",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\public",
+          "exists": true,
+          "fileCount": 1,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".json": 1 },
+          "totalSize": 10016,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "reports": {
+          "name": "reports",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\reports",
+          "exists": true,
+          "fileCount": 12,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".md": 11, ".json": 1 },
+          "totalSize": 36783,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "README.md",
+              "size": 1956,
+              "type": ".md",
+              "modified": "2026-06-12T12:24:26.220Z"
+            }
+          ]
+        },
+        "scripts": {
+          "name": "scripts",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\scripts",
+          "exists": true,
+          "fileCount": 2,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".ps1": 1, ".sh": 1 },
+          "totalSize": 5546,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "server": {
+          "name": "server",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+          "exists": true,
+          "fileCount": 16,
+          "subdirectoryCount": 11,
+          "fileTypes": {
+            ".cjs": 7,
+            ".patch-fix": 3,
+            ".txt": 1,
+            ".js": 4,
+            ".md": 1
+          },
+          "totalSize": 115247,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "README-DLP.md",
+              "size": 2699,
+              "type": ".md",
+              "modified": "2026-06-03T05:48:32.013Z"
+            }
+          ]
+        },
+        "shared-utils": {
+          "name": "shared-utils",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\shared-utils",
+          "exists": true,
+          "fileCount": 2,
+          "subdirectoryCount": 1,
+          "fileTypes": { ".cjs": 1, ".json": 1 },
+          "totalSize": 634,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "package.json",
+              "size": 207,
+              "type": ".json",
+              "modified": "2026-07-13T19:57:43.909Z"
+            }
+          ]
+        },
+        "src": {
+          "name": "src",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src",
+          "exists": true,
+          "fileCount": 0,
+          "subdirectoryCount": 4,
+          "fileTypes": {},
+          "totalSize": 0,
+          "depth": 0,
+          "keyFiles": []
+        },
+        "tests": {
+          "name": "tests",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests",
+          "exists": true,
+          "fileCount": 17,
+          "subdirectoryCount": 3,
+          "fileTypes": { ".js": 17 },
+          "totalSize": 117030,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "dashboard-vault-auth.test.js",
+              "size": 7050,
+              "type": ".js",
+              "modified": "2026-06-23T10:45:51.217Z"
+            },
+            {
+              "name": "server-health.test.js",
+              "size": 4340,
+              "type": ".js",
+              "modified": "2026-06-11T13:09:03.518Z"
+            }
+          ]
+        },
+        "tools": {
+          "name": "tools",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tools",
+          "exists": true,
+          "fileCount": 37,
+          "subdirectoryCount": 0,
+          "fileTypes": { ".cjs": 24, ".patch-fix": 1, ".bat": 1, ".js": 11 },
+          "totalSize": 177986,
+          "depth": 0,
+          "keyFiles": [
+            {
+              "name": "start-v1-internal-dashboard.js",
+              "size": 146,
+              "type": ".js",
+              "modified": "2026-07-16T07:22:36.978Z"
+            }
+          ]
+        },
+        "web": {
+          "name": "web",
+          "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web",
+          "exists": true,
+          "fileCount": 2,
+          "subdirectoryCount": 5,
+          "fileTypes": { ".svg": 1, ".py": 1 },
+          "totalSize": 14925,
+          "depth": 0,
+          "keyFiles": []
+        }
+      },
+      "note": "Top-level categories only — use platformRoot for sprint metrics; full tree omitted from export"
+    },
+    "codebaseMetrics": {
+      "totalLinesOfCode": 36154,
+      "languages": {
+        ".js": { "files": 15, "lines": 2404 },
+        ".cjs": { "files": 179, "lines": 33247 },
+        ".sql": { "files": 6, "lines": 503 }
+      },
+      "testFiles": 33,
+      "documentation": { "readmeFiles": 52, "totalDocs": 52, "coverage": 4 }
+    },
+    "aiIntegration": {
+      "level": "basic",
+      "features": {
+        "analysis": true,
+        "generation": true,
+        "processing": true,
+        "automation": true
+      },
+      "models": ["assistant", "llama", "gguf", "gpt", "bert"],
+      "apis": [
+        "/api/:provider",
+        "/api/ai-validation/audit",
+        "/api/ai-validation/dashboard",
+        "/api/ai-validation/results/:scanId",
+        "/api/ai-validation/scan",
+        "/api/analyze/ai-math-audit",
+        "/api/analyze/ai-math-audit/viz",
+        "/api/analyze/codebase",
+        "/api/analyze/complete-audit-report",
+        "/api/analyze/compliance-checklist",
+        "/api/analyze/data-cleanup",
+        "/api/analyze/eu-ai-act-audit-report",
+        "/api/analyze/expert-review",
+        "/api/analyze/export-bundle",
+        "/api/analyze/flexible",
+        "/api/analyze/github-clone",
+        "/api/analyze/inventory",
+        "/api/analyze/list-directories",
+        "/api/analyze/npm-audit",
+        "/api/analyze/progress",
+        "/api/analyze/providers",
+        "/api/analyze/scan",
+        "/api/analyze/summary",
+        "/api/analyze/test-sources",
+        "/api/analyze/understand",
+        "/api/analyze/upload-directory",
+        "/api/analyze/website",
+        "/api/analyze/zscript-report",
+        "/api/audit-booking",
+        "/api/audit-bookings",
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/me",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/auth/session",
+        "/api/auth/token-status",
+        "/api/backlog",
+        "/api/chatbot/disclosure",
+        "/api/chatbot/message",
+        "/api/chatbot/providers",
+        "/api/code-roadmap/analyze",
+        "/api/code-roadmap/export/html",
+        "/api/config/pricing",
+        "/api/dynamic-roadmap/build-from-path",
+        "/api/dynamic-roadmap/health",
+        "/api/dynamic-roadmap/history",
+        "/api/external/weather"
+      ],
+      "apiRouteCount": 48,
+      "confidence": null,
+      "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
+    },
+    "scanOptions": { "includePaths": [], "excludePatterns": [] }
+  },
+  "historyEntry": {
+    "id": "scan-1784941943204",
+    "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "title": "simplebeacon-platform",
+    "timestamp": "2026-07-25T01:12:23.204Z",
+    "filesScanned": 1428,
+    "progressPercent": 100,
+    "projectHealth": "Healthy",
+    "includePaths": [],
+    "excludePatterns": []
+  }
+}

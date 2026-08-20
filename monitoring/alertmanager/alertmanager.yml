@@ -2,46 +2,46 @@ global:
   resolve_timeout: 5m
 
 templates:
-  - '/etc/alertmanager/alertmanager_templates.tmpl'
-  - '/etc/alertmanager/simplebeacon.tmpl'
+  - "/etc/alertmanager/alertmanager_templates.tmpl"
+  - "/etc/alertmanager/simplebeacon.tmpl"
 
 route:
-  group_by: ['alertname', 'cluster', 'namespace', 'service']
+  group_by: ["alertname", "cluster", "namespace", "service"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
-  receiver: 'slack-notifications'
+  receiver: "slack-notifications"
   routes:
     # Route SimpleBeacon scan resource alerts to a dedicated receiver.
     - match:
-        service: 'simplebeacon-scan'
-      receiver: 'simplebeacon-receiver'
+        service: "simplebeacon-scan"
+      receiver: "simplebeacon-receiver"
 inhibit_rules:
   # Suppress lower-severity (warning) alerts when a corresponding higher-severity (critical)
   # alert is firing for the same cluster/instance/service. This reduces noise during active
   # incident escalations (e.g., memory-critical supersedes memory-warning).
   - source_match:
-      severity: 'critical'
+      severity: "critical"
     target_match:
-      severity: 'warning'
-    equal: ['cluster', 'instance', 'service']
+      severity: "warning"
+    equal: ["cluster", "instance", "service"]
 
 receivers:
-- name: 'slack-notifications'
-  slack_configs:
-  - api_url: 'https://slack.com'
-    channel: '#ops-agent-framework'
-    send_resolved: true
-    title: '{{ template "slack.default.title" . }}'
-    text: '{{ template "slack.default.text" . }}'
+  - name: "slack-notifications"
+    slack_configs:
+      - api_url: "https://slack.com"
+        channel: "#ops-agent-framework"
+        send_resolved: true
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
 
-- name: 'simplebeacon-receiver'
-  slack_configs:
-  - api_url: 'https://hooks.slack.com/services/REPLACE/ME'
-    channel: '#scan-failures'
-    send_resolved: true
-    title: '{{ template "simplebeacon.default" . }}'
-    text: '{{ template "simplebeacon.default" . }}'
+  - name: "simplebeacon-receiver"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/REPLACE/ME"
+        channel: "#scan-failures"
+        send_resolved: true
+        title: '{{ template "simplebeacon.default" . }}'
+        text: '{{ template "simplebeacon.default" . }}'
 
 # Optional default receiver example (uncomment and configure if you want a separate fallback):
 # - name: 'default-receiver'

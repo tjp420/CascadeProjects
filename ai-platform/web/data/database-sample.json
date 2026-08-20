@@ -3,7 +3,5 @@
   "overview": {
     "connectedDatabases": 2
   },
-  "databases": [
-    {}
-  ]
+  "databases": [{}]
 }

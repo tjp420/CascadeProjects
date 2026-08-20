@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                               |
+| ---------------- | ------------------------------------------------------------------- |
 | Feature / change | Track 18: Perfect Forward Secrecy & Ratcheting Session-Key Exchange |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track18-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                               |
+| Date             | 2026-08-01                                                          |
+| Branch           | `feature/track18-groundwork`                                        |
+| Packages touched | ai-platform                                                         |
 
 ## Scope
 
@@ -74,53 +74,53 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Cryptographic ratchet tests pass | `cd ai-platform && npx jest --config jest.config.cjs cryptographic-ratchet` | [ ] |
-| L1-03 | Ratchet message handler tests pass | `cd ai-platform && npx jest --config jest.config.cjs ratchet-message-handler` | [ ] |
-| L1-04 | Crypto policy tests still pass with ratchet schema | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine` | [ ] |
-| L1-05 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-06 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-07 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                              | Command / method                                                              | Pass |
+| ----- | -------------------------------------------------- | ----------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files                     | `node -c <file>`                                                              | [ ]  |
+| L1-02 | Cryptographic ratchet tests pass                   | `cd ai-platform && npx jest --config jest.config.cjs cryptographic-ratchet`   | [ ]  |
+| L1-03 | Ratchet message handler tests pass                 | `cd ai-platform && npx jest --config jest.config.cjs ratchet-message-handler` | [ ]  |
+| L1-04 | Crypto policy tests still pass with ratchet schema | `cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine`    | [ ]  |
+| L1-05 | Full `ai-platform` test suite passes               | `cd ai-platform && npm test`                                                  | [ ]  |
+| L1-06 | SimpleBeacon full gate                             | `npx simplebeacon scan --full --gate --format json`                           | [ ]  |
+| L1-07 | No secrets in diff                                 | `git diff --cached`                                                           | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Two nodes establish a shared ratchet root | `AsymmetricHsmAdapter` ECDH exchange, then `CryptographicRatchet(rootKey)` | Both produce identical initial chain keys | [ ] |
-| L2-02 | Symmetric ratchet produces independent message keys | `encrypt` 3 messages; compare message keys | Each message key is unique and unpredictable | [ ] |
-| L2-03 | DH ratchet rotates root and breaks forward chain | Call `step('send', newEphemeralPublicKey)` and encrypt | Previous chain keys cannot decrypt new message | [ ] |
-| L2-04 | Out-of-order message decrypts with cached skipped key | Send messages 1, 3, 2; decrypt 2 then 3 | Message 2 decrypts; message 3 still decrypts | [ ] |
-| L2-05 | Excessive skipped messages rejected | Skip 1001 messages with `maxSkipped: 1000` | Throws `MAX_SKIPPED_EXCEEDED` | [ ] |
-| L2-06 | Session expiry triggers audit event | Hold root for > `sessionExpiryMs`, then `step` | Throws `SESSION_EXPIRED`; `SESSION_EXPIRED` audit logged | [ ] |
+| ID    | Scenario                                              | Steps                                                                      | Expected                                                 | Pass |
+| ----- | ----------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------- | ---- |
+| L2-01 | Two nodes establish a shared ratchet root             | `AsymmetricHsmAdapter` ECDH exchange, then `CryptographicRatchet(rootKey)` | Both produce identical initial chain keys                | [ ]  |
+| L2-02 | Symmetric ratchet produces independent message keys   | `encrypt` 3 messages; compare message keys                                 | Each message key is unique and unpredictable             | [ ]  |
+| L2-03 | DH ratchet rotates root and breaks forward chain      | Call `step('send', newEphemeralPublicKey)` and encrypt                     | Previous chain keys cannot decrypt new message           | [ ]  |
+| L2-04 | Out-of-order message decrypts with cached skipped key | Send messages 1, 3, 2; decrypt 2 then 3                                    | Message 2 decrypts; message 3 still decrypts             | [ ]  |
+| L2-05 | Excessive skipped messages rejected                   | Skip 1001 messages with `maxSkipped: 1000`                                 | Throws `MAX_SKIPPED_EXCEEDED`                            | [ ]  |
+| L2-06 | Session expiry triggers audit event                   | Hold root for > `sessionExpiryMs`, then `step`                             | Throws `SESSION_EXPIRED`; `SESSION_EXPIRED` audit logged | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Tampered AAD causes decryption failure | Throws `UNWRAP_FAILED` | [ ] |
-| L3-02 | Reusing same chain counter IV fails for identical plaintext | Two messages at same index produce different ciphertexts | [ ] |
-| L3-03 | Existing Tracks 10–17 tests still pass | No regressions | [ ] |
+| ID    | Case                                                        | Expected                                                 | Pass |
+| ----- | ----------------------------------------------------------- | -------------------------------------------------------- | ---- |
+| L3-01 | Tampered AAD causes decryption failure                      | Throws `UNWRAP_FAILED`                                   | [ ]  |
+| L3-02 | Reusing same chain counter IV fails for identical plaintext | Two messages at same index produce different ciphertexts | [ ]  |
+| L3-03 | Existing Tracks 10–17 tests still pass                      | No regressions                                           | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Compromised old chain key cannot decrypt future messages after DH ratchet | [ ] |
-| S-02 | Skipped-key cache never stores plaintext or current root key | [ ] |
-| S-03 | `maxSkipped` and `sessionExpiryMs` are enforced by policy | [ ] |
-| S-04 | All state packets carry a `rootKeyHash` for integrity cross-check | [ ] |
+| ID   | Requirement                                                               | Pass |
+| ---- | ------------------------------------------------------------------------- | ---- |
+| S-01 | Compromised old chain key cannot decrypt future messages after DH ratchet | [ ]  |
+| S-02 | Skipped-key cache never stores plaintext or current root key              | [ ]  |
+| S-03 | `maxSkipped` and `sessionExpiryMs` are enforced by policy                 | [ ]  |
+| S-04 | All state packets carry a `rootKeyHash` for integrity cross-check         | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

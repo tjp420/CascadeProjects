@@ -10,11 +10,7 @@
 
 function escapeHtml(text) {
   if (!text) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /**
@@ -87,11 +83,11 @@ function runStreamingParserStressTest() {
 
   // Maliciously fractured text block cut directly in half through structural markdown tags
   const fracturedTokenChunks = [
-    "Here is the issue pinpointed in your file:\n\n```javas",
+    'Here is the issue pinpointed in your file:\n\n```javas',
     "cript\nconst token = 'DEMO_PLACEHOLDER_",
     "v1-fake-key-example';\nconsole.log(token);\n",
     // Notice the missing terminal closing backticks to test the auto-closers
-    "\nThis is an unclosed inline `code tag left hanging mid-air"
+    '\nThis is an unclosed inline `code tag left hanging mid-air',
   ];
 
   let streamingBufferText = '';
@@ -131,7 +127,9 @@ function runStreamingParserStressTest() {
 
   if (allPassed) {
     // eslint-disable-next-line no-console
-    console.log('\x1b[32m\n  Success: 9-step regex engine stabilized all streaming tokens without layout bleeding.\x1b[0m');
+    console.log(
+      '\x1b[32m\n  Success: 9-step regex engine stabilized all streaming tokens without layout bleeding.\x1b[0m'
+    );
     process.exit(0);
   } else {
     // eslint-disable-next-line no-console

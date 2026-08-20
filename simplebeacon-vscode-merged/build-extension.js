@@ -21,8 +21,8 @@ try {
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
-  const vsixFiles = fs.readdirSync(__dirname).filter(f => f.startsWith('simplebeacon-') && f.endsWith('.vsix'));
-  vsixFiles.forEach(f => fs.unlinkSync(path.join(__dirname, f)));
+  const vsixFiles = fs.readdirSync(__dirname).filter((f) => f.startsWith('simplebeacon-') && f.endsWith('.vsix'));
+  vsixFiles.forEach((f) => fs.unlinkSync(path.join(__dirname, f)));
 
   // Compile TypeScript
   console.log('📦 Compiling TypeScript...');
@@ -38,7 +38,7 @@ try {
   execSync('npx vsce package', { stdio: 'inherit', cwd: __dirname });
 
   // Find the created VSIX file
-  const files = fs.readdirSync(__dirname).filter(f => f.startsWith('simplebeacon-') && f.endsWith('.vsix'));
+  const files = fs.readdirSync(__dirname).filter((f) => f.startsWith('simplebeacon-') && f.endsWith('.vsix'));
   if (files.length === 0) {
     throw new Error('VSIX package creation failed - no .vsix file found');
   }
@@ -51,7 +51,7 @@ try {
   const stats = fs.statSync(vsixPath);
   console.log(`📊 Package size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
   console.log(`📅 Created: ${stats.mtime.toLocaleString()}`);
-  
+
   console.log('\n🎉 SimpleBeacon Enhanced AI Extension is ready!');
   console.log(`📦 Package: ${vsixFile}`);
   console.log('\nTo install:');
@@ -59,7 +59,6 @@ try {
   console.log('2. Go to Extensions (Ctrl+Shift+X)');
   console.log('3. Click "..." and select "Install from VSIX..."');
   console.log(`4. Choose ${vsixFile}`);
-
 } catch (error) {
   console.error('❌ Build failed:', error.message);
   process.exit(1);

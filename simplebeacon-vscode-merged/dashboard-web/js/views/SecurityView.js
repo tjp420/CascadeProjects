@@ -4,7 +4,7 @@ import {
   extractSecurityFindings,
   buildSecuritySummary,
   buildSecurityExportPayload,
-  fetchComplianceHeadline
+  fetchComplianceHeadline,
 } from '../services/securityService.js';
 
 /**
@@ -58,7 +58,7 @@ export class SecurityView {
         icon: '🛡️',
         title: 'No security findings',
         body: 'Credential and production-leak rules reported clean on the last scan.',
-        iconWrapper: 'emoji'
+        iconWrapper: 'emoji',
       });
     }
 
@@ -75,7 +75,9 @@ export class SecurityView {
             </tr>
           </thead>
           <tbody>
-            ${findings.map((finding) => `
+            ${findings
+              .map(
+                (finding) => `
               <tr>
                 <td><span class="severity-pill ${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)}</span></td>
                 <td><span style="font-size:var(--font-size-xs);font-weight:500;">${escapeHtml(finding.type)}</span></td>
@@ -83,7 +85,9 @@ export class SecurityView {
                 <td style="font-size:var(--font-size-sm);">${escapeHtml(finding.description || '—')}</td>
                 <td style="font-size:var(--font-size-sm);color:var(--text-secondary);">${escapeHtml(finding.recommendation)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </div>
@@ -95,25 +99,25 @@ export class SecurityView {
     el.className = 'fade-in';
 
     if (this.loading && !this.getReport()) {
-el.innerHTML = `
+      el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
           title: 'Loading scan report…',
-          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>',
         })}
       `;
       return el;
     }
 
     if (this.error && !this.getReport()) {
-el.innerHTML = `
+      el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
           title: 'Security scan unavailable',
           body: escapeHtml(this.error),
-          actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }]
+          actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }],
         })}
       `;
       el.querySelector('#security-retry')?.addEventListener('click', () => this.loadReport(this._container));
@@ -125,11 +129,9 @@ el.innerHTML = `
     const summary = this.getSummary();
     const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
     const gateClass = summary.gatePass ? 'success' : 'danger';
-    const lastScan = summary.generatedAt
-      ? new Date(summary.generatedAt).toLocaleString()
-      : 'Never';
+    const lastScan = summary.generatedAt ? new Date(summary.generatedAt).toLocaleString() : 'Never';
 
-el.innerHTML = `
+    el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
         <p class="text-muted analyze-hero-sub">Credential patterns, production leaks, and secret detection.</p>
@@ -150,12 +152,16 @@ el.innerHTML = `
         </div>
       </div>
 
-      ${this.scanning ? `
+      ${
+        this.scanning
+          ? `
         <div class="card mb-6" style="padding:var(--space-4)">
           <span class="loading-spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px"></span>
           Running Simplebeacon scan (credential + production-leak rules)…
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div class="grid-2 mb-6">
         <div class="card" style="padding:0;overflow:hidden;">
@@ -249,7 +255,10 @@ el.innerHTML = `
     el.querySelector('#security-send-ai-btn')?.addEventListener('click', async () => {
       const report = this.getReport();
       const findings = this.getFindings();
-      if (!findings.length) { showToast('No security findings to send', 'error'); return; }
+      if (!findings.length) {
+        showToast('No security findings to send', 'error');
+        return;
+      }
       const summary = this.getSummary();
       const payload = {
         projectPath: report?.projectRoot || report?.projectPath || window.location.origin,
@@ -258,21 +267,36 @@ el.innerHTML = `
           totalFindings: summary.totalFindings,
           credentialCount: summary.credentialCount,
           productionLeakCount: summary.productionLeakCount,
-          complianceScore: this.compliance?.securityScore ?? 'N/A'
+          complianceScore: this.compliance?.securityScore ?? 'N/A',
         },
-        notes: 'Security Scanner findings — credential patterns and production leaks'
+        notes: 'Security Scanner findings — credential patterns and production leaks',
       };
       const vscode = this._getVscodeApi();
       if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent to AI agent', 'success'); return; }
-        catch (err) { window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        try {
+          vscode.postMessage({ command: 'sendToAI', data: payload });
+          showToast('Security findings sent to AI agent', 'success');
+          return;
+        } catch (err) {
+          window['console']['warn']('[Security-AI] vscode.postMessage failed:', err);
+        } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
       }
       try {
-        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch('/api/ai-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
         const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+        if (json.success && json.content) {
+          await navigator.clipboard.writeText(json.content);
+          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+        } else {
+          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+        }
+      } catch (err) {
+        showToast('Failed to send: ' + err.message, 'error');
+      }
     });
 
     return el;
@@ -293,7 +317,7 @@ el.innerHTML = `
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-container.innerHTML = '';
+    container.innerHTML = '';
     container.appendChild(this.render());
   }
 
@@ -358,4 +382,3 @@ container.innerHTML = '';
     void this.loadCompliance();
   }
 }
-

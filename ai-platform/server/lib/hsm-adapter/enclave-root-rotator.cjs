@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 47: Enclave root rotator.
@@ -10,9 +10,9 @@
  * @module hsm-adapter/enclave-root-rotator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { secureZeroize } = require('./secure-zeroize.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const { secureZeroize } = require("./secure-zeroize.cjs");
 
 class EnclaveRootRotator {
   /**
@@ -56,7 +56,11 @@ class EnclaveRootRotator {
       attestedAdmins: new Set(),
     });
     if (this._audit) {
-      this._audit('ENCLAVE_ROOT_ROTATION_INITIATED', { epochId, proposerEnclaveId, timestamp });
+      this._audit("ENCLAVE_ROOT_ROTATION_INITIATED", {
+        epochId,
+        proposerEnclaveId,
+        timestamp,
+      });
     }
     return { epochId, payload };
   }
@@ -72,25 +76,41 @@ class EnclaveRootRotator {
   sign(epochId, adminEnclaveId, attestation, signature) {
     const proposal = this._proposals.get(epochId);
     if (!proposal) {
-      throw new HsmAdapterError('ROTATION_PROPOSAL_MISSING', `no proposal for epoch ${epochId}`);
+      throw new HsmAdapterError(
+        "ROTATION_PROPOSAL_MISSING",
+        `no proposal for epoch ${epochId}`,
+      );
     }
     if (this.policy.requireAdminAttestation && this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (!result.verified) {
-        throw new HsmAdapterError('ROTATION_ADMIN_UNATTESTED', `admin ${adminEnclaveId} attestation invalid`);
+        throw new HsmAdapterError(
+          "ROTATION_ADMIN_UNATTESTED",
+          `admin ${adminEnclaveId} attestation invalid`,
+        );
       }
     }
     const now = Math.floor(Date.now() / 1000);
     const age = attestation.timestamp ? now - attestation.timestamp : 0;
     if (age > this.policy.maxSignatureExpirationSeconds) {
-      throw new HsmAdapterError('ROTATION_SIGNATURE_EXPIRED', `admin signature age ${age}s exceeds ${this.policy.maxSignatureExpirationSeconds}s`);
+      throw new HsmAdapterError(
+        "ROTATION_SIGNATURE_EXPIRED",
+        `admin signature age ${age}s exceeds ${this.policy.maxSignatureExpirationSeconds}s`,
+      );
     }
     if (proposal.attestedAdmins.has(adminEnclaveId)) {
-      throw new HsmAdapterError('ROTATION_ADMIN_ALREADY_SIGNED', `admin ${adminEnclaveId} already signed`);
+      throw new HsmAdapterError(
+        "ROTATION_ADMIN_ALREADY_SIGNED",
+        `admin ${adminEnclaveId} already signed`,
+      );
     }
     proposal.adminSignatures.push(`${adminEnclaveId}=${signature}`);
     proposal.attestedAdmins.add(adminEnclaveId);
-    return { signed: true, epochId, signatures: proposal.adminSignatures.length };
+    return {
+      signed: true,
+      epochId,
+      signatures: proposal.adminSignatures.length,
+    };
   }
 
   /**
@@ -102,14 +122,20 @@ class EnclaveRootRotator {
   commit(epochId, keyDeriver) {
     const proposal = this._proposals.get(epochId);
     if (!proposal) {
-      throw new HsmAdapterError('ROTATION_PROPOSAL_MISSING', `no proposal for epoch ${epochId}`);
+      throw new HsmAdapterError(
+        "ROTATION_PROPOSAL_MISSING",
+        `no proposal for epoch ${epochId}`,
+      );
     }
     if (proposal.adminSignatures.length < (this.policy.minAdminQuorum || 3)) {
-      throw new HsmAdapterError('ROTATION_QUORUM_INSUFFICIENT', `signatures ${proposal.adminSignatures.length} below minimum ${this.policy.minAdminQuorum}`);
+      throw new HsmAdapterError(
+        "ROTATION_QUORUM_INSUFFICIENT",
+        `signatures ${proposal.adminSignatures.length} below minimum ${this.policy.minAdminQuorum}`,
+      );
     }
     if (this.policy.requirePreviousSeedZeroization) {
       if (Buffer.isBuffer(proposal.previousSeed)) {
-        secureZeroize(proposal.previousSeed, { strategy: 'both' });
+        secureZeroize(proposal.previousSeed, { strategy: "both" });
       }
       proposal.previousSeed = null;
     }
@@ -118,7 +144,11 @@ class EnclaveRootRotator {
       rootKeys = keyDeriver.derive(proposal.proposedSeed);
     }
     if (this._audit) {
-      this._audit('HARDWARE_SEED_COMMITTED', { epochId, rootKeyPublic: rootKeys ? rootKeys.public : null, timestamp: Math.floor(Date.now() / 1000) });
+      this._audit("HARDWARE_SEED_COMMITTED", {
+        epochId,
+        rootKeyPublic: rootKeys ? rootKeys.public : null,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
     }
     this._proposals.delete(epochId);
     return { committed: true, epochId, rootKeys };
@@ -142,11 +172,18 @@ class EnclaveRootRotator {
 
 function _hash(seed) {
   const input = Buffer.isBuffer(seed) ? seed : Buffer.from(String(seed));
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return crypto.createHash("sha256").update(input).digest("hex");
 }
 
-function _canonicalPayload({ epochId, previousSeedHash, proposedSeedHash, proposerEnclaveId, timestamp, adminSignatures }) {
-  const sigs = adminSignatures.join(':');
+function _canonicalPayload({
+  epochId,
+  previousSeedHash,
+  proposedSeedHash,
+  proposerEnclaveId,
+  timestamp,
+  adminSignatures,
+}) {
+  const sigs = adminSignatures.join(":");
   return `ROTATION:${epochId}:${previousSeedHash}:${proposedSeedHash}:${proposerEnclaveId}:${timestamp}:${sigs}`;
 }
 

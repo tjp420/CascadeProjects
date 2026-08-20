@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 101: Zero-Knowledge Neural Claim Validator.
@@ -14,9 +14,9 @@
  * @module hsm-adapter/zk-neural-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const hsmMetrics = require('./hsm-metrics.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const hsmMetrics = require("./hsm-metrics.cjs");
 
 class ZkNeuralClaimValidator {
   constructor(options = {}) {
@@ -47,45 +47,93 @@ class ZkNeuralClaimValidator {
     _validateNeuralClaimRequest(this.policy, request, this._bannedPeers);
     const pool = this.hub ? this.hub.getPool(request.poolId) : null;
     if (!pool) {
-      throw new HsmAdapterError('NEURGATECLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "NEURGATECLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== 'open') {
-      throw new HsmAdapterError('NEURGATECLAIM_POOL_NOT_OPEN', `pool ${request.poolId} is not open`);
+    if (pool.status !== "open") {
+      throw new HsmAdapterError(
+        "NEURGATECLAIM_POOL_NOT_OPEN",
+        `pool ${request.poolId} is not open`,
+      );
     }
-    if (this.policy.requireNeuralEthicsOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireNeuralEthicsOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.neuralEthicsOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.neuralEthicsOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('NEURGATECLAIM_OVERSIGHT_COMMITTEE_UNATTESTED', 'neural ethics oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "NEURGATECLAIM_OVERSIGHT_COMMITTEE_UNATTESTED",
+            "neural ethics oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('NEURGATECLAIM_OVERSIGHT_COMMITTEE_UNATTESTED', 'neural ethics oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "NEURGATECLAIM_OVERSIGHT_COMMITTEE_UNATTESTED",
+          "neural ethics oversight committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && this.policy.allowedAttestationAuthorities && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('NEURGATECLAIM_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      this.policy.allowedAttestationAuthorities &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "NEURGATECLAIM_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (this.policy.banMalformedOrOutOfOrderNeuralClaims && request.peerId && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('NEURGATECLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      this.policy.banMalformedOrOutOfOrderNeuralClaims &&
+      request.peerId &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "NEURGATECLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    const claimHash = crypto.createHash('sha256').update(JSON.stringify({
-      poolId: request.poolId,
-      blindedNeuralMeasurementCommitment: request.blindedNeuralMeasurementCommitment,
-      blindedInferenceProbabilityCommitment: request.blindedInferenceProbabilityCommitment,
-      blindedNeuralNetworkAuthorityIdentityCommitment: request.blindedNeuralNetworkAuthorityIdentityCommitment,
-      zkNeuralRangeProofHash: request.zkNeuralRangeProofHash,
-      merkleMountainRangeDigest: request.merkleMountainRangeDigest,
-    })).digest('hex');
-    if (this.policy.banMalformedOrOutOfOrderNeuralClaims && this._verifiedClaims.has(claimHash)) {
+    const claimHash = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          poolId: request.poolId,
+          blindedNeuralMeasurementCommitment:
+            request.blindedNeuralMeasurementCommitment,
+          blindedInferenceProbabilityCommitment:
+            request.blindedInferenceProbabilityCommitment,
+          blindedNeuralNetworkAuthorityIdentityCommitment:
+            request.blindedNeuralNetworkAuthorityIdentityCommitment,
+          zkNeuralRangeProofHash: request.zkNeuralRangeProofHash,
+          merkleMountainRangeDigest: request.merkleMountainRangeDigest,
+        }),
+      )
+      .digest("hex");
+    if (
+      this.policy.banMalformedOrOutOfOrderNeuralClaims &&
+      this._verifiedClaims.has(claimHash)
+    ) {
       if (request.peerId) this._bannedPeers.add(request.peerId);
-      throw new HsmAdapterError('NEURGATECLAIM_DUPLICATE', `duplicate neural claim for pool ${request.poolId}`);
+      throw new HsmAdapterError(
+        "NEURGATECLAIM_DUPLICATE",
+        `duplicate neural claim for pool ${request.poolId}`,
+      );
     }
     this._verifiedClaims.add(claimHash);
-    if (this.hub && typeof this.hub.markNeuralClaimVerified === 'function') {
+    if (this.hub && typeof this.hub.markNeuralClaimVerified === "function") {
       this.hub.markNeuralClaimVerified(request.poolId);
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const claim = {
       claimId,
       poolId: request.poolId,
@@ -93,9 +141,9 @@ class ZkNeuralClaimValidator {
       zkNeuralRangeProofHash: request.zkNeuralRangeProofHash,
       verifiedAt: Math.floor(Date.now() / 1000),
     };
-    hsmMetrics.incrementCounter('hsm_zk_neural_claim_verified_total', 1);
+    hsmMetrics.incrementCounter("hsm_zk_neural_claim_verified_total", 1);
     if (this._audit) {
-      this._audit('ZK_NEURAL_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_NEURAL_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -126,45 +174,90 @@ class ZkNeuralClaimValidator {
     _validateClaimShape(claim);
 
     const nowMs = Date.now();
-    const maxWindowMs = (this.policy.maxNeuralTelemetryWindowSeconds || 2) * 1000;
+    const maxWindowMs =
+      (this.policy.maxNeuralTelemetryWindowSeconds || 2) * 1000;
     const elapsedMs = nowMs - claim.timestampMs;
 
     if (elapsedMs > maxWindowMs) {
-      this._issueChallenge(claim.poolId, 'inference_window_out_of_bounds');
-      throw new HsmAdapterError('NEUROCLAIM_INFERENCE_WINDOW_OUT_OF_BOUNDS', `neural telemetry timestamp is ${elapsedMs}ms old; maximum window is ${maxWindowMs}ms`);
+      this._issueChallenge(claim.poolId, "inference_window_out_of_bounds");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_INFERENCE_WINDOW_OUT_OF_BOUNDS",
+        `neural telemetry timestamp is ${elapsedMs}ms old; maximum window is ${maxWindowMs}ms`,
+      );
     }
 
-    if (typeof claim.neuralTelemetryWindowSeconds === 'number' && this.policy.maxNeuralTelemetryWindowSeconds !== undefined && claim.neuralTelemetryWindowSeconds > this.policy.maxNeuralTelemetryWindowSeconds) {
-      this._issueChallenge(claim.poolId, 'neural_telemetry_window_exceeded');
-      throw new HsmAdapterError('NEUROCLAIM_INFERENCE_WINDOW_OUT_OF_BOUNDS', `neural telemetry window seconds ${claim.neuralTelemetryWindowSeconds} exceeds maximum ${this.policy.maxNeuralTelemetryWindowSeconds}`);
+    if (
+      typeof claim.neuralTelemetryWindowSeconds === "number" &&
+      this.policy.maxNeuralTelemetryWindowSeconds !== undefined &&
+      claim.neuralTelemetryWindowSeconds >
+        this.policy.maxNeuralTelemetryWindowSeconds
+    ) {
+      this._issueChallenge(claim.poolId, "neural_telemetry_window_exceeded");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_INFERENCE_WINDOW_OUT_OF_BOUNDS",
+        `neural telemetry window seconds ${claim.neuralTelemetryWindowSeconds} exceeds maximum ${this.policy.maxNeuralTelemetryWindowSeconds}`,
+      );
     }
 
-    if (typeof claim.synapseChainDepth === 'number' && this.policy.maxSynapseChainDepth !== undefined && claim.synapseChainDepth > this.policy.maxSynapseChainDepth) {
-      this._issueChallenge(claim.poolId, 'synapse_chain_depth_exceeded');
-      throw new HsmAdapterError('NEUROCLAIM_SYNAPSE_CHAIN_DEPTH_EXCEEDED', `synapse chain depth ${claim.synapseChainDepth} exceeds maximum ${this.policy.maxSynapseChainDepth}`);
+    if (
+      typeof claim.synapseChainDepth === "number" &&
+      this.policy.maxSynapseChainDepth !== undefined &&
+      claim.synapseChainDepth > this.policy.maxSynapseChainDepth
+    ) {
+      this._issueChallenge(claim.poolId, "synapse_chain_depth_exceeded");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_SYNAPSE_CHAIN_DEPTH_EXCEEDED",
+        `synapse chain depth ${claim.synapseChainDepth} exceeds maximum ${this.policy.maxSynapseChainDepth}`,
+      );
     }
 
-    if (typeof claim.neuralQuorum === 'number' && this.policy.minNeuralQuorum !== undefined && claim.neuralQuorum < this.policy.minNeuralQuorum) {
-      this._issueChallenge(claim.poolId, 'neural_quorum_insufficient');
-      throw new HsmAdapterError('NEUROCLAIM_QUORUM_INSUFFICIENT', `neural quorum ${claim.neuralQuorum} below minimum ${this.policy.minNeuralQuorum}`);
+    if (
+      typeof claim.neuralQuorum === "number" &&
+      this.policy.minNeuralQuorum !== undefined &&
+      claim.neuralQuorum < this.policy.minNeuralQuorum
+    ) {
+      this._issueChallenge(claim.poolId, "neural_quorum_insufficient");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_QUORUM_INSUFFICIENT",
+        `neural quorum ${claim.neuralQuorum} below minimum ${this.policy.minNeuralQuorum}`,
+      );
     }
 
-    if (typeof claim.pqcSignatureScheme === 'string' && this.policy.allowedPqcSignatureSchemes && !this.policy.allowedPqcSignatureSchemes.includes(claim.pqcSignatureScheme)) {
-      this._issueChallenge(claim.poolId, 'pqc_signature_scheme_blocked');
-      throw new HsmAdapterError('NEUROCLAIM_PQC_SCHEME_BLOCKED', `PQC signature scheme ${claim.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof claim.pqcSignatureScheme === "string" &&
+      this.policy.allowedPqcSignatureSchemes &&
+      !this.policy.allowedPqcSignatureSchemes.includes(claim.pqcSignatureScheme)
+    ) {
+      this._issueChallenge(claim.poolId, "pqc_signature_scheme_blocked");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${claim.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
 
-    if (typeof claim.attestationAuthority === 'string' && this.policy.allowedAttestationAuthorities && !this.policy.allowedAttestationAuthorities.includes(claim.attestationAuthority)) {
-      this._issueChallenge(claim.poolId, 'attestation_authority_blocked');
-      throw new HsmAdapterError('NEUROCLAIM_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${claim.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof claim.attestationAuthority === "string" &&
+      this.policy.allowedAttestationAuthorities &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        claim.attestationAuthority,
+      )
+    ) {
+      this._issueChallenge(claim.poolId, "attestation_authority_blocked");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${claim.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
 
     if (claim.proofValid === false) {
-      this._issueChallenge(claim.poolId, 'proof_invalid');
-      throw new HsmAdapterError('NEUROCLAIM_PROOF_INVALID', `neural telemetry proof for pool ${claim.poolId} is invalid`);
+      this._issueChallenge(claim.poolId, "proof_invalid");
+      throw new HsmAdapterError(
+        "NEUROCLAIM_PROOF_INVALID",
+        `neural telemetry proof for pool ${claim.poolId} is invalid`,
+      );
     }
 
-    hsmMetrics.incrementCounter('hsm_zk_neural_telemetry_verified_total', 1);
+    hsmMetrics.incrementCounter("hsm_zk_neural_telemetry_verified_total", 1);
     return {
       poolId: claim.poolId,
       valid: true,
@@ -174,45 +267,84 @@ class ZkNeuralClaimValidator {
   }
 
   _issueChallenge(poolId, challengeType) {
-    hsmMetrics.incrementCounter('hsm_neurogate_challenge_issued_total', 1);
+    hsmMetrics.incrementCounter("hsm_neurogate_challenge_issued_total", 1);
   }
 }
 
 function _validateNeuralClaimRequest(policy, request, bannedPeers) {
-  if (!request || typeof request !== 'object') {
-    throw new HsmAdapterError('NEURGATECLAIM_FIELDS_MISSING', 'request must be an object');
+  if (!request || typeof request !== "object") {
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_FIELDS_MISSING",
+      "request must be an object",
+    );
   }
   if (!request.poolId) {
-    throw new HsmAdapterError('NEURGATECLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (!request.blindedNeuralMeasurementCommitment || !request.blindedInferenceProbabilityCommitment || !request.blindedNeuralNetworkAuthorityIdentityCommitment) {
-    throw new HsmAdapterError('NEURGATECLAIM_FIELDS_MISSING', 'blindedNeuralMeasurementCommitment, blindedInferenceProbabilityCommitment, and blindedNeuralNetworkAuthorityIdentityCommitment are required');
+  if (
+    !request.blindedNeuralMeasurementCommitment ||
+    !request.blindedInferenceProbabilityCommitment ||
+    !request.blindedNeuralNetworkAuthorityIdentityCommitment
+  ) {
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_FIELDS_MISSING",
+      "blindedNeuralMeasurementCommitment, blindedInferenceProbabilityCommitment, and blindedNeuralNetworkAuthorityIdentityCommitment are required",
+    );
   }
   if (!request.zkNeuralRangeProofHash) {
-    if (policy.banMalformedOrOutOfOrderNeuralClaims && request.peerId) bannedPeers.add(request.peerId);
-    throw new HsmAdapterError('NEURGATECLAIM_ZK_PROOF_MISSING', 'zkNeuralRangeProofHash is required');
+    if (policy.banMalformedOrOutOfOrderNeuralClaims && request.peerId)
+      bannedPeers.add(request.peerId);
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_ZK_PROOF_MISSING",
+      "zkNeuralRangeProofHash is required",
+    );
   }
   if (!request.merkleMountainRangeDigest) {
-    if (policy.banMalformedOrOutOfOrderNeuralClaims && request.peerId) bannedPeers.add(request.peerId);
-    throw new HsmAdapterError('NEURGATECLAIM_MMR_DIGEST_MISSING', 'merkleMountainRangeDigest is required');
+    if (policy.banMalformedOrOutOfOrderNeuralClaims && request.peerId)
+      bannedPeers.add(request.peerId);
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_MMR_DIGEST_MISSING",
+      "merkleMountainRangeDigest is required",
+    );
   }
-  if (policy.requireNeuralEthicsOversightCommitteeAttestation && !request.neuralEthicsOversightCommitteeAttestation) {
-    throw new HsmAdapterError('NEURGATECLAIM_OVERSIGHT_ATTESTATION_MISSING', 'neuralEthicsOversightCommitteeAttestation is required');
+  if (
+    policy.requireNeuralEthicsOversightCommitteeAttestation &&
+    !request.neuralEthicsOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "NEURGATECLAIM_OVERSIGHT_ATTESTATION_MISSING",
+      "neuralEthicsOversightCommitteeAttestation is required",
+    );
   }
 }
 
 function _validateClaimShape(claim) {
-  if (!claim || typeof claim !== 'object') {
-    throw new HsmAdapterError('NEUROCLAIM_CLAIM_SHAPE_INVALID', 'claim must be an object');
+  if (!claim || typeof claim !== "object") {
+    throw new HsmAdapterError(
+      "NEUROCLAIM_CLAIM_SHAPE_INVALID",
+      "claim must be an object",
+    );
   }
   if (!claim.poolId) {
-    throw new HsmAdapterError('NEUROCLAIM_CLAIM_SHAPE_INVALID', 'poolId is required');
+    throw new HsmAdapterError(
+      "NEUROCLAIM_CLAIM_SHAPE_INVALID",
+      "poolId is required",
+    );
   }
   if (!claim.neuralSynapseStateDigest) {
-    throw new HsmAdapterError('NEUROCLAIM_CLAIM_SHAPE_INVALID', 'neuralSynapseStateDigest is required');
+    throw new HsmAdapterError(
+      "NEUROCLAIM_CLAIM_SHAPE_INVALID",
+      "neuralSynapseStateDigest is required",
+    );
   }
-  if (typeof claim.timestampMs !== 'number') {
-    throw new HsmAdapterError('NEUROCLAIM_CLAIM_SHAPE_INVALID', 'timestampMs must be a number');
+  if (typeof claim.timestampMs !== "number") {
+    throw new HsmAdapterError(
+      "NEUROCLAIM_CLAIM_SHAPE_INVALID",
+      "timestampMs must be a number",
+    );
   }
 }
 

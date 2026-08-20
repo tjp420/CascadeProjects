@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 42: Group reshard engine.
@@ -10,17 +10,24 @@
  * @module hsm-adapter/group-reshard-engine
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { secureZeroize } = require('./secure-zeroize.cjs');
-const { EphemeralShareRatchet } = require('./ephemeral-share-ratchet.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const { secureZeroize } = require("./secure-zeroize.cjs");
+const { EphemeralShareRatchet } = require("./ephemeral-share-ratchet.cjs");
 
 // optional Prometheus metrics (best-effort)
 let _reshardCounter = null;
 let _reshardLatency = null;
 try {
-  const client = require('prom-client');
-  _reshardCounter = new client.Counter({ name: 'hsm_reshard_ops_total', help: 'Total reshard operations' });
-  _reshardLatency = new client.Histogram({ name: 'hsm_reshard_latency_seconds', help: 'Reshard latency seconds', buckets: [0.001, 0.01, 0.1, 1, 5] });
+  const client = require("prom-client");
+  _reshardCounter = new client.Counter({
+    name: "hsm_reshard_ops_total",
+    help: "Total reshard operations",
+  });
+  _reshardLatency = new client.Histogram({
+    name: "hsm_reshard_latency_seconds",
+    help: "Reshard latency seconds",
+    buckets: [0.001, 0.01, 0.1, 1, 5],
+  });
 } catch (e) {
   // prom-client not available; skip metrics
 }
@@ -40,8 +47,13 @@ class GroupReshardEngine {
     this._audit = options.audit || null;
     this._prime = _bigPrime();
     // instantiate ephemeral ratchet used to ratchet target shares on distribution
-    const seed = this.policy.ratchetSeed ? Buffer.from(String(this.policy.ratchetSeed)) : require('crypto').randomBytes(32);
-    this._ratchet = new EphemeralShareRatchet({ rootSeed: seed, policy: { prime: this._prime, maxSequence: this.policy.maxSequence } });
+    const seed = this.policy.ratchetSeed
+      ? Buffer.from(String(this.policy.ratchetSeed))
+      : require("crypto").randomBytes(32);
+    this._ratchet = new EphemeralShareRatchet({
+      rootSeed: seed,
+      policy: { prime: this._prime, maxSequence: this.policy.maxSequence },
+    });
   }
 
   /**
@@ -63,13 +75,16 @@ class GroupReshardEngine {
       if (existing.includes(id)) continue;
       if (this.policy.requireNewNodeAttestation && this._attestationClient) {
         if (!this._attestationClient.isVerified(id)) {
-          throw new HsmAdapterError('RESHARDING_UNATTESTED_NODE', `node ${id} has not been attested`);
+          throw new HsmAdapterError(
+            "RESHARDING_UNATTESTED_NODE",
+            `node ${id} has not been attested`,
+          );
         }
       }
     }
 
     if (this._audit) {
-      this._audit('COMMITTEE_RESHARDING_INITIATED', {
+      this._audit("COMMITTEE_RESHARDING_INITIATED", {
         oldThreshold,
         oldSize,
         newThreshold,
@@ -78,18 +93,28 @@ class GroupReshardEngine {
       });
     }
 
-    const newShares = this._interpolateShares(oldThreshold, oldSize, newThreshold, newSize);
+    const newShares = this._interpolateShares(
+      oldThreshold,
+      oldSize,
+      newThreshold,
+      newSize,
+    );
     // ratchet newly generated shares immediately to ensure forward-privacy
     const epochId = this.policy.ratchetEpochId || `reshard-${Date.now()}`;
     const start = _reshardLatency ? process.hrtime() : null;
     for (const s of newShares) {
       try {
-        const token = { nodeIndex: s.index, value: BigInt(s.value), sequence: 0 };
+        const token = {
+          nodeIndex: s.index,
+          value: BigInt(s.value),
+          sequence: 0,
+        };
         const rat = this._ratchet.evolveShare(token, epochId);
         s.value = rat.value;
       } catch (e) {
         // if ratcheting fails, emit audit and continue with unhashed share
-        if (this._audit) this._audit('RESHARD_RATCHET_FAILED', { err: String(e) });
+        if (this._audit)
+          this._audit("RESHARD_RATCHET_FAILED", { err: String(e) });
       }
     }
     // Drop ratchet reference to release closure captures and allow GC
@@ -106,7 +131,7 @@ class GroupReshardEngine {
     try {
       this._purgeOldShares();
     } catch (e) {
-      if (this._audit) this._audit('RESHARD_PURGE_FAILED', { err: String(e) });
+      if (this._audit) this._audit("RESHARD_PURGE_FAILED", { err: String(e) });
     }
     const result = {
       newThreshold,
@@ -124,9 +149,9 @@ class GroupReshardEngine {
       if (Buffer.isBuffer(n.share)) {
         secureZeroize(n.share);
         n.share = Buffer.alloc(0);
-      } else if (typeof n.share === 'bigint') {
+      } else if (typeof n.share === "bigint") {
         n.share = 0n;
-      } else if (typeof n.share === 'number') {
+      } else if (typeof n.share === "number") {
         n.share = 0;
       } else {
         n.share = null;
@@ -161,42 +186,53 @@ class GroupReshardEngine {
    * Returns an object { epoch, distribution }
    */
   async computeReshardDistribution(currentCommittee, targetConfig) {
-    if (!currentCommittee || !targetConfig) throw new Error('ERR_INVALID_ARGS');
+    if (!currentCommittee || !targetConfig) throw new Error("ERR_INVALID_ARGS");
 
-    const currentSize = (currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {})).length || 0;
+    const currentSize =
+      (currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {}))
+        .length || 0;
     const targetSize = (targetConfig.nodeIds || []).length;
 
     if (targetSize > (this.policy.maxCommitteeSize || Infinity)) {
-      throw new Error('ERR_COMMITTEE_SIZE_EXCEEDED');
+      throw new Error("ERR_COMMITTEE_SIZE_EXCEEDED");
     }
 
-    if (currentSize > 0 && (targetSize / currentSize) > (this.policy.maxCommitteeExpansionFactor || Infinity)) {
-      throw new Error('ERR_EXPANSION_FACTOR_EXCEEDED');
+    if (
+      currentSize > 0 &&
+      targetSize / currentSize >
+        (this.policy.maxCommitteeExpansionFactor || Infinity)
+    ) {
+      throw new Error("ERR_EXPANSION_FACTOR_EXCEEDED");
     }
 
     const lastRotated = currentCommittee.lastRotationMs || 0;
     const now = Date.now();
     if (now - lastRotated < (this.policy.minEpochIntervalMs || 0)) {
-      throw new Error('ERR_MIN_EPOCH_INTERVAL');
+      throw new Error("ERR_MIN_EPOCH_INTERVAL");
     }
 
     // Attestation checks for new nodes
     if (this.policy.requireNewNodeAttestation && this._attestationClient) {
       for (const nodeId of targetConfig.nodeIds || []) {
-        const isExisting = (currentCommittee.nodeIds || []).includes(nodeId) || ((currentCommittee.shares || {})[nodeId]);
+        const isExisting =
+          (currentCommittee.nodeIds || []).includes(nodeId) ||
+          (currentCommittee.shares || {})[nodeId];
         if (!isExisting) {
           const att = (targetConfig.attestations || {})[nodeId];
-          const valid = await this._attestationClient.verify(att).catch(() => false);
+          const valid = await this._attestationClient
+            .verify(att)
+            .catch(() => false);
           if (!valid) throw new Error(`ERR_INVALID_NODE_ATTESTATION:${nodeId}`);
         }
       }
     }
 
     // Build equal-weight coefficients over existing committee for each target
-    const srcIds = currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {});
+    const srcIds =
+      currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {});
     const srcCount = srcIds.length || 1;
     const distribution = {};
-    for (const tId of (targetConfig.nodeIds || [])) {
+    for (const tId of targetConfig.nodeIds || []) {
       const coeffs = {};
       for (const sId of srcIds) coeffs[sId] = 1 / srcCount;
       distribution[tId] = { coefficients: coeffs };
@@ -227,20 +263,29 @@ function _assertAllowedWindow(policy, threshold, size) {
   const windows = policy.allowedThresholdWindows || [];
   const ok = windows.some(([t, c]) => t === threshold && c === size);
   if (!ok) {
-    throw new HsmAdapterError('RESHARDING_WINDOW_BLOCKED', `window ${threshold}-of-${size} is not allowed`);
+    throw new HsmAdapterError(
+      "RESHARDING_WINDOW_BLOCKED",
+      `window ${threshold}-of-${size} is not allowed`,
+    );
   }
 }
 
 function _assertSizeBound(policy, size) {
   if (size > (policy.maxCommitteeSize || Infinity)) {
-    throw new HsmAdapterError('RESHARDING_SIZE_BLOCKED', `committee size ${size} exceeds maximum ${policy.maxCommitteeSize}`);
+    throw new HsmAdapterError(
+      "RESHARDING_SIZE_BLOCKED",
+      `committee size ${size} exceeds maximum ${policy.maxCommitteeSize}`,
+    );
   }
 }
 
 function _assertExpansionFactor(policy, oldSize, newSize) {
   const factor = newSize / oldSize;
   if (factor > (policy.maxCommitteeExpansionFactor || Infinity)) {
-    throw new HsmAdapterError('RESHARDING_EXPANSION_BLOCKED', `expansion factor ${factor} exceeds maximum ${policy.maxCommitteeExpansionFactor}`);
+    throw new HsmAdapterError(
+      "RESHARDING_EXPANSION_BLOCKED",
+      `expansion factor ${factor} exceeds maximum ${policy.maxCommitteeExpansionFactor}`,
+    );
   }
 }
 
@@ -263,7 +308,9 @@ function _computeLagrangeCoefficients(nodes, total) {
     coeffs.push(c);
     // Overwrite intermediates to reduce heap residency window
     try {
-      num = 0n; den = 0n; xi = 0n;
+      num = 0n;
+      den = 0n;
+      xi = 0n;
     } catch (e) {}
   }
   return coeffs;
@@ -274,9 +321,12 @@ function _deriveShareForIndex(nodes, coeffs, index) {
   const p = _bigPrime();
   let acc = 0n;
   for (let i = 0; i < nodes.length; i += 1) {
-    const value = typeof nodes[i].share === 'bigint' ? nodes[i].share : BigInt(nodes[i].share || 1);
+    const value =
+      typeof nodes[i].share === "bigint"
+        ? nodes[i].share
+        : BigInt(nodes[i].share || 1);
     const basis = _lagrangeBasis(i + 1, index);
-    acc = (acc + (value * basis % p)) % p;
+    acc = (acc + ((value * basis) % p)) % p;
   }
   return Number(acc);
 }
@@ -304,7 +354,8 @@ function _modInverse(a, m) {
     [t, newT] = [newT, t - q * newT];
     [r, newR] = [newR, r - q * newR];
   }
-  if (r > 1n) throw new HsmAdapterError('MATH_ERROR', 'value is not invertible');
+  if (r > 1n)
+    throw new HsmAdapterError("MATH_ERROR", "value is not invertible");
   if (t < 0n) t += m;
   return t;
 }
@@ -313,9 +364,9 @@ function _zeroizeTransient(shares) {
   for (const share of shares) {
     if (Buffer.isBuffer(share.value)) {
       secureZeroize(share.value);
-    } else if (typeof share.value === 'number') {
+    } else if (typeof share.value === "number") {
       share.value = 0;
-    } else if (typeof share.value === 'bigint') {
+    } else if (typeof share.value === "bigint") {
       share.value = 0n;
     }
   }

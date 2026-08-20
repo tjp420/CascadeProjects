@@ -89,12 +89,7 @@ const navGroups: NavGroup[] = [
 export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: SidebarProps) {
   return (
     <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-card transition-transform lg:static lg:translate-x-0',
@@ -104,7 +99,13 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5 text-primary-foreground"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <polyline points="9 12 12 15 16 10" />
               </svg>
@@ -165,7 +166,17 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
   );
 }
 
-function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: NavGroup; currentView: string; onNavigate: (v: string) => void; isAdmin: boolean }) {
+function NavGroupSection({
+  group,
+  currentView,
+  onNavigate,
+  isAdmin,
+}: {
+  group: NavGroup;
+  currentView: string;
+  onNavigate: (v: string) => void;
+  isAdmin: boolean;
+}) {
   return (
     <div className="mb-2">
       <div className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-foreground-muted">
@@ -174,29 +185,29 @@ function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: N
       </div>
       <div className="space-y-0.5">
         {group.items
-          .filter(item => {
+          .filter((item) => {
             // Hide Assessments from non-admin users
             if (item.view === 'assessments' && !isAdmin) return false;
             return true;
           })
           .map((item) => {
-          const Icon = item.icon;
-          const isActive = currentView === item.view;
-          return (
-            <button
-              key={item.view}
-              type="button"
-              onClick={() => onNavigate(item.view)}
-              className={cn(
-                'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary-subtle text-primary'
-                  : 'text-foreground-secondary hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{item.label}</span>
-            </button>
+            const Icon = item.icon;
+            const isActive = currentView === item.view;
+            return (
+              <button
+                key={item.view}
+                type="button"
+                onClick={() => onNavigate(item.view)}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-foreground-secondary hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
+              </button>
             );
           })}
       </div>

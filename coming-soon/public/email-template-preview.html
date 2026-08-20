@@ -1,432 +1,454 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SimpleBeacon — Your License is Ready</title>
-    <link rel="canonical" href="https://simplebeacon.ai/email-template-preview.html">
-    <meta name="robots" content="noindex, nofollow">
-    <meta property="og:title" content="SimpleBeacon — Your License is Ready">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://simplebeacon.ai/email-template-preview.html">
-    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Your License is Ready">
+    <head>
+        <meta charset="UTF-8" />
+        <title>SimpleBeacon — Your License is Ready</title>
+        <link rel="canonical" href="https://simplebeacon.ai/email-template-preview.html" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content="SimpleBeacon — Your License is Ready" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/email-template-preview.html" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="SimpleBeacon — Your License is Ready" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f3f4f6;
-            color: #1f2937;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-        .email-wrapper {
-            max-width: 620px;
-            margin: 40px auto;
-            padding: 0 16px;
-        }
-        .email-card {
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-        }
-        
-        /* Header strip */
-        .header-strip {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
-            padding: 40px 32px 48px;
-            text-align: center;
-            position: relative;
-        }
-        .header-strip::after {
-            content: '';
-            position: absolute;
-            bottom: -24px;
-            left: 0;
-            right: 0;
-            height: 48px;
-            background: #ffffff;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-        }
-        .brand-mark {
-            width: 56px;
-            height: 56px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 28px;
-            backdrop-filter: blur(8px);
-        }
-        .header-strip h1 {
-            color: #ffffff;
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 6px;
-        }
-        .header-strip .subhead {
-            color: rgba(255,255,255,0.75);
-            font-size: 1rem;
-            font-weight: 400;
-        }
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
-        /* Body content */
-        .body-content {
-            padding: 48px 36px 36px;
-        }
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #f3f4f6;
+                color: #1f2937;
+                line-height: 1.6;
+                -webkit-font-smoothing: antialiased;
+            }
+            .email-wrapper {
+                max-width: 620px;
+                margin: 40px auto;
+                padding: 0 16px;
+            }
+            .email-card {
+                background: #ffffff;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow:
+                    0 4px 24px rgba(0, 0, 0, 0.08),
+                    0 1px 3px rgba(0, 0, 0, 0.04);
+            }
 
-        /* Receipt badge */
-        .receipt-badge {
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            border: 1px solid #a7f3d0;
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-            margin-bottom: 28px;
-        }
-        .receipt-badge .price {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #059669;
-            letter-spacing: -0.03em;
-            line-height: 1;
-        }
-        .receipt-badge .meta {
-            color: #6b7280;
-            font-size: 0.85rem;
-            margin-top: 8px;
-        }
-        .receipt-badge .invoice {
-            display: inline-block;
-            background: #ffffff;
-            border: 1px solid #d1fae5;
-            border-radius: 20px;
-            padding: 4px 14px;
-            font-size: 0.75rem;
-            color: #059669;
-            font-weight: 600;
-            margin-top: 10px;
-        }
+            /* Header strip */
+            .header-strip {
+                background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+                padding: 40px 32px 48px;
+                text-align: center;
+                position: relative;
+            }
+            .header-strip::after {
+                content: '';
+                position: absolute;
+                bottom: -24px;
+                left: 0;
+                right: 0;
+                height: 48px;
+                background: #ffffff;
+                border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            }
+            .brand-mark {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 20px;
+                font-size: 28px;
+                backdrop-filter: blur(8px);
+            }
+            .header-strip h1 {
+                color: #ffffff;
+                font-size: 1.6rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                margin-bottom: 6px;
+            }
+            .header-strip .subhead {
+                color: rgba(255, 255, 255, 0.75);
+                font-size: 1rem;
+                font-weight: 400;
+            }
 
-        /* Token card */
-        .token-card {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border: 1px solid #bfdbfe;
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 28px;
-            text-align: center;
-        }
-        .token-card .label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #3b82f6;
-            margin-bottom: 12px;
-        }
-        .token-card .code {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
-            font-size: 0.82rem;
-            color: #1e40af;
-            background: rgba(255,255,255,0.7);
-            padding: 14px 18px;
-            border-radius: 10px;
-            border: 1px dashed #93c5fd;
-            word-break: break-all;
-            line-height: 1.5;
-            backdrop-filter: blur(4px);
-        }
-        .token-card .expiry {
-            margin-top: 12px;
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-        .token-card .expiry strong { color: #1e40af; }
+            /* Body content */
+            .body-content {
+                padding: 48px 36px 36px;
+            }
 
-        /* CTA */
-        .cta-section {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: #ffffff;
-            text-decoration: none;
-            padding: 16px 36px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1rem;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
-        }
-        .cta-note {
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: #9ca3af;
-        }
+            /* Receipt badge */
+            .receipt-badge {
+                background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                border: 1px solid #a7f3d0;
+                border-radius: 16px;
+                padding: 24px;
+                text-align: center;
+                margin-bottom: 28px;
+            }
+            .receipt-badge .price {
+                font-size: 2.2rem;
+                font-weight: 800;
+                color: #059669;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            .receipt-badge .meta {
+                color: #6b7280;
+                font-size: 0.85rem;
+                margin-top: 8px;
+            }
+            .receipt-badge .invoice {
+                display: inline-block;
+                background: #ffffff;
+                border: 1px solid #d1fae5;
+                border-radius: 20px;
+                padding: 4px 14px;
+                font-size: 0.75rem;
+                color: #059669;
+                font-weight: 600;
+                margin-top: 10px;
+            }
 
-        /* Steps */
-        .steps-card {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .steps-card h3 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .step-list {
-            counter-reset: step;
-            list-style: none;
-        }
-        .step-list li {
-            position: relative;
-            padding-left: 36px;
-            padding-bottom: 16px;
-            margin-bottom: 4px;
-            font-size: 0.88rem;
-            color: #4b5563;
-        }
-        .step-list li:last-child { padding-bottom: 0; margin-bottom: 0; }
-        .step-list li::before {
-            counter-increment: step;
-            content: counter(step);
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 24px;
-            height: 24px;
-            background: #eff6ff;
-            border: 1.5px solid #bfdbfe;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: #2563eb;
-        }
+            /* Token card */
+            .token-card {
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border: 1px solid #bfdbfe;
+                border-radius: 16px;
+                padding: 28px;
+                margin-bottom: 28px;
+                text-align: center;
+            }
+            .token-card .label {
+                font-size: 0.7rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: #3b82f6;
+                margin-bottom: 12px;
+            }
+            .token-card .code {
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
+                font-size: 0.82rem;
+                color: #1e40af;
+                background: rgba(255, 255, 255, 0.7);
+                padding: 14px 18px;
+                border-radius: 10px;
+                border: 1px dashed #93c5fd;
+                word-break: break-all;
+                line-height: 1.5;
+                backdrop-filter: blur(4px);
+            }
+            .token-card .expiry {
+                margin-top: 12px;
+                font-size: 0.8rem;
+                color: #64748b;
+            }
+            .token-card .expiry strong {
+                color: #1e40af;
+            }
 
-        /* Features */
-        .features-card {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .features-card h3 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #166534;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .features-card ul {
-            list-style: none;
-            padding: 0;
-        }
-        .features-card li {
-            padding: 6px 0 6px 28px;
-            font-size: 0.88rem;
-            color: #374151;
-            position: relative;
-        }
-        .features-card li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 11px;
-            width: 16px;
-            height: 16px;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2310b981' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'/%3E%3C/svg%3E") center/12px no-repeat;
-            background-color: #d1fae5;
-            border-radius: 50%;
-        }
+            /* CTA */
+            .cta-section {
+                text-align: center;
+                margin-bottom: 32px;
+            }
+            .cta-button {
+                display: inline-block;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: #ffffff;
+                text-decoration: none;
+                padding: 16px 36px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 1rem;
+                box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+                transition:
+                    transform 0.15s,
+                    box-shadow 0.15s;
+            }
+            .cta-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+            }
+            .cta-note {
+                margin-top: 10px;
+                font-size: 0.8rem;
+                color: #9ca3af;
+            }
 
-        /* Privacy */
-        .privacy-card {
-            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            border: 1px solid #fde68a;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 28px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        .privacy-card .icon {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .privacy-card .text {
-            font-size: 0.85rem;
-            color: #92400e;
-            line-height: 1.5;
-        }
-        .privacy-card .text strong { color: #78350f; }
+            /* Steps */
+            .steps-card {
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 24px;
+            }
+            .steps-card h3 {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .step-list {
+                counter-reset: step;
+                list-style: none;
+            }
+            .step-list li {
+                position: relative;
+                padding-left: 36px;
+                padding-bottom: 16px;
+                margin-bottom: 4px;
+                font-size: 0.88rem;
+                color: #4b5563;
+            }
+            .step-list li:last-child {
+                padding-bottom: 0;
+                margin-bottom: 0;
+            }
+            .step-list li::before {
+                counter-increment: step;
+                content: counter(step);
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 24px;
+                height: 24px;
+                background: #eff6ff;
+                border: 1.5px solid #bfdbfe;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.7rem;
+                font-weight: 700;
+                color: #2563eb;
+            }
 
-        /* Support */
-        .support-line {
-            text-align: center;
-            font-size: 0.88rem;
-            color: #6b7280;
-            margin-bottom: 28px;
-        }
-        .support-line a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-        }
+            /* Features */
+            .features-card {
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 24px;
+            }
+            .features-card h3 {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: #166534;
+                margin-bottom: 14px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .features-card ul {
+                list-style: none;
+                padding: 0;
+            }
+            .features-card li {
+                padding: 6px 0 6px 28px;
+                font-size: 0.88rem;
+                color: #374151;
+                position: relative;
+            }
+            .features-card li::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 11px;
+                width: 16px;
+                height: 16px;
+                background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2310b981' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M5 13l4 4L19 7'/%3E%3C/svg%3E")
+                    center/12px no-repeat;
+                background-color: #d1fae5;
+                border-radius: 50%;
+            }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 28px 24px;
-            border-top: 1px solid #f3f4f6;
-            background: #fafafa;
-        }
-        .footer-brand {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
-        }
-        .footer-tagline {
-            font-size: 0.75rem;
-            color: #9ca3af;
-            margin-bottom: 14px;
-        }
-        .footer-links {
-            font-size: 0.8rem;
-        }
-        .footer-links a {
-            color: #6b7280;
-            text-decoration: none;
-            margin: 0 8px;
-        }
-        .footer-links a:hover { color: #2563eb; }
+            /* Privacy */
+            .privacy-card {
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                border: 1px solid #fde68a;
+                border-radius: 12px;
+                padding: 16px 20px;
+                margin-bottom: 28px;
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .privacy-card .icon {
+                font-size: 1.2rem;
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+            .privacy-card .text {
+                font-size: 0.85rem;
+                color: #92400e;
+                line-height: 1.5;
+            }
+            .privacy-card .text strong {
+                color: #78350f;
+            }
 
-        /* Preview banner */
-        .preview-banner {
-            background: linear-gradient(135deg, #1e3a5f, #2563eb);
-            color: #fff;
-            text-align: center;
-            padding: 10px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            border-radius: 20px 20px 0 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-wrapper">
-        <div class="email-card">
-            <div class="preview-banner">Preview — Executive Risk Certificate</div>
+            /* Support */
+            .support-line {
+                text-align: center;
+                font-size: 0.88rem;
+                color: #6b7280;
+                margin-bottom: 28px;
+            }
+            .support-line a {
+                color: #2563eb;
+                text-decoration: none;
+                font-weight: 500;
+            }
 
-            <!-- Header -->
-            <div class="header-strip">
-                <div class="brand-mark">🛡️</div>
-                <h1>Payment Confirmed</h1>
-                <p class="subhead">Executive Risk Certificate</p>
-            </div>
+            /* Footer */
+            .footer {
+                text-align: center;
+                padding: 28px 24px;
+                border-top: 1px solid #f3f4f6;
+                background: #fafafa;
+            }
+            .footer-brand {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 6px;
+            }
+            .footer-tagline {
+                font-size: 0.75rem;
+                color: #9ca3af;
+                margin-bottom: 14px;
+            }
+            .footer-links {
+                font-size: 0.8rem;
+            }
+            .footer-links a {
+                color: #6b7280;
+                text-decoration: none;
+                margin: 0 8px;
+            }
+            .footer-links a:hover {
+                color: #2563eb;
+            }
 
-            <div class="body-content">
-                <!-- Receipt -->
-                <div class="receipt-badge">
-                    <div class="price">$499.00</div>
-                    <div class="meta">Paid via Stripe &nbsp;&middot;&nbsp; June 18, 2026</div>
-                    <div class="invoice">Invoice SB-20260618-EXEC-001</div>
+            /* Preview banner */
+            .preview-banner {
+                background: linear-gradient(135deg, #1e3a5f, #2563eb);
+                color: #fff;
+                text-align: center;
+                padding: 10px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                border-radius: 20px 20px 0 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-wrapper">
+            <div class="email-card">
+                <div class="preview-banner">Preview — Executive Risk Certificate</div>
+
+                <!-- Header -->
+                <div class="header-strip">
+                    <div class="brand-mark">🛡️</div>
+                    <h1>Payment Confirmed</h1>
+                    <p class="subhead">Executive Risk Certificate</p>
                 </div>
 
-                <!-- Token -->
-                <div class="token-card">
-                    <div class="label">Your License Token</div>
-                    <div class="code">DEMO_JWT_TOKEN_PLACEHOLDER</div>
-                    <div class="expiry">Expires in <strong>90 days</strong> &middot; Valid until September 16, 2026</div>
-                </div>
-
-                <!-- CTA -->
-                <div class="cta-section">
-                    <a href="#" class="cta-button">Upload Report & Download Certificate</a>
-                    <div class="cta-note">Token is pre-filled when you use the link above</div>
-                </div>
-
-                <!-- Steps -->
-                <div class="steps-card">
-                    <h3><span style="font-size:1.1rem;">&#128200;</span> What happens next</h3>
-                    <ol class="step-list">
-                        <li>Click the button above to open your dashboard</li>
-                        <li>Paste your license token (already filled if you use the link)</li>
-                        <li>Upload your source code or select a local directory</li>
-                        <li>Run the Complete Scan with all 15 analyzers</li>
-                        <li>Download your Executive Risk Certificate + Audit Report ZIP</li>
-                    </ol>
-                </div>
-
-                <!-- Features -->
-                <div class="features-card">
-                    <h3><span style="font-size:1.1rem;">&#9989;</span> What's included</h3>
-                    <ul>
-                        <li>Complete Scan (15 analyzers)</li>
-                        <li>Codebase analysis + npm audit</li>
-                        <li>Compliance checklist + EU AI Act</li>
-                        <li>Executive audit report + certificate ZIP</li>
-                        <li>Re-attestation support</li>
-                    </ul>
-                </div>
-
-                <!-- Privacy -->
-                <div class="privacy-card">
-                    <div class="icon">&#128274;</div>
-                    <div class="text">
-                        <strong>Privacy-first:</strong> Your code never leaves your machine. All scanning runs locally in your browser or CLI — no cloud upload required.
+                <div class="body-content">
+                    <!-- Receipt -->
+                    <div class="receipt-badge">
+                        <div class="price">$499.00</div>
+                        <div class="meta">Paid via Stripe &nbsp;&middot;&nbsp; June 18, 2026</div>
+                        <div class="invoice">Invoice SB-20260618-EXEC-001</div>
                     </div>
+
+                    <!-- Token -->
+                    <div class="token-card">
+                        <div class="label">Your License Token</div>
+                        <div class="code">DEMO_JWT_TOKEN_PLACEHOLDER</div>
+                        <div class="expiry">
+                            Expires in <strong>90 days</strong> &middot; Valid until September 16, 2026
+                        </div>
+                    </div>
+
+                    <!-- CTA -->
+                    <div class="cta-section">
+                        <a href="#" class="cta-button">Upload Report & Download Certificate</a>
+                        <div class="cta-note">Token is pre-filled when you use the link above</div>
+                    </div>
+
+                    <!-- Steps -->
+                    <div class="steps-card">
+                        <h3><span style="font-size: 1.1rem">&#128200;</span> What happens next</h3>
+                        <ol class="step-list">
+                            <li>Click the button above to open your dashboard</li>
+                            <li>Paste your license token (already filled if you use the link)</li>
+                            <li>Upload your source code or select a local directory</li>
+                            <li>Run the Complete Scan with all 15 analyzers</li>
+                            <li>Download your Executive Risk Certificate + Audit Report ZIP</li>
+                        </ol>
+                    </div>
+
+                    <!-- Features -->
+                    <div class="features-card">
+                        <h3><span style="font-size: 1.1rem">&#9989;</span> What's included</h3>
+                        <ul>
+                            <li>Complete Scan (15 analyzers)</li>
+                            <li>Codebase analysis + npm audit</li>
+                            <li>Compliance checklist + EU AI Act</li>
+                            <li>Executive audit report + certificate ZIP</li>
+                            <li>Re-attestation support</li>
+                        </ul>
+                    </div>
+
+                    <!-- Privacy -->
+                    <div class="privacy-card">
+                        <div class="icon">&#128274;</div>
+                        <div class="text">
+                            <strong>Privacy-first:</strong> Your code never leaves your machine. All scanning runs
+                            locally in your browser or CLI — no cloud upload required.
+                        </div>
+                    </div>
+
+                    <!-- Support -->
+                    <p class="support-line">
+                        Questions? Reply to this email or contact
+                        <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a>
+                    </p>
                 </div>
 
-                <!-- Support -->
-                <p class="support-line">
-                    Questions? Reply to this email or contact <a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a>
-                </p>
-            </div>
-
-            <!-- Footer -->
-            <div class="footer">
-                <div class="footer-brand">SimpleBeacon</div>
-                <div class="footer-tagline">Zero-Dependency Static Analysis Engine</div>
-                <div class="footer-links">
-                    <a href="https://simplebeacon.ai">Website</a> &middot;
-                    <a href="https://github.com/tjp420/simplebeacon">GitHub</a> &middot;
-                    <a href="mailto:admin@simplebeacon.ai">Support</a>
+                <!-- Footer -->
+                <div class="footer">
+                    <div class="footer-brand">SimpleBeacon</div>
+                    <div class="footer-tagline">Zero-Dependency Static Analysis Engine</div>
+                    <div class="footer-links">
+                        <a href="https://simplebeacon.ai">Website</a> &middot;
+                        <a href="https://github.com/tjp420/simplebeacon">GitHub</a> &middot;
+                        <a href="mailto:admin@simplebeacon.ai">Support</a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>

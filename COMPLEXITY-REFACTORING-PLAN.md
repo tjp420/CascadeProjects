@@ -9,10 +9,10 @@
 
 ## Finding Types Breakdown
 
-| Type | Description | Strategy |
-|------|-------------|----------|
+| Type            | Description                          | Strategy                       |
+| --------------- | ------------------------------------ | ------------------------------ |
 | `long-function` | Functions exceeding length threshold | Extract helpers, early returns |
-| `deep-nesting` | Nested `if`/`for` beyond 3-4 levels | Guard clauses, flatten loops |
+| `deep-nesting`  | Nested `if`/`for` beyond 3-4 levels  | Guard clauses, flatten loops   |
 
 ---
 
@@ -21,6 +21,7 @@
 Focus on files with the **highest density of findings** that are also **most actively maintained**.
 
 ### Tier A: Server Core (Start Here)
+
 These modules have the most findings AND are central to the application:
 
 1. `ai-platform/server/index.cjs` — main server entry, ~15 findings
@@ -29,17 +30,20 @@ These modules have the most findings AND are central to the application:
 4. `ai-platform/server/lib/audit-remediation-recipes.cjs` — remediation engine, ~25+ findings
 
 ### Tier B: Bootstrap & Config
+
 5. `ai-platform/server/bootstrap/phase2-integration.cjs`
 6. `ai-platform/server/bootstrap/public-api-routes.cjs`
 7. `ai-platform/server/config/database.cjs`
 8. `ai-platform/server/config/redis.cjs`
 
 ### Tier C: Intelligence Package
+
 9. `ai-platform/packages/simplebeacon-intelligence/src/structural-intent-scanner.js`
 10. `ai-platform/packages/simplebeacon-intelligence/src/tree-sitter-queries.js`
 11. `ai-platform/packages/simplebeacon-intelligence/src/vector-cache.js`
 
 ### Tier D: Supporting Libs
+
 12. `ai-platform/server/lib/ai-analyst.cjs`
 13. `ai-platform/server/lib/assessment-retention.cjs`
 14. `ai-platform/server/lib/audit-booking-route.cjs`
@@ -50,7 +54,9 @@ These modules have the most findings AND are central to the application:
 ## Phase 2: Refactoring Patterns
 
 ### Pattern A: Extract Helper Functions
+
 **Before:**
+
 ```js
 function bigFunction(data) {
   // 50 lines of validation
@@ -60,10 +66,17 @@ function bigFunction(data) {
 ```
 
 **After:**
+
 ```js
-function validateInput(data) { /* ... */ }
-function transformData(data) { /* ... */ }
-function formatOutput(data) { /* ... */ }
+function validateInput(data) {
+  /* ... */
+}
+function transformData(data) {
+  /* ... */
+}
+function formatOutput(data) {
+  /* ... */
+}
 
 function bigFunction(data) {
   validateInput(data);
@@ -73,7 +86,9 @@ function bigFunction(data) {
 ```
 
 ### Pattern B: Replace Deep Nesting with Guard Clauses
+
 **Before:**
+
 ```js
 function process(data) {
   if (data) {
@@ -89,6 +104,7 @@ function process(data) {
 ```
 
 **After:**
+
 ```js
 function process(data) {
   if (!data?.items?.length) return;
@@ -100,9 +116,11 @@ function process(data) {
 ```
 
 ### Pattern C: Extract Configuration/Constants
+
 Long functions often contain inline arrays/objects. Move them to module-level constants.
 
 ### Pattern D: Strategy Pattern for Long Condition Chains
+
 Replace long `if/else if` chains with lookup maps or strategy objects.
 
 ---
@@ -129,6 +147,7 @@ Create a CI gate to prevent regression:
 ```
 
 The gate should fail if:
+
 - Any new function exceeds 60 lines
 - Any new function has nesting depth > 3
 
@@ -136,13 +155,13 @@ The gate should fail if:
 
 ## Estimation
 
-| Phase | Files | Hours (est.) |
-|-------|-------|--------------|
-| Tier A | 4 | 4-6 |
-| Tier B | 4 | 3-4 |
-| Tier C | 4 | 3-4 |
-| Tier D | 12+ | 6-8 |
-| **Total** | **~30** | **16-22** |
+| Phase     | Files   | Hours (est.) |
+| --------- | ------- | ------------ |
+| Tier A    | 4       | 4-6          |
+| Tier B    | 4       | 3-4          |
+| Tier C    | 4       | 3-4          |
+| Tier D    | 12+     | 6-8          |
+| **Total** | **~30** | **16-22**    |
 
 ---
 

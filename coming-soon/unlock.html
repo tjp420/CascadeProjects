@@ -1,90 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>Token Authentication Required</title>
-<style>
-body { background:#0a0e17; color:#e2e8f0; font-family:'Inter',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
-.card { background:rgba(20,25,40,0.9); border:1px solid rgba(99,102,241,0.3); border-radius:16px; padding:40px; max-width:420px; text-align:center; }
-h1 { margin:0 0 12px; font-size:1.4rem; }
-p { color:#94a3b8; margin:0 0 24px; font-size:0.9rem; }
-input { background:#0f172a; border:1px solid #334155; border-radius:8px; padding:12px; font-family:monospace; font-size:0.85rem; color:#e2e8f0; width:100%; box-sizing:border-box; margin-bottom:12px; }
-input:focus { outline:none; border-color:#6366f1; }
-.btn { display:inline-block; padding:12px 28px; border:none; border-radius:10px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; text-decoration:none; }
-.btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(99,102,241,0.4); }
-.btn:disabled { opacity:0.5; cursor:not-allowed; }
-.status { margin-top:16px; font-size:0.85rem; }
-.status.ok { color:#34d399; }
-.status.err { color:#f87171; }
-</style>
-</head>
-<body>
-<div class="card">
-<h1>� Token Authentication</h1>
-<p>Enter your license token to unlock the dashboard. Tokens must be obtained from a valid purchase or approved free tier request.</p>
-<input type="text" id="tokenInput" placeholder="Paste your license token here…" autocomplete="off">
-<button class="btn" id="verifyBtn">Verify Token</button>
-<p class="status" id="status"></p>
-</div>
-<script>
-(function(){
-  const input = document.getElementById('tokenInput');
-  const btn = document.getElementById('verifyBtn');
-  const status = document.getElementById('status');
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+        <title>Token Authentication Required</title>
+        <style>
+            body {
+                background: #0a0e17;
+                color: #e2e8f0;
+                font-family: 'Inter', system-ui, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .card {
+                background: rgba(20, 25, 40, 0.9);
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                border-radius: 16px;
+                padding: 40px;
+                max-width: 420px;
+                text-align: center;
+            }
+            h1 {
+                margin: 0 0 12px;
+                font-size: 1.4rem;
+            }
+            p {
+                color: #94a3b8;
+                margin: 0 0 24px;
+                font-size: 0.9rem;
+            }
+            input {
+                background: #0f172a;
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 12px;
+                font-family: monospace;
+                font-size: 0.85rem;
+                color: #e2e8f0;
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 12px;
+            }
+            input:focus {
+                outline: none;
+                border-color: #6366f1;
+            }
+            .btn {
+                display: inline-block;
+                padding: 12px 28px;
+                border: none;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                color: #fff;
+                font-size: 0.95rem;
+                font-weight: 600;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            }
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .status {
+                margin-top: 16px;
+                font-size: 0.85rem;
+            }
+            .status.ok {
+                color: #34d399;
+            }
+            .status.err {
+                color: #f87171;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>� Token Authentication</h1>
+            <p>
+                Enter your license token to unlock the dashboard. Tokens must be obtained from a valid purchase or
+                approved free tier request.
+            </p>
+            <input type="text" id="tokenInput" placeholder="Paste your license token here…" autocomplete="off" />
+            <button class="btn" id="verifyBtn">Verify Token</button>
+            <p class="status" id="status"></p>
+        </div>
+        <script>
+            (function () {
+                const input = document.getElementById('tokenInput');
+                const btn = document.getElementById('verifyBtn');
+                const status = document.getElementById('status');
 
-  function setCookie(name, value, maxAge) {
-    const secure = location.protocol === 'https:' ? ';Secure' : '';
-    document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax' + secure;
-  }
+                function setCookie(name, value, maxAge) {
+                    const secure = location.protocol === 'https:' ? ';Secure' : '';
+                    document.cookie =
+                        name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax' + secure;
+                }
 
-  btn.addEventListener('click', async function(){
-    const token = input.value.trim();
-    if (!token || token.split('.').length !== 3) {
-      status.textContent = '❌ Invalid token format. Expected a JWT with 3 parts.';
-      status.className = 'status err';
-      return;
-    }
-    btn.disabled = true;
-    status.textContent = '⏳ Verifying…';
-    status.className = 'status';
+                btn.addEventListener('click', async function () {
+                    const token = input.value.trim();
+                    if (!token || token.split('.').length !== 3) {
+                        status.textContent = '❌ Invalid token format. Expected a JWT with 3 parts.';
+                        status.className = 'status err';
+                        return;
+                    }
+                    btn.disabled = true;
+                    status.textContent = '⏳ Verifying…';
+                    status.className = 'status';
 
-    try {
-      const res = await fetch('/api/auth/token-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      const data = await res.json();
-      if (data.valid) {
-        const userJson = JSON.stringify({
-          email: data.email || 'user@simplebeacon.ai',
-          plan: data.tier || 'community',
-          tokenSession: true
-        });
-        localStorage.setItem('cascadeAuthToken', token);
-        localStorage.setItem('cascadeAuthUser', userJson);
-        setCookie('cascadeAuthToken', token, 60 * 60 * 24 * 30);
-        setCookie('cascadeAuthUser', userJson, 60 * 60 * 24 * 30);
-        status.textContent = '✅ Token verified. Redirecting…';
-        status.className = 'status ok';
-        setTimeout(function(){ window.location.href = 'audit.html'; }, 800);
-      } else {
-        status.textContent = '❌ ' + (data.error || 'Invalid or expired token.');
-        status.className = 'status err';
-        btn.disabled = false;
-      }
-    } catch (e) {
-      status.textContent = '❌ Network error. Server may be offline.';
-      status.className = 'status err';
-      btn.disabled = false;
-    }
-  });
+                    try {
+                        const res = await fetch('/api/auth/token-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token })
+                        });
+                        const data = await res.json();
+                        if (data.valid) {
+                            const userJson = JSON.stringify({
+                                email: data.email || 'user@simplebeacon.ai',
+                                plan: data.tier || 'community',
+                                tokenSession: true
+                            });
+                            localStorage.setItem('cascadeAuthToken', token);
+                            localStorage.setItem('cascadeAuthUser', userJson);
+                            setCookie('cascadeAuthToken', token, 60 * 60 * 24 * 30);
+                            setCookie('cascadeAuthUser', userJson, 60 * 60 * 24 * 30);
+                            status.textContent = '✅ Token verified. Redirecting…';
+                            status.className = 'status ok';
+                            setTimeout(function () {
+                                window.location.href = 'audit.html';
+                            }, 800);
+                        } else {
+                            status.textContent = '❌ ' + (data.error || 'Invalid or expired token.');
+                            status.className = 'status err';
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        status.textContent = '❌ Network error. Server may be offline.';
+                        status.className = 'status err';
+                        btn.disabled = false;
+                    }
+                });
 
-  input.addEventListener('keypress', function(e){
-    if (e.key === 'Enter') btn.click();
-  });
-})();
-</script>
-</body>
+                input.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') btn.click();
+                });
+            })();
+        </script>
+    </body>
 </html>

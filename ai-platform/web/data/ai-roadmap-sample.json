@@ -5,19 +5,11 @@
     "projectName": "simplebeacon-ai-roadmap"
   },
   "developmentPhases": [
-    {"phase": "Phase 1 — Sprint detection", "status": "complete"}
+    { "phase": "Phase 1 — Sprint detection", "status": "complete" }
   ],
-  "predictions": [
-    {"metric": "completion", "value": 100}
-  ],
-  "risks": [
-    {"factor": "scope creep", "level": "low"}
-  ],
-  "actionPlan": [
-    {"step": "Verify all sprints complete", "priority": "high"}
-  ],
-  "performanceMetrics": [
-    {"sprintsComplete": 4, "healthScore": 100}
-  ],
-  "recommendations": {"nextPhase": "production-deploy"}
+  "predictions": [{ "metric": "completion", "value": 100 }],
+  "risks": [{ "factor": "scope creep", "level": "low" }],
+  "actionPlan": [{ "step": "Verify all sprints complete", "priority": "high" }],
+  "performanceMetrics": [{ "sprintsComplete": 4, "healthScore": 100 }],
+  "recommendations": { "nextPhase": "production-deploy" }
 }

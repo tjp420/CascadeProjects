@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 90: ZK Conservation Claim Validator.
@@ -19,8 +19,8 @@
  * @module hsm-adapter/zk-conservation-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkConservationClaimValidator {
   /**
@@ -48,64 +48,127 @@ class ZkConservationClaimValidator {
   verifyConservationClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('WILDLIFECLAIM_HUB_MISSING', 'wildlife conservation tracking gating hub is required');
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_HUB_MISSING",
+        "wildlife conservation tracking gating hub is required",
+      );
     }
-    if (this.policy.requireBiodiversityOversightCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireBiodiversityOversightCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.biodiversityOversightCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.biodiversityOversightCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('WILDLIFECLAIM_COMMITTEE_UNATTESTED', 'biodiversity oversight committee attestation invalid');
+          throw new HsmAdapterError(
+            "WILDLIFECLAIM_COMMITTEE_UNATTESTED",
+            "biodiversity oversight committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('WILDLIFECLAIM_COMMITTEE_UNATTESTED', 'biodiversity oversight committee attestation invalid');
+        throw new HsmAdapterError(
+          "WILDLIFECLAIM_COMMITTEE_UNATTESTED",
+          "biodiversity oversight committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('WILDLIFECLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('WILDLIFECLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkConservationRangeProofHash || typeof request.zkConservationRangeProofHash !== 'string') {
+    if (
+      !request.zkConservationRangeProofHash ||
+      typeof request.zkConservationRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_ZK_PROOF_MISSING', 'zero-knowledge conservation range proof hash is required');
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge conservation range proof hash is required",
+      );
     }
-    if (!request.linkableRingSignature || typeof request.linkableRingSignature !== 'string') {
+    if (
+      !request.linkableRingSignature ||
+      typeof request.linkableRingSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_LINKABLE_RING_SIG_MISSING', 'linkable ring signature is required');
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_LINKABLE_RING_SIG_MISSING",
+        "linkable ring signature is required",
+      );
     }
-    if (!request.linkabilityTag || typeof request.linkabilityTag !== 'string') {
+    if (!request.linkabilityTag || typeof request.linkabilityTag !== "string") {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_LINKABILITY_TAG_MISSING', 'linkability tag is required');
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_LINKABILITY_TAG_MISSING",
+        "linkability tag is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.monitoringWindowSeconds === 'number' && request.monitoringWindowSeconds > (this.policy.maxMonitoringWindowSeconds || 2592000)) {
+    if (
+      typeof request.monitoringWindowSeconds === "number" &&
+      request.monitoringWindowSeconds >
+        (this.policy.maxMonitoringWindowSeconds || 2592000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_MONITORING_WINDOW_OUT_OF_BOUNDS', `monitoring window seconds ${request.monitoringWindowSeconds} exceeds maximum ${this.policy.maxMonitoringWindowSeconds}`);
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_MONITORING_WINDOW_OUT_OF_BOUNDS",
+        `monitoring window seconds ${request.monitoringWindowSeconds} exceeds maximum ${this.policy.maxMonitoringWindowSeconds}`,
+      );
     }
     if (this._seenLinkabilityTags.has(request.linkabilityTag)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_DOUBLE_REPORT_DETECTED', `linkability tag ${request.linkabilityTag} already seen — double-reporting detected`);
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_DOUBLE_REPORT_DETECTED",
+        `linkability tag ${request.linkabilityTag} already seen — double-reporting detected`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('WILDLIFECLAIM_DUPLICATE', `conservation claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "WILDLIFECLAIM_DUPLICATE",
+        `conservation claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedHabitatBoundaryCommitment: request.blindedHabitatBoundaryCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedHabitatBoundaryCommitment:
+        request.blindedHabitatBoundaryCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkConservationRangeProofHash: request.zkConservationRangeProofHash,
-      biodiversityOversightCommitteeAttestationHash: request.biodiversityOversightCommitteeAttestationHash || 'unspecified',
+      biodiversityOversightCommitteeAttestationHash:
+        request.biodiversityOversightCommitteeAttestationHash || "unspecified",
       linkableRingSignature: request.linkableRingSignature,
       linkabilityTag: request.linkabilityTag,
       verifiedAt: now,
@@ -114,7 +177,7 @@ class ZkConservationClaimValidator {
     this._seenLinkabilityTags.add(request.linkabilityTag);
     this._hub.markConservationClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_CONSERVATION_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_CONSERVATION_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -151,7 +214,10 @@ class ZkConservationClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderConservationClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderConservationClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -159,10 +225,19 @@ class ZkConservationClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('WILDLIFECLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "WILDLIFECLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireBiodiversityOversightCommitteeAttestation && !request.biodiversityOversightCommitteeAttestation) {
-    throw new HsmAdapterError('WILDLIFECLAIM_ATTESTATION_MISSING', 'biodiversity oversight committee attestation is required');
+  if (
+    policy.requireBiodiversityOversightCommitteeAttestation &&
+    !request.biodiversityOversightCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "WILDLIFECLAIM_ATTESTATION_MISSING",
+      "biodiversity oversight committee attestation is required",
+    );
   }
 }
 

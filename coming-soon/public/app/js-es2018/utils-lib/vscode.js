@@ -23,8 +23,7 @@ export function getVSCodeApi() {
     if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
         try {
             return window.acquireVsCodeApi();
-        }
-        catch (_a) {
+        } catch (_a) {
             return null;
         }
     }

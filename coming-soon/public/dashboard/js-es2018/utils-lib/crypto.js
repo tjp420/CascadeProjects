@@ -9,10 +9,8 @@ export function getNonce() {
     const arr = new Uint8Array(16);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
         crypto.getRandomValues(arr);
-    }
-    else {
-        for (let i = 0; i < arr.length; i++)
-            arr[i] = Math.floor(Math.random() * 256);
+    } else {
+        for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
     }
     return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -29,12 +27,9 @@ export function randomId(length = 8) {
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
         const arr = new Uint32Array(len);
         crypto.getRandomValues(arr);
-        for (let i = 0; i < len; i++)
-            id += chars[arr[i] % max];
-    }
-    else {
-        for (let i = 0; i < len; i++)
-            id += chars[Math.floor(Math.random() * max)];
+        for (let i = 0; i < len; i++) id += chars[arr[i] % max];
+    } else {
+        for (let i = 0; i < len; i++) id += chars[Math.floor(Math.random() * max)];
     }
     return id;
 }

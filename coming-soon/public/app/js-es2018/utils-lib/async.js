@@ -38,20 +38,17 @@ export async function retry(fn, retries = 3, delayMs = 200, backoff = 2, maxDela
     for (let attempt = 0; attempt <= maxAttempts; attempt++) {
         try {
             return await fn();
-        }
-        catch (err) {
+        } catch (err) {
             lastErr = err;
             if (attempt < maxAttempts) {
                 const retryable = typeof shouldRetry === 'function' ? shouldRetry(err) : shouldRetry !== false;
                 if (retryable) {
                     await sleep(wait);
                     wait = Math.min(wait * mult, cap);
-                }
-                else {
+                } else {
                     break;
                 }
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -65,8 +62,7 @@ export async function retry(fn, retries = 3, delayMs = 200, backoff = 2, maxDela
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}}
  */
 export function debounce(fn, wait = 300) {
-    if (typeof fn !== 'function')
-        throw new TypeError('debounce requires a function');
+    if (typeof fn !== 'function') throw new TypeError('debounce requires a function');
     const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
     let timeout = null;
     let lastArgs = null;
@@ -85,7 +81,10 @@ export function debounce(fn, wait = 300) {
             }
         }, delay);
     };
-    debounced.cancel = () => { clearTimeout(timeout); timeout = lastArgs = lastThis = null; };
+    debounced.cancel = () => {
+        clearTimeout(timeout);
+        timeout = lastArgs = lastThis = null;
+    };
     debounced.flush = () => {
         if (timeout !== null) {
             clearTimeout(timeout);
@@ -109,8 +108,7 @@ export function debounce(fn, wait = 300) {
  * @returns {((...args: any[]) => Promise<any>) & {cancel:()=>void,flush:()=>Promise<any>,pending:()=>boolean}}
  */
 export function debounceAsync(fn, wait = 300) {
-    if (typeof fn !== 'function')
-        throw new TypeError('debounceAsync requires a function');
+    if (typeof fn !== 'function') throw new TypeError('debounceAsync requires a function');
     const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
     let timeout = null;
     let lastArgs = null;
@@ -121,8 +119,7 @@ export function debounceAsync(fn, wait = 300) {
     const debounced = function (...args) {
         lastArgs = args;
         lastThis = this;
-        if (timeout !== null)
-            clearTimeout(timeout);
+        if (timeout !== null) clearTimeout(timeout);
         if (!pendingPromise) {
             pendingPromise = new Promise((resolve, reject) => {
                 resolvePending = resolve;
@@ -134,16 +131,13 @@ export function debounceAsync(fn, wait = 300) {
             const argsToUse = lastArgs;
             const thisToUse = lastThis;
             lastArgs = lastThis = null;
-            if (!argsToUse)
-                return;
+            if (!argsToUse) return;
             try {
                 const result = await fn.apply(thisToUse, argsToUse);
                 resolvePending === null || resolvePending === void 0 ? void 0 : resolvePending(result);
-            }
-            catch (err) {
+            } catch (err) {
                 rejectPending === null || rejectPending === void 0 ? void 0 : rejectPending(err);
-            }
-            finally {
+            } finally {
                 pendingPromise = null;
                 resolvePending = null;
                 rejectPending = null;
@@ -152,8 +146,7 @@ export function debounceAsync(fn, wait = 300) {
         return pendingPromise;
     };
     debounced.cancel = () => {
-        if (timeout !== null)
-            clearTimeout(timeout);
+        if (timeout !== null) clearTimeout(timeout);
         timeout = lastArgs = lastThis = null;
         if (rejectPending) {
             rejectPending(new Error('Debounced call was cancelled'));
@@ -173,12 +166,10 @@ export function debounceAsync(fn, wait = 300) {
                 const result = await fn.apply(thisToUse, argsToUse);
                 resolvePending === null || resolvePending === void 0 ? void 0 : resolvePending(result);
                 return result;
-            }
-            catch (err) {
+            } catch (err) {
                 rejectPending === null || rejectPending === void 0 ? void 0 : rejectPending(err);
                 throw err;
-            }
-            finally {
+            } finally {
                 pendingPromise = null;
                 resolvePending = null;
                 rejectPending = null;
@@ -197,8 +188,7 @@ export function debounceAsync(fn, wait = 300) {
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}} Debounced function with `.cancel()` method.
  */
 export function debounceLeading(fn, wait = 300) {
-    if (typeof fn !== 'function')
-        throw new TypeError('debounceLeading requires a function');
+    if (typeof fn !== 'function') throw new TypeError('debounceLeading requires a function');
     const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
     let timeout = null;
     let lastArgs = null;
@@ -208,11 +198,13 @@ export function debounceLeading(fn, wait = 300) {
         lastThis = this;
         if (timeout === null) {
             fn.apply(this, args);
-        }
-        else {
+        } else {
             clearTimeout(timeout);
         }
-        timeout = setTimeout(() => { timeout = null; lastArgs = lastThis = null; }, delay);
+        timeout = setTimeout(() => {
+            timeout = null;
+            lastArgs = lastThis = null;
+        }, delay);
     };
     debounced.cancel = () => {
         if (timeout !== null) {
@@ -228,8 +220,7 @@ export function debounceLeading(fn, wait = 300) {
             const argsToUse = lastArgs;
             const self = lastThis;
             lastArgs = lastThis = null;
-            if (argsToUse)
-                fn.apply(self, argsToUse);
+            if (argsToUse) fn.apply(self, argsToUse);
         }
     };
     debounced.pending = () => timeout !== null;
@@ -242,8 +233,7 @@ export function debounceLeading(fn, wait = 300) {
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}}
  */
 export function throttle(fn, limit = 300) {
-    if (typeof fn !== 'function')
-        throw new TypeError('throttle requires a function');
+    if (typeof fn !== 'function') throw new TypeError('throttle requires a function');
     const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
     let inThrottle = false;
     let pendingArgs = null;
@@ -253,13 +243,11 @@ export function throttle(fn, limit = 300) {
         const args2 = pendingArgs;
         const self = pendingThis;
         pendingArgs = pendingThis = null;
-        if (!args2)
-            return;
+        if (!args2) return;
         inThrottle = true;
         try {
             fn.apply(self, args2);
-        }
-        catch (err) {
+        } catch (err) {
             inThrottle = false;
             if (timer) {
                 clearTimeout(timer);
@@ -280,8 +268,7 @@ export function throttle(fn, limit = 300) {
                     throttled.apply(pendingThis, pendingArgs);
                 }
             }, cooldown);
-        }
-        else {
+        } else {
             pendingArgs = args;
             pendingThis = this;
         }
@@ -306,8 +293,7 @@ export function throttle(fn, limit = 300) {
             pendingArgs = pendingThis = null;
             try {
                 fn.apply(self, args2);
-            }
-            catch (err) {
+            } catch (err) {
                 inThrottle = false;
                 if (timer) {
                     clearTimeout(timer);
@@ -315,7 +301,10 @@ export function throttle(fn, limit = 300) {
                 }
                 throw err;
             }
-            timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+            }, cooldown);
         }
     };
     throttled.pending = () => pendingArgs !== null;
@@ -328,8 +317,7 @@ export function throttle(fn, limit = 300) {
  * @returns {((...args: any[]) => Promise<any>) & {cancel:()=>void,flush:()=>Promise<any>,pending:()=>boolean}} Throttled function.
  */
 export function throttleAsync(fn, limit = 300) {
-    if (typeof fn !== 'function')
-        throw new TypeError('throttleAsync requires a function');
+    if (typeof fn !== 'function') throw new TypeError('throttleAsync requires a function');
     const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
     let inThrottle = false;
     let pendingArgs = null;
@@ -340,8 +328,7 @@ export function throttleAsync(fn, limit = 300) {
             inThrottle = true;
             try {
                 await fn.apply(this, args);
-            }
-            catch (err) {
+            } catch (err) {
                 inThrottle = false;
                 if (timer) {
                     clearTimeout(timer);
@@ -359,8 +346,7 @@ export function throttleAsync(fn, limit = 300) {
                     throttled.apply(self, args2);
                 }
             }, cooldown);
-        }
-        else {
+        } else {
             pendingArgs = args;
             pendingThis = this;
         }
@@ -385,8 +371,7 @@ export function throttleAsync(fn, limit = 300) {
             pendingArgs = pendingThis = null;
             try {
                 await fn.apply(self, args2);
-            }
-            catch (err) {
+            } catch (err) {
                 inThrottle = false;
                 if (timer) {
                     clearTimeout(timer);
@@ -394,7 +379,10 @@ export function throttleAsync(fn, limit = 300) {
                 }
                 throw err;
             }
-            timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+            }, cooldown);
         }
     };
     throttled.pending = () => pendingArgs !== null;
@@ -406,23 +394,20 @@ export function throttleAsync(fn, limit = 300) {
  * @returns {(...args: any[]) => any}
  */
 export function once(fn) {
-    if (typeof fn !== 'function')
-        throw new TypeError('once requires a function');
+    if (typeof fn !== 'function') throw new TypeError('once requires a function');
     let called = false;
     let result;
     let error;
     return function (...args) {
         if (called) {
-            if (error)
-                throw error;
+            if (error) throw error;
             return result;
         }
         called = true;
         try {
             result = fn.apply(this, args);
             return result;
-        }
-        catch (err) {
+        } catch (err) {
             error = err;
             throw err;
         }
@@ -435,16 +420,14 @@ export function once(fn) {
  * @returns {((...args: any[]) => any) & {clear:()=>void}}
  */
 export function memoize(fn, maxSize = 1000) {
-    if (typeof fn !== 'function')
-        throw new TypeError('memoize requires a function');
+    if (typeof fn !== 'function') throw new TypeError('memoize requires a function');
     const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 1000;
     const cache = new Map();
     const memoized = function (...args) {
         let key;
         try {
             key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-        }
-        catch (_a) {
+        } catch (_a) {
             return fn.apply(this, args);
         }
         if (cache.has(key)) {
@@ -456,8 +439,7 @@ export function memoize(fn, maxSize = 1000) {
         const result = fn.apply(this, args);
         if (cache.size >= limit) {
             const oldest = cache.keys().next().value;
-            if (oldest)
-                cache.delete(oldest);
+            if (oldest) cache.delete(oldest);
         }
         cache.set(key, result);
         return result;
@@ -468,8 +450,7 @@ export function memoize(fn, maxSize = 1000) {
         try {
             const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
             return cache.has(key);
-        }
-        catch (_a) {
+        } catch (_a) {
             return false;
         }
     };
@@ -483,16 +464,14 @@ export function memoize(fn, maxSize = 1000) {
  * @returns {((...args: any[]) => Promise<any>) & {clear: ()=>void; size: number; has: (...args: any[])=>boolean}} Memoized async function.
  */
 export function memoizeAsync(fn, maxSize = 100) {
-    if (typeof fn !== 'function')
-        throw new TypeError('memoizeAsync requires a function');
+    if (typeof fn !== 'function') throw new TypeError('memoizeAsync requires a function');
     const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 100;
     const cache = new Map();
     const memoized = async function (...args) {
         let key;
         try {
             key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-        }
-        catch (_a) {
+        } catch (_a) {
             return await fn.apply(this, args);
         }
         if (cache.has(key)) {
@@ -505,8 +484,7 @@ export function memoizeAsync(fn, maxSize = 100) {
         cache.set(key, result);
         if (cache.size > limit) {
             const oldest = cache.keys().next().value;
-            if (oldest)
-                cache.delete(oldest);
+            if (oldest) cache.delete(oldest);
         }
         return result;
     };
@@ -516,8 +494,7 @@ export function memoizeAsync(fn, maxSize = 100) {
         try {
             const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
             return cache.has(key);
-        }
-        catch (_a) {
+        } catch (_a) {
             return false;
         }
     };
@@ -543,8 +520,7 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
                 const value = await promise;
                 clearTimeout(timer);
                 resolve(value);
-            }
-            catch (err) {
+            } catch (err) {
                 clearTimeout(timer);
                 reject(err);
             }
@@ -560,14 +536,12 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
  * @returns {Promise<T | undefined>} The truthy result, or `undefined` on timeout.
  */
 export async function poll(fn, intervalMs = 500, timeoutMs = 10000) {
-    if (typeof fn !== 'function')
-        return undefined;
+    if (typeof fn !== 'function') return undefined;
     const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 500;
     const deadline = Date.now() + (Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10000);
     while (Date.now() < deadline) {
         const result = await fn();
-        if (result)
-            return result;
+        if (result) return result;
         await sleep(interval);
     }
     return undefined;
@@ -580,15 +554,18 @@ export async function poll(fn, intervalMs = 500, timeoutMs = 10000) {
  * @param {string} [message='Timeout waiting for condition'] Error message on timeout.
  * @returns {Promise<void>}
  */
-export async function waitForAsync(predicate, intervalMs = 100, timeoutMs = 5000, message = 'Timeout waiting for condition') {
-    if (typeof predicate !== 'function')
-        throw new TypeError('waitForAsync expects a predicate function');
+export async function waitForAsync(
+    predicate,
+    intervalMs = 100,
+    timeoutMs = 5000,
+    message = 'Timeout waiting for condition'
+) {
+    if (typeof predicate !== 'function') throw new TypeError('waitForAsync expects a predicate function');
     const start = Date.now();
     const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 100;
     const limit = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 5000;
     while (Date.now() - start < limit) {
-        if (await predicate())
-            return;
+        if (await predicate()) return;
         await sleep(interval);
     }
     throw new Error(message);
@@ -602,15 +579,12 @@ export async function waitForAsync(predicate, intervalMs = 100, timeoutMs = 5000
  * @returns {Promise<R[]>}
  */
 export async function pMap(arr, fn, concurrency = 5) {
-    if (!Array.isArray(arr))
-        return [];
-    if (typeof fn !== 'function')
-        return [];
+    if (!Array.isArray(arr)) return [];
+    if (typeof fn !== 'function') return [];
     const limit = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : 5;
     if (limit === 1) {
         const results = [];
-        for (let i = 0; i < arr.length; i++)
-            results.push(await fn(arr[i], i));
+        for (let i = 0; i < arr.length; i++) results.push(await fn(arr[i], i));
         return results;
     }
     const results = new Array(arr.length);
@@ -634,8 +608,7 @@ export async function pMap(arr, fn, concurrency = 5) {
 export function tryFn(fn, ...args) {
     try {
         return { ok: true, value: fn(...args) };
-    }
-    catch (err) {
+    } catch (err) {
         return { ok: false, error: err instanceof Error ? err : new Error(String(err)) };
     }
 }
@@ -645,5 +618,5 @@ export function tryFn(fn, ...args) {
  * @returns {(...args: any[]) => any}
  */
 export function seq(...fns) {
-    return (value) => fns.reduce((v, fn) => fn(v), value);
+    return value => fns.reduce((v, fn) => fn(v), value);
 }

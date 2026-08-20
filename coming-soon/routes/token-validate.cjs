@@ -64,9 +64,11 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
             if (!customer || customer.subscription_status !== 'active') {
                 return res.json({ valid: false, error: 'No active subscription found' });
             }
-            const activeSub = dbInstance.prepare(
-                "SELECT * FROM paid_subscriptions WHERE customer_email = ? AND status = 'active' ORDER BY current_period_end DESC LIMIT 1"
-            ).get(registryEmail);
+            const activeSub = dbInstance
+                .prepare(
+                    "SELECT * FROM paid_subscriptions WHERE customer_email = ? AND status = 'active' ORDER BY current_period_end DESC LIMIT 1"
+                )
+                .get(registryEmail);
             if (!activeSub) {
                 return res.json({ valid: false, error: 'No active paid subscription found' });
             }
@@ -74,7 +76,10 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
             // Verify password against user account
             const user = dbInstance.prepare('SELECT * FROM users WHERE email = ?').get(registryEmail);
             if (!user || !user.password_hash || !user.salt) {
-                return res.json({ valid: false, error: 'Account password not set. Please set a password on your profile page.' });
+                return res.json({
+                    valid: false,
+                    error: 'Account password not set. Please set a password on your profile page.'
+                });
             }
             const crypto = require('crypto');
             const inputHash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
@@ -85,7 +90,10 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
             // Free tokens: verify email validation code
             const codeRecord = getValidationCodeByTokenHash(tokenHash);
             if (!codeRecord) {
-                return res.json({ valid: false, error: 'No validation code found for this token. Request a new code.' });
+                return res.json({
+                    valid: false,
+                    error: 'No validation code found for this token. Request a new code.'
+                });
             }
             if (codeRecord.used) {
                 return res.json({ valid: false, error: 'Validation code already used' });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-'use strict';
+"use strict";
 /**
  * Bulk JSDoc Fixer
  * Adds minimal JSDoc comments to exported functions/classes/arrow functions
@@ -15,31 +15,35 @@
  * simplebeacon:production-leak-intent — Regex pattern examples in comments (example, Example) are not exports; file has no module.exports.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const INCLUDE_WEB = process.argv.includes('--include-web');
-const DRY_RUN = process.argv.includes('--dry-run');
-const APPLY = process.argv.includes('--apply');
+const INCLUDE_WEB = process.argv.includes("--include-web");
+const DRY_RUN = process.argv.includes("--dry-run");
+const APPLY = process.argv.includes("--apply");
 
 if (!DRY_RUN && !APPLY) {
-  process.stderr.write('Usage:\n');
-  process.stderr.write('  node scripts/bulk-fix-jsdoc.js --dry-run [--include-web]\n');
-  process.stderr.write('  node scripts/bulk-fix-jsdoc.js --apply  [--include-web]\n');
+  process.stderr.write("Usage:\n");
+  process.stderr.write(
+    "  node scripts/bulk-fix-jsdoc.js --dry-run [--include-web]\n",
+  );
+  process.stderr.write(
+    "  node scripts/bulk-fix-jsdoc.js --apply  [--include-web]\n",
+  );
   process.exit(1);
 }
 
 const TARGET_DIRS = [
-  path.join(__dirname, '..', 'ai-platform', 'server'),
-  path.join(__dirname, '..', 'ai-platform', 'src'),
-  path.join(__dirname, '..', 'ai-platform', 'packages')
+  path.join(__dirname, "..", "ai-platform", "server"),
+  path.join(__dirname, "..", "ai-platform", "src"),
+  path.join(__dirname, "..", "ai-platform", "packages"),
 ];
 
 if (INCLUDE_WEB) {
-  TARGET_DIRS.push(path.join(__dirname, '..', 'ai-platform', 'web'));
+  TARGET_DIRS.push(path.join(__dirname, "..", "ai-platform", "web"));
 }
 
-const EXCLUDED_DIRS = ['node_modules', '.git', 'dist', 'build', 'coverage'];
+const EXCLUDED_DIRS = ["node_modules", ".git", "dist", "build", "coverage"];
 
 function getJsFiles(dir) {
   const results = [];
@@ -63,60 +67,108 @@ function hasPrecedingJsdoc(lines, index) {
   // Look up to 15 lines back for a JSDoc block
   for (let i = index - 1; i >= Math.max(0, index - 15); i--) {
     const trimmed = lines[i].trim();
-    if (trimmed.startsWith('/**')) return true;
-    if (trimmed === '' || trimmed.startsWith('//')) continue;
-    if (trimmed.startsWith('*') || trimmed === '*/') continue; // inside JSDoc block
+    if (trimmed.startsWith("/**")) return true;
+    if (trimmed === "" || trimmed.startsWith("//")) continue;
+    if (trimmed.startsWith("*") || trimmed === "*/") continue; // inside JSDoc block
     break;
   }
   return false;
 }
 
 function generateJsdoc(name, params = [], returns = false) {
-  const lines = ['/**'];
+  const lines = ["/**"];
   lines.push(` * ${toSentenceCase(name)}.`);
   for (const p of params) {
     lines.push(` * @param {${inferType(p)}} ${p}`);
   }
-  if (returns) lines.push(' * @returns {any}');
-  lines.push(' */');
-  return lines.join('\n');
+  if (returns) lines.push(" * @returns {any}");
+  lines.push(" */");
+  return lines.join("\n");
 }
 
 function toSentenceCase(str) {
-  return str.replace(/([A-Z])/g, ' $1').replace(/^\s+/, '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase());
+  return str
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^\s+/, "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 function inferType(paramName) {
   const lower = paramName.toLowerCase();
-  if (lower.includes('callback') || lower.startsWith('cb') || lower.startsWith('fn')) return 'Function';
-  if (lower.includes('options') || lower.includes('config') || lower.includes('opts')) return 'Object';
-  if (lower.includes('array') || lower.endsWith('s')) return 'Array';
-  if (lower.includes('count') || lower.includes('index') || lower.includes('num') || lower.includes('port') || lower.includes('limit') || lower.includes('size') || lower.includes('length') || lower.includes('ms') || lower.includes('timeout')) return 'number';
-  if (lower.includes('url') || lower.includes('path') || lower.includes('dir') || lower.includes('file') || lower.includes('name') || lower.includes('text') || lower.includes('str') || lower.includes('email') || lower.includes('token') || lower.includes('id') || lower.includes('password') || lower.includes('message')) return 'string';
-  if (lower.includes('bool') || lower.startsWith('is') || lower.startsWith('has') || lower.startsWith('should') || lower.startsWith('can') || lower.startsWith('enable')) return 'boolean';
-  if (lower.includes('req') && lower.includes('res')) return 'Object';
-  return 'any';
+  if (
+    lower.includes("callback") ||
+    lower.startsWith("cb") ||
+    lower.startsWith("fn")
+  )
+    return "Function";
+  if (
+    lower.includes("options") ||
+    lower.includes("config") ||
+    lower.includes("opts")
+  )
+    return "Object";
+  if (lower.includes("array") || lower.endsWith("s")) return "Array";
+  if (
+    lower.includes("count") ||
+    lower.includes("index") ||
+    lower.includes("num") ||
+    lower.includes("port") ||
+    lower.includes("limit") ||
+    lower.includes("size") ||
+    lower.includes("length") ||
+    lower.includes("ms") ||
+    lower.includes("timeout")
+  )
+    return "number";
+  if (
+    lower.includes("url") ||
+    lower.includes("path") ||
+    lower.includes("dir") ||
+    lower.includes("file") ||
+    lower.includes("name") ||
+    lower.includes("text") ||
+    lower.includes("str") ||
+    lower.includes("email") ||
+    lower.includes("token") ||
+    lower.includes("id") ||
+    lower.includes("password") ||
+    lower.includes("message")
+  )
+    return "string";
+  if (
+    lower.includes("bool") ||
+    lower.startsWith("is") ||
+    lower.startsWith("has") ||
+    lower.startsWith("should") ||
+    lower.startsWith("can") ||
+    lower.startsWith("enable")
+  )
+    return "boolean";
+  if (lower.includes("req") && lower.includes("res")) return "Object";
+  return "any";
 }
 
 function extractParams(signature) {
   const match = signature.match(/\((.*?)\)/);
   if (!match) return [];
   return match[1]
-    .split(',')
-    .map(p => p.trim())
-    .filter(p => p)
-    .map(p => {
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p)
+    .map((p) => {
       // Handle destructuring: { a, b } or [a, b]
-      if (p.startsWith('{') || p.startsWith('[')) return 'options';
+      if (p.startsWith("{") || p.startsWith("[")) return "options";
       // Handle default params: param = 123
-      if (p.includes('=')) return p.split('=')[0].trim();
+      if (p.includes("=")) return p.split("=")[0].trim();
       return p;
     });
 }
 
 function fixFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
   let modified = false;
   let insertions = 0;
 
@@ -135,8 +187,12 @@ function fixFile(filePath) {
     // function example(...) { / async function example(...) { / const example = (...) => / const example = async (...) => / example(...) { / module.exports = { ... }
     // export function example(...) / export async function example(...) / export class Example / export const example = / export default function
 
-    const funcMatch = trimmed.match(/^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\((.*?)\)/);
-    const arrowMatch = trimmed.match(/^const\s+(\w+)\s*=\s*(?:async\s*)?\((.*?)\)\s*=>/);
+    const funcMatch = trimmed.match(
+      /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\((.*?)\)/,
+    );
+    const arrowMatch = trimmed.match(
+      /^const\s+(\w+)\s*=\s*(?:async\s*)?\((.*?)\)\s*=>/,
+    );
     const methodMatch = trimmed.match(/^(\w+)\s*\((.*?)\)\s*\{/);
     const classMatch = trimmed.match(/^(?:export\s+)?class\s+(\w+)/);
     const exportConstMatch = trimmed.match(/^export\s+const\s+(\w+)\s*=/);
@@ -149,7 +205,7 @@ function fixFile(filePath) {
       name = arrowMatch[1];
       params = extractParams(arrowMatch[0]);
       returns = true;
-    } else if (methodMatch && i > 0 && lines[i - 1].trim().endsWith(',')) {
+    } else if (methodMatch && i > 0 && lines[i - 1].trim().endsWith(",")) {
       // Likely a method in an object literal — skip to avoid false positives
       continue;
     } else if (classMatch) {
@@ -168,7 +224,7 @@ function fixFile(filePath) {
   }
 
   if (modified) {
-    return { content: lines.join('\n'), insertions };
+    return { content: lines.join("\n"), insertions };
   }
   return null;
 }
@@ -191,18 +247,24 @@ function main() {
       totalInsertions += result.insertions;
 
       if (DRY_RUN) {
-        console.log(`\n${path.relative(process.cwd(), file)} (+${result.insertions} JSDoc blocks)`);
+        console.log(
+          `\n${path.relative(process.cwd(), file)} (+${result.insertions} JSDoc blocks)`,
+        );
       }
 
       if (APPLY) {
-        fs.writeFileSync(file, result.content, 'utf8');
-        console.log(`✓ ${path.relative(process.cwd(), file)} (+${result.insertions} JSDoc blocks)`);
+        fs.writeFileSync(file, result.content, "utf8");
+        console.log(
+          `✓ ${path.relative(process.cwd(), file)} (+${result.insertions} JSDoc blocks)`,
+        );
       }
     }
   }
 
-  console.log(`\n${DRY_RUN ? 'Would add' : 'Added'} JSDoc to ${totalFiles} files (${totalInsertions} blocks total).`);
-  if (DRY_RUN) console.log('Run with --apply to write changes.');
+  console.log(
+    `\n${DRY_RUN ? "Would add" : "Added"} JSDoc to ${totalFiles} files (${totalInsertions} blocks total).`,
+  );
+  if (DRY_RUN) console.log("Run with --apply to write changes.");
 }
 
 main();

@@ -2,527 +2,600 @@
  * Load .simplebeacon/config.json and .simplebeacon/baseline.json for a project root.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo, resolvePlatformRoot } = require('./project-detect');
-const { validateConfig } = require('./config-schema');
-const { getTierLimits } = require('./lib/tier-detector');
-const { ConfigError } = require('./lib/errors');
-const { normalizePathKey, assertPathWithinRoot, resolveSafeRelativePath } = require('./lib/path-utils');
-const { sanitizeFilePath } = require('./lib/input-sanitizer');
+const fs = require("fs");
+const path = require("path");
+const {
+  detectProjectProfile,
+  IGNORE_DEFAULTS,
+  CASCADE_ANCHORS,
+  isCascadeMonorepo,
+  resolvePlatformRoot,
+} = require("./project-detect");
+const { validateConfig } = require("./config-schema");
+const { getTierLimits } = require("./lib/tier-detector");
+const { ConfigError } = require("./lib/errors");
+const {
+  normalizePathKey,
+  assertPathWithinRoot,
+  resolveSafeRelativePath,
+} = require("./lib/path-utils");
+const { sanitizeFilePath } = require("./lib/input-sanitizer");
 
 const MS_PER_SECOND = 1000;
 
 const CASCADE_REJECTED_FICTION = {
-    featureCounts: [47, 8, 9],
-    completionRates: [74.17, 66, 66.0, 62],
-    mockFileCounts: [1247],
-    openIssueCounts: [156],
-    modelNames: ['unbreakable-oracle', 'demo-oracle'],
-    throughputClaims: ['1559', '1,559'],
-    aiConfidenceScores: [98.5, 94.3]
+  featureCounts: [47, 8, 9],
+  completionRates: [74.17, 66, 66.0, 62],
+  mockFileCounts: [1247],
+  openIssueCounts: [156],
+  modelNames: ["unbreakable-oracle", "demo-oracle"],
+  throughputClaims: ["1559", "1,559"],
+  aiConfidenceScores: [98.5, 94.3],
 };
 
 const GENERIC_REJECTED_FICTION = {
-    featureCounts: [47, 100, 156, 8, 9],
-    completionRates: [74.17, 87, 94.3, 66, 62],
-    mockFileCounts: [1247, 999, MS_PER_SECOND],
-    openIssueCounts: [156, 999],
-    modelNames: ['unbreakable-oracle', 'gpt-5-oracle', 'demo-oracle'],
-    throughputClaims: ['1559', '1,559', '9999'],
-    aiConfidenceScores: [98.5, 94.3, 87]
+  featureCounts: [47, 100, 156, 8, 9],
+  completionRates: [74.17, 87, 94.3, 66, 62],
+  mockFileCounts: [1247, 999, MS_PER_SECOND],
+  openIssueCounts: [156, 999],
+  modelNames: ["unbreakable-oracle", "gpt-5-oracle", "demo-oracle"],
+  throughputClaims: ["1559", "1,559", "9999"],
+  aiConfidenceScores: [98.5, 94.3, 87],
 };
 
-const DEFAULT_MOCK_SCAN_RELATIVE_PATHS = [
-    '.'
-];
+const DEFAULT_MOCK_SCAN_RELATIVE_PATHS = ["."];
 
 const DEFAULT_CONSISTENCY_ANCHOR_SAMPLES = CASCADE_ANCHORS;
 
 const DEFAULT_BASELINE = {
-    jestTestsPassing: null,
-    jestTestsLabel: null,
-    jestSuites: null,
-    pageSamplesLabel: null,
-    pageSampleSpecCount: null,
-    currentRelease: null,
-    activeModel: null,
-    dataSource: 'repository-audit',
-    rejectedFiction: {}
+  jestTestsPassing: null,
+  jestTestsLabel: null,
+  jestSuites: null,
+  pageSamplesLabel: null,
+  pageSampleSpecCount: null,
+  currentRelease: null,
+  activeModel: null,
+  dataSource: "repository-audit",
+  rejectedFiction: {},
 };
 
 const PROFILE_RULES = {
-    minimal: {
-        credentials: { enabled: true, scanProduction: true },
-        'json-schema': { enabled: false },
-        'sample-consistency': { enabled: false },
-        roadmap: { enabled: false },
-        'production-leak': { enabled: true, severity: 'high' },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
-        'jest-baseline': { enabled: false, runTests: false },
-        'cve-dependency': { enabled: true, includeDev: false },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+  minimal: {
+    credentials: { enabled: true, scanProduction: true },
+    "json-schema": { enabled: false },
+    "sample-consistency": { enabled: false },
+    roadmap: { enabled: false },
+    "production-leak": { enabled: true, severity: "high" },
+    "agency-handoff-patterns": { enabled: true, severity: "medium" },
+    "jest-baseline": { enabled: false, runTests: false },
+    "cve-dependency": { enabled: true, includeDev: false },
+    "git-history-secret": { enabled: true, maxCommits: 1000 },
+  },
+  standard: {
+    credentials: { enabled: true, scanProduction: true },
+    "json-schema": { enabled: true },
+    "sample-consistency": { enabled: true },
+    roadmap: { enabled: true },
+    "production-leak": { enabled: true, severity: "high" },
+    "agency-handoff-patterns": { enabled: true, severity: "medium" },
+    "jest-baseline": { enabled: false, runTests: false },
+    "fiction-kpi-patterns": { enabled: true, severity: "medium" },
+    "llm-slop-patterns": {
+      enabled: true,
+      severity: "medium",
+      registryCheck: false,
     },
-    standard: {
-        credentials: { enabled: true, scanProduction: true },
-        'json-schema': { enabled: true },
-        'sample-consistency': { enabled: true },
-        roadmap: { enabled: true },
-        'production-leak': { enabled: true, severity: 'high' },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
-        'jest-baseline': { enabled: false, runTests: false },
-        'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
-        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'token-bleed-patterns': { enabled: true, severity: 'medium' },
-        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
-        'security-patterns': { enabled: true, severity: 'high' },
-        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true },
-        'cve-dependency': { enabled: true, includeDev: true },
-        'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+    "token-bleed-patterns": { enabled: true, severity: "medium" },
+    "architecture-drift-patterns": { enabled: true, severity: "medium" },
+    "security-patterns": { enabled: true, severity: "high" },
+    "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "file-reduction": { enabled: true, dryRun: true },
+    "cve-dependency": { enabled: true, includeDev: true },
+    "sbom-generator": { enabled: true, includeDev: true },
+    "git-history-secret": { enabled: true, maxCommits: 1000 },
+  },
+  "eu-ai-act": {
+    credentials: { enabled: true, scanProduction: true },
+    "json-schema": { enabled: true },
+    "sample-consistency": { enabled: true },
+    roadmap: { enabled: true },
+    "production-leak": { enabled: true, severity: "high" },
+    "fiction-kpi-patterns": { enabled: true, severity: "medium" },
+    "llm-slop-patterns": {
+      enabled: true,
+      severity: "medium",
+      registryCheck: false,
     },
-    'eu-ai-act': {
-        credentials: { enabled: true, scanProduction: true },
-        'json-schema': { enabled: true },
-        'sample-consistency': { enabled: true },
-        roadmap: { enabled: true },
-        'production-leak': { enabled: true, severity: 'high' },
-        'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
-        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
-        'eu-ai-act-patterns': { enabled: true, severity: 'medium' },
-        'jest-baseline': { enabled: false, runTests: false },
-        'token-bleed-patterns': { enabled: true, severity: 'medium' },
-        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
-        'security-patterns': { enabled: true, severity: 'high' },
-        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true },
-        'cve-dependency': { enabled: true, includeDev: true },
-        'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+    "agency-handoff-patterns": { enabled: true, severity: "medium" },
+    "eu-ai-act-patterns": { enabled: true, severity: "medium" },
+    "jest-baseline": { enabled: false, runTests: false },
+    "token-bleed-patterns": { enabled: true, severity: "medium" },
+    "architecture-drift-patterns": { enabled: true, severity: "medium" },
+    "security-patterns": { enabled: true, severity: "high" },
+    "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "file-reduction": { enabled: true, dryRun: true },
+    "cve-dependency": { enabled: true, includeDev: true },
+    "sbom-generator": { enabled: true, includeDev: true },
+    "git-history-secret": { enabled: true, maxCommits: 1000 },
+  },
+  cascade: {
+    credentials: { enabled: true, scanProduction: true },
+    "json-schema": { enabled: true },
+    "sample-consistency": { enabled: true },
+    roadmap: { enabled: true },
+    "production-leak": {
+      enabled: true,
+      severity: "medium",
+      productionPaths: ["server/"],
+      plainSampleJson: true,
+      intentClassification: true,
+      allowlistFiles: [
+        "server/lib/snapshot-seeds.js",
+        "server/lib/snapshot-resolver.js",
+        "server/lib/sample-path-resolver.js",
+        "server/lib/code-roadmap-generator.js",
+        "server/services/model-inference-service.js",
+      ],
     },
-    cascade: {
-        credentials: { enabled: true, scanProduction: true },
-        'json-schema': { enabled: true },
-        'sample-consistency': { enabled: true },
-        roadmap: { enabled: true },
-        'production-leak': {
-            enabled: true,
-            severity: 'medium',
-            productionPaths: ['server/'],
-            plainSampleJson: true,
-            intentClassification: true,
-            allowlistFiles: [
-                'server/lib/snapshot-seeds.js',
-                'server/lib/snapshot-resolver.js',
-                'server/lib/sample-path-resolver.js',
-                'server/lib/code-roadmap-generator.js',
-                'server/services/model-inference-service.js'
-            ]
-        },
-        'jest-baseline': {
-            enabled: false,
-            runTests: false,
-            testCommand: 'npm test -- --no-coverage --passWithNoTests'
-        },
-        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
-        'token-bleed-patterns': { enabled: true, severity: 'medium' },
-        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
-        'security-patterns': { enabled: true, severity: 'high' },
-        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
-    }
+    "jest-baseline": {
+      enabled: false,
+      runTests: false,
+      testCommand: "npm test -- --no-coverage --passWithNoTests",
+    },
+    "llm-slop-patterns": {
+      enabled: true,
+      severity: "medium",
+      registryCheck: false,
+    },
+    "agency-handoff-patterns": { enabled: true, severity: "medium" },
+    "token-bleed-patterns": { enabled: true, severity: "medium" },
+    "architecture-drift-patterns": { enabled: true, severity: "medium" },
+    "security-patterns": { enabled: true, severity: "high" },
+    "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "file-reduction": { enabled: true, dryRun: true },
+  },
 };
 
 const DEFAULT_SCANNER_META_FILES = [
-    '.simplebeacon/analyzer-cache.json',
-    '.simplebeacon/source-kpi-findings.json',
-    '.simplebeacon/source-kpi-findings-with-docs.json',
-    '.simplebeacon/history.json',
-    '.simplebeacon/trust-history.json'
+  ".simplebeacon/analyzer-cache.json",
+  ".simplebeacon/source-kpi-findings.json",
+  ".simplebeacon/source-kpi-findings-with-docs.json",
+  ".simplebeacon/history.json",
+  ".simplebeacon/trust-history.json",
 ];
 
 const DEFAULT_CONFIG = {
-    profile: 'standard',
-    scanPaths: DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-    productionPaths: ['server/', 'src/', 'app/', 'lib/'],
-    consistencyAnchorSamples: DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-    ignore: IGNORE_DEFAULTS,
-    pathExclusions: [], // User-configurable path exclusion tokens
-    scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
-    rules: { ...PROFILE_RULES.standard },
-    gate: {
-        failOn: ['high'],
-        warnOn: ['medium', 'low']
-    }
+  profile: "standard",
+  scanPaths: DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+  productionPaths: ["server/", "src/", "app/", "lib/"],
+  consistencyAnchorSamples: DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
+  ignore: IGNORE_DEFAULTS,
+  pathExclusions: [], // User-configurable path exclusion tokens
+  scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
+  rules: { ...PROFILE_RULES.standard },
+  gate: {
+    failOn: ["high"],
+    warnOn: ["medium", "low"],
+  },
 };
 
 function readJsonFile(filePath) {
-    try {
-        const raw = fs.readFileSync(filePath, 'utf8');
-        return { ok: true, data: JSON.parse(raw) };
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            return { ok: false, missing: true, error };
-        }
-        return { ok: false, missing: false, error };
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    return { ok: true, data: JSON.parse(raw) };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { ok: false, missing: true, error };
     }
+    return { ok: false, missing: false, error };
+  }
 }
 
 function normalizeRelativePath(relativePath) {
-    return String(relativePath || '')
-        .replace(/\\/g, '/')
-        .replace(/^\.\//, '');
+  return String(relativePath || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "");
 }
 
 function resolvePathFromBase(baseDir, relativePath) {
-    return resolveSafeRelativePath(baseDir, normalizeRelativePath(relativePath), {
-        label: relativePath,
-        allowOutside: path.isAbsolute(normalizeRelativePath(relativePath))
-    });
+  return resolveSafeRelativePath(baseDir, normalizeRelativePath(relativePath), {
+    label: relativePath,
+    allowOutside: path.isAbsolute(normalizeRelativePath(relativePath)),
+  });
 }
 
 function loadCentralDataConfig(baseDir) {
-    const candidates = [
-        path.join(baseDir, 'config', 'central-data-config.json'),
-        path.join(baseDir, 'data-central', 'config', 'central-data-config.json')
-    ];
-    for (const configPath of candidates) {
-        const result = readJsonFile(configPath);
-        if (result.ok) {
-            return result.data?.centralDataTruth || result.data || null;
-        }
+  const candidates = [
+    path.join(baseDir, "config", "central-data-config.json"),
+    path.join(baseDir, "data-central", "config", "central-data-config.json"),
+  ];
+  for (const configPath of candidates) {
+    const result = readJsonFile(configPath);
+    if (result.ok) {
+      return result.data?.centralDataTruth || result.data || null;
     }
-    return null;
+  }
+  return null;
 }
 
 function resolveMockDataScanPaths(baseDir, extraPaths = []) {
-    const safeBase = baseDir && typeof baseDir === 'string' ? baseDir : process.cwd();
-    const resolved = resolvePlatformRoot(safeBase);
-    if (!resolved || typeof resolved !== 'object') {
-        throw new ConfigError(`Could not resolve platform root object from: ${safeBase}`);
-    }
-    const { platformRoot } = resolved;
-    if (!platformRoot) {
-        throw new ConfigError(`Resolved platform root is empty for: ${safeBase}`);
-    }
-    let mockPaths;
-    try {
-        const central = loadCentralDataConfig(platformRoot);
-        const rawMockPaths = central?.mockDataScan?.paths;
-        mockPaths = Array.isArray(rawMockPaths) ? rawMockPaths : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
-    } catch {
-        mockPaths = DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
-    }
-    const safeExtras = Array.isArray(extraPaths)
-        ? extraPaths.filter(p => typeof p === 'string' && p.length > 0)
-        : [];
-    try {
-        return resolveScanPaths(platformRoot, { scanPaths: mockPaths }, safeExtras);
-    } catch (err) {
-        throw new ConfigError(`Failed to resolve mock-data scan paths: ${err?.message || err}`);
-    }
+  const safeBase =
+    baseDir && typeof baseDir === "string" ? baseDir : process.cwd();
+  const resolved = resolvePlatformRoot(safeBase);
+  if (!resolved || typeof resolved !== "object") {
+    throw new ConfigError(
+      `Could not resolve platform root object from: ${safeBase}`,
+    );
+  }
+  const { platformRoot } = resolved;
+  if (!platformRoot) {
+    throw new ConfigError(`Resolved platform root is empty for: ${safeBase}`);
+  }
+  let mockPaths;
+  try {
+    const central = loadCentralDataConfig(platformRoot);
+    const rawMockPaths = central?.mockDataScan?.paths;
+    mockPaths = Array.isArray(rawMockPaths)
+      ? rawMockPaths
+      : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+  } catch {
+    mockPaths = DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+  }
+  const safeExtras = Array.isArray(extraPaths)
+    ? extraPaths.filter((p) => typeof p === "string" && p.length > 0)
+    : [];
+  try {
+    return resolveScanPaths(platformRoot, { scanPaths: mockPaths }, safeExtras);
+  } catch (err) {
+    throw new ConfigError(
+      `Failed to resolve mock-data scan paths: ${err?.message || err}`,
+    );
+  }
 }
 
 function resolveScanPaths(baseDir, config, extraPaths = []) {
-    const truth = loadCentralDataConfig(baseDir);
-    const configured = truth?.mockDataScan?.paths;
-    const relativePaths = Array.isArray(config?.scanPaths) && config.scanPaths.length
-        ? config.scanPaths.map(normalizeRelativePath)
-        : Array.isArray(configured) && configured.length
-            ? configured.map(normalizeRelativePath)
-            : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+  const truth = loadCentralDataConfig(baseDir);
+  const configured = truth?.mockDataScan?.paths;
+  const relativePaths =
+    Array.isArray(config?.scanPaths) && config.scanPaths.length
+      ? config.scanPaths.map(normalizeRelativePath)
+      : Array.isArray(configured) && configured.length
+        ? configured.map(normalizeRelativePath)
+        : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
 
-    const rootKey = normalizePathKey(baseDir);
-    const resolved = relativePaths
-        .map((rel) => resolvePathFromBase(baseDir, rel))
-        .filter(Boolean);
+  const rootKey = normalizePathKey(baseDir);
+  const resolved = relativePaths
+    .map((rel) => resolvePathFromBase(baseDir, rel))
+    .filter(Boolean);
 
-    const extras = (extraPaths || [])
-        .filter((p) => p != null && typeof p === 'string')
-        .map((p) => (path.isAbsolute(p) ? p : resolvePathFromBase(baseDir, p)))
-        .filter(Boolean)
-        .filter((extra) => {
-            const extraKey = normalizePathKey(extra);
-            if (extraKey === rootKey) return false;
-            // Ancestor of scan root (e.g. monorepo parent) re-walks configured child paths.
-            if (rootKey.startsWith(`${extraKey}/`)) return false;
-            if (extraKey.startsWith(`${rootKey}/`)) {
-                return !resolved.some((scanPath) => normalizePathKey(scanPath) === extraKey);
-            }
-            return true;
-        });
-
-    const combined = [...resolved, ...extras];
-    const seen = new Set();
-    return combined.filter((scanPath) => {
-        const key = normalizePathKey(scanPath);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+  const extras = (extraPaths || [])
+    .filter((p) => p != null && typeof p === "string")
+    .map((p) => (path.isAbsolute(p) ? p : resolvePathFromBase(baseDir, p)))
+    .filter(Boolean)
+    .filter((extra) => {
+      const extraKey = normalizePathKey(extra);
+      if (extraKey === rootKey) return false;
+      // Ancestor of scan root (e.g. monorepo parent) re-walks configured child paths.
+      if (rootKey.startsWith(`${extraKey}/`)) return false;
+      if (extraKey.startsWith(`${rootKey}/`)) {
+        return !resolved.some(
+          (scanPath) => normalizePathKey(scanPath) === extraKey,
+        );
+      }
+      return true;
     });
+
+  const combined = [...resolved, ...extras];
+  const seen = new Set();
+  return combined.filter((scanPath) => {
+    const key = normalizePathKey(scanPath);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function mergeFictionPatterns(defaults, overrides) {
-    if (!overrides || typeof overrides !== 'object') {
-        return { ...defaults };
+  if (!overrides || typeof overrides !== "object") {
+    return { ...defaults };
+  }
+  const merged = { ...defaults, ...overrides };
+  for (const key of Object.keys(defaults)) {
+    if (Array.isArray(defaults[key]) && Array.isArray(overrides[key])) {
+      merged[key] = [...new Set([...defaults[key], ...overrides[key]])];
     }
-    const merged = { ...defaults, ...overrides };
-    for (const key of Object.keys(defaults)) {
-        if (Array.isArray(defaults[key]) && Array.isArray(overrides[key])) {
-            merged[key] = [...new Set([...defaults[key], ...overrides[key]])];
-        }
-    }
-    return merged;
+  }
+  return merged;
 }
 
-function mergeBaseline(raw, profile = 'standard') {
-    const fictionDefaults = profile === 'cascade'
-        ? CASCADE_REJECTED_FICTION
-        : profile === 'standard'
-            ? GENERIC_REJECTED_FICTION
-            : {};
+function mergeBaseline(raw, profile = "standard") {
+  const fictionDefaults =
+    profile === "cascade"
+      ? CASCADE_REJECTED_FICTION
+      : profile === "standard"
+        ? GENERIC_REJECTED_FICTION
+        : {};
 
-    if (!raw || typeof raw !== 'object') {
-        return {
-            ...DEFAULT_BASELINE,
-            rejectedFiction: { ...fictionDefaults }
-        };
-    }
-
+  if (!raw || typeof raw !== "object") {
     return {
-        ...DEFAULT_BASELINE,
-        ...raw,
-        rejectedFiction: raw.rejectedFiction != null
-            ? mergeFictionPatterns(fictionDefaults, raw.rejectedFiction)
-            : { ...fictionDefaults }
+      ...DEFAULT_BASELINE,
+      rejectedFiction: { ...fictionDefaults },
     };
+  }
+
+  return {
+    ...DEFAULT_BASELINE,
+    ...raw,
+    rejectedFiction:
+      raw.rejectedFiction != null
+        ? mergeFictionPatterns(fictionDefaults, raw.rejectedFiction)
+        : { ...fictionDefaults },
+  };
 }
 
 function buildInitConfig(baseDir, options = {}) {
-    const detected = detectProjectProfile(baseDir);
-    const profile = options.profile || detected.profile;
-    const rules = JSON.parse(JSON.stringify(PROFILE_RULES[profile] || PROFILE_RULES.standard));
+  const detected = detectProjectProfile(baseDir);
+  const profile = options.profile || detected.profile;
+  const rules = JSON.parse(
+    JSON.stringify(PROFILE_RULES[profile] || PROFILE_RULES.standard),
+  );
 
-    const config = {
-        profile,
-        scanPaths: detected.scanPaths,
-        productionPaths: detected.productionPaths,
-        sampleDir: detected.sampleDir,
-        consistencyAnchorSamples: detected.consistencyAnchorSamples,
-        ignore: [...IGNORE_DEFAULTS],
-        rules,
-        gate: { failOn: ['high'], warnOn: ['medium', 'low'] }
+  const config = {
+    profile,
+    scanPaths: detected.scanPaths,
+    productionPaths: detected.productionPaths,
+    sampleDir: detected.sampleDir,
+    consistencyAnchorSamples: detected.consistencyAnchorSamples,
+    ignore: [...IGNORE_DEFAULTS],
+    rules,
+    gate: { failOn: ["high"], warnOn: ["medium", "low"] },
+  };
+
+  if (profile === "cascade") {
+    config.rules["production-leak"] = {
+      ...PROFILE_RULES.cascade["production-leak"],
     };
+    config.rules["jest-baseline"] = {
+      ...PROFILE_RULES.cascade["jest-baseline"],
+    };
+  }
 
-    if (profile === 'cascade') {
-        config.rules['production-leak'] = { ...PROFILE_RULES.cascade['production-leak'] };
-        config.rules['jest-baseline'] = { ...PROFILE_RULES.cascade['jest-baseline'] };
-    }
-
-    return { config, detected, profile };
+  return { config, detected, profile };
 }
 
-function buildInitBaseline(profile = 'standard') {
-    const fiction = profile === 'cascade'
-        ? CASCADE_REJECTED_FICTION
-        : profile === 'standard'
-            ? GENERIC_REJECTED_FICTION
-            : {};
+function buildInitBaseline(profile = "standard") {
+  const fiction =
+    profile === "cascade"
+      ? CASCADE_REJECTED_FICTION
+      : profile === "standard"
+        ? GENERIC_REJECTED_FICTION
+        : {};
 
-    return {
-        dataSource: 'repository-audit',
-        rejectedFiction: fiction,
-        syncedAt: null
-    };
+  return {
+    dataSource: "repository-audit",
+    rejectedFiction: fiction,
+    syncedAt: null,
+  };
 }
 
 function resolveSimplebeaconDir(root) {
-    const primary = path.join(root, '.simplebeacon');
-    const legacy = path.join(root, '.samplebeacon');
-    if (fs.existsSync(path.join(primary, 'config.json')) || fs.existsSync(primary)) {
-        return primary;
-    }
-    if (fs.existsSync(path.join(legacy, 'config.json')) || fs.existsSync(legacy)) {
-        return legacy;
-    }
+  const primary = path.join(root, ".simplebeacon");
+  const legacy = path.join(root, ".samplebeacon");
+  if (
+    fs.existsSync(path.join(primary, "config.json")) ||
+    fs.existsSync(primary)
+  ) {
     return primary;
+  }
+  if (
+    fs.existsSync(path.join(legacy, "config.json")) ||
+    fs.existsSync(legacy)
+  ) {
+    return legacy;
+  }
+  return primary;
 }
 
 function loadSimplebeaconConfig(baseDir, configPath = null) {
-    const root = path.resolve(baseDir);
-    const simplebeaconDir = resolveSimplebeaconDir(root);
-    const explicitConfig = configPath != null && String(configPath).trim() !== '';
-    const sanitizedConfigPath = explicitConfig ? sanitizeFilePath(configPath) : '';
-    const resolvedConfigPath = explicitConfig
-        ? (path.isAbsolute(sanitizedConfigPath)
-            ? path.resolve(sanitizedConfigPath)
-            : path.join(root, sanitizedConfigPath))
-        : path.join(simplebeaconDir, 'config.json');
-    const baselinePath = path.join(simplebeaconDir, 'baseline.json');
+  const root = path.resolve(baseDir);
+  const simplebeaconDir = resolveSimplebeaconDir(root);
+  const explicitConfig = configPath != null && String(configPath).trim() !== "";
+  const sanitizedConfigPath = explicitConfig
+    ? sanitizeFilePath(configPath)
+    : "";
+  const resolvedConfigPath = explicitConfig
+    ? path.isAbsolute(sanitizedConfigPath)
+      ? path.resolve(sanitizedConfigPath)
+      : path.join(root, sanitizedConfigPath)
+    : path.join(simplebeaconDir, "config.json");
+  const baselinePath = path.join(simplebeaconDir, "baseline.json");
 
-    if (explicitConfig && !path.isAbsolute(sanitizedConfigPath)) {
-        assertPathWithinRoot(resolvedConfigPath, root, { configPath: resolvedConfigPath });
-    }
+  if (explicitConfig && !path.isAbsolute(sanitizedConfigPath)) {
+    assertPathWithinRoot(resolvedConfigPath, root, {
+      configPath: resolvedConfigPath,
+    });
+  }
 
-    const configRead = readJsonFile(resolvedConfigPath);
-    const baselineRead = readJsonFile(baselinePath);
+  const configRead = readJsonFile(resolvedConfigPath);
+  const baselineRead = readJsonFile(baselinePath);
 
-    const configWarnings = [];
-    if (!configRead.ok && !configRead.missing) {
-        const message = `Invalid config JSON at ${resolvedConfigPath}: ${configRead.error.message}`;
-        if (explicitConfig) {
-            throw new ConfigError(message, {
-                configPath: resolvedConfigPath,
-                originalError: configRead.error.message
-            });
-        }
-        configWarnings.push(message);
-    }
-
-    const fileConfig = configRead.ok ? configRead.data : {};
-    const profile = fileConfig.profile
-        || (isCascadeMonorepo(root) ? 'cascade' : 'standard');
-    const profileRules = PROFILE_RULES[profile] || PROFILE_RULES.standard;
-    const baseline = mergeBaseline(baselineRead.ok ? baselineRead.data : null, profile);
-
-    const validation = validateConfig(fileConfig);
-    configWarnings.push(...validation.errors, ...validation.warnings);
-
-    const config = {
-        ...DEFAULT_CONFIG,
-        ...fileConfig,
-        rules: {
-            ...PROFILE_RULES.standard,
-            ...profileRules,
-            ...(fileConfig.rules || {})
-        },
-        gate: {
-            ...DEFAULT_CONFIG.gate,
-            ...(fileConfig.gate || {})
-        },
-        baseline,
-        profile,
-        consistencyAnchorSamples: fileConfig.consistencyAnchorSamples
-            ?? (profile === 'cascade' ? DEFAULT_CONSISTENCY_ANCHOR_SAMPLES : []),
+  const configWarnings = [];
+  if (!configRead.ok && !configRead.missing) {
+    const message = `Invalid config JSON at ${resolvedConfigPath}: ${configRead.error.message}`;
+    if (explicitConfig) {
+      throw new ConfigError(message, {
         configPath: resolvedConfigPath,
-        baselinePath,
-        simplebeaconDir,
-        configWarnings,
-        configValid: validation.valid && configRead.ok !== false
-    };
+        originalError: configRead.error.message,
+      });
+    }
+    configWarnings.push(message);
+  }
 
-    if (!config.ignore) config.ignore = IGNORE_DEFAULTS;
-    if (!config.productionPaths) config.productionPaths = DEFAULT_CONFIG.productionPaths;
-    config.scannerMetaFiles = [...new Set([
-        ...DEFAULT_SCANNER_META_FILES,
-        ...(Array.isArray(fileConfig.scannerMetaFiles) ? fileConfig.scannerMetaFiles : [])
-    ])];
+  const fileConfig = configRead.ok ? configRead.data : {};
+  const profile =
+    fileConfig.profile || (isCascadeMonorepo(root) ? "cascade" : "standard");
+  const profileRules = PROFILE_RULES[profile] || PROFILE_RULES.standard;
+  const baseline = mergeBaseline(
+    baselineRead.ok ? baselineRead.data : null,
+    profile,
+  );
 
-    return config;
+  const validation = validateConfig(fileConfig);
+  configWarnings.push(...validation.errors, ...validation.warnings);
+
+  const config = {
+    ...DEFAULT_CONFIG,
+    ...fileConfig,
+    rules: {
+      ...PROFILE_RULES.standard,
+      ...profileRules,
+      ...(fileConfig.rules || {}),
+    },
+    gate: {
+      ...DEFAULT_CONFIG.gate,
+      ...(fileConfig.gate || {}),
+    },
+    baseline,
+    profile,
+    consistencyAnchorSamples:
+      fileConfig.consistencyAnchorSamples ??
+      (profile === "cascade" ? DEFAULT_CONSISTENCY_ANCHOR_SAMPLES : []),
+    configPath: resolvedConfigPath,
+    baselinePath,
+    simplebeaconDir,
+    configWarnings,
+    configValid: validation.valid && configRead.ok !== false,
+  };
+
+  if (!config.ignore) config.ignore = IGNORE_DEFAULTS;
+  if (!config.productionPaths)
+    config.productionPaths = DEFAULT_CONFIG.productionPaths;
+  config.scannerMetaFiles = [
+    ...new Set([
+      ...DEFAULT_SCANNER_META_FILES,
+      ...(Array.isArray(fileConfig.scannerMetaFiles)
+        ? fileConfig.scannerMetaFiles
+        : []),
+    ]),
+  ];
+
+  return config;
 }
 
 function isRuleEnabled(config, ruleName) {
-    const rule = config?.rules?.[ruleName];
-    if (!rule) return false;
-    return rule.enabled !== false;
+  const rule = config?.rules?.[ruleName];
+  if (!rule) return false;
+  return rule.enabled !== false;
 }
 
 function getRuleOptions(config, ruleName) {
-    return config?.rules?.[ruleName] || {};
+  return config?.rules?.[ruleName] || {};
 }
 
 /** Rule engines available on the Free tier. All others require Pro+. */
 const FREE_RULE_ENGINES = new Set([
-    'credentials',
-    'production-leak',
-    'llm-slop-patterns',
-    'dead-code',
-    'security-patterns',
-    'json-schema',
-    'sample-consistency'
+  "credentials",
+  "production-leak",
+  "llm-slop-patterns",
+  "dead-code",
+  "security-patterns",
+  "json-schema",
+  "sample-consistency",
 ]);
 
 function sanitizeConfigForTier(config, tier) {
-    const limits = getTierLimits(tier) || {};
-    const sanitized = { ...config };
-    const normalizedTier = String(tier || 'developer').toLowerCase();
-    const isFree = normalizedTier === 'developer' || normalizedTier === 'free';
+  const limits = getTierLimits(tier) || {};
+  const sanitized = { ...config };
+  const normalizedTier = String(tier || "developer").toLowerCase();
+  const isFree = normalizedTier === "developer" || normalizedTier === "free";
 
-    if (!limits.customConfig) {
-        delete sanitized.scanners;
-        delete sanitized.allowlist;
-        const profile = sanitized.profile || 'standard';
-        const profileRules = { ...PROFILE_RULES[profile] || PROFILE_RULES.standard };
-        // Preserve user-disabled rules so they can suppress false positives
-        if (config.rules) {
-            for (const [ruleName, userRule] of Object.entries(config.rules)) {
-                if (userRule && userRule.enabled === false) {
-                    profileRules[ruleName] = { ...profileRules[ruleName], enabled: false };
-                }
-            }
+  if (!limits.customConfig) {
+    delete sanitized.scanners;
+    delete sanitized.allowlist;
+    const profile = sanitized.profile || "standard";
+    const profileRules = {
+      ...(PROFILE_RULES[profile] || PROFILE_RULES.standard),
+    };
+    // Preserve user-disabled rules so they can suppress false positives
+    if (config.rules) {
+      for (const [ruleName, userRule] of Object.entries(config.rules)) {
+        if (userRule && userRule.enabled === false) {
+          profileRules[ruleName] = {
+            ...profileRules[ruleName],
+            enabled: false,
+          };
         }
-        sanitized.rules = profileRules;
-    } else {
-        // Preserve user-disabled rules so they can suppress false positives
-        if (config.rules) {
-            for (const [ruleName, userRule] of Object.entries(config.rules)) {
-                if (userRule && userRule.enabled === false && sanitized.rules[ruleName]) {
-                    sanitized.rules[ruleName] = { ...sanitized.rules[ruleName], enabled: false };
-                }
-            }
-        }
-        if (!limits.allowlist) {
-            delete sanitized.allowlist;
-        }
+      }
     }
-
-    // Free tier: filter to 5 basic engines only
-    if (isFree && sanitized.rules) {
-        for (const ruleName of Object.keys(sanitized.rules)) {
-            if (!FREE_RULE_ENGINES.has(ruleName)) {
-                sanitized.rules[ruleName] = { ...sanitized.rules[ruleName], enabled: false };
-            }
+    sanitized.rules = profileRules;
+  } else {
+    // Preserve user-disabled rules so they can suppress false positives
+    if (config.rules) {
+      for (const [ruleName, userRule] of Object.entries(config.rules)) {
+        if (
+          userRule &&
+          userRule.enabled === false &&
+          sanitized.rules[ruleName]
+        ) {
+          sanitized.rules[ruleName] = {
+            ...sanitized.rules[ruleName],
+            enabled: false,
+          };
         }
+      }
     }
+    if (!limits.allowlist) {
+      delete sanitized.allowlist;
+    }
+  }
 
-    return sanitized;
+  // Free tier: filter to 5 basic engines only
+  if (isFree && sanitized.rules) {
+    for (const ruleName of Object.keys(sanitized.rules)) {
+      if (!FREE_RULE_ENGINES.has(ruleName)) {
+        sanitized.rules[ruleName] = {
+          ...sanitized.rules[ruleName],
+          enabled: false,
+        };
+      }
+    }
+  }
+
+  return sanitized;
 }
 
 function getInitTemplates(baseDir = process.cwd(), options = {}) {
-    const { config, detected, profile } = buildInitConfig(baseDir, options);
-    return {
-        config,
-        baseline: buildInitBaseline(profile),
-        detected,
-        profile
-    };
+  const { config, detected, profile } = buildInitConfig(baseDir, options);
+  return {
+    config,
+    baseline: buildInitBaseline(profile),
+    detected,
+    profile,
+  };
 }
 
 module.exports = {
-    CASCADE_REJECTED_FICTION,
-    GENERIC_REJECTED_FICTION,
-    DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-    DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-    DEFAULT_BASELINE,
-    DEFAULT_CONFIG,
-    PROFILE_RULES,
-    loadCentralDataConfig,
-    loadSimplebeaconConfig,
-    loadSamplebeaconConfig: loadSimplebeaconConfig,
-    resolveSimplebeaconDir,
-    resolveMockDataScanPaths,
-    resolveScanPaths,
-    resolvePathFromBase,
-    normalizeRelativePath,
-    isRuleEnabled,
-    getRuleOptions,
-    sanitizeConfigForTier,
-    getInitTemplates,
-    buildInitConfig,
-    buildInitBaseline,
-    mergeBaseline,
-    readJsonFile
+  CASCADE_REJECTED_FICTION,
+  GENERIC_REJECTED_FICTION,
+  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+  DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
+  DEFAULT_BASELINE,
+  DEFAULT_CONFIG,
+  PROFILE_RULES,
+  loadCentralDataConfig,
+  loadSimplebeaconConfig,
+  loadSamplebeaconConfig: loadSimplebeaconConfig,
+  resolveSimplebeaconDir,
+  resolveMockDataScanPaths,
+  resolveScanPaths,
+  resolvePathFromBase,
+  normalizeRelativePath,
+  isRuleEnabled,
+  getRuleOptions,
+  sanitizeConfigForTier,
+  getInitTemplates,
+  buildInitConfig,
+  buildInitBaseline,
+  mergeBaseline,
+  readJsonFile,
 };

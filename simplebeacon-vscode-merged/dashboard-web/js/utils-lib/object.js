@@ -38,7 +38,7 @@ function _deepClone(obj, seen = new WeakMap()) {
   if (obj instanceof RegExp) return new RegExp(obj.source, obj.flags);
   if (obj instanceof URL) return new URL(obj.href);
   if (obj instanceof Error) {
-    const err = new (obj.constructor)(obj.message);
+    const err = new obj.constructor(obj.message);
     err.stack = obj.stack;
     seen.set(obj, err);
     return err;
@@ -111,7 +111,10 @@ export function deepEqual(a, b) {
     for (const v of a) {
       let found = false;
       for (const w of b) {
-        if (deepEqual(v, w)) { found = true; break; }
+        if (deepEqual(v, w)) {
+          found = true;
+          break;
+        }
       }
       if (!found) return false;
     }
@@ -162,9 +165,7 @@ export function pick(obj, keys) {
  */
 export function omit(obj, keys) {
   if (!obj || typeof obj !== 'object') return {};
-  const set = new Set(
-    keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []
-  );
+  const set = new Set(keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []);
   const result = {};
   for (const key of Object.keys(obj)) {
     if (!set.has(key)) result[key] = obj[key];
@@ -204,7 +205,14 @@ export function merge(target, ...sources) {
     for (const key of Object.keys(src)) {
       if (DANGEROUS_KEYS.has(key)) continue;
       const val = src[key];
-      if (val && typeof val === 'object' && !Array.isArray(val) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+      if (
+        val &&
+        typeof val === 'object' &&
+        !Array.isArray(val) &&
+        result[key] &&
+        typeof result[key] === 'object' &&
+        !Array.isArray(result[key])
+      ) {
         result[key] = merge(result[key], val);
       } else {
         result[key] = val;
@@ -294,7 +302,7 @@ export function get(obj, path, fallback) {
 export function set(obj, path, value) {
   if (!obj || typeof obj !== 'object' || typeof path !== 'string') return obj;
   const keys = path.split('.');
-  if (keys.some(key => DANGEROUS_KEYS.has(key))) return obj;
+  if (keys.some((key) => DANGEROUS_KEYS.has(key))) return obj;
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
@@ -402,9 +410,12 @@ export function defaultsDeep(target, ...sources) {
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (
-        target[key] != null && typeof target[key] === 'object' &&
-        source[key] != null && typeof source[key] === 'object' &&
-        !Array.isArray(target[key]) && !Array.isArray(source[key])
+        target[key] != null &&
+        typeof target[key] === 'object' &&
+        source[key] != null &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(target[key]) &&
+        !Array.isArray(source[key])
       ) {
         defaultsDeep(target[key], source[key]);
       }

@@ -3,33 +3,44 @@
  * AI Data Quality Assessment — clone repo (optional), scan, deliver assessment JSON.
  */
 
-const fs = require('fs');
-const constants = require('../../config/constants.cjs');
+const fs = require("fs");
+const constants = require("../../config/constants.cjs");
 const fsp = fs.promises;
-const path = require('path');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const logger = require('../../lib/app-logger.cjs');
+const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const logger = require("../../lib/app-logger.cjs");
 
-
-
-
-const { startAssessmentRetentionJob, resolveAssessmentTtlMs } = require('../../lib/assessment-retention.cjs');
-const { validateRepoUrl, resolveDefaultAllowedRoots, assertSafeProjectPath } = require('../../lib/path-safety.cjs');
-const { toClientError } = require('../../../shared-utils/index.cjs');
-const { buildAssessmentReport, evaluateGate, formatJsonReport, loadSimplebeaconConfig, resolvePlatformRoot, runScan, sanitizeScanReport } = require('../../lib/simplebeacon-proxy.cjs');
-
+const {
+  startAssessmentRetentionJob,
+  resolveAssessmentTtlMs,
+} = require("../../lib/assessment-retention.cjs");
+const {
+  validateRepoUrl,
+  resolveDefaultAllowedRoots,
+  assertSafeProjectPath,
+} = require("../../lib/path-safety.cjs");
+const { toClientError } = require("../../../shared-utils/index.cjs");
+const {
+  buildAssessmentReport,
+  evaluateGate,
+  formatJsonReport,
+  loadSimplebeaconConfig,
+  resolvePlatformRoot,
+  runScan,
+  sanitizeScanReport,
+} = require("../../lib/simplebeacon-proxy.cjs");
 
 const execFileAsync = promisify(execFile);
-const PROJECT_ROOT = path.join(__dirname, '../../..');
+const PROJECT_ROOT = path.join(__dirname, "../../..");
 
 /**
  * Assessment controller.
  */
 class AssessmentController {
   constructor() {
-    this.assessmentsDir = path.join(PROJECT_ROOT, 'assessments');
-    if (process.env.ASSESSMENT_RETENTION_ENABLED !== 'false') {
+    this.assessmentsDir = path.join(PROJECT_ROOT, "assessments");
+    if (process.env.ASSESSMENT_RETENTION_ENABLED !== "false") {
       startAssessmentRetentionJob({ assessmentsDir: this.assessmentsDir });
     }
   }
@@ -54,19 +65,26 @@ class AssessmentController {
 
   async createAssessment(req, res) {
     try {
-      const { repoUrl, company, email, assessmentType, projectPath: bodyPath } = req.body || {};
+      const {
+        repoUrl,
+        company,
+        email,
+        assessmentType,
+        projectPath: bodyPath,
+      } = req.body || {};
       const isAuthenticated = Boolean(req.user?.id || req.user?.email);
 
       if (!isAuthenticated && bodyPath) {
         return res.status(403).json({
           success: false,
-          error: 'projectPath requires sign-in; use repoUrl for public assessments'
+          error:
+            "projectPath requires sign-in; use repoUrl for public assessments",
         });
       }
       if (!isAuthenticated && !repoUrl) {
         return res.status(400).json({
           success: false,
-          error: 'repoUrl is required for public assessments'
+          error: "repoUrl is required for public assessments",
         });
       }
 
@@ -79,18 +97,24 @@ class AssessmentController {
         projectPath = await this.cloneRepo(repoUrl, assessmentDir);
       } else if (bodyPath) {
         const allowedRoots = resolveDefaultAllowedRoots(PROJECT_ROOT);
-        projectPath = assertSafeProjectPath(String(bodyPath), allowedRoots, 'projectPath');
+        projectPath = assertSafeProjectPath(
+          String(bodyPath),
+          allowedRoots,
+          "projectPath",
+        );
       }
 
-      const scanResult = sanitizeScanReport(await this.runSimplebeaconScan(projectPath));
+      const scanResult = sanitizeScanReport(
+        await this.runSimplebeaconScan(projectPath),
+      );
       const assessment = buildAssessmentReport(scanResult, {
-        company: company || 'Unknown',
-        assessor: 'Simplebeacon AI',
+        company: company || "Unknown",
+        assessor: "Simplebeacon AI",
         projectRoot: projectPath,
         commandsRun: [
           `node packages/simplebeacon-cli/bin/simplebeacon.js scan --path "${projectPath}" --format json --output .simplebeacon/report.json --gate`,
-          `node packages/simplebeacon-cli/bin/simplebeacon.js assess --path "${projectPath}" --company "${company || 'Unknown'}"`
-        ]
+          `node packages/simplebeacon-cli/bin/simplebeacon.js assess --path "${projectPath}" --company "${company || "Unknown"}"`,
+        ],
       });
 
       assessment.metadata = {
@@ -100,21 +124,29 @@ class AssessmentController {
         assessmentType,
         createdAt: new Date().toISOString(),
         repoUrl: repoUrl || null,
-        projectPath: repoUrl ? '[cloned-repo-redacted]' : projectPath,
-        expiresAt: new Date(Date.now() + resolveAssessmentTtlMs()).toISOString()
+        projectPath: repoUrl ? "[cloned-repo-redacted]" : projectPath,
+        expiresAt: new Date(
+          Date.now() + resolveAssessmentTtlMs(),
+        ).toISOString(),
       };
 
       if (repoUrl) {
         await this.removeClonedSource(assessmentDir);
       }
 
-      const assessmentPath = path.join(assessmentDir, 'assessment.json');
-      await fsp.writeFile(assessmentPath, `${JSON.stringify(assessment, null, 2)}\n`, 'utf8');
+      const assessmentPath = path.join(assessmentDir, "assessment.json");
+      await fsp.writeFile(
+        assessmentPath,
+        `${JSON.stringify(assessment, null, 2)}\n`,
+        "utf8",
+      );
 
       const findings = assessment.findings || {};
       const totalFindings = Object.values(findings).reduce(
-        (sum, cat) => sum + (typeof cat === 'object' && cat?.findings != null ? cat.findings : 0),
-        0
+        (sum, cat) =>
+          sum +
+          (typeof cat === "object" && cat?.findings != null ? cat.findings : 0),
+        0,
       );
 
       res.json({
@@ -125,13 +157,22 @@ class AssessmentController {
           executiveSummary: assessment.executiveSummary,
           complianceChecklist: assessment.complianceChecklist?.summary,
           totalFindings,
-          status: 'completed'
-        }
+          status: "completed",
+        },
       });
     } catch (error) {
-      logger.error('[Assessment] create error:', error.message);
-      const status = /required|invalid|outside allowed|does not exist/i.test(error.message) ? 400 : 500;
-      res.status(status).json({ success: false, error: toClientError(error, 'Assessment failed') });
+      logger.error("[Assessment] create error:", error.message);
+      const status = /required|invalid|outside allowed|does not exist/i.test(
+        error.message,
+      )
+        ? 400
+        : 500;
+      res
+        .status(status)
+        .json({
+          success: false,
+          error: toClientError(error, "Assessment failed"),
+        });
     }
   }
 
@@ -141,8 +182,13 @@ class AssessmentController {
       const assessment = await this.readAssessment(assessmentId);
       res.json({ success: true, assessmentId, assessment });
     } catch (error) {
-      const status = error.code === 'ENOENT' ? 404 : 500;
-      res.status(status).json({ success: false, error: toClientError(error, 'Failed to load assessment') });
+      const status = error.code === "ENOENT" ? 404 : 500;
+      res
+        .status(status)
+        .json({
+          success: false,
+          error: toClientError(error, "Failed to load assessment"),
+        });
     }
   }
 
@@ -150,47 +196,69 @@ class AssessmentController {
     try {
       const assessmentId = this.resolveAssessmentId(req);
       const { format } = req.params;
-      const assessmentPath = path.join(this.assessmentsDir, assessmentId, 'assessment.json');
-      const assessmentData = await fsp.readFile(assessmentPath, 'utf8');
+      const assessmentPath = path.join(
+        this.assessmentsDir,
+        assessmentId,
+        "assessment.json",
+      );
+      const assessmentData = await fsp.readFile(assessmentPath, "utf8");
 
-      if (format === 'json') {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', `attachment; filename="${assessmentId}.json"`);
+      if (format === "json") {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${assessmentId}.json"`,
+        );
         return res.send(assessmentData);
       }
 
       res.json(JSON.parse(assessmentData));
     } catch (error) {
-      const status = error.code === 'ENOENT' ? 404 : 500;
-      res.status(status).json({ success: false, error: toClientError(error, 'Failed to download assessment') });
+      const status = error.code === "ENOENT" ? 404 : 500;
+      res
+        .status(status)
+        .json({
+          success: false,
+          error: toClientError(error, "Failed to download assessment"),
+        });
     }
   }
 
   async readAssessment(assessmentId) {
     try {
-      const assessmentPath = path.join(this.assessmentsDir, assessmentId, 'assessment.json');
-      const assessmentData = await fsp.readFile(assessmentPath, 'utf8');
+      const assessmentPath = path.join(
+        this.assessmentsDir,
+        assessmentId,
+        "assessment.json",
+      );
+      const assessmentData = await fsp.readFile(assessmentPath, "utf8");
       return JSON.parse(assessmentData);
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.code === "ENOENT") {
         const notFound = new Error(`Assessment ${assessmentId} not found`);
-        notFound.code = 'ENOENT';
+        notFound.code = "ENOENT";
         throw notFound;
       }
-      throw new Error(`Failed to read assessment ${assessmentId}: ${error.message}`);
+      throw new Error(
+        `Failed to read assessment ${assessmentId}: ${error.message}`,
+      );
     }
   }
 
   async cloneRepo(repoUrl, targetDir) {
     try {
       const safeUrl = validateRepoUrl(repoUrl);
-      const cloneInto = path.join(targetDir, 'repo');
+      const cloneInto = path.join(targetDir, "repo");
       await fsp.mkdir(cloneInto, { recursive: true });
-      await execFileAsync('git', ['clone', '--depth', '1', safeUrl, cloneInto], {
-        cwd: PROJECT_ROOT,
-        timeout: constants.TIMEOUT_2M,
-        maxBuffer: 10 * constants.BYTES_PER_KB * constants.BYTES_PER_KB
-      });
+      await execFileAsync(
+        "git",
+        ["clone", "--depth", "1", safeUrl, cloneInto],
+        {
+          cwd: PROJECT_ROOT,
+          timeout: constants.TIMEOUT_2M,
+          maxBuffer: 10 * constants.BYTES_PER_KB * constants.BYTES_PER_KB,
+        },
+      );
       return cloneInto;
     } catch (error) {
       throw new Error(`Failed to clone repository: ${error.message}`);
@@ -199,12 +267,12 @@ class AssessmentController {
 
   async removeClonedSource(assessmentDir) {
     try {
-      const repoPath = path.join(assessmentDir, 'repo');
+      const repoPath = path.join(assessmentDir, "repo");
       if (fs.existsSync(repoPath)) {
         await fsp.rm(repoPath, { recursive: true, force: true });
       }
     } catch (error) {
-      logger.warn('[Assessment] removeClonedSource error:', error.message);
+      logger.warn("[Assessment] removeClonedSource error:", error.message);
     }
   }
 
@@ -213,13 +281,20 @@ class AssessmentController {
       const resolvedPath = path.resolve(projectPath);
       const { platformRoot } = resolvePlatformRoot(resolvedPath);
       const config = loadSimplebeaconConfig(platformRoot);
-      const report = await runScan(resolvedPath, { config, configPath: config.configPath });
+      const report = await runScan(resolvedPath, {
+        config,
+        configPath: config.configPath,
+      });
       const gateResult = evaluateGate(report, config.gate);
       const formatted = formatJsonReport(report, gateResult);
 
-      const reportOut = path.join(resolvedPath, '.simplebeacon', 'report.json');
+      const reportOut = path.join(resolvedPath, ".simplebeacon", "report.json");
       await fsp.mkdir(path.dirname(reportOut), { recursive: true });
-      await fsp.writeFile(reportOut, `${JSON.stringify(formatted, null, 2)}\n`, 'utf8');
+      await fsp.writeFile(
+        reportOut,
+        `${JSON.stringify(formatted, null, 2)}\n`,
+        "utf8",
+      );
 
       return formatted;
     } catch (error) {

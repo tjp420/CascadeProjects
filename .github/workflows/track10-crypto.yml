@@ -9,27 +9,27 @@ name: Track 10 Crypto Gate
 
 on:
   push:
-    branches: [main, develop, 'feature/track10-**', 'feature/track11-**']
+    branches: [main, develop, "feature/track10-**", "feature/track11-**"]
     paths:
-      - 'ai-platform/server/lib/hsm-adapter/**'
-      - 'ai-platform/server/lib/keyring-serializer.cjs'
-      - 'ai-platform/server/lib/aes-kw.cjs'
-      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
-      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
-      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
-      - 'ai-platform/server/lib/__tests__/vectors/**'
-      - '.github/workflows/track10-crypto.yml'
+      - "ai-platform/server/lib/hsm-adapter/**"
+      - "ai-platform/server/lib/keyring-serializer.cjs"
+      - "ai-platform/server/lib/aes-kw.cjs"
+      - "ai-platform/server/lib/__tests__/aes-kw-vectors*"
+      - "ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs"
+      - "ai-platform/server/lib/__tests__/hsm-integration.test.cjs"
+      - "ai-platform/server/lib/__tests__/vectors/**"
+      - ".github/workflows/track10-crypto.yml"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'ai-platform/server/lib/hsm-adapter/**'
-      - 'ai-platform/server/lib/keyring-serializer.cjs'
-      - 'ai-platform/server/lib/aes-kw.cjs'
-      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
-      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
-      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
-      - 'ai-platform/server/lib/__tests__/vectors/**'
-      - '.github/workflows/track10-crypto.yml'
+      - "ai-platform/server/lib/hsm-adapter/**"
+      - "ai-platform/server/lib/keyring-serializer.cjs"
+      - "ai-platform/server/lib/aes-kw.cjs"
+      - "ai-platform/server/lib/__tests__/aes-kw-vectors*"
+      - "ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs"
+      - "ai-platform/server/lib/__tests__/hsm-integration.test.cjs"
+      - "ai-platform/server/lib/__tests__/vectors/**"
+      - ".github/workflows/track10-crypto.yml"
   workflow_dispatch: {}
 
 jobs:
@@ -44,8 +44,8 @@ jobs:
       SOFTHSM2_CONF: /tmp/softhsm2/softhsm2.conf
       SOFTHSM2_TOKENS: /tmp/softhsm2/tokens
       TRACK10_TOKEN_LABEL: Track10-Token
-      TRACK10_TOKEN_PIN: '1234'
-      TRACK10_TOKEN_SO_PIN: '5678'
+      TRACK10_TOKEN_PIN: "1234"
+      TRACK10_TOKEN_SO_PIN: "5678"
 
     steps:
       - name: Checkout repository
@@ -57,8 +57,8 @@ jobs:
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: package-lock.json
 
       - name: Install system dependencies (SoftHSM2 + build tools)

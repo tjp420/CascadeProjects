@@ -127,10 +127,17 @@ export function IdentityFederationDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Failed to save config'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to save config');
+        return;
+      }
       toast.success('Config saved');
       setConfig(data.config);
-    } catch { toast.error('Failed to save config'); } finally { setSaving(false); }
+    } catch {
+      toast.error('Failed to save config');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleEnabled = async () => {
@@ -143,7 +150,9 @@ export function IdentityFederationDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const toggleJit = async () => {
@@ -156,7 +165,9 @@ export function IdentityFederationDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const toggleAutoDeprovision = async () => {
@@ -169,23 +180,38 @@ export function IdentityFederationDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const resetConfig = async () => {
     try {
       const resp = await fetch(apiUrl('/identity-federation/config/reset'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Config reset'); fetchAll(); }
-    } catch { toast.error('Failed to reset'); }
+      if (data.success) {
+        toast.success('Config reset');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to reset');
+    }
   };
 
   const clearHistory = async () => {
     try {
-      const resp = await fetch(apiUrl('/identity-federation/history/clear'), { method: 'POST', headers: authHeaders() });
+      const resp = await fetch(apiUrl('/identity-federation/history/clear'), {
+        method: 'POST',
+        headers: authHeaders(),
+      });
       const data = await resp.json();
-      if (data.success) { toast.success('History cleared'); fetchAll(); }
-    } catch { toast.error('Failed to clear'); }
+      if (data.success) {
+        toast.success('History cleared');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to clear');
+    }
   };
 
   const runTestResolution = async () => {
@@ -198,12 +224,17 @@ export function IdentityFederationDashboard() {
         body: JSON.stringify({ userInfo: parsed }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Test failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Test failed');
+        return;
+      }
       setTestResult(data.resolution);
       toast.success('Resolution tested');
     } catch (e) {
       toast.error('Invalid JSON input');
-    } finally { setTesting(false); }
+    } finally {
+      setTesting(false);
+    }
   };
 
   const roleColor = (role: string) => {
@@ -223,8 +254,16 @@ export function IdentityFederationDashboard() {
 
   const formatTime = (ts: string | null) => {
     if (!ts) return '\u2014';
-    try { return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return ts; }
+    try {
+      return new Date(ts).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return ts;
+    }
   };
 
   if (loading && !stats) {
@@ -353,7 +392,11 @@ export function IdentityFederationDashboard() {
                   onChange={(e) => setDefaultRole(e.target.value)}
                   className="w-full text-sm border border-border rounded-md px-2 py-1 bg-background"
                 >
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -363,12 +406,21 @@ export function IdentityFederationDashboard() {
                   onChange={(e) => setDefaultTrustLevel(e.target.value)}
                   className="w-full text-sm border border-border rounded-md px-2 py-1 bg-background"
                 >
-                  {TRUST_LEVELS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TRUST_LEVELS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Deprovision after (days)</label>
-                <Input value={deprovisionDays} onChange={(e) => setDeprovisionDays(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={deprovisionDays}
+                  onChange={(e) => setDeprovisionDays(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
             </div>
             <Button variant="default" size="sm" onClick={saveConfig} disabled={saving}>
@@ -386,7 +438,9 @@ export function IdentityFederationDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <label className="text-xs text-foreground-muted">Paste IdP userInfo JSON (OIDC userinfo or SAML attributes)</label>
+              <label className="text-xs text-foreground-muted">
+                Paste IdP userInfo JSON (OIDC userinfo or SAML attributes)
+              </label>
               <textarea
                 value={testUserInfo}
                 onChange={(e) => setTestUserInfo(e.target.value)}
@@ -402,18 +456,29 @@ export function IdentityFederationDashboard() {
               <div className="rounded-md border border-border bg-muted/10 p-3 space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-foreground-muted">Resolved role:</span>
-                  <Badge variant={roleColor(testResult.role) as any} className="text-[10px]">{testResult.role}</Badge>
-                  <Badge variant={sourceColor(testResult.source) as any} className="text-[10px]">{testResult.source}</Badge>
+                  <Badge variant={roleColor(testResult.role) as any} className="text-[10px]">
+                    {testResult.role}
+                  </Badge>
+                  <Badge variant={sourceColor(testResult.source) as any} className="text-[10px]">
+                    {testResult.source}
+                  </Badge>
                 </div>
-                <div><span className="text-foreground-muted">Trust level:</span> {testResult.trustLevel}</div>
+                <div>
+                  <span className="text-foreground-muted">Trust level:</span> {testResult.trustLevel}
+                </div>
                 {testResult.matchedRule && (
-                  <div><span className="text-foreground-muted">Matched rule:</span> <code className="text-[10px]">{testResult.matchedRule}</code></div>
+                  <div>
+                    <span className="text-foreground-muted">Matched rule:</span>{' '}
+                    <code className="text-[10px]">{testResult.matchedRule}</code>
+                  </div>
                 )}
                 {testResult.groups && testResult.groups.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     <span className="text-foreground-muted">Groups:</span>
                     {testResult.groups.map((g: string) => (
-                      <Badge key={g} variant="outline" className="text-[9px]">{g}</Badge>
+                      <Badge key={g} variant="outline" className="text-[9px]">
+                        {g}
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -445,18 +510,24 @@ export function IdentityFederationDashboard() {
               {history.map((evt) => (
                 <div key={evt.id} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={roleColor(evt.role) as any} className="text-[10px]">{evt.role}</Badge>
-                    <Badge variant={sourceColor(evt.roleSource) as any} className="text-[10px]">{evt.roleSource}</Badge>
+                    <Badge variant={roleColor(evt.role) as any} className="text-[10px]">
+                      {evt.role}
+                    </Badge>
+                    <Badge variant={sourceColor(evt.roleSource) as any} className="text-[10px]">
+                      {evt.roleSource}
+                    </Badge>
                     <span className="font-medium">{evt.email}</span>
                     <span className="text-foreground-muted">via {evt.providerId}</span>
                     <span className="font-mono text-foreground-muted ml-auto">{formatTime(evt.timestamp)}</span>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[10px] text-foreground-muted">
                     <span>Trust: {evt.trustLevel}</span>
-                    {evt.matchedRule && <span>Rule: <code>{evt.matchedRule}</code></span>}
-                    {evt.groups && evt.groups.length > 0 && (
-                      <span>Groups: {evt.groups.join(', ')}</span>
+                    {evt.matchedRule && (
+                      <span>
+                        Rule: <code>{evt.matchedRule}</code>
+                      </span>
                     )}
+                    {evt.groups && evt.groups.length > 0 && <span>Groups: {evt.groups.join(', ')}</span>}
                   </div>
                 </div>
               ))}

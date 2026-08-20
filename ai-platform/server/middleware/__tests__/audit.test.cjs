@@ -14,24 +14,26 @@
 // const request = require('supertest');
 // const app = require('../../index.cjs');
 
-describe('Audit Middleware (scaffold)', () => {
-	beforeEach(() => {
-		// TODO: reset audit store mock, clear test fixtures
-	});
+describe("Audit Middleware (scaffold)", () => {
+  beforeEach(() => {
+    // TODO: reset audit store mock, clear test fixtures
+  });
 
-	afterEach(() => {
-		// TODO: restore mocks if any
-	});
-	test('Audit module exposes expected API', () => {
-		const audit = require('../../middleware/audit.cjs');
-		expect(audit).toBeDefined();
-		expect(typeof audit.queryAuditLogs).toBe('function');
-		expect(typeof audit.initializeAudit).toBe('function');
-	});
+  afterEach(() => {
+    // TODO: restore mocks if any
+  });
+  test("Audit module exposes expected API", () => {
+    const audit = require("../../middleware/audit.cjs");
+    expect(audit).toBeDefined();
+    expect(typeof audit.queryAuditLogs).toBe("function");
+    expect(typeof audit.initializeAudit).toBe("function");
+  });
 
-	test.todo('Audit log write operations record expected fields and metadata');
-	test.todo('Log retention and rotation enforces configured retention windows');
-	test.todo('Query filtering returns correct subset by workspace/action/severity');
-	test.todo('Compliance export formats: generate valid JSON and CSV outputs');
-	test.todo('Tamper-evident integrity: hash chain verification and detection');
+  test.todo("Audit log write operations record expected fields and metadata");
+  test.todo("Log retention and rotation enforces configured retention windows");
+  test.todo(
+    "Query filtering returns correct subset by workspace/action/severity",
+  );
+  test.todo("Compliance export formats: generate valid JSON and CSV outputs");
+  test.todo("Tamper-evident integrity: hash chain verification and detection");
 });

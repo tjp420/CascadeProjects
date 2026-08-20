@@ -13,7 +13,7 @@ stages:
 
 variables:
   SIMPLEBEACON_SCAN_ARGS: "--full --gate"
-  SIMPLEBEACON_FAIL_ON: "high"  # critical | high | medium | low | never
+  SIMPLEBEACON_FAIL_ON: "high" # critical | high | medium | low | never
   SIMPLEBEACON_OUTPUT_FORMAT: "json"
   SIMPLEBEACON_REPORT_PATH: ".simplebeacon/report.json"
 

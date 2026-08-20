@@ -110,7 +110,7 @@ const QUICK_ACTIONS = {
         name: 'Production Data Leak',
         quickFixes: [
             {
-                pattern: new RegExp("['\"`][^'\"`]*(?:\\/|\\\\)mock(?:\\/|\\\\)[^'\"`]+['\"`]"),
+                pattern: new RegExp('[\'"`][^\'"`]*(?:\\/|\\\\)mock(?:\\/|\\\\)[^\'"`]+[\'"`]'),
                 suggestion: 'Remove non-production data references from code or use environment-specific loading',
                 example: {
                     before: 'const data = require("./test-datasets/users.json");',
@@ -118,7 +118,7 @@ const QUICK_ACTIONS = {
                 }
             },
             {
-                pattern: new RegExp("['\"`][^'\"`]*(?:\\/|\\\\)fixtures(?:\\/|\\\\)[^'\"`]+['\"`]"),
+                pattern: new RegExp('[\'"`][^\'"`]*(?:\\/|\\\\)fixtures(?:\\/|\\\\)[^\'"`]+[\'"`]'),
                 suggestion: 'Remove staging config references from production code or use conditional loading',
                 example: {
                     before: 'const config = require("./staging-configs/config.json");',
@@ -244,8 +244,7 @@ const QUICK_ACTIONS = {
  */
 function getQuickAction(patternId, matchedText) {
     const pattern = QUICK_ACTIONS[patternId];
-    if (!pattern)
-        return null;
+    if (!pattern) return null;
     // Find matching quick fix based on the matched text
     const quickFix = pattern.quickFixes.find(fix => fix.pattern.test(matchedText));
     if (!quickFix) {

@@ -1,12 +1,20 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
 import { authService } from '../services/authService.js?v=20260716cachefix1';
-import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+    buildScanConclusion,
+    getScanFileMetrics,
+    resolveDisplayScore,
+    resolveJestTestsLabel,
+    resolvePageSpecsLabel,
+    renderScanScopePanel
+} from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
-const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
+const PRIVACY_NOTICE_TEXT =
+    '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
 function renderPrivacyBanner() {
     if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
         return '';
@@ -33,8 +41,7 @@ function renderPrivacyCard() {
 function bindPrivacyBanner(container) {
     const banner = container.querySelector('#dash-privacy-banner');
     const closeBtn = container.querySelector('#dash-privacy-banner-close');
-    if (!banner || !closeBtn)
-        return;
+    if (!banner || !closeBtn) return;
     closeBtn.addEventListener('click', () => {
         banner.style.display = 'none';
         if (typeof localStorage !== 'undefined') {
@@ -55,7 +62,7 @@ function convertSandboxReportToSimplebeacon(report, projectPath) {
     const high = Number(cert.highRiskCount) || 0;
     const medium = Number(cert.mediumRiskCount) || 0;
     const totalFiles = report.discoveredFiles || report.files.length;
-    const rawIssues = logs.map((entry) => ({
+    const rawIssues = logs.map(entry => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
         type: entry.type || 'Security',
         filePath: entry.filePath || '',
@@ -219,14 +226,16 @@ export class DashboardView {
         const projectName = report
             ? (report.projectRoot || report.projectPath || 'Active Project').split(/[\\/]/).pop()
             : 'No Active Project';
-        const statusChip = report && report.gate
-            ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
-            : '';
+        const statusChip =
+            report && report.gate
+                ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
+                : '';
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        const adminBtn = (typeof authService !== 'undefined' && authService.isAdmin && authService.isAdmin())
-            ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
-            : '';
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        const adminBtn =
+            typeof authService !== 'undefined' && authService.isAdmin && authService.isAdmin()
+                ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
+                : '';
         header.innerHTML = `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -247,7 +256,7 @@ export class DashboardView {
         const card = document.createElement('div');
         card.className = 'card text-center p-5 mx-auto my-4';
         card.style.maxWidth = '480px';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         card.innerHTML = `
             <div style="margin-bottom:var(--space-3);"><span class="loading-spinner" style="width:48px;height:48px;"></span></div>
             <h2 style="font-size:var(--font-size-xl); margin-bottom:var(--space-2);">Scanning…</h2>
@@ -262,7 +271,7 @@ export class DashboardView {
         view.className = 'card text-center p-5 mx-auto my-4';
         view.style.maxWidth = '680px';
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         view.innerHTML = `
             <div class="mb-4">
                 <i data-lucide="folder-search" class="text-muted" style="width:48px;height:48px;"></i>
@@ -304,12 +313,11 @@ export class DashboardView {
         const gatePass = !!(report.gate && report.gate.pass);
         const sev = report.severityCounts || {};
         const qualityScore = typeof report.qualityScore === 'number' ? report.qualityScore : 0;
-        const filesEvaluated = report.ruleScopedFilesAnalyzed != null
-            ? report.ruleScopedFilesAnalyzed
-            : (report.repositoryFilesTotal || 0);
+        const filesEvaluated =
+            report.ruleScopedFilesAnalyzed != null ? report.ruleScopedFilesAnalyzed : report.repositoryFilesTotal || 0;
         const repoTotal = report.repositoryFilesTotal || 0;
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         grid.innerHTML = `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
@@ -372,19 +380,21 @@ export class DashboardView {
         `;
 
         const issueSlot = grid.querySelector('#dashboard-issue-list-slot');
-        issueSlot.appendChild(renderIssueList(categories, {
-            onSelect: (cat) => this.app.navigate('results', { filter: cat })
-        }));
+        issueSlot.appendChild(
+            renderIssueList(categories, {
+                onSelect: cat => this.app.navigate('results', { filter: cat })
+            })
+        );
 
         const trendSlot = grid.querySelector('#slot-trend');
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         trendSlot.innerHTML = renderTrendSection(this.app.state.history);
 
         return grid;
     }
 
     bindEvents(view) {
-        view.querySelectorAll('[data-action]').forEach((el) => {
+        view.querySelectorAll('[data-action]').forEach(el => {
             const action = el.getAttribute('data-action');
             const mode = el.getAttribute('data-mode');
             const handler = () => {
@@ -417,7 +427,7 @@ export class DashboardView {
             };
             el.addEventListener('click', handler);
             if (el.classList.contains('bento-card-interactive')) {
-                el.addEventListener('keydown', (e) => {
+                el.addEventListener('keydown', e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         handler();
@@ -436,8 +446,7 @@ export class DashboardView {
                 history: this.app.state.history,
                 dashboardHome: this.app.state.dashboardHome
             });
-        }
-        else {
+        } else {
             this.app.scanService.exportReport();
         }
     }
@@ -453,7 +462,8 @@ export class DashboardView {
             gatePass: report.gate ? report.gate.pass : 'N/A',
             qualityScore: report.qualityScore != null ? report.qualityScore : 'N/A',
             totalIssues: allIssues.length,
-            filesScanned: report.repositoryFilesTotal != null ? report.repositoryFilesTotal : (report.totalFiles || 'N/A'),
+            filesScanned:
+                report.repositoryFilesTotal != null ? report.repositoryFilesTotal : report.totalFiles || 'N/A',
             reportType: report.type || 'simplebeacon'
         };
         const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
@@ -471,8 +481,7 @@ export class DashboardView {
                 });
                 showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
                 return;
-            }
-            catch (err) {
+            } catch (err) {
                 console['warn']('[AI-Send] vscode.postMessage failed:', err);
             }
         }
@@ -493,28 +502,26 @@ export class DashboardView {
                     try {
                         await navigator.clipboard.writeText(json.content);
                         showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                    } catch (clipErr) {
+                        showToast(
+                            'AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md',
+                            'success'
+                        );
                     }
-                    catch (clipErr) {
-                        showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
-                    }
-                }
-                else {
+                } else {
                     showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
                 }
-            }
-            else {
+            } else {
                 showToast('Failed: ' + (json.error || 'Unknown'), 'error');
             }
-        }
-        catch (err) {
+        } catch (err) {
             showToast('Network error: ' + err.message, 'error');
         }
     }
 
     async ensureReportEnriched() {
         const report = this.app.state.report;
-        if (!report)
-            return;
+        if (!report) return;
         const enriched = await this.app.scanService.enrichReport(report);
         if (enriched !== report) {
             this.app.state.report = enriched;
@@ -524,26 +531,22 @@ export class DashboardView {
     }
 
     mount(container) {
-        if (this._trendCleanup)
-            this._trendCleanup();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        if (this._trendCleanup) this._trendCleanup();
+        // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
-        if (!this.app.state.report)
-            return;
+        if (!this.app.state.report) return;
         this.ensureReportEnriched();
         requestAnimationFrame(() => {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
         });
-        if (typeof window.lucide !== 'undefined')
-            window.lucide.createIcons();
+        if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
     }
 
     destroy() {
-        if (this._trendCleanup)
-            this._trendCleanup();
+        if (this._trendCleanup) this._trendCleanup();
     }
 }

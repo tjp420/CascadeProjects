@@ -796,7 +796,12 @@
         },
         "simplebeacon.contextGuardMode": {
           "type": "string",
-          "enum": ["off", "silent", "toast", "both"],
+          "enum": [
+            "off",
+            "silent",
+            "toast",
+            "both"
+          ],
           "default": "both",
           "enumDescriptions": [
             "No context guard — full content always sent to engine",

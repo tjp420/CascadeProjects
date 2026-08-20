@@ -4,21 +4,21 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'ai-platform/server/config/stripe.cjs'
-      - 'ai-platform/src/api/billing/**'
-      - 'ai-platform/config/stripe_product_catalog.json'
-      - 'ai-platform/server/routes/stripe-webhook-routes.cjs'
-      - 'ai-platform/server/routes/stripe-webhook-routes.test.cjs'
-      - 'ai-platform/test-fixtures/stripe/**'
+      - "ai-platform/server/config/stripe.cjs"
+      - "ai-platform/src/api/billing/**"
+      - "ai-platform/config/stripe_product_catalog.json"
+      - "ai-platform/server/routes/stripe-webhook-routes.cjs"
+      - "ai-platform/server/routes/stripe-webhook-routes.test.cjs"
+      - "ai-platform/test-fixtures/stripe/**"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'ai-platform/server/config/stripe.cjs'
-      - 'ai-platform/src/api/billing/**'
-      - 'ai-platform/config/stripe_product_catalog.json'
-      - 'ai-platform/server/routes/stripe-webhook-routes.cjs'
-      - 'ai-platform/server/routes/stripe-webhook-routes.test.cjs'
-      - 'ai-platform/test-fixtures/stripe/**'
+      - "ai-platform/server/config/stripe.cjs"
+      - "ai-platform/src/api/billing/**"
+      - "ai-platform/config/stripe_product_catalog.json"
+      - "ai-platform/server/routes/stripe-webhook-routes.cjs"
+      - "ai-platform/server/routes/stripe-webhook-routes.test.cjs"
+      - "ai-platform/test-fixtures/stripe/**"
 
 jobs:
   compliance-test:
@@ -34,8 +34,8 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: ai-platform/package.json
 
       - name: Install Dependencies

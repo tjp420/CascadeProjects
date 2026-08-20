@@ -9,7 +9,7 @@ name: SimpleBeacon Nightly Scan
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -25,8 +25,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install workspace
         run: npm ci --ignore-scripts
@@ -36,9 +36,9 @@ jobs:
 
       - name: Run Complete Scan (offline, with Jest)
         env:
-          SIMPLEBEACON_PARALLEL: '1'
-          SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
-          SIMPLEBEACON_OFFLINE: '1'
+          SIMPLEBEACON_PARALLEL: "1"
+          SIMPLEBEACON_PARALLEL_MIN_FILES: "48"
+          SIMPLEBEACON_OFFLINE: "1"
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path ai-platform \

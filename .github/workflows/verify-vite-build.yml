@@ -2,11 +2,11 @@ name: Vite Build & Export Verification Check
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
     paths:
-      - 'ai-platform/web/simplebeacon-dashboard/**'
-      - '.github/workflows/verify-vite-build.yml'
+      - "ai-platform/web/simplebeacon-dashboard/**"
+      - ".github/workflows/verify-vite-build.yml"
 
 jobs:
   build-and-smoke:
@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
       - name: Install Application Dependencies

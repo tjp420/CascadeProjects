@@ -102,18 +102,18 @@ export class CliReportUploadZone {
 
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
-            this._handleError(new Error(
-                `File too large (${this._formatBytes(file.size)}). Maximum size is ${this._formatBytes(MAX_FILE_SIZE)}.`
-            ));
+            this._handleError(
+                new Error(
+                    `File too large (${this._formatBytes(file.size)}). Maximum size is ${this._formatBytes(MAX_FILE_SIZE)}.`
+                )
+            );
             return null;
         }
 
         // Validate file extension
         const ext = this._getFileExtension(file.name);
         if (!ACCEPTED_EXTENSIONS.includes(ext)) {
-            this._handleError(new Error(
-                `Unsupported file type: ${ext}. Please upload a .json file.`
-            ));
+            this._handleError(new Error(`Unsupported file type: ${ext}. Please upload a .json file.`));
             return null;
         }
 
@@ -198,14 +198,14 @@ export class CliReportUploadZone {
         browseBtn?.addEventListener('click', this._boundHandlers.browseClick);
 
         // Click on zone itself (but not when clicking paste area)
-        this._boundHandlers.zoneClick = (e) => {
+        this._boundHandlers.zoneClick = e => {
             if (e.target.closest('.cli-upload-paste-area') || e.target.closest('button')) return;
             this._fileInput?.click();
         };
         this._dropZone.addEventListener('click', this._boundHandlers.zoneClick);
 
         // File input change
-        this._boundHandlers.fileChange = async (e) => {
+        this._boundHandlers.fileChange = async e => {
             const file = e.target.files?.[0];
             if (file) await this.loadFromFile(file);
             e.target.value = '';
@@ -213,9 +213,9 @@ export class CliReportUploadZone {
         this._fileInput?.addEventListener('change', this._boundHandlers.fileChange);
 
         // Drag and drop
-        this._boundHandlers.dragOver = (e) => this._onDragOver(e);
-        this._boundHandlers.dragLeave = (e) => this._onDragLeave(e);
-        this._boundHandlers.drop = (e) => this._onDrop(e);
+        this._boundHandlers.dragOver = e => this._onDragOver(e);
+        this._boundHandlers.dragLeave = e => this._onDragLeave(e);
+        this._boundHandlers.drop = e => this._onDrop(e);
         this._dropZone.addEventListener('dragover', this._boundHandlers.dragOver);
         this._dropZone.addEventListener('dragleave', this._boundHandlers.dragLeave);
         this._dropZone.addEventListener('drop', this._boundHandlers.drop);
@@ -268,9 +268,12 @@ export class CliReportUploadZone {
                 pasteToggle: this._dropZone.querySelector('.cli-upload-paste-btn'),
                 pasteSubmit: this._dropZone.querySelector('.cli-upload-paste-submit'),
                 pasteCancel: this._dropZone.querySelector('.cli-upload-paste-cancel'),
-                sampleClick: this._dropZone.querySelector('.cli-upload-sample-btn'),
+                sampleClick: this._dropZone.querySelector('.cli-upload-sample-btn')
             };
-            targets[name]?.removeEventListener(name.replace(/([A-Z])/g, (_, c) => c.toLowerCase()).replace(/^./, c => c.toLowerCase()), handler);
+            targets[name]?.removeEventListener(
+                name.replace(/([A-Z])/g, (_, c) => c.toLowerCase()).replace(/^./, c => c.toLowerCase()),
+                handler
+            );
         }
         this._boundHandlers = {};
     }
@@ -332,18 +335,21 @@ export class CliReportUploadZone {
         }
 
         // Check for SimpleBeacon report markers
-        const isSbReport = rawReport.type?.includes('simplebeacon')
-            || rawReport.reportVersion !== undefined
-            || rawReport.gate !== undefined
-            || rawReport.severityCounts !== undefined
-            || rawReport.rawIssues !== undefined
-            || rawReport.scan_summary !== undefined;
+        const isSbReport =
+            rawReport.type?.includes('simplebeacon') ||
+            rawReport.reportVersion !== undefined ||
+            rawReport.gate !== undefined ||
+            rawReport.severityCounts !== undefined ||
+            rawReport.rawIssues !== undefined ||
+            rawReport.scan_summary !== undefined;
 
         if (!isSbReport) {
-            this._handleError(new Error(
-                'File does not appear to be a SimpleBeacon CLI report. ' +
-                'Expected fields: type, reportVersion, gate, severityCounts, or rawIssues.'
-            ));
+            this._handleError(
+                new Error(
+                    'File does not appear to be a SimpleBeacon CLI report. ' +
+                        'Expected fields: type, reportVersion, gate, severityCounts, or rawIssues.'
+                )
+            );
             return null;
         }
 
@@ -387,7 +393,7 @@ export class CliReportUploadZone {
         const colors = {
             info: 'var(--text-muted, #94a3b8)',
             success: '#10B981',
-            error: '#EF4444',
+            error: '#EF4444'
         };
         status.style.color = colors[type] || colors.info;
         status.textContent = message;
@@ -396,7 +402,7 @@ export class CliReportUploadZone {
     _readFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
+            reader.onload = e => resolve(e.target.result);
             reader.onerror = () => reject(new Error('FileReader error'));
             reader.readAsText(file);
         });

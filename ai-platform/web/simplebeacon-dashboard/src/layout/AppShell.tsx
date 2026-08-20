@@ -1,7 +1,7 @@
 // simplebeacon-ignore: mega-params — conservative suppression; plan refactor later
-import { useState } from 'react';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
+import { useState } from "react";
+import { Header } from "./Header";
+import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
   currentView: string;
@@ -12,12 +12,21 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier, user, children }: AppShellProps) {
+export function AppShell({
+  currentView,
+  onNavigate,
+  isAuthenticated,
+  isFreeTier,
+  user,
+  children,
+}: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = !!(
     user &&
-    ['admin', 'owner', 'superuser', 'superadmin'].includes(String(user.role || '').toLowerCase())
+    ["admin", "owner", "superuser", "superadmin"].includes(
+      String(user.role || "").toLowerCase(),
+    )
   );
 
   return (
@@ -45,7 +54,10 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
           isFreeTier={isFreeTier}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main id="main-content" className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
+        <main
+          id="main-content"
+          className="flex-1 overflow-y-auto scrollbar-thin min-h-0"
+        >
           {children}
         </main>
       </div>

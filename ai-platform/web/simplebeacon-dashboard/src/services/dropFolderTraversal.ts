@@ -16,7 +16,9 @@ type TraversalState = {
 const DEFAULT_MAX_FILES = 999_999_999; // No cap — scan all files (matches legacy /audit page)
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
-export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {
+export function captureDropEntries(
+  items: DataTransferItemList | null | undefined,
+): FileSystemEntry[] {
   const entries: FileSystemEntry[] = [];
   if (!items) return entries;
   try {
@@ -24,8 +26,10 @@ export function captureDropEntries(items: DataTransferItemList | null | undefine
     if (!len) return entries;
     for (let i = 0; i < len; i += 1) {
       try {
-        const item = items[i] as DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null };
-        if (typeof item.webkitGetAsEntry !== 'function') continue;
+        const item = items[i] as DataTransferItem & {
+          webkitGetAsEntry?: () => FileSystemEntry | null;
+        };
+        if (typeof item.webkitGetAsEntry !== "function") continue;
         const entry = item.webkitGetAsEntry();
         if (entry) entries.push(entry);
       } catch {
@@ -43,7 +47,7 @@ async function traverseFileSystemEntry(
   parentPath: string,
   files: VirtualFile[],
   state: TraversalState,
-  onProgress?: (fileCount: number) => void
+  onProgress?: (fileCount: number) => void,
 ): Promise<void> {
   if (files.length >= state.maxFiles) return;
 
@@ -58,14 +62,14 @@ async function traverseFileSystemEntry(
             (file) => {
               const virtualFile = file as VirtualFile;
               try {
-                Object.defineProperty(virtualFile, 'webkitRelativePath', {
-                  value: currentPath.replace(/\\/g, '/'),
+                Object.defineProperty(virtualFile, "webkitRelativePath", {
+                  value: currentPath.replace(/\\/g, "/"),
                   configurable: true,
                 });
               } catch {
                 /* ignore */
               }
-              virtualFile._virtualPath = currentPath.replace(/\\/g, '/');
+              virtualFile._virtualPath = currentPath.replace(/\\/g, "/");
               files.push(virtualFile);
               if (onProgress) onProgress(files.length);
               resolve();
@@ -73,7 +77,7 @@ async function traverseFileSystemEntry(
             () => {
               state.errors += 1;
               resolve();
-            }
+            },
           );
         } catch {
           state.errors += 1;
@@ -102,7 +106,13 @@ async function traverseFileSystemEntry(
       });
       for (const child of batch) {
         if (files.length >= state.maxFiles) break;
-        await traverseFileSystemEntry(child, currentPath, files, state, onProgress);
+        await traverseFileSystemEntry(
+          child,
+          currentPath,
+          files,
+          state,
+          onProgress,
+        );
       }
     } while (batch.length > 0 && files.length < state.maxFiles);
   } catch {
@@ -111,19 +121,25 @@ async function traverseFileSystemEntry(
   }
 }
 
-function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualFile[]): void {
+function appendFlatDataTransferFiles(
+  dataTransfer: DataTransfer,
+  files: VirtualFile[],
+): void {
   if (!dataTransfer.files?.length) return;
   const dtFiles = Array.from(dataTransfer.files);
   const hasRelativePath = dtFiles.some((f) => {
-    const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
-    return rel && rel.includes('/');
+    const rel = (f as File & { webkitRelativePath?: string })
+      .webkitRelativePath;
+    return rel && rel.includes("/");
   });
 
   if (hasRelativePath) {
     for (const f of dtFiles) {
       const virtualFile = f as VirtualFile;
-      const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
-      virtualFile._virtualPath = rel.replace(/\\/g, '/');
+      const rel =
+        (f as File & { webkitRelativePath?: string }).webkitRelativePath ||
+        f.name;
+      virtualFile._virtualPath = rel.replace(/\\/g, "/");
       files.push(virtualFile);
     }
     return;
@@ -133,7 +149,10 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
     const virtualFile = f as VirtualFile;
     const rel = f.name;
     try {
-      Object.defineProperty(virtualFile, 'webkitRelativePath', { value: rel, configurable: true });
+      Object.defineProperty(virtualFile, "webkitRelativePath", {
+        value: rel,
+        configurable: true,
+      });
     } catch {
       /* ignore */
     }
@@ -148,18 +167,20 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 export async function collectFilesFromDrop(
   dataTransfer: DataTransfer | undefined,
   preCapturedEntries?: FileSystemEntry[],
-  options: { maxFiles?: number; onProgress?: (fileCount: number) => void } = {}
+  options: { maxFiles?: number; onProgress?: (fileCount: number) => void } = {},
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
     maxFiles: options.maxFiles ?? DEFAULT_MAX_FILES,
   };
   const files: VirtualFile[] = [];
-  const entries = preCapturedEntries ?? (dataTransfer ? captureDropEntries(dataTransfer.items) : []);
+  const entries =
+    preCapturedEntries ??
+    (dataTransfer ? captureDropEntries(dataTransfer.items) : []);
 
   for (const entry of entries) {
     if (files.length >= state.maxFiles) break;
-    await traverseFileSystemEntry(entry, '', files, state, options.onProgress);
+    await traverseFileSystemEntry(entry, "", files, state, options.onProgress);
   }
 
   if (files.length === 0 && dataTransfer) {
@@ -170,11 +191,12 @@ export async function collectFilesFromDrop(
     }
   }
 
-  const firstRel = files[0]?._virtualPath
-    || (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath
-    || files[0]?.name
-    || 'dropped-folder';
-  const rootName = String(firstRel).split('/')[0] || 'dropped-folder';
+  const firstRel =
+    files[0]?._virtualPath ||
+    (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath ||
+    files[0]?.name ||
+    "dropped-folder";
+  const rootName = String(firstRel).split("/")[0] || "dropped-folder";
 
   return { files, rootName, traverseErrors: state.errors };
 }

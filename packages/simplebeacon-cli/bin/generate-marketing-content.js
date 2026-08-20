@@ -9,21 +9,21 @@
  *   node bin/generate-marketing-content.js --complete-scan .simplebeacon/latest-scan.json --all
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 const {
   generateMarketingContent,
-  generateAllChannels
-} = require('../src/lib/marketing/marketing-content-generator');
+  generateAllChannels,
+} = require("../src/lib/marketing/marketing-content-generator");
 
 function parseArgs(argv) {
   const args = { _rest: [] };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg.startsWith('--')) {
+    if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = argv[i + 1];
-      if (next && !next.startsWith('--')) {
+      if (next && !next.startsWith("--")) {
         args[key] = next;
         i++;
       } else {
@@ -42,7 +42,7 @@ function loadReport(reportPath) {
     process.exit(1);
   }
   try {
-    return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    return JSON.parse(fs.readFileSync(reportPath, "utf8"));
   } catch (err) {
     console.error(`Failed to parse report: ${err.message}`);
     process.exit(1);
@@ -76,29 +76,33 @@ Examples:
   }
 
   let report;
-  if (args['complete-scan']) {
-    const complete = loadReport(args['complete-scan']);
+  if (args["complete-scan"]) {
+    const complete = loadReport(args["complete-scan"]);
     report = complete.results?.simplebeacon || complete;
-    report.projectName = report.projectName
-      || complete.projectName
-      || complete.projectPath
-      || (complete.scanTargetRoot ? path.basename(complete.scanTargetRoot) : null)
-      || 'your project';
-    report.scanTargetRoot = report.scanTargetRoot || complete.scanTargetRoot || null;
+    report.projectName =
+      report.projectName ||
+      complete.projectName ||
+      complete.projectPath ||
+      (complete.scanTargetRoot
+        ? path.basename(complete.scanTargetRoot)
+        : null) ||
+      "your project";
+    report.scanTargetRoot =
+      report.scanTargetRoot || complete.scanTargetRoot || null;
   } else if (args.report) {
     report = loadReport(args.report);
   } else {
-    console.error('Error: --report or --complete-scan is required');
+    console.error("Error: --report or --complete-scan is required");
     process.exit(1);
   }
 
-  const outputDir = path.resolve(args.output || './marketing-content');
+  const outputDir = path.resolve(args.output || "./marketing-content");
 
   if (args.all) {
     const results = generateAllChannels(report, {
       tone: args.tone,
       industry: args.industry,
-      outputDir
+      outputDir,
     });
     console.log(`Generated marketing content in ${outputDir}:`);
     for (const [channel, filePath] of Object.entries(results)) {
@@ -108,17 +112,22 @@ Examples:
     const content = generateMarketingContent(report, {
       channel: args.channel,
       tone: args.tone,
-      industry: args.industry
+      industry: args.industry,
     });
-    const ext = args.channel === 'twitter' ? 'txt' : args.channel === 'landing-page' ? 'html' : 'md';
+    const ext =
+      args.channel === "twitter"
+        ? "txt"
+        : args.channel === "landing-page"
+          ? "html"
+          : "md";
     const outFile = path.join(outputDir, `simplebeacon-${args.channel}.${ext}`);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
-    fs.writeFileSync(outFile, content, 'utf8');
+    fs.writeFileSync(outFile, content, "utf8");
     console.log(`Generated ${args.channel} content: ${outFile}`);
   } else {
-    console.error('Error: --channel or --all is required');
+    console.error("Error: --channel or --all is required");
     process.exit(1);
   }
 }

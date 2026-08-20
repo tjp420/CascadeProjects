@@ -33,14 +33,15 @@ export function renderOnboarding() {
   title.id = 'onboarding-title';
   title.textContent = '🛡️ Welcome to Simplebeacon';
   const desc = document.createElement('p');
-  desc.textContent = 'Your automated code security checkpoint — like airport security for every change before it reaches production.';
+  desc.textContent =
+    'Your automated code security checkpoint — like airport security for every change before it reaches production.';
   const list = document.createElement('ul');
   list.className = 'modal-checklist';
   [
     'Scans on commit, push, CI, and on demand',
     'Credential leaks, production mock paths, schema drift',
     'Fictional KPIs in sample JSON (62%, 47 features, etc.)',
-    'Blocks high-severity issues; shows exactly what to fix'
+    'Blocks high-severity issues; shows exactly what to fix',
   ].forEach((text) => {
     const li = document.createElement('li');
     li.textContent = text;

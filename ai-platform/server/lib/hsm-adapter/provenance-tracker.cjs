@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 16: Key provenance ledger.
@@ -11,10 +11,10 @@
  * @module hsm-adapter/provenance-tracker
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
-const DEFAULT_HASH = 'sha256';
+const DEFAULT_HASH = "sha256";
 
 function _canonicalJson(obj) {
   const sorted = {};
@@ -25,13 +25,13 @@ function _canonicalJson(obj) {
 }
 
 function _normalizeKeySize(info) {
-  if (typeof info.keySize === 'number') return info.keySize;
-  if (typeof info.kekBits === 'number') return info.kekBits;
+  if (typeof info.keySize === "number") return info.keySize;
+  if (typeof info.kekBits === "number") return info.kekBits;
   return null;
 }
 
 function _createRootKeyPair() {
-  return crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  return crypto.generateKeyPairSync("ec", { namedCurve: "P-256" });
 }
 
 class ProvenanceTracker {
@@ -43,8 +43,10 @@ class ProvenanceTracker {
    * @param {string} [options.hardwareRootToken] - hardware root anchor
    */
   constructor(options = {}) {
-    this._buildHash = options.buildHash || process.env.SB_BUILD_HASH || 'unknown-build';
-    this._hardwareRootToken = options.hardwareRootToken || crypto.randomBytes(16).toString('hex');
+    this._buildHash =
+      options.buildHash || process.env.SB_BUILD_HASH || "unknown-build";
+    this._hardwareRootToken =
+      options.hardwareRootToken || crypto.randomBytes(16).toString("hex");
     if (options.privateKey && options.publicKey) {
       this._privateKey = options.privateKey;
       this._publicKey = options.publicKey;
@@ -62,12 +64,16 @@ class ProvenanceTracker {
   }
 
   _hash(data) {
-    return crypto.createHash(DEFAULT_HASH).update(data).digest('hex');
+    return crypto.createHash(DEFAULT_HASH).update(data).digest("hex");
   }
 
   _sign(record) {
     const payload = _canonicalJson(record);
-    return crypto.sign(DEFAULT_HASH, Buffer.from(payload, 'utf8'), this._privateKey);
+    return crypto.sign(
+      DEFAULT_HASH,
+      Buffer.from(payload, "utf8"),
+      this._privateKey,
+    );
   }
 
   /**
@@ -78,11 +84,17 @@ class ProvenanceTracker {
    * @returns {object} signed provenance record
    */
   register(tenantId, kekId, info) {
-    if (typeof tenantId !== 'string' || tenantId.length === 0) {
-      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', 'tenantId must be a non-empty string');
+    if (typeof tenantId !== "string" || tenantId.length === 0) {
+      throw new HsmAdapterError(
+        "UNAUTHORIZED_KEY_ACCESS",
+        "tenantId must be a non-empty string",
+      );
     }
-    if (typeof kekId !== 'string' || kekId.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'kekId must be a non-empty string');
+    if (typeof kekId !== "string" || kekId.length === 0) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "kekId must be a non-empty string",
+      );
     }
     const keySize = _normalizeKeySize(info);
     const createdAt = info.createdAt || Date.now();
@@ -99,7 +111,7 @@ class ProvenanceTracker {
     };
 
     const signature = this._sign(unsigned);
-    const record = { ...unsigned, signature: signature.toString('base64') };
+    const record = { ...unsigned, signature: signature.toString("base64") };
     this._records.set(kekId, record);
     this._lastRecordHash = this._hash(_canonicalJson(record));
     return record;
@@ -121,21 +133,30 @@ class ProvenanceTracker {
    */
   verify(record) {
     if (!_isRecord(record)) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Invalid provenance record structure');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Invalid provenance record structure",
+      );
     }
     if (record.hardwareRootToken !== this._hardwareRootToken) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance hardware root token mismatch');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance hardware root token mismatch",
+      );
     }
     const { signature, ...unsigned } = record;
     const payload = _canonicalJson(unsigned);
     const valid = crypto.verify(
       DEFAULT_HASH,
-      Buffer.from(payload, 'utf8'),
+      Buffer.from(payload, "utf8"),
       this._publicKey,
-      Buffer.from(signature, 'base64')
+      Buffer.from(signature, "base64"),
     );
     if (!valid) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance record signature verification failed');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance record signature verification failed",
+      );
     }
     return true;
   }
@@ -149,26 +170,40 @@ class ProvenanceTracker {
   validate(kekId, info) {
     const record = this.getRecord(kekId);
     if (!record) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', `No provenance record found for ${kekId}`);
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        `No provenance record found for ${kekId}`,
+      );
     }
     this.verify(record);
 
     if (record.tenantId !== info.tenantId) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance tenantId mismatch');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance tenantId mismatch",
+      );
     }
     if (record.algorithm !== info.algorithm) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance algorithm mismatch');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance algorithm mismatch",
+      );
     }
     const keySize = _normalizeKeySize(info);
     if (record.keySize !== keySize) {
-      throw new HsmAdapterError('KEY_PROVENANCE_CORRUPTED', 'Provenance keySize mismatch');
+      throw new HsmAdapterError(
+        "KEY_PROVENANCE_CORRUPTED",
+        "Provenance keySize mismatch",
+      );
     }
     return true;
   }
 }
 
 function _isRecord(record) {
-  return record && typeof record === 'object' && typeof record.kekId === 'string';
+  return (
+    record && typeof record === "object" && typeof record.kekId === "string"
+  );
 }
 
 module.exports = {

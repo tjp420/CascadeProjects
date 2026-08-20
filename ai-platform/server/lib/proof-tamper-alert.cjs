@@ -1,15 +1,17 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const siem = require('./siem-exporter.cjs');
-const auditLogger = require('./audit-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const siem = require("./siem-exporter.cjs");
+const auditLogger = require("./audit-logger.cjs");
 
 // Configurable via env
 const WINDOW_HOURS = Number(process.env.PROOF_TAMPER_WINDOW_HOURS || 24);
 const THRESHOLD = Number(process.env.PROOF_TAMPER_THRESHOLD || 3);
 // Audit suppression interval in minutes (separate from tamper window). Default 15 minutes.
-const AUDIT_SUPPRESSION_MINUTES = Number(process.env.PROOF_TAMPER_AUDIT_SUPPRESSION_MINUTES || 15);
+const AUDIT_SUPPRESSION_MINUTES = Number(
+  process.env.PROOF_TAMPER_AUDIT_SUPPRESSION_MINUTES || 15,
+);
 const PERSIST_PATH = process.env.PROOF_TAMPER_PERSIST_PATH || null;
 const PERSIST_INTERVAL_MS = 60 * 1000; // persist every minute when enabled
 
@@ -25,16 +27,20 @@ class ProofTamperAlert {
 
     if (this._persistPath) {
       this._loadFromDisk();
-      this._persistTimer = setInterval(() => this._saveToDisk().catch(() => {}), PERSIST_INTERVAL_MS);
-      if (this._persistTimer && this._persistTimer.unref) this._persistTimer.unref();
+      this._persistTimer = setInterval(
+        () => this._saveToDisk().catch(() => {}),
+        PERSIST_INTERVAL_MS,
+      );
+      if (this._persistTimer && this._persistTimer.unref)
+        this._persistTimer.unref();
     }
   }
 
   _loadFromDisk() {
     try {
       if (!fs.existsSync(this._persistPath)) return;
-      const raw = fs.readFileSync(this._persistPath, 'utf8');
-      const obj = JSON.parse(raw || '{}');
+      const raw = fs.readFileSync(this._persistPath, "utf8");
+      const obj = JSON.parse(raw || "{}");
       for (const k of Object.keys(obj)) {
         this._map.set(k, (obj[k] || []).map((t) => Number(t)).filter(Boolean));
       }
@@ -47,8 +53,12 @@ class ProofTamperAlert {
     try {
       const out = {};
       for (const [k, arr] of this._map.entries()) out[k] = arr.slice();
-      await fs.promises.mkdir(path.dirname(this._persistPath), { recursive: true });
-      await fs.promises.writeFile(this._persistPath, JSON.stringify(out), { encoding: 'utf8' });
+      await fs.promises.mkdir(path.dirname(this._persistPath), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(this._persistPath, JSON.stringify(out), {
+        encoding: "utf8",
+      });
     } catch (e) {
       // swallow
     }
@@ -61,7 +71,7 @@ class ProofTamperAlert {
 
   recordFailure(payloadHash, reason) {
     try {
-      if (!payloadHash) payloadHash = '(unknown)';
+      if (!payloadHash) payloadHash = "(unknown)";
       const now = Date.now();
       const arr = this._map.get(payloadHash) || [];
       arr.push(now);
@@ -75,7 +85,8 @@ class ProofTamperAlert {
       const alertSuppression = this._windowMs; // suppress alerts for window length
 
       // Audit log suppression: configurable shorter interval (minutes) to avoid log DoS
-      const auditSuppressionMs = (Number(AUDIT_SUPPRESSION_MINUTES) || 15) * 60 * 1000;
+      const auditSuppressionMs =
+        (Number(AUDIT_SUPPRESSION_MINUTES) || 15) * 60 * 1000;
       const lastAudit = this._lastAuditLog.get(payloadHash) || 0;
       const allowAudit = now - lastAudit > auditSuppressionMs;
 
@@ -84,9 +95,9 @@ class ProofTamperAlert {
         // update lastAudit to avoid duplicate PROOF_VERIFY_FAILED near the alert
         this._lastAuditLog.set(payloadHash, now);
 
-        const severity = (reason === 'numeric_oversize') ? 'CRITICAL' : 'HIGH';
+        const severity = reason === "numeric_oversize" ? "CRITICAL" : "HIGH";
         const event = {
-          event_type: 'PROOF_TAMPER_ALERT',
+          event_type: "PROOF_TAMPER_ALERT",
           payloadHash,
           reason,
           count,
@@ -94,8 +105,17 @@ class ProofTamperAlert {
           severity,
           timestamp: new Date(now).toISOString(),
         };
-        try { auditLogger.log({ action: 'PROOF_TAMPER_ALERT', entity: 'partial_share_proof', entityId: payloadHash, metadata: { reason, count, window_hours: WINDOW_HOURS, severity } }); } catch (e) {}
-        try { siem.enqueue(event); } catch (e) {}
+        try {
+          auditLogger.log({
+            action: "PROOF_TAMPER_ALERT",
+            entity: "partial_share_proof",
+            entityId: payloadHash,
+            metadata: { reason, count, window_hours: WINDOW_HOURS, severity },
+          });
+        } catch (e) {}
+        try {
+          siem.enqueue(event);
+        } catch (e) {}
         return { alerted: true, event, allowAudit };
       }
       // No alert emitted; indicate whether a PROOF_VERIFY_FAILED audit log is allowed

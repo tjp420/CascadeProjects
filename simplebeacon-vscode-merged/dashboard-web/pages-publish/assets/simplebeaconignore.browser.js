@@ -16,26 +16,21 @@ function globToRegex(pattern) {
       if (pattern[i + 1] === '/') {
         regex += '(?:.*/)?';
         i += 1;
-      }
-      else {
+      } else {
         regex += '.*';
       }
-    }
-    else if (c === '*') {
+    } else if (c === '*') {
       regex += '[^/]*';
-    }
-    else if (c === '?') {
+    } else if (c === '?') {
       regex += '[^/]';
-    }
-    else {
+    } else {
       regex += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
     }
   }
   regex += '$';
   try {
     return new RegExp(regex);
-  }
-  catch {
+  } catch {
     return /(?!)/;
   }
 }
@@ -61,7 +56,7 @@ const BROWSER_BUILTIN_IGNORE_GENERIC = Object.freeze([
   '**/*.test.mjs',
   '**/*.spec.js',
   '**/*.spec.cjs',
-  '**/*.vsix'
+  '**/*.vsix',
 ]);
 
 /** Additional SimpleBeacon-specific patterns (only applied when scanning the SimpleBeacon monorepo). */
@@ -202,7 +197,7 @@ const BROWSER_BUILTIN_IGNORE_SIMPLEBEACON = Object.freeze([
   '**/local-agent/agent.cjs',
   // --- 2026-07-22: Legacy dashboard + completeScanAnalysis false positives ---
   '**/web/dashboard/**',
-  '**/web/simplebeacon-dashboard/js-es2018/utils/completeScanAnalysis.js'
+  '**/web/simplebeacon-dashboard/js-es2018/utils/completeScanAnalysis.js',
 ]);
 
 /** Detect whether the scan target is the SimpleBeacon monorepo. */
@@ -213,8 +208,16 @@ export function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
   }
   if (Array.isArray(fileQueue)) {
     for (let i = 0; i < Math.min(fileQueue.length, 500); i++) {
-      const p = String((fileQueue[i] && (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) || '').replace(/\\/g, '/');
-      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)) {
+      const p = String(
+        (fileQueue[i] &&
+          (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) ||
+          ''
+      ).replace(/\\/g, '/');
+      if (
+        /\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(
+          p
+        )
+      ) {
         return true;
       }
     }
@@ -295,11 +298,17 @@ export function shouldSkipSandboxScanFile(virtualPath, isSimplebeaconMonorepo) {
   if (/(?:^|\/)(?:tests?|fixtures?|mocks?)(?:\/|$)/i.test(normalized)) return true;
   // SimpleBeacon-specific skip patterns — only for the SimpleBeacon monorepo
   if (isSimplebeaconMonorepo) {
-    if (isIgnoredPath(normalized, [...BROWSER_BUILTIN_IGNORE_GENERIC, ...BROWSER_BUILTIN_IGNORE_SIMPLEBEACON])) return true;
+    if (isIgnoredPath(normalized, [...BROWSER_BUILTIN_IGNORE_GENERIC, ...BROWSER_BUILTIN_IGNORE_SIMPLEBEACON]))
+      return true;
     if (/(?:^|\/)(?:simplebeacon-rule-tests|guardrail-test-bench)(?:\/|$)/i.test(normalized)) return true;
     if (/(?:^|\/)(?:scan-exports|out|\.vscode-test)(?:\/|$)/i.test(normalized)) return true;
     if (/simplebeacon-report\.json$/i.test(normalized)) return true;
-    if (/credential-pattern-scanner|scanner-patterns|report-sanitizer|browserSandboxScanService|codebase-analyzer-patterns|code-hygiene-certificate|-export\.browser\.js|AboutView\.js/i.test(normalized)) return true;
+    if (
+      /credential-pattern-scanner|scanner-patterns|report-sanitizer|browserSandboxScanService|codebase-analyzer-patterns|code-hygiene-certificate|-export\.browser\.js|AboutView\.js/i.test(
+        normalized
+      )
+    )
+      return true;
     if (/(?:^|\/)packages\/simplebeacon-cli\/src\/(?:compliance-rules|proxy)\//i.test(normalized)) return true;
     if (/(?:^|\/)packages\/simplebeacon-intelligence\//i.test(normalized)) return true;
     if (/(?:^|\/)local-agent\//i.test(normalized)) return true;
@@ -359,8 +368,10 @@ export function shouldSkipSandboxScanFile(virtualPath, isSimplebeaconMonorepo) {
 /** True when SB-05 (compliance drift) should not run on this path. */
 export function shouldSkipSandboxComplianceDrift(virtualPath) {
   const normalized = normalizeSandboxScanPath(virtualPath);
-  return /(?:^|\/)web\/simplebeacon-dashboard\//i.test(normalized)
-    || /(?:^|\/)server\/lib\/codebase-analyzer\.cjs$/i.test(normalized);
+  return (
+    /(?:^|\/)web\/simplebeacon-dashboard\//i.test(normalized) ||
+    /(?:^|\/)server\/lib\/codebase-analyzer\.cjs$/i.test(normalized)
+  );
 }
 
 export function isIgnoredVirtualPath(virtualPath, scanRootName, ignorePatterns) {
@@ -375,7 +386,7 @@ export function createIgnoreContext(patterns, scanRootName, source, isSimplebeac
     patterns: resolved,
     scanRootName: scanRootName || '',
     source: source || (hasPatterns ? 'simplebeaconignore' : 'builtin'),
-    isSimplebeaconMonorepo: !!isSimplebeaconMonorepo
+    isSimplebeaconMonorepo: !!isSimplebeaconMonorepo,
   };
 }
 
@@ -402,8 +413,7 @@ export async function detectSimplebeaconMonorepoAsync(dirHandle) {
       try {
         await dirHandle.getDirectoryHandle(marker);
         return true;
-      }
-      catch {
+      } catch {
         // marker not found — try next
       }
     }
@@ -415,18 +425,25 @@ export async function detectSimplebeaconMonorepoAsync(dirHandle) {
 export async function loadIgnorePatternsFromDirHandle(dirHandle) {
   const isSimplebeaconMonorepo = await detectSimplebeaconMonorepoAsync(dirHandle);
   if (!dirHandle || typeof dirHandle.getFileHandle !== 'function') {
-    return { patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo), source: 'builtin', isSimplebeaconMonorepo };
+    return {
+      patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo),
+      source: 'builtin',
+      isSimplebeaconMonorepo,
+    };
   }
   try {
     const ignoreHandle = await dirHandle.getFileHandle('.simplebeaconignore');
     const file = await ignoreHandle.getFile();
     const patterns = parseSimplebeaconIgnoreText(await file.text());
     if (patterns.length) return { patterns, source: 'simplebeaconignore', isSimplebeaconMonorepo };
-  }
-  catch {
+  } catch {
     // Dotfile missing from picker — fall back to built-in exclusions.
   }
-  return { patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo), source: 'builtin', isSimplebeaconMonorepo };
+  return {
+    patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo),
+    source: 'builtin',
+    isSimplebeaconMonorepo,
+  };
 }
 
 export async function extractIgnorePatternsFromLegacyFiles(files) {
@@ -440,10 +457,13 @@ export async function extractIgnorePatternsFromLegacyFiles(files) {
     try {
       const patterns = parseSimplebeaconIgnoreText(await ignoreFile.text());
       if (patterns.length) return { patterns, source: 'simplebeaconignore', isSimplebeaconMonorepo };
-    }
-    catch {
+    } catch {
       // Fall through to built-in list.
     }
   }
-  return { patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo), source: 'builtin', isSimplebeaconMonorepo };
+  return {
+    patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo),
+    source: 'builtin',
+    isSimplebeaconMonorepo,
+  };
 }

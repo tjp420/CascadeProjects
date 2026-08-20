@@ -1,46 +1,46 @@
-name: 'SimpleBeacon AI Guardrails'
-description: 'The AI Circuit Breaker for PRs. Catch security leaks, compliance drift, and rogue logic in AI-generated code.'
-author: 'SimpleBeacon.ai'
+name: "SimpleBeacon AI Guardrails"
+description: "The AI Circuit Breaker for PRs. Catch security leaks, compliance drift, and rogue logic in AI-generated code."
+author: "SimpleBeacon.ai"
 branding:
-  icon: 'shield'
-  color: 'blue'
+  icon: "shield"
+  color: "blue"
 
 inputs:
   token:
-    description: 'GitHub token for posting PR comments'
+    description: "GitHub token for posting PR comments"
     required: true
     default: ${{ github.token }}
   license-token:
-    description: 'Your SimpleBeacon.ai Team License Token (leave blank for free community sandbox mode)'
+    description: "Your SimpleBeacon.ai Team License Token (leave blank for free community sandbox mode)"
     required: false
   fail-on:
-    description: 'Minimum severity level to trigger a non-zero exit code and block the merge (low, medium, high, critical)'
+    description: "Minimum severity level to trigger a non-zero exit code and block the merge (low, medium, high, critical)"
     required: false
-    default: 'high'
+    default: "high"
   scan-args:
-    description: 'Extra arguments passed to simplebeacon scan (default includes --gate --diff)'
+    description: "Extra arguments passed to simplebeacon scan (default includes --gate --diff)"
     required: false
-    default: '--gate --diff'
+    default: "--gate --diff"
   base-ref:
-    description: 'Git base ref for diff-only scans (defaults to PR base branch)'
+    description: "Git base ref for diff-only scans (defaults to PR base branch)"
     required: false
-    default: ''
+    default: ""
   full-scan:
-    description: 'Set to true to scan the entire repository instead of just the git diff'
+    description: "Set to true to scan the entire repository instead of just the git diff"
     required: false
-    default: 'false'
+    default: "false"
   strict-license:
-    description: 'Fail-closed on expired or invalid license tokens (default: false, fail-open to community mode with warning)'
+    description: "Fail-closed on expired or invalid license tokens (default: false, fail-open to community mode with warning)"
     required: false
-    default: 'false'
+    default: "false"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: "22"
 
     - name: Install SimpleBeacon
       shell: bash

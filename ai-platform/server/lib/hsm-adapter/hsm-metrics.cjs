@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Stage 3: HSM adapter metrics registry.
@@ -955,857 +955,3238 @@ const counters = {
 const LATENCY_BUCKETS = [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
 
 const histograms = {
-  hsm_wrap_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
-  hsm_unwrap_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
-  hsm_create_kek_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
+  hsm_wrap_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
+  hsm_unwrap_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
+  hsm_create_kek_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
   // DKG round duration histogram (PR #391 — DKG gossip protocol)
-  hsm_dkg_round_duration_ms: { buckets: [100, 500, 1000, 5000, 10000, 30000, 60000], counts: new Array(8).fill(0), sum: 0, count: 0 },
+  hsm_dkg_round_duration_ms: {
+    buckets: [100, 500, 1000, 5000, 10000, 30000, 60000],
+    counts: new Array(8).fill(0),
+    sum: 0,
+    count: 0,
+  },
   // Track 112: upload and proof verification latency
-  hsm_track112_upload_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
-  hsm_track112_proof_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
-  hsm_track112_worker_duration_ms: { buckets: LATENCY_BUCKETS, counts: new Array(LATENCY_BUCKETS.length + 1).fill(0), sum: 0, count: 0 },
+  hsm_track112_upload_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
+  hsm_track112_proof_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
+  hsm_track112_worker_duration_ms: {
+    buckets: LATENCY_BUCKETS,
+    counts: new Array(LATENCY_BUCKETS.length + 1).fill(0),
+    sum: 0,
+    count: 0,
+  },
 };
 
 // Metadata for Prometheus exposition
 const META = {
-  hsm_wrap_total: { help: 'Total HSM wrapKey operations initiated.', type: 'counter' },
-  hsm_wrap_failures_total: { help: 'Total HSM wrapKey operations that failed.', type: 'counter' },
-  hsm_unwrap_total: { help: 'Total HSM unwrapKey operations initiated.', type: 'counter' },
-  hsm_unwrap_failures_total: { help: 'Total HSM unwrapKey operations that failed.', type: 'counter' },
-  hsm_create_kek_total: { help: 'Total KEK creation operations initiated.', type: 'counter' },
-  hsm_create_kek_failures_total: { help: 'Total KEK creation operations that failed.', type: 'counter' },
-  hsm_rotate_kek_total: { help: 'Total KEK rotation operations initiated.', type: 'counter' },
-  hsm_zeroize_total: { help: 'Total KEK zeroization operations completed.', type: 'counter' },
-  hsm_circuit_opened_total: { help: 'Total times the HSM circuit breaker transitioned to OPEN state.', type: 'counter' },
-  hsm_circuit_closed_total: { help: 'Total times the HSM circuit breaker transitioned to CLOSED state.', type: 'counter' },
-  hsm_circuit_half_open_total: { help: 'Total times the HSM circuit breaker transitioned to HALF-OPEN state.', type: 'counter' },
-  hsm_recovery_started_total: { help: 'Total cluster node recovery sessions started.', type: 'counter' },
-  hsm_recovery_synced_total: { help: 'Total cluster node recovery sessions that reached synced state.', type: 'counter' },
-  hsm_recovery_failures_total: { help: 'Total cluster node recovery sessions that failed.', type: 'counter' },
-  hsm_recovery_catchup_batches_total: { help: 'Total catch-up batches applied during recovery sync.', type: 'counter' },
-  hsm_consensus_leader_elections_total: { help: 'Total leader election cycles started.', type: 'counter' },
-  hsm_consensus_leader_elections_won_total: { help: 'Total leader elections won by this node.', type: 'counter' },
-  hsm_consensus_quorum_lost_total: { help: 'Total times quorum was lost during consensus operations.', type: 'counter' },
-  hsm_consensus_log_replicated_total: { help: 'Total log entries replicated to followers.', type: 'counter' },
-  hsm_consensus_log_committed_total: { help: 'Total log entries committed via quorum.', type: 'counter' },
-  hsm_consensus_heartbeats_sent_total: { help: 'Total leader heartbeats sent to followers.', type: 'counter' },
-  hsm_consensus_rpc_signed_total: { help: 'Total outbound RPC frames signed with Ed25519.', type: 'counter' },
-  hsm_consensus_rpc_verified_total: { help: 'Total inbound RPC frames successfully verified.', type: 'counter' },
-  hsm_consensus_signature_invalid_total: { help: 'Total inbound RPC frames with invalid signatures.', type: 'counter' },
-  hsm_consensus_peer_key_unknown_total: { help: 'Total inbound RPC frames from peers with no registered public key.', type: 'counter' },
-  hsm_consensus_replay_detected_total: { help: 'Total RPC frames rejected as replayed (stale nonce or expired timestamp).', type: 'counter' },
-  hsm_consensus_nonce_stale_total: { help: 'Total RPC frames rejected with stale nonce (non-monotonic).', type: 'counter' },
-  hsm_consensus_timestamp_expired_total: { help: 'Total RPC frames rejected due to expired timestamp.', type: 'counter' },
-  hsm_consensus_peer_key_added_total: { help: 'Total peer public keys added via quorum-gated rotation.', type: 'counter' },
-  hsm_consensus_peer_key_revoked_total: { help: 'Total peer public keys revoked via quorum-gated rotation.', type: 'counter' },
-  hsm_consensus_peer_key_rotation_blocked_total: { help: 'Total peer key rotation attempts blocked (not leader, key not found, etc.).', type: 'counter' },
-  hsm_consensus_snapshot_created_total: { help: 'Total log compaction snapshots created by this node.', type: 'counter' },
-  hsm_consensus_snapshot_installed_total: { help: 'Total snapshots installed from a leader on this node.', type: 'counter' },
-  hsm_consensus_snapshot_rejected_total: { help: 'Total snapshots rejected (stale, invalid signature, etc.).', type: 'counter' },
-  hsm_consensus_outbound_signed_total: { help: 'Total outbound RPC frames auto-signed by the engine.', type: 'counter' },
-  hsm_consensus_outbound_sign_failed_total: { help: 'Total outbound RPC frames that failed auto-signing.', type: 'counter' },
+  hsm_wrap_total: {
+    help: "Total HSM wrapKey operations initiated.",
+    type: "counter",
+  },
+  hsm_wrap_failures_total: {
+    help: "Total HSM wrapKey operations that failed.",
+    type: "counter",
+  },
+  hsm_unwrap_total: {
+    help: "Total HSM unwrapKey operations initiated.",
+    type: "counter",
+  },
+  hsm_unwrap_failures_total: {
+    help: "Total HSM unwrapKey operations that failed.",
+    type: "counter",
+  },
+  hsm_create_kek_total: {
+    help: "Total KEK creation operations initiated.",
+    type: "counter",
+  },
+  hsm_create_kek_failures_total: {
+    help: "Total KEK creation operations that failed.",
+    type: "counter",
+  },
+  hsm_rotate_kek_total: {
+    help: "Total KEK rotation operations initiated.",
+    type: "counter",
+  },
+  hsm_zeroize_total: {
+    help: "Total KEK zeroization operations completed.",
+    type: "counter",
+  },
+  hsm_circuit_opened_total: {
+    help: "Total times the HSM circuit breaker transitioned to OPEN state.",
+    type: "counter",
+  },
+  hsm_circuit_closed_total: {
+    help: "Total times the HSM circuit breaker transitioned to CLOSED state.",
+    type: "counter",
+  },
+  hsm_circuit_half_open_total: {
+    help: "Total times the HSM circuit breaker transitioned to HALF-OPEN state.",
+    type: "counter",
+  },
+  hsm_recovery_started_total: {
+    help: "Total cluster node recovery sessions started.",
+    type: "counter",
+  },
+  hsm_recovery_synced_total: {
+    help: "Total cluster node recovery sessions that reached synced state.",
+    type: "counter",
+  },
+  hsm_recovery_failures_total: {
+    help: "Total cluster node recovery sessions that failed.",
+    type: "counter",
+  },
+  hsm_recovery_catchup_batches_total: {
+    help: "Total catch-up batches applied during recovery sync.",
+    type: "counter",
+  },
+  hsm_consensus_leader_elections_total: {
+    help: "Total leader election cycles started.",
+    type: "counter",
+  },
+  hsm_consensus_leader_elections_won_total: {
+    help: "Total leader elections won by this node.",
+    type: "counter",
+  },
+  hsm_consensus_quorum_lost_total: {
+    help: "Total times quorum was lost during consensus operations.",
+    type: "counter",
+  },
+  hsm_consensus_log_replicated_total: {
+    help: "Total log entries replicated to followers.",
+    type: "counter",
+  },
+  hsm_consensus_log_committed_total: {
+    help: "Total log entries committed via quorum.",
+    type: "counter",
+  },
+  hsm_consensus_heartbeats_sent_total: {
+    help: "Total leader heartbeats sent to followers.",
+    type: "counter",
+  },
+  hsm_consensus_rpc_signed_total: {
+    help: "Total outbound RPC frames signed with Ed25519.",
+    type: "counter",
+  },
+  hsm_consensus_rpc_verified_total: {
+    help: "Total inbound RPC frames successfully verified.",
+    type: "counter",
+  },
+  hsm_consensus_signature_invalid_total: {
+    help: "Total inbound RPC frames with invalid signatures.",
+    type: "counter",
+  },
+  hsm_consensus_peer_key_unknown_total: {
+    help: "Total inbound RPC frames from peers with no registered public key.",
+    type: "counter",
+  },
+  hsm_consensus_replay_detected_total: {
+    help: "Total RPC frames rejected as replayed (stale nonce or expired timestamp).",
+    type: "counter",
+  },
+  hsm_consensus_nonce_stale_total: {
+    help: "Total RPC frames rejected with stale nonce (non-monotonic).",
+    type: "counter",
+  },
+  hsm_consensus_timestamp_expired_total: {
+    help: "Total RPC frames rejected due to expired timestamp.",
+    type: "counter",
+  },
+  hsm_consensus_peer_key_added_total: {
+    help: "Total peer public keys added via quorum-gated rotation.",
+    type: "counter",
+  },
+  hsm_consensus_peer_key_revoked_total: {
+    help: "Total peer public keys revoked via quorum-gated rotation.",
+    type: "counter",
+  },
+  hsm_consensus_peer_key_rotation_blocked_total: {
+    help: "Total peer key rotation attempts blocked (not leader, key not found, etc.).",
+    type: "counter",
+  },
+  hsm_consensus_snapshot_created_total: {
+    help: "Total log compaction snapshots created by this node.",
+    type: "counter",
+  },
+  hsm_consensus_snapshot_installed_total: {
+    help: "Total snapshots installed from a leader on this node.",
+    type: "counter",
+  },
+  hsm_consensus_snapshot_rejected_total: {
+    help: "Total snapshots rejected (stale, invalid signature, etc.).",
+    type: "counter",
+  },
+  hsm_consensus_outbound_signed_total: {
+    help: "Total outbound RPC frames auto-signed by the engine.",
+    type: "counter",
+  },
+  hsm_consensus_outbound_sign_failed_total: {
+    help: "Total outbound RPC frames that failed auto-signing.",
+    type: "counter",
+  },
   // Track 40: Distributed Consensus Coordinator
-  hsm_consensus_coord_groups_created_total: { help: 'Total consensus groups created by the coordinator.', type: 'counter' },
-  hsm_consensus_coord_groups_destroyed_total: { help: 'Total consensus groups destroyed by the coordinator.', type: 'counter' },
-  hsm_consensus_coord_proposals_routed_total: { help: 'Total proposals successfully routed to a consensus group.', type: 'counter' },
-  hsm_consensus_coord_proposals_rejected_total: { help: 'Total proposals rejected (group not found, not active, no routing key, etc.).', type: 'counter' },
-  hsm_consensus_coord_faults_detected_total: { help: 'Total node faults detected by the fault detector.', type: 'counter' },
-  hsm_consensus_coord_view_change_started_total: { help: 'Total view change procedures initiated.', type: 'counter' },
-  hsm_consensus_coord_view_change_completed_total: { help: 'Total view change procedures completed successfully.', type: 'counter' },
-  hsm_consensus_coord_view_change_aborted_total: { help: 'Total view change procedures aborted (timeout, conflict, etc.).', type: 'counter' },
-  hsm_consensus_coord_quorum_verified_total: { help: 'Total proposals that passed cross-group quorum verification.', type: 'counter' },
-  hsm_consensus_coord_quorum_denied_total: { help: 'Total proposals denied due to insufficient quorum.', type: 'counter' },
+  hsm_consensus_coord_groups_created_total: {
+    help: "Total consensus groups created by the coordinator.",
+    type: "counter",
+  },
+  hsm_consensus_coord_groups_destroyed_total: {
+    help: "Total consensus groups destroyed by the coordinator.",
+    type: "counter",
+  },
+  hsm_consensus_coord_proposals_routed_total: {
+    help: "Total proposals successfully routed to a consensus group.",
+    type: "counter",
+  },
+  hsm_consensus_coord_proposals_rejected_total: {
+    help: "Total proposals rejected (group not found, not active, no routing key, etc.).",
+    type: "counter",
+  },
+  hsm_consensus_coord_faults_detected_total: {
+    help: "Total node faults detected by the fault detector.",
+    type: "counter",
+  },
+  hsm_consensus_coord_view_change_started_total: {
+    help: "Total view change procedures initiated.",
+    type: "counter",
+  },
+  hsm_consensus_coord_view_change_completed_total: {
+    help: "Total view change procedures completed successfully.",
+    type: "counter",
+  },
+  hsm_consensus_coord_view_change_aborted_total: {
+    help: "Total view change procedures aborted (timeout, conflict, etc.).",
+    type: "counter",
+  },
+  hsm_consensus_coord_quorum_verified_total: {
+    help: "Total proposals that passed cross-group quorum verification.",
+    type: "counter",
+  },
+  hsm_consensus_coord_quorum_denied_total: {
+    help: "Total proposals denied due to insufficient quorum.",
+    type: "counter",
+  },
   // Track 41: Hardware Enclave Isolation
-  hsm_enclave_bootstrap_total: { help: 'Total enclave bootstrap (initialize) operations.', type: 'counter' },
-  hsm_enclave_bootstrap_failed_total: { help: 'Total enclave bootstrap operations that failed.', type: 'counter' },
-  hsm_enclave_seal_total: { help: 'Total seal operations inside the enclave boundary.', type: 'counter' },
-  hsm_enclave_unseal_total: { help: 'Total unseal operations inside the enclave boundary.', type: 'counter' },
-  hsm_enclave_unseal_failed_total: { help: 'Total unseal operations that failed (tamper or auth tag mismatch).', type: 'counter' },
-  hsm_enclave_key_provisioned_total: { help: 'Total keys provisioned into the enclave after attestation.', type: 'counter' },
-  hsm_enclave_key_provision_blocked_total: { help: 'Total key provisioning attempts blocked (no attestation, untrusted measurement).', type: 'counter' },
-  hsm_enclave_attestation_verified_total: { help: 'Total attestation documents that passed verification.', type: 'counter' },
-  hsm_enclave_attestation_rejected_total: { help: 'Total attestation documents rejected (bad authority, measurement, expired, bad signature).', type: 'counter' },
-  hsm_enclave_active: { help: 'Number of currently active (initialized) enclaves.', type: 'gauge' },
+  hsm_enclave_bootstrap_total: {
+    help: "Total enclave bootstrap (initialize) operations.",
+    type: "counter",
+  },
+  hsm_enclave_bootstrap_failed_total: {
+    help: "Total enclave bootstrap operations that failed.",
+    type: "counter",
+  },
+  hsm_enclave_seal_total: {
+    help: "Total seal operations inside the enclave boundary.",
+    type: "counter",
+  },
+  hsm_enclave_unseal_total: {
+    help: "Total unseal operations inside the enclave boundary.",
+    type: "counter",
+  },
+  hsm_enclave_unseal_failed_total: {
+    help: "Total unseal operations that failed (tamper or auth tag mismatch).",
+    type: "counter",
+  },
+  hsm_enclave_key_provisioned_total: {
+    help: "Total keys provisioned into the enclave after attestation.",
+    type: "counter",
+  },
+  hsm_enclave_key_provision_blocked_total: {
+    help: "Total key provisioning attempts blocked (no attestation, untrusted measurement).",
+    type: "counter",
+  },
+  hsm_enclave_attestation_verified_total: {
+    help: "Total attestation documents that passed verification.",
+    type: "counter",
+  },
+  hsm_enclave_attestation_rejected_total: {
+    help: "Total attestation documents rejected (bad authority, measurement, expired, bad signature).",
+    type: "counter",
+  },
+  hsm_enclave_active: {
+    help: "Number of currently active (initialized) enclaves.",
+    type: "gauge",
+  },
   // Track 42: Enclave Secret-Sealing and Attestation Policy
-  hsm_sealing_policy_validated_total: { help: 'Total seal operations that passed policy validation.', type: 'counter' },
-  hsm_sealing_policy_blocked_total: { help: 'Total seal operations blocked by policy (bad cipher, key too small, data too large, key expired).', type: 'counter' },
-  hsm_unseal_policy_validated_total: { help: 'Total unseal operations that passed policy validation.', type: 'counter' },
-  hsm_unseal_policy_blocked_total: { help: 'Total unseal operations blocked by policy (outside enclave boundary).', type: 'counter' },
-  hsm_attestation_challenge_issued_total: { help: 'Total attestation challenge nonces issued.', type: 'counter' },
-  hsm_attestation_policy_validated_total: { help: 'Total attestation responses that passed policy validation.', type: 'counter' },
-  hsm_attestation_replay_detected_total: { help: 'Total attestation responses rejected as replay attacks.', type: 'counter' },
-  hsm_attestation_expired_total: { help: 'Total attestation responses rejected as expired.', type: 'counter' },
-  hsm_key_provisioning_validated_total: { help: 'Total key provisioning operations that passed policy validation.', type: 'counter' },
-  hsm_key_provisioning_blocked_total: { help: 'Total key provisioning operations blocked by policy (no attestation, bad key type, too many keys).', type: 'counter' },
-  hsm_sealed_keys_tracked: { help: 'Number of currently tracked sealed keys.', type: 'gauge' },
+  hsm_sealing_policy_validated_total: {
+    help: "Total seal operations that passed policy validation.",
+    type: "counter",
+  },
+  hsm_sealing_policy_blocked_total: {
+    help: "Total seal operations blocked by policy (bad cipher, key too small, data too large, key expired).",
+    type: "counter",
+  },
+  hsm_unseal_policy_validated_total: {
+    help: "Total unseal operations that passed policy validation.",
+    type: "counter",
+  },
+  hsm_unseal_policy_blocked_total: {
+    help: "Total unseal operations blocked by policy (outside enclave boundary).",
+    type: "counter",
+  },
+  hsm_attestation_challenge_issued_total: {
+    help: "Total attestation challenge nonces issued.",
+    type: "counter",
+  },
+  hsm_attestation_policy_validated_total: {
+    help: "Total attestation responses that passed policy validation.",
+    type: "counter",
+  },
+  hsm_attestation_replay_detected_total: {
+    help: "Total attestation responses rejected as replay attacks.",
+    type: "counter",
+  },
+  hsm_attestation_expired_total: {
+    help: "Total attestation responses rejected as expired.",
+    type: "counter",
+  },
+  hsm_key_provisioning_validated_total: {
+    help: "Total key provisioning operations that passed policy validation.",
+    type: "counter",
+  },
+  hsm_key_provisioning_blocked_total: {
+    help: "Total key provisioning operations blocked by policy (no attestation, bad key type, too many keys).",
+    type: "counter",
+  },
+  hsm_sealed_keys_tracked: {
+    help: "Number of currently tracked sealed keys.",
+    type: "gauge",
+  },
   // Track 43: Multiparty Auditing and Remote Attestation Logs
-  hsm_audit_entry_appended_total: { help: 'Total audit entries appended to the multiparty log.', type: 'counter' },
-  hsm_audit_entry_committed_total: { help: 'Total audit entries committed (reached min verifier signatures).', type: 'counter' },
-  hsm_audit_entry_pending: { help: 'Number of audit entries currently pending verification.', type: 'gauge' },
-  hsm_audit_signature_added_total: { help: 'Total verifier signatures added to audit entries.', type: 'counter' },
-  hsm_audit_verification_timeout_total: { help: 'Total audit entries that timed out before reaching quorum.', type: 'counter' },
-  hsm_audit_duplicate_signature_total: { help: 'Total duplicate verifier signature attempts rejected.', type: 'counter' },
-  hsm_audit_chain_verified_total: { help: 'Total successful full-chain integrity verifications.', type: 'counter' },
-  hsm_audit_chain_broken_total: { help: 'Total chain integrity verification failures (tamper detected).', type: 'counter' },
-  hsm_audit_verifier_registered_total: { help: 'Total verifiers registered to the audit log.', type: 'counter' },
-  hsm_audit_event_type_blocked_total: { help: 'Total audit events rejected due to disallowed event type.', type: 'counter' },
-  hsm_audit_committed_entries: { help: 'Number of committed entries in the audit log.', type: 'gauge' },
+  hsm_audit_entry_appended_total: {
+    help: "Total audit entries appended to the multiparty log.",
+    type: "counter",
+  },
+  hsm_audit_entry_committed_total: {
+    help: "Total audit entries committed (reached min verifier signatures).",
+    type: "counter",
+  },
+  hsm_audit_entry_pending: {
+    help: "Number of audit entries currently pending verification.",
+    type: "gauge",
+  },
+  hsm_audit_signature_added_total: {
+    help: "Total verifier signatures added to audit entries.",
+    type: "counter",
+  },
+  hsm_audit_verification_timeout_total: {
+    help: "Total audit entries that timed out before reaching quorum.",
+    type: "counter",
+  },
+  hsm_audit_duplicate_signature_total: {
+    help: "Total duplicate verifier signature attempts rejected.",
+    type: "counter",
+  },
+  hsm_audit_chain_verified_total: {
+    help: "Total successful full-chain integrity verifications.",
+    type: "counter",
+  },
+  hsm_audit_chain_broken_total: {
+    help: "Total chain integrity verification failures (tamper detected).",
+    type: "counter",
+  },
+  hsm_audit_verifier_registered_total: {
+    help: "Total verifiers registered to the audit log.",
+    type: "counter",
+  },
+  hsm_audit_event_type_blocked_total: {
+    help: "Total audit events rejected due to disallowed event type.",
+    type: "counter",
+  },
+  hsm_audit_committed_entries: {
+    help: "Number of committed entries in the audit log.",
+    type: "gauge",
+  },
   // Track 44: Distributed Sharding and Cross-Enclave State Sync
-  hsm_cross_enclave_registered_total: { help: 'Total enclaves registered to the cross-enclave sync cluster.', type: 'counter' },
-  hsm_cross_enclave_unregistered_total: { help: 'Total enclaves unregistered from the cluster.', type: 'counter' },
-  hsm_cross_enclave_stale_detected_total: { help: 'Total enclaves detected as stale and marked offline.', type: 'counter' },
-  hsm_cross_enclave_active: { help: 'Number of currently active enclaves in the cluster.', type: 'gauge' },
-  hsm_cross_enclave_shard_created_total: { help: 'Total shards created in the cross-enclave sync engine.', type: 'counter' },
-  hsm_cross_enclave_shard_reassigned_total: { help: 'Total shard reassignments (after enclave removal or failure).', type: 'counter' },
-  hsm_cross_enclave_state_written_total: { help: 'Total state writes across all shards.', type: 'counter' },
-  hsm_cross_enclave_state_conflict_total: { help: 'Total state write conflicts detected.', type: 'counter' },
-  hsm_cross_enclave_state_too_large_total: { help: 'Total state writes rejected for exceeding size limit.', type: 'counter' },
-  hsm_cross_enclave_sync_total: { help: 'Total cross-enclave sync operations.', type: 'counter' },
-  hsm_cross_enclave_sync_merged_total: { help: 'Total state entries merged during sync operations.', type: 'counter' },
-  hsm_cross_enclave_sync_skipped_total: { help: 'Total state entries skipped during sync (local newer).', type: 'counter' },
-  hsm_cross_enclave_shards: { help: 'Number of active shards in the cross-enclave sync engine.', type: 'gauge' },
+  hsm_cross_enclave_registered_total: {
+    help: "Total enclaves registered to the cross-enclave sync cluster.",
+    type: "counter",
+  },
+  hsm_cross_enclave_unregistered_total: {
+    help: "Total enclaves unregistered from the cluster.",
+    type: "counter",
+  },
+  hsm_cross_enclave_stale_detected_total: {
+    help: "Total enclaves detected as stale and marked offline.",
+    type: "counter",
+  },
+  hsm_cross_enclave_active: {
+    help: "Number of currently active enclaves in the cluster.",
+    type: "gauge",
+  },
+  hsm_cross_enclave_shard_created_total: {
+    help: "Total shards created in the cross-enclave sync engine.",
+    type: "counter",
+  },
+  hsm_cross_enclave_shard_reassigned_total: {
+    help: "Total shard reassignments (after enclave removal or failure).",
+    type: "counter",
+  },
+  hsm_cross_enclave_state_written_total: {
+    help: "Total state writes across all shards.",
+    type: "counter",
+  },
+  hsm_cross_enclave_state_conflict_total: {
+    help: "Total state write conflicts detected.",
+    type: "counter",
+  },
+  hsm_cross_enclave_state_too_large_total: {
+    help: "Total state writes rejected for exceeding size limit.",
+    type: "counter",
+  },
+  hsm_cross_enclave_sync_total: {
+    help: "Total cross-enclave sync operations.",
+    type: "counter",
+  },
+  hsm_cross_enclave_sync_merged_total: {
+    help: "Total state entries merged during sync operations.",
+    type: "counter",
+  },
+  hsm_cross_enclave_sync_skipped_total: {
+    help: "Total state entries skipped during sync (local newer).",
+    type: "counter",
+  },
+  hsm_cross_enclave_shards: {
+    help: "Number of active shards in the cross-enclave sync engine.",
+    type: "gauge",
+  },
   // Track 45: Enclave Key Rotation and Cryptographic Heartbeats
-  hsm_key_rotation_total: { help: 'Total key rotations performed across all enclaves.', type: 'counter' },
-  hsm_key_rotation_blocked_total: { help: 'Total key rotations blocked (quarantined or max epochs reached).', type: 'counter' },
-  hsm_key_rotation_skipped_total: { help: 'Total scheduled rotations skipped due to errors.', type: 'counter' },
-  hsm_key_revoked_total: { help: 'Total enclave keys revoked.', type: 'counter' },
-  hsm_key_quarantined_total: { help: 'Total enclave keys quarantined due to missed heartbeats.', type: 'counter' },
-  hsm_key_recovered_total: { help: 'Total enclaves recovered from quarantine via key rotation.', type: 'counter' },
-  hsm_heartbeat_issued_total: { help: 'Total heartbeat challenges issued.', type: 'counter' },
-  hsm_heartbeat_verified_total: { help: 'Total heartbeat responses successfully verified.', type: 'counter' },
-  hsm_heartbeat_expired_total: { help: 'Total heartbeat challenges that expired without response.', type: 'counter' },
-  hsm_heartbeat_response_invalid_total: { help: 'Total heartbeat responses that failed HMAC verification.', type: 'counter' },
-  hsm_heartbeat_active_keys: { help: 'Number of enclaves with active key status.', type: 'gauge' },
-  hsm_heartbeat_quarantined_keys: { help: 'Number of enclaves with quarantined key status.', type: 'gauge' },
-  hsm_heartbeat_pending_challenges: { help: 'Number of pending heartbeat challenges awaiting response.', type: 'gauge' },
+  hsm_key_rotation_total: {
+    help: "Total key rotations performed across all enclaves.",
+    type: "counter",
+  },
+  hsm_key_rotation_blocked_total: {
+    help: "Total key rotations blocked (quarantined or max epochs reached).",
+    type: "counter",
+  },
+  hsm_key_rotation_skipped_total: {
+    help: "Total scheduled rotations skipped due to errors.",
+    type: "counter",
+  },
+  hsm_key_revoked_total: {
+    help: "Total enclave keys revoked.",
+    type: "counter",
+  },
+  hsm_key_quarantined_total: {
+    help: "Total enclave keys quarantined due to missed heartbeats.",
+    type: "counter",
+  },
+  hsm_key_recovered_total: {
+    help: "Total enclaves recovered from quarantine via key rotation.",
+    type: "counter",
+  },
+  hsm_heartbeat_issued_total: {
+    help: "Total heartbeat challenges issued.",
+    type: "counter",
+  },
+  hsm_heartbeat_verified_total: {
+    help: "Total heartbeat responses successfully verified.",
+    type: "counter",
+  },
+  hsm_heartbeat_expired_total: {
+    help: "Total heartbeat challenges that expired without response.",
+    type: "counter",
+  },
+  hsm_heartbeat_response_invalid_total: {
+    help: "Total heartbeat responses that failed HMAC verification.",
+    type: "counter",
+  },
+  hsm_heartbeat_active_keys: {
+    help: "Number of enclaves with active key status.",
+    type: "gauge",
+  },
+  hsm_heartbeat_quarantined_keys: {
+    help: "Number of enclaves with quarantined key status.",
+    type: "gauge",
+  },
+  hsm_heartbeat_pending_challenges: {
+    help: "Number of pending heartbeat challenges awaiting response.",
+    type: "gauge",
+  },
   // Track 46: Zero-Knowledge Inter-Enclave MPC Handshakes
-  hsm_mpc_schnorr_fault_total: { help: 'Total malformed or malicious Schnorr threshold partial shares detected and rejected.', type: 'counter' },
-  hsm_mpc_handshake_initiated_total: { help: 'Total MPC handshakes initiated.', type: 'counter' },
-  hsm_mpc_handshake_committed_total: { help: 'Total MPC handshake commitment phases completed (all participants committed).', type: 'counter' },
-  hsm_mpc_handshake_proven_total: { help: 'Total MPC handshake proof phases completed (all proofs submitted).', type: 'counter' },
-  hsm_mpc_handshake_verified_total: { help: 'Total MPC handshakes where all proofs verified successfully.', type: 'counter' },
-  hsm_mpc_handshake_finalized_total: { help: 'Total MPC handshakes finalized with combined public key.', type: 'counter' },
-  hsm_mpc_handshake_aborted_total: { help: 'Total MPC handshakes aborted (failed verification or manual abort).', type: 'counter' },
-  hsm_mpc_handshake_expired_total: { help: 'Total MPC handshakes that expired before completion.', type: 'counter' },
-  hsm_mpc_proof_valid_total: { help: 'Total ZK proofs that passed verification.', type: 'counter' },
-  hsm_mpc_proof_invalid_total: { help: 'Total ZK proofs that failed verification.', type: 'counter' },
-  hsm_mpc_handshake_active: { help: 'Number of currently active (in-progress) MPC handshakes.', type: 'gauge' },
+  hsm_mpc_schnorr_fault_total: {
+    help: "Total malformed or malicious Schnorr threshold partial shares detected and rejected.",
+    type: "counter",
+  },
+  hsm_mpc_handshake_initiated_total: {
+    help: "Total MPC handshakes initiated.",
+    type: "counter",
+  },
+  hsm_mpc_handshake_committed_total: {
+    help: "Total MPC handshake commitment phases completed (all participants committed).",
+    type: "counter",
+  },
+  hsm_mpc_handshake_proven_total: {
+    help: "Total MPC handshake proof phases completed (all proofs submitted).",
+    type: "counter",
+  },
+  hsm_mpc_handshake_verified_total: {
+    help: "Total MPC handshakes where all proofs verified successfully.",
+    type: "counter",
+  },
+  hsm_mpc_handshake_finalized_total: {
+    help: "Total MPC handshakes finalized with combined public key.",
+    type: "counter",
+  },
+  hsm_mpc_handshake_aborted_total: {
+    help: "Total MPC handshakes aborted (failed verification or manual abort).",
+    type: "counter",
+  },
+  hsm_mpc_handshake_expired_total: {
+    help: "Total MPC handshakes that expired before completion.",
+    type: "counter",
+  },
+  hsm_mpc_proof_valid_total: {
+    help: "Total ZK proofs that passed verification.",
+    type: "counter",
+  },
+  hsm_mpc_proof_invalid_total: {
+    help: "Total ZK proofs that failed verification.",
+    type: "counter",
+  },
+  hsm_mpc_handshake_active: {
+    help: "Number of currently active (in-progress) MPC handshakes.",
+    type: "gauge",
+  },
   // Track 47: Post-Quantum Cryptographic Enclave Migrations
-  hsm_pqc_migration_registered_total: { help: 'Total enclaves registered for PQC migration.', type: 'counter' },
-  hsm_pqc_migration_planned_total: { help: 'Total PQC migrations planned.', type: 'counter' },
-  hsm_pqc_hybrid_activated_total: { help: 'Total enclaves activated in hybrid (classical+PQC) mode.', type: 'counter' },
-  hsm_pqc_fully_activated_total: { help: 'Total enclaves fully activated in PQC-only mode.', type: 'counter' },
-  hsm_pqc_migration_completed_total: { help: 'Total PQC migrations completed successfully.', type: 'counter' },
-  hsm_pqc_migration_rollback_total: { help: 'Total PQC migration rollbacks.', type: 'counter' },
-  hsm_pqc_migration_failed_total: { help: 'Total PQC migrations that failed (max attempts reached).', type: 'counter' },
-  hsm_pqc_signature_constraint_satisfied_total: { help: 'Total lattice signature constraints satisfied.', type: 'counter' },
-  hsm_pqc_signature_constraint_violated_total: { help: 'Total lattice signature constraints violated.', type: 'counter' },
-  hsm_pqc_classical_enclaves: { help: 'Number of enclaves still using classical cryptography.', type: 'gauge' },
-  hsm_pqc_hybrid_enclaves: { help: 'Number of enclaves in hybrid (classical+PQC) transition mode.', type: 'gauge' },
-  hsm_pqc_pqc_enclaves: { help: 'Number of enclaves fully migrated to post-quantum cryptography.', type: 'gauge' },
+  hsm_pqc_migration_registered_total: {
+    help: "Total enclaves registered for PQC migration.",
+    type: "counter",
+  },
+  hsm_pqc_migration_planned_total: {
+    help: "Total PQC migrations planned.",
+    type: "counter",
+  },
+  hsm_pqc_hybrid_activated_total: {
+    help: "Total enclaves activated in hybrid (classical+PQC) mode.",
+    type: "counter",
+  },
+  hsm_pqc_fully_activated_total: {
+    help: "Total enclaves fully activated in PQC-only mode.",
+    type: "counter",
+  },
+  hsm_pqc_migration_completed_total: {
+    help: "Total PQC migrations completed successfully.",
+    type: "counter",
+  },
+  hsm_pqc_migration_rollback_total: {
+    help: "Total PQC migration rollbacks.",
+    type: "counter",
+  },
+  hsm_pqc_migration_failed_total: {
+    help: "Total PQC migrations that failed (max attempts reached).",
+    type: "counter",
+  },
+  hsm_pqc_signature_constraint_satisfied_total: {
+    help: "Total lattice signature constraints satisfied.",
+    type: "counter",
+  },
+  hsm_pqc_signature_constraint_violated_total: {
+    help: "Total lattice signature constraints violated.",
+    type: "counter",
+  },
+  hsm_pqc_classical_enclaves: {
+    help: "Number of enclaves still using classical cryptography.",
+    type: "gauge",
+  },
+  hsm_pqc_hybrid_enclaves: {
+    help: "Number of enclaves in hybrid (classical+PQC) transition mode.",
+    type: "gauge",
+  },
+  hsm_pqc_pqc_enclaves: {
+    help: "Number of enclaves fully migrated to post-quantum cryptography.",
+    type: "gauge",
+  },
   // Track 48: Enclave Fault Injection and Byzantine Chaos Testing
-  hsm_fault_injected_total: { help: 'Total faults injected into enclaves.', type: 'counter' },
-  hsm_fault_resolved_total: { help: 'Total faults resolved (manually or via recovery).', type: 'counter' },
-  hsm_fault_expired_total: { help: 'Total faults that expired (duration elapsed).', type: 'counter' },
-  hsm_fault_cancelled_total: { help: 'Total faults cancelled manually.', type: 'counter' },
-  hsm_fault_byzantine_total: { help: 'Total byzantine faults injected (equivocation, omission, divergence).', type: 'counter' },
-  hsm_fault_network_partition_total: { help: 'Total network partition faults injected.', type: 'counter' },
-  hsm_fault_crash_total: { help: 'Total enclave crash faults injected.', type: 'counter' },
-  hsm_fault_key_corruption_total: { help: 'Total key corruption faults injected.', type: 'counter' },
-  hsm_fault_timing_attack_total: { help: 'Total timing attack faults injected.', type: 'counter' },
-  hsm_fault_active: { help: 'Number of currently active faults.', type: 'gauge' },
-  hsm_fault_scenario_completed_total: { help: 'Total fault scenarios completed successfully.', type: 'counter' },
-  hsm_fault_scenario_failed_total: { help: 'Total fault scenarios that failed.', type: 'counter' },
-  hsm_chaos_mesh_gossip_drop_total: { help: 'Total gossip packets dropped by chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_split_brain_detected_total: { help: 'Total split-brain partitions detected by chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_split_brain_resolved_total: { help: 'Total split-brain partitions resolved by consensus engine.', type: 'counter' },
-  hsm_chaos_mesh_network_jitter_total: { help: 'Total network jitter faults injected by chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_partition_injected_total: { help: 'Total mesh network partitions injected by chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_partition_healed_total: { help: 'Total mesh network partitions healed after chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_quorum_lost_total: { help: 'Total quorum loss events detected during chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_quorum_restored_total: { help: 'Total quorum restoration events after chaos fuzzing.', type: 'counter' },
-  hsm_chaos_mesh_tenant_isolation_held_total: { help: 'Total chaos fuzzing iterations where tenant isolation held.', type: 'counter' },
-  hsm_chaos_mesh_tenant_isolation_violated_total: { help: 'Total chaos fuzzing iterations where tenant isolation was violated.', type: 'counter' },
-  hsm_chaos_mesh_scenario_completed_total: { help: 'Total chaos mesh fuzzing scenarios completed successfully.', type: 'counter' },
-  hsm_chaos_mesh_scenario_failed_total: { help: 'Total chaos mesh fuzzing scenarios that failed.', type: 'counter' },
+  hsm_fault_injected_total: {
+    help: "Total faults injected into enclaves.",
+    type: "counter",
+  },
+  hsm_fault_resolved_total: {
+    help: "Total faults resolved (manually or via recovery).",
+    type: "counter",
+  },
+  hsm_fault_expired_total: {
+    help: "Total faults that expired (duration elapsed).",
+    type: "counter",
+  },
+  hsm_fault_cancelled_total: {
+    help: "Total faults cancelled manually.",
+    type: "counter",
+  },
+  hsm_fault_byzantine_total: {
+    help: "Total byzantine faults injected (equivocation, omission, divergence).",
+    type: "counter",
+  },
+  hsm_fault_network_partition_total: {
+    help: "Total network partition faults injected.",
+    type: "counter",
+  },
+  hsm_fault_crash_total: {
+    help: "Total enclave crash faults injected.",
+    type: "counter",
+  },
+  hsm_fault_key_corruption_total: {
+    help: "Total key corruption faults injected.",
+    type: "counter",
+  },
+  hsm_fault_timing_attack_total: {
+    help: "Total timing attack faults injected.",
+    type: "counter",
+  },
+  hsm_fault_active: {
+    help: "Number of currently active faults.",
+    type: "gauge",
+  },
+  hsm_fault_scenario_completed_total: {
+    help: "Total fault scenarios completed successfully.",
+    type: "counter",
+  },
+  hsm_fault_scenario_failed_total: {
+    help: "Total fault scenarios that failed.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_gossip_drop_total: {
+    help: "Total gossip packets dropped by chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_split_brain_detected_total: {
+    help: "Total split-brain partitions detected by chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_split_brain_resolved_total: {
+    help: "Total split-brain partitions resolved by consensus engine.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_network_jitter_total: {
+    help: "Total network jitter faults injected by chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_partition_injected_total: {
+    help: "Total mesh network partitions injected by chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_partition_healed_total: {
+    help: "Total mesh network partitions healed after chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_quorum_lost_total: {
+    help: "Total quorum loss events detected during chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_quorum_restored_total: {
+    help: "Total quorum restoration events after chaos fuzzing.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_tenant_isolation_held_total: {
+    help: "Total chaos fuzzing iterations where tenant isolation held.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_tenant_isolation_violated_total: {
+    help: "Total chaos fuzzing iterations where tenant isolation was violated.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_scenario_completed_total: {
+    help: "Total chaos mesh fuzzing scenarios completed successfully.",
+    type: "counter",
+  },
+  hsm_chaos_mesh_scenario_failed_total: {
+    help: "Total chaos mesh fuzzing scenarios that failed.",
+    type: "counter",
+  },
   // Track 49: Dynamic Enclave Rescaling and Predictive Load Balancing
-  hsm_rescaling_scale_up_total: { help: 'Total scale-up actions executed.', type: 'counter' },
-  hsm_rescaling_scale_down_total: { help: 'Total scale-down actions executed.', type: 'counter' },
-  hsm_rescaling_rebalance_total: { help: 'Total shard rebalance actions executed.', type: 'counter' },
-  hsm_rescaling_failed_total: { help: 'Total rescaling actions that failed.', type: 'counter' },
-  hsm_rescaling_chaos_triggered_total: { help: 'Total rescaling actions triggered by chaos events.', type: 'counter' },
-  hsm_rescaling_active_enclaves: { help: 'Number of currently active enclaves in the rescaling cluster.', type: 'gauge' },
-  hsm_rescaling_average_load: { help: 'Current average load across all active enclaves (0.0-1.0).', type: 'gauge' },
-  hsm_rescaling_predicted_load: { help: 'Predicted average load based on forecasting algorithm (0.0-1.0).', type: 'gauge' },
-  hsm_rescaling_imbalance: { help: 'Current load imbalance ratio across enclaves (0.0 = balanced).', type: 'gauge' },
+  hsm_rescaling_scale_up_total: {
+    help: "Total scale-up actions executed.",
+    type: "counter",
+  },
+  hsm_rescaling_scale_down_total: {
+    help: "Total scale-down actions executed.",
+    type: "counter",
+  },
+  hsm_rescaling_rebalance_total: {
+    help: "Total shard rebalance actions executed.",
+    type: "counter",
+  },
+  hsm_rescaling_failed_total: {
+    help: "Total rescaling actions that failed.",
+    type: "counter",
+  },
+  hsm_rescaling_chaos_triggered_total: {
+    help: "Total rescaling actions triggered by chaos events.",
+    type: "counter",
+  },
+  hsm_rescaling_active_enclaves: {
+    help: "Number of currently active enclaves in the rescaling cluster.",
+    type: "gauge",
+  },
+  hsm_rescaling_average_load: {
+    help: "Current average load across all active enclaves (0.0-1.0).",
+    type: "gauge",
+  },
+  hsm_rescaling_predicted_load: {
+    help: "Predicted average load based on forecasting algorithm (0.0-1.0).",
+    type: "gauge",
+  },
+  hsm_rescaling_imbalance: {
+    help: "Current load imbalance ratio across enclaves (0.0 = balanced).",
+    type: "gauge",
+  },
   // Track 50: Confidential Federated Learning and ZK Model Aggregation
-  hsm_fl_rounds_initiated_total: { help: 'Total federated learning rounds initiated.', type: 'counter' },
-  hsm_fl_rounds_completed_total: { help: 'Total federated learning rounds completed successfully.', type: 'counter' },
-  hsm_fl_rounds_failed_total: { help: 'Total federated learning rounds that failed.', type: 'counter' },
-  hsm_fl_rounds_expired_total: { help: 'Total federated learning rounds that expired (timeout).', type: 'counter' },
-  hsm_fl_gradients_submitted_total: { help: 'Total gradient updates submitted by participants.', type: 'counter' },
-  hsm_fl_gradients_verified_total: { help: 'Total gradient updates that passed ZK proof verification.', type: 'counter' },
-  hsm_fl_gradients_rejected_total: { help: 'Total gradient updates that failed ZK proof verification.', type: 'counter' },
-  hsm_fl_active_rounds: { help: 'Number of currently active federated learning rounds.', type: 'gauge' },
-  hsm_fl_global_model_version: { help: 'Current global model version (incremented per completed round).', type: 'gauge' },
-  hsm_fl_participants_total: { help: 'Total participant enclaves across all rounds.', type: 'counter' },
+  hsm_fl_rounds_initiated_total: {
+    help: "Total federated learning rounds initiated.",
+    type: "counter",
+  },
+  hsm_fl_rounds_completed_total: {
+    help: "Total federated learning rounds completed successfully.",
+    type: "counter",
+  },
+  hsm_fl_rounds_failed_total: {
+    help: "Total federated learning rounds that failed.",
+    type: "counter",
+  },
+  hsm_fl_rounds_expired_total: {
+    help: "Total federated learning rounds that expired (timeout).",
+    type: "counter",
+  },
+  hsm_fl_gradients_submitted_total: {
+    help: "Total gradient updates submitted by participants.",
+    type: "counter",
+  },
+  hsm_fl_gradients_verified_total: {
+    help: "Total gradient updates that passed ZK proof verification.",
+    type: "counter",
+  },
+  hsm_fl_gradients_rejected_total: {
+    help: "Total gradient updates that failed ZK proof verification.",
+    type: "counter",
+  },
+  hsm_fl_active_rounds: {
+    help: "Number of currently active federated learning rounds.",
+    type: "gauge",
+  },
+  hsm_fl_global_model_version: {
+    help: "Current global model version (incremented per completed round).",
+    type: "gauge",
+  },
+  hsm_fl_participants_total: {
+    help: "Total participant enclaves across all rounds.",
+    type: "counter",
+  },
   // Track 51: Homomorphic Encryption Over Mesh Topologies
-  hsm_he_mesh_nodes_total: { help: 'Total nodes registered in the HE mesh topology.', type: 'gauge' },
-  hsm_he_mesh_edges_total: { help: 'Total edges (links) in the HE mesh topology.', type: 'gauge' },
-  hsm_he_mesh_active_nodes: { help: 'Number of active nodes in the HE mesh.', type: 'gauge' },
-  hsm_he_mesh_queries_created_total: { help: 'Total HE mesh queries created.', type: 'counter' },
-  hsm_he_mesh_queries_completed_total: { help: 'Total HE mesh queries completed successfully.', type: 'counter' },
-  hsm_he_mesh_queries_failed_total: { help: 'Total HE mesh queries that failed.', type: 'counter' },
-  hsm_he_mesh_queries_expired_total: { help: 'Total HE mesh queries that expired (timeout).', type: 'counter' },
-  hsm_he_mesh_hops_executed_total: { help: 'Total HE mesh hops executed across all queries.', type: 'counter' },
-  hsm_he_mesh_active_queries: { help: 'Number of currently active HE mesh queries.', type: 'gauge' },
+  hsm_he_mesh_nodes_total: {
+    help: "Total nodes registered in the HE mesh topology.",
+    type: "gauge",
+  },
+  hsm_he_mesh_edges_total: {
+    help: "Total edges (links) in the HE mesh topology.",
+    type: "gauge",
+  },
+  hsm_he_mesh_active_nodes: {
+    help: "Number of active nodes in the HE mesh.",
+    type: "gauge",
+  },
+  hsm_he_mesh_queries_created_total: {
+    help: "Total HE mesh queries created.",
+    type: "counter",
+  },
+  hsm_he_mesh_queries_completed_total: {
+    help: "Total HE mesh queries completed successfully.",
+    type: "counter",
+  },
+  hsm_he_mesh_queries_failed_total: {
+    help: "Total HE mesh queries that failed.",
+    type: "counter",
+  },
+  hsm_he_mesh_queries_expired_total: {
+    help: "Total HE mesh queries that expired (timeout).",
+    type: "counter",
+  },
+  hsm_he_mesh_hops_executed_total: {
+    help: "Total HE mesh hops executed across all queries.",
+    type: "counter",
+  },
+  hsm_he_mesh_active_queries: {
+    help: "Number of currently active HE mesh queries.",
+    type: "gauge",
+  },
   // Track 52: Secure Multi-Party Inner Product and Encrypted Search Indexes
-  hsm_sip_indexes_built_total: { help: 'Total blind search indexes built.', type: 'counter' },
-  hsm_sip_indexes_active: { help: 'Number of currently active search indexes.', type: 'gauge' },
-  hsm_sip_queries_total: { help: 'Total secure inner-product search queries initiated.', type: 'counter' },
-  hsm_sip_queries_completed_total: { help: 'Total search queries completed successfully.', type: 'counter' },
-  hsm_sip_queries_failed_total: { help: 'Total search queries that failed.', type: 'counter' },
-  hsm_sip_parties_total: { help: 'Total parties registered in the secure search cluster.', type: 'gauge' },
-  hsm_sip_parties_active: { help: 'Number of currently active parties.', type: 'gauge' },
-  hsm_sip_documents_indexed_total: { help: 'Total documents indexed across all indexes.', type: 'counter' },
-  hsm_sip_search_results_total: { help: 'Total search results returned across all queries.', type: 'counter' },
+  hsm_sip_indexes_built_total: {
+    help: "Total blind search indexes built.",
+    type: "counter",
+  },
+  hsm_sip_indexes_active: {
+    help: "Number of currently active search indexes.",
+    type: "gauge",
+  },
+  hsm_sip_queries_total: {
+    help: "Total secure inner-product search queries initiated.",
+    type: "counter",
+  },
+  hsm_sip_queries_completed_total: {
+    help: "Total search queries completed successfully.",
+    type: "counter",
+  },
+  hsm_sip_queries_failed_total: {
+    help: "Total search queries that failed.",
+    type: "counter",
+  },
+  hsm_sip_parties_total: {
+    help: "Total parties registered in the secure search cluster.",
+    type: "gauge",
+  },
+  hsm_sip_parties_active: {
+    help: "Number of currently active parties.",
+    type: "gauge",
+  },
+  hsm_sip_documents_indexed_total: {
+    help: "Total documents indexed across all indexes.",
+    type: "counter",
+  },
+  hsm_sip_search_results_total: {
+    help: "Total search results returned across all queries.",
+    type: "counter",
+  },
   // Track 53: Zero-Knowledge Range Proofs and Auditable Asset Solvency
-  hsm_zk_range_proofs_generated_total: { help: 'Total ZK range proofs generated.', type: 'counter' },
-  hsm_zk_range_proofs_verified_total: { help: 'Total ZK range proofs verified successfully.', type: 'counter' },
-  hsm_zk_range_proofs_invalid_total: { help: 'Total ZK range proofs that failed verification.', type: 'counter' },
-  hsm_zk_range_proofs_revoked_total: { help: 'Total ZK range proofs revoked.', type: 'counter' },
-  hsm_zk_range_proofs_active: { help: 'Number of currently active ZK range proofs.', type: 'gauge' },
-  hsm_zk_batch_proofs_total: { help: 'Total batch range proof operations.', type: 'counter' },
-  hsm_zk_solvency_audits_total: { help: 'Total solvency audits initiated.', type: 'counter' },
-  hsm_zk_solvency_audits_solvent_total: { help: 'Total solvency audits that concluded solvent.', type: 'counter' },
-  hsm_zk_solvency_audits_insolvent_total: { help: 'Total solvency audits that concluded insolvent.', type: 'counter' },
+  hsm_zk_range_proofs_generated_total: {
+    help: "Total ZK range proofs generated.",
+    type: "counter",
+  },
+  hsm_zk_range_proofs_verified_total: {
+    help: "Total ZK range proofs verified successfully.",
+    type: "counter",
+  },
+  hsm_zk_range_proofs_invalid_total: {
+    help: "Total ZK range proofs that failed verification.",
+    type: "counter",
+  },
+  hsm_zk_range_proofs_revoked_total: {
+    help: "Total ZK range proofs revoked.",
+    type: "counter",
+  },
+  hsm_zk_range_proofs_active: {
+    help: "Number of currently active ZK range proofs.",
+    type: "gauge",
+  },
+  hsm_zk_batch_proofs_total: {
+    help: "Total batch range proof operations.",
+    type: "counter",
+  },
+  hsm_zk_solvency_audits_total: {
+    help: "Total solvency audits initiated.",
+    type: "counter",
+  },
+  hsm_zk_solvency_audits_solvent_total: {
+    help: "Total solvency audits that concluded solvent.",
+    type: "counter",
+  },
+  hsm_zk_solvency_audits_insolvent_total: {
+    help: "Total solvency audits that concluded insolvent.",
+    type: "counter",
+  },
   // Track 54: Multi-Party Threshold Cryptography and Distributed Decryption Circuits
-  hsm_tdc_keysets_created_total: { help: 'Total threshold key sets created.', type: 'counter' },
-  hsm_tdc_keysets_active: { help: 'Number of currently active threshold key sets.', type: 'gauge' },
-  hsm_tdc_circuits_initiated_total: { help: 'Total distributed decryption circuits initiated.', type: 'counter' },
-  hsm_tdc_circuits_completed_total: { help: 'Total decryption circuits completed successfully.', type: 'counter' },
-  hsm_tdc_circuits_failed_total: { help: 'Total decryption circuits that failed.', type: 'counter' },
-  hsm_tdc_circuits_expired_total: { help: 'Total decryption circuits that expired (timeout).', type: 'counter' },
-  hsm_tdc_partial_shares_submitted_total: { help: 'Total partial decryption shares submitted.', type: 'counter' },
-  hsm_tdc_partial_shares_verified_total: { help: 'Total partial decryption shares verified.', type: 'counter' },
-  hsm_tdc_partial_shares_invalid_total: { help: 'Total partial decryption shares that failed verification.', type: 'counter' },
+  hsm_tdc_keysets_created_total: {
+    help: "Total threshold key sets created.",
+    type: "counter",
+  },
+  hsm_tdc_keysets_active: {
+    help: "Number of currently active threshold key sets.",
+    type: "gauge",
+  },
+  hsm_tdc_circuits_initiated_total: {
+    help: "Total distributed decryption circuits initiated.",
+    type: "counter",
+  },
+  hsm_tdc_circuits_completed_total: {
+    help: "Total decryption circuits completed successfully.",
+    type: "counter",
+  },
+  hsm_tdc_circuits_failed_total: {
+    help: "Total decryption circuits that failed.",
+    type: "counter",
+  },
+  hsm_tdc_circuits_expired_total: {
+    help: "Total decryption circuits that expired (timeout).",
+    type: "counter",
+  },
+  hsm_tdc_partial_shares_submitted_total: {
+    help: "Total partial decryption shares submitted.",
+    type: "counter",
+  },
+  hsm_tdc_partial_shares_verified_total: {
+    help: "Total partial decryption shares verified.",
+    type: "counter",
+  },
+  hsm_tdc_partial_shares_invalid_total: {
+    help: "Total partial decryption shares that failed verification.",
+    type: "counter",
+  },
   // Track 55: ZK Verifiable Secret Sharing and Proactive Secret Sharing
-  hsm_vss_sessions_total: { help: 'Total VSS sessions initiated.', type: 'counter' },
-  hsm_vss_sessions_completed_total: { help: 'Total VSS sessions completed (secret reconstructed).', type: 'counter' },
-  hsm_vss_shares_verified_total: { help: 'Total VSS shares verified successfully.', type: 'counter' },
-  hsm_vss_shares_invalid_total: { help: 'Total VSS shares that failed verification.', type: 'counter' },
-  hsm_vss_complaints_total: { help: 'Total complaints filed in VSS sessions.', type: 'counter' },
-  hsm_vss_disqualifications_total: { help: 'Total nodes disqualified from VSS sessions.', type: 'counter' },
-  hsm_pss_epochs_total: { help: 'Total PSS epochs started.', type: 'counter' },
-  hsm_pss_epochs_active: { help: 'Number of currently active PSS epochs.', type: 'gauge' },
-  hsm_pss_refreshes_total: { help: 'Total proactive share refreshes performed.', type: 'counter' },
-  hsm_pss_recoveries_total: { help: 'Total share recoveries performed.', type: 'counter' },
+  hsm_vss_sessions_total: {
+    help: "Total VSS sessions initiated.",
+    type: "counter",
+  },
+  hsm_vss_sessions_completed_total: {
+    help: "Total VSS sessions completed (secret reconstructed).",
+    type: "counter",
+  },
+  hsm_vss_shares_verified_total: {
+    help: "Total VSS shares verified successfully.",
+    type: "counter",
+  },
+  hsm_vss_shares_invalid_total: {
+    help: "Total VSS shares that failed verification.",
+    type: "counter",
+  },
+  hsm_vss_complaints_total: {
+    help: "Total complaints filed in VSS sessions.",
+    type: "counter",
+  },
+  hsm_vss_disqualifications_total: {
+    help: "Total nodes disqualified from VSS sessions.",
+    type: "counter",
+  },
+  hsm_pss_epochs_total: { help: "Total PSS epochs started.", type: "counter" },
+  hsm_pss_epochs_active: {
+    help: "Number of currently active PSS epochs.",
+    type: "gauge",
+  },
+  hsm_pss_refreshes_total: {
+    help: "Total proactive share refreshes performed.",
+    type: "counter",
+  },
+  hsm_pss_recoveries_total: {
+    help: "Total share recoveries performed.",
+    type: "counter",
+  },
   // Track 56: Oblivious RAM and Secure Side-Channel Memory Attenuation
-  hsm_oram_blocks_total: { help: 'Total logical blocks stored in ORAM.', type: 'gauge' },
-  hsm_oram_reads_total: { help: 'Total ORAM read operations.', type: 'counter' },
-  hsm_oram_writes_total: { help: 'Total ORAM write operations.', type: 'counter' },
-  hsm_oram_deletes_total: { help: 'Total ORAM delete operations.', type: 'counter' },
-  hsm_oram_dummy_accesses_total: { help: 'Total dummy ORAM accesses for pattern obfuscation.', type: 'counter' },
-  hsm_oram_stash_size: { help: 'Current ORAM stash size (blocks in temporary buffer).', type: 'gauge' },
-  hsm_oram_reshuffles_total: { help: 'Total ORAM stash reshuffles.', type: 'counter' },
-  hsm_oram_stash_evictions_total: { help: 'Total blocks evicted from ORAM stash.', type: 'counter' },
+  hsm_oram_blocks_total: {
+    help: "Total logical blocks stored in ORAM.",
+    type: "gauge",
+  },
+  hsm_oram_reads_total: {
+    help: "Total ORAM read operations.",
+    type: "counter",
+  },
+  hsm_oram_writes_total: {
+    help: "Total ORAM write operations.",
+    type: "counter",
+  },
+  hsm_oram_deletes_total: {
+    help: "Total ORAM delete operations.",
+    type: "counter",
+  },
+  hsm_oram_dummy_accesses_total: {
+    help: "Total dummy ORAM accesses for pattern obfuscation.",
+    type: "counter",
+  },
+  hsm_oram_stash_size: {
+    help: "Current ORAM stash size (blocks in temporary buffer).",
+    type: "gauge",
+  },
+  hsm_oram_reshuffles_total: {
+    help: "Total ORAM stash reshuffles.",
+    type: "counter",
+  },
+  hsm_oram_stash_evictions_total: {
+    help: "Total blocks evicted from ORAM stash.",
+    type: "counter",
+  },
   // Track 57: zk-SNARK Enclave Verifiers
-  hsm_snark_circuits_compiled_total: { help: 'Total arithmetic circuits compiled.', type: 'counter' },
-  hsm_snark_circuits_active: { help: 'Number of active compiled circuits.', type: 'gauge' },
-  hsm_snark_setups_generated_total: { help: 'Total trusted setups generated.', type: 'counter' },
-  hsm_snark_setups_active: { help: 'Number of active trusted setups.', type: 'gauge' },
-  hsm_snark_proofs_generated_total: { help: 'Total zk-SNARK proofs generated.', type: 'counter' },
-  hsm_snark_proofs_verified_total: { help: 'Total zk-SNARK proofs verified successfully.', type: 'counter' },
-  hsm_snark_proofs_invalid_total: { help: 'Total zk-SNARK proofs that failed verification.', type: 'counter' },
-  hsm_snark_proofs_aggregated_total: { help: 'Total proof aggregations performed.', type: 'counter' },
-  hsm_snark_setups_destroyed_total: { help: 'Total trusted setups destroyed (toxic waste cleanup).', type: 'counter' },
+  hsm_snark_circuits_compiled_total: {
+    help: "Total arithmetic circuits compiled.",
+    type: "counter",
+  },
+  hsm_snark_circuits_active: {
+    help: "Number of active compiled circuits.",
+    type: "gauge",
+  },
+  hsm_snark_setups_generated_total: {
+    help: "Total trusted setups generated.",
+    type: "counter",
+  },
+  hsm_snark_setups_active: {
+    help: "Number of active trusted setups.",
+    type: "gauge",
+  },
+  hsm_snark_proofs_generated_total: {
+    help: "Total zk-SNARK proofs generated.",
+    type: "counter",
+  },
+  hsm_snark_proofs_verified_total: {
+    help: "Total zk-SNARK proofs verified successfully.",
+    type: "counter",
+  },
+  hsm_snark_proofs_invalid_total: {
+    help: "Total zk-SNARK proofs that failed verification.",
+    type: "counter",
+  },
+  hsm_snark_proofs_aggregated_total: {
+    help: "Total proof aggregations performed.",
+    type: "counter",
+  },
+  hsm_snark_setups_destroyed_total: {
+    help: "Total trusted setups destroyed (toxic waste cleanup).",
+    type: "counter",
+  },
   // Track 58: Multi-Key FHE Relinearization Engine
-  hsm_mfhe_key_pairs_total: { help: 'Total multi-key FHE key pairs generated.', type: 'counter' },
-  hsm_mfhe_key_pairs_active: { help: 'Number of active multi-key FHE key pairs.', type: 'gauge' },
-  hsm_mfhe_relin_keys_total: { help: 'Total relinearization keys generated.', type: 'counter' },
-  hsm_mfhe_encryptions_total: { help: 'Total multi-key FHE encryptions.', type: 'counter' },
-  hsm_mfhe_decryptions_total: { help: 'Total multi-key FHE decryptions.', type: 'counter' },
-  hsm_mfhe_homomorphic_ops_total: { help: 'Total homomorphic operations performed.', type: 'counter' },
-  hsm_mfhe_relinearizations_total: { help: 'Total relinearization operations performed.', type: 'counter' },
-  hsm_mfhe_key_switches_total: { help: 'Total key switching operations performed.', type: 'counter' },
-  hsm_mfhe_bootstraps_total: { help: 'Total bootstrapping operations performed.', type: 'counter' },
+  hsm_mfhe_key_pairs_total: {
+    help: "Total multi-key FHE key pairs generated.",
+    type: "counter",
+  },
+  hsm_mfhe_key_pairs_active: {
+    help: "Number of active multi-key FHE key pairs.",
+    type: "gauge",
+  },
+  hsm_mfhe_relin_keys_total: {
+    help: "Total relinearization keys generated.",
+    type: "counter",
+  },
+  hsm_mfhe_encryptions_total: {
+    help: "Total multi-key FHE encryptions.",
+    type: "counter",
+  },
+  hsm_mfhe_decryptions_total: {
+    help: "Total multi-key FHE decryptions.",
+    type: "counter",
+  },
+  hsm_mfhe_homomorphic_ops_total: {
+    help: "Total homomorphic operations performed.",
+    type: "counter",
+  },
+  hsm_mfhe_relinearizations_total: {
+    help: "Total relinearization operations performed.",
+    type: "counter",
+  },
+  hsm_mfhe_key_switches_total: {
+    help: "Total key switching operations performed.",
+    type: "counter",
+  },
+  hsm_mfhe_bootstraps_total: {
+    help: "Total bootstrapping operations performed.",
+    type: "counter",
+  },
   // Track 59: VDF and Time-Locked Enclave Puzzles
-  hsm_vdf_created_total: { help: 'Total VDF instances created.', type: 'counter' },
-  hsm_vdf_evaluated_total: { help: 'Total VDF evaluations completed.', type: 'counter' },
-  hsm_vdf_verified_total: { help: 'Total VDF proofs verified.', type: 'counter' },
-  hsm_vdf_active: { help: 'Number of active VDF instances.', type: 'gauge' },
-  hsm_puzzles_created_total: { help: 'Total time-locked puzzles created.', type: 'counter' },
-  hsm_puzzles_solved_total: { help: 'Total time-locked puzzles solved.', type: 'counter' },
-  hsm_puzzles_expired_total: { help: 'Total time-locked puzzles expired.', type: 'counter' },
-  hsm_puzzles_active: { help: 'Number of active time-locked puzzles.', type: 'gauge' },
+  hsm_vdf_created_total: {
+    help: "Total VDF instances created.",
+    type: "counter",
+  },
+  hsm_vdf_evaluated_total: {
+    help: "Total VDF evaluations completed.",
+    type: "counter",
+  },
+  hsm_vdf_verified_total: {
+    help: "Total VDF proofs verified.",
+    type: "counter",
+  },
+  hsm_vdf_active: { help: "Number of active VDF instances.", type: "gauge" },
+  hsm_puzzles_created_total: {
+    help: "Total time-locked puzzles created.",
+    type: "counter",
+  },
+  hsm_puzzles_solved_total: {
+    help: "Total time-locked puzzles solved.",
+    type: "counter",
+  },
+  hsm_puzzles_expired_total: {
+    help: "Total time-locked puzzles expired.",
+    type: "counter",
+  },
+  hsm_puzzles_active: {
+    help: "Number of active time-locked puzzles.",
+    type: "gauge",
+  },
   // Track 60: Multi-Asset Sharded Mixnets and Blind Confidential Transactions
-  hsm_mixnet_nodes_total: { help: 'Total mixnet nodes registered.', type: 'counter' },
-  hsm_mixnet_nodes_active: { help: 'Number of active mixnet nodes.', type: 'gauge' },
-  hsm_mixnet_shards_total: { help: 'Number of mixnet shards.', type: 'gauge' },
-  hsm_mixnet_transactions_created_total: { help: 'Total blind transactions created.', type: 'counter' },
-  hsm_mixnet_transactions_mixed_total: { help: 'Total transactions mixed through the mixnet.', type: 'counter' },
-  hsm_mixnet_transactions_confirmed_total: { help: 'Total transactions confirmed.', type: 'counter' },
-  hsm_mixnet_pools_shuffled_total: { help: 'Total pools shuffled.', type: 'counter' },
-  hsm_mixnet_pools_flushed_total: { help: 'Total pools flushed.', type: 'counter' },
-  hsm_mixnet_relays_total: { help: 'Total relay hops processed.', type: 'counter' },
+  hsm_mixnet_nodes_total: {
+    help: "Total mixnet nodes registered.",
+    type: "counter",
+  },
+  hsm_mixnet_nodes_active: {
+    help: "Number of active mixnet nodes.",
+    type: "gauge",
+  },
+  hsm_mixnet_shards_total: { help: "Number of mixnet shards.", type: "gauge" },
+  hsm_mixnet_transactions_created_total: {
+    help: "Total blind transactions created.",
+    type: "counter",
+  },
+  hsm_mixnet_transactions_mixed_total: {
+    help: "Total transactions mixed through the mixnet.",
+    type: "counter",
+  },
+  hsm_mixnet_transactions_confirmed_total: {
+    help: "Total transactions confirmed.",
+    type: "counter",
+  },
+  hsm_mixnet_pools_shuffled_total: {
+    help: "Total pools shuffled.",
+    type: "counter",
+  },
+  hsm_mixnet_pools_flushed_total: {
+    help: "Total pools flushed.",
+    type: "counter",
+  },
+  hsm_mixnet_relays_total: {
+    help: "Total relay hops processed.",
+    type: "counter",
+  },
   // Track 61: Recursive Proof Aggregation Engine
-  hsm_rpa_proofs_submitted_total: { help: 'Total proofs submitted for aggregation.', type: 'counter' },
-  hsm_rpa_proofs_folded_total: { help: 'Total proof folding operations performed.', type: 'counter' },
-  hsm_rpa_chain_aggregations_total: { help: 'Total chain aggregations performed.', type: 'counter' },
-  hsm_rpa_tree_aggregations_total: { help: 'Total tree aggregations performed.', type: 'counter' },
-  hsm_rpa_vdf_aggregations_total: { help: 'Total VDF proof aggregations performed.', type: 'counter' },
-  hsm_rpa_mixnet_compressions_total: { help: 'Total mixnet state compressions performed.', type: 'counter' },
-  hsm_rpa_aggregations_verified_total: { help: 'Total aggregations verified.', type: 'counter' },
-  hsm_rpa_active_proofs: { help: 'Number of active proofs in the aggregation pool.', type: 'gauge' },
+  hsm_rpa_proofs_submitted_total: {
+    help: "Total proofs submitted for aggregation.",
+    type: "counter",
+  },
+  hsm_rpa_proofs_folded_total: {
+    help: "Total proof folding operations performed.",
+    type: "counter",
+  },
+  hsm_rpa_chain_aggregations_total: {
+    help: "Total chain aggregations performed.",
+    type: "counter",
+  },
+  hsm_rpa_tree_aggregations_total: {
+    help: "Total tree aggregations performed.",
+    type: "counter",
+  },
+  hsm_rpa_vdf_aggregations_total: {
+    help: "Total VDF proof aggregations performed.",
+    type: "counter",
+  },
+  hsm_rpa_mixnet_compressions_total: {
+    help: "Total mixnet state compressions performed.",
+    type: "counter",
+  },
+  hsm_rpa_aggregations_verified_total: {
+    help: "Total aggregations verified.",
+    type: "counter",
+  },
+  hsm_rpa_active_proofs: {
+    help: "Number of active proofs in the aggregation pool.",
+    type: "gauge",
+  },
   // Track 62: PQC Time-Locked Matrix Routing and Temporal Validity Verification
-  hsm_ptlm_matrices_initialized_total: { help: 'Total time-locked matrices initialized.', type: 'counter' },
-  hsm_ptlm_matrices_routed_total: { help: 'Total matrices routed through time-lock nodes.', type: 'counter' },
-  hsm_ptlm_matrices_released_total: { help: 'Total matrices released after temporal verification.', type: 'counter' },
-  hsm_ptlm_matrices_expired_total: { help: 'Total matrices expired.', type: 'counter' },
-  hsm_ptlm_matrices_active: { help: 'Number of active time-locked matrices.', type: 'gauge' },
-  hsm_ptlm_routing_nodes_total: { help: 'Total routing nodes registered.', type: 'counter' },
-  hsm_ptlm_lattice_keys_generated_total: { help: 'Total lattice key pairs generated.', type: 'counter' },
-  hsm_ptlm_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations.', type: 'counter' },
-  hsm_ptlm_temporal_proofs_verified_total: { help: 'Total temporal proofs verified.', type: 'counter' },
-  hsm_ptlm_temporal_proofs_slashed_total: { help: 'Total temporal proofs slashed.', type: 'counter' },
-  hsm_ptlm_batch_verifications_total: { help: 'Total batch verifications performed.', type: 'counter' },
-  hsm_ptlm_banned_peers: { help: 'Number of banned peers.', type: 'gauge' },
+  hsm_ptlm_matrices_initialized_total: {
+    help: "Total time-locked matrices initialized.",
+    type: "counter",
+  },
+  hsm_ptlm_matrices_routed_total: {
+    help: "Total matrices routed through time-lock nodes.",
+    type: "counter",
+  },
+  hsm_ptlm_matrices_released_total: {
+    help: "Total matrices released after temporal verification.",
+    type: "counter",
+  },
+  hsm_ptlm_matrices_expired_total: {
+    help: "Total matrices expired.",
+    type: "counter",
+  },
+  hsm_ptlm_matrices_active: {
+    help: "Number of active time-locked matrices.",
+    type: "gauge",
+  },
+  hsm_ptlm_routing_nodes_total: {
+    help: "Total routing nodes registered.",
+    type: "counter",
+  },
+  hsm_ptlm_lattice_keys_generated_total: {
+    help: "Total lattice key pairs generated.",
+    type: "counter",
+  },
+  hsm_ptlm_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations.",
+    type: "counter",
+  },
+  hsm_ptlm_temporal_proofs_verified_total: {
+    help: "Total temporal proofs verified.",
+    type: "counter",
+  },
+  hsm_ptlm_temporal_proofs_slashed_total: {
+    help: "Total temporal proofs slashed.",
+    type: "counter",
+  },
+  hsm_ptlm_batch_verifications_total: {
+    help: "Total batch verifications performed.",
+    type: "counter",
+  },
+  hsm_ptlm_banned_peers: { help: "Number of banned peers.", type: "gauge" },
   // Track 63: PQC Blind Option Pools & HW-SNARK VDF Aggregators
-  hsm_bop_pools_initialized_total: { help: 'Total blind option pools initialized.', type: 'counter' },
-  hsm_bop_pools_executed_total: { help: 'Total option contracts executed.', type: 'counter' },
-  hsm_bop_pools_settled_total: { help: 'Total option contracts settled cross-chain.', type: 'counter' },
-  hsm_bop_pools_expired_total: { help: 'Total option pools expired.', type: 'counter' },
-  hsm_bop_pools_cancelled_total: { help: 'Total option pools cancelled.', type: 'counter' },
-  hsm_bop_pools_active: { help: 'Number of active blind option pools.', type: 'gauge' },
-  hsm_bop_batch_inits_total: { help: 'Total batch pool initializations.', type: 'counter' },
-  hsm_bop_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations.', type: 'counter' },
-  hsm_bop_margin_proofs_verified_total: { help: 'Total margin adequacy proofs verified.', type: 'counter' },
-  hsm_bop_margin_proofs_slashed_total: { help: 'Total margin adequacy proofs slashed.', type: 'counter' },
-  hsm_bop_batch_verifications_total: { help: 'Total batch margin verifications performed.', type: 'counter' },
-  hsm_bop_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated.', type: 'counter' },
-  hsm_bop_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified.', type: 'counter' },
-  hsm_bop_banned_peers: { help: 'Number of banned peers in option pool hub.', type: 'gauge' },
+  hsm_bop_pools_initialized_total: {
+    help: "Total blind option pools initialized.",
+    type: "counter",
+  },
+  hsm_bop_pools_executed_total: {
+    help: "Total option contracts executed.",
+    type: "counter",
+  },
+  hsm_bop_pools_settled_total: {
+    help: "Total option contracts settled cross-chain.",
+    type: "counter",
+  },
+  hsm_bop_pools_expired_total: {
+    help: "Total option pools expired.",
+    type: "counter",
+  },
+  hsm_bop_pools_cancelled_total: {
+    help: "Total option pools cancelled.",
+    type: "counter",
+  },
+  hsm_bop_pools_active: {
+    help: "Number of active blind option pools.",
+    type: "gauge",
+  },
+  hsm_bop_batch_inits_total: {
+    help: "Total batch pool initializations.",
+    type: "counter",
+  },
+  hsm_bop_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations.",
+    type: "counter",
+  },
+  hsm_bop_margin_proofs_verified_total: {
+    help: "Total margin adequacy proofs verified.",
+    type: "counter",
+  },
+  hsm_bop_margin_proofs_slashed_total: {
+    help: "Total margin adequacy proofs slashed.",
+    type: "counter",
+  },
+  hsm_bop_batch_verifications_total: {
+    help: "Total batch margin verifications performed.",
+    type: "counter",
+  },
+  hsm_bop_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated.",
+    type: "counter",
+  },
+  hsm_bop_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified.",
+    type: "counter",
+  },
+  hsm_bop_banned_peers: {
+    help: "Number of banned peers in option pool hub.",
+    type: "gauge",
+  },
   // Track 64: PQC Prediction Markets & ZK Resolution Validators
-  hsm_predmkt_markets_initialized_total: { help: 'Total prediction markets initialized.', type: 'counter' },
-  hsm_predmkt_markets_finalized_total: { help: 'Total prediction markets finalized.', type: 'counter' },
-  hsm_predmkt_markets_settled_total: { help: 'Total prediction markets settled cross-chain.', type: 'counter' },
-  hsm_predmkt_markets_disputed_total: { help: 'Total prediction markets escalated to dispute resolution.', type: 'counter' },
-  hsm_predmkt_markets_cancelled_total: { help: 'Total prediction markets cancelled.', type: 'counter' },
-  hsm_predmkt_markets_expired_total: { help: 'Total prediction markets expired.', type: 'counter' },
-  hsm_predmkt_markets_active: { help: 'Number of active prediction markets.', type: 'gauge' },
-  hsm_predmkt_batch_inits_total: { help: 'Total batch market initializations.', type: 'counter' },
-  hsm_predmkt_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for markets.', type: 'counter' },
-  hsm_predmkt_resolution_votes_recorded_total: { help: 'Total resolution votes recorded.', type: 'counter' },
-  hsm_predmkt_resolution_votes_slashed_total: { help: 'Total resolution votes slashed.', type: 'counter' },
-  hsm_predmkt_batch_verifications_total: { help: 'Total batch vote verifications performed.', type: 'counter' },
-  hsm_predmkt_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for market resolution.', type: 'counter' },
-  hsm_predmkt_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for market resolution.', type: 'counter' },
-  hsm_predmkt_banned_peers: { help: 'Number of banned peers in prediction market hub.', type: 'gauge' },
+  hsm_predmkt_markets_initialized_total: {
+    help: "Total prediction markets initialized.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_finalized_total: {
+    help: "Total prediction markets finalized.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_settled_total: {
+    help: "Total prediction markets settled cross-chain.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_disputed_total: {
+    help: "Total prediction markets escalated to dispute resolution.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_cancelled_total: {
+    help: "Total prediction markets cancelled.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_expired_total: {
+    help: "Total prediction markets expired.",
+    type: "counter",
+  },
+  hsm_predmkt_markets_active: {
+    help: "Number of active prediction markets.",
+    type: "gauge",
+  },
+  hsm_predmkt_batch_inits_total: {
+    help: "Total batch market initializations.",
+    type: "counter",
+  },
+  hsm_predmkt_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for markets.",
+    type: "counter",
+  },
+  hsm_predmkt_resolution_votes_recorded_total: {
+    help: "Total resolution votes recorded.",
+    type: "counter",
+  },
+  hsm_predmkt_resolution_votes_slashed_total: {
+    help: "Total resolution votes slashed.",
+    type: "counter",
+  },
+  hsm_predmkt_batch_verifications_total: {
+    help: "Total batch vote verifications performed.",
+    type: "counter",
+  },
+  hsm_predmkt_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for market resolution.",
+    type: "counter",
+  },
+  hsm_predmkt_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for market resolution.",
+    type: "counter",
+  },
+  hsm_predmkt_banned_peers: {
+    help: "Number of banned peers in prediction market hub.",
+    type: "gauge",
+  },
   // Track 65: PQC Fractional Custody & ZK Release Verifiers
-  hsm_fracvault_vaults_initialized_total: { help: 'Total fractional custody vaults initialized.', type: 'counter' },
-  hsm_fracvault_vaults_liquidated_total: { help: 'Total fractional custody vaults liquidated.', type: 'counter' },
-  hsm_fracvault_vaults_settled_total: { help: 'Total fractional custody vaults settled cross-chain.', type: 'counter' },
-  hsm_fracvault_vaults_cancelled_total: { help: 'Total fractional custody vaults cancelled.', type: 'counter' },
-  hsm_fracvault_vaults_active: { help: 'Number of active fractional custody vaults.', type: 'gauge' },
-  hsm_fracvault_escrows_locked_total: { help: 'Total escrow locks created.', type: 'counter' },
-  hsm_fracvault_escrows_released_total: { help: 'Total escrow locks released.', type: 'counter' },
-  hsm_fracvault_batch_inits_total: { help: 'Total batch vault initializations.', type: 'counter' },
-  hsm_fracvault_committee_signatures_aggregated_total: { help: 'Total custodian committee signature aggregations.', type: 'counter' },
-  hsm_fracvault_releases_recorded_total: { help: 'Total fractional releases recorded.', type: 'counter' },
-  hsm_fracvault_releases_slashed_total: { help: 'Total fractional releases slashed.', type: 'counter' },
-  hsm_fracvault_batch_verifications_total: { help: 'Total batch release verifications performed.', type: 'counter' },
-  hsm_fracvault_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for fractional releases.', type: 'counter' },
-  hsm_fracvault_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for fractional releases.', type: 'counter' },
-  hsm_fracvault_banned_peers: { help: 'Number of banned peers in fractional custody hub.', type: 'gauge' },
+  hsm_fracvault_vaults_initialized_total: {
+    help: "Total fractional custody vaults initialized.",
+    type: "counter",
+  },
+  hsm_fracvault_vaults_liquidated_total: {
+    help: "Total fractional custody vaults liquidated.",
+    type: "counter",
+  },
+  hsm_fracvault_vaults_settled_total: {
+    help: "Total fractional custody vaults settled cross-chain.",
+    type: "counter",
+  },
+  hsm_fracvault_vaults_cancelled_total: {
+    help: "Total fractional custody vaults cancelled.",
+    type: "counter",
+  },
+  hsm_fracvault_vaults_active: {
+    help: "Number of active fractional custody vaults.",
+    type: "gauge",
+  },
+  hsm_fracvault_escrows_locked_total: {
+    help: "Total escrow locks created.",
+    type: "counter",
+  },
+  hsm_fracvault_escrows_released_total: {
+    help: "Total escrow locks released.",
+    type: "counter",
+  },
+  hsm_fracvault_batch_inits_total: {
+    help: "Total batch vault initializations.",
+    type: "counter",
+  },
+  hsm_fracvault_committee_signatures_aggregated_total: {
+    help: "Total custodian committee signature aggregations.",
+    type: "counter",
+  },
+  hsm_fracvault_releases_recorded_total: {
+    help: "Total fractional releases recorded.",
+    type: "counter",
+  },
+  hsm_fracvault_releases_slashed_total: {
+    help: "Total fractional releases slashed.",
+    type: "counter",
+  },
+  hsm_fracvault_batch_verifications_total: {
+    help: "Total batch release verifications performed.",
+    type: "counter",
+  },
+  hsm_fracvault_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for fractional releases.",
+    type: "counter",
+  },
+  hsm_fracvault_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for fractional releases.",
+    type: "counter",
+  },
+  hsm_fracvault_banned_peers: {
+    help: "Number of banned peers in fractional custody hub.",
+    type: "gauge",
+  },
   // Track 66: PQC Lending Collateral & ZK Solvency Proof Processors
-  hsm_lendpool_pools_initialized_total: { help: 'Total lending collateral pools initialized.', type: 'counter' },
-  hsm_lendpool_pools_liquidated_total: { help: 'Total lending collateral pools liquidated.', type: 'counter' },
-  hsm_lendpool_pools_settled_total: { help: 'Total lending collateral pools settled cross-chain.', type: 'counter' },
-  hsm_lendpool_pools_cancelled_total: { help: 'Total lending collateral pools cancelled.', type: 'counter' },
-  hsm_lendpool_pools_active: { help: 'Number of active lending collateral pools.', type: 'gauge' },
-  hsm_lendpool_rebalances_total: { help: 'Total collateral rebalances performed.', type: 'counter' },
-  hsm_lendpool_batch_inits_total: { help: 'Total batch pool initializations.', type: 'counter' },
-  hsm_lendpool_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for lending pools.', type: 'counter' },
-  hsm_lendpool_solvency_proofs_verified_total: { help: 'Total ZK solvency proofs verified.', type: 'counter' },
-  hsm_lendpool_solvency_proofs_slashed_total: { help: 'Total ZK solvency proofs slashed.', type: 'counter' },
-  hsm_lendpool_batch_verifications_total: { help: 'Total batch solvency proof verifications performed.', type: 'counter' },
-  hsm_lendpool_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for solvency.', type: 'counter' },
-  hsm_lendpool_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for solvency.', type: 'counter' },
-  hsm_lendpool_banned_peers: { help: 'Number of banned peers in lending collateral hub.', type: 'gauge' },
+  hsm_lendpool_pools_initialized_total: {
+    help: "Total lending collateral pools initialized.",
+    type: "counter",
+  },
+  hsm_lendpool_pools_liquidated_total: {
+    help: "Total lending collateral pools liquidated.",
+    type: "counter",
+  },
+  hsm_lendpool_pools_settled_total: {
+    help: "Total lending collateral pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_lendpool_pools_cancelled_total: {
+    help: "Total lending collateral pools cancelled.",
+    type: "counter",
+  },
+  hsm_lendpool_pools_active: {
+    help: "Number of active lending collateral pools.",
+    type: "gauge",
+  },
+  hsm_lendpool_rebalances_total: {
+    help: "Total collateral rebalances performed.",
+    type: "counter",
+  },
+  hsm_lendpool_batch_inits_total: {
+    help: "Total batch pool initializations.",
+    type: "counter",
+  },
+  hsm_lendpool_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for lending pools.",
+    type: "counter",
+  },
+  hsm_lendpool_solvency_proofs_verified_total: {
+    help: "Total ZK solvency proofs verified.",
+    type: "counter",
+  },
+  hsm_lendpool_solvency_proofs_slashed_total: {
+    help: "Total ZK solvency proofs slashed.",
+    type: "counter",
+  },
+  hsm_lendpool_batch_verifications_total: {
+    help: "Total batch solvency proof verifications performed.",
+    type: "counter",
+  },
+  hsm_lendpool_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for solvency.",
+    type: "counter",
+  },
+  hsm_lendpool_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for solvency.",
+    type: "counter",
+  },
+  hsm_lendpool_banned_peers: {
+    help: "Number of banned peers in lending collateral hub.",
+    type: "gauge",
+  },
   // Track 67: PQC Insurance Underwriting & ZK Risk Exposure Validators
-  hsm_inspault_pools_initialized_total: { help: 'Total insurance underwriting pools initialized.', type: 'counter' },
-  hsm_inspault_pools_liquidated_total: { help: 'Total insurance underwriting pools liquidated.', type: 'counter' },
-  hsm_inspault_pools_settled_total: { help: 'Total insurance underwriting pools settled cross-chain.', type: 'counter' },
-  hsm_inspault_pools_cancelled_total: { help: 'Total insurance underwriting pools cancelled.', type: 'counter' },
-  hsm_inspault_pools_active: { help: 'Number of active insurance underwriting pools.', type: 'gauge' },
-  hsm_inspault_rebalances_total: { help: 'Total risk exposure rebalances performed.', type: 'counter' },
-  hsm_inspault_batch_inits_total: { help: 'Total batch pool initializations for insurance underwriting.', type: 'counter' },
-  hsm_inspault_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for insurance pools.', type: 'counter' },
-  hsm_inspault_claims_verified_total: { help: 'Total ZK claim eligibility proofs verified.', type: 'counter' },
-  hsm_inspault_claims_slashed_total: { help: 'Total ZK claim eligibility proofs slashed.', type: 'counter' },
-  hsm_inspault_batch_verifications_total: { help: 'Total batch claim verifications performed.', type: 'counter' },
-  hsm_inspault_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for risk exposure.', type: 'counter' },
-  hsm_inspault_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for risk exposure.', type: 'counter' },
-  hsm_inspault_banned_peers: { help: 'Number of banned peers in insurance underwriting hub.', type: 'gauge' },
+  hsm_inspault_pools_initialized_total: {
+    help: "Total insurance underwriting pools initialized.",
+    type: "counter",
+  },
+  hsm_inspault_pools_liquidated_total: {
+    help: "Total insurance underwriting pools liquidated.",
+    type: "counter",
+  },
+  hsm_inspault_pools_settled_total: {
+    help: "Total insurance underwriting pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_inspault_pools_cancelled_total: {
+    help: "Total insurance underwriting pools cancelled.",
+    type: "counter",
+  },
+  hsm_inspault_pools_active: {
+    help: "Number of active insurance underwriting pools.",
+    type: "gauge",
+  },
+  hsm_inspault_rebalances_total: {
+    help: "Total risk exposure rebalances performed.",
+    type: "counter",
+  },
+  hsm_inspault_batch_inits_total: {
+    help: "Total batch pool initializations for insurance underwriting.",
+    type: "counter",
+  },
+  hsm_inspault_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for insurance pools.",
+    type: "counter",
+  },
+  hsm_inspault_claims_verified_total: {
+    help: "Total ZK claim eligibility proofs verified.",
+    type: "counter",
+  },
+  hsm_inspault_claims_slashed_total: {
+    help: "Total ZK claim eligibility proofs slashed.",
+    type: "counter",
+  },
+  hsm_inspault_batch_verifications_total: {
+    help: "Total batch claim verifications performed.",
+    type: "counter",
+  },
+  hsm_inspault_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for risk exposure.",
+    type: "counter",
+  },
+  hsm_inspault_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for risk exposure.",
+    type: "counter",
+  },
+  hsm_inspault_banned_peers: {
+    help: "Number of banned peers in insurance underwriting hub.",
+    type: "gauge",
+  },
   // Track 68: PQC Supply Chain Escrow & ZK Order Milestone Validators
-  hsm_scordr_orders_initialized_total: { help: 'Total supply chain orders initialized.', type: 'counter' },
-  hsm_scordr_orders_released_total: { help: 'Total supply chain escrow releases.', type: 'counter' },
-  hsm_scordr_orders_settled_total: { help: 'Total supply chain orders settled cross-chain.', type: 'counter' },
-  hsm_scordr_orders_cancelled_total: { help: 'Total supply chain orders cancelled.', type: 'counter' },
-  hsm_scordr_orders_active: { help: 'Number of active supply chain orders.', type: 'gauge' },
-  hsm_scordr_rebalances_total: { help: 'Total delivery epoch rebalances performed.', type: 'counter' },
-  hsm_scordr_batch_inits_total: { help: 'Total batch order initializations for supply chain.', type: 'counter' },
-  hsm_scordr_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for supply chain orders.', type: 'counter' },
-  hsm_scordr_milestones_verified_total: { help: 'Total ZK delivery milestone proofs verified.', type: 'counter' },
-  hsm_scordr_milestones_slashed_total: { help: 'Total ZK delivery milestone proofs slashed.', type: 'counter' },
-  hsm_scordr_batch_verifications_total: { help: 'Total batch milestone verifications performed.', type: 'counter' },
-  hsm_scordr_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for milestones.', type: 'counter' },
-  hsm_scordr_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for milestones.', type: 'counter' },
-  hsm_scordr_banned_peers: { help: 'Number of banned peers in supply chain escrow hub.', type: 'gauge' },
+  hsm_scordr_orders_initialized_total: {
+    help: "Total supply chain orders initialized.",
+    type: "counter",
+  },
+  hsm_scordr_orders_released_total: {
+    help: "Total supply chain escrow releases.",
+    type: "counter",
+  },
+  hsm_scordr_orders_settled_total: {
+    help: "Total supply chain orders settled cross-chain.",
+    type: "counter",
+  },
+  hsm_scordr_orders_cancelled_total: {
+    help: "Total supply chain orders cancelled.",
+    type: "counter",
+  },
+  hsm_scordr_orders_active: {
+    help: "Number of active supply chain orders.",
+    type: "gauge",
+  },
+  hsm_scordr_rebalances_total: {
+    help: "Total delivery epoch rebalances performed.",
+    type: "counter",
+  },
+  hsm_scordr_batch_inits_total: {
+    help: "Total batch order initializations for supply chain.",
+    type: "counter",
+  },
+  hsm_scordr_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for supply chain orders.",
+    type: "counter",
+  },
+  hsm_scordr_milestones_verified_total: {
+    help: "Total ZK delivery milestone proofs verified.",
+    type: "counter",
+  },
+  hsm_scordr_milestones_slashed_total: {
+    help: "Total ZK delivery milestone proofs slashed.",
+    type: "counter",
+  },
+  hsm_scordr_batch_verifications_total: {
+    help: "Total batch milestone verifications performed.",
+    type: "counter",
+  },
+  hsm_scordr_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for milestones.",
+    type: "counter",
+  },
+  hsm_scordr_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for milestones.",
+    type: "counter",
+  },
+  hsm_scordr_banned_peers: {
+    help: "Number of banned peers in supply chain escrow hub.",
+    type: "gauge",
+  },
   // Track 69: PQC Real Estate Tokenization & ZK Title Deed Validators
-  hsm_repools_pools_initialized_total: { help: 'Total real estate tokenization pools initialized.', type: 'counter' },
-  hsm_repools_pools_finalized_total: { help: 'Total title deed transfers finalized.', type: 'counter' },
-  hsm_repools_pools_settled_total: { help: 'Total real estate pools settled cross-chain.', type: 'counter' },
-  hsm_repools_pools_cancelled_total: { help: 'Total real estate pools cancelled.', type: 'counter' },
-  hsm_repools_pools_active: { help: 'Number of active real estate tokenization pools.', type: 'gauge' },
-  hsm_repools_rebalances_total: { help: 'Total valuation rebalances performed.', type: 'counter' },
-  hsm_repools_batch_inits_total: { help: 'Total batch pool initializations for real estate.', type: 'counter' },
-  hsm_repools_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for real estate pools.', type: 'counter' },
-  hsm_repools_clearances_verified_total: { help: 'Total ZK encumbrance clearance proofs verified.', type: 'counter' },
-  hsm_repools_clearances_slashed_total: { help: 'Total ZK encumbrance clearance proofs slashed.', type: 'counter' },
-  hsm_repools_batch_verifications_total: { help: 'Total batch clearance verifications performed.', type: 'counter' },
-  hsm_repools_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for clearances.', type: 'counter' },
-  hsm_repools_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for clearances.', type: 'counter' },
-  hsm_repools_banned_peers: { help: 'Number of banned peers in real estate tokenization hub.', type: 'gauge' },
+  hsm_repools_pools_initialized_total: {
+    help: "Total real estate tokenization pools initialized.",
+    type: "counter",
+  },
+  hsm_repools_pools_finalized_total: {
+    help: "Total title deed transfers finalized.",
+    type: "counter",
+  },
+  hsm_repools_pools_settled_total: {
+    help: "Total real estate pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_repools_pools_cancelled_total: {
+    help: "Total real estate pools cancelled.",
+    type: "counter",
+  },
+  hsm_repools_pools_active: {
+    help: "Number of active real estate tokenization pools.",
+    type: "gauge",
+  },
+  hsm_repools_rebalances_total: {
+    help: "Total valuation rebalances performed.",
+    type: "counter",
+  },
+  hsm_repools_batch_inits_total: {
+    help: "Total batch pool initializations for real estate.",
+    type: "counter",
+  },
+  hsm_repools_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for real estate pools.",
+    type: "counter",
+  },
+  hsm_repools_clearances_verified_total: {
+    help: "Total ZK encumbrance clearance proofs verified.",
+    type: "counter",
+  },
+  hsm_repools_clearances_slashed_total: {
+    help: "Total ZK encumbrance clearance proofs slashed.",
+    type: "counter",
+  },
+  hsm_repools_batch_verifications_total: {
+    help: "Total batch clearance verifications performed.",
+    type: "counter",
+  },
+  hsm_repools_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for clearances.",
+    type: "counter",
+  },
+  hsm_repools_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for clearances.",
+    type: "counter",
+  },
+  hsm_repools_banned_peers: {
+    help: "Number of banned peers in real estate tokenization hub.",
+    type: "gauge",
+  },
   // Track 70: PQC Carbon Credit Tokenization & ZK Carbon Retirement Validators
-  hsm_carpools_pools_initialized_total: { help: 'Total carbon credit tokenization pools initialized.', type: 'counter' },
-  hsm_carpools_pools_retired_total: { help: 'Total carbon credit retirements finalized.', type: 'counter' },
-  hsm_carpools_pools_settled_total: { help: 'Total carbon credit pools settled cross-chain.', type: 'counter' },
-  hsm_carpools_pools_cancelled_total: { help: 'Total carbon credit pools cancelled.', type: 'counter' },
-  hsm_carpools_pools_active: { help: 'Number of active carbon credit tokenization pools.', type: 'gauge' },
-  hsm_carpools_rebalances_total: { help: 'Total tonnage rebalances performed.', type: 'counter' },
-  hsm_carpools_batch_inits_total: { help: 'Total batch pool initializations for carbon credit.', type: 'counter' },
-  hsm_carpools_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for carbon pools.', type: 'counter' },
-  hsm_carpools_retirements_verified_total: { help: 'Total ZK retirement proofs verified.', type: 'counter' },
-  hsm_carpools_retirements_slashed_total: { help: 'Total ZK retirement proofs slashed.', type: 'counter' },
-  hsm_carpools_batch_verifications_total: { help: 'Total batch retirement verifications performed.', type: 'counter' },
-  hsm_carpools_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for retirements.', type: 'counter' },
-  hsm_carpools_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for retirements.', type: 'counter' },
-  hsm_carpools_banned_peers: { help: 'Number of banned peers in carbon credit tokenization hub.', type: 'gauge' },
+  hsm_carpools_pools_initialized_total: {
+    help: "Total carbon credit tokenization pools initialized.",
+    type: "counter",
+  },
+  hsm_carpools_pools_retired_total: {
+    help: "Total carbon credit retirements finalized.",
+    type: "counter",
+  },
+  hsm_carpools_pools_settled_total: {
+    help: "Total carbon credit pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_carpools_pools_cancelled_total: {
+    help: "Total carbon credit pools cancelled.",
+    type: "counter",
+  },
+  hsm_carpools_pools_active: {
+    help: "Number of active carbon credit tokenization pools.",
+    type: "gauge",
+  },
+  hsm_carpools_rebalances_total: {
+    help: "Total tonnage rebalances performed.",
+    type: "counter",
+  },
+  hsm_carpools_batch_inits_total: {
+    help: "Total batch pool initializations for carbon credit.",
+    type: "counter",
+  },
+  hsm_carpools_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for carbon pools.",
+    type: "counter",
+  },
+  hsm_carpools_retirements_verified_total: {
+    help: "Total ZK retirement proofs verified.",
+    type: "counter",
+  },
+  hsm_carpools_retirements_slashed_total: {
+    help: "Total ZK retirement proofs slashed.",
+    type: "counter",
+  },
+  hsm_carpools_batch_verifications_total: {
+    help: "Total batch retirement verifications performed.",
+    type: "counter",
+  },
+  hsm_carpools_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for retirements.",
+    type: "counter",
+  },
+  hsm_carpools_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for retirements.",
+    type: "counter",
+  },
+  hsm_carpools_banned_peers: {
+    help: "Number of banned peers in carbon credit tokenization hub.",
+    type: "gauge",
+  },
   // Track 71: PQC Identity Gating & ZK Identity Gating Validators
-  hsm_idgate_pools_initialized_total: { help: 'Total identity gating pools initialized.', type: 'counter' },
-  hsm_idgate_pools_completed_total: { help: 'Total sovereign identity gating completions finalized.', type: 'counter' },
-  hsm_idgate_pools_settled_total: { help: 'Total identity gating pools settled cross-chain.', type: 'counter' },
-  hsm_idgate_pools_cancelled_total: { help: 'Total identity gating pools cancelled.', type: 'counter' },
-  hsm_idgate_pools_active: { help: 'Number of active identity gating pools.', type: 'gauge' },
-  hsm_idgate_rebalances_total: { help: 'Total credential depth rebalances performed.', type: 'counter' },
-  hsm_idgate_batch_inits_total: { help: 'Total batch pool initializations for identity gating.', type: 'counter' },
-  hsm_idgate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for identity gating pools.', type: 'counter' },
-  hsm_idgate_claims_verified_total: { help: 'Total ZK attribute claim proofs verified.', type: 'counter' },
-  hsm_idgate_claims_slashed_total: { help: 'Total ZK attribute claim proofs slashed.', type: 'counter' },
-  hsm_idgate_batch_verifications_total: { help: 'Total batch attribute claim verifications performed.', type: 'counter' },
-  hsm_idgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for attribute claims.', type: 'counter' },
-  hsm_idgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for attribute claims.', type: 'counter' },
-  hsm_idgate_banned_peers: { help: 'Number of banned peers in identity gating hub.', type: 'gauge' },
+  hsm_idgate_pools_initialized_total: {
+    help: "Total identity gating pools initialized.",
+    type: "counter",
+  },
+  hsm_idgate_pools_completed_total: {
+    help: "Total sovereign identity gating completions finalized.",
+    type: "counter",
+  },
+  hsm_idgate_pools_settled_total: {
+    help: "Total identity gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_idgate_pools_cancelled_total: {
+    help: "Total identity gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_idgate_pools_active: {
+    help: "Number of active identity gating pools.",
+    type: "gauge",
+  },
+  hsm_idgate_rebalances_total: {
+    help: "Total credential depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_idgate_batch_inits_total: {
+    help: "Total batch pool initializations for identity gating.",
+    type: "counter",
+  },
+  hsm_idgate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for identity gating pools.",
+    type: "counter",
+  },
+  hsm_idgate_claims_verified_total: {
+    help: "Total ZK attribute claim proofs verified.",
+    type: "counter",
+  },
+  hsm_idgate_claims_slashed_total: {
+    help: "Total ZK attribute claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_idgate_batch_verifications_total: {
+    help: "Total batch attribute claim verifications performed.",
+    type: "counter",
+  },
+  hsm_idgate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for attribute claims.",
+    type: "counter",
+  },
+  hsm_idgate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for attribute claims.",
+    type: "counter",
+  },
+  hsm_idgate_banned_peers: {
+    help: "Number of banned peers in identity gating hub.",
+    type: "gauge",
+  },
   // Track 72: PQC Health Data Gating & ZK Health Attribute Validators
-  hsm_hgate_pools_initialized_total: { help: 'Total health data gating pools initialized.', type: 'counter' },
-  hsm_hgate_pools_completed_total: { help: 'Total health record gating completions finalized.', type: 'counter' },
-  hsm_hgate_pools_settled_total: { help: 'Total health data gating pools settled cross-chain.', type: 'counter' },
-  hsm_hgate_pools_cancelled_total: { help: 'Total health data gating pools cancelled.', type: 'counter' },
-  hsm_hgate_pools_active: { help: 'Number of active health data gating pools.', type: 'gauge' },
-  hsm_hgate_rebalances_total: { help: 'Total diagnostic observation depth rebalances performed.', type: 'counter' },
-  hsm_hgate_batch_inits_total: { help: 'Total batch pool initializations for health data gating.', type: 'counter' },
-  hsm_hgate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for health gating pools.', type: 'counter' },
-  hsm_hgate_claims_verified_total: { help: 'Total ZK health claim proofs verified.', type: 'counter' },
-  hsm_hgate_claims_slashed_total: { help: 'Total ZK health claim proofs slashed.', type: 'counter' },
-  hsm_hgate_batch_verifications_total: { help: 'Total batch health claim verifications performed.', type: 'counter' },
-  hsm_hgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for health claims.', type: 'counter' },
-  hsm_hgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for health claims.', type: 'counter' },
-  hsm_hgate_banned_peers: { help: 'Number of banned peers in health data gating hub.', type: 'gauge' },
+  hsm_hgate_pools_initialized_total: {
+    help: "Total health data gating pools initialized.",
+    type: "counter",
+  },
+  hsm_hgate_pools_completed_total: {
+    help: "Total health record gating completions finalized.",
+    type: "counter",
+  },
+  hsm_hgate_pools_settled_total: {
+    help: "Total health data gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_hgate_pools_cancelled_total: {
+    help: "Total health data gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_hgate_pools_active: {
+    help: "Number of active health data gating pools.",
+    type: "gauge",
+  },
+  hsm_hgate_rebalances_total: {
+    help: "Total diagnostic observation depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_hgate_batch_inits_total: {
+    help: "Total batch pool initializations for health data gating.",
+    type: "counter",
+  },
+  hsm_hgate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for health gating pools.",
+    type: "counter",
+  },
+  hsm_hgate_claims_verified_total: {
+    help: "Total ZK health claim proofs verified.",
+    type: "counter",
+  },
+  hsm_hgate_claims_slashed_total: {
+    help: "Total ZK health claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_hgate_batch_verifications_total: {
+    help: "Total batch health claim verifications performed.",
+    type: "counter",
+  },
+  hsm_hgate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for health claims.",
+    type: "counter",
+  },
+  hsm_hgate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for health claims.",
+    type: "counter",
+  },
+  hsm_hgate_banned_peers: {
+    help: "Number of banned peers in health data gating hub.",
+    type: "gauge",
+  },
   // Track 73: PQC Education Credential Gating & ZK Academic Credential Validators
-  hsm_edugate_pools_initialized_total: { help: 'Total education credential gating pools initialized.', type: 'counter' },
-  hsm_edugate_pools_accredited_total: { help: 'Total credential accreditation completions finalized.', type: 'counter' },
-  hsm_edugate_pools_settled_total: { help: 'Total education credential gating pools settled cross-chain.', type: 'counter' },
-  hsm_edugate_pools_cancelled_total: { help: 'Total education credential gating pools cancelled.', type: 'counter' },
-  hsm_edugate_pools_active: { help: 'Number of active education credential gating pools.', type: 'gauge' },
-  hsm_edugate_rebalances_total: { help: 'Total credential depth rebalances performed.', type: 'counter' },
-  hsm_edugate_batch_inits_total: { help: 'Total batch pool initializations for education credential gating.', type: 'counter' },
-  hsm_edugate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for education gating pools.', type: 'counter' },
-  hsm_edugate_claims_verified_total: { help: 'Total ZK academic claim proofs verified.', type: 'counter' },
-  hsm_edugate_claims_slashed_total: { help: 'Total ZK academic claim proofs slashed.', type: 'counter' },
-  hsm_edugate_batch_verifications_total: { help: 'Total batch academic claim verifications performed.', type: 'counter' },
-  hsm_edugate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for academic claims.', type: 'counter' },
-  hsm_edugate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for academic claims.', type: 'counter' },
-  hsm_edugate_banned_peers: { help: 'Number of banned peers in education credential gating hub.', type: 'gauge' },
+  hsm_edugate_pools_initialized_total: {
+    help: "Total education credential gating pools initialized.",
+    type: "counter",
+  },
+  hsm_edugate_pools_accredited_total: {
+    help: "Total credential accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_edugate_pools_settled_total: {
+    help: "Total education credential gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_edugate_pools_cancelled_total: {
+    help: "Total education credential gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_edugate_pools_active: {
+    help: "Number of active education credential gating pools.",
+    type: "gauge",
+  },
+  hsm_edugate_rebalances_total: {
+    help: "Total credential depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_edugate_batch_inits_total: {
+    help: "Total batch pool initializations for education credential gating.",
+    type: "counter",
+  },
+  hsm_edugate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for education gating pools.",
+    type: "counter",
+  },
+  hsm_edugate_claims_verified_total: {
+    help: "Total ZK academic claim proofs verified.",
+    type: "counter",
+  },
+  hsm_edugate_claims_slashed_total: {
+    help: "Total ZK academic claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_edugate_batch_verifications_total: {
+    help: "Total batch academic claim verifications performed.",
+    type: "counter",
+  },
+  hsm_edugate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for academic claims.",
+    type: "counter",
+  },
+  hsm_edugate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for academic claims.",
+    type: "counter",
+  },
+  hsm_edugate_banned_peers: {
+    help: "Number of banned peers in education credential gating hub.",
+    type: "gauge",
+  },
   // Track 74 Phase 2: PQC Patent Verification Gating & ZK Patent Claim Validators
-  hsm_pgate_pools_initialized_total: { help: 'Total patent verification gating pools initialized.', type: 'counter' },
-  hsm_pgate_pools_accredited_total: { help: 'Total patent license accreditation completions finalized.', type: 'counter' },
-  hsm_pgate_pools_settled_total: { help: 'Total patent verification gating pools settled cross-chain.', type: 'counter' },
-  hsm_pgate_pools_cancelled_total: { help: 'Total patent verification gating pools cancelled.', type: 'counter' },
-  hsm_pgate_pools_active: { help: 'Number of active patent verification gating pools.', type: 'gauge' },
-  hsm_pgate_rebalances_total: { help: 'Total claim scope depth rebalances performed.', type: 'counter' },
-  hsm_pgate_batch_inits_total: { help: 'Total batch pool initializations for patent verification gating.', type: 'counter' },
-  hsm_pgate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for patent gating pools.', type: 'counter' },
-  hsm_pgate_claims_verified_total: { help: 'Total ZK patent claim proofs verified.', type: 'counter' },
-  hsm_pgate_claims_slashed_total: { help: 'Total ZK patent claim proofs slashed.', type: 'counter' },
-  hsm_pgate_batch_verifications_total: { help: 'Total batch patent claim verifications performed.', type: 'counter' },
-  hsm_pgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for patent claims.', type: 'counter' },
-  hsm_pgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for patent claims.', type: 'counter' },
-  hsm_pgate_banned_peers: { help: 'Number of banned peers in patent verification gating hub.', type: 'gauge' },
-  hsm_dkg_rounds_started_total: { help: 'Total DKG protocol rounds initiated.', type: 'counter' },
-  hsm_dkg_rounds_completed_total: { help: 'Total DKG protocol rounds that completed successfully.', type: 'counter' },
-  hsm_dkg_shares_verified_total: { help: 'Total DKG shares that passed commitment verification.', type: 'counter' },
-  hsm_dkg_shares_rejected_total: { help: 'Total DKG shares that failed commitment verification.', type: 'counter' },
-  hsm_dkg_complaints_filed_total: { help: 'Total DKG complaints filed by nodes against peers.', type: 'counter' },
-  hsm_dkg_nodes_disqualified_total: { help: 'Total DKG nodes disqualified due to verified complaints.', type: 'counter' },
-  hsm_dkg_zk_proofs_generated_total: { help: 'Total zk-SNARK validation parameters generated.', type: 'counter' },
-  hsm_dkg_zk_proofs_invalid_total: { help: 'Total zk-SNARK validation parameters rejected as invalid or forged.', type: 'counter' },
-  hsm_pqc_threshold_sign_total: { help: 'Total PQC threshold signature aggregation operations.', type: 'counter' },
-  hsm_pqc_threshold_sign_failures_total: { help: 'Total PQC threshold signature aggregations that failed.', type: 'counter' },
-  hsm_pqc_threshold_partial_sign_total: { help: 'Total PQC partial signature generation operations.', type: 'counter' },
-  hsm_pqc_threshold_partial_verified_total: { help: 'Total PQC partial signatures that passed verification.', type: 'counter' },
-  hsm_pqc_threshold_partial_rejected_total: { help: 'Total PQC partial signatures that failed verification.', type: 'counter' },
-  hsm_pqc_threshold_verify_total: { help: 'Total PQC threshold signature verification operations.', type: 'counter' },
-  hsm_pqc_threshold_verify_failures_total: { help: 'Total PQC threshold signature verifications that failed.', type: 'counter' },
-  hsm_sandbox_created_total: { help: 'Total confidential sandboxes created.', type: 'counter' },
-  hsm_sandbox_destroyed_total: { help: 'Total confidential sandboxes destroyed.', type: 'counter' },
-  hsm_sandbox_attested_total: { help: 'Total sandbox attestations that passed.', type: 'counter' },
-  hsm_sandbox_attestation_failed_total: { help: 'Total sandbox attestations that failed.', type: 'counter' },
-  hsm_sandbox_execute_total: { help: 'Total sandbox execute operations.', type: 'counter' },
-  hsm_sandbox_execute_failures_total: { help: 'Total sandbox execute operations that failed.', type: 'counter' },
-  hsm_sandbox_zeroized_total: { help: 'Total sandbox zeroization operations.', type: 'counter' },
-  hsm_sandbox_active: { help: 'Current number of active sandboxes.', type: 'gauge' },
-  hsm_shard_append_total: { help: 'Total shard entries appended.', type: 'counter' },
-  hsm_shard_ack_total: { help: 'Total shard entry acknowledgments received.', type: 'counter' },
-  hsm_shard_commit_total: { help: 'Total shard entries committed via quorum.', type: 'counter' },
-  hsm_shard_catchup_batch_total: { help: 'Total catch-up batches streamed to lagging nodes.', type: 'counter' },
-  hsm_shard_byzantine_detected_total: { help: 'Total nodes flagged as byzantine due to divergence.', type: 'counter' },
-  hsm_shard_lagging_nodes: { help: 'Current number of lagging nodes across all shards.', type: 'gauge' },
-  hsm_shard_active: { help: 'Current number of active shards being tracked.', type: 'gauge' },
-  hsm_shard_limit_exceeded_total: { help: 'Total shard registrations rejected due to maxShardsPerCluster limit.', type: 'counter' },
-  hsm_shard_out_of_sync_total: { help: 'Total shard sequence gaps/duplicates detected by the reconciler.', type: 'counter' },
-  hsm_shard_reconciler_repair_requested_total: { help: 'Total repair jobs requested by the shard reconciler.', type: 'counter' },
-  hsm_shard_reconciler_repair_skipped_total: { help: 'Total repair requests skipped due to cooldown.', type: 'counter' },
-  hsm_shard_reconstructed_blocks_total: { help: 'Total shard blocks reconstructed by the reassembler.', type: 'counter' },
-  hsm_shard_reassembly_attempts_total: { help: 'Total shard reassembly attempts (labeled by outcome).', type: 'counter' },
-  hsm_repair_worker_completed_total: { help: 'Total repair jobs completed by the repair worker.', type: 'counter' },
-  hsm_repair_worker_started_total: { help: 'Total repair jobs started by the repair worker.', type: 'counter' },
-  hsm_repair_worker_failed_total: { help: 'Total repair jobs that failed.', type: 'counter' },
-  hsm_repair_worker_rejected_total: { help: 'Total repair jobs rejected before processing.', type: 'counter' },
-  hsm_shard_reconciler_repair_seq_validated_total: { help: 'Total monotonic sequence validations passed during repair.', type: 'counter' },
-  hsm_shard_reconciler_repair_seq_rejected_total: { help: 'Total monotonic sequence validations rejected during repair.', type: 'counter' },
-  hsm_shard_reconciler_envelope_validated_total: { help: 'Total encrypted envelope validations passed during shard repair.', type: 'counter' },
-  hsm_shard_reconciler_envelope_rejected_total: { help: 'Total encrypted envelope rejections during shard repair.', type: 'counter' },
-  hsm_replication_tenant_isolation_violation_total: { help: 'Total cross-cluster replication tenant isolation violations.', type: 'counter' },
-  hsm_replication_tenant_context_validated_total: { help: 'Total cross-cluster replication tenant context validations passed.', type: 'counter' },
-  hsm_replication_cross_tenant_rejected_total: { help: 'Total cross-tenant replication attempts rejected.', type: 'counter' },
-  hsm_zk_energy_claim_failed_total: { help: 'Total ZK energy claim verifications failed.', type: 'counter' },
-  hsm_zk_biometric_claim_failed_total: { help: 'Total ZK biometric claim verifications failed.', type: 'counter' },
-  hsm_zk_neural_claim_verified_total: { help: 'Total ZK neural claim verifications passed.', type: 'counter' },
-  hsm_zk_neural_claim_failed_total: { help: 'Total ZK neural claim verifications failed.', type: 'counter' },
-  hsm_zk_lookup_claim_failed_total: { help: 'Total ZK lookup claim verifications failed.', type: 'counter' },
-  hsm_zk_storage_claim_verified_total: { help: 'Total ZK storage claim verifications passed.', type: 'counter' },
-  hsm_zk_storage_claim_failed_total: { help: 'Total ZK storage claim verifications failed.', type: 'counter' },
-  hsm_zk_authentication_claim_failed_total: { help: 'Total ZK authentication claim verifications failed.', type: 'counter' },
-  hsm_zk_genomic_claim_verified_total: { help: 'Total ZK genomic claim verifications passed.', type: 'counter' },
-  hsm_zk_genomic_claim_failed_total: { help: 'Total ZK genomic claim verifications failed.', type: 'counter' },
-  hsm_zk_insurance_claim_verified_total: { help: 'Total ZK insurance claim verifications passed.', type: 'counter' },
-  hsm_zk_insurance_claim_failed_total: { help: 'Total ZK insurance claim verifications failed.', type: 'counter' },
-  hsm_zk_quantum_claim_verified_total: { help: 'Total ZK quantum claim verifications passed.', type: 'counter' },
-  hsm_zk_quantum_claim_failed_total: { help: 'Total ZK quantum claim verifications failed.', type: 'counter' },
-  hsm_zk_tenant_isolation_violation_total: { help: 'Total ZK verification tenant isolation violations.', type: 'counter' },
-  hsm_zk_tenant_context_validated_total: { help: 'Total ZK verification tenant context validations passed.', type: 'counter' },
-  hsm_migration_initiated_total: { help: 'Total cross-cluster migrations initiated.', type: 'counter' },
-  hsm_migration_attested_total: { help: 'Total cross-cluster migrations attested.', type: 'counter' },
-  hsm_migration_committed_total: { help: 'Total cross-cluster migrations committed via quorum.', type: 'counter' },
-  hsm_migration_rolled_back_total: { help: 'Total cross-cluster migrations rolled back.', type: 'counter' },
-  hsm_migration_ack_total: { help: 'Total migration acknowledgments received from destination nodes.', type: 'counter' },
-  hsm_migration_verification_failed_total: { help: 'Total migrations that failed verification.', type: 'counter' },
-  hsm_migration_active: { help: 'Current number of active (in-progress) migrations.', type: 'gauge' },
-  hsm_reconciliation_scans_total: { help: 'Total key reconciliation scans performed.', type: 'counter' },
-  hsm_reconciliation_divergence_detected_total: { help: 'Total key divergences detected across scans.', type: 'counter' },
-  hsm_reconciliation_promoted_total: { help: 'Total key epochs promoted via quorum.', type: 'counter' },
-  hsm_reconciliation_quarantined_total: { help: 'Total keys quarantined due to unrecoverable divergence.', type: 'counter' },
-  hsm_reconciliation_rollback_blocked_total: { help: 'Total key epoch rollback attempts blocked.', type: 'counter' },
-  hsm_reconciliation_promotion_votes_total: { help: 'Total promotion votes cast by healthy nodes.', type: 'counter' },
-  hsm_reconciliation_divergent_keys: { help: 'Current number of keys with unresolved divergence.', type: 'gauge' },
-  hsm_poa_asset_registered_total: { help: 'Total assets registered for proof-of-assets.', type: 'counter' },
-  hsm_poa_proof_created_total: { help: 'Total ZK proof-of-assets drafts created.', type: 'counter' },
-  hsm_poa_proof_verified_total: { help: 'Total ZK proof-of-assets successfully verified.', type: 'counter' },
-  hsm_poa_proof_invalid_total: { help: 'Total ZK proof-of-assets marked invalid.', type: 'counter' },
-  hsm_poa_double_count_blocked_total: { help: 'Total asset double-counting attempts blocked.', type: 'counter' },
-  hsm_poa_quorum_signatures_total: { help: 'Total quorum signatures collected on proofs.', type: 'counter' },
-  hsm_poa_active_proofs: { help: 'Current number of active (non-terminal) proofs.', type: 'gauge' },
-  hsm_rekey_proposed_total: { help: 'Total re-keying rounds proposed.', type: 'counter' },
-  hsm_rekey_resharing_submitted_total: { help: 'Total shareholder resharings submitted.', type: 'counter' },
-  hsm_rekey_verified_total: { help: 'Total re-keying rounds verified.', type: 'counter' },
-  hsm_rekey_committed_total: { help: 'Total re-keying rounds committed via quorum.', type: 'counter' },
-  hsm_rekey_aborted_total: { help: 'Total re-keying rounds aborted.', type: 'counter' },
-  hsm_rekey_rollback_blocked_total: { help: 'Total re-keying epoch rollback attempts blocked.', type: 'counter' },
-  hsm_rekey_active: { help: 'Current number of active (in-progress) re-keying rounds.', type: 'gauge' },
-  hsm_p2p_route_discovered_total: { help: 'Total P2P routes discovered via BFS.', type: 'counter' },
-  hsm_p2p_message_encrypted_total: { help: 'Total P2P messages encrypted with onion layers.', type: 'counter' },
-  hsm_p2p_message_relayed_total: { help: 'Total P2P messages relayed through hops.', type: 'counter' },
-  hsm_p2p_message_delivered_total: { help: 'Total P2P messages successfully delivered.', type: 'counter' },
-  hsm_p2p_route_revoked_total: { help: 'Total P2P routes revoked.', type: 'counter' },
-  hsm_p2p_replay_blocked_total: { help: 'Total P2P replay attacks blocked.', type: 'counter' },
-  hsm_p2p_active_routes: { help: 'Current number of active P2P routes.', type: 'gauge' },
-  hsm_recovery_requested_total: { help: 'Total account recovery requests initiated.', type: 'counter' },
-  hsm_recovery_approved_total: { help: 'Total guardian approvals submitted.', type: 'counter' },
-  hsm_recovery_executed_total: { help: 'Total account recoveries successfully executed.', type: 'counter' },
-  hsm_recovery_rejected_total: { help: 'Total account recovery requests rejected.', type: 'counter' },
-  hsm_recovery_replay_blocked_total: { help: 'Total replay attacks blocked during recovery.', type: 'counter' },
-  hsm_recovery_time_lock_blocked_total: { help: 'Total recovery attempts blocked by time-lock.', type: 'counter' },
-  hsm_recovery_active: { help: 'Current number of active (in-progress) account recoveries.', type: 'gauge' },
-  hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
-  hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
-  hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
-  hsm_sggate_pools_initialized_total: { help: 'Total smart-grid micro-transaction gating pools initialized.', type: 'counter' },
-  hsm_sggate_pools_accredited_total: { help: 'Total load balance accreditation completions finalized.', type: 'counter' },
-  hsm_sggate_pools_settled_total: { help: 'Total smart-grid micro-transaction gating pools settled cross-chain.', type: 'counter' },
-  hsm_sggate_pools_cancelled_total: { help: 'Total smart-grid micro-transaction gating pools cancelled.', type: 'counter' },
-  hsm_sggate_pools_active: { help: 'Number of active smart-grid micro-transaction gating pools.', type: 'gauge' },
-  hsm_sggate_rebalances_total: { help: 'Total consumption chain depth rebalances performed.', type: 'counter' },
-  hsm_sggate_batch_inits_total: { help: 'Total batch pool initializations for smart-grid micro-transaction gating.', type: 'counter' },
-  hsm_sggate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for smart-grid gating pools.', type: 'counter' },
-  hsm_sggate_claims_verified_total: { help: 'Total ZK micro-transaction claim proofs verified.', type: 'counter' },
-  hsm_sggate_claims_slashed_total: { help: 'Total ZK micro-transaction claim proofs slashed.', type: 'counter' },
-  hsm_sggate_batch_verifications_total: { help: 'Total batch micro-transaction claim verifications performed.', type: 'counter' },
-  hsm_sggate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for micro-transaction claims.', type: 'counter' },
-  hsm_sggate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for micro-transaction claims.', type: 'counter' },
-  hsm_sggate_banned_peers: { help: 'Number of banned peers in smart-grid micro-transaction gating hub.', type: 'gauge' },
-  hsm_sgate_pools_initialized_total: { help: 'Total deep-sea mineral rights gating pools initialized.', type: 'counter' },
-  hsm_sgate_pools_accredited_total: { help: 'Total lease accreditation completions finalized.', type: 'counter' },
-  hsm_sgate_pools_settled_total: { help: 'Total deep-sea mineral rights gating pools settled cross-chain.', type: 'counter' },
-  hsm_sgate_pools_cancelled_total: { help: 'Total deep-sea mineral rights gating pools cancelled.', type: 'counter' },
-  hsm_sgate_pools_active: { help: 'Number of active deep-sea mineral rights gating pools.', type: 'gauge' },
-  hsm_sgate_rebalances_total: { help: 'Total extraction chain depth rebalances performed.', type: 'counter' },
-  hsm_sgate_batch_inits_total: { help: 'Total batch pool initializations for deep-sea mineral rights gating.', type: 'counter' },
-  hsm_sgate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for seabed gating pools.', type: 'counter' },
-  hsm_sgate_claims_verified_total: { help: 'Total ZK extraction claim proofs verified.', type: 'counter' },
-  hsm_sgate_claims_slashed_total: { help: 'Total ZK extraction claim proofs slashed.', type: 'counter' },
-  hsm_sgate_batch_verifications_total: { help: 'Total batch extraction claim verifications performed.', type: 'counter' },
-  hsm_sgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for extraction claims.', type: 'counter' },
-  hsm_sgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for extraction claims.', type: 'counter' },
-  hsm_sgate_banned_peers: { help: 'Number of banned peers in deep-sea mineral rights gating hub.', type: 'gauge' },
-  hsm_fgate_pools_initialized_total: { help: 'Total ocean fisheries allocation gating pools initialized.', type: 'counter' },
-  hsm_fgate_pools_accredited_total: { help: 'Total quota accreditation completions finalized.', type: 'counter' },
-  hsm_fgate_pools_settled_total: { help: 'Total ocean fisheries allocation gating pools settled cross-chain.', type: 'counter' },
-  hsm_fgate_pools_cancelled_total: { help: 'Total ocean fisheries allocation gating pools cancelled.', type: 'counter' },
-  hsm_fgate_pools_active: { help: 'Number of active ocean fisheries allocation gating pools.', type: 'gauge' },
-  hsm_fgate_rebalances_total: { help: 'Total vessel telemetry chain depth rebalances performed.', type: 'counter' },
-  hsm_fgate_batch_inits_total: { help: 'Total batch pool initializations for ocean fisheries allocation gating.', type: 'counter' },
-  hsm_fgate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for fisheries gating pools.', type: 'counter' },
-  hsm_fgate_claims_verified_total: { help: 'Total ZK catch claim proofs verified.', type: 'counter' },
-  hsm_fgate_claims_slashed_total: { help: 'Total ZK catch claim proofs slashed.', type: 'counter' },
-  hsm_fgate_batch_verifications_total: { help: 'Total batch catch claim verifications performed.', type: 'counter' },
-  hsm_fgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for catch claims.', type: 'counter' },
-  hsm_fgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for catch claims.', type: 'counter' },
-  hsm_fgate_banned_peers: { help: 'Number of banned peers in ocean fisheries allocation gating hub.', type: 'gauge' },
-  hsm_epigate_pools_initialized_total: { help: 'Total global health epidemiological surveillance gating pools initialized.', type: 'counter' },
-  hsm_epigate_pools_accredited_total: { help: 'Total outbreak accreditation completions finalized.', type: 'counter' },
-  hsm_epigate_pools_settled_total: { help: 'Total global health epidemiological surveillance gating pools settled cross-chain.', type: 'counter' },
-  hsm_epigate_pools_cancelled_total: { help: 'Total global health epidemiological surveillance gating pools cancelled.', type: 'counter' },
-  hsm_epigate_pools_active: { help: 'Number of active global health epidemiological surveillance gating pools.', type: 'gauge' },
-  hsm_epigate_rebalances_total: { help: 'Total genomic chain depth rebalances performed.', type: 'counter' },
-  hsm_epigate_batch_inits_total: { help: 'Total batch pool initializations for global health epidemiological surveillance gating.', type: 'counter' },
-  hsm_epigate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for epidemiological gating pools.', type: 'counter' },
-  hsm_epigate_claims_verified_total: { help: 'Total ZK epidemiological claim proofs verified.', type: 'counter' },
-  hsm_epigate_claims_slashed_total: { help: 'Total ZK epidemiological claim proofs slashed.', type: 'counter' },
-  hsm_epigate_batch_verifications_total: { help: 'Total batch epidemiological claim verifications performed.', type: 'counter' },
-  hsm_epigate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for epidemiological claims.', type: 'counter' },
-  hsm_epigate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for epidemiological claims.', type: 'counter' },
-  hsm_epigate_banned_peers: { help: 'Number of banned peers in global health epidemiological surveillance gating hub.', type: 'gauge' },
-  hsm_igate_pools_initialized_total: { help: 'Total health insurance claim auditing gating pools initialized.', type: 'counter' },
-  hsm_igate_pools_accredited_total: { help: 'Total actuarial accreditation completions finalized.', type: 'counter' },
-  hsm_igate_pools_settled_total: { help: 'Total health insurance claim auditing gating pools settled cross-chain.', type: 'counter' },
-  hsm_igate_pools_cancelled_total: { help: 'Total health insurance claim auditing gating pools cancelled.', type: 'counter' },
-  hsm_igate_pools_active: { help: 'Number of active health insurance claim auditing gating pools.', type: 'gauge' },
-  hsm_igate_rebalances_total: { help: 'Total billing sequence depth rebalances performed.', type: 'counter' },
-  hsm_igate_batch_inits_total: { help: 'Total batch pool initializations for health insurance claim auditing gating.', type: 'counter' },
-  hsm_igate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for insurance gating pools.', type: 'counter' },
-  hsm_igate_claims_verified_total: { help: 'Total ZK claim audit proofs verified.', type: 'counter' },
-  hsm_igate_claims_slashed_total: { help: 'Total ZK claim audit proofs slashed.', type: 'counter' },
-  hsm_igate_batch_verifications_total: { help: 'Total batch claim audit verifications performed.', type: 'counter' },
-  hsm_igate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for claim audits.', type: 'counter' },
-  hsm_igate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for claim audits.', type: 'counter' },
-  hsm_igate_banned_peers: { help: 'Number of banned peers in health insurance claim auditing gating hub.', type: 'gauge' },
-  hsm_strato_pool_initialized_total: { help: 'Total stratospheric aerosol monitoring gating pools initialized.', type: 'counter' },
-  hsm_zk_aerosol_claim_verified_total: { help: 'Total ZK aerosol monitoring claims verified.', type: 'counter' },
-  hsm_deployment_accreditation_completed_total: { help: 'Total deployment accreditation completions finalized.', type: 'counter' },
-  hsm_sagate_pools_initialized_total: { help: 'Total stratospheric aerosol monitoring gating pools initialized.', type: 'counter' },
-  hsm_sagate_pools_accredited_total: { help: 'Total deployment accreditation completions finalized.', type: 'counter' },
-  hsm_sagate_pools_settled_total: { help: 'Total stratospheric aerosol monitoring gating pools settled cross-chain.', type: 'counter' },
-  hsm_sagate_pools_cancelled_total: { help: 'Total stratospheric aerosol monitoring gating pools cancelled.', type: 'counter' },
-  hsm_sagate_pools_active: { help: 'Number of active stratospheric aerosol monitoring gating pools.', type: 'gauge' },
-  hsm_sagate_rebalances_total: { help: 'Total monitoring chain depth rebalances performed.', type: 'counter' },
-  hsm_sagate_batch_inits_total: { help: 'Total batch pool initializations for stratospheric aerosol monitoring gating.', type: 'counter' },
-  hsm_sagate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for stratospheric aerosol monitoring gating pools.', type: 'counter' },
-  hsm_sagate_claims_verified_total: { help: 'Total ZK aerosol claim proofs verified.', type: 'counter' },
-  hsm_sagate_claims_slashed_total: { help: 'Total ZK aerosol claim proofs slashed.', type: 'counter' },
-  hsm_sagate_batch_verifications_total: { help: 'Total batch aerosol claim verifications performed.', type: 'counter' },
-  hsm_sagate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for aerosol claims.', type: 'counter' },
-  hsm_sagate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for aerosol claims.', type: 'counter' },
-  hsm_sagate_banned_peers: { help: 'Number of banned peers in stratospheric aerosol monitoring gating hub.', type: 'gauge' },
-  hsm_inference_pool_initialized_total: { help: 'Total neural network inference integrity gating pools initialized.', type: 'counter' },
+  hsm_pgate_pools_initialized_total: {
+    help: "Total patent verification gating pools initialized.",
+    type: "counter",
+  },
+  hsm_pgate_pools_accredited_total: {
+    help: "Total patent license accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_pgate_pools_settled_total: {
+    help: "Total patent verification gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_pgate_pools_cancelled_total: {
+    help: "Total patent verification gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_pgate_pools_active: {
+    help: "Number of active patent verification gating pools.",
+    type: "gauge",
+  },
+  hsm_pgate_rebalances_total: {
+    help: "Total claim scope depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_pgate_batch_inits_total: {
+    help: "Total batch pool initializations for patent verification gating.",
+    type: "counter",
+  },
+  hsm_pgate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for patent gating pools.",
+    type: "counter",
+  },
+  hsm_pgate_claims_verified_total: {
+    help: "Total ZK patent claim proofs verified.",
+    type: "counter",
+  },
+  hsm_pgate_claims_slashed_total: {
+    help: "Total ZK patent claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_pgate_batch_verifications_total: {
+    help: "Total batch patent claim verifications performed.",
+    type: "counter",
+  },
+  hsm_pgate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for patent claims.",
+    type: "counter",
+  },
+  hsm_pgate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for patent claims.",
+    type: "counter",
+  },
+  hsm_pgate_banned_peers: {
+    help: "Number of banned peers in patent verification gating hub.",
+    type: "gauge",
+  },
+  hsm_dkg_rounds_started_total: {
+    help: "Total DKG protocol rounds initiated.",
+    type: "counter",
+  },
+  hsm_dkg_rounds_completed_total: {
+    help: "Total DKG protocol rounds that completed successfully.",
+    type: "counter",
+  },
+  hsm_dkg_shares_verified_total: {
+    help: "Total DKG shares that passed commitment verification.",
+    type: "counter",
+  },
+  hsm_dkg_shares_rejected_total: {
+    help: "Total DKG shares that failed commitment verification.",
+    type: "counter",
+  },
+  hsm_dkg_complaints_filed_total: {
+    help: "Total DKG complaints filed by nodes against peers.",
+    type: "counter",
+  },
+  hsm_dkg_nodes_disqualified_total: {
+    help: "Total DKG nodes disqualified due to verified complaints.",
+    type: "counter",
+  },
+  hsm_dkg_zk_proofs_generated_total: {
+    help: "Total zk-SNARK validation parameters generated.",
+    type: "counter",
+  },
+  hsm_dkg_zk_proofs_invalid_total: {
+    help: "Total zk-SNARK validation parameters rejected as invalid or forged.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_sign_total: {
+    help: "Total PQC threshold signature aggregation operations.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_sign_failures_total: {
+    help: "Total PQC threshold signature aggregations that failed.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_partial_sign_total: {
+    help: "Total PQC partial signature generation operations.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_partial_verified_total: {
+    help: "Total PQC partial signatures that passed verification.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_partial_rejected_total: {
+    help: "Total PQC partial signatures that failed verification.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_verify_total: {
+    help: "Total PQC threshold signature verification operations.",
+    type: "counter",
+  },
+  hsm_pqc_threshold_verify_failures_total: {
+    help: "Total PQC threshold signature verifications that failed.",
+    type: "counter",
+  },
+  hsm_sandbox_created_total: {
+    help: "Total confidential sandboxes created.",
+    type: "counter",
+  },
+  hsm_sandbox_destroyed_total: {
+    help: "Total confidential sandboxes destroyed.",
+    type: "counter",
+  },
+  hsm_sandbox_attested_total: {
+    help: "Total sandbox attestations that passed.",
+    type: "counter",
+  },
+  hsm_sandbox_attestation_failed_total: {
+    help: "Total sandbox attestations that failed.",
+    type: "counter",
+  },
+  hsm_sandbox_execute_total: {
+    help: "Total sandbox execute operations.",
+    type: "counter",
+  },
+  hsm_sandbox_execute_failures_total: {
+    help: "Total sandbox execute operations that failed.",
+    type: "counter",
+  },
+  hsm_sandbox_zeroized_total: {
+    help: "Total sandbox zeroization operations.",
+    type: "counter",
+  },
+  hsm_sandbox_active: {
+    help: "Current number of active sandboxes.",
+    type: "gauge",
+  },
+  hsm_shard_append_total: {
+    help: "Total shard entries appended.",
+    type: "counter",
+  },
+  hsm_shard_ack_total: {
+    help: "Total shard entry acknowledgments received.",
+    type: "counter",
+  },
+  hsm_shard_commit_total: {
+    help: "Total shard entries committed via quorum.",
+    type: "counter",
+  },
+  hsm_shard_catchup_batch_total: {
+    help: "Total catch-up batches streamed to lagging nodes.",
+    type: "counter",
+  },
+  hsm_shard_byzantine_detected_total: {
+    help: "Total nodes flagged as byzantine due to divergence.",
+    type: "counter",
+  },
+  hsm_shard_lagging_nodes: {
+    help: "Current number of lagging nodes across all shards.",
+    type: "gauge",
+  },
+  hsm_shard_active: {
+    help: "Current number of active shards being tracked.",
+    type: "gauge",
+  },
+  hsm_shard_limit_exceeded_total: {
+    help: "Total shard registrations rejected due to maxShardsPerCluster limit.",
+    type: "counter",
+  },
+  hsm_shard_out_of_sync_total: {
+    help: "Total shard sequence gaps/duplicates detected by the reconciler.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_repair_requested_total: {
+    help: "Total repair jobs requested by the shard reconciler.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_repair_skipped_total: {
+    help: "Total repair requests skipped due to cooldown.",
+    type: "counter",
+  },
+  hsm_shard_reconstructed_blocks_total: {
+    help: "Total shard blocks reconstructed by the reassembler.",
+    type: "counter",
+  },
+  hsm_shard_reassembly_attempts_total: {
+    help: "Total shard reassembly attempts (labeled by outcome).",
+    type: "counter",
+  },
+  hsm_repair_worker_completed_total: {
+    help: "Total repair jobs completed by the repair worker.",
+    type: "counter",
+  },
+  hsm_repair_worker_started_total: {
+    help: "Total repair jobs started by the repair worker.",
+    type: "counter",
+  },
+  hsm_repair_worker_failed_total: {
+    help: "Total repair jobs that failed.",
+    type: "counter",
+  },
+  hsm_repair_worker_rejected_total: {
+    help: "Total repair jobs rejected before processing.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_repair_seq_validated_total: {
+    help: "Total monotonic sequence validations passed during repair.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_repair_seq_rejected_total: {
+    help: "Total monotonic sequence validations rejected during repair.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_envelope_validated_total: {
+    help: "Total encrypted envelope validations passed during shard repair.",
+    type: "counter",
+  },
+  hsm_shard_reconciler_envelope_rejected_total: {
+    help: "Total encrypted envelope rejections during shard repair.",
+    type: "counter",
+  },
+  hsm_replication_tenant_isolation_violation_total: {
+    help: "Total cross-cluster replication tenant isolation violations.",
+    type: "counter",
+  },
+  hsm_replication_tenant_context_validated_total: {
+    help: "Total cross-cluster replication tenant context validations passed.",
+    type: "counter",
+  },
+  hsm_replication_cross_tenant_rejected_total: {
+    help: "Total cross-tenant replication attempts rejected.",
+    type: "counter",
+  },
+  hsm_zk_energy_claim_failed_total: {
+    help: "Total ZK energy claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_biometric_claim_failed_total: {
+    help: "Total ZK biometric claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_neural_claim_verified_total: {
+    help: "Total ZK neural claim verifications passed.",
+    type: "counter",
+  },
+  hsm_zk_neural_claim_failed_total: {
+    help: "Total ZK neural claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_lookup_claim_failed_total: {
+    help: "Total ZK lookup claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_storage_claim_verified_total: {
+    help: "Total ZK storage claim verifications passed.",
+    type: "counter",
+  },
+  hsm_zk_storage_claim_failed_total: {
+    help: "Total ZK storage claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_authentication_claim_failed_total: {
+    help: "Total ZK authentication claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_genomic_claim_verified_total: {
+    help: "Total ZK genomic claim verifications passed.",
+    type: "counter",
+  },
+  hsm_zk_genomic_claim_failed_total: {
+    help: "Total ZK genomic claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_insurance_claim_verified_total: {
+    help: "Total ZK insurance claim verifications passed.",
+    type: "counter",
+  },
+  hsm_zk_insurance_claim_failed_total: {
+    help: "Total ZK insurance claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_quantum_claim_verified_total: {
+    help: "Total ZK quantum claim verifications passed.",
+    type: "counter",
+  },
+  hsm_zk_quantum_claim_failed_total: {
+    help: "Total ZK quantum claim verifications failed.",
+    type: "counter",
+  },
+  hsm_zk_tenant_isolation_violation_total: {
+    help: "Total ZK verification tenant isolation violations.",
+    type: "counter",
+  },
+  hsm_zk_tenant_context_validated_total: {
+    help: "Total ZK verification tenant context validations passed.",
+    type: "counter",
+  },
+  hsm_migration_initiated_total: {
+    help: "Total cross-cluster migrations initiated.",
+    type: "counter",
+  },
+  hsm_migration_attested_total: {
+    help: "Total cross-cluster migrations attested.",
+    type: "counter",
+  },
+  hsm_migration_committed_total: {
+    help: "Total cross-cluster migrations committed via quorum.",
+    type: "counter",
+  },
+  hsm_migration_rolled_back_total: {
+    help: "Total cross-cluster migrations rolled back.",
+    type: "counter",
+  },
+  hsm_migration_ack_total: {
+    help: "Total migration acknowledgments received from destination nodes.",
+    type: "counter",
+  },
+  hsm_migration_verification_failed_total: {
+    help: "Total migrations that failed verification.",
+    type: "counter",
+  },
+  hsm_migration_active: {
+    help: "Current number of active (in-progress) migrations.",
+    type: "gauge",
+  },
+  hsm_reconciliation_scans_total: {
+    help: "Total key reconciliation scans performed.",
+    type: "counter",
+  },
+  hsm_reconciliation_divergence_detected_total: {
+    help: "Total key divergences detected across scans.",
+    type: "counter",
+  },
+  hsm_reconciliation_promoted_total: {
+    help: "Total key epochs promoted via quorum.",
+    type: "counter",
+  },
+  hsm_reconciliation_quarantined_total: {
+    help: "Total keys quarantined due to unrecoverable divergence.",
+    type: "counter",
+  },
+  hsm_reconciliation_rollback_blocked_total: {
+    help: "Total key epoch rollback attempts blocked.",
+    type: "counter",
+  },
+  hsm_reconciliation_promotion_votes_total: {
+    help: "Total promotion votes cast by healthy nodes.",
+    type: "counter",
+  },
+  hsm_reconciliation_divergent_keys: {
+    help: "Current number of keys with unresolved divergence.",
+    type: "gauge",
+  },
+  hsm_poa_asset_registered_total: {
+    help: "Total assets registered for proof-of-assets.",
+    type: "counter",
+  },
+  hsm_poa_proof_created_total: {
+    help: "Total ZK proof-of-assets drafts created.",
+    type: "counter",
+  },
+  hsm_poa_proof_verified_total: {
+    help: "Total ZK proof-of-assets successfully verified.",
+    type: "counter",
+  },
+  hsm_poa_proof_invalid_total: {
+    help: "Total ZK proof-of-assets marked invalid.",
+    type: "counter",
+  },
+  hsm_poa_double_count_blocked_total: {
+    help: "Total asset double-counting attempts blocked.",
+    type: "counter",
+  },
+  hsm_poa_quorum_signatures_total: {
+    help: "Total quorum signatures collected on proofs.",
+    type: "counter",
+  },
+  hsm_poa_active_proofs: {
+    help: "Current number of active (non-terminal) proofs.",
+    type: "gauge",
+  },
+  hsm_rekey_proposed_total: {
+    help: "Total re-keying rounds proposed.",
+    type: "counter",
+  },
+  hsm_rekey_resharing_submitted_total: {
+    help: "Total shareholder resharings submitted.",
+    type: "counter",
+  },
+  hsm_rekey_verified_total: {
+    help: "Total re-keying rounds verified.",
+    type: "counter",
+  },
+  hsm_rekey_committed_total: {
+    help: "Total re-keying rounds committed via quorum.",
+    type: "counter",
+  },
+  hsm_rekey_aborted_total: {
+    help: "Total re-keying rounds aborted.",
+    type: "counter",
+  },
+  hsm_rekey_rollback_blocked_total: {
+    help: "Total re-keying epoch rollback attempts blocked.",
+    type: "counter",
+  },
+  hsm_rekey_active: {
+    help: "Current number of active (in-progress) re-keying rounds.",
+    type: "gauge",
+  },
+  hsm_p2p_route_discovered_total: {
+    help: "Total P2P routes discovered via BFS.",
+    type: "counter",
+  },
+  hsm_p2p_message_encrypted_total: {
+    help: "Total P2P messages encrypted with onion layers.",
+    type: "counter",
+  },
+  hsm_p2p_message_relayed_total: {
+    help: "Total P2P messages relayed through hops.",
+    type: "counter",
+  },
+  hsm_p2p_message_delivered_total: {
+    help: "Total P2P messages successfully delivered.",
+    type: "counter",
+  },
+  hsm_p2p_route_revoked_total: {
+    help: "Total P2P routes revoked.",
+    type: "counter",
+  },
+  hsm_p2p_replay_blocked_total: {
+    help: "Total P2P replay attacks blocked.",
+    type: "counter",
+  },
+  hsm_p2p_active_routes: {
+    help: "Current number of active P2P routes.",
+    type: "gauge",
+  },
+  hsm_recovery_requested_total: {
+    help: "Total account recovery requests initiated.",
+    type: "counter",
+  },
+  hsm_recovery_approved_total: {
+    help: "Total guardian approvals submitted.",
+    type: "counter",
+  },
+  hsm_recovery_executed_total: {
+    help: "Total account recoveries successfully executed.",
+    type: "counter",
+  },
+  hsm_recovery_rejected_total: {
+    help: "Total account recovery requests rejected.",
+    type: "counter",
+  },
+  hsm_recovery_replay_blocked_total: {
+    help: "Total replay attacks blocked during recovery.",
+    type: "counter",
+  },
+  hsm_recovery_time_lock_blocked_total: {
+    help: "Total recovery attempts blocked by time-lock.",
+    type: "counter",
+  },
+  hsm_recovery_active: {
+    help: "Current number of active (in-progress) account recoveries.",
+    type: "gauge",
+  },
+  hsm_wrap_duration_ms: {
+    help: "Latency of HSM wrapKey operations in milliseconds.",
+    type: "histogram",
+  },
+  hsm_unwrap_duration_ms: {
+    help: "Latency of HSM unwrapKey operations in milliseconds.",
+    type: "histogram",
+  },
+  hsm_create_kek_duration_ms: {
+    help: "Latency of KEK creation operations in milliseconds.",
+    type: "histogram",
+  },
+  hsm_sggate_pools_initialized_total: {
+    help: "Total smart-grid micro-transaction gating pools initialized.",
+    type: "counter",
+  },
+  hsm_sggate_pools_accredited_total: {
+    help: "Total load balance accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_sggate_pools_settled_total: {
+    help: "Total smart-grid micro-transaction gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_sggate_pools_cancelled_total: {
+    help: "Total smart-grid micro-transaction gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_sggate_pools_active: {
+    help: "Number of active smart-grid micro-transaction gating pools.",
+    type: "gauge",
+  },
+  hsm_sggate_rebalances_total: {
+    help: "Total consumption chain depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_sggate_batch_inits_total: {
+    help: "Total batch pool initializations for smart-grid micro-transaction gating.",
+    type: "counter",
+  },
+  hsm_sggate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for smart-grid gating pools.",
+    type: "counter",
+  },
+  hsm_sggate_claims_verified_total: {
+    help: "Total ZK micro-transaction claim proofs verified.",
+    type: "counter",
+  },
+  hsm_sggate_claims_slashed_total: {
+    help: "Total ZK micro-transaction claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_sggate_batch_verifications_total: {
+    help: "Total batch micro-transaction claim verifications performed.",
+    type: "counter",
+  },
+  hsm_sggate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for micro-transaction claims.",
+    type: "counter",
+  },
+  hsm_sggate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for micro-transaction claims.",
+    type: "counter",
+  },
+  hsm_sggate_banned_peers: {
+    help: "Number of banned peers in smart-grid micro-transaction gating hub.",
+    type: "gauge",
+  },
+  hsm_sgate_pools_initialized_total: {
+    help: "Total deep-sea mineral rights gating pools initialized.",
+    type: "counter",
+  },
+  hsm_sgate_pools_accredited_total: {
+    help: "Total lease accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_sgate_pools_settled_total: {
+    help: "Total deep-sea mineral rights gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_sgate_pools_cancelled_total: {
+    help: "Total deep-sea mineral rights gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_sgate_pools_active: {
+    help: "Number of active deep-sea mineral rights gating pools.",
+    type: "gauge",
+  },
+  hsm_sgate_rebalances_total: {
+    help: "Total extraction chain depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_sgate_batch_inits_total: {
+    help: "Total batch pool initializations for deep-sea mineral rights gating.",
+    type: "counter",
+  },
+  hsm_sgate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for seabed gating pools.",
+    type: "counter",
+  },
+  hsm_sgate_claims_verified_total: {
+    help: "Total ZK extraction claim proofs verified.",
+    type: "counter",
+  },
+  hsm_sgate_claims_slashed_total: {
+    help: "Total ZK extraction claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_sgate_batch_verifications_total: {
+    help: "Total batch extraction claim verifications performed.",
+    type: "counter",
+  },
+  hsm_sgate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for extraction claims.",
+    type: "counter",
+  },
+  hsm_sgate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for extraction claims.",
+    type: "counter",
+  },
+  hsm_sgate_banned_peers: {
+    help: "Number of banned peers in deep-sea mineral rights gating hub.",
+    type: "gauge",
+  },
+  hsm_fgate_pools_initialized_total: {
+    help: "Total ocean fisheries allocation gating pools initialized.",
+    type: "counter",
+  },
+  hsm_fgate_pools_accredited_total: {
+    help: "Total quota accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_fgate_pools_settled_total: {
+    help: "Total ocean fisheries allocation gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_fgate_pools_cancelled_total: {
+    help: "Total ocean fisheries allocation gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_fgate_pools_active: {
+    help: "Number of active ocean fisheries allocation gating pools.",
+    type: "gauge",
+  },
+  hsm_fgate_rebalances_total: {
+    help: "Total vessel telemetry chain depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_fgate_batch_inits_total: {
+    help: "Total batch pool initializations for ocean fisheries allocation gating.",
+    type: "counter",
+  },
+  hsm_fgate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for fisheries gating pools.",
+    type: "counter",
+  },
+  hsm_fgate_claims_verified_total: {
+    help: "Total ZK catch claim proofs verified.",
+    type: "counter",
+  },
+  hsm_fgate_claims_slashed_total: {
+    help: "Total ZK catch claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_fgate_batch_verifications_total: {
+    help: "Total batch catch claim verifications performed.",
+    type: "counter",
+  },
+  hsm_fgate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for catch claims.",
+    type: "counter",
+  },
+  hsm_fgate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for catch claims.",
+    type: "counter",
+  },
+  hsm_fgate_banned_peers: {
+    help: "Number of banned peers in ocean fisheries allocation gating hub.",
+    type: "gauge",
+  },
+  hsm_epigate_pools_initialized_total: {
+    help: "Total global health epidemiological surveillance gating pools initialized.",
+    type: "counter",
+  },
+  hsm_epigate_pools_accredited_total: {
+    help: "Total outbreak accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_epigate_pools_settled_total: {
+    help: "Total global health epidemiological surveillance gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_epigate_pools_cancelled_total: {
+    help: "Total global health epidemiological surveillance gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_epigate_pools_active: {
+    help: "Number of active global health epidemiological surveillance gating pools.",
+    type: "gauge",
+  },
+  hsm_epigate_rebalances_total: {
+    help: "Total genomic chain depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_epigate_batch_inits_total: {
+    help: "Total batch pool initializations for global health epidemiological surveillance gating.",
+    type: "counter",
+  },
+  hsm_epigate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for epidemiological gating pools.",
+    type: "counter",
+  },
+  hsm_epigate_claims_verified_total: {
+    help: "Total ZK epidemiological claim proofs verified.",
+    type: "counter",
+  },
+  hsm_epigate_claims_slashed_total: {
+    help: "Total ZK epidemiological claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_epigate_batch_verifications_total: {
+    help: "Total batch epidemiological claim verifications performed.",
+    type: "counter",
+  },
+  hsm_epigate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for epidemiological claims.",
+    type: "counter",
+  },
+  hsm_epigate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for epidemiological claims.",
+    type: "counter",
+  },
+  hsm_epigate_banned_peers: {
+    help: "Number of banned peers in global health epidemiological surveillance gating hub.",
+    type: "gauge",
+  },
+  hsm_igate_pools_initialized_total: {
+    help: "Total health insurance claim auditing gating pools initialized.",
+    type: "counter",
+  },
+  hsm_igate_pools_accredited_total: {
+    help: "Total actuarial accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_igate_pools_settled_total: {
+    help: "Total health insurance claim auditing gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_igate_pools_cancelled_total: {
+    help: "Total health insurance claim auditing gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_igate_pools_active: {
+    help: "Number of active health insurance claim auditing gating pools.",
+    type: "gauge",
+  },
+  hsm_igate_rebalances_total: {
+    help: "Total billing sequence depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_igate_batch_inits_total: {
+    help: "Total batch pool initializations for health insurance claim auditing gating.",
+    type: "counter",
+  },
+  hsm_igate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for insurance gating pools.",
+    type: "counter",
+  },
+  hsm_igate_claims_verified_total: {
+    help: "Total ZK claim audit proofs verified.",
+    type: "counter",
+  },
+  hsm_igate_claims_slashed_total: {
+    help: "Total ZK claim audit proofs slashed.",
+    type: "counter",
+  },
+  hsm_igate_batch_verifications_total: {
+    help: "Total batch claim audit verifications performed.",
+    type: "counter",
+  },
+  hsm_igate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for claim audits.",
+    type: "counter",
+  },
+  hsm_igate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for claim audits.",
+    type: "counter",
+  },
+  hsm_igate_banned_peers: {
+    help: "Number of banned peers in health insurance claim auditing gating hub.",
+    type: "gauge",
+  },
+  hsm_strato_pool_initialized_total: {
+    help: "Total stratospheric aerosol monitoring gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_aerosol_claim_verified_total: {
+    help: "Total ZK aerosol monitoring claims verified.",
+    type: "counter",
+  },
+  hsm_deployment_accreditation_completed_total: {
+    help: "Total deployment accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_sagate_pools_initialized_total: {
+    help: "Total stratospheric aerosol monitoring gating pools initialized.",
+    type: "counter",
+  },
+  hsm_sagate_pools_accredited_total: {
+    help: "Total deployment accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_sagate_pools_settled_total: {
+    help: "Total stratospheric aerosol monitoring gating pools settled cross-chain.",
+    type: "counter",
+  },
+  hsm_sagate_pools_cancelled_total: {
+    help: "Total stratospheric aerosol monitoring gating pools cancelled.",
+    type: "counter",
+  },
+  hsm_sagate_pools_active: {
+    help: "Number of active stratospheric aerosol monitoring gating pools.",
+    type: "gauge",
+  },
+  hsm_sagate_rebalances_total: {
+    help: "Total monitoring chain depth rebalances performed.",
+    type: "counter",
+  },
+  hsm_sagate_batch_inits_total: {
+    help: "Total batch pool initializations for stratospheric aerosol monitoring gating.",
+    type: "counter",
+  },
+  hsm_sagate_committee_signatures_aggregated_total: {
+    help: "Total committee signature aggregations for stratospheric aerosol monitoring gating pools.",
+    type: "counter",
+  },
+  hsm_sagate_claims_verified_total: {
+    help: "Total ZK aerosol claim proofs verified.",
+    type: "counter",
+  },
+  hsm_sagate_claims_slashed_total: {
+    help: "Total ZK aerosol claim proofs slashed.",
+    type: "counter",
+  },
+  hsm_sagate_batch_verifications_total: {
+    help: "Total batch aerosol claim verifications performed.",
+    type: "counter",
+  },
+  hsm_sagate_hw_snark_proofs_generated_total: {
+    help: "Total hardware-accelerated SNARK proofs generated for aerosol claims.",
+    type: "counter",
+  },
+  hsm_sagate_hw_snark_proofs_verified_total: {
+    help: "Total hardware-accelerated SNARK proofs verified for aerosol claims.",
+    type: "counter",
+  },
+  hsm_sagate_banned_peers: {
+    help: "Number of banned peers in stratospheric aerosol monitoring gating hub.",
+    type: "gauge",
+  },
+  hsm_inference_pool_initialized_total: {
+    help: "Total neural network inference integrity gating pools initialized.",
+    type: "counter",
+  },
   // hsm_zk_neural_claim_verified_total META defined once above (Track 125 / neural claims)
-  hsm_inference_accreditation_completed_total: { help: 'Total inference accreditation completions finalized.', type: 'counter' },
-  hsm_autogo_pool_initialized_total: { help: 'Total autonomous vehicle fleet coordination gating pools initialized.', type: 'counter' },
-  hsm_zk_autonomous_claim_verified_total: { help: 'Total ZK autonomous vehicle fleet coordination claims verified.', type: 'counter' },
-  hsm_coordination_accreditation_completed_total: { help: 'Total coordination accreditation completions finalized.', type: 'counter' },
-  hsm_resiliogate_pool_initialized_total: { help: 'Total supply chain resilience integrity gating pools initialized.', type: 'counter' },
-  hsm_zk_resilience_claim_verified_total: { help: 'Total ZK supply chain resilience claims verified.', type: 'counter' },
-  hsm_resilience_accreditation_completed_total: { help: 'Total resilience accreditation completions finalized.', type: 'counter' },
-  hsm_execgate_pool_initialized_total: { help: 'Total smart-contract verifiable execution gating pools initialized.', type: 'counter' },
-  hsm_zk_execution_claim_verified_total: { help: 'Total ZK smart-contract verifiable execution claims verified.', type: 'counter' },
-  hsm_execution_accreditation_completed_total: { help: 'Total execution accreditation completions finalized.', type: 'counter' },
-  hsm_didgate_pool_initialized_total: { help: 'Total decentralized identity proof gating pools initialized.', type: 'counter' },
-  hsm_zk_identity_claim_verified_total: { help: 'Total ZK decentralized identity claims verified.', type: 'counter' },
-  hsm_revocation_accreditation_completed_total: { help: 'Total decentralized identity revocation accreditation completions finalized.', type: 'counter' },
-  hsm_teleportgate_pool_initialized_total: { help: 'Total cross-shard asset teleportation gating pools initialized.', type: 'counter' },
-  hsm_zk_teleport_claim_verified_total: { help: 'Total ZK cross-shard teleport claims verified.', type: 'counter' },
-  hsm_finality_accreditation_completed_total: { help: 'Total cross-shard finality accreditation completions finalized.', type: 'counter' },
+  hsm_inference_accreditation_completed_total: {
+    help: "Total inference accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_autogo_pool_initialized_total: {
+    help: "Total autonomous vehicle fleet coordination gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_autonomous_claim_verified_total: {
+    help: "Total ZK autonomous vehicle fleet coordination claims verified.",
+    type: "counter",
+  },
+  hsm_coordination_accreditation_completed_total: {
+    help: "Total coordination accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_resiliogate_pool_initialized_total: {
+    help: "Total supply chain resilience integrity gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_resilience_claim_verified_total: {
+    help: "Total ZK supply chain resilience claims verified.",
+    type: "counter",
+  },
+  hsm_resilience_accreditation_completed_total: {
+    help: "Total resilience accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_execgate_pool_initialized_total: {
+    help: "Total smart-contract verifiable execution gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_execution_claim_verified_total: {
+    help: "Total ZK smart-contract verifiable execution claims verified.",
+    type: "counter",
+  },
+  hsm_execution_accreditation_completed_total: {
+    help: "Total execution accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_didgate_pool_initialized_total: {
+    help: "Total decentralized identity proof gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_identity_claim_verified_total: {
+    help: "Total ZK decentralized identity claims verified.",
+    type: "counter",
+  },
+  hsm_revocation_accreditation_completed_total: {
+    help: "Total decentralized identity revocation accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_teleportgate_pool_initialized_total: {
+    help: "Total cross-shard asset teleportation gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_teleport_claim_verified_total: {
+    help: "Total ZK cross-shard teleport claims verified.",
+    type: "counter",
+  },
+  hsm_finality_accreditation_completed_total: {
+    help: "Total cross-shard finality accreditation completions finalized.",
+    type: "counter",
+  },
   // Track 61: Recursive Proof Aggregation metadata
-  hsm_recursive_proof_submitted_total: { help: 'Total recursive proofs submitted.', type: 'counter' },
-  hsm_recursive_proofs_folded_total: { help: 'Total recursive proof fold operations.', type: 'counter' },
-  hsm_recursive_chain_aggregations_total: { help: 'Total chain aggregations completed.', type: 'counter' },
-  hsm_recursive_tree_aggregations_total: { help: 'Total tree aggregations completed.', type: 'counter' },
-  hsm_recursive_vdf_aggregations_total: { help: 'Total VDF proof aggregations completed.', type: 'counter' },
-  hsm_recursive_mixnet_compressions_total: { help: 'Total mixnet state compressions completed.', type: 'counter' },
-  hsm_recursive_aggregations_verified_total: { help: 'Total recursive aggregation verifications.', type: 'counter' },
-  hsm_recursive_aggregations_failed_total: { help: 'Total failed recursive aggregation operations.', type: 'counter' },
-  hsm_recursive_proofs_active: { help: 'Number of active recursive proofs.', type: 'gauge' },
-  hsm_recursive_aggregations_active: { help: 'Number of active recursive aggregations.', type: 'gauge' },
+  hsm_recursive_proof_submitted_total: {
+    help: "Total recursive proofs submitted.",
+    type: "counter",
+  },
+  hsm_recursive_proofs_folded_total: {
+    help: "Total recursive proof fold operations.",
+    type: "counter",
+  },
+  hsm_recursive_chain_aggregations_total: {
+    help: "Total chain aggregations completed.",
+    type: "counter",
+  },
+  hsm_recursive_tree_aggregations_total: {
+    help: "Total tree aggregations completed.",
+    type: "counter",
+  },
+  hsm_recursive_vdf_aggregations_total: {
+    help: "Total VDF proof aggregations completed.",
+    type: "counter",
+  },
+  hsm_recursive_mixnet_compressions_total: {
+    help: "Total mixnet state compressions completed.",
+    type: "counter",
+  },
+  hsm_recursive_aggregations_verified_total: {
+    help: "Total recursive aggregation verifications.",
+    type: "counter",
+  },
+  hsm_recursive_aggregations_failed_total: {
+    help: "Total failed recursive aggregation operations.",
+    type: "counter",
+  },
+  hsm_recursive_proofs_active: {
+    help: "Number of active recursive proofs.",
+    type: "gauge",
+  },
+  hsm_recursive_aggregations_active: {
+    help: "Number of active recursive aggregations.",
+    type: "gauge",
+  },
   // Tracks 107/108: Grid and laser mesh gating metadata
-  hsm_gridgate_pool_initialized_total: { help: 'Total decentralized energy grid balancing gating pools initialized.', type: 'counter' },
-  hsm_zk_energy_grid_claim_verified_total: { help: 'Total ZK decentralized energy grid claims verified.', type: 'counter' },
-  hsm_balancing_accreditation_completed_total: { help: 'Total decentralized energy grid balancing accreditation completions finalized.', type: 'counter' },
-  hsm_lasergate_pool_initialized_total: { help: 'Total space-based laser communication mesh gating pools initialized.', type: 'counter' },
-  hsm_zk_laser_mesh_claim_verified_total: { help: 'Total ZK space-based laser mesh claims verified.', type: 'counter' },
-  hsm_handoff_accreditation_completed_total: { help: 'Total space-based laser mesh handoff accreditation completions finalized.', type: 'counter' },
-  hsm_qkdswitchgate_pool_initialized_total: { help: 'Total quantum key distribution link-switch gating pools initialized.', type: 'counter' },
-  hsm_zk_qkd_link_claim_verified_total: { help: 'Total ZK quantum key distribution link claims verified.', type: 'counter' },
-  hsm_entanglement_accreditation_completed_total: { help: 'Total quantum key distribution entanglement accreditation completions finalized.', type: 'counter' },
-  hsm_hologate_pool_initialized_total: { help: 'Total holographic storage content-addressable gating pools initialized.', type: 'counter' },
-  hsm_zk_holographic_claim_verified_total: { help: 'Total ZK holographic storage claims verified.', type: 'counter' },
-  hsm_phase_accreditation_completed_total: { help: 'Total holographic storage phase accreditation completions finalized.', type: 'counter' },
-  hsm_zkstorage_pool_initialized_total: { help: 'Total zero-knowledge decentralized storage attestation gating pools initialized.', type: 'counter' },
-  hsm_zk_storage_proof_verified_total: { help: 'Total zero-knowledge decentralized storage proofs verified.', type: 'counter' },
-  hsm_zkstorage_replication_accreditation_completed_total: { help: 'Total zero-knowledge decentralized storage replication accreditation completions finalized.', type: 'counter' },
-  hsm_zkstorage_dispersal_completed_total: { help: 'Total zero-knowledge decentralized storage dispersals completed.', type: 'counter' },
-  hsm_zkstorage_slash_recorded_total: { help: 'Total zero-knowledge decentralized storage attestation slashes recorded.', type: 'counter' },
-  hsm_zkstorage_challenge_issued_total: { help: 'Total zero-knowledge decentralized storage challenges issued.', type: 'counter' },
-  hsm_neurogate_pool_initialized_total: { help: 'Total bio-digital interface neural telemetry gating pools initialized.', type: 'counter' },
-  hsm_zk_neural_telemetry_verified_total: { help: 'Total zero-knowledge neural telemetry claims verified.', type: 'counter' },
-  hsm_synapse_accreditation_completed_total: { help: 'Total synapse accreditation completions finalized.', type: 'counter' },
-  hsm_neurogate_challenge_issued_total: { help: 'Total bio-digital interface neural telemetry challenges issued.', type: 'counter' },
-  hsm_dronegate_pool_initialized_total: { help: 'Total autonomous drone swarm mesh-routing gating pools initialized.', type: 'counter' },
-  hsm_zk_swarm_routing_verified_total: { help: 'Total zero-knowledge swarm routing verifications completed.', type: 'counter' },
-  hsm_topology_accreditation_completed_total: { help: 'Total swarm topology accreditation completions finalized.', type: 'counter' },
-  hsm_dronegate_challenge_issued_total: { help: 'Total autonomous drone swarm mesh-routing challenges issued.', type: 'counter' },
-  hsm_kineticgate_pool_initialized_total: { help: 'Total swarm robotics kinetic assembly gating pools initialized.', type: 'counter' },
-  hsm_zk_kinetic_posture_verified_total: { help: 'Total zero-knowledge kinetic posture verifications completed.', type: 'counter' },
-  hsm_assembly_accreditation_completed_total: { help: 'Total kinetic assembly accreditation completions finalized.', type: 'counter' },
-  hsm_kineticgate_challenge_issued_total: { help: 'Total swarm robotics kinetic assembly gating challenges issued.', type: 'counter' },
-  hsm_meshgate_pool_initialized_total: { help: 'Total multi-enclave confidential mesh state-reconciliation gating pools initialized.', type: 'counter' },
-  hsm_zk_mesh_state_reconciled_total: { help: 'Total zero-knowledge mesh state reconciliations completed.', type: 'counter' },
-  hsm_epoch_finality_completed_total: { help: 'Total multi-enclave epoch finality completions finalized.', type: 'counter' },
-  hsm_meshgate_challenge_issued_total: { help: 'Total multi-enclave confidential mesh state-reconciliation gating challenges issued.', type: 'counter' },
-  hsm_supplygate_pool_initialized_total: { help: 'Total supply chain provenance gating pools initialized.', type: 'counter' },
-  hsm_zk_provenance_claim_verified_total: { help: 'Total ZK supply chain provenance claims verified.', type: 'counter' },
-  hsm_lineage_accreditation_completed_total: { help: 'Total supply chain provenance lineage accreditation completions finalized.', type: 'counter' },
-  hsm_supplygate_settled_total: { help: 'Total supply chain provenance gating pools settled.', type: 'counter' },
-  hsm_supplygate_rebalanced_total: { help: 'Total supply chain provenance gating pool rebalances completed.', type: 'counter' },
-  hsm_supplygate_slash_recorded_total: { help: 'Total supply chain provenance claim slashes recorded.', type: 'counter' },
-  hsm_provenance_batch_verified_total: { help: 'Total supply chain provenance claim batch verifications completed.', type: 'counter' },
-  hsm_primitive_pool_authorized_total: { help: 'Total primitive pools authorized for cluster keyring sync.', type: 'counter' },
-  hsm_primitive_pool_synced_total: { help: 'Total primitive pools synced across enclaves.', type: 'counter' },
-  hsm_primitive_authorization_revoked_total: { help: 'Total primitive pool authorizations revoked.', type: 'counter' },
+  hsm_gridgate_pool_initialized_total: {
+    help: "Total decentralized energy grid balancing gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_energy_grid_claim_verified_total: {
+    help: "Total ZK decentralized energy grid claims verified.",
+    type: "counter",
+  },
+  hsm_balancing_accreditation_completed_total: {
+    help: "Total decentralized energy grid balancing accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_lasergate_pool_initialized_total: {
+    help: "Total space-based laser communication mesh gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_laser_mesh_claim_verified_total: {
+    help: "Total ZK space-based laser mesh claims verified.",
+    type: "counter",
+  },
+  hsm_handoff_accreditation_completed_total: {
+    help: "Total space-based laser mesh handoff accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_qkdswitchgate_pool_initialized_total: {
+    help: "Total quantum key distribution link-switch gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_qkd_link_claim_verified_total: {
+    help: "Total ZK quantum key distribution link claims verified.",
+    type: "counter",
+  },
+  hsm_entanglement_accreditation_completed_total: {
+    help: "Total quantum key distribution entanglement accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_hologate_pool_initialized_total: {
+    help: "Total holographic storage content-addressable gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_holographic_claim_verified_total: {
+    help: "Total ZK holographic storage claims verified.",
+    type: "counter",
+  },
+  hsm_phase_accreditation_completed_total: {
+    help: "Total holographic storage phase accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_zkstorage_pool_initialized_total: {
+    help: "Total zero-knowledge decentralized storage attestation gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_storage_proof_verified_total: {
+    help: "Total zero-knowledge decentralized storage proofs verified.",
+    type: "counter",
+  },
+  hsm_zkstorage_replication_accreditation_completed_total: {
+    help: "Total zero-knowledge decentralized storage replication accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_zkstorage_dispersal_completed_total: {
+    help: "Total zero-knowledge decentralized storage dispersals completed.",
+    type: "counter",
+  },
+  hsm_zkstorage_slash_recorded_total: {
+    help: "Total zero-knowledge decentralized storage attestation slashes recorded.",
+    type: "counter",
+  },
+  hsm_zkstorage_challenge_issued_total: {
+    help: "Total zero-knowledge decentralized storage challenges issued.",
+    type: "counter",
+  },
+  hsm_neurogate_pool_initialized_total: {
+    help: "Total bio-digital interface neural telemetry gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_neural_telemetry_verified_total: {
+    help: "Total zero-knowledge neural telemetry claims verified.",
+    type: "counter",
+  },
+  hsm_synapse_accreditation_completed_total: {
+    help: "Total synapse accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_neurogate_challenge_issued_total: {
+    help: "Total bio-digital interface neural telemetry challenges issued.",
+    type: "counter",
+  },
+  hsm_dronegate_pool_initialized_total: {
+    help: "Total autonomous drone swarm mesh-routing gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_swarm_routing_verified_total: {
+    help: "Total zero-knowledge swarm routing verifications completed.",
+    type: "counter",
+  },
+  hsm_topology_accreditation_completed_total: {
+    help: "Total swarm topology accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_dronegate_challenge_issued_total: {
+    help: "Total autonomous drone swarm mesh-routing challenges issued.",
+    type: "counter",
+  },
+  hsm_kineticgate_pool_initialized_total: {
+    help: "Total swarm robotics kinetic assembly gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_kinetic_posture_verified_total: {
+    help: "Total zero-knowledge kinetic posture verifications completed.",
+    type: "counter",
+  },
+  hsm_assembly_accreditation_completed_total: {
+    help: "Total kinetic assembly accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_kineticgate_challenge_issued_total: {
+    help: "Total swarm robotics kinetic assembly gating challenges issued.",
+    type: "counter",
+  },
+  hsm_meshgate_pool_initialized_total: {
+    help: "Total multi-enclave confidential mesh state-reconciliation gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_mesh_state_reconciled_total: {
+    help: "Total zero-knowledge mesh state reconciliations completed.",
+    type: "counter",
+  },
+  hsm_epoch_finality_completed_total: {
+    help: "Total multi-enclave epoch finality completions finalized.",
+    type: "counter",
+  },
+  hsm_meshgate_challenge_issued_total: {
+    help: "Total multi-enclave confidential mesh state-reconciliation gating challenges issued.",
+    type: "counter",
+  },
+  hsm_supplygate_pool_initialized_total: {
+    help: "Total supply chain provenance gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_provenance_claim_verified_total: {
+    help: "Total ZK supply chain provenance claims verified.",
+    type: "counter",
+  },
+  hsm_lineage_accreditation_completed_total: {
+    help: "Total supply chain provenance lineage accreditation completions finalized.",
+    type: "counter",
+  },
+  hsm_supplygate_settled_total: {
+    help: "Total supply chain provenance gating pools settled.",
+    type: "counter",
+  },
+  hsm_supplygate_rebalanced_total: {
+    help: "Total supply chain provenance gating pool rebalances completed.",
+    type: "counter",
+  },
+  hsm_supplygate_slash_recorded_total: {
+    help: "Total supply chain provenance claim slashes recorded.",
+    type: "counter",
+  },
+  hsm_provenance_batch_verified_total: {
+    help: "Total supply chain provenance claim batch verifications completed.",
+    type: "counter",
+  },
+  hsm_primitive_pool_authorized_total: {
+    help: "Total primitive pools authorized for cluster keyring sync.",
+    type: "counter",
+  },
+  hsm_primitive_pool_synced_total: {
+    help: "Total primitive pools synced across enclaves.",
+    type: "counter",
+  },
+  hsm_primitive_authorization_revoked_total: {
+    help: "Total primitive pool authorizations revoked.",
+    type: "counter",
+  },
   // DKG Gossip Protocol metadata (PR #391)
-  hsm_dkg_session_initiated_total: { help: 'Total DKG gossip sessions initiated.', type: 'counter' },
-  hsm_dkg_session_completed_total: { help: 'Total DKG gossip sessions completed successfully.', type: 'counter' },
-  hsm_dkg_session_timeout_total: { help: 'Total DKG gossip sessions that timed out.', type: 'counter' },
-  hsm_dkg_commit_received_total: { help: 'Total DKG_COMMIT messages received from peers.', type: 'counter' },
-  hsm_dkg_share_received_total: { help: 'Total DKG_SHARE messages received from peers.', type: 'counter' },
-  hsm_dkg_share_rejected_total: { help: 'Total DKG_SHARE messages rejected due to verification failure.', type: 'counter' },
-  hsm_dkg_complaint_filed_total: { help: 'Total DKG_COMPLAINT messages filed against peers.', type: 'counter' },
-  hsm_dkg_node_disqualified_total: { help: 'Total nodes disqualified during DKG sessions.', type: 'counter' },
-  hsm_dkg_invalid_message_total: { help: 'Total invalid DKG messages rejected by the transport layer.', type: 'counter' },
-  hsm_dkg_isolation_violation_total: { help: 'Total DKG messages received from unknown or unauthorized peers.', type: 'counter' },
+  hsm_dkg_session_initiated_total: {
+    help: "Total DKG gossip sessions initiated.",
+    type: "counter",
+  },
+  hsm_dkg_session_completed_total: {
+    help: "Total DKG gossip sessions completed successfully.",
+    type: "counter",
+  },
+  hsm_dkg_session_timeout_total: {
+    help: "Total DKG gossip sessions that timed out.",
+    type: "counter",
+  },
+  hsm_dkg_commit_received_total: {
+    help: "Total DKG_COMMIT messages received from peers.",
+    type: "counter",
+  },
+  hsm_dkg_share_received_total: {
+    help: "Total DKG_SHARE messages received from peers.",
+    type: "counter",
+  },
+  hsm_dkg_share_rejected_total: {
+    help: "Total DKG_SHARE messages rejected due to verification failure.",
+    type: "counter",
+  },
+  hsm_dkg_complaint_filed_total: {
+    help: "Total DKG_COMPLAINT messages filed against peers.",
+    type: "counter",
+  },
+  hsm_dkg_node_disqualified_total: {
+    help: "Total nodes disqualified during DKG sessions.",
+    type: "counter",
+  },
+  hsm_dkg_invalid_message_total: {
+    help: "Total invalid DKG messages rejected by the transport layer.",
+    type: "counter",
+  },
+  hsm_dkg_isolation_violation_total: {
+    help: "Total DKG messages received from unknown or unauthorized peers.",
+    type: "counter",
+  },
   // STEK Rotation metadata
-  hsm_stek_rotation_total: { help: 'Total STEK (Session Token Encryption Key) rotations performed.', type: 'counter' },
-  hsm_stek_validation_total: { help: 'Total STEK validations performed.', type: 'counter' },
-  hsm_stek_validation_failed_total: { help: 'Total STEK validations that failed.', type: 'counter' },
-  hsm_stek_active_count: { help: 'Number of active STEKs (0 or 1).', type: 'gauge' },
-  hsm_stek_retired_count: { help: 'Number of retired STEKs still within the retention window.', type: 'gauge' },
+  hsm_stek_rotation_total: {
+    help: "Total STEK (Session Token Encryption Key) rotations performed.",
+    type: "counter",
+  },
+  hsm_stek_validation_total: {
+    help: "Total STEK validations performed.",
+    type: "counter",
+  },
+  hsm_stek_validation_failed_total: {
+    help: "Total STEK validations that failed.",
+    type: "counter",
+  },
+  hsm_stek_active_count: {
+    help: "Number of active STEKs (0 or 1).",
+    type: "gauge",
+  },
+  hsm_stek_retired_count: {
+    help: "Number of retired STEKs still within the retention window.",
+    type: "gauge",
+  },
   // MuSig2 Protocol metadata (PR #398)
-  hsm_musig2_challenge_computed_total: { help: 'Total MuSig2 challenge computations performed.', type: 'counter' },
-  hsm_musig2_binding_factor_computed_total: { help: 'Total MuSig2 binding factor computations performed.', type: 'counter' },
-  hsm_musig2_key_aggregation_total: { help: 'Total MuSig2 public key aggregations performed.', type: 'counter' },
-  hsm_musig2_nonce_aggregation_total: { help: 'Total MuSig2 nonce aggregations performed.', type: 'counter' },
-  hsm_musig2_signature_assembled_total: { help: 'Total MuSig2 threshold signatures assembled.', type: 'counter' },
-  hsm_musig2_signature_verified_total: { help: 'Total MuSig2 signatures verified successfully.', type: 'counter' },
-  hsm_musig2_signature_verification_failed_total: { help: 'Total MuSig2 signature verifications that failed.', type: 'counter' },
+  hsm_musig2_challenge_computed_total: {
+    help: "Total MuSig2 challenge computations performed.",
+    type: "counter",
+  },
+  hsm_musig2_binding_factor_computed_total: {
+    help: "Total MuSig2 binding factor computations performed.",
+    type: "counter",
+  },
+  hsm_musig2_key_aggregation_total: {
+    help: "Total MuSig2 public key aggregations performed.",
+    type: "counter",
+  },
+  hsm_musig2_nonce_aggregation_total: {
+    help: "Total MuSig2 nonce aggregations performed.",
+    type: "counter",
+  },
+  hsm_musig2_signature_assembled_total: {
+    help: "Total MuSig2 threshold signatures assembled.",
+    type: "counter",
+  },
+  hsm_musig2_signature_verified_total: {
+    help: "Total MuSig2 signatures verified successfully.",
+    type: "counter",
+  },
+  hsm_musig2_signature_verification_failed_total: {
+    help: "Total MuSig2 signature verifications that failed.",
+    type: "counter",
+  },
   // MuSig2 HSM Orchestrator metadata (Option G)
-  hsm_musig2_orch_session_created_total: { help: 'Total MuSig2 orchestrator sessions created.', type: 'counter' },
-  hsm_musig2_orch_session_completed_total: { help: 'Total MuSig2 orchestrator sessions completed successfully.', type: 'counter' },
-  hsm_musig2_orch_session_failed_total: { help: 'Total MuSig2 orchestrator sessions that failed.', type: 'counter' },
-  hsm_musig2_orch_key_share_wrapped_total: { help: 'Total MuSig2 key shares wrapped via HSM adapter.', type: 'counter' },
+  hsm_musig2_orch_session_created_total: {
+    help: "Total MuSig2 orchestrator sessions created.",
+    type: "counter",
+  },
+  hsm_musig2_orch_session_completed_total: {
+    help: "Total MuSig2 orchestrator sessions completed successfully.",
+    type: "counter",
+  },
+  hsm_musig2_orch_session_failed_total: {
+    help: "Total MuSig2 orchestrator sessions that failed.",
+    type: "counter",
+  },
+  hsm_musig2_orch_key_share_wrapped_total: {
+    help: "Total MuSig2 key shares wrapped via HSM adapter.",
+    type: "counter",
+  },
   // Track 31: Homomorphic Database Lookup Gating Hub metadata
-  hsm_lookupgate_pool_initialized_total: { help: 'Total Track 31 lookup gating pools initialized.', type: 'counter' },
-  hsm_zk_lookup_claim_verified_total: { help: 'Total Track 31 ZK lookup claims verified.', type: 'counter' },
-  hsm_lookup_accreditation_completed_total: { help: 'Total Track 31 lookup accreditations completed.', type: 'counter' },
+  hsm_lookupgate_pool_initialized_total: {
+    help: "Total Track 31 lookup gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_lookup_claim_verified_total: {
+    help: "Total Track 31 ZK lookup claims verified.",
+    type: "counter",
+  },
+  hsm_lookup_accreditation_completed_total: {
+    help: "Total Track 31 lookup accreditations completed.",
+    type: "counter",
+  },
   // Track 32: PQC Blinded Threshold Ring-Signature Verification Gating Hub metadata
-  hsm_ringgate_pool_initialized_total: { help: 'Total Track 32 ring gating pools initialized.', type: 'counter' },
-  hsm_zk_ring_claim_verified_total: { help: 'Total Track 32 ZK ring claims verified.', type: 'counter' },
-  hsm_ring_accreditation_completed_total: { help: 'Total Track 32 ring accreditations completed.', type: 'counter' },
+  hsm_ringgate_pool_initialized_total: {
+    help: "Total Track 32 ring gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_ring_claim_verified_total: {
+    help: "Total Track 32 ZK ring claims verified.",
+    type: "counter",
+  },
+  hsm_ring_accreditation_completed_total: {
+    help: "Total Track 32 ring accreditations completed.",
+    type: "counter",
+  },
   // Track 33: PQC Direct Accumulator Membership Proof Gating Hub metadata
-  hsm_accumulatorgate_pool_initialized_total: { help: 'Total Track 33 accumulator gating pools initialized.', type: 'counter' },
-  hsm_zk_accumulator_claim_verified_total: { help: 'Total Track 33 ZK accumulator claims verified.', type: 'counter' },
-  hsm_accumulator_accreditation_completed_total: { help: 'Total Track 33 accumulator accreditations completed.', type: 'counter' },
+  hsm_accumulatorgate_pool_initialized_total: {
+    help: "Total Track 33 accumulator gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_accumulator_claim_verified_total: {
+    help: "Total Track 33 ZK accumulator claims verified.",
+    type: "counter",
+  },
+  hsm_accumulator_accreditation_completed_total: {
+    help: "Total Track 33 accumulator accreditations completed.",
+    type: "counter",
+  },
   // Track 114: PQC Lattice-Based Multi-Message VSS Gating Hub metadata
-  hsm_vssgate_pool_initialized_total: { help: 'Total Track 114 lattice VSS gating pools initialized.', type: 'counter' },
-  hsm_zk_vss_claim_verified_total: { help: 'Total Track 114 ZK VSS claims verified.', type: 'counter' },
-  hsm_vss_accreditation_completed_total: { help: 'Total Track 114 VSS accreditations completed.', type: 'counter' },
+  hsm_vssgate_pool_initialized_total: {
+    help: "Total Track 114 lattice VSS gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_vss_claim_verified_total: {
+    help: "Total Track 114 ZK VSS claims verified.",
+    type: "counter",
+  },
+  hsm_vss_accreditation_completed_total: {
+    help: "Total Track 114 VSS accreditations completed.",
+    type: "counter",
+  },
   // Track 115: PQC Lattice-Based Multi-Message VFHSS Gating Hub metadata
-  hsm_vfhssgate_pool_initialized_total: { help: 'Total Track 115 lattice VFHSS gating pools initialized.', type: 'counter' },
-  hsm_zk_vfhss_claim_verified_total: { help: 'Total Track 115 ZK VFHSS claims verified.', type: 'counter' },
-  hsm_vfhss_accreditation_completed_total: { help: 'Total Track 115 VFHSS accreditations completed.', type: 'counter' },
+  hsm_vfhssgate_pool_initialized_total: {
+    help: "Total Track 115 lattice VFHSS gating pools initialized.",
+    type: "counter",
+  },
+  hsm_zk_vfhss_claim_verified_total: {
+    help: "Total Track 115 ZK VFHSS claims verified.",
+    type: "counter",
+  },
+  hsm_vfhss_accreditation_completed_total: {
+    help: "Total Track 115 VFHSS accreditations completed.",
+    type: "counter",
+  },
   // Track 116: Cluster Isolation Hardening metadata
-  hsm_isolation_violation_total: { help: 'Total Track 116 cluster isolation violations — messages dropped from unverified or spoofed cluster peer nodes.', type: 'counter' },
-  hsm_key_reject_total: { help: 'Total Track 116 key rejections — KEY_COMMIT frames rejected from unauthorized non-leader nodes.', type: 'counter' },
+  hsm_isolation_violation_total: {
+    help: "Total Track 116 cluster isolation violations — messages dropped from unverified or spoofed cluster peer nodes.",
+    type: "counter",
+  },
+  hsm_key_reject_total: {
+    help: "Total Track 116 key rejections — KEY_COMMIT frames rejected from unauthorized non-leader nodes.",
+    type: "counter",
+  },
   // Track 112: Upload and PoRep verification metadata
-  hsm_track112_upload_create_total: { help: 'Total Track 112 upload sessions created.', type: 'counter' },
-  hsm_track112_upload_chunk_total: { help: 'Total Track 112 upload chunks accepted.', type: 'counter' },
-  hsm_track112_upload_chunk_failed_total: { help: 'Total Track 112 upload chunk writes that failed.', type: 'counter' },
-  hsm_track112_upload_commit_total: { help: 'Total Track 112 upload sessions committed.', type: 'counter' },
-  hsm_track112_upload_commit_failed_total: { help: 'Total Track 112 upload commits that failed.', type: 'counter' },
-  hsm_track112_upload_commit_failed_invalid_signature_total: { help: 'Total Track 112 upload commits rejected due to an invalid Ed25519 signature.', type: 'counter' },
-  hsm_track112_upload_commit_failed_session_not_found_total: { help: 'Total Track 112 upload commits for unknown or expired sessions.', type: 'counter' },
-  hsm_track112_proofs_verified_total: { help: 'Total Track 112 PoRep proofs successfully verified.', type: 'counter' },
-  hsm_track112_proofs_failed_total: { help: 'Total Track 112 PoRep proofs that failed verification.', type: 'counter' },
-  hsm_track112_worker_rejected_total: { help: 'Total Track 112 worker-pool tasks rejected due to a full queue.', type: 'counter' },
+  hsm_track112_upload_create_total: {
+    help: "Total Track 112 upload sessions created.",
+    type: "counter",
+  },
+  hsm_track112_upload_chunk_total: {
+    help: "Total Track 112 upload chunks accepted.",
+    type: "counter",
+  },
+  hsm_track112_upload_chunk_failed_total: {
+    help: "Total Track 112 upload chunk writes that failed.",
+    type: "counter",
+  },
+  hsm_track112_upload_commit_total: {
+    help: "Total Track 112 upload sessions committed.",
+    type: "counter",
+  },
+  hsm_track112_upload_commit_failed_total: {
+    help: "Total Track 112 upload commits that failed.",
+    type: "counter",
+  },
+  hsm_track112_upload_commit_failed_invalid_signature_total: {
+    help: "Total Track 112 upload commits rejected due to an invalid Ed25519 signature.",
+    type: "counter",
+  },
+  hsm_track112_upload_commit_failed_session_not_found_total: {
+    help: "Total Track 112 upload commits for unknown or expired sessions.",
+    type: "counter",
+  },
+  hsm_track112_proofs_verified_total: {
+    help: "Total Track 112 PoRep proofs successfully verified.",
+    type: "counter",
+  },
+  hsm_track112_proofs_failed_total: {
+    help: "Total Track 112 PoRep proofs that failed verification.",
+    type: "counter",
+  },
+  hsm_track112_worker_rejected_total: {
+    help: "Total Track 112 worker-pool tasks rejected due to a full queue.",
+    type: "counter",
+  },
   // Track 396: Multipart upload durability metadata
-  hsm_track112_merkle_leaf_hashed_total: { help: 'Total Track 396 chunks incrementally hashed into the Merkle tree.', type: 'counter' },
-  hsm_track112_merkle_tree_rebuild_total: { help: 'Total Track 396 Merkle tree rebuilds from disk checkpoint on session resume.', type: 'counter' },
-  hsm_track112_session_resumed_total: { help: 'Total Track 396 upload sessions resumed after crash or restart.', type: 'counter' },
-  hsm_track112_chunk_write_atomic_total: { help: 'Total Track 396 chunk writes performed via atomic write-then-rename.', type: 'counter' },
-  hsm_track112_chunk_write_atomic_failed_total: { help: 'Total Track 396 atomic chunk writes that failed.', type: 'counter' },
-  hsm_track112_commit_atomic_total: { help: 'Total Track 396 atomic commit directory swaps completed.', type: 'counter' },
-  hsm_track112_commit_atomic_rollback_total: { help: 'Total Track 396 atomic commit swaps that failed and rolled back.', type: 'counter' },
-  hsm_track112_worker_task_done_total: { help: 'Total Track 112 worker-pool tasks completed.', type: 'counter' },
-  hsm_track112_ingest_backpressure_total: { help: 'Total Track 112 ingest-queue submissions rejected due to backpressure.', type: 'counter' },
-  hsm_track112_upload_duration_ms: { help: 'Track 112 upload endpoint latency in milliseconds.', type: 'histogram' },
-  hsm_track112_proof_duration_ms: { help: 'Track 112 PoRep proof verification latency in milliseconds.', type: 'histogram' },
-  hsm_track112_worker_duration_ms: { help: 'Track 112 worker pool task latency in milliseconds.', type: 'histogram' },
+  hsm_track112_merkle_leaf_hashed_total: {
+    help: "Total Track 396 chunks incrementally hashed into the Merkle tree.",
+    type: "counter",
+  },
+  hsm_track112_merkle_tree_rebuild_total: {
+    help: "Total Track 396 Merkle tree rebuilds from disk checkpoint on session resume.",
+    type: "counter",
+  },
+  hsm_track112_session_resumed_total: {
+    help: "Total Track 396 upload sessions resumed after crash or restart.",
+    type: "counter",
+  },
+  hsm_track112_chunk_write_atomic_total: {
+    help: "Total Track 396 chunk writes performed via atomic write-then-rename.",
+    type: "counter",
+  },
+  hsm_track112_chunk_write_atomic_failed_total: {
+    help: "Total Track 396 atomic chunk writes that failed.",
+    type: "counter",
+  },
+  hsm_track112_commit_atomic_total: {
+    help: "Total Track 396 atomic commit directory swaps completed.",
+    type: "counter",
+  },
+  hsm_track112_commit_atomic_rollback_total: {
+    help: "Total Track 396 atomic commit swaps that failed and rolled back.",
+    type: "counter",
+  },
+  hsm_track112_worker_task_done_total: {
+    help: "Total Track 112 worker-pool tasks completed.",
+    type: "counter",
+  },
+  hsm_track112_ingest_backpressure_total: {
+    help: "Total Track 112 ingest-queue submissions rejected due to backpressure.",
+    type: "counter",
+  },
+  hsm_track112_upload_duration_ms: {
+    help: "Track 112 upload endpoint latency in milliseconds.",
+    type: "histogram",
+  },
+  hsm_track112_proof_duration_ms: {
+    help: "Track 112 PoRep proof verification latency in milliseconds.",
+    type: "histogram",
+  },
+  hsm_track112_worker_duration_ms: {
+    help: "Track 112 worker pool task latency in milliseconds.",
+    type: "histogram",
+  },
   // SIEM Broker: Unified telemetry pipeline metadata
-  siem_events_processed_total: { help: 'Total SIEM security events accepted and routed to transport layers (batch queue or Winston stream).', type: 'counter' },
-  siem_events_dropped_total: { help: 'Total SIEM events dropped by the token-bucket rate limiter. High values indicate possible log-blinding attacks or misconfigured rate limits.', type: 'counter' },
-  siem_events_bypassed_total: { help: 'Total SIEM CRITICAL/FATAL events that bypassed the rate limiter to ensure audit longevity. P1 alert if this counter increments.', type: 'counter' },
-  siem_tokens_consumed_total: { help: 'Total SIEM token-bucket tokens consumed by accepted events.', type: 'counter' },
-  siem_token_bucket_current: { help: 'Current SIEM token-bucket capacity (available tokens). Low values indicate sustained high event volume.', type: 'gauge' },
+  siem_events_processed_total: {
+    help: "Total SIEM security events accepted and routed to transport layers (batch queue or Winston stream).",
+    type: "counter",
+  },
+  siem_events_dropped_total: {
+    help: "Total SIEM events dropped by the token-bucket rate limiter. High values indicate possible log-blinding attacks or misconfigured rate limits.",
+    type: "counter",
+  },
+  siem_events_bypassed_total: {
+    help: "Total SIEM CRITICAL/FATAL events that bypassed the rate limiter to ensure audit longevity. P1 alert if this counter increments.",
+    type: "counter",
+  },
+  siem_tokens_consumed_total: {
+    help: "Total SIEM token-bucket tokens consumed by accepted events.",
+    type: "counter",
+  },
+  siem_token_bucket_current: {
+    help: "Current SIEM token-bucket capacity (available tokens). Low values indicate sustained high event volume.",
+    type: "gauge",
+  },
   // DKG histogram metadata
-  hsm_dkg_round_duration_ms: { help: 'DKG gossip round duration in milliseconds.', type: 'histogram' },
+  hsm_dkg_round_duration_ms: {
+    help: "DKG gossip round duration in milliseconds.",
+    type: "histogram",
+  },
 };
 
 /**
@@ -1904,7 +4285,7 @@ function renderPrometheus() {
     lines.push(`${name}_count ${h.count}`);
   }
 
-  return lines.join('\n') + '\n';
+  return lines.join("\n") + "\n";
 }
 
 /**
@@ -1917,7 +4298,7 @@ function renderPrometheus() {
  * @param {object} broker - SiemSecurityBroker instance with getMetrics()
  */
 function updateSiemMetrics(broker) {
-  if (!broker || typeof broker.getMetrics !== 'function') return;
+  if (!broker || typeof broker.getMetrics !== "function") return;
   const m = broker.getMetrics();
   if (m.siem_events_processed_total !== undefined) {
     counters.siem_events_processed_total = m.siem_events_processed_total;

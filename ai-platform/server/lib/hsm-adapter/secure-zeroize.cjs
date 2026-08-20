@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 15: Secure zeroization utilities.
@@ -9,10 +9,10 @@
  * @module hsm-adapter/secure-zeroize
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
-const SUPPORTED_STRATEGIES = new Set(['random', 'zeros', 'both']);
+const SUPPORTED_STRATEGIES = new Set(["random", "zeros", "both"]);
 
 /**
  * Overwrite the contents of a Buffer or typed array.
@@ -23,16 +23,22 @@ const SUPPORTED_STRATEGIES = new Set(['random', 'zeros', 'both']);
  */
 function secureZeroize(input, options = {}) {
   if (!Buffer.isBuffer(input) && !ArrayBuffer.isView(input)) {
-    throw new HsmAdapterError('INVALID_INPUT', 'secureZeroize requires a Buffer or ArrayBufferView');
+    throw new HsmAdapterError(
+      "INVALID_INPUT",
+      "secureZeroize requires a Buffer or ArrayBufferView",
+    );
   }
-  const strategy = options.strategy || 'random';
+  const strategy = options.strategy || "random";
   if (!SUPPORTED_STRATEGIES.has(strategy)) {
-    throw new HsmAdapterError('INVALID_INPUT', `Unknown zeroization strategy: ${strategy}`);
+    throw new HsmAdapterError(
+      "INVALID_INPUT",
+      `Unknown zeroization strategy: ${strategy}`,
+    );
   }
-  if (strategy === 'random' || strategy === 'both') {
+  if (strategy === "random" || strategy === "both") {
     crypto.randomFillSync(input);
   }
-  if (strategy === 'zeros' || strategy === 'both') {
+  if (strategy === "zeros" || strategy === "both") {
     input.fill(0);
   }
   return input;
@@ -45,12 +51,12 @@ function secureZeroize(input, options = {}) {
  */
 function secureZeroizeKeyObject(keyObject) {
   if (!keyObject) return;
-  if (typeof keyObject.export === 'function') {
+  if (typeof keyObject.export === "function") {
     try {
       // Attempt to export and immediately zeroize any exposed material.
       // For private keys this still returns an object; we cannot control
       // internal OpenSSL memory, so we force the reference to go out of scope.
-      keyObject.export({ type: 'spki', format: 'der' });
+      keyObject.export({ type: "spki", format: "der" });
     } catch {
       // Ignore export failures; the goal is to drop the reference.
     }

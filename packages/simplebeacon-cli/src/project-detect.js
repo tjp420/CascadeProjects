@@ -3,245 +3,264 @@
  * simplebeacon:production-leak-intent — Detects sample JSON files for project-type identification; references are intentional signatures.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const SCAN_CANDIDATES = [
-    'web/data', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
-    'data/mock', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
-    'data-central/ai-tools/mock-data', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
-    'fixtures', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
-    '__mocks__',
-    'test/fixtures',
-    'tests/fixtures',
-    'src/mocks',
-    'mock',
-    'mocks',
-    'samples',
-    'data/samples',
-    'data'
+  "web/data", // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+  "data/mock", // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+  "data-central/ai-tools/mock-data", // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+  "fixtures", // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+  "__mocks__",
+  "test/fixtures",
+  "tests/fixtures",
+  "src/mocks",
+  "mock",
+  "mocks",
+  "samples",
+  "data/samples",
+  "data",
 ];
 
-const PRODUCTION_CANDIDATES = ['server/', 'src/', 'app/', 'lib/', 'api/', 'services/'];
+const PRODUCTION_CANDIDATES = [
+  "server/",
+  "src/",
+  "app/",
+  "lib/",
+  "api/",
+  "services/",
+];
 
 const IGNORE_DEFAULTS = [
-    'node_modules/**',
-    'coverage/**',
-    'dist/**',
-    'build/**',
-    '**/*.test.js',
-    '**/*.spec.js',
-    '**/*.test.ts',
-    '**/*.spec.ts',
-    'tests/**',
-    'test/**',
-    'coming-soon/**',
-    'coming-soon-dev/**',
-    'scripts/**',
-    'simplebeacon-frameworkless/**',
-    'sales/**',
-    'marketing/**',
-    'logs/**',
-    'github-action/**',
-    'browser-local/**',
-    'cjs/**',
-    'esm/**',
-    'packages/simplebeacon-cli/**',
-    'simplebeacon-vscode/**',
-    'report.json',
-    'cli-test-report*.json',
-    'test-output.txt'
+  "node_modules/**",
+  "coverage/**",
+  "dist/**",
+  "build/**",
+  "**/*.test.js",
+  "**/*.spec.js",
+  "**/*.test.ts",
+  "**/*.spec.ts",
+  "tests/**",
+  "test/**",
+  "coming-soon/**",
+  "coming-soon-dev/**",
+  "scripts/**",
+  "simplebeacon-frameworkless/**",
+  "sales/**",
+  "marketing/**",
+  "logs/**",
+  "github-action/**",
+  "browser-local/**",
+  "cjs/**",
+  "esm/**",
+  "packages/simplebeacon-cli/**",
+  "simplebeacon-vscode/**",
+  "report.json",
+  "cli-test-report*.json",
+  "test-output.txt",
 ];
 
-const PLATFORM_DIR_NAMES = ['ai-platform'];
+const PLATFORM_DIR_NAMES = ["ai-platform"];
 
 const CASCADE_ANCHORS = [
-    'engineering-baseline-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
-    'implementation-plan-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
-    'master-roadmap-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
-    'release-timeline-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
-    'dashboard-home-sample.json' // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+  "engineering-baseline-sample.json", // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+  "implementation-plan-sample.json", // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+  "master-roadmap-sample.json", // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+  "release-timeline-sample.json", // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+  "dashboard-home-sample.json", // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
 ];
 
 function pathExists(baseDir, relativePath) {
-    const normalized = relativePath.replace(/\/$/, '');
-    if (!normalized) return false;
-    return fs.existsSync(path.join(baseDir, ...normalized.split('/')));
+  const normalized = relativePath.replace(/\/$/, "");
+  if (!normalized) return false;
+  return fs.existsSync(path.join(baseDir, ...normalized.split("/")));
 }
 
 function detectScanPaths(baseDir) {
-    const found = SCAN_CANDIDATES.filter((rel) => pathExists(baseDir, rel));
-    if (found.length > 0) return found;
-    return ['fixtures', '__mocks__', 'data'];
+  const found = SCAN_CANDIDATES.filter((rel) => pathExists(baseDir, rel));
+  if (found.length > 0) return found;
+  return ["fixtures", "__mocks__", "data"];
 }
 
 function detectProductionPaths(baseDir) {
-    const found = PRODUCTION_CANDIDATES.filter((rel) => pathExists(baseDir, rel));
-    return found.length > 0 ? found : ['src/', 'lib/'];
+  const found = PRODUCTION_CANDIDATES.filter((rel) => pathExists(baseDir, rel));
+  return found.length > 0 ? found : ["src/", "lib/"];
 }
 
 function detectSampleDir(baseDir, scanPaths) {
-    if (scanPaths.includes('web/data')) return 'web/data';
-    const withSamples = scanPaths.find((rel) => {
-        const abs = path.join(baseDir, ...rel.split('/'));
-        try {
-            const entries = fs.readdirSync(abs);
-            return entries.some((name) => name.endsWith('-sample.json'));
-        } catch {
-            return false;
-        }
-    });
-    return withSamples || scanPaths[0] || 'data';
+  if (scanPaths.includes("web/data")) return "web/data";
+  const withSamples = scanPaths.find((rel) => {
+    const abs = path.join(baseDir, ...rel.split("/"));
+    try {
+      const entries = fs.readdirSync(abs);
+      return entries.some((name) => name.endsWith("-sample.json"));
+    } catch {
+      return false;
+    }
+  });
+  return withSamples || scanPaths[0] || "data";
 }
 
 function detectAnchorSamples(baseDir, sampleDir) {
-    const abs = path.join(baseDir, ...sampleDir.split('/'));
-    try {
-        const entries = fs.readdirSync(abs); // simplebeacon-ignore sync-io-async-path — sync CLI tool startup, acceptable for small directory
-        return entries.filter((name) => CASCADE_ANCHORS.includes(name))
-            .sort();
-    } catch {
-        return [];
-    }
+  const abs = path.join(baseDir, ...sampleDir.split("/"));
+  try {
+    const entries = fs.readdirSync(abs); // simplebeacon-ignore sync-io-async-path — sync CLI tool startup, acceptable for small directory
+    return entries.filter((name) => CASCADE_ANCHORS.includes(name)).sort();
+  } catch {
+    return [];
+  }
 }
 
 function isCascadeMonorepo(baseDir) {
-    return pathExists(baseDir, 'web/dashboard-new.html')
-        || pathExists(baseDir, 'packages/simplebeacon-cli')
-        || pathExists(baseDir, 'server/lib/mock-data-scanner.js');
+  return (
+    pathExists(baseDir, "web/dashboard-new.html") ||
+    pathExists(baseDir, "packages/simplebeacon-cli") ||
+    pathExists(baseDir, "server/lib/mock-data-scanner.js")
+  );
 }
 
 function detectPlatformSignalsAt(baseDir) {
-    const root = path.resolve(baseDir);
-    return {
-        cascadeLayout: isCascadeMonorepo(root),
-        pageSampleDir: pathExists(root, 'web/data'),
-        stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.js')),
-        serverEntry: fs.existsSync(path.join(root, 'simplebeacon-server.js'))
-    };
+  const root = path.resolve(baseDir);
+  return {
+    cascadeLayout: isCascadeMonorepo(root),
+    pageSampleDir: pathExists(root, "web/data"),
+    stubApi: fs.existsSync(path.join(root, "src/api/dashboard-stub-api.js")),
+    serverEntry: fs.existsSync(path.join(root, "simplebeacon-server.js")),
+  };
 }
 
 function hasLocalSimplebeaconConfig(baseDir) {
-    return fs.existsSync(path.join(baseDir, '.simplebeacon', 'config.json'));
+  return fs.existsSync(path.join(baseDir, ".simplebeacon", "config.json"));
 }
 
 function isGithubCacheClone(scanRoot) {
-    const normalized = path.resolve(scanRoot).replace(/\\/g, '/').toLowerCase();
-    return /\/github-cache\/[^/]+/.test(normalized);
+  const normalized = path.resolve(scanRoot).replace(/\\/g, "/").toLowerCase();
+  return /\/github-cache\/[^/]+/.test(normalized);
 }
 
 /** External clones and honey-pot repos must not inherit ai-platform / monorepo scan scope. */
 function isIsolatedScanRoot(scanRoot) {
-    const root = path.resolve(scanRoot);
-    if (isGithubCacheClone(root)) {
-        return true;
-    }
-    if (hasLocalSimplebeaconConfig(root) && !isCascadeMonorepo(root)) {
-        return true;
-    }
-    return false;
+  const root = path.resolve(scanRoot);
+  if (isGithubCacheClone(root)) {
+    return true;
+  }
+  if (hasLocalSimplebeaconConfig(root) && !isCascadeMonorepo(root)) {
+    return true;
+  }
+  return false;
 }
 
 function resolvePlatformRoot(projectRoot) {
-    const scanRoot = path.resolve(projectRoot);
+  const scanRoot = path.resolve(projectRoot);
 
-    // Honey-pot / client repos and dashboard github-cache clones stay scoped to scan root.
-    if (isIsolatedScanRoot(scanRoot)) {
-        return { scanRoot, platformRoot: scanRoot };
-    }
-
-    for (const name of PLATFORM_DIR_NAMES) {
-        const candidate = path.join(scanRoot, name);
-        if (!fs.existsSync(candidate)) continue;
-        const signals = detectPlatformSignalsAt(candidate);
-        if (signals.cascadeLayout || signals.pageSampleDir || signals.stubApi || signals.serverEntry) {
-            return { scanRoot, platformRoot: candidate };
-        }
-    }
-
-    const direct = detectPlatformSignalsAt(scanRoot);
-    if (direct.cascadeLayout) {
-        return { scanRoot, platformRoot: scanRoot };
-    }
-
-    let current = scanRoot;
-    for (let depth = 0; depth < 8; depth += 1) {
-        const parent = path.dirname(current);
-        if (parent === current) break;
-        const signals = detectPlatformSignalsAt(parent);
-        if (signals.cascadeLayout) {
-            return { scanRoot, platformRoot: parent };
-        }
-        current = parent;
-    }
-
-    if (direct.pageSampleDir || direct.stubApi || direct.serverEntry) {
-        return { scanRoot, platformRoot: scanRoot };
-    }
-
+  // Honey-pot / client repos and dashboard github-cache clones stay scoped to scan root.
+  if (isIsolatedScanRoot(scanRoot)) {
     return { scanRoot, platformRoot: scanRoot };
+  }
+
+  for (const name of PLATFORM_DIR_NAMES) {
+    const candidate = path.join(scanRoot, name);
+    if (!fs.existsSync(candidate)) continue;
+    const signals = detectPlatformSignalsAt(candidate);
+    if (
+      signals.cascadeLayout ||
+      signals.pageSampleDir ||
+      signals.stubApi ||
+      signals.serverEntry
+    ) {
+      return { scanRoot, platformRoot: candidate };
+    }
+  }
+
+  const direct = detectPlatformSignalsAt(scanRoot);
+  if (direct.cascadeLayout) {
+    return { scanRoot, platformRoot: scanRoot };
+  }
+
+  let current = scanRoot;
+  for (let depth = 0; depth < 8; depth += 1) {
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    const signals = detectPlatformSignalsAt(parent);
+    if (signals.cascadeLayout) {
+      return { scanRoot, platformRoot: parent };
+    }
+    current = parent;
+  }
+
+  if (direct.pageSampleDir || direct.stubApi || direct.serverEntry) {
+    return { scanRoot, platformRoot: scanRoot };
+  }
+
+  return { scanRoot, platformRoot: scanRoot };
 }
 
 function detectPackageManager(baseDir) {
-    if (fs.existsSync(path.join(baseDir, 'pnpm-lock.yaml'))) return 'pnpm';
-    if (fs.existsSync(path.join(baseDir, 'yarn.lock'))) return 'yarn';
-    if (fs.existsSync(path.join(baseDir, 'package-lock.json'))) return 'npm';
-    if (fs.existsSync(path.join(baseDir, 'package.json'))) return 'npm';
-    if (fs.existsSync(path.join(baseDir, 'pyproject.toml'))) return 'python';
-    if (fs.existsSync(path.join(baseDir, 'requirements.txt'))) return 'python';
-    return 'unknown';
+  if (fs.existsSync(path.join(baseDir, "pnpm-lock.yaml"))) return "pnpm";
+  if (fs.existsSync(path.join(baseDir, "yarn.lock"))) return "yarn";
+  if (fs.existsSync(path.join(baseDir, "package-lock.json"))) return "npm";
+  if (fs.existsSync(path.join(baseDir, "package.json"))) return "npm";
+  if (fs.existsSync(path.join(baseDir, "pyproject.toml"))) return "python";
+  if (fs.existsSync(path.join(baseDir, "requirements.txt"))) return "python";
+  return "unknown";
 }
 
 function detectProjectProfile(baseDir) {
-    const root = path.resolve(baseDir);
-    const scanPaths = detectScanPaths(root);
-    const productionPaths = detectProductionPaths(root);
-    const sampleDir = detectSampleDir(root, scanPaths);
-    const cascade = isCascadeMonorepo(root);
-    const packageManager = detectPackageManager(root);
-    const hasSampleJson = detectAnchorSamples(root, sampleDir).length > 0
-        || scanPaths.some((rel) => {
-            const abs = path.join(root, ...rel.split('/'));
-            try {
-                return fs.existsSync(abs)
-                    && fs.readdirSync(abs).some((n) => n.endsWith('-sample.json'));
-            } catch {
-                return false;
-            }
-        });
+  const root = path.resolve(baseDir);
+  const scanPaths = detectScanPaths(root);
+  const productionPaths = detectProductionPaths(root);
+  const sampleDir = detectSampleDir(root, scanPaths);
+  const cascade = isCascadeMonorepo(root);
+  const packageManager = detectPackageManager(root);
+  const hasSampleJson =
+    detectAnchorSamples(root, sampleDir).length > 0 ||
+    scanPaths.some((rel) => {
+      const abs = path.join(root, ...rel.split("/"));
+      try {
+        return (
+          fs.existsSync(abs) &&
+          fs.readdirSync(abs).some((n) => n.endsWith("-sample.json"))
+        );
+      } catch {
+        return false;
+      }
+    });
 
-    let profile = 'standard';
-    if (cascade) profile = 'cascade';
-    else if (!hasSampleJson) profile = 'minimal';
+  let profile = "standard";
+  if (cascade) profile = "cascade";
+  else if (!hasSampleJson) profile = "minimal";
 
-    return {
-        profile,
-        scanPaths,
-        productionPaths,
-        sampleDir,
-        consistencyAnchorSamples: cascade || hasSampleJson
-            ? detectAnchorSamples(root, sampleDir).length
-                ? detectAnchorSamples(root, sampleDir)
-                : CASCADE_ANCHORS.filter((name) => fs.existsSync(path.join(root, sampleDir, name)))
-            : [],
-        packageManager,
-        isCascadeMonorepo: cascade,
-        hasSampleJson
-    };
+  return {
+    profile,
+    scanPaths,
+    productionPaths,
+    sampleDir,
+    consistencyAnchorSamples:
+      cascade || hasSampleJson
+        ? detectAnchorSamples(root, sampleDir).length
+          ? detectAnchorSamples(root, sampleDir)
+          : CASCADE_ANCHORS.filter((name) =>
+              fs.existsSync(path.join(root, sampleDir, name)),
+            )
+        : [],
+    packageManager,
+    isCascadeMonorepo: cascade,
+    hasSampleJson,
+  };
 }
 
 module.exports = {
-    SCAN_CANDIDATES,
-    PRODUCTION_CANDIDATES,
-    IGNORE_DEFAULTS,
-    CASCADE_ANCHORS,
-    PLATFORM_DIR_NAMES,
-    detectProjectProfile,
-    detectScanPaths,
-    detectProductionPaths,
-    detectPlatformSignalsAt,
-    resolvePlatformRoot,
-    isGithubCacheClone,
-    isIsolatedScanRoot,
-    isCascadeMonorepo
+  SCAN_CANDIDATES,
+  PRODUCTION_CANDIDATES,
+  IGNORE_DEFAULTS,
+  CASCADE_ANCHORS,
+  PLATFORM_DIR_NAMES,
+  detectProjectProfile,
+  detectScanPaths,
+  detectProductionPaths,
+  detectPlatformSignalsAt,
+  resolvePlatformRoot,
+  isGithubCacheClone,
+  isIsolatedScanRoot,
+  isCascadeMonorepo,
 };

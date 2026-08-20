@@ -11,7 +11,7 @@ npm install simplebeacon-ai-tools
 ## Usage
 
 ```javascript
-const aiTools = require('simplebeacon-ai-tools');
+const aiTools = require("simplebeacon-ai-tools");
 ```
 
 ## Testing

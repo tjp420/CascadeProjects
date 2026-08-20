@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Vendored ML-KEM-768 (Kyber-768 equivalent) primitive.
@@ -10,7 +10,7 @@
  * @module vendor/mlkem
  */
 
-const { MlKem768 } = require('mlkem');
+const { MlKem768 } = require("mlkem");
 
 const kem = new MlKem768();
 

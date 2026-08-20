@@ -1,4 +1,5 @@
 # SimpleBeacon Platform — Product Capabilities & Market Position
+
 **Re-Attestation Deliverable | June 12, 2026**
 
 ---
@@ -17,20 +18,20 @@ SimpleBeacon is an AI safety scanning and audit platform that transforms how eng
 
 SimpleBeacon runs 12 distinct rule engines simultaneously:
 
-| Engine | Purpose | Status |
-|--------|---------|--------|
-| Credentials | Detect exposed API keys, tokens, passwords | Active — 0 findings |
-| Production Leak | Find production data in non-production paths | Active — 0 findings |
-| Fiction KPI | Identify placeholder metrics and mock data in source | Active — 58 sample files tracked |
-| LLM Slop | Detect AI-generated boilerplate and template text | Active — 0 findings |
-| Token Bleed | Find JWT/session token leakage | Active — 0 findings |
-| Architecture Drift | Detect structural deviation from baseline | Active — 0 findings |
-| EU AI Act | Assess compliance with EU AI Act requirements | Active — Compliant |
-| JSON Schema | Validate data file structure | Active — 50/50 passed |
-| Sample Consistency | Ensure mock data follows canonical patterns | Active — 68/68 consistent |
-| File Reduction | Identify unused or oversized files | Active — 0 opportunities |
-| Roadmap | Track TODO/FIXME technical debt | Active — 1 marker tracked |
-| Agency Handoff | Enterprise-specific security patterns | Active — 5 acknowledged |
+| Engine             | Purpose                                              | Status                           |
+| ------------------ | ---------------------------------------------------- | -------------------------------- |
+| Credentials        | Detect exposed API keys, tokens, passwords           | Active — 0 findings              |
+| Production Leak    | Find production data in non-production paths         | Active — 0 findings              |
+| Fiction KPI        | Identify placeholder metrics and mock data in source | Active — 58 sample files tracked |
+| LLM Slop           | Detect AI-generated boilerplate and template text    | Active — 0 findings              |
+| Token Bleed        | Find JWT/session token leakage                       | Active — 0 findings              |
+| Architecture Drift | Detect structural deviation from baseline            | Active — 0 findings              |
+| EU AI Act          | Assess compliance with EU AI Act requirements        | Active — Compliant               |
+| JSON Schema        | Validate data file structure                         | Active — 50/50 passed            |
+| Sample Consistency | Ensure mock data follows canonical patterns          | Active — 68/68 consistent        |
+| File Reduction     | Identify unused or oversized files                   | Active — 0 opportunities         |
+| Roadmap            | Track TODO/FIXME technical debt                      | Active — 1 marker tracked        |
+| Agency Handoff     | Enterprise-specific security patterns                | Active — 5 acknowledged          |
 
 ### 2. Real-Time Dashboard
 
@@ -82,34 +83,34 @@ Phase 2 infrastructure supports:
 
 ### Target Segments
 
-| Segment | Pain Point | SimpleBeacon Solution |
-|---------|------------|----------------------|
-| **Enterprise Engineering** | Need to prove AI system safety to legal/procurement | Automated compliance reports and gate scans |
-| **Digital Agencies** | Client handoff requires security attestation | One-click re-attestation deliverables |
-| **Regulated Industries** | EU AI Act, GDPR, SOC 2 compliance | Pre-built rule engines for each framework |
-| **Open Source Maintainers** | Credential leaks in PRs | Pre-commit hooks with automatic scanning |
-| **AI Startups** | Investor due diligence on code quality | Board-ready quality score and health metrics |
+| Segment                     | Pain Point                                          | SimpleBeacon Solution                        |
+| --------------------------- | --------------------------------------------------- | -------------------------------------------- |
+| **Enterprise Engineering**  | Need to prove AI system safety to legal/procurement | Automated compliance reports and gate scans  |
+| **Digital Agencies**        | Client handoff requires security attestation        | One-click re-attestation deliverables        |
+| **Regulated Industries**    | EU AI Act, GDPR, SOC 2 compliance                   | Pre-built rule engines for each framework    |
+| **Open Source Maintainers** | Credential leaks in PRs                             | Pre-commit hooks with automatic scanning     |
+| **AI Startups**             | Investor due diligence on code quality              | Board-ready quality score and health metrics |
 
 ### Competitive Differentiation
 
-| Feature | SimpleBeacon | Generic SAST | AI-Specific Tools |
-|---------|-----------|--------------|-------------------|
-| Offline scanning | Yes | Varies | Rare |
-| EU AI Act rules | Built-in | No | Limited |
-| AI telemetry detection | Yes | No | Partial |
-| Fiction KPI detection | Yes | No | No |
-| Universal language support (52 languages) | Yes | Limited | Limited |
-| Board-ready PDF export | Yes (Executive tier) | No | No |
-| MCP / AI agent integration | Yes | No | Emerging |
+| Feature                                   | SimpleBeacon         | Generic SAST | AI-Specific Tools |
+| ----------------------------------------- | -------------------- | ------------ | ----------------- |
+| Offline scanning                          | Yes                  | Varies       | Rare              |
+| EU AI Act rules                           | Built-in             | No           | Limited           |
+| AI telemetry detection                    | Yes                  | No           | Partial           |
+| Fiction KPI detection                     | Yes                  | No           | No                |
+| Universal language support (52 languages) | Yes                  | Limited      | Limited           |
+| Board-ready PDF export                    | Yes (Executive tier) | No           | No                |
+| MCP / AI agent integration                | Yes                  | No           | Emerging          |
 
 ### Pricing Tiers
 
-| Tier | Target | Key Feature |
-|------|--------|-------------|
-| **Community** | Individual developers | Basic scanning, JSON reports |
-| **Professional** | Small teams | Dashboard, email delivery, history |
-| **Enterprise** | Large organizations | Multi-project, SSO, custom rules |
-| **Executive Clearance** | Board / audit | Board-ready PDF, vendor handoff certification |
+| Tier                    | Target                | Key Feature                                   |
+| ----------------------- | --------------------- | --------------------------------------------- |
+| **Community**           | Individual developers | Basic scanning, JSON reports                  |
+| **Professional**        | Small teams           | Dashboard, email delivery, history            |
+| **Enterprise**          | Large organizations   | Multi-project, SSO, custom rules              |
+| **Executive Clearance** | Board / audit         | Board-ready PDF, vendor handoff certification |
 
 ---
 
@@ -125,14 +126,14 @@ Phase 2 infrastructure supports:
 
 ### Key Modules
 
-| Module | Files | Purpose |
-|--------|-------|---------|
-| Server API | 50+ | REST endpoints, middleware, services |
-| Dashboard | 30+ | UI components, views, services |
-| CLI Engine | 40+ | Scan orchestration, rule engines, exporters |
-| Intelligence | 15+ | Tree-sitter integration, language plugins |
-| Enterprise | 10+ | DLP, billing, audit logging |
-| Documentation | 20+ | Compliance docs, model cards, runbooks |
+| Module        | Files | Purpose                                     |
+| ------------- | ----- | ------------------------------------------- |
+| Server API    | 50+   | REST endpoints, middleware, services        |
+| Dashboard     | 30+   | UI components, views, services              |
+| CLI Engine    | 40+   | Scan orchestration, rule engines, exporters |
+| Intelligence  | 15+   | Tree-sitter integration, language plugins   |
+| Enterprise    | 10+   | DLP, billing, audit logging                 |
+| Documentation | 20+   | Compliance docs, model cards, runbooks      |
 
 ### Language Coverage
 
@@ -174,5 +175,5 @@ SimpleBeacon has strong product-market fit at the intersection of AI adoption an
 
 ---
 
-*Prepared by Cascade AI Agent | June 12, 2026*
-*Data sources: README.md, .simplebeacon/report.json, package.json, server/ and web/ directories*
+_Prepared by Cascade AI Agent | June 12, 2026_
+_Data sources: README.md, .simplebeacon/report.json, package.json, server/ and web/ directories_

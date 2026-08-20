@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 119 Multi-Tenant Fuzzing Matrix — Adversarial edge cases
@@ -12,8 +12,8 @@
  * - Concurrent validation flood races
  */
 
-const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+const { CryptoPolicyEngine } = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 const {
   makeHashChainPrng,
   FUZZ_SEED,
@@ -24,51 +24,55 @@ const {
   makeTrack119PrngDrivenMultiLayerPolicy,
   makeTrack119ConcurrentValidationCall,
   cleanupPrototypePollution,
-} = require('./tenant-fuzz-harness.cjs');
+} = require("./tenant-fuzz-harness.cjs");
 
 afterEach(() => {
   cleanupPrototypePollution();
 });
 
-describe('Track 119 multi-tenant fuzzing matrix', () => {
-  test('FUZZ-119-01: prototype pollution in crossClusterMigration is blocked', () => {
+describe("Track 119 multi-tenant fuzzing matrix", () => {
+  test("FUZZ-119-01: prototype pollution in crossClusterMigration is blocked", () => {
     const policy = makeTrack119ProtoPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    expect(Object.prototype).not.toHaveProperty('migrationGatePolluted');
-    expect(Object.prototype).not.toHaveProperty('migrationConstructorPolluted');
+    expect(Object.prototype).not.toHaveProperty("migrationGatePolluted");
+    expect(Object.prototype).not.toHaveProperty("migrationConstructorPolluted");
 
-    const resolved = engine.getPolicy('track119-polluter');
+    const resolved = engine.getPolicy("track119-polluter");
     expect(resolved).toBeDefined();
     expect(resolved.crossClusterMigration.minQuorumNodes).toBe(3);
     expect(resolved.crossClusterMigration.requireAttestation).toBe(true);
-    expect(resolved.crossClusterMigration.allowedAttestationAuthorities).toEqual(['mock-authority']);
+    expect(
+      resolved.crossClusterMigration.allowedAttestationAuthorities,
+    ).toEqual(["mock-authority"]);
     expect(resolved.crossClusterMigration.maxConcurrentMigrations).toBe(16);
     expect(resolved.crossClusterMigration.requireQuorumCommit).toBe(true);
     expect(resolved.crossClusterMigration.requireRollbackOnFailure).toBe(true);
     expect(resolved.crossClusterMigration.maxShardsPerMigration).toBe(32);
 
-    const clean = engine.getPolicy('track119-clean');
+    const clean = engine.getPolicy("track119-clean");
     expect(clean.crossClusterMigration.minQuorumNodes).toBe(3);
     expect(clean.crossClusterMigration.requireAttestation).toBe(true);
   });
 
-  test('FUZZ-119-02: 5-level nested __proto__ / constructor pollution is blocked', () => {
+  test("FUZZ-119-02: 5-level nested __proto__ / constructor pollution is blocked", () => {
     const policy = makeTrack119DeepNestedPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
     for (let i = 0; i < 5; i++) {
-      expect(Object.prototype).not.toHaveProperty('migrationProtoLevel' + i);
-      expect(Object.prototype).not.toHaveProperty('migrationCtorLevel' + i);
+      expect(Object.prototype).not.toHaveProperty("migrationProtoLevel" + i);
+      expect(Object.prototype).not.toHaveProperty("migrationCtorLevel" + i);
     }
-    expect(Object.prototype).not.toHaveProperty('migrationDeepMinQuorumNodes');
-    expect(Object.prototype).not.toHaveProperty('migrationDeepMaxConcurrentMigrations');
+    expect(Object.prototype).not.toHaveProperty("migrationDeepMinQuorumNodes");
+    expect(Object.prototype).not.toHaveProperty(
+      "migrationDeepMaxConcurrentMigrations",
+    );
 
-    const resolved = engine.getPolicy('track119-deep-polluter');
+    const resolved = engine.getPolicy("track119-deep-polluter");
     expect(resolved).toBeDefined();
   });
 
-  test('FUZZ-119-03: deterministic SHA-256 PRNG is reproducible', () => {
+  test("FUZZ-119-03: deterministic SHA-256 PRNG is reproducible", () => {
     const prng1 = makeHashChainPrng(FUZZ_SEED);
     const prng2 = makeHashChainPrng(FUZZ_SEED);
 
@@ -81,38 +85,41 @@ describe('Track 119 multi-tenant fuzzing matrix', () => {
     expect(seq1).toEqual(seq2);
   });
 
-  test('FUZZ-119-04: 1000 multi-layer random policies construct and merge without crash or pollution', () => {
-    const prng = makeHashChainPrng(FUZZ_SEED + '-multilayer');
+  test("FUZZ-119-04: 1000 multi-layer random policies construct and merge without crash or pollution", () => {
+    const prng = makeHashChainPrng(FUZZ_SEED + "-multilayer");
 
     for (let i = 0; i < 1000; i++) {
       const policy = makeTrack119PrngDrivenMultiLayerPolicy(prng);
       const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-      expect(Object.prototype).not.toHaveProperty('migrationGatePolluted');
-      expect(Object.prototype).not.toHaveProperty('migrationDeepMinQuorumNodes');
+      expect(Object.prototype).not.toHaveProperty("migrationGatePolluted");
+      expect(Object.prototype).not.toHaveProperty(
+        "migrationDeepMinQuorumNodes",
+      );
     }
   });
 
-  test('FUZZ-119-05: strict reference sandboxing — mutation does not cross-tenant leak', () => {
+  test("FUZZ-119-05: strict reference sandboxing — mutation does not cross-tenant leak", () => {
     const policy = makeTrack119ProtoPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    const policyA = engine.getPolicy('track119-polluter');
-    const originalBMin = engine.getPolicy('track119-clean').crossClusterMigration.minQuorumNodes;
+    const policyA = engine.getPolicy("track119-polluter");
+    const originalBMin =
+      engine.getPolicy("track119-clean").crossClusterMigration.minQuorumNodes;
 
     policyA.crossClusterMigration.minQuorumNodes = 1;
 
-    const policyB = engine.getPolicy('track119-clean');
+    const policyB = engine.getPolicy("track119-clean");
     expect(policyB.crossClusterMigration.minQuorumNodes).toBe(originalBMin);
     expect(policyB.crossClusterMigration.minQuorumNodes).not.toBe(1);
   });
 
-  test('FUZZ-119-06: Track 119 type confusion fails closed with structured HsmAdapterError', () => {
+  test("FUZZ-119-06: Track 119 type confusion fails closed with structured HsmAdapterError", () => {
     const engine = new CryptoPolicyEngine({ default: {} });
     const inputs = makeTrack119TypeConfusionConfigs();
     for (const { value } of inputs) {
       try {
-        engine.validate('t1', 'crossClusterMigration', value);
+        engine.validate("t1", "crossClusterMigration", value);
       } catch (e) {
         expect(e).toBeDefined();
         if (e instanceof HsmAdapterError) {
@@ -122,12 +129,13 @@ describe('Track 119 multi-tenant fuzzing matrix', () => {
     }
   });
 
-  test('FUZZ-119-07: PRNG-driven crossClusterMigration validation — 100 calls, no unhandled crash', () => {
+  test("FUZZ-119-07: PRNG-driven crossClusterMigration validation — 100 calls, no unhandled crash", () => {
     const prng = makeHashChainPrng(FUZZ_SEED);
     const engine = new CryptoPolicyEngine();
 
     for (let i = 0; i < 100; i++) {
-      const { tenantId, operation, config } = makeTrack119PrngDrivenValidateCall(prng);
+      const { tenantId, operation, config } =
+        makeTrack119PrngDrivenValidateCall(prng);
       try {
         const result = engine.validate(tenantId, operation, config);
         expect(result).toBe(true);
@@ -137,14 +145,15 @@ describe('Track 119 multi-tenant fuzzing matrix', () => {
     }
   });
 
-  test('FUZZ-119-08: concurrent validation flood does not race or crash', async () => {
-    const prng = makeHashChainPrng(FUZZ_SEED + '-flood');
+  test("FUZZ-119-08: concurrent validation flood does not race or crash", async () => {
+    const prng = makeHashChainPrng(FUZZ_SEED + "-flood");
     const policy = makeTrack119PrngDrivenMultiLayerPolicy(prng);
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
     const calls = [];
     for (let i = 0; i < 1000; i++) {
-      const { tenantId, operation, config } = makeTrack119ConcurrentValidationCall(prng);
+      const { tenantId, operation, config } =
+        makeTrack119ConcurrentValidationCall(prng);
       calls.push({ tenantId, operation, config });
     }
 
@@ -155,31 +164,35 @@ describe('Track 119 multi-tenant fuzzing matrix', () => {
             engine.validate(tenantId, operation, config);
             resolve({ ok: true });
           } catch (e) {
-            if (e.name !== 'HsmAdapterError') {
+            if (e.name !== "HsmAdapterError") {
               resolve({ ok: false, error: e.message });
             } else {
               resolve({ ok: true });
             }
           }
         });
-      })
+      }),
     );
 
     const crashes = results.filter((r) => !r.ok);
     expect(crashes).toHaveLength(0);
   });
 
-  test('FUZZ-119-09: cross-tenant crossClusterMigration mutation isolation', () => {
+  test("FUZZ-119-09: cross-tenant crossClusterMigration mutation isolation", () => {
     const policy = makeTrack119ProtoPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    const policyA = engine.getPolicy('track119-polluter');
-    const originalBMax = engine.getPolicy('track119-clean').crossClusterMigration.maxConcurrentMigrations;
+    const policyA = engine.getPolicy("track119-polluter");
+    const originalBMax =
+      engine.getPolicy("track119-clean").crossClusterMigration
+        .maxConcurrentMigrations;
 
     policyA.crossClusterMigration.maxConcurrentMigrations = 999;
 
-    const policyB = engine.getPolicy('track119-clean');
-    expect(policyB.crossClusterMigration.maxConcurrentMigrations).toBe(originalBMax);
+    const policyB = engine.getPolicy("track119-clean");
+    expect(policyB.crossClusterMigration.maxConcurrentMigrations).toBe(
+      originalBMax,
+    );
     expect(policyB.crossClusterMigration.maxConcurrentMigrations).not.toBe(999);
   });
 });

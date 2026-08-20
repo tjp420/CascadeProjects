@@ -51,32 +51,32 @@ components:
         description:
           type: string
         latticeParams:
-          $ref: '#/components/schemas/LatticeParameters'
+          $ref: "#/components/schemas/LatticeParameters"
         thresholdParams:
-          $ref: '#/components/schemas/ThresholdParameters'
+          $ref: "#/components/schemas/ThresholdParameters"
         zkProofs:
-          $ref: '#/components/schemas/ZKProofParameters'
+          $ref: "#/components/schemas/ZKProofParameters"
         allowedAlgorithms:
           type: array
           items:
             type: string
         keyLifecycle:
-          $ref: '#/components/schemas/KeyLifecycleParameters'
+          $ref: "#/components/schemas/KeyLifecycleParameters"
         participants:
           type: array
           items:
-            $ref: '#/components/schemas/Participant'
+            $ref: "#/components/schemas/Participant"
     LatticeParameters:
       type: object
       required:
         - scheme
-        - 'n'
+        - "n"
         - q
         - sigma
       properties:
         scheme:
           type: string
-        'n':
+        "n":
           type: integer
         q:
           type: integer
@@ -130,7 +130,7 @@ components:
         pubKeyFingerprint:
           type: string
     CreatePolicyRequest:
-      $ref: '#/components/schemas/CryptoPolicyEngine'
+      $ref: "#/components/schemas/CryptoPolicyEngine"
     CreatePolicyResponse:
       type: object
       properties:
@@ -146,7 +146,7 @@ components:
           value:
             policy_id: clinical-trial-oncology-v1-alpha
             status: created
-            created_at: '2026-08-02T16:00:00Z'
+            created_at: "2026-08-02T16:00:00Z"
     GenerateThresholdKeysResponse:
       type: object
       properties:
@@ -475,14 +475,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePolicyRequest'
+              $ref: "#/components/schemas/CreatePolicyRequest"
       responses:
-        '201':
+        "201":
           description: Policy created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreatePolicyResponse'
+                $ref: "#/components/schemas/CreatePolicyResponse"
   /policies/{policy_id}:
     get:
       summary: Get a policy
@@ -498,12 +498,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Policy retrieved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CryptoPolicyEngine'
+                $ref: "#/components/schemas/CryptoPolicyEngine"
   /policies/{policy_id}/generate-keys:
     post:
       summary: Trigger distributed key generation for a policy
@@ -519,12 +519,12 @@ paths:
           schema:
             type: string
       responses:
-        '202':
+        "202":
           description: DKG initiated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenerateThresholdKeysResponse'
+                $ref: "#/components/schemas/GenerateThresholdKeysResponse"
   /keys/{policy_id}/proactive-refresh:
     post:
       summary: Trigger proactive share refresh for a policy
@@ -540,7 +540,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Proactive share refresh scheduled
           content:
             application/json:
@@ -565,14 +565,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VRFEvaluateRequest'
+              $ref: "#/components/schemas/VRFEvaluateRequest"
       responses:
-        '200':
+        "200":
           description: VRF evaluation result with proof
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VRFEvaluateResponse'
+                $ref: "#/components/schemas/VRFEvaluateResponse"
   /vrf/verify:
     post:
       summary: Verify a VRF output and proof for a policy
@@ -586,14 +586,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VRFVerifyRequest'
+              $ref: "#/components/schemas/VRFVerifyRequest"
       responses:
-        '200':
+        "200":
           description: Verification result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VRFVerifyResponse'
+                $ref: "#/components/schemas/VRFVerifyResponse"
   /nizk/generate:
     post:
       summary: Generate a NIZK proof bundle for a policy context (stub)
@@ -607,14 +607,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NIZKGenerateRequest'
+              $ref: "#/components/schemas/NIZKGenerateRequest"
       responses:
-        '200':
+        "200":
           description: Generated mock proof bundle
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NIZKGenerateResponse'
+                $ref: "#/components/schemas/NIZKGenerateResponse"
   /nizk/verify:
     post:
       summary: Verify a NIZK proof bundle (stub)
@@ -628,14 +628,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NIZKVerifyRequest'
+              $ref: "#/components/schemas/NIZKVerifyRequest"
       responses:
-        '200':
+        "200":
           description: Verification result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NIZKVerifyResponse'
+                $ref: "#/components/schemas/NIZKVerifyResponse"
   /vault/cluster-isolation/policy:
     get:
       summary: Get Track 114 cluster isolation policy
@@ -650,12 +650,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 114 cluster isolation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/cluster-isolation/policy/validate:
     post:
       summary: Validate a Track 114 cluster isolation configuration
@@ -668,20 +668,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/cluster-isolation/telemetry:
     get:
       summary: Get Track 114 cluster isolation telemetry
@@ -696,12 +696,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 114 cluster isolation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/bft-shard-sync/policy:
     get:
       summary: Get Track 115/117 BFT shard sync policy
@@ -716,12 +716,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 115/117 BFT shard sync
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/bft-shard-sync/policy/validate:
     post:
       summary: Validate a Track 115/117 BFT shard sync configuration
@@ -734,20 +734,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/bft-shard-sync/telemetry:
     get:
       summary: Get Track 115/117 BFT shard sync telemetry
@@ -762,12 +762,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 115/117 BFT shard sync
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/distributed-consensus-coordinator/policy:
     get:
       summary: Get Track 118 distributed consensus coordinator policy
@@ -782,12 +782,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 118 distributed consensus coordinator
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/distributed-consensus-coordinator/policy/validate:
     post:
       summary: Validate a Track 118 distributed consensus coordinator configuration
@@ -800,20 +800,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/distributed-consensus-coordinator/telemetry:
     get:
       summary: Get Track 118 distributed consensus coordinator telemetry
@@ -828,12 +828,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 118 distributed consensus coordinator
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/cross-cluster-migration/policy:
     get:
       summary: Get Track 119 cross-cluster migration policy
@@ -848,12 +848,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 119 cross-cluster migration
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/cross-cluster-migration/policy/validate:
     post:
       summary: Validate a Track 119 cross-cluster migration configuration
@@ -866,20 +866,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/cross-cluster-migration/telemetry:
     get:
       summary: Get Track 119 cross-cluster migration telemetry
@@ -894,12 +894,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 119 cross-cluster migration
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/cluster-key-reconciliation/policy:
     get:
       summary: Get Track 120 cluster key reconciliation policy
@@ -914,12 +914,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 120 cluster key reconciliation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/cluster-key-reconciliation/policy/validate:
     post:
       summary: Validate a Track 120 cluster key reconciliation configuration
@@ -932,20 +932,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/cluster-key-reconciliation/telemetry:
     get:
       summary: Get Track 120 cluster key reconciliation telemetry
@@ -960,12 +960,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 120 cluster key reconciliation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/multiparty-re-keying/policy:
     get:
       summary: Get Track 121 multiparty re-keying policy
@@ -980,12 +980,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Active policy for Track 121 multiparty re-keying
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyResponse'
+                $ref: "#/components/schemas/PolicyResponse"
   /vault/multiparty-re-keying/policy/validate:
     post:
       summary: Validate a Track 121 multiparty re-keying configuration
@@ -998,20 +998,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PolicyValidateRequest'
+              $ref: "#/components/schemas/PolicyValidateRequest"
       responses:
-        '200':
+        "200":
           description: Configuration is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Policy violation blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/multiparty-re-keying/telemetry:
     get:
       summary: Get Track 121 multiparty re-keying telemetry
@@ -1026,12 +1026,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Telemetry counters for Track 121 multiparty re-keying
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TelemetryResponse'
+                $ref: "#/components/schemas/TelemetryResponse"
   /vault/replication-tenant-isolation/policy:
     get:
       summary: Get replication tenant isolation policy
@@ -1040,12 +1040,12 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: Replication tenant isolation policy defaults
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReplicationTenantIsolationPolicyResponse'
+                $ref: "#/components/schemas/ReplicationTenantIsolationPolicyResponse"
   /vault/replication-tenant-isolation/policy/validate:
     post:
       summary: Validate a replication tenant context
@@ -1058,20 +1058,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReplicationTenantContext'
+              $ref: "#/components/schemas/ReplicationTenantContext"
       responses:
-        '200':
+        "200":
           description: Tenant context is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyValidateResponse'
-        '400':
+                $ref: "#/components/schemas/PolicyValidateResponse"
+        "400":
           description: Tenant context validation failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/replication-tenant-isolation/telemetry:
     get:
       summary: Get replication tenant isolation telemetry counters
@@ -1080,12 +1080,12 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: Replication tenant isolation telemetry counters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReplicationTenantIsolationTelemetryResponse'
+                $ref: "#/components/schemas/ReplicationTenantIsolationTelemetryResponse"
   /vault/zk-verification-isolation/policy:
     get:
       summary: Get ZK verification tenant isolation policy
@@ -1094,12 +1094,12 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: ZK verification tenant isolation policy defaults
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ZkVerificationIsolationPolicyResponse'
+                $ref: "#/components/schemas/ZkVerificationIsolationPolicyResponse"
   /vault/zk-verification-isolation/policy/validate:
     post:
       summary: Validate a tenant ID for ZK verification
@@ -1112,20 +1112,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ZkTenantIdRequest'
+              $ref: "#/components/schemas/ZkTenantIdRequest"
       responses:
-        '200':
+        "200":
           description: Tenant ID is valid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ZkTenantIdValidateResponse'
-        '400':
+                $ref: "#/components/schemas/ZkTenantIdValidateResponse"
+        "400":
           description: Tenant ID validation failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyViolationError'
+                $ref: "#/components/schemas/PolicyViolationError"
   /vault/zk-verification-isolation/telemetry:
     get:
       summary: Get ZK verification tenant isolation telemetry counters
@@ -1134,12 +1134,12 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: ZK verification tenant isolation telemetry counters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ZkVerificationIsolationTelemetryResponse'
+                $ref: "#/components/schemas/ZkVerificationIsolationTelemetryResponse"
   /audit/telemetry:
     get:
       summary: Get SIEM audit telemetry counters
@@ -1148,12 +1148,12 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: SIEM audit telemetry counters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuditTelemetryResponse'
+                $ref: "#/components/schemas/AuditTelemetryResponse"
   /audit/log:
     get:
       summary: Get audit log entries
@@ -1175,7 +1175,7 @@ paths:
             type: integer
             default: 0
       responses:
-        '200':
+        "200":
           description: Audit log entries
           content:
             application/json:
@@ -1196,7 +1196,7 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: Audit chain export
           content:
             application/json:
@@ -1218,7 +1218,7 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: Integrity verification result
           content:
             application/json:
@@ -1240,7 +1240,7 @@ paths:
       security:
         - adminAll: []
       responses:
-        '200':
+        "200":
           description: Audit statistics
           content:
             application/json:

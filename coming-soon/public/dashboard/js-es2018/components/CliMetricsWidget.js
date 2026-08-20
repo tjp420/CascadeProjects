@@ -32,7 +32,7 @@ const SEVERITY_COLORS = {
     critical: '#EF4444',
     high: '#F59E0B',
     medium: '#3B82F6',
-    low: '#6B7280',
+    low: '#6B7280'
 };
 
 export class CliMetricsWidget {
@@ -133,9 +133,7 @@ export class CliMetricsWidget {
         header.className = 'cli-metrics-header mb-4';
 
         const project = report.projectRoot || 'Unknown Project';
-        const date = report.generatedAt
-            ? new Date(report.generatedAt).toLocaleString()
-            : '—';
+        const date = report.generatedAt ? new Date(report.generatedAt).toLocaleString() : '—';
         const scanPaths = (report.scanPaths || []).join(', ') || '—';
 
         header.innerHTML = `
@@ -165,7 +163,7 @@ export class CliMetricsWidget {
         const gate = report.gate || {};
         const gatePass = gate.pass === true;
         const score = report.qualityScore;
-        const scoreText = (score === 0 && gatePass && gate.blockingCount === 0) ? '—' : (score != null ? score + '%' : '—');
+        const scoreText = score === 0 && gatePass && gate.blockingCount === 0 ? '—' : score != null ? score + '%' : '—';
         const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F';
         const gradeColor = score >= 80 ? '#10B981' : score >= 60 ? '#F59E0B' : '#EF4444';
 
@@ -186,20 +184,26 @@ export class CliMetricsWidget {
                     ${gatePass ? 'PASSED' : 'FAILED'}
                 </span>
             </div>
-            ${gate.blockingCount > 0 ? `
+            ${
+                gate.blockingCount > 0
+                    ? `
                 <div class="mt-3 alert alert-danger py-2 px-3 mb-0">
                     <strong>${gate.blockingCount}</strong> blocking issue${gate.blockingCount === 1 ? '' : 's'} ·
                     <strong>${gate.warningCount || 0}</strong> warning${(gate.warningCount || 0) === 1 ? '' : 's'}
                 </div>
-            ` : gate.warningCount > 0 ? `
+            `
+                    : gate.warningCount > 0
+                      ? `
                 <div class="mt-3 alert alert-warning py-2 px-3 mb-0">
                     <strong>${gate.warningCount}</strong> warning${gate.warningCount === 1 ? '' : 's'} · No blocking issues
                 </div>
-            ` : `
+            `
+                      : `
                 <div class="mt-3 alert alert-success py-2 px-3 mb-0">
                     No issues detected — gate is clean.
                 </div>
-            `}
+            `
+            }
         `;
         return card;
     }
@@ -287,28 +291,31 @@ export class CliMetricsWidget {
         const sections = SEVERITY_ORDER.map(s => {
             const items = bySeverity[s];
             if (items.length === 0) return '';
-            const maxShow = (s === 'critical' || s === 'high') ? 30 : 15;
+            const maxShow = s === 'critical' || s === 'high' ? 30 : 15;
             const visible = items.slice(0, maxShow);
             const remaining = items.length - visible.length;
             const color = SEVERITY_COLORS[s];
 
-            const rows = visible.map(issue => {
-                const file = issue.filePath || issue.file || '—';
-                const type = issue.type || issue.pattern || 'Issue';
-                const desc = issue.description || '';
-                const line = issue.line ? `:${issue.line}` : '';
-                return `
+            const rows = visible
+                .map(issue => {
+                    const file = issue.filePath || issue.file || '—';
+                    const type = issue.type || issue.pattern || 'Issue';
+                    const desc = issue.description || '';
+                    const line = issue.line ? `:${issue.line}` : '';
+                    return `
                     <tr>
                         <td class="text-sm" style="font-family:monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(file)}">${_esc(file)}${_esc(line)}</td>
                         <td class="text-sm"><code>${_esc(type)}</code></td>
                         <td class="text-sm" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(desc)}">${_esc(desc)}</td>
                     </tr>
                 `;
-            }).join('');
+                })
+                .join('');
 
-            const moreRow = remaining > 0
-                ? `<tr><td colspan="3" class="text-muted text-sm text-center">+ ${remaining} more ${SEVERITY_LABELS[s].toLowerCase()} findings</td></tr>`
-                : '';
+            const moreRow =
+                remaining > 0
+                    ? `<tr><td colspan="3" class="text-muted text-sm text-center">+ ${remaining} more ${SEVERITY_LABELS[s].toLowerCase()} findings</td></tr>`
+                    : '';
 
             return `
                 <div class="mb-3">
@@ -328,7 +335,9 @@ export class CliMetricsWidget {
                     </table>
                 </div>
             `;
-        }).filter(Boolean).join('');
+        })
+            .filter(Boolean)
+            .join('');
 
         card.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -347,12 +356,13 @@ export class CliMetricsWidget {
         const card = document.createElement('div');
         card.className = 'card p-4 mb-3 cli-metrics-coverage-card';
 
-        const rows = coverage.map(r => {
-            const hasFindings = r.findings > 0;
-            const statusIcon = hasFindings ? '▲' : '✓';
-            const statusColor = hasFindings ? '#F59E0B' : '#10B981';
-            const pct = r.filesScanned > 0 ? '100%' : '0%';
-            return `
+        const rows = coverage
+            .map(r => {
+                const hasFindings = r.findings > 0;
+                const statusIcon = hasFindings ? '▲' : '✓';
+                const statusColor = hasFindings ? '#F59E0B' : '#10B981';
+                const pct = r.filesScanned > 0 ? '100%' : '0%';
+                return `
                 <div class="d-flex justify-content-between align-items-center py-1">
                     <span class="text-sm">${_esc(r.rule)}</span>
                     <span class="text-sm">
@@ -362,7 +372,8 @@ export class CliMetricsWidget {
                     </span>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
         card.innerHTML = `
             <h4 class="h6 mb-3">Rule Coverage</h4>
@@ -393,7 +404,8 @@ export class CliMetricsWidget {
                         <span class="text-sm">${(ms / 1000).toFixed(2)}s <span class="text-muted">(${pct}%)</span></span>
                     </div>
                 `;
-            }).join('');
+            })
+            .join('');
 
         card.innerHTML = `
             <h4 class="h6 mb-3">Scan Performance</h4>

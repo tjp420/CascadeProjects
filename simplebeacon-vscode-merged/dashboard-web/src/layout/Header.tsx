@@ -55,15 +55,15 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
               <DropdownMenuItem onClick={() => navigate('profile')}>
                 <UserIcon className="h-4 w-4" /> Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('settings')}>
-                Settings
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('settings')}>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                localStorage.removeItem('sb_token');
-                localStorage.removeItem('sb_user');
-                navigate('signin');
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  localStorage.removeItem('sb_token');
+                  localStorage.removeItem('sb_user');
+                  navigate('signin');
+                }}
+              >
                 <LogOut className="h-4 w-4" /> Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>

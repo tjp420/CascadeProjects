@@ -34,26 +34,42 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
         <div class="metric-chip"><strong>${report.structure?.class_hierarchy?.classCount ?? '—'}</strong> classes</div>
         <div class="metric-chip"><strong>${fnKeys.length}</strong> traced functions</div>
       </div>
-      ${diagnosis.problem ? `
+      ${
+        diagnosis.problem
+          ? `
         <h3 class="mb-2" style="font-size: var(--font-size-base);">Problem diagnosis</h3>
         <p style="font-size: var(--font-size-sm);"><strong>${escapeHtml(diagnosis.problem)}</strong></p>
-        ${(diagnosis.suspected_root_causes || []).length ? `
+        ${
+          (diagnosis.suspected_root_causes || []).length
+            ? `
           <ul style="margin: var(--space-2) 0; padding-left: 1.25rem; font-size: var(--font-size-sm);">
             ${diagnosis.suspected_root_causes.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')}
           </ul>
-        ` : ''}
-        ${(diagnosis.recommended_validation || []).length ? `
+        `
+            : ''
+        }
+        ${
+          (diagnosis.recommended_validation || []).length
+            ? `
           <p class="text-muted" style="font-size: var(--font-size-xs); margin-bottom: 0;">
             Validation: ${diagnosis.recommended_validation.map((item) => escapeHtml(String(item))).join(' · ')}
           </p>
-        ` : ''}
-      ` : ''}
-      ${intensityCvars.length ? `
+        `
+            : ''
+        }
+      `
+          : ''
+      }
+      ${
+        intensityCvars.length
+          ? `
         <h3 class="mb-2 mt-4" style="font-size: var(--font-size-base);">Intensity CVARs</h3>
         <div class="consolidation-list">
-          ${intensityCvars.slice(0, 8).map((name) => {
-            const entry = cvars[name] || {};
-            return `
+          ${intensityCvars
+            .slice(0, 8)
+            .map((name) => {
+              const entry = cvars[name] || {};
+              return `
               <div class="consolidation-card card">
                 <div class="consolidation-meta"><code>${escapeHtml(name)}</code></div>
                 <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
@@ -62,30 +78,43 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
                 </p>
               </div>
             `;
-          }).join('')}
+            })
+            .join('')}
         </div>
-      ` : ''}
-      ${fnKeys.length ? `
+      `
+          : ''
+      }
+      ${
+        fnKeys.length
+          ? `
         <h3 class="mb-2 mt-4" style="font-size: var(--font-size-base);">Function flow</h3>
         <div class="consolidation-list">
-          ${fnKeys.map((key) => {
-            const fn = report.function_analysis[key];
-            return `
+          ${fnKeys
+            .map((key) => {
+              const fn = report.function_analysis[key];
+              return `
               <div class="consolidation-card card">
                 <div class="consolidation-meta"><code>${escapeHtml(key)}</code></div>
                 <p style="font-size: var(--font-size-sm); margin: var(--space-1) 0 0;">
                   ${escapeHtml(fn.purpose || 'ZScript method')}
                 </p>
-                ${(fn.currentLogic || []).length ? `
+                ${
+                  (fn.currentLogic || []).length
+                    ? `
                   <ul style="margin: var(--space-1) 0 0; padding-left: 1.25rem; font-size: var(--font-size-xs);">
                     ${fn.currentLogic.map((step) => `<li>${escapeHtml(String(step))}</li>`).join('')}
                   </ul>
-                ` : ''}
+                `
+                    : ''
+                }
               </div>
             `;
-          }).join('')}
+            })
+            .join('')}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }

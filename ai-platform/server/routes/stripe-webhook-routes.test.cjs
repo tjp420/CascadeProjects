@@ -1,11 +1,18 @@
-'use strict';
+"use strict";
 
-const { describe, it, before, after, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const {
+  describe,
+  it,
+  before,
+  after,
+  beforeEach,
+  afterEach,
+} = require("node:test");
+const assert = require("node:assert");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 // We need to test the route handler directly since we can't easily
 // spin up a full Express app in a unit test. Import the verifyStripeSignature
@@ -14,30 +21,30 @@ const os = require('os');
 // Since the module exports an Express router, we test the signature
 // verification logic by constructing valid/invalid webhooks.
 
-const WEBHOOK_SECRET = 'whsec_test_secret_12345';
+const WEBHOOK_SECRET = "whsec_test_secret_12345";
 
 function makeSignedPayload(event, secret) {
   const payload = JSON.stringify(event);
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signedPayload = `${timestamp}.${payload}`;
   const signature = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(signedPayload)
-    .digest('hex');
+    .digest("hex");
   const header = `t=${timestamp},v1=${signature}`;
   return { payload: Buffer.from(payload), header };
 }
 
 function makeFakeEvent(type, data) {
   return {
-    id: 'evt_test_' + Math.random().toString(36).slice(2, 10),
-    object: 'event',
+    id: "evt_test_" + Math.random().toString(36).slice(2, 10),
+    object: "event",
     type,
-    data: { object: data }
+    data: { object: data },
   };
 }
 
-describe('stripe-webhook-routes', () => {
+describe("stripe-webhook-routes", () => {
   let savedEnv;
   let tempQueueDir;
 
@@ -53,7 +60,7 @@ describe('stripe-webhook-routes', () => {
   });
 
   beforeEach(() => {
-    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-webhook-test-'));
+    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-webhook-test-"));
     process.env.EMAIL_QUEUE_DIR = tempQueueDir;
     process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
     // Disable email providers so emails queue to disk (no network calls)
@@ -69,20 +76,24 @@ describe('stripe-webhook-routes', () => {
     fs.rmSync(tempQueueDir, { recursive: true, force: true });
   });
 
-  it('module exports an Express router', () => {
-    const router = require('./stripe-webhook-routes.cjs');
-    assert.ok(router, 'router should be exported');
-    assert.strictEqual(typeof router, 'function', 'router should be a function (Express middleware)');
+  it("module exports an Express router", () => {
+    const router = require("./stripe-webhook-routes.cjs");
+    assert.ok(router, "router should be exported");
+    assert.strictEqual(
+      typeof router,
+      "function",
+      "router should be a function (Express middleware)",
+    );
   });
 
-  it('verifyStripeSignature accepts valid signature', () => {
+  it("verifyStripeSignature accepts valid signature", () => {
     // We test the signature logic by constructing a valid webhook
-    const event = makeFakeEvent('checkout.session.completed', {
-      id: 'cs_test_123',
-      customer: 'cus_test_123',
-      customer_email: 'customer@example.com',
-      customer_details: { email: 'customer@example.com' },
-      subscription: 'sub_test_123'
+    const event = makeFakeEvent("checkout.session.completed", {
+      id: "cs_test_123",
+      customer: "cus_test_123",
+      customer_email: "customer@example.com",
+      customer_details: { email: "customer@example.com" },
+      subscription: "sub_test_123",
     });
     const { payload, header } = makeSignedPayload(event, WEBHOOK_SECRET);
 
@@ -90,52 +101,66 @@ describe('stripe-webhook-routes', () => {
     // verification indirectly. We can verify the signature construction
     // matches what the router expects.
     const parts = {};
-    for (const part of header.split(',')) {
-      const [key, ...valueParts] = part.split('=');
-      parts[key.trim()] = valueParts.join('=').trim();
+    for (const part of header.split(",")) {
+      const [key, ...valueParts] = part.split("=");
+      parts[key.trim()] = valueParts.join("=").trim();
     }
-    const timestamp = parts['t'];
-    const v1Signature = parts['v1'];
+    const timestamp = parts["t"];
+    const v1Signature = parts["v1"];
 
-    const signedPayload = `${timestamp}.${payload.toString('utf8')}`;
+    const signedPayload = `${timestamp}.${payload.toString("utf8")}`;
     const expectedSignature = crypto
-      .createHmac('sha256', WEBHOOK_SECRET)
+      .createHmac("sha256", WEBHOOK_SECRET)
       .update(signedPayload)
-      .digest('hex');
+      .digest("hex");
 
-    assert.strictEqual(v1Signature, expectedSignature, 'signature should match');
+    assert.strictEqual(
+      v1Signature,
+      expectedSignature,
+      "signature should match",
+    );
   });
 
-  it('verifyStripeSignature rejects invalid signature', () => {
-    const event = makeFakeEvent('checkout.session.completed', {});
+  it("verifyStripeSignature rejects invalid signature", () => {
+    const event = makeFakeEvent("checkout.session.completed", {});
     const { payload } = makeSignedPayload(event, WEBHOOK_SECRET);
     const badHeader = `t=${Math.floor(Date.now() / 1000)},v1=invalid_signature_hex`;
 
     // Verify the signature wouldn't match
     const parts = {};
-    for (const part of badHeader.split(',')) {
-      const [key, ...valueParts] = part.split('=');
-      parts[key.trim()] = valueParts.join('=').trim();
+    for (const part of badHeader.split(",")) {
+      const [key, ...valueParts] = part.split("=");
+      parts[key.trim()] = valueParts.join("=").trim();
     }
-    const signedPayload = `${parts['t']}.${payload.toString('utf8')}`;
+    const signedPayload = `${parts["t"]}.${payload.toString("utf8")}`;
     const expectedSignature = crypto
-      .createHmac('sha256', WEBHOOK_SECRET)
+      .createHmac("sha256", WEBHOOK_SECRET)
       .update(signedPayload)
-      .digest('hex');
+      .digest("hex");
 
-    assert.notStrictEqual(parts['v1'], expectedSignature, 'bad signature should not match');
+    assert.notStrictEqual(
+      parts["v1"],
+      expectedSignature,
+      "bad signature should not match",
+    );
   });
 
-  it('rejects webhook when STRIPE_WEBHOOK_SECRET not set', async () => {
+  it("rejects webhook when STRIPE_WEBHOOK_SECRET not set", async () => {
     delete process.env.STRIPE_WEBHOOK_SECRET;
-    const router = require('./stripe-webhook-routes.cjs');
+    const router = require("./stripe-webhook-routes.cjs");
 
     // Simulate a request
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     // The router is Express middleware — we need to call it with a mock req/res
@@ -144,7 +169,7 @@ describe('stripe-webhook-routes', () => {
     await new Promise((resolve) => {
       const req = {
         headers: {},
-        body: Buffer.from('{}')
+        body: Buffer.from("{}"),
       };
       // Express router needs a next function
       const next = (err) => {
@@ -167,24 +192,32 @@ describe('stripe-webhook-routes', () => {
 
     // Should get 503 (not configured) since we deleted the secret
     // Note: this may not work perfectly with Express mock, but we verify the logic
-    assert.ok(statusCode === 503 || statusCode === null,
-      'should return 503 or defer to Express internals');
+    assert.ok(
+      statusCode === 503 || statusCode === null,
+      "should return 503 or defer to Express internals",
+    );
   });
 
-  it('rejects webhook with missing signature header', async () => {
-    const router = require('./stripe-webhook-routes.cjs');
+  it("rejects webhook with missing signature header", async () => {
+    const router = require("./stripe-webhook-routes.cjs");
 
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     await new Promise((resolve) => {
       const req = {
         headers: {}, // no stripe-signature
-        body: Buffer.from(JSON.stringify(makeFakeEvent('test', {})))
+        body: Buffer.from(JSON.stringify(makeFakeEvent("test", {}))),
       };
       const next = () => resolve();
       try {
@@ -196,24 +229,32 @@ describe('stripe-webhook-routes', () => {
     });
 
     // Should get 400 (missing_signature)
-    assert.ok(statusCode === 400 || statusCode === null,
-      'should return 400 for missing signature');
+    assert.ok(
+      statusCode === 400 || statusCode === null,
+      "should return 400 for missing signature",
+    );
   });
 
-  it('rejects webhook with empty body', async () => {
-    const router = require('./stripe-webhook-routes.cjs');
+  it("rejects webhook with empty body", async () => {
+    const router = require("./stripe-webhook-routes.cjs");
 
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     await new Promise((resolve) => {
       const req = {
-        headers: { 'stripe-signature': 't=123,v1=abc' },
-        body: Buffer.alloc(0) // empty buffer
+        headers: { "stripe-signature": "t=123,v1=abc" },
+        body: Buffer.alloc(0), // empty buffer
       };
       const next = () => resolve();
       try {
@@ -224,12 +265,14 @@ describe('stripe-webhook-routes', () => {
       setTimeout(resolve, 100);
     });
 
-    assert.ok(statusCode === 400 || statusCode === null,
-      'should return 400 for empty body');
+    assert.ok(
+      statusCode === 400 || statusCode === null,
+      "should return 400 for empty body",
+    );
   });
 });
 
-describe('stripe-webhook idempotency guard', () => {
+describe("stripe-webhook idempotency guard", () => {
   let tempStorePath;
   let savedEnv;
 
@@ -245,13 +288,13 @@ describe('stripe-webhook idempotency guard', () => {
   });
 
   beforeEach(() => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-webhook-idem-'));
-    tempStorePath = path.join(tempDir, 'stripe-events.json');
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-webhook-idem-"));
+    tempStorePath = path.join(tempDir, "stripe-events.json");
     process.env.STRIPE_EVENT_STORE = tempStorePath;
     process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
     // Clear module caches so the event store picks up the new path
-    delete require.cache[require.resolve('../lib/stripe-event-store.cjs')];
-    delete require.cache[require.resolve('./stripe-webhook-routes.cjs')];
+    delete require.cache[require.resolve("../lib/stripe-event-store.cjs")];
+    delete require.cache[require.resolve("./stripe-webhook-routes.cjs")];
   });
 
   afterEach(() => {
@@ -259,58 +302,76 @@ describe('stripe-webhook idempotency guard', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('recordProcessedEvent returns true for first event, false for duplicate', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("recordProcessedEvent returns true for first event, false for duplicate", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
-    const first = await recordProcessedEvent('evt_idempotency_001');
-    assert.strictEqual(first, true, 'first call should return true');
+    const first = await recordProcessedEvent("evt_idempotency_001");
+    assert.strictEqual(first, true, "first call should return true");
 
-    const second = await recordProcessedEvent('evt_idempotency_001');
-    assert.strictEqual(second, false, 'duplicate call should return false');
+    const second = await recordProcessedEvent("evt_idempotency_001");
+    assert.strictEqual(second, false, "duplicate call should return false");
   });
 
-  it('recordProcessedEvent handles concurrent calls for same event ID', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("recordProcessedEvent handles concurrent calls for same event ID", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
     // Fire multiple concurrent calls with the same event ID
     const results = await Promise.all([
-      recordProcessedEvent('evt_concurrent_001'),
-      recordProcessedEvent('evt_concurrent_001'),
-      recordProcessedEvent('evt_concurrent_001')
+      recordProcessedEvent("evt_concurrent_001"),
+      recordProcessedEvent("evt_concurrent_001"),
+      recordProcessedEvent("evt_concurrent_001"),
     ]);
 
     // At least one should be true (first seen), others should be false
-    const trueCount = results.filter(r => r === true).length;
-    const falseCount = results.filter(r => r === false).length;
-    assert.ok(trueCount >= 1, 'at least one call should return true');
-    assert.ok(falseCount >= 1, 'at least one call should return false (duplicate)');
+    const trueCount = results.filter((r) => r === true).length;
+    const falseCount = results.filter((r) => r === false).length;
+    assert.ok(trueCount >= 1, "at least one call should return true");
+    assert.ok(
+      falseCount >= 1,
+      "at least one call should return false (duplicate)",
+    );
   });
 
-  it('different event IDs are both processed as first-seen', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("different event IDs are both processed as first-seen", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
-    const a = await recordProcessedEvent('evt_unique_a');
-    const b = await recordProcessedEvent('evt_unique_b');
-    assert.strictEqual(a, true, 'first unique event should be true');
-    assert.strictEqual(b, true, 'second unique event should be true');
+    const a = await recordProcessedEvent("evt_unique_a");
+    const b = await recordProcessedEvent("evt_unique_b");
+    assert.strictEqual(a, true, "first unique event should be true");
+    assert.strictEqual(b, true, "second unique event should be true");
   });
 
-  it('event store persists to disk file', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("event store persists to disk file", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
-    await recordProcessedEvent('evt_persist_001');
-    assert.ok(fs.existsSync(tempStorePath), 'store file should exist');
+    await recordProcessedEvent("evt_persist_001");
+    assert.ok(fs.existsSync(tempStorePath), "store file should exist");
 
-    const raw = JSON.parse(fs.readFileSync(tempStorePath, 'utf8'));
-    assert.ok(raw.eventIds.includes('evt_persist_001'), 'event ID should be in store file');
+    const raw = JSON.parse(fs.readFileSync(tempStorePath, "utf8"));
+    assert.ok(
+      raw.eventIds.includes("evt_persist_001"),
+      "event ID should be in store file",
+    );
   });
 });
 
-describe('stripe-webhook invoice.paid handler', () => {
+describe("stripe-webhook invoice.paid handler", () => {
   let tempStorePath;
   let tempQueueDir;
   let savedEnv;
@@ -327,9 +388,9 @@ describe('stripe-webhook invoice.paid handler', () => {
   });
 
   beforeEach(() => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-invoice-paid-'));
-    tempStorePath = path.join(tempDir, 'stripe-events.json');
-    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-invoice-email-'));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-invoice-paid-"));
+    tempStorePath = path.join(tempDir, "stripe-events.json");
+    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-invoice-email-"));
     process.env.STRIPE_EVENT_STORE = tempStorePath;
     process.env.EMAIL_QUEUE_DIR = tempQueueDir;
     process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
@@ -341,10 +402,12 @@ describe('stripe-webhook invoice.paid handler', () => {
     delete process.env.SMTP_USER;
     delete process.env.SMTP_PASS;
     // Clear module caches
-    delete require.cache[require.resolve('../lib/stripe-event-store.cjs')];
-    delete require.cache[require.resolve('../lib/email-service.cjs')];
-    delete require.cache[require.resolve('../lib/simplebeacon-subscription-store.cjs')];
-    delete require.cache[require.resolve('./stripe-webhook-routes.cjs')];
+    delete require.cache[require.resolve("../lib/stripe-event-store.cjs")];
+    delete require.cache[require.resolve("../lib/email-service.cjs")];
+    delete require.cache[
+      require.resolve("../lib/simplebeacon-subscription-store.cjs")
+    ];
+    delete require.cache[require.resolve("./stripe-webhook-routes.cjs")];
   });
 
   afterEach(() => {
@@ -352,174 +415,244 @@ describe('stripe-webhook invoice.paid handler', () => {
     fs.rmSync(tempQueueDir, { recursive: true, force: true });
   });
 
-  it('handleInvoicePaid is exported and callable', () => {
+  it("handleInvoicePaid is exported and callable", () => {
     // The handler is not directly exported, but we can verify the route
     // handles invoice.paid by checking it doesn't throw on the event type
-    const router = require('./stripe-webhook-routes.cjs');
-    assert.ok(router, 'router should be loadable');
+    const router = require("./stripe-webhook-routes.cjs");
+    assert.ok(router, "router should be loadable");
   });
 
-  it('invoice.paid with no subscription field is safely ignored', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("invoice.paid with no subscription field is safely ignored", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
     // An invoice without a subscription field is a one-time charge, not a sub
     const invoiceEvent = {
-      id: 'evt_invoice_no_sub',
-      type: 'invoice.paid',
-      data: { object: { id: 'in_test_001', subscription: null, customer_email: 'test@example.com' } }
+      id: "evt_invoice_no_sub",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_test_001",
+          subscription: null,
+          customer_email: "test@example.com",
+        },
+      },
     };
 
     // The handler should return early — no subscription on the invoice
     // We verify by checking that the event is still recorded for idempotency
     const first = await recordProcessedEvent(invoiceEvent.id);
-    assert.strictEqual(first, true, 'event should be processed');
+    assert.strictEqual(first, true, "event should be processed");
   });
 
-  it('invoice.paid with no customer email is safely ignored', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("invoice.paid with no customer email is safely ignored", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
     const invoiceEvent = {
-      id: 'evt_invoice_no_email',
-      type: 'invoice.paid',
-      data: { object: { id: 'in_test_002', subscription: 'sub_test', customer_email: null } }
+      id: "evt_invoice_no_email",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_test_002",
+          subscription: "sub_test",
+          customer_email: null,
+        },
+      },
     };
 
     const first = await recordProcessedEvent(invoiceEvent.id);
-    assert.strictEqual(first, true, 'event should be recorded for idempotency');
+    assert.strictEqual(first, true, "event should be recorded for idempotency");
   });
 
-  it('invoice.paid for already-active subscription does not re-activate', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
-    const { upsertSubscription, getSubscriptionByEmail, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+  it("invoice.paid for already-active subscription does not re-activate", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      clearCache: clearSubCache,
+    } = require("../lib/simplebeacon-subscription-store.cjs");
     clearCache();
     clearSubCache();
 
     // Pre-create an active subscription
-    await upsertSubscription('active@example.com', {
+    await upsertSubscription("active@example.com", {
       subscriptionActive: true,
-      tier: 'pro',
-      apiToken: 'sb_test_active_001'
+      tier: "pro",
+      apiToken: "sb_test_active_001",
     });
 
-    const existing = await getSubscriptionByEmail('active@example.com');
-    assert.ok(existing, 'subscription should exist');
-    assert.strictEqual(existing.subscriptionActive, true, 'should be active');
+    const existing = await getSubscriptionByEmail("active@example.com");
+    assert.ok(existing, "subscription should exist");
+    assert.strictEqual(existing.subscriptionActive, true, "should be active");
 
     // The handler checks if subscriptionActive is true and skips re-activation
     // We verify the subscription remains active (no duplicate re-activation)
-    const stillActive = await getSubscriptionByEmail('active@example.com');
-    assert.strictEqual(stillActive.subscriptionActive, true, 'should still be active');
+    const stillActive = await getSubscriptionByEmail("active@example.com");
+    assert.strictEqual(
+      stillActive.subscriptionActive,
+      true,
+      "should still be active",
+    );
   });
 
-  it('invoice.paid for suspended subscription triggers re-activation', async () => {
-    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+  it("invoice.paid for suspended subscription triggers re-activation", async () => {
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      setSubscriptionActive,
+      clearCache: clearSubCache,
+    } = require("../lib/simplebeacon-subscription-store.cjs");
     clearSubCache();
 
     // Pre-create a suspended subscription (e.g., after failed payment)
-    await upsertSubscription('suspended@example.com', {
+    await upsertSubscription("suspended@example.com", {
       subscriptionActive: false,
-      tier: 'pro',
-      apiToken: 'sb_test_suspended_001'
+      tier: "pro",
+      apiToken: "sb_test_suspended_001",
     });
 
-    const suspended = await getSubscriptionByEmail('suspended@example.com');
-    assert.strictEqual(suspended.subscriptionActive, false, 'should be suspended');
+    const suspended = await getSubscriptionByEmail("suspended@example.com");
+    assert.strictEqual(
+      suspended.subscriptionActive,
+      false,
+      "should be suspended",
+    );
 
     // Simulate what handleInvoicePaid does: re-activate
-    await setSubscriptionActive('suspended@example.com', true, {
-      periodStart: new Date().toISOString()
+    await setSubscriptionActive("suspended@example.com", true, {
+      periodStart: new Date().toISOString(),
     });
 
-    const reactivated = await getSubscriptionByEmail('suspended@example.com');
-    assert.strictEqual(reactivated.subscriptionActive, true, 'should be reactivated');
+    const reactivated = await getSubscriptionByEmail("suspended@example.com");
+    assert.strictEqual(
+      reactivated.subscriptionActive,
+      true,
+      "should be reactivated",
+    );
   });
 });
 
-describe('stripe-webhook 3-tier price ID mapping', () => {
-  const { getTierConfigByPriceId } = require('../config/stripe.cjs');
+describe("stripe-webhook 3-tier price ID mapping", () => {
+  const { getTierConfigByPriceId } = require("../config/stripe.cjs");
 
-  it('price_developer_monthly maps to developer tier', () => {
-    const cfg = getTierConfigByPriceId('price_developer_monthly');
-    assert.ok(cfg, 'config should exist');
-    assert.strictEqual(cfg.tier, 'developer');
-    assert.strictEqual(cfg.product, 'developer');
+  it("price_developer_monthly maps to developer tier", () => {
+    const cfg = getTierConfigByPriceId("price_developer_monthly");
+    assert.ok(cfg, "config should exist");
+    assert.strictEqual(cfg.tier, "developer");
+    assert.strictEqual(cfg.product, "developer");
     assert.strictEqual(cfg.basePrice, 4900);
   });
 
-  it('price_developer_annual maps to developer tier', () => {
-    const cfg = getTierConfigByPriceId('price_developer_annual');
-    assert.ok(cfg, 'config should exist');
-    assert.strictEqual(cfg.tier, 'developer');
-    assert.strictEqual(cfg.product, 'developer_annual');
+  it("price_developer_annual maps to developer tier", () => {
+    const cfg = getTierConfigByPriceId("price_developer_annual");
+    assert.ok(cfg, "config should exist");
+    assert.strictEqual(cfg.tier, "developer");
+    assert.strictEqual(cfg.product, "developer_annual");
     assert.strictEqual(cfg.basePrice, 49000);
   });
 
-  it('price_team_pro_monthly maps to team_pro tier', () => {
-    const cfg = getTierConfigByPriceId('price_team_pro_monthly');
-    assert.ok(cfg, 'config should exist');
-    assert.strictEqual(cfg.tier, 'team_pro');
-    assert.strictEqual(cfg.product, 'team_pro');
+  it("price_team_pro_monthly maps to team_pro tier", () => {
+    const cfg = getTierConfigByPriceId("price_team_pro_monthly");
+    assert.ok(cfg, "config should exist");
+    assert.strictEqual(cfg.tier, "team_pro");
+    assert.strictEqual(cfg.product, "team_pro");
     assert.strictEqual(cfg.basePrice, 14900);
   });
 
-  it('price_team_pro_annual maps to team_pro tier', () => {
-    const cfg = getTierConfigByPriceId('price_team_pro_annual');
-    assert.ok(cfg, 'config should exist');
-    assert.strictEqual(cfg.tier, 'team_pro');
-    assert.strictEqual(cfg.product, 'team_pro_annual');
+  it("price_team_pro_annual maps to team_pro tier", () => {
+    const cfg = getTierConfigByPriceId("price_team_pro_annual");
+    assert.ok(cfg, "config should exist");
+    assert.strictEqual(cfg.tier, "team_pro");
+    assert.strictEqual(cfg.product, "team_pro_annual");
     assert.strictEqual(cfg.basePrice, 149000);
   });
 
-  it('legacy price_startup_monthly still maps to developer tier', () => {
-    const cfg = getTierConfigByPriceId('price_startup_monthly');
-    assert.ok(cfg, 'legacy config should exist');
-    assert.strictEqual(cfg.tier, 'developer');
+  it("legacy price_startup_monthly still maps to developer tier", () => {
+    const cfg = getTierConfigByPriceId("price_startup_monthly");
+    assert.ok(cfg, "legacy config should exist");
+    assert.strictEqual(cfg.tier, "developer");
     assert.strictEqual(cfg.legacy, true);
   });
 
-  it('legacy price_growth_monthly still maps to team_pro tier', () => {
-    const cfg = getTierConfigByPriceId('price_growth_monthly');
-    assert.ok(cfg, 'legacy config should exist');
-    assert.strictEqual(cfg.tier, 'team_pro');
+  it("legacy price_growth_monthly still maps to team_pro tier", () => {
+    const cfg = getTierConfigByPriceId("price_growth_monthly");
+    assert.ok(cfg, "legacy config should exist");
+    assert.strictEqual(cfg.tier, "team_pro");
     assert.strictEqual(cfg.legacy, true);
   });
 
-  it('unknown price ID returns null', () => {
-    const cfg = getTierConfigByPriceId('price_nonexistent_999');
+  it("unknown price ID returns null", () => {
+    const cfg = getTierConfigByPriceId("price_nonexistent_999");
     assert.strictEqual(cfg, null);
   });
 });
 
-describe('stripe-webhook mock fixture payloads', () => {
-  const fs = require('fs');
-  const path = require('path');
-  const FIXTURES_DIR = path.join(__dirname, '..', '..', 'test-fixtures', 'stripe');
+describe("stripe-webhook mock fixture payloads", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const FIXTURES_DIR = path.join(
+    __dirname,
+    "..",
+    "..",
+    "test-fixtures",
+    "stripe",
+  );
 
   const EXPECTED = [
-    { file: 'checkout_developer_monthly.json', tier: 'developer', priceId: 'price_developer_monthly' },
-    { file: 'checkout_developer_annual.json', tier: 'developer', priceId: 'price_developer_annual' },
-    { file: 'checkout_team_pro_monthly.json', tier: 'team_pro', priceId: 'price_team_pro_monthly' },
-    { file: 'checkout_team_pro_annual.json', tier: 'team_pro', priceId: 'price_team_pro_annual' }
+    {
+      file: "checkout_developer_monthly.json",
+      tier: "developer",
+      priceId: "price_developer_monthly",
+    },
+    {
+      file: "checkout_developer_annual.json",
+      tier: "developer",
+      priceId: "price_developer_annual",
+    },
+    {
+      file: "checkout_team_pro_monthly.json",
+      tier: "team_pro",
+      priceId: "price_team_pro_monthly",
+    },
+    {
+      file: "checkout_team_pro_annual.json",
+      tier: "team_pro",
+      priceId: "price_team_pro_annual",
+    },
   ];
 
   for (const { file, tier, priceId } of EXPECTED) {
     it(`${file} has correct tier and price_id metadata`, () => {
       const fixturePath = path.join(FIXTURES_DIR, file);
-      assert.ok(fs.existsSync(fixturePath), `${file} should exist in test-fixtures/stripe/`);
-      const event = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
-      assert.strictEqual(event.type, 'checkout.session.completed');
+      assert.ok(
+        fs.existsSync(fixturePath),
+        `${file} should exist in test-fixtures/stripe/`,
+      );
+      const event = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+      assert.strictEqual(event.type, "checkout.session.completed");
       assert.strictEqual(event.data.object.metadata.tier, tier);
       assert.strictEqual(event.data.object.metadata.price_id, priceId);
-      assert.ok(event.data.object.customer_email, 'should have customer email');
-      assert.ok(event.data.object.customer_details?.email, 'should have customer_details.email');
-      assert.ok(event.data.object.subscription, 'should have subscription ID');
+      assert.ok(event.data.object.customer_email, "should have customer email");
+      assert.ok(
+        event.data.object.customer_details?.email,
+        "should have customer_details.email",
+      );
+      assert.ok(event.data.object.subscription, "should have subscription ID");
     });
   }
 });
 
-describe('stripe-webhook new event handlers', () => {
+describe("stripe-webhook new event handlers", () => {
   let savedEnv;
   let tempStorePath;
   let tempQueueDir;
@@ -536,9 +669,11 @@ describe('stripe-webhook new event handlers', () => {
   });
 
   beforeEach(() => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-new-webhook-'));
-    tempStorePath = path.join(tempDir, 'stripe-events.json');
-    tempQueueDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-new-webhook-email-'));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-new-webhook-"));
+    tempStorePath = path.join(tempDir, "stripe-events.json");
+    tempQueueDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "sb-new-webhook-email-"),
+    );
     process.env.STRIPE_EVENT_STORE = tempStorePath;
     process.env.EMAIL_QUEUE_DIR = tempQueueDir;
     process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
@@ -548,10 +683,12 @@ describe('stripe-webhook new event handlers', () => {
     delete process.env.SMTP_HOST;
     delete process.env.SMTP_USER;
     delete process.env.SMTP_PASS;
-    delete require.cache[require.resolve('../lib/stripe-event-store.cjs')];
-    delete require.cache[require.resolve('../lib/email-service.cjs')];
-    delete require.cache[require.resolve('../lib/simplebeacon-subscription-store.cjs')];
-    delete require.cache[require.resolve('./stripe-webhook-routes.cjs')];
+    delete require.cache[require.resolve("../lib/stripe-event-store.cjs")];
+    delete require.cache[require.resolve("../lib/email-service.cjs")];
+    delete require.cache[
+      require.resolve("../lib/simplebeacon-subscription-store.cjs")
+    ];
+    delete require.cache[require.resolve("./stripe-webhook-routes.cjs")];
   });
 
   afterEach(() => {
@@ -559,119 +696,179 @@ describe('stripe-webhook new event handlers', () => {
     fs.rmSync(tempQueueDir, { recursive: true, force: true });
   });
 
-  it('invoice.payment_failed deactivates subscription via setSubscriptionActive', async () => {
-    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+  it("invoice.payment_failed deactivates subscription via setSubscriptionActive", async () => {
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      setSubscriptionActive,
+      clearCache: clearSubCache,
+    } = require("../lib/simplebeacon-subscription-store.cjs");
     clearSubCache();
 
-    await upsertSubscription('failed-payment@example.com', {
+    await upsertSubscription("failed-payment@example.com", {
       subscriptionActive: true,
-      tier: 'developer',
-      apiToken: 'sb_test_failed_001'
+      tier: "developer",
+      apiToken: "sb_test_failed_001",
     });
 
-    const before = await getSubscriptionByEmail('failed-payment@example.com');
-    assert.strictEqual(before.subscriptionActive, true, 'should start active');
+    const before = await getSubscriptionByEmail("failed-payment@example.com");
+    assert.strictEqual(before.subscriptionActive, true, "should start active");
 
-    await setSubscriptionActive('failed-payment@example.com', false, {
-      stripeCustomerId: 'cus_test_failed_001',
-      stripeSubscriptionId: 'sub_test_failed_001',
-      paymentStatus: 'past_due',
+    await setSubscriptionActive("failed-payment@example.com", false, {
+      stripeCustomerId: "cus_test_failed_001",
+      stripeSubscriptionId: "sub_test_failed_001",
+      paymentStatus: "past_due",
       lastPaymentFailure: new Date().toISOString(),
-      retryAttempt: 2
+      retryAttempt: 2,
     });
 
-    const after = await getSubscriptionByEmail('failed-payment@example.com');
-    assert.strictEqual(after.subscriptionActive, false, 'should be deactivated after payment failure');
+    const after = await getSubscriptionByEmail("failed-payment@example.com");
+    assert.strictEqual(
+      after.subscriptionActive,
+      false,
+      "should be deactivated after payment failure",
+    );
   });
 
-  it('invoice.payment_failed with no subscription field is safely ignored', async () => {
-    const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
+  it("invoice.payment_failed with no subscription field is safely ignored", async () => {
+    const {
+      recordProcessedEvent,
+      clearCache,
+    } = require("../lib/stripe-event-store.cjs");
     clearCache();
 
     const event = {
-      id: 'evt_payment_failed_no_sub',
-      type: 'invoice.payment_failed',
-      data: { object: { id: 'in_test_001', subscription: null, customer_email: 'test@example.com' } }
+      id: "evt_payment_failed_no_sub",
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          id: "in_test_001",
+          subscription: null,
+          customer_email: "test@example.com",
+        },
+      },
     };
 
     const first = await recordProcessedEvent(event.id);
-    assert.strictEqual(first, true, 'event should be recorded for idempotency');
+    assert.strictEqual(first, true, "event should be recorded for idempotency");
   });
 
-  it('customer.subscription.trial_will_end sends notification email via sendEmail', async () => {
-    const { upsertSubscription, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
-    const { sendEmail } = require('../lib/email-service.cjs');
+  it("customer.subscription.trial_will_end sends notification email via sendEmail", async () => {
+    const {
+      upsertSubscription,
+      clearCache: clearSubCache,
+    } = require("../lib/simplebeacon-subscription-store.cjs");
+    const { sendEmail } = require("../lib/email-service.cjs");
     clearSubCache();
 
-    await upsertSubscription('trial@example.com', {
+    await upsertSubscription("trial@example.com", {
       subscriptionActive: true,
-      tier: 'developer',
-      apiToken: 'sb_test_trial_001',
-      stripeCustomerId: 'cus_trial_001'
+      tier: "developer",
+      apiToken: "sb_test_trial_001",
+      stripeCustomerId: "cus_trial_001",
     });
 
     const emailResult = await sendEmail({
-      to: 'trial@example.com',
-      subject: 'SimpleBeacon Trial Ending Soon — Add a Payment Method',
-      text: 'Your SimpleBeacon trial will end soon. Please add a payment method.',
-      html: '<h2>Trial Ending Soon</h2><p>Add a payment method.</p>'
+      to: "trial@example.com",
+      subject: "SimpleBeacon Trial Ending Soon — Add a Payment Method",
+      text: "Your SimpleBeacon trial will end soon. Please add a payment method.",
+      html: "<h2>Trial Ending Soon</h2><p>Add a payment method.</p>",
     });
 
-    assert.ok(emailResult, 'sendEmail should return a result');
-    const queuedEmails = fs.readdirSync(tempQueueDir).filter(f => f.endsWith('.json'));
-    assert.ok(queuedEmails.length > 0, 'trial ending email should be queued to disk');
-    const emailContent = JSON.parse(fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), 'utf8'));
-    assert.ok(emailContent.subject.includes('Trial Ending'), 'email subject should mention trial ending');
+    assert.ok(emailResult, "sendEmail should return a result");
+    const queuedEmails = fs
+      .readdirSync(tempQueueDir)
+      .filter((f) => f.endsWith(".json"));
+    assert.ok(
+      queuedEmails.length > 0,
+      "trial ending email should be queued to disk",
+    );
+    const emailContent = JSON.parse(
+      fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), "utf8"),
+    );
+    assert.ok(
+      emailContent.subject.includes("Trial Ending"),
+      "email subject should mention trial ending",
+    );
   });
 
-  it('charge.dispute.created sends dispute alert email via sendEmail', async () => {
-    const { sendEmail } = require('../lib/email-service.cjs');
+  it("charge.dispute.created sends dispute alert email via sendEmail", async () => {
+    const { sendEmail } = require("../lib/email-service.cjs");
 
     const emailResult = await sendEmail({
-      to: 'support@simplebeacon.ai',
-      subject: 'DISPUTE ALERT: fraudulent — $49.00 USD',
-      text: 'A charge dispute has been filed.\n\nCharge ID: ch_test_001\nReason: fraudulent\nAmount: 49.00 USD\nStatus: needs_response',
-      html: '<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ch_test_001</p>'
+      to: "support@simplebeacon.ai",
+      subject: "DISPUTE ALERT: fraudulent — $49.00 USD",
+      text: "A charge dispute has been filed.\n\nCharge ID: ch_test_001\nReason: fraudulent\nAmount: 49.00 USD\nStatus: needs_response",
+      html: "<h2>Charge Dispute Filed</h2><p><strong>Charge ID:</strong> ch_test_001</p>",
     });
 
-    assert.ok(emailResult, 'sendEmail should return a result');
-    const queuedEmails = fs.readdirSync(tempQueueDir).filter(f => f.endsWith('.json'));
-    assert.ok(queuedEmails.length > 0, 'dispute alert email should be queued to disk');
-    const emailContent = JSON.parse(fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), 'utf8'));
-    assert.ok(emailContent.subject.includes('DISPUTE ALERT'), 'email subject should contain DISPUTE ALERT');
-    assert.ok(emailContent.text.includes('ch_test_001'), 'email body should contain charge ID');
+    assert.ok(emailResult, "sendEmail should return a result");
+    const queuedEmails = fs
+      .readdirSync(tempQueueDir)
+      .filter((f) => f.endsWith(".json"));
+    assert.ok(
+      queuedEmails.length > 0,
+      "dispute alert email should be queued to disk",
+    );
+    const emailContent = JSON.parse(
+      fs.readFileSync(path.join(tempQueueDir, queuedEmails[0]), "utf8"),
+    );
+    assert.ok(
+      emailContent.subject.includes("DISPUTE ALERT"),
+      "email subject should contain DISPUTE ALERT",
+    );
+    assert.ok(
+      emailContent.text.includes("ch_test_001"),
+      "email body should contain charge ID",
+    );
   });
 
-  it('new event types are accepted by the router module', () => {
-    const router = require('./stripe-webhook-routes.cjs');
-    assert.ok(router, 'router should be loadable');
+  it("new event types are accepted by the router module", () => {
+    const router = require("./stripe-webhook-routes.cjs");
+    assert.ok(router, "router should be loadable");
 
-    const newTypes = ['invoice.payment_failed', 'customer.subscription.trial_will_end', 'charge.dispute.created'];
+    const newTypes = [
+      "invoice.payment_failed",
+      "customer.subscription.trial_will_end",
+      "charge.dispute.created",
+    ];
     for (const type of newTypes) {
-      assert.ok(typeof type === 'string', `event type ${type} should be a valid string`);
+      assert.ok(
+        typeof type === "string",
+        `event type ${type} should be a valid string`,
+      );
     }
   });
 
-  it('dispute metadata is recorded on subscription via setSubscriptionActive', async () => {
-    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+  it("dispute metadata is recorded on subscription via setSubscriptionActive", async () => {
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      setSubscriptionActive,
+      clearCache: clearSubCache,
+    } = require("../lib/simplebeacon-subscription-store.cjs");
     clearSubCache();
 
-    await upsertSubscription('dispute@example.com', {
+    await upsertSubscription("dispute@example.com", {
       subscriptionActive: true,
-      tier: 'team_pro',
-      apiToken: 'sb_test_dispute_001',
-      stripeCustomerId: 'cus_dispute_001'
+      tier: "team_pro",
+      apiToken: "sb_test_dispute_001",
+      stripeCustomerId: "cus_dispute_001",
     });
 
-    await setSubscriptionActive('dispute@example.com', true, {
-      disputeStatus: 'needs_response',
-      disputeReason: 'fraudulent',
-      disputeChargeId: 'ch_test_001',
-      disputeOpenedAt: new Date().toISOString()
+    await setSubscriptionActive("dispute@example.com", true, {
+      disputeStatus: "needs_response",
+      disputeReason: "fraudulent",
+      disputeChargeId: "ch_test_001",
+      disputeOpenedAt: new Date().toISOString(),
     });
 
-    const sub = await getSubscriptionByEmail('dispute@example.com');
-    assert.ok(sub, 'subscription should exist');
-    assert.strictEqual(sub.subscriptionActive, true, 'should remain active during dispute');
+    const sub = await getSubscriptionByEmail("dispute@example.com");
+    assert.ok(sub, "subscription should exist");
+    assert.strictEqual(
+      sub.subscriptionActive,
+      true,
+      "should remain active during dispute",
+    );
   });
 });

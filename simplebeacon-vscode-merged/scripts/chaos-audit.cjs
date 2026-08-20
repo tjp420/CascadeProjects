@@ -15,13 +15,13 @@ const targetRepos = [
   {
     name: 'calcom',
     url: 'https://github.com/calcom/cal.com.git',
-    desc: 'Massive Next.js monorepo with high schema/config density.'
+    desc: 'Massive Next.js monorepo with high schema/config density.',
   },
   {
     name: 'open-webui',
     url: 'https://github.com/open-webui/open-webui.git',
-    desc: 'Dense AI integration layout with heavy text logging tracks.'
-  }
+    desc: 'Dense AI integration layout with heavy text logging tracks.',
+  },
 ];
 
 const workspaceChaosDir = path.join(__dirname, '..', '.simplebeacon-chaos');
@@ -48,7 +48,9 @@ for (const repo of targetRepos) {
     console.log(`\x1b[33mRunning Full 56-Engine Scan matrix against: ${repo.name}\x1b[0m`);
 
     // Execute the CLI engine runner directly
-    execSync(`npx simplebeacon scan --full --gate --path "${repoPath}" --export "${outputReportPath}"`, { stdio: 'inherit' });
+    execSync(`npx simplebeacon scan --full --gate --path "${repoPath}" --export "${outputReportPath}"`, {
+      stdio: 'inherit',
+    });
 
     // Validate structural contract integrity
     const report = JSON.parse(fs.readFileSync(outputReportPath, 'utf8'));
@@ -60,7 +62,9 @@ for (const repo of targetRepos) {
     const issuesFound = report.metrics?.totalIssues ?? 0;
     const finalScore = report.metrics?.qualityScore ?? 100;
 
-    console.log(`\x1b[32m  Success: ${repo.name} finalized. Score: ${finalScore}%. Issues Found: ${issuesFound}\x1b[0m\n`);
+    console.log(
+      `\x1b[32m  Success: ${repo.name} finalized. Score: ${finalScore}%. Issues Found: ${issuesFound}\x1b[0m\n`
+    );
     passed++;
   } catch (err) {
     console.error(`\x1b[31m  Engine Breakpoint encountered on ${repo.name}: ${err.message}\x1b[0m\n`);
@@ -68,5 +72,7 @@ for (const repo of targetRepos) {
   }
 }
 
-console.log(`\x1b[34m[Chaos Audit] Complete: ${passed} passed, ${failed} failed out of ${targetRepos.length} targets.\x1b[0m`);
+console.log(
+  `\x1b[34m[Chaos Audit] Complete: ${passed} passed, ${failed} failed out of ${targetRepos.length} targets.\x1b[0m`
+);
 process.exit(failed > 0 ? 1 : 0);

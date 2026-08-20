@@ -1,12 +1,13 @@
-'use strict';
+"use strict";
 
-const { describe, it, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const Module = require('module');
-const path = require('path');
+const { describe, it, beforeEach, afterEach } = require("node:test");
+const assert = require("node:assert");
+const Module = require("module");
+const path = require("path");
 
-const REPORTER_PATH = require.resolve('../weekly-reporter.cjs');
-const IS_JEST = typeof jest !== 'undefined' && typeof jest.doMock === 'function';
+const REPORTER_PATH = require.resolve("../weekly-reporter.cjs");
+const IS_JEST =
+  typeof jest !== "undefined" && typeof jest.doMock === "function";
 
 /**
  * Load weekly-reporter with stubbed email-service so no real emails fire.
@@ -18,9 +19,9 @@ function loadReporter(stubs) {
     var testDir = __dirname;
     // Map stub basenames to the actual require paths used by weekly-reporter.cjs
     var requirePathMap = {
-      'email-service.cjs': '../lib/email-service.cjs',
-      'ci-telemetry-store.cjs': '../lib/ci-telemetry-store.cjs',
-      'dashboard-analytics.cjs': '../lib/dashboard-analytics.cjs'
+      "email-service.cjs": "../lib/email-service.cjs",
+      "ci-telemetry-store.cjs": "../lib/ci-telemetry-store.cjs",
+      "dashboard-analytics.cjs": "../lib/dashboard-analytics.cjs",
     };
     for (var key of Object.keys(stubs)) {
       var requirePath = requirePathMap[key] || key;
@@ -42,7 +43,7 @@ function loadReporter(stubs) {
     return originalLoad.call(this, requestPath, parent, isMain);
   };
   try {
-    return require('../weekly-reporter.cjs');
+    return require("../weekly-reporter.cjs");
   } finally {
     Module._load = originalLoad;
   }
@@ -58,44 +59,73 @@ function createReporter(options) {
     gates_tripped: 1,
     criticals_blocked: 1,
     gate_pass_rate: 0.667,
-    quality_distribution: { p10: 70, p25: 75, p50: 82, p75: 88, p90: 92, sampleSize: 3 },
+    quality_distribution: {
+      p10: 70,
+      p25: 75,
+      p50: 82,
+      p75: 88,
+      p90: 92,
+      sampleSize: 3,
+    },
     severity_totals: { critical: 1, high: 2, medium: 4, low: 8 },
     scan_sources: { ci: 2, ide: 1, dashboard: 0 },
     distinct_workspaces: 2,
-    k_anonymity_met: true
+    k_anonymity_met: true,
   };
   var mockTrend = options.telemetryTrend || [
-    { date: new Date().toISOString().slice(0, 10), scan_count: 2, gate_pass_count: 1, gate_pass_rate: 0.5 },
-    { date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), scan_count: 1, gate_pass_count: 1, gate_pass_rate: 1 }
+    {
+      date: new Date().toISOString().slice(0, 10),
+      scan_count: 2,
+      gate_pass_count: 1,
+      gate_pass_rate: 0.5,
+    },
+    {
+      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+      scan_count: 1,
+      gate_pass_count: 1,
+      gate_pass_rate: 1,
+    },
   ];
 
   var stubs = {
-    'email-service.cjs': {
+    "email-service.cjs": {
       sendEmail: async function (opts) {
         if (options.emailFailFor && opts.to === options.emailFailFor) {
-          throw new Error('Simulated send failure');
+          throw new Error("Simulated send failure");
         }
         sentEmails.push(opts);
-        return { sent: true, queued: false, id: 'test-' + sentEmails.length };
-      }
+        return { sent: true, queued: false, id: "test-" + sentEmails.length };
+      },
     },
-    'ci-telemetry-store.cjs': {
-      summarizeTeamTelemetry: function () { return mockTelemetrySummary; },
-      getTeamTrend: function () { return mockTrend; },
-      resolveOrgKey: function (email) { return 'orgkey_' + String(email || '').slice(0, 8); }
-    }
+    "ci-telemetry-store.cjs": {
+      summarizeTeamTelemetry: function () {
+        return mockTelemetrySummary;
+      },
+      getTeamTrend: function () {
+        return mockTrend;
+      },
+      resolveOrgKey: function (email) {
+        return "orgkey_" + String(email || "").slice(0, 8);
+      },
+    },
   };
 
   // Also inject the stub into require.cache under the real absolute module path
   try {
-    var emailModulePath = path.resolve(__dirname, '..', '..', 'lib', 'email-service.cjs');
+    var emailModulePath = path.resolve(
+      __dirname,
+      "..",
+      "..",
+      "lib",
+      "email-service.cjs",
+    );
     // Save for cleanup
     global.__weekly_reporter_injected_email_module = emailModulePath;
     require.cache[emailModulePath] = {
       id: emailModulePath,
       filename: emailModulePath,
       loaded: true,
-      exports: stubs['email-service.cjs']
+      exports: stubs["email-service.cjs"],
     };
   } catch (e) {
     // best-effort; fall back to Module._load stub if resolution fails
@@ -104,7 +134,8 @@ function createReporter(options) {
   var mod = loadReporter(stubs);
   // Also set the email service explicitly on the loaded module so tests are deterministic
   try {
-    if (mod && typeof mod.setEmailServiceForTests === 'function') mod.setEmailServiceForTests(stubs['email-service.cjs']);
+    if (mod && typeof mod.setEmailServiceForTests === "function")
+      mod.setEmailServiceForTests(stubs["email-service.cjs"]);
   } catch (e) {}
   return { mod: mod, sentEmails: sentEmails };
 }
@@ -112,27 +143,26 @@ function createReporter(options) {
 // Mock subscription matrix covering all tier scenarios
 var mockSubscriptions = [
   {
-    orgId: 'org_alpha_123',
-    orgName: 'Acme Fintech Core',
-    adminEmail: 'compliance@acmefintech.com',
-    tier: 'team_pro'
+    orgId: "org_alpha_123",
+    orgName: "Acme Fintech Core",
+    adminEmail: "compliance@acmefintech.com",
+    tier: "team_pro",
   },
   {
-    orgId: 'org_beta_456',
-    orgName: 'Solo Dev Box',
-    adminEmail: 'solo@dev.org',
-    tier: 'developer' // Should be gracefully skipped
+    orgId: "org_beta_456",
+    orgName: "Solo Dev Box",
+    adminEmail: "solo@dev.org",
+    tier: "developer", // Should be gracefully skipped
   },
   {
-    orgId: 'org_gamma_789',
-    orgName: 'MegaCorp Enterprise',
-    adminEmail: 'security@megacorp.com',
-    tier: 'enterprise'
-  }
+    orgId: "org_gamma_789",
+    orgName: "MegaCorp Enterprise",
+    adminEmail: "security@megacorp.com",
+    tier: "enterprise",
+  },
 ];
 
-describe('Automated Weekly Reporting Worker', () => {
-
+describe("Automated Weekly Reporting Worker", () => {
   beforeEach(() => {
     delete process.env.DASHBOARD_URL;
   });
@@ -148,114 +178,141 @@ describe('Automated Weekly Reporting Worker', () => {
     } catch (e) {}
   });
 
-  describe('compileWeeklyReportHTML', () => {
-    it('should inject organization name into HTML', () => {
+  describe("compileWeeklyReportHTML", () => {
+    it("should inject organization name into HTML", () => {
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Test Labs LLC', {
-        currentGrade: 'A',
+      var html = reporter.mod.compileWeeklyReportHTML("Test Labs LLC", {
+        currentGrade: "A",
         developerHoursSaved: 14.5,
         totalScans: 8,
         totalFilesAnalyzed: 450,
         totalIssuesRemediated: 72,
-        averageComplianceScore: 94
+        averageComplianceScore: 94,
       });
-      assert.ok(html.indexOf('Test Labs LLC') >= 0, 'HTML must render organization name');
+      assert.ok(
+        html.indexOf("Test Labs LLC") >= 0,
+        "HTML must render organization name",
+      );
     });
 
-    it('should inject dev hours saved metric', () => {
+    it("should inject dev hours saved metric", () => {
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Test Org', {
-        currentGrade: 'B',
+      var html = reporter.mod.compileWeeklyReportHTML("Test Org", {
+        currentGrade: "B",
         developerHoursSaved: 14.5,
         totalScans: 8,
         totalFilesAnalyzed: 450,
         totalIssuesRemediated: 72,
-        averageComplianceScore: 84
+        averageComplianceScore: 84,
       });
-      assert.ok(html.indexOf('14.5 hrs') >= 0, 'HTML must show dev hours saved');
+      assert.ok(
+        html.indexOf("14.5 hrs") >= 0,
+        "HTML must show dev hours saved",
+      );
     });
 
-    it('should inject compliance grade', () => {
+    it("should inject compliance grade", () => {
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Test Org', {
-        currentGrade: 'A',
+      var html = reporter.mod.compileWeeklyReportHTML("Test Org", {
+        currentGrade: "A",
         developerHoursSaved: 5,
         totalScans: 3,
         totalFilesAnalyzed: 100,
         totalIssuesRemediated: 10,
-        averageComplianceScore: 95
+        averageComplianceScore: 95,
       });
-      assert.ok(html.indexOf('>A<') >= 0, 'HTML must feature compliance grade');
+      assert.ok(html.indexOf(">A<") >= 0, "HTML must feature compliance grade");
     });
 
-    it('should include dashboard link', () => {
+    it("should include dashboard link", () => {
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Test Org', {
-        currentGrade: 'C',
+      var html = reporter.mod.compileWeeklyReportHTML("Test Org", {
+        currentGrade: "C",
         developerHoursSaved: 2,
         totalScans: 1,
         totalFilesAnalyzed: 50,
         totalIssuesRemediated: 5,
-        averageComplianceScore: 72
+        averageComplianceScore: 72,
       });
-      assert.ok(html.indexOf('simplebeacon.ai/dashboard') >= 0, 'HTML must include dashboard URL');
+      assert.ok(
+        html.indexOf("simplebeacon.ai/dashboard") >= 0,
+        "HTML must include dashboard URL",
+      );
     });
 
-    it('should use DASHBOARD_URL env var when set', () => {
-      process.env.DASHBOARD_URL = 'https://custom.dashboard.example.com';
+    it("should use DASHBOARD_URL env var when set", () => {
+      process.env.DASHBOARD_URL = "https://custom.dashboard.example.com";
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Test Org', {
-        currentGrade: 'A',
+      var html = reporter.mod.compileWeeklyReportHTML("Test Org", {
+        currentGrade: "A",
         developerHoursSaved: 1,
         totalScans: 1,
         totalFilesAnalyzed: 10,
         totalIssuesRemediated: 2,
-        averageComplianceScore: 95
+        averageComplianceScore: 95,
       });
-      assert.ok(html.indexOf('custom.dashboard.example.com') >= 0, 'HTML must use custom dashboard URL');
+      assert.ok(
+        html.indexOf("custom.dashboard.example.com") >= 0,
+        "HTML must use custom dashboard URL",
+      );
     });
 
-    it('should inject all scan metrics', () => {
+    it("should inject all scan metrics", () => {
       var reporter = createReporter();
-      var html = reporter.mod.compileWeeklyReportHTML('Metrics Org', {
-        currentGrade: 'B',
+      var html = reporter.mod.compileWeeklyReportHTML("Metrics Org", {
+        currentGrade: "B",
         developerHoursSaved: 8.0,
         totalScans: 12,
         totalFilesAnalyzed: 340,
         totalIssuesRemediated: 40,
-        averageComplianceScore: 82
+        averageComplianceScore: 82,
       });
-      assert.ok(html.indexOf('12') >= 0, 'should include total scans');
-      assert.ok(html.indexOf('340') >= 0, 'should include files analyzed');
-      assert.ok(html.indexOf('40') >= 0, 'should include issues remediated');
-      assert.ok(html.indexOf('82/100') >= 0, 'should include avg score');
+      assert.ok(html.indexOf("12") >= 0, "should include total scans");
+      assert.ok(html.indexOf("340") >= 0, "should include files analyzed");
+      assert.ok(html.indexOf("40") >= 0, "should include issues remediated");
+      assert.ok(html.indexOf("82/100") >= 0, "should include avg score");
     });
   });
 
-  describe('executeWeeklyReportingJob', () => {
-    it('should process team_pro and enterprise, skip developer tier', async () => {
+  describe("executeWeeklyReportingJob", () => {
+    it("should process team_pro and enterprise, skip developer tier", async () => {
       var reporter = createReporter();
-      var results = await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
+      var results =
+        await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
 
-      assert.strictEqual(results.succeeded, 2, 'team_pro + enterprise = 2 succeeded');
-      assert.strictEqual(results.skipped, 1, 'developer tier skipped');
-      assert.strictEqual(results.failed, 0, 'no failures');
+      assert.strictEqual(
+        results.succeeded,
+        2,
+        "team_pro + enterprise = 2 succeeded",
+      );
+      assert.strictEqual(results.skipped, 1, "developer tier skipped");
+      assert.strictEqual(results.failed, 0, "no failures");
     });
 
-    it('should send exactly one email per eligible subscription', async () => {
+    it("should send exactly one email per eligible subscription", async () => {
       var reporter = createReporter();
       await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
-      assert.strictEqual(reporter.sentEmails.length, 2, '2 emails sent (team_pro + enterprise)');
+      assert.strictEqual(
+        reporter.sentEmails.length,
+        2,
+        "2 emails sent (team_pro + enterprise)",
+      );
     });
 
-    it('should include grade in email subject', async () => {
+    it("should include grade in email subject", async () => {
       var reporter = createReporter();
       await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
-      assert.ok(reporter.sentEmails[0].subject.indexOf('Grade') >= 0, 'subject must contain grade');
-      assert.ok(reporter.sentEmails[0].subject.indexOf('Acme Fintech Core') >= 0, 'subject must contain org name');
+      assert.ok(
+        reporter.sentEmails[0].subject.indexOf("Grade") >= 0,
+        "subject must contain grade",
+      );
+      assert.ok(
+        reporter.sentEmails[0].subject.indexOf("Acme Fintech Core") >= 0,
+        "subject must contain org name",
+      );
     });
 
-    it('should handle empty subscription list gracefully', async () => {
+    it("should handle empty subscription list gracefully", async () => {
       var reporter = createReporter();
       var results = await reporter.mod.executeWeeklyReportingJob([]);
       assert.strictEqual(results.succeeded, 0);
@@ -263,7 +320,7 @@ describe('Automated Weekly Reporting Worker', () => {
       assert.strictEqual(results.failed, 0);
     });
 
-    it('should handle non-array input gracefully', async () => {
+    it("should handle non-array input gracefully", async () => {
       var reporter = createReporter();
       var results = await reporter.mod.executeWeeklyReportingJob(null);
       assert.strictEqual(results.succeeded, 0);
@@ -271,26 +328,29 @@ describe('Automated Weekly Reporting Worker', () => {
       assert.strictEqual(results.failed, 0);
     });
 
-    it('should count failures when sendEmail throws', async () => {
+    it("should count failures when sendEmail throws", async () => {
       var reporter = createReporter({
-        emailFailFor: 'compliance@acmefintech.com'
+        emailFailFor: "compliance@acmefintech.com",
       });
-      var results = await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
-      assert.strictEqual(results.succeeded, 1, 'enterprise still succeeds');
-      assert.strictEqual(results.failed, 1, 'team_pro fails (simulated)');
-      assert.strictEqual(results.skipped, 1, 'developer skipped');
+      var results =
+        await reporter.mod.executeWeeklyReportingJob(mockSubscriptions);
+      assert.strictEqual(results.succeeded, 1, "enterprise still succeeds");
+      assert.strictEqual(results.failed, 1, "team_pro fails (simulated)");
+      assert.strictEqual(results.skipped, 1, "developer skipped");
     });
 
-    it('should skip subscriptions with no scan records', async () => {
+    it("should skip subscriptions with no scan records", async () => {
       var reporter = createReporter();
       // Override fetchWeeklyOrganizationRecords to return empty
       var origFetch = reporter.mod.fetchWeeklyOrganizationRecords;
-      var emptySubs = [{
-        orgId: 'org_empty',
-        orgName: 'No Scans Inc',
-        adminEmail: 'admin@noscans.com',
-        tier: 'team_pro'
-      }];
+      var emptySubs = [
+        {
+          orgId: "org_empty",
+          orgName: "No Scans Inc",
+          adminEmail: "admin@noscans.com",
+          tier: "team_pro",
+        },
+      ];
       // Monkey-patch fetchWeeklyOrganizationRecords
       var results = await reporter.mod.executeWeeklyReportingJob([]);
       // Test with empty records by using an org that returns []
@@ -300,25 +360,33 @@ describe('Automated Weekly Reporting Worker', () => {
     });
   });
 
-  describe('fetchWeeklyOrganizationRecords', () => {
-    it('should return empty array for null orgId', async () => {
+  describe("fetchWeeklyOrganizationRecords", () => {
+    it("should return empty array for null orgId", async () => {
       var reporter = createReporter();
       var records = await reporter.mod.fetchWeeklyOrganizationRecords(null);
       assert.strictEqual(records.length, 0);
     });
 
-    it('should return empty array for undefined orgId', async () => {
+    it("should return empty array for undefined orgId", async () => {
       var reporter = createReporter();
-      var records = await reporter.mod.fetchWeeklyOrganizationRecords(undefined);
+      var records =
+        await reporter.mod.fetchWeeklyOrganizationRecords(undefined);
       assert.strictEqual(records.length, 0);
     });
 
-    it('should return records for valid orgKey (from telemetry stub)', async () => {
+    it("should return records for valid orgKey (from telemetry stub)", async () => {
       var reporter = createReporter();
-      var records = await reporter.mod.fetchWeeklyOrganizationRecords('org_test_123');
-      assert.ok(records.length > 0, 'should return records from telemetry stub');
-      assert.ok(records[0].timestamp, 'records should have timestamp');
-      assert.ok(records[0].complianceScore, 'records should have complianceScore');
+      var records =
+        await reporter.mod.fetchWeeklyOrganizationRecords("org_test_123");
+      assert.ok(
+        records.length > 0,
+        "should return records from telemetry stub",
+      );
+      assert.ok(records[0].timestamp, "records should have timestamp");
+      assert.ok(
+        records[0].complianceScore,
+        "records should have complianceScore",
+      );
     });
   });
 });

@@ -67,12 +67,7 @@ export function getContextGuardMaxChars(): number {
 let lastToastTime = 0;
 const TOAST_DEBOUNCE_MS = 10000; // At most one toast per 10 seconds
 
-function showContextGuardToast(
-  filename: string,
-  originalLength: number,
-  maxChars: number,
-  truncated: boolean
-): void {
+function showContextGuardToast(filename: string, originalLength: number, maxChars: number, truncated: boolean): void {
   const now = Date.now();
   if (now - lastToastTime < TOAST_DEBOUNCE_MS) {
     return; // Debounce — don't spam toasts during rapid edits
@@ -83,14 +78,14 @@ function showContextGuardToast(
   if (truncated) {
     vscode.window.showInformationMessage(
       `SimpleBeacon: ${filename} exceeds ${maxChars.toLocaleString()} chars by ${overBy.toLocaleString()}. ` +
-      `Engine scan truncated to first ${maxChars.toLocaleString()} chars. ` +
-      `Local regex covers the full file. Raise simplebeacon.contextGuardMaxChars if needed.`,
+        `Engine scan truncated to first ${maxChars.toLocaleString()} chars. ` +
+        `Local regex covers the full file. Raise simplebeacon.contextGuardMaxChars if needed.`
     );
   } else {
     vscode.window.showInformationMessage(
       `SimpleBeacon: ${filename} is ${originalLength.toLocaleString()} chars ` +
-      `(threshold: ${maxChars.toLocaleString()}). Engine scan may be slow. ` +
-      `Enable simplebeacon.contextGuardMode "both" to truncate.`,
+        `(threshold: ${maxChars.toLocaleString()}). Engine scan may be slow. ` +
+        `Enable simplebeacon.contextGuardMode "both" to truncate.`
     );
   }
 }

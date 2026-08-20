@@ -52,6 +52,7 @@ Populate the `email` field in `outreach-prospects.js` and `email-tracking.csv`.
 ### Step 2: Personalize
 
 For each email, replace:
+
 - `{{FirstName}}` with first name
 - `{{Company}}` with company name
 - `{{Industry}}` with industry
@@ -63,17 +64,20 @@ const prospects = require('./outreach-prospects.js');
 const template = require('fs').readFileSync('./touch1-template.txt', 'utf8');
 
 for (const p of prospects.filter(x => x.status === 'pending' && x.email)) {
-  const body = template
-    .replace(/{{FirstName}}/g, p.name.split(' ')[0])
-    .replace(/{{Company}}/g, p.company)
-    .replace(/{{Industry}}/g, p.industry);
-  console.log(`To: ${p.email}\nSubject: August 2026 is closer than it looks — ${p.company} AI compliance\n\n${body}\n---\n`);
+    const body = template
+        .replace(/{{FirstName}}/g, p.name.split(' ')[0])
+        .replace(/{{Company}}/g, p.company)
+        .replace(/{{Industry}}/g, p.industry);
+    console.log(
+        `To: ${p.email}\nSubject: August 2026 is closer than it looks — ${p.company} AI compliance\n\n${body}\n---\n`
+    );
 }
 ```
 
 ### Step 3: Send (Recommended Tools)
 
 **Option A: Instantly.ai** (cold email platform)
+
 - Upload CSV
 - Connect your domain (simplebeacon.ai)
 - Set daily send limit: 25 emails/day (avoids spam flags)
@@ -81,11 +85,13 @@ for (const p of prospects.filter(x => x.status === 'pending' && x.email)) {
 - Set up 3-step sequence (Touch 1 → Touch 2 → Touch 3)
 
 **Option B: HubSpot Sales** (if you already use HubSpot)
+
 - Import CSV
 - Create sequence with automated follow-ups
 - Track opens/clicks/replies in CRM
 
 **Option C: Manual (first 10 only)**
+
 - Send 10 personalized emails manually
 - Track responses in `email-tracking.csv`
 - Use this feedback to refine the template before scaling
@@ -101,14 +107,14 @@ Sarah Chen,Meridian Capital,...,touch1_sent,2026-06-10,2026-06-10,,,,,,
 
 ### Step 5: Follow-Up Cadence
 
-| Day | Action |
-|-----|--------|
-| 0 | Send Touch 1 + LinkedIn connection request |
-| 1 | View LinkedIn profile (triggers notification) |
-| 3 | If no reply → Send Touch 2 (reply in same thread) |
-| 5 | Like a LinkedIn post from prospect |
-| 7 | If still no reply → Send Touch 3 (final email) |
-| 14 | Add to nurture list (monthly compliance digest) |
+| Day | Action                                            |
+| --- | ------------------------------------------------- |
+| 0   | Send Touch 1 + LinkedIn connection request        |
+| 1   | View LinkedIn profile (triggers notification)     |
+| 3   | If no reply → Send Touch 2 (reply in same thread) |
+| 5   | Like a LinkedIn post from prospect                |
+| 7   | If still no reply → Send Touch 3 (final email)    |
+| 14  | Add to nurture list (monthly compliance digest)   |
 
 ---
 
@@ -175,14 +181,14 @@ Hi {{FirstName}}, I help CCOs find AI-generated slop and shadow models in produc
 
 ## Success Metrics (Track Weekly)
 
-| Metric | Target | How to Track |
-|--------|--------|-------------|
-| Touch 1 emails sent | 50/week | Count rows with touch1Date in current week |
-| Open rate | >40% | Email platform analytics |
-| Reply rate | >5% | Email platform + manual tagging |
-| Meetings booked | 2–3/week | Calendar / Calendly |
-| Audit requests | 10/month | `/api/test-checkout` hits with "audit" referral |
-| Paid conversions | 3/month | Stripe dashboard |
+| Metric              | Target   | How to Track                                    |
+| ------------------- | -------- | ----------------------------------------------- |
+| Touch 1 emails sent | 50/week  | Count rows with touch1Date in current week      |
+| Open rate           | >40%     | Email platform analytics                        |
+| Reply rate          | >5%      | Email platform + manual tagging                 |
+| Meetings booked     | 2–3/week | Calendar / Calendly                             |
+| Audit requests      | 10/month | `/api/test-checkout` hits with "audit" referral |
+| Paid conversions    | 3/month  | Stripe dashboard                                |
 
 ---
 

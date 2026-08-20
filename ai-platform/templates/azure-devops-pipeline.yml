@@ -29,35 +29,35 @@ pr:
       - develop
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-  - group: simplebeacon-secrets  # Contains SIMPLEBEACON_API_KEY
+  - group: simplebeacon-secrets # Contains SIMPLEBEACON_API_KEY
   - name: SCAN_PATH
-    value: '$(Build.SourcesDirectory)'
+    value: "$(Build.SourcesDirectory)"
   - name: SCAN_GATE
-    value: 'true'
+    value: "true"
   - name: FAIL_ON
-    value: 'high'
+    value: "high"
   - name: REPORT_FORMAT
-    value: 'json'
+    value: "json"
 
 stages:
   - stage: ComplianceScan
-    displayName: 'SimpleBeacon Compliance Scan'
+    displayName: "SimpleBeacon Compliance Scan"
     jobs:
       - job: Scan
-        displayName: 'Run Compliance Scan'
+        displayName: "Run Compliance Scan"
         steps:
           - task: NodeTool@0
             inputs:
-              versionSpec: '22.x'
-            displayName: 'Install Node.js 22'
+              versionSpec: "22.x"
+            displayName: "Install Node.js 22"
 
           - script: |
               npm install -g simplebeacon@latest
               simplebeacon --version
-            displayName: 'Install SimpleBeacon CLI'
+            displayName: "Install SimpleBeacon CLI"
 
           - script: |
               echo "##[group]Running SimpleBeacon compliance scan..."
@@ -70,15 +70,15 @@ stages:
                 --api-key "$(SIMPLEBEACON_API_KEY)"
               echo "##[section]Scan complete — exit code: $?"
               echo "##vso[task.setvariable variable=SCAN_EXIT_CODE;isOutput=true]$?"
-            displayName: 'Run SimpleBeacon Compliance Scan'
+            displayName: "Run SimpleBeacon Compliance Scan"
             name: scanStep
 
           - task: PublishBuildArtifacts@1
             inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)/simplebeacon-report.json'
-              ArtifactName: 'SimpleBeaconReport'
-              publishLocation: 'Container'
-            displayName: 'Publish Scan Report'
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)/simplebeacon-report.json"
+              ArtifactName: "SimpleBeaconReport"
+              publishLocation: "Container"
+            displayName: "Publish Scan Report"
             condition: always()
 
           - script: |
@@ -88,31 +88,31 @@ stages:
                 --format pdf \
                 --output "$(Build.ArtifactStagingDirectory)/simplebeacon-executive-report.pdf" \
                 --api-key "$(SIMPLEBEACON_API_KEY)" || echo "PDF generation skipped (optional)"
-            displayName: 'Generate Executive PDF Report'
+            displayName: "Generate Executive PDF Report"
             condition: always()
             continueOnError: true
 
           - task: PublishBuildArtifacts@1
             inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)/simplebeacon-executive-report.pdf'
-              ArtifactName: 'SimpleBeaconExecutiveReport'
-              publishLocation: 'Container'
-            displayName: 'Publish Executive PDF'
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)/simplebeacon-executive-report.pdf"
+              ArtifactName: "SimpleBeaconExecutiveReport"
+              publishLocation: "Container"
+            displayName: "Publish Executive PDF"
             condition: always()
 
   - stage: QualityGate
-    displayName: 'Quality Gate Verification'
+    displayName: "Quality Gate Verification"
     dependsOn: ComplianceScan
     condition: always()
     jobs:
       - job: GateCheck
-        displayName: 'Verify Quality Gate'
+        displayName: "Verify Quality Gate"
         steps:
           - task: DownloadBuildArtifacts@1
             inputs:
-              buildType: 'current'
-              artifactName: 'SimpleBeaconReport'
-              downloadPath: '$(System.ArtifactsDirectory)'
+              buildType: "current"
+              artifactName: "SimpleBeaconReport"
+              downloadPath: "$(System.ArtifactsDirectory)"
 
           - script: |
               echo "##[group]Parsing scan results for gate status..."
@@ -132,5 +132,5 @@ stages:
               else
                 echo "##vso[task.logissue type=warning]Report file not found"
               fi
-            displayName: 'Parse and Verify Gate Status'
+            displayName: "Parse and Verify Gate Status"
             name: gateResult

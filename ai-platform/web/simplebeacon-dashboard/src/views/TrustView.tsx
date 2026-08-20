@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { BadgeCheck, ShieldCheck, Activity, FileCheck, TrendingUp, RefreshCw, AlertCircle, Download } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  BadgeCheck,
+  ShieldCheck,
+  Activity,
+  FileCheck,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+  Download,
+} from "lucide-react";
+import { getApiBase, apiUrl, authHeaders } from "@/config";
 
 type SeverityCounts = Record<string, number>;
 
@@ -77,7 +86,9 @@ type TrustHistory = {
 };
 
 export function TrustView() {
-  const [verification, setVerification] = useState<TrustVerification | null>(null);
+  const [verification, setVerification] = useState<TrustVerification | null>(
+    null,
+  );
   const [history, setHistory] = useState<TrustHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,8 +99,8 @@ export function TrustView() {
     setError(null);
     try {
       const [vRes, hRes] = await Promise.all([
-        fetch(apiUrl('/trust/verification'), { headers: authHeaders() }),
-        fetch(apiUrl('/trust/history?limit=10'), { headers: authHeaders() }),
+        fetch(apiUrl("/trust/verification"), { headers: authHeaders() }),
+        fetch(apiUrl("/trust/history?limit=10"), { headers: authHeaders() }),
       ]);
       if (vRes.ok) {
         const vData = await vRes.json();
@@ -100,23 +111,29 @@ export function TrustView() {
         setHistory(hData);
       }
       if (!vRes.ok && !hRes.ok) {
-        setError('Trust API unavailable. Ensure the ai-platform server is running.');
+        setError(
+          "Trust API unavailable. Ensure the ai-platform server is running.",
+        );
       }
     } catch {
-      setError('Failed to fetch trust data. Check your connection to the local server.');
+      setError(
+        "Failed to fetch trust data. Check your connection to the local server.",
+      );
     } finally {
       setLoading(false);
     }
   }, [apiBase]);
 
   // simplebeacon-ignore: framework-practices
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handlePublish = async () => {
     try {
-      const res = await fetch(apiUrl('/trust/publish'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      const res = await fetch(apiUrl("/trust/publish"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
       });
       if (res.ok) {
         void fetchData();
@@ -128,18 +145,24 @@ export function TrustView() {
 
   const handleDownload = () => {
     if (!verification) return;
-    const blob = new Blob([JSON.stringify(verification, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(verification, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'trust-verification.json';
+    a.download = "trust-verification.json";
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const fmtDate = (s: string | null | undefined) => {
-    if (!s) return '—';
-    try { return new Date(s).toLocaleString(); } catch { return s; }
+    if (!s) return "—";
+    try {
+      return new Date(s).toLocaleString();
+    } catch {
+      return s;
+    }
   };
 
   const renderScope = (scope: TrustScope, title: string) => {
@@ -148,15 +171,15 @@ export function TrustView() {
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{title}</CardTitle>
-          <Badge variant={scope.gatePass ? 'default' : 'destructive'}>
-            {scope.gatePass ? 'PASS' : 'FAIL'}
+          <Badge variant={scope.gatePass ? "default" : "destructive"}>
+            {scope.gatePass ? "PASS" : "FAIL"}
           </Badge>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <div>
               <div className="text-xs text-foreground-muted">Quality Score</div>
-              <div className="font-semibold">{scope.qualityScore ?? '—'}</div>
+              <div className="font-semibold">{scope.qualityScore ?? "—"}</div>
             </div>
             <div>
               <div className="text-xs text-foreground-muted">Issues</div>
@@ -164,28 +187,50 @@ export function TrustView() {
             </div>
             <div>
               <div className="text-xs text-foreground-muted">Files Total</div>
-              <div className="font-semibold">{scope.repositoryFilesTotal?.toLocaleString() ?? '—'}</div>
+              <div className="font-semibold">
+                {scope.repositoryFilesTotal?.toLocaleString() ?? "—"}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-foreground-muted">Rules Analyzed</div>
-              <div className="font-semibold">{scope.ruleScopedFilesAnalyzed?.toLocaleString() ?? '—'}</div>
+              <div className="text-xs text-foreground-muted">
+                Rules Analyzed
+              </div>
+              <div className="font-semibold">
+                {scope.ruleScopedFilesAnalyzed?.toLocaleString() ?? "—"}
+              </div>
             </div>
           </div>
-          {scope.severityCounts && Object.keys(scope.severityCounts).length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(scope.severityCounts).filter(([,v]) => v > 0).map(([k, v]) => (
-                <Badge key={k} variant={k === 'critical' ? 'destructive' : k === 'high' ? 'destructive' : 'outline'}>
-                  {k}: {v}
-                </Badge>
-              ))}
-            </div>
-          )}
+          {scope.severityCounts &&
+            Object.keys(scope.severityCounts).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(scope.severityCounts)
+                  .filter(([, v]) => v > 0)
+                  .map(([k, v]) => (
+                    <Badge
+                      key={k}
+                      variant={
+                        k === "critical"
+                          ? "destructive"
+                          : k === "high"
+                            ? "destructive"
+                            : "outline"
+                      }
+                    >
+                      {k}: {v}
+                    </Badge>
+                  ))}
+              </div>
+            )}
           {scope.rulesEnabled && scope.rulesEnabled.length > 0 && (
             <div>
-              <div className="text-xs text-foreground-muted mb-1">Rules Enabled</div>
+              <div className="text-xs text-foreground-muted mb-1">
+                Rules Enabled
+              </div>
               <div className="flex flex-wrap gap-1">
                 {scope.rulesEnabled.map((r) => (
-                  <Badge key={r} variant="secondary" className="text-xs">{r}</Badge>
+                  <Badge key={r} variant="secondary" className="text-xs">
+                    {r}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -206,7 +251,9 @@ export function TrustView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Trust</h1>
-          <p className="text-foreground-muted">Trust verification and integrity attestation</p>
+          <p className="text-foreground-muted">
+            Trust verification and integrity attestation
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
@@ -223,7 +270,9 @@ export function TrustView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Trust</h1>
-          <p className="text-foreground-muted">Trust verification and integrity attestation</p>
+          <p className="text-foreground-muted">
+            Trust verification and integrity attestation
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
@@ -243,12 +292,16 @@ export function TrustView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Trust</h1>
-          <p className="text-foreground-muted">Trust verification and integrity attestation</p>
+          <p className="text-foreground-muted">
+            Trust verification and integrity attestation
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <BadgeCheck className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">No trust verification data</p>
+            <p className="text-sm text-foreground-muted">
+              No trust verification data
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -262,7 +315,9 @@ export function TrustView() {
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Trust</h1>
-        <p className="text-foreground-muted">Trust verification and integrity attestation</p>
+        <p className="text-foreground-muted">
+          Trust verification and integrity attestation
+        </p>
       </div>
 
       {/* Headline Summary */}
@@ -287,17 +342,25 @@ export function TrustView() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="flex items-center gap-2">
-              <BadgeCheck className={`h-8 w-8 ${headline.gatePass ? 'text-green-500' : 'text-red-500'}`} />
+              <BadgeCheck
+                className={`h-8 w-8 ${headline.gatePass ? "text-green-500" : "text-red-500"}`}
+              />
               <div>
                 <div className="text-xs text-foreground-muted">Gate Status</div>
-                <div className="font-semibold">{headline.gatePass ? 'PASS' : 'FAIL'}</div>
+                <div className="font-semibold">
+                  {headline.gatePass ? "PASS" : "FAIL"}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="h-8 w-8 text-blue-500" />
               <div>
-                <div className="text-xs text-foreground-muted">Quality Score</div>
-                <div className="font-semibold">{headline.qualityScore ?? '—'}</div>
+                <div className="text-xs text-foreground-muted">
+                  Quality Score
+                </div>
+                <div className="font-semibold">
+                  {headline.qualityScore ?? "—"}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -311,12 +374,15 @@ export function TrustView() {
               <TrendingUp className="h-8 w-8 text-orange-500" />
               <div>
                 <div className="text-xs text-foreground-muted">Last Scan</div>
-                <div className="font-semibold text-xs">{fmtDate(headline.lastScan)}</div>
+                <div className="font-semibold text-xs">
+                  {fmtDate(headline.lastScan)}
+                </div>
               </div>
             </div>
           </div>
           <div className="text-xs text-foreground-muted">
-            Verification method: {verification.verificationMethod} · Source: {verification.headlineSource} · {verification.headlineReason}
+            Verification method: {verification.verificationMethod} · Source:{" "}
+            {verification.headlineSource} · {verification.headlineReason}
           </div>
         </CardContent>
       </Card>
@@ -351,14 +417,24 @@ export function TrustView() {
             </div>
             {history && history.entries.length > 0 && (
               <div className="mt-4 space-y-2">
-                <div className="text-xs text-foreground-muted">Recent Snapshots</div>
+                <div className="text-xs text-foreground-muted">
+                  Recent Snapshots
+                </div>
                 {history.entries.slice(0, 5).map((e) => (
-                  <div key={e.verificationId} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <div
+                    key={e.verificationId}
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                  >
                     <div className="flex items-center gap-2">
-                      <Badge variant={e.gatePass ? 'default' : 'destructive'} className="text-xs">
-                        {e.gatePass ? 'PASS' : 'FAIL'}
+                      <Badge
+                        variant={e.gatePass ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {e.gatePass ? "PASS" : "FAIL"}
                       </Badge>
-                      <span className="text-xs text-foreground-muted">{fmtDate(e.generatedAt)}</span>
+                      <span className="text-xs text-foreground-muted">
+                        {fmtDate(e.generatedAt)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span>Q: {e.qualityScore}</span>
@@ -375,8 +451,10 @@ export function TrustView() {
 
       {/* Platform & Monorepo Scopes */}
       <div className="grid gap-4 md:grid-cols-2">
-        {verification.platform && renderScope(verification.platform, 'Platform Gate (ai-platform)')}
-        {verification.monorepo && renderScope(verification.monorepo, 'Monorepo Root')}
+        {verification.platform &&
+          renderScope(verification.platform, "Platform Gate (ai-platform)")}
+        {verification.monorepo &&
+          renderScope(verification.monorepo, "Monorepo Root")}
       </div>
 
       {/* Disclaimers */}

@@ -1,18 +1,26 @@
-'use strict';
+"use strict";
 
 /**
  * Track 78: PQ Financial Derivatives Gating tests.
  */
-const { PqcFinancialDerivativesGatingHub } = require('../pqc-financial-derivatives-gating-hub.cjs');
-const { ZkDerivativeClaimValidator } = require('../zk-derivative-claim-validator.cjs');
-const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
-const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+const {
+  PqcFinancialDerivativesGatingHub,
+} = require("../pqc-financial-derivatives-gating-hub.cjs");
+const {
+  ZkDerivativeClaimValidator,
+} = require("../zk-derivative-claim-validator.cjs");
+const {
+  EnclaveAttestationClient,
+} = require("../enclave-attestation-client.cjs");
+const { CryptoPolicyEngine } = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 
 class MockAttestationClient {
   verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') return { verified: false };
-    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (!attestation || typeof attestation !== "object")
+      return { verified: false };
+    if (!attestation.authority || attestation.authority !== "mock-authority")
+      return { verified: false };
     return { verified: true };
   }
 }
@@ -21,10 +29,10 @@ const POLICY = {
   minClearingHouseQuorum: 3,
   maxContractExpirationSeconds: 31536000,
   maxRiskMetricDepth: 32,
-  allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+  allowedPqcSignatureSchemes: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
   requireClearingHouseInitializerAttestation: true,
   requireRiskCommitteeAttestation: true,
-  allowedAttestationAuthorities: ['mock-authority'],
+  allowedAttestationAuthorities: ["mock-authority"],
   banMalformedOrOutOfOrderDerivativeClaims: true,
   requireCanonicalPayloadLayout: true,
 };
@@ -32,51 +40,51 @@ const POLICY = {
 function mockAttestation() {
   return {
     version: 1,
-    enclaveType: 'mock',
-    measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
-    mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+    enclaveType: "mock",
+    measurement: "MOCK_MEASUREMENT_00000000000000000000000000000000",
+    mrenclave: "MOCK_MRENCLAVE_00000000000000000000000000000000",
     timestamp: Math.floor(Date.now() / 1000),
     attestationAgeSeconds: 0,
-    authority: 'mock-authority',
-    signature: 'mock-signature-placeholder',
+    authority: "mock-authority",
+    signature: "mock-signature-placeholder",
   };
 }
 
 function baseInitRequest() {
   return {
-    sourceTenantId: 'tenant-a',
-    targetChainId: 'chain-b',
-    blindedContractTermsCommitment: 'pedersen-terms-001',
-    blindedCounterpartyRiskCommitment: 'pedersen-risk-001',
-    blindedSettlementHashCommitment: 'pedersen-settlement-001',
+    sourceTenantId: "tenant-a",
+    targetChainId: "chain-b",
+    blindedContractTermsCommitment: "pedersen-terms-001",
+    blindedCounterpartyRiskCommitment: "pedersen-risk-001",
+    blindedSettlementHashCommitment: "pedersen-settlement-001",
     contractExpirationSeconds: 15552000,
     riskMetricDepth: 16,
-    pqcSignatureScheme: 'ML-DSA-65',
+    pqcSignatureScheme: "ML-DSA-65",
     clearingHouseInitializerAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
+    attestationAuthority: "mock-authority",
   };
 }
 
 function baseClaimRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
-    blindedCounterpartyRiskCommitment: 'pedersen-risk-001',
-    blindedClaimValueCommitment: 'pedersen-claimval-001',
-    zkDerivativeRangeProofHash: 'zk-derivative-proof-001',
+    poolId: poolId || "pool-001",
+    blindedCounterpartyRiskCommitment: "pedersen-risk-001",
+    blindedClaimValueCommitment: "pedersen-claimval-001",
+    zkDerivativeRangeProofHash: "zk-derivative-proof-001",
     riskCommitteeAttestation: mockAttestation(),
-    riskCommitteeAttestationHash: 'committee-hash-001',
-    attestationAuthority: 'mock-authority',
-    partialSignature: 'partial-sig-001',
+    riskCommitteeAttestationHash: "committee-hash-001",
+    attestationAuthority: "mock-authority",
+    partialSignature: "partial-sig-001",
     contractExpirationSeconds: 15552000,
   };
 }
 
 function baseCompleteRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
+    poolId: poolId || "pool-001",
     riskCommitteeAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
-    committeeSignatures: ['sig-a', 'sig-b', 'sig-c'],
+    attestationAuthority: "mock-authority",
+    committeeSignatures: ["sig-a", "sig-b", "sig-c"],
   };
 }
 
@@ -105,140 +113,205 @@ function setupAndInitPool() {
 
 function setupInitAndClaim() {
   const ctx = setupAndInitPool();
-  const claim = ctx.validator.verifyDerivativeClaim(baseClaimRequest(ctx.pool.poolId));
+  const claim = ctx.validator.verifyDerivativeClaim(
+    baseClaimRequest(ctx.pool.poolId),
+  );
   return { ...ctx, claim };
 }
 
-describe('Track 78 PQ financial derivatives gating', () => {
-  test('PqcFinancialDerivativesGatingHub initializes a pool and emits DERIVATIVE_GATING_POOL_INITIALIZED', () => {
+describe("Track 78 PQ financial derivatives gating", () => {
+  test("PqcFinancialDerivativesGatingHub initializes a pool and emits DERIVATIVE_GATING_POOL_INITIALIZED", () => {
     const { events, hub } = setupHubAndValidator();
     const pool = hub.initializePool(baseInitRequest());
-    expect(pool.status).toBe('open');
+    expect(pool.status).toBe("open");
     expect(pool.poolId).toBeDefined();
-    expect(events.some((e) => e.event === 'DERIVATIVE_GATING_POOL_INITIALIZED')).toBe(true);
+    expect(
+      events.some((e) => e.event === "DERIVATIVE_GATING_POOL_INITIALIZED"),
+    ).toBe(true);
   });
 
-  test('ZkDerivativeClaimValidator verifies a derivative claim and emits ZK_DERIVATIVE_CLAIM_VERIFIED', () => {
+  test("ZkDerivativeClaimValidator verifies a derivative claim and emits ZK_DERIVATIVE_CLAIM_VERIFIED", () => {
     const { events, validator, pool } = setupAndInitPool();
-    const claim = validator.verifyDerivativeClaim(baseClaimRequest(pool.poolId));
+    const claim = validator.verifyDerivativeClaim(
+      baseClaimRequest(pool.poolId),
+    );
     expect(claim.claimId).toBeDefined();
-    expect(events.some((e) => e.event === 'ZK_DERIVATIVE_CLAIM_VERIFIED')).toBe(true);
+    expect(events.some((e) => e.event === "ZK_DERIVATIVE_CLAIM_VERIFIED")).toBe(
+      true,
+    );
   });
 
-  test('PqcFinancialDerivativesGatingHub completes accreditation after claim and emits COUNTERPARTY_RISK_ACCREDITATION_COMPLETED', () => {
+  test("PqcFinancialDerivativesGatingHub completes accreditation after claim and emits COUNTERPARTY_RISK_ACCREDITATION_COMPLETED", () => {
     const { events, hub, pool } = setupInitAndClaim();
-    const completion = hub.completeAccreditation(baseCompleteRequest(pool.poolId));
+    const completion = hub.completeAccreditation(
+      baseCompleteRequest(pool.poolId),
+    );
     expect(completion.completionId).toBeDefined();
-    expect(events.some((e) => e.event === 'COUNTERPARTY_RISK_ACCREDITATION_COMPLETED')).toBe(true);
+    expect(
+      events.some(
+        (e) => e.event === "COUNTERPARTY_RISK_ACCREDITATION_COMPLETED",
+      ),
+    ).toBe(true);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects contract expiration exceeding maximum', () => {
+  test("PqcFinancialDerivativesGatingHub rejects contract expiration exceeding maximum", () => {
     const hub = new PqcFinancialDerivativesGatingHub({ policy: POLICY });
     const request = baseInitRequest();
     request.contractExpirationSeconds = 99999999;
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects risk metric depth exceeding maximum', () => {
+  test("PqcFinancialDerivativesGatingHub rejects risk metric depth exceeding maximum", () => {
     const hub = new PqcFinancialDerivativesGatingHub({ policy: POLICY });
     const request = baseInitRequest();
     request.riskMetricDepth = 64;
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects un-attested clearing house initializer', () => {
+  test("PqcFinancialDerivativesGatingHub rejects un-attested clearing house initializer", () => {
     const attestationClient = new MockAttestationClient();
-    const hub = new PqcFinancialDerivativesGatingHub({ policy: POLICY, attestationClient });
+    const hub = new PqcFinancialDerivativesGatingHub({
+      policy: POLICY,
+      attestationClient,
+    });
     const request = baseInitRequest();
-    request.clearingHouseInitializerAttestation = { authority: 'bad' };
+    request.clearingHouseInitializerAttestation = { authority: "bad" };
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('ZkDerivativeClaimValidator rejects un-attested risk committee', () => {
+  test("ZkDerivativeClaimValidator rejects un-attested risk committee", () => {
     const { hub, pool } = setupAndInitPool();
     const attestationClient = new MockAttestationClient();
-    const validator = new ZkDerivativeClaimValidator({ policy: POLICY, hub, attestationClient });
+    const validator = new ZkDerivativeClaimValidator({
+      policy: POLICY,
+      hub,
+      attestationClient,
+    });
     const clReq = baseClaimRequest(pool.poolId);
-    clReq.riskCommitteeAttestation = { authority: 'bad' };
-    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(HsmAdapterError);
+    clReq.riskCommitteeAttestation = { authority: "bad" };
+    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(
+      HsmAdapterError,
+    );
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects unpermitted PQC signature scheme', () => {
+  test("PqcFinancialDerivativesGatingHub rejects unpermitted PQC signature scheme", () => {
     const hub = new PqcFinancialDerivativesGatingHub({ policy: POLICY });
     const request = baseInitRequest();
-    request.pqcSignatureScheme = 'RSA-2048';
+    request.pqcSignatureScheme = "RSA-2048";
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects duplicate pool initialization', () => {
+  test("PqcFinancialDerivativesGatingHub rejects duplicate pool initialization", () => {
     const { hub } = setupHubAndValidator();
     const request = baseInitRequest();
-    request.poolId = 'pool-dup';
+    request.poolId = "pool-dup";
     hub.initializePool(request);
     expect(() => hub.initializePool(request)).toThrow(HsmAdapterError);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects accreditation completion before derivative claim verification', () => {
+  test("PqcFinancialDerivativesGatingHub rejects accreditation completion before derivative claim verification", () => {
     const { hub, pool } = setupAndInitPool();
-    expect(() => hub.completeAccreditation(baseCompleteRequest(pool.poolId))).toThrow(HsmAdapterError);
+    expect(() =>
+      hub.completeAccreditation(baseCompleteRequest(pool.poolId)),
+    ).toThrow(HsmAdapterError);
   });
 
-  test('PqcFinancialDerivativesGatingHub rejects accreditation completion with insufficient quorum', () => {
+  test("PqcFinancialDerivativesGatingHub rejects accreditation completion with insufficient quorum", () => {
     const { hub, pool } = setupInitAndClaim();
     const compReq = baseCompleteRequest(pool.poolId);
-    compReq.committeeSignatures = ['sig-a'];
+    compReq.committeeSignatures = ["sig-a"];
     expect(() => hub.completeAccreditation(compReq)).toThrow(HsmAdapterError);
   });
 
-  test('ZkDerivativeClaimValidator bans peers broadcasting malformed claims', () => {
+  test("ZkDerivativeClaimValidator bans peers broadcasting malformed claims", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
     clReq.zkDerivativeRangeProofHash = null;
-    clReq.peerId = 'peer-bad';
-    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    clReq.peerId = "peer-bad";
+    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(
+      HsmAdapterError,
+    );
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('ZkDerivativeClaimValidator bans peers broadcasting out-of-bounds contract expirations', () => {
+  test("ZkDerivativeClaimValidator bans peers broadcasting out-of-bounds contract expirations", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
     clReq.contractExpirationSeconds = 99999999;
-    clReq.peerId = 'peer-bad';
-    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    clReq.peerId = "peer-bad";
+    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(
+      HsmAdapterError,
+    );
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('ZkDerivativeClaimValidator bans peers broadcasting duplicate claims', () => {
+  test("ZkDerivativeClaimValidator bans peers broadcasting duplicate claims", () => {
     const { validator, pool } = setupAndInitPool();
     const clReq = baseClaimRequest(pool.poolId);
-    clReq.peerId = 'peer-bad';
+    clReq.peerId = "peer-bad";
     validator.verifyDerivativeClaim(clReq);
-    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(HsmAdapterError);
-    expect(validator.isPeerBanned('peer-bad')).toBe(true);
+    expect(() => validator.verifyDerivativeClaim(clReq)).toThrow(
+      HsmAdapterError,
+    );
+    expect(validator.isPeerBanned("peer-bad")).toBe(true);
   });
 
-  test('CryptoPolicyEngine validates pq derivative gating configuration', () => {
+  test("CryptoPolicyEngine validates pq derivative gating configuration", () => {
     const engine = new CryptoPolicyEngine({ default: {} });
-    expect(() => engine.validate('t1', 'pqDerivativeGating', {
-      clearingHouseQuorum: 3,
-      contractExpirationSeconds: 15552000,
-      riskMetricDepth: 16,
-      pqcSignatureScheme: 'ML-DSA-65',
-      clearingHouseInitializerAttestation: true,
-      riskCommitteeAttestation: true,
-      attestationAuthority: 'mock-authority',
-      banMalformedOrOutOfOrderDerivativeClaims: true,
-      canonicalPayloadLayout: true,
-    })).not.toThrow();
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        clearingHouseQuorum: 3,
+        contractExpirationSeconds: 15552000,
+        riskMetricDepth: 16,
+        pqcSignatureScheme: "ML-DSA-65",
+        clearingHouseInitializerAttestation: true,
+        riskCommitteeAttestation: true,
+        attestationAuthority: "mock-authority",
+        banMalformedOrOutOfOrderDerivativeClaims: true,
+        canonicalPayloadLayout: true,
+      }),
+    ).not.toThrow();
 
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { clearingHouseQuorum: 1 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { contractExpirationSeconds: 99999999 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { riskMetricDepth: 64 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { pqcSignatureScheme: 'RSA-2048' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { clearingHouseInitializerAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { riskCommitteeAttestation: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { attestationAuthority: 'bad' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { banMalformedOrOutOfOrderDerivativeClaims: false })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'pqDerivativeGating', { canonicalPayloadLayout: false })).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", { clearingHouseQuorum: 1 }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        contractExpirationSeconds: 99999999,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", { riskMetricDepth: 64 }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        pqcSignatureScheme: "RSA-2048",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        clearingHouseInitializerAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        riskCommitteeAttestation: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        attestationAuthority: "bad",
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        banMalformedOrOutOfOrderDerivativeClaims: false,
+      }),
+    ).toThrow(HsmAdapterError);
+    expect(() =>
+      engine.validate("t1", "pqDerivativeGating", {
+        canonicalPayloadLayout: false,
+      }),
+    ).toThrow(HsmAdapterError);
   });
 });

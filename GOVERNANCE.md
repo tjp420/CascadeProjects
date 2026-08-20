@@ -13,14 +13,14 @@ This project is licensed under the [MIT License](./LICENSE).
 
 All runtime and build dependencies are compatible with MIT distribution. The current license summary is:
 
-| License | Count |
-|-----------|-------|
-| MIT | 736 |
-| ISC | 53 |
-| Apache-2.0 | 48 |
-| BSD-3-Clause | 38 |
-| BSD-2-Clause | 18 |
-| Other permissive | ~20 |
+| License          | Count |
+| ---------------- | ----- |
+| MIT              | 736   |
+| ISC              | 53    |
+| Apache-2.0       | 48    |
+| BSD-3-Clause     | 38    |
+| BSD-2-Clause     | 18    |
+| Other permissive | ~20   |
 
 No GPL/AGPL/LGPL-only packages are present. Dual-licensed packages are used under their permissive option.
 
@@ -36,9 +36,9 @@ See [SECURITY.md](./SECURITY.md) for vulnerability reporting procedures.
 
 ## Decision Making
 
-| Decision Type | Authority |
-|---------------|-----------|
-| Scanner rule changes | Principal Engineer |
-| New analyzer engines | Principal Engineer + product review |
-| Breaking API changes | Team consensus |
+| Decision Type        | Authority                            |
+| -------------------- | ------------------------------------ |
+| Scanner rule changes | Principal Engineer                   |
+| New analyzer engines | Principal Engineer + product review  |
+| Breaking API changes | Team consensus                       |
 | Dependency additions | License compatibility check required |

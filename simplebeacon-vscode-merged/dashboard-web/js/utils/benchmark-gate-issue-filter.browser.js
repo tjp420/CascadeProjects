@@ -2,7 +2,8 @@
  * Browser mirror of benchmark gate issue exclusions — keep in sync with fiction-digest-export-sanitize.js.
  */
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const SCANNER_IMPL_PATH_RE =
+  /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
 const OSS_SCANNER_ROOT_FILES = new Set(['src/scan.js', 'src/config.js', 'src/project-detect.js', 'src/index.js']);
 
 const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
@@ -10,7 +11,7 @@ const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
   'repository-audit-loader',
   'repository-audit-stub-loader',
   'config-metadata',
-  'demo-tool-sample'
+  'demo-tool-sample',
 ]);
 
 /**
@@ -105,7 +106,7 @@ export function recomputeGateFromIssues(issues, gateConfig = {}) {
     ...gateConfig,
     pass: blockingCount === 0,
     blockingCount,
-    warningCount
+    warningCount,
   };
 }
 
@@ -121,7 +122,7 @@ export function normalizeBenchmarkGateReport(report, projectPath) {
   const isBenchmark = /\/github-cache\//i.test(projectKey) || projectKey.startsWith('github-cache/');
   if (!isBenchmark) return report;
 
-  const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
+  const sourceIssues = report.rawIssues?.length ? report.rawIssues : report.detectedIssues || [];
   const benchmarkCloneNoiseIssues = [];
   const deduped = [];
   const seen = new Set();
@@ -162,8 +163,8 @@ export function normalizeBenchmarkGateReport(report, projectPath) {
       benchmarkCloneNoiseExcluded: benchmarkCloneNoiseIssues.length || undefined,
       rescanRecommended: false,
       limitations: [
-        'Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.'
-      ]
-    }
+        'Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.',
+      ],
+    },
   };
 }

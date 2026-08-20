@@ -38,13 +38,17 @@ export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
  * @returns {any}
  */
 export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
-  const rootsText = summary
-    || (allowedRoots || []).slice(0, 4).map((entry) => String(entry).replace(/\\/g, '/')).join('; ');
+  const rootsText =
+    summary ||
+    (allowedRoots || [])
+      .slice(0, 4)
+      .map((entry) => String(entry).replace(/\\/g, '/'))
+      .join('; ');
   const requested = String(projectPath || '').replace(/\\/g, '/');
   return (
-    `Path is outside allowed analysis roots. Requested: ${requested}. `
-    + `Allowed: ${rootsText || '(none)'}. `
-    + 'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
+    `Path is outside allowed analysis roots. Requested: ${requested}. ` +
+    `Allowed: ${rootsText || '(none)'}. ` +
+    'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
   );
 }
 
@@ -85,9 +89,7 @@ export async function validateProjectPathAllowlist(projectPath, app) {
   }
   const roots = await ensureAllowedAnalysisRoots(app);
   const allowed = isPathWithinAllowedRoots(path, roots);
-  const message = allowed
-    ? null
-    : pathAllowlistMessage(path, roots, app?.state?.allowedAnalysisRootsSummary);
+  const message = allowed ? null : pathAllowlistMessage(path, roots, app?.state?.allowedAnalysisRootsSummary);
   if (app?.state) {
     app.state.pathAllowlistError = message;
   }

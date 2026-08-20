@@ -1,6 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Shield, Link, Webhook, Loader2 } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Link, Webhook, Loader2 } from "lucide-react";
 
 interface SandboxSummary {
   success: boolean;
@@ -16,7 +22,11 @@ interface WorkspaceSandboxPanelProps {
   error: string | null;
 }
 
-export function WorkspaceSandboxPanel({ summary, loading, error }: WorkspaceSandboxPanelProps) {
+export function WorkspaceSandboxPanel({
+  summary,
+  loading,
+  error,
+}: WorkspaceSandboxPanelProps) {
   return (
     <Card>
       <CardHeader>
@@ -52,7 +62,9 @@ export function WorkspaceSandboxPanel({ summary, loading, error }: WorkspaceSand
               icon={<Link className="h-4 w-4" />}
               label="Integrations"
               count={summary.integrations.count}
-              tags={Object.entries(summary.integrations.types).map(([k, v]) => `${k} (${v})`)}
+              tags={Object.entries(summary.integrations.types).map(
+                ([k, v]) => `${k} (${v})`,
+              )}
             />
             <SandboxCard
               icon={<Webhook className="h-4 w-4" />}
@@ -92,7 +104,9 @@ function SandboxCard({
           </Badge>
         ))}
         {tags.length > 6 && (
-          <Badge variant="secondary" className="text-xs">+{tags.length - 6}</Badge>
+          <Badge variant="secondary" className="text-xs">
+            +{tags.length - 6}
+          </Badge>
         )}
       </div>
     </div>

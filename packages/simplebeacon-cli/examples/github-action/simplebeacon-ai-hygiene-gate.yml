@@ -34,17 +34,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Python (AST sidecar)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Run SimpleBeacon gate (offline, parallel text rules)
         env:
-          SIMPLEBEACON_PARALLEL: '1'
-          SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
+          SIMPLEBEACON_PARALLEL: "1"
+          SIMPLEBEACON_PARALLEL_MIN_FILES: "48"
         run: |
           npx --yes simplebeacon scan \
             --format json \

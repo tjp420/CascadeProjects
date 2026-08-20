@@ -55,6 +55,7 @@
 ## Language-Specific Analyzers
 
 ### Backend Languages
+
 - [ ] **Python**
   - `pylint`/`flake8` integration
   - `requirements.txt` / `pyproject.toml` audit
@@ -89,6 +90,7 @@
   - ERB template injection
 
 ### Mobile & Embedded
+
 - [ ] **Swift / Objective-C** (iOS)
   - `Podfile` / `Package.swift` audit
   - Keychain usage patterns
@@ -212,16 +214,16 @@
 
 ## Progress Tracker
 
-| Phase | Status | Completion |
-|-------|--------|------------|
-| JS/Node.js core | Complete | 100% |
-| Multi-language support | Not started | 0% |
-| Additional compliance frameworks | Not started | 0% |
-| IDE/CI integration | Partial | 15% |
-| Auto-remediation | Not started | 0% |
-| Enterprise features | Not started | 0% |
-| Universal UX | Not started | 0% |
+| Phase                            | Status      | Completion |
+| -------------------------------- | ----------- | ---------- |
+| JS/Node.js core                  | Complete    | 100%       |
+| Multi-language support           | Not started | 0%         |
+| Additional compliance frameworks | Not started | 0%         |
+| IDE/CI integration               | Partial     | 15%        |
+| Auto-remediation                 | Not started | 0%         |
+| Enterprise features              | Not started | 0%         |
+| Universal UX                     | Not started | 0%         |
 
 ---
 
-*Generated from codebase analysis on 2026-06-07*
+_Generated from codebase analysis on 2026-06-07_

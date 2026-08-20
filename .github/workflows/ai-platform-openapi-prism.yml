@@ -3,11 +3,11 @@ name: ai-platform — OpenAPI lint, Prism mock, tests
 on:
   pull_request:
     paths:
-      - 'ai-platform/**'
-      - '.github/workflows/ai-platform-openapi-prism.yml'
+      - "ai-platform/**"
+      - ".github/workflows/ai-platform-openapi-prism.yml"
   push:
     branches:
-      - 'feature/**'
+      - "feature/**"
   workflow_dispatch: {}
 
 jobs:
@@ -20,8 +20,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install Monorepo Dependencies
         run: |

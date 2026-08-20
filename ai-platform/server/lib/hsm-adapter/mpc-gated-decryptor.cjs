@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 54: MPC gated decryptor.
@@ -10,7 +10,7 @@
  * @module hsm-adapter/mpc-gated-decryptor
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class MpcGatedDecryptor {
   /**
@@ -34,31 +34,54 @@ class MpcGatedDecryptor {
     _validateUnsealRequest(this.policy, request);
     if (this.policy.requireEnclaveAttestation && this._attestationClient) {
       try {
-        const result = this._attestationClient.verify(request.enclaveAttestation);
+        const result = this._attestationClient.verify(
+          request.enclaveAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('MPC_ENCLAVE_UNATTESTED', 'enclave attestation invalid');
+          throw new HsmAdapterError(
+            "MPC_ENCLAVE_UNATTESTED",
+            "enclave attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('MPC_ENCLAVE_UNATTESTED', 'enclave attestation invalid');
+        throw new HsmAdapterError(
+          "MPC_ENCLAVE_UNATTESTED",
+          "enclave attestation invalid",
+        );
       }
     }
-    if (this.policy.requireCircuitSatisfactionProof && !request.circuitSatisfactionProof) {
-      throw new HsmAdapterError('MPC_PROOF_MISSING', 'circuit satisfaction proof is required');
+    if (
+      this.policy.requireCircuitSatisfactionProof &&
+      !request.circuitSatisfactionProof
+    ) {
+      throw new HsmAdapterError(
+        "MPC_PROOF_MISSING",
+        "circuit satisfaction proof is required",
+      );
     }
-    if (!request.circuit || request.circuit.status !== 'satisfied') {
-      throw new HsmAdapterError('MPC_CIRCUIT_NOT_SATISFIED', 'circuit evaluation has not reached satisfaction');
+    if (!request.circuit || request.circuit.status !== "satisfied") {
+      throw new HsmAdapterError(
+        "MPC_CIRCUIT_NOT_SATISFIED",
+        "circuit evaluation has not reached satisfaction",
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const age = now - (request.circuit.initiatedAt || now);
     if (age > (this.policy.transactionTimeoutSeconds || 300)) {
-      throw new HsmAdapterError('MPC_TRANSACTION_EXPIRED', `transaction age ${age}s exceeds timeout ${this.policy.transactionTimeoutSeconds}s`);
+      throw new HsmAdapterError(
+        "MPC_TRANSACTION_EXPIRED",
+        `transaction age ${age}s exceeds timeout ${this.policy.transactionTimeoutSeconds}s`,
+      );
     }
     if (request.circuit.nodeIds.length < (this.policy.minCircuitNodes || 3)) {
-      throw new HsmAdapterError('MPC_QUORUM_INSUFFICIENT', `circuit nodes ${request.circuit.nodeIds.length} below minimum ${this.policy.minCircuitNodes}`);
+      throw new HsmAdapterError(
+        "MPC_QUORUM_INSUFFICIENT",
+        `circuit nodes ${request.circuit.nodeIds.length} below minimum ${this.policy.minCircuitNodes}`,
+      );
     }
     if (this._audit) {
-      this._audit('MPC_DECRYPTION_GATE_UNLOCKED', {
+      this._audit("MPC_DECRYPTION_GATE_UNLOCKED", {
         circuitId: request.circuit.circuitId,
         nodeIds: request.circuit.nodeIds,
         satisfactionProofHash: request.circuit.satisfactionProofHash,
@@ -71,10 +94,13 @@ class MpcGatedDecryptor {
 
 function _validateUnsealRequest(policy, request) {
   if (!request.circuit) {
-    throw new HsmAdapterError('MPC_FIELDS_MISSING', 'circuit is required');
+    throw new HsmAdapterError("MPC_FIELDS_MISSING", "circuit is required");
   }
   if (policy.requireEnclaveAttestation && !request.enclaveAttestation) {
-    throw new HsmAdapterError('MPC_ENCLAVE_ATTESTATION_MISSING', 'enclave attestation is required');
+    throw new HsmAdapterError(
+      "MPC_ENCLAVE_ATTESTATION_MISSING",
+      "enclave attestation is required",
+    );
   }
 }
 

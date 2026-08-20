@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * Snapshot Backup Script
@@ -28,55 +28,59 @@
  * @module snapshot-backup
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const zlib = require('zlib');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const zlib = require("zlib");
+const os = require("os");
 
 // ─── Configuration ───────────────────────────────────────────────
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, "..");
 const STATE_DIR = process.env.SIMPLEBEACON_STATE_DIR
   ? path.resolve(process.env.SIMPLEBEACON_STATE_DIR)
-  : path.join(ROOT, '.simplebeacon');
+  : path.join(ROOT, ".simplebeacon");
 const DB_PATH = process.env.SIMPLEBEACON_DB_PATH
   ? path.resolve(process.env.SIMPLEBEACON_DB_PATH)
-  : path.join(ROOT, 'ai-platform', 'server', 'db', 'token-registry.json');
+  : path.join(ROOT, "ai-platform", "server", "db", "token-registry.json");
 const BACKUP_DIR = process.env.SIMPLEBEACON_BACKUP_DIR
   ? path.resolve(process.env.SIMPLEBEACON_BACKUP_DIR)
-  : path.join(ROOT, '.simplebeacon-snapshots');
+  : path.join(ROOT, ".simplebeacon-snapshots");
 
 const RETENTION = {
-  daily: parseInt(process.env.SIMPLEBEACON_RETENTION_DAILY || '7', 10),
-  weekly: parseInt(process.env.SIMPLEBEACON_RETENTION_WEEKLY || '4', 10),
-  monthly: parseInt(process.env.SIMPLEBEACON_RETENTION_MONTHLY || '12', 10),
+  daily: parseInt(process.env.SIMPLEBEACON_RETENTION_DAILY || "7", 10),
+  weekly: parseInt(process.env.SIMPLEBEACON_RETENTION_WEEKLY || "4", 10),
+  monthly: parseInt(process.env.SIMPLEBEACON_RETENTION_MONTHLY || "12", 10),
 };
 
 const SNAPSHOT_VERSION = 1;
-const HEADER_MAGIC = 'SBSS'; // SimpleBeacon Snapshot
+const HEADER_MAGIC = "SBSS"; // SimpleBeacon Snapshot
 
 // ─── KEK Management ──────────────────────────────────────────────
 
 function getKek() {
   const kekEnv = process.env.SIMPLEBEACON_BACKUP_KEK;
   if (kekEnv) {
-    const kek = Buffer.from(kekEnv, 'hex');
+    const kek = Buffer.from(kekEnv, "hex");
     if (kek.length !== 32) {
-      throw new Error('SIMPLEBEACON_BACKUP_KEK must be 32 bytes (64 hex chars)');
+      throw new Error(
+        "SIMPLEBEACON_BACKUP_KEK must be 32 bytes (64 hex chars)",
+      );
     }
     return kek;
   }
   // Auto-generate and persist a KEK for local development
-  const kekPath = path.join(BACKUP_DIR, '.kek');
+  const kekPath = path.join(BACKUP_DIR, ".kek");
   if (fs.existsSync(kekPath)) {
-    return Buffer.from(fs.readFileSync(kekPath, 'utf8').trim(), 'hex');
+    return Buffer.from(fs.readFileSync(kekPath, "utf8").trim(), "hex");
   }
   const newKek = crypto.randomBytes(32);
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
-  fs.writeFileSync(kekPath, newKek.toString('hex'), { mode: 0o600 });
-  console.warn('[snapshot] Generated new KEK at', kekPath);
-  console.warn('[snapshot] For production, set SIMPLEBEACON_BACKUP_KEK env var instead.');
+  fs.writeFileSync(kekPath, newKek.toString("hex"), { mode: 0o600 });
+  console.warn("[snapshot] Generated new KEK at", kekPath);
+  console.warn(
+    "[snapshot] For production, set SIMPLEBEACON_BACKUP_KEK env var instead.",
+  );
   return newKek;
 }
 
@@ -91,86 +95,93 @@ function collectStateFiles() {
 
   // 1. .simplebeacon directory (JSON state files, exclude large/report dirs)
   const excludeDirs = new Set([
-    'archive', 'marketing-content', 'merge-previews',
-    'releases', 'report-deliveries', 'coverage',
-    'qa', 'docs', 'rules', 'email-queue',
+    "archive",
+    "marketing-content",
+    "merge-previews",
+    "releases",
+    "report-deliveries",
+    "coverage",
+    "qa",
+    "docs",
+    "rules",
+    "email-queue",
   ]);
   const excludePatterns = [
-    /^_/,                          // temp/debug files starting with _
-    /^nightly-/,                   // nightly scan reports
-    /^ai-request/,                 // large AI request dumps
-    /\.simplebeacon-backup\./,     // existing file-level backups
-    /^report-/,                    // scan report dumps (not state)
-    /^codemap/,                    // large codemap dumps
-    /^direct-scan/,                // large scan results
-    /^browser-scan/,               // browser scan dumps
-    /^cascadeprojects-browser/,    // browser report dumps
-    /^cli-scan/,                   // CLI scan dumps
-    /^root-minimal/,               // scan logs
-    /^sandbox-smoke/,              // sandbox smoke test dumps
-    /^test-fixture/,               // test fixture dumps
-    /^consolidation-report/,       // consolidation report dumps
-    /^active-smoke/,               // smoke test dumps
-    /^agent-report/,               // agent report dumps
-    /^slop-audit/,                 // audit dumps
-    /^scan-/,                      // scan logs/distributions
-    /^debug/,                      // debug files
-    /^bridge/,                     // bridge logs
-    /^stderr/,                     // stderr captures
-    /^stdout/,                     // stdout captures
-    /^test-err/,                   // test error logs
-    /^test[0-9]*-/,                // test output files
-    /^tmp-/,                       // temp files
-    /^remediation/,                // remediation reports
-    /^render-full-scan/,           // render scan dumps
-    /^roadmap/,                    // roadmap analysis
-    /^run-bfg/,                    // BFG cleanup scripts
-    /^rotate-secrets/,             // secret rotation scripts
-    /^sync-ai-context/,            // sync scripts
-    /^scan-usage/,                 // scan usage stats
-    /^secret-findings/,            // secret findings dumps
-    /^scan-fresh/,                 // scan logs
-    /^scan-run/,                   // scan run logs
-    /^data-quality/,               // data quality logs
-    /^error-issues/,               // error issue dumps
-    /^false-positive/,             // false positive audit dumps
-    /^findings-/,                  // findings exports
-    /^file-reduction\./,           // file reduction reports
-    /^compliance-snapshot/,        // compliance snapshot HTML
-    /^certificate/,                // certificate files
-    /^collision-check/,            // collision check dumps
-    /^analysis-raw/,               // raw analysis dumps
-    /^audit-context/,              // audit context dumps
-    /^AUDIT_REPORT/,               // audit report markdown
+    /^_/, // temp/debug files starting with _
+    /^nightly-/, // nightly scan reports
+    /^ai-request/, // large AI request dumps
+    /\.simplebeacon-backup\./, // existing file-level backups
+    /^report-/, // scan report dumps (not state)
+    /^codemap/, // large codemap dumps
+    /^direct-scan/, // large scan results
+    /^browser-scan/, // browser scan dumps
+    /^cascadeprojects-browser/, // browser report dumps
+    /^cli-scan/, // CLI scan dumps
+    /^root-minimal/, // scan logs
+    /^sandbox-smoke/, // sandbox smoke test dumps
+    /^test-fixture/, // test fixture dumps
+    /^consolidation-report/, // consolidation report dumps
+    /^active-smoke/, // smoke test dumps
+    /^agent-report/, // agent report dumps
+    /^slop-audit/, // audit dumps
+    /^scan-/, // scan logs/distributions
+    /^debug/, // debug files
+    /^bridge/, // bridge logs
+    /^stderr/, // stderr captures
+    /^stdout/, // stdout captures
+    /^test-err/, // test error logs
+    /^test[0-9]*-/, // test output files
+    /^tmp-/, // temp files
+    /^remediation/, // remediation reports
+    /^render-full-scan/, // render scan dumps
+    /^roadmap/, // roadmap analysis
+    /^run-bfg/, // BFG cleanup scripts
+    /^rotate-secrets/, // secret rotation scripts
+    /^sync-ai-context/, // sync scripts
+    /^scan-usage/, // scan usage stats
+    /^secret-findings/, // secret findings dumps
+    /^scan-fresh/, // scan logs
+    /^scan-run/, // scan run logs
+    /^data-quality/, // data quality logs
+    /^error-issues/, // error issue dumps
+    /^false-positive/, // false positive audit dumps
+    /^findings-/, // findings exports
+    /^file-reduction\./, // file reduction reports
+    /^compliance-snapshot/, // compliance snapshot HTML
+    /^certificate/, // certificate files
+    /^collision-check/, // collision check dumps
+    /^analysis-raw/, // raw analysis dumps
+    /^audit-context/, // audit context dumps
+    /^AUDIT_REPORT/, // audit report markdown
     /^baseline\.json\.simplebeacon/, // old baseline backups
-    /^config\.json\.simplebeacon/,   // old config backups
-    /^full-scan/,                  // full scan result dumps
-    /^gate-/,                      // gate scan reports/logs
-    /^lighthouse/,                 // lighthouse audit dumps
-    /^offline-privacy/,            // offline privacy check dumps
-    /^phase12/,                    // phase 12 verification dumps
-    /^post-.*-scan/,               // post-fix scan dumps
-    /^parent-scan/,                // parent scan test reports
-    /^poc-report/,                 // POC report dumps
-    /^handle-output/,              // handle output captures
-    /^minimatch/,                  // minimatch fix logs
-    /^proxy-violations/,           // proxy violation logs
-    /^forensic-events/,            // forensic event logs
-    /^full-blocker/,               // full blocker scan dumps
-    /^full-coverage/,              // full coverage scan dumps
-    /^gate-fix/,                   // gate fix test reports
-    /^benchmark/,                  // benchmark report dumps
-    /^codebase-audit/,             // codebase audit dumps
-    /^ai-platform-gate/,           // ai-platform gate dumps
-    /^npm-audit/,                  // npm audit report dumps
-    /^track-/,                     // track-specific notes/reports
-    /^release-notes/,              // release notes
-    /^report\.json\.backup/,       // old report.json backup
-    /^report_from/,                // report from J download
-    /^sandbox-comment/,            // sandbox comment markdown
-    /^fix-i18n/,                   // i18n fix script
-    /^history\.json/,              // scan history (regenerable)
-    /^last-scan/,                  // last scan result (regenerable)
+    /^config\.json\.simplebeacon/, // old config backups
+    /^full-scan/, // full scan result dumps
+    /^gate-/, // gate scan reports/logs
+    /^lighthouse/, // lighthouse audit dumps
+    /^offline-privacy/, // offline privacy check dumps
+    /^phase12/, // phase 12 verification dumps
+    /^post-.*-scan/, // post-fix scan dumps
+    /^parent-scan/, // parent scan test reports
+    /^poc-report/, // POC report dumps
+    /^handle-output/, // handle output captures
+    /^minimatch/, // minimatch fix logs
+    /^proxy-violations/, // proxy violation logs
+    /^forensic-events/, // forensic event logs
+    /^full-blocker/, // full blocker scan dumps
+    /^full-coverage/, // full coverage scan dumps
+    /^gate-fix/, // gate fix test reports
+    /^benchmark/, // benchmark report dumps
+    /^codebase-audit/, // codebase audit dumps
+    /^ai-platform-gate/, // ai-platform gate dumps
+    /^npm-audit/, // npm audit report dumps
+    /^track-/, // track-specific notes/reports
+    /^release-notes/, // release notes
+    /^report\.json\.backup/, // old report.json backup
+    /^report_from/, // report from J download
+    /^sandbox-comment/, // sandbox comment markdown
+    /^fix-i18n/, // i18n fix script
+    /^history\.json/, // scan history (regenerable)
+    /^last-scan/, // last scan result (regenerable)
   ];
 
   function walkDir(dir, relativeBase) {
@@ -178,29 +189,36 @@ function collectStateFiles() {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      const relPath = relativeBase ? `${relativeBase}/${entry.name}` : entry.name;
+      const relPath = relativeBase
+        ? `${relativeBase}/${entry.name}`
+        : entry.name;
 
       if (entry.isDirectory()) {
         if (excludeDirs.has(entry.name)) continue;
         walkDir(fullPath, relPath);
       } else if (entry.isFile()) {
         if (excludePatterns.some((p) => p.test(entry.name))) continue;
-        if (entry.name.endsWith('.bin') || entry.name.endsWith('.meta.json')) continue;
+        if (entry.name.endsWith(".bin") || entry.name.endsWith(".meta.json"))
+          continue;
         const stat = fs.statSync(fullPath);
         // Skip files larger than 5MB (likely not state data)
         if (stat.size > 5 * 1024 * 1024) continue;
-        files.push({ relativePath: relPath, absolutePath: fullPath, size: stat.size });
+        files.push({
+          relativePath: relPath,
+          absolutePath: fullPath,
+          size: stat.size,
+        });
       }
     }
   }
 
-  walkDir(STATE_DIR, 'simplebeacon');
+  walkDir(STATE_DIR, "simplebeacon");
 
   // 2. Token registry database
   if (fs.existsSync(DB_PATH)) {
     const stat = fs.statSync(DB_PATH);
     files.push({
-      relativePath: 'db/token-registry.json',
+      relativePath: "db/token-registry.json",
       absolutePath: DB_PATH,
       size: stat.size,
     });
@@ -225,7 +243,7 @@ function createManifest(files) {
 
   for (const file of files) {
     const content = fs.readFileSync(file.absolutePath);
-    const checksum = crypto.createHash('sha256').update(content).digest('hex');
+    const checksum = crypto.createHash("sha256").update(content).digest("hex");
     manifest.files.push({
       path: file.relativePath,
       size: file.size,
@@ -243,7 +261,7 @@ function createManifest(files) {
  *   [manifest JSON (gzip)] [file contents (gzip, concatenated with length prefixes)]
  */
 function buildSnapshotPayload(files, manifest) {
-  const manifestJson = Buffer.from(JSON.stringify(manifest), 'utf8');
+  const manifestJson = Buffer.from(JSON.stringify(manifest), "utf8");
   const manifestGzip = zlib.gzipSync(manifestJson);
 
   // Concatenate file contents with length prefixes
@@ -259,7 +277,7 @@ function buildSnapshotPayload(files, manifest) {
 
   // Header
   const header = Buffer.alloc(9);
-  header.write(HEADER_MAGIC, 0, 4, 'ascii');
+  header.write(HEADER_MAGIC, 0, 4, "ascii");
   header[4] = SNAPSHOT_VERSION;
   header.writeUInt32BE(manifestGzip.length, 5);
 
@@ -273,7 +291,7 @@ function buildSnapshotPayload(files, manifest) {
  */
 function encryptPayload(payload, kek) {
   const nonce = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', kek, nonce);
+  const cipher = crypto.createCipheriv("aes-256-gcm", kek, nonce);
   const ciphertext = Buffer.concat([cipher.update(payload), cipher.final()]);
   const tag = cipher.getAuthTag();
 
@@ -289,26 +307,28 @@ function encryptPayload(payload, kek) {
 function createSnapshot() {
   const timestamp = Date.now();
   const date = new Date(timestamp);
-  const dateStr = date.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const dateStr = date.toISOString().replace(/[:.]/g, "-").slice(0, -5);
   const snapshotId = `snap-${dateStr}`;
 
   console.log(`[snapshot] Creating snapshot ${snapshotId}...`);
 
   const files = collectStateFiles();
   if (files.length === 0) {
-    console.warn('[snapshot] No state files found. Nothing to back up.');
+    console.warn("[snapshot] No state files found. Nothing to back up.");
     return null;
   }
 
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-  console.log(`[snapshot] Found ${files.length} files (${(totalSize / 1024).toFixed(1)} KB)`);
+  console.log(
+    `[snapshot] Found ${files.length} files (${(totalSize / 1024).toFixed(1)} KB)`,
+  );
 
   const manifest = createManifest(files);
   const payload = buildSnapshotPayload(files, manifest);
   const kek = getKek();
   const encrypted = encryptPayload(payload, kek);
 
-  const outDir = path.join(BACKUP_DIR, 'current');
+  const outDir = path.join(BACKUP_DIR, "current");
   fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, `${snapshotId}.sbsnap`);
   fs.writeFileSync(outPath, encrypted);
@@ -321,7 +341,7 @@ function createSnapshot() {
     fileCount: files.length,
     totalSize,
     encryptedSize: encrypted.length,
-    checksum: crypto.createHash('sha256').update(encrypted).digest('hex'),
+    checksum: crypto.createHash("sha256").update(encrypted).digest("hex"),
   };
   fs.writeFileSync(
     path.join(outDir, `${snapshotId}.meta.json`),
@@ -338,19 +358,25 @@ function createSnapshot() {
 
 function decryptSnapshot(encrypted, kek) {
   if (encrypted.length < 12 + 4 + 16) {
-    throw new Error('SNAPSHOT_MALFORMED: encrypted data too short');
+    throw new Error("SNAPSHOT_MALFORMED: encrypted data too short");
   }
   const nonce = encrypted.slice(0, 12);
   const ciphertextLen = encrypted.readUInt32BE(12);
   const ciphertext = encrypted.slice(16, 16 + ciphertextLen);
   const tag = encrypted.slice(16 + ciphertextLen);
 
-  const decipher = crypto.createDecipheriv('aes-256-gcm', kek, nonce);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", kek, nonce);
   decipher.setAuthTag(tag);
-  const payload = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const payload = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]);
 
-  if (payload.length < 9 || payload.slice(0, 4).toString('ascii') !== HEADER_MAGIC) {
-    throw new Error('SNAPSHOT_INVALID_MAGIC: bad header');
+  if (
+    payload.length < 9 ||
+    payload.slice(0, 4).toString("ascii") !== HEADER_MAGIC
+  ) {
+    throw new Error("SNAPSHOT_INVALID_MAGIC: bad header");
   }
 
   const version = payload[4];
@@ -360,7 +386,7 @@ function decryptSnapshot(encrypted, kek) {
 
   const manifestLen = payload.readUInt32BE(5);
   const manifestGzip = payload.slice(9, 9 + manifestLen);
-  const manifest = JSON.parse(zlib.gunzipSync(manifestGzip).toString('utf8'));
+  const manifest = JSON.parse(zlib.gunzipSync(manifestGzip).toString("utf8"));
 
   return { manifest, payload, fileDataStart: 9 + manifestLen };
 }
@@ -379,13 +405,13 @@ function verifySnapshot(snapshotPath, kek) {
   let dataOffset = 0;
   for (const file of manifest.files) {
     if (dataOffset + 4 > fileData.length) {
-      results.push({ path: file.path, valid: false, reason: 'TRUNCATED' });
+      results.push({ path: file.path, valid: false, reason: "TRUNCATED" });
       break;
     }
     const compressedLen = fileData.readUInt32BE(dataOffset);
     dataOffset += 4;
     if (dataOffset + compressedLen > fileData.length) {
-      results.push({ path: file.path, valid: false, reason: 'TRUNCATED_DATA' });
+      results.push({ path: file.path, valid: false, reason: "TRUNCATED_DATA" });
       break;
     }
     const compressed = fileData.slice(dataOffset, dataOffset + compressedLen);
@@ -393,11 +419,14 @@ function verifySnapshot(snapshotPath, kek) {
 
     try {
       const content = zlib.gunzipSync(compressed);
-      const checksum = crypto.createHash('sha256').update(content).digest('hex');
+      const checksum = crypto
+        .createHash("sha256")
+        .update(content)
+        .digest("hex");
       results.push({
         path: file.path,
         valid: checksum === file.checksum,
-        reason: checksum === file.checksum ? null : 'CHECKSUM_MISMATCH',
+        reason: checksum === file.checksum ? null : "CHECKSUM_MISMATCH",
       });
     } catch (err) {
       results.push({ path: file.path, valid: false, reason: err.message });
@@ -409,15 +438,15 @@ function verifySnapshot(snapshotPath, kek) {
 
 function verifyAllSnapshots() {
   const kek = getKek();
-  const dir = path.join(BACKUP_DIR, 'current');
+  const dir = path.join(BACKUP_DIR, "current");
   if (!fs.existsSync(dir)) {
-    console.log('[snapshot] No snapshots directory found.');
+    console.log("[snapshot] No snapshots directory found.");
     return;
   }
 
-  const snapshots = fs.readdirSync(dir).filter((f) => f.endsWith('.sbsnap'));
+  const snapshots = fs.readdirSync(dir).filter((f) => f.endsWith(".sbsnap"));
   if (snapshots.length === 0) {
-    console.log('[snapshot] No snapshots found.');
+    console.log("[snapshot] No snapshots found.");
     return;
   }
 
@@ -428,9 +457,11 @@ function verifyAllSnapshots() {
       const { manifest, results } = verifySnapshot(snapPath, kek);
       const validCount = results.filter((r) => r.valid).length;
       const invalid = results.filter((r) => !r.valid);
-      const status = invalid.length === 0 ? 'OK' : 'FAIL';
+      const status = invalid.length === 0 ? "OK" : "FAIL";
       if (invalid.length > 0) allValid = false;
-      console.log(`[snapshot] ${name}: ${status} (${validCount}/${results.length} files valid)`);
+      console.log(
+        `[snapshot] ${name}: ${status} (${validCount}/${results.length} files valid)`,
+      );
       if (invalid.length > 0) {
         for (const r of invalid.slice(0, 5)) {
           console.log(`  ✗ ${r.path}: ${r.reason}`);
@@ -442,7 +473,11 @@ function verifyAllSnapshots() {
     }
   }
 
-  console.log(allValid ? '\n[snapshot] All snapshots valid.' : '\n[snapshot] Some snapshots failed verification.');
+  console.log(
+    allValid
+      ? "\n[snapshot] All snapshots valid."
+      : "\n[snapshot] Some snapshots failed verification.",
+  );
   process.exit(allValid ? 0 : 1);
 }
 
@@ -450,7 +485,7 @@ function verifyAllSnapshots() {
 
 function restoreSnapshot(snapshotId) {
   const kek = getKek();
-  const dir = path.join(BACKUP_DIR, 'current');
+  const dir = path.join(BACKUP_DIR, "current");
   const snapPath = path.join(dir, `${snapshotId}.sbsnap`);
 
   if (!fs.existsSync(snapPath)) {
@@ -462,7 +497,7 @@ function restoreSnapshot(snapshotId) {
   const { manifest, payload, fileDataStart } = decryptSnapshot(encrypted, kek);
   const fileData = payload.slice(fileDataStart);
 
-  const restoreDir = path.join(BACKUP_DIR, 'restore', snapshotId);
+  const restoreDir = path.join(BACKUP_DIR, "restore", snapshotId);
   fs.mkdirSync(restoreDir, { recursive: true });
 
   let dataOffset = 0;
@@ -481,22 +516,26 @@ function restoreSnapshot(snapshotId) {
   }
 
   console.log(`[snapshot] Restored ${restored} files to ${restoreDir}`);
-  console.log('[snapshot] Review files and copy to production locations manually.');
+  console.log(
+    "[snapshot] Review files and copy to production locations manually.",
+  );
 }
 
 // ─── Tiered Retention ────────────────────────────────────────────
 
 function applyRetention() {
-  const dir = path.join(BACKUP_DIR, 'current');
+  const dir = path.join(BACKUP_DIR, "current");
   if (!fs.existsSync(dir)) return;
 
   const snapshots = [];
   for (const name of fs.readdirSync(dir)) {
-    if (!name.endsWith('.meta.json')) continue;
+    if (!name.endsWith(".meta.json")) continue;
     try {
-      const meta = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+      const meta = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8"));
       snapshots.push(meta);
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   if (snapshots.length === 0) return;
@@ -554,23 +593,33 @@ function applyRetention() {
     if (keep.has(snap.snapshotId)) continue;
     const snapFile = path.join(dir, `${snap.snapshotId}.sbsnap`);
     const metaFile = path.join(dir, `${snap.snapshotId}.meta.json`);
-    try { fs.unlinkSync(snapFile); } catch { /* ignore */ }
-    try { fs.unlinkSync(metaFile); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(snapFile);
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.unlinkSync(metaFile);
+    } catch {
+      /* ignore */
+    }
     removed++;
   }
 
   console.log(`[snapshot] Retention: keeping ${keep.size}, removed ${removed}`);
-  console.log(`[snapshot] Policy: ${RETENTION.daily} daily, ${RETENTION.weekly} weekly, ${RETENTION.monthly} monthly`);
+  console.log(
+    `[snapshot] Policy: ${RETENTION.daily} daily, ${RETENTION.weekly} weekly, ${RETENTION.monthly} monthly`,
+  );
 }
 
 // ─── CLI ─────────────────────────────────────────────────────────
 
 function main() {
   const args = process.argv.slice(2);
-  const dryRun = args.includes('--dry-run');
-  const verify = args.includes('--verify');
-  const restoreIdx = args.indexOf('--restore');
-  const once = args.includes('--once');
+  const dryRun = args.includes("--dry-run");
+  const verify = args.includes("--verify");
+  const restoreIdx = args.indexOf("--restore");
+  const once = args.includes("--once");
 
   if (verify) {
     verifyAllSnapshots();
@@ -580,7 +629,9 @@ function main() {
   if (restoreIdx !== -1) {
     const id = args[restoreIdx + 1];
     if (!id) {
-      console.error('Usage: node scripts/snapshot-backup.cjs --restore <snapshot-id>');
+      console.error(
+        "Usage: node scripts/snapshot-backup.cjs --restore <snapshot-id>",
+      );
       process.exit(1);
     }
     restoreSnapshot(id);
@@ -589,13 +640,17 @@ function main() {
 
   if (dryRun) {
     const files = collectStateFiles();
-    console.log('[snapshot] Dry run — files that would be backed up:');
+    console.log("[snapshot] Dry run — files that would be backed up:");
     for (const f of files) {
       console.log(`  ${f.relativePath} (${f.size} bytes)`);
     }
-    console.log(`\n[snapshot] Total: ${files.length} files, ${(files.reduce((s, f) => s + f.size, 0) / 1024).toFixed(1)} KB`);
+    console.log(
+      `\n[snapshot] Total: ${files.length} files, ${(files.reduce((s, f) => s + f.size, 0) / 1024).toFixed(1)} KB`,
+    );
     console.log(`[snapshot] Output dir: ${BACKUP_DIR}`);
-    console.log(`[snapshot] Retention: ${RETENTION.daily} daily, ${RETENTION.weekly} weekly, ${RETENTION.monthly} monthly`);
+    console.log(
+      `[snapshot] Retention: ${RETENTION.daily} daily, ${RETENTION.weekly} weekly, ${RETENTION.monthly} monthly`,
+    );
     return;
   }
 
@@ -603,7 +658,7 @@ function main() {
   const result = createSnapshot();
   if (result) {
     applyRetention();
-    console.log('[snapshot] Done.');
+    console.log("[snapshot] Done.");
   }
 }
 

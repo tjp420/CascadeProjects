@@ -17,13 +17,13 @@ on:
   push:
     branches: [main]
     paths:
-      - 'worker-deploy/**'
-      - '.github/workflows/worker-deploy.yml'
+      - "worker-deploy/**"
+      - ".github/workflows/worker-deploy.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'worker-deploy/**'
-      - '.github/workflows/worker-deploy.yml'
+      - "worker-deploy/**"
+      - ".github/workflows/worker-deploy.yml"
 
 permissions:
   contents: read

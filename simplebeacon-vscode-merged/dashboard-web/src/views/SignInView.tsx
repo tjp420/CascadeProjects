@@ -52,14 +52,18 @@ export function SignInView() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               <polyline points="9 12 12 15 16 10" />
             </svg>
           </div>
-          <CardTitle className="text-2xl">
-            {mode === 'signin' ? 'Sign In' : 'Create Account'}
-          </CardTitle>
+          <CardTitle className="text-2xl">{mode === 'signin' ? 'Sign In' : 'Create Account'}</CardTitle>
           <CardDescription>
             {mode === 'signin' ? 'Sign in to your SimpleBeacon account' : 'Register for a free SimpleBeacon account'}
           </CardDescription>
@@ -90,19 +94,19 @@ export function SignInView() {
               {loading ? (
                 <span className="animate-pulse">Loading...</span>
               ) : mode === 'signin' ? (
-                <><LogIn className="h-4 w-4" /> Sign In</>
+                <>
+                  <LogIn className="h-4 w-4" /> Sign In
+                </>
               ) : (
-                <><UserPlus className="h-4 w-4" /> Register</>
+                <>
+                  <UserPlus className="h-4 w-4" /> Register
+                </>
               )}
             </Button>
           </form>
           <Separator className="my-4" />
           <div className="text-center">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}
-            >
+            <Button variant="link" size="sm" onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}>
               {mode === 'signin' ? "Don't have an account? Register" : 'Already have an account? Sign in'}
             </Button>
           </div>

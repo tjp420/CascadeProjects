@@ -2342,7 +2342,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               }));
               totalSizeBytes = modelDetails.reduce((s: number, m: any) => s + (m.sizeBytes || 0), 0);
             }
-          } catch { /* tags may fail on older Ollama */ }
+          } catch {
+            /* tags may fail on older Ollama */
+          }
 
           try {
             const psRes = await fetch(`${normalized}/api/ps`, { signal: AbortSignal.timeout(5000) });
@@ -2358,45 +2360,51 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               }));
               totalVRAMBytes = runningModels.reduce((s: number, m: any) => s + (m.sizeVRAMBytes || 0), 0);
             }
-          } catch { /* /api/ps not available on older Ollama */ }
+          } catch {
+            /* /api/ps not available on older Ollama */
+          }
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          ok,
-          baseUrl: normalized,
-          latencyMs,
-          models,
-          modelCount: models.length,
-          modelDetails,
-          runningModels,
-          runningModelCount: runningModels.length,
-          totalSizeBytes,
-          totalSizeDisplay: formatBytesLocal(totalSizeBytes),
-          totalVRAMBytes,
-          totalVRAMDisplay: formatBytesLocal(totalVRAMBytes),
-          checkedAt: new Date().toISOString(),
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            ok,
+            baseUrl: normalized,
+            latencyMs,
+            models,
+            modelCount: models.length,
+            modelDetails,
+            runningModels,
+            runningModelCount: runningModels.length,
+            totalSizeBytes,
+            totalSizeDisplay: formatBytesLocal(totalSizeBytes),
+            totalVRAMBytes,
+            totalVRAMDisplay: formatBytesLocal(totalVRAMBytes),
+            checkedAt: new Date().toISOString(),
+          })
+        );
       } catch (e) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          ok: false,
-          baseUrl: normalized,
-          latencyMs: Date.now() - startedAt,
-          models: [],
-          modelCount: 0,
-          modelDetails: [],
-          runningModels: [],
-          runningModelCount: 0,
-          totalSizeBytes: 0,
-          totalSizeDisplay: '0 B',
-          totalVRAMBytes: 0,
-          totalVRAMDisplay: '0 B',
-          error: (e as Error).message || 'Ollama unreachable',
-          checkedAt: new Date().toISOString(),
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            ok: false,
+            baseUrl: normalized,
+            latencyMs: Date.now() - startedAt,
+            models: [],
+            modelCount: 0,
+            modelDetails: [],
+            runningModels: [],
+            runningModelCount: 0,
+            totalSizeBytes: 0,
+            totalSizeDisplay: '0 B',
+            totalVRAMBytes: 0,
+            totalVRAMDisplay: '0 B',
+            error: (e as Error).message || 'Ollama unreachable',
+            checkedAt: new Date().toISOString(),
+          })
+        );
       }
       return;
     }
@@ -2404,7 +2412,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Ollama pull (model download) — streams progress to client via NDJSON
     if (parsed.pathname === '/api/simplebeacon/ollama/pull' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2667,10 +2677,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
       if (!scriptPath) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'validate-airgap-deploy.sh not found in workspace',
-          searched: scriptCandidates,
-        }));
+        res.end(
+          JSON.stringify({
+            error: 'validate-airgap-deploy.sh not found in workspace',
+            searched: scriptCandidates,
+          })
+        );
         return;
       }
 
@@ -2708,11 +2720,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
         child.on('error', (err: Error) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'Failed to spawn benchmark process',
-            detail: err.message,
-            hint: isWindows ? 'Ensure Git Bash is available on PATH' : 'Ensure bash is installed',
-          }));
+          res.end(
+            JSON.stringify({
+              error: 'Failed to spawn benchmark process',
+              detail: err.message,
+              hint: isWindows ? 'Ensure Git Bash is available on PATH' : 'Ensure bash is installed',
+            })
+          );
         });
 
         child.on('close', (code: number | null) => {
@@ -2720,13 +2734,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
           if (code !== null && code !== 0) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: `Benchmark script exited with code ${code}`,
-              exitCode: code,
-              elapsed,
-              stderr: stderr.slice(-2000),
-              stdout: stdout.slice(-2000),
-            }));
+            res.end(
+              JSON.stringify({
+                error: `Benchmark script exited with code ${code}`,
+                exitCode: code,
+                elapsed,
+                stderr: stderr.slice(-2000),
+                stdout: stdout.slice(-2000),
+              })
+            );
             return;
           }
 
@@ -2736,11 +2752,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const jsonMatch = stdout.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                error: 'No JSON output found in benchmark script output',
-                stdout: stdout.slice(-4000),
-                stderr: stderr.slice(-2000),
-              }));
+              res.end(
+                JSON.stringify({
+                  error: 'No JSON output found in benchmark script output',
+                  stdout: stdout.slice(-4000),
+                  stderr: stderr.slice(-2000),
+                })
+              );
               return;
             }
 
@@ -2749,39 +2767,48 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
             if (!benchmark) {
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                benchmark: null,
-                message: 'Benchmark completed but no benchmark data in output (may not have --benchmark flag or model missing)',
-                elapsed,
-                exitCode: code,
-                stderr: stderr.slice(-1000),
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  benchmark: null,
+                  message:
+                    'Benchmark completed but no benchmark data in output (may not have --benchmark flag or model missing)',
+                  elapsed,
+                  exitCode: code,
+                  stderr: stderr.slice(-1000),
+                })
+              );
               return;
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              benchmark,
-              elapsed,
-              exitCode: code,
-            }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                benchmark,
+                elapsed,
+                exitCode: code,
+              })
+            );
           } catch (parseErr) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: 'Failed to parse benchmark JSON output',
-              detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
-              stdout: stdout.slice(-4000),
-            }));
+            res.end(
+              JSON.stringify({
+                error: 'Failed to parse benchmark JSON output',
+                detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
+                stdout: stdout.slice(-4000),
+              })
+            );
           }
         });
       } catch (spawnErr) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'Failed to start benchmark process',
-          detail: spawnErr instanceof Error ? spawnErr.message : String(spawnErr),
-        }));
+        res.end(
+          JSON.stringify({
+            error: 'Failed to start benchmark process',
+            detail: spawnErr instanceof Error ? spawnErr.message : String(spawnErr),
+          })
+        );
       }
       return;
     }
@@ -2800,7 +2827,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
       // Read request body for target profile
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         try {
           const data = body ? JSON.parse(body) : {};
@@ -2808,10 +2837,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
           if (!targetProfile || !['minimal', 'balanced', 'maximum'].includes(targetProfile)) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: 'Invalid or missing profile. Must be one of: minimal, balanced, maximum',
-              received: targetProfile,
-            }));
+            res.end(
+              JSON.stringify({
+                error: 'Invalid or missing profile. Must be one of: minimal, balanced, maximum',
+                received: targetProfile,
+              })
+            );
             return;
           }
 
@@ -2821,15 +2852,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             path.join(workspacePath, 'CascadeProjects', 'coming-soon', 'public', 'models', 'memory-profiles.json'),
           ];
           const profilesPath = profilesCandidates.find((p) => {
-            try { return fs.existsSync(p); } catch { return false; }
+            try {
+              return fs.existsSync(p);
+            } catch {
+              return false;
+            }
           });
 
           if (!profilesPath) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: 'memory-profiles.json not found',
-              searched: profilesCandidates,
-            }));
+            res.end(
+              JSON.stringify({
+                error: 'memory-profiles.json not found',
+                searched: profilesCandidates,
+              })
+            );
             return;
           }
 
@@ -2878,10 +2915,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             fs.writeFileSync(envPath, updatedEnv, 'utf-8');
           } catch (writeErr) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: 'Failed to write .env.enterprise',
-              detail: writeErr instanceof Error ? writeErr.message : String(writeErr),
-            }));
+            res.end(
+              JSON.stringify({
+                error: 'Failed to write .env.enterprise',
+                detail: writeErr instanceof Error ? writeErr.message : String(writeErr),
+              })
+            );
             return;
           }
 
@@ -2892,13 +2931,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           try {
             const restartChild = spawn(
               isWindows ? 'docker.exe' : 'docker',
-              [
-                'compose',
-                '-f', composeFile,
-                '--env-file', envPath,
-                'up', '-d',
-                'simplebeacon-ollama',
-              ],
+              ['compose', '-f', composeFile, '--env-file', envPath, 'up', '-d', 'simplebeacon-ollama'],
               {
                 cwd: workspacePath,
                 env: { ...process.env, FORCE_COLOR: '0' },
@@ -2910,26 +2943,33 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             let restartStdout = '';
             let restartStderr = '';
 
-            restartChild.stdout?.on('data', (chunk: Buffer) => { restartStdout += chunk.toString(); });
-            restartChild.stderr?.on('data', (chunk: Buffer) => { restartStderr += chunk.toString(); });
+            restartChild.stdout?.on('data', (chunk: Buffer) => {
+              restartStdout += chunk.toString();
+            });
+            restartChild.stderr?.on('data', (chunk: Buffer) => {
+              restartStderr += chunk.toString();
+            });
 
             restartChild.on('error', (restartErr: Error) => {
               // Docker not available — still return success for env update
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                success: true,
-                profileChanged: true,
-                containerRestarted: false,
-                oldProfile,
-                newProfile: targetProfile,
-                oldNumGpu,
-                newNumGpu: String(newNumGpu),
-                newNumCtx: String(newNumCtx),
-                newQuantization,
-                envUpdated: true,
-                warning: 'Docker not available — .env.enterprise updated but container not restarted. Restart manually with: docker compose -f docker-compose.enterprise.yml --env-file .env.enterprise up -d simplebeacon-ollama',
-                restartError: restartErr.message,
-              }));
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  profileChanged: true,
+                  containerRestarted: false,
+                  oldProfile,
+                  newProfile: targetProfile,
+                  oldNumGpu,
+                  newNumGpu: String(newNumGpu),
+                  newNumCtx: String(newNumCtx),
+                  newQuantization,
+                  envUpdated: true,
+                  warning:
+                    'Docker not available — .env.enterprise updated but container not restarted. Restart manually with: docker compose -f docker-compose.enterprise.yml --env-file .env.enterprise up -d simplebeacon-ollama',
+                  restartError: restartErr.message,
+                })
+              );
             });
 
             restartChild.on('close', (restartCode: number | null) => {
@@ -2958,27 +2998,31 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           } catch (restartSpawnErr) {
             // Docker spawn failed — return success for env update with warning
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              profileChanged: true,
-              containerRestarted: false,
-              oldProfile,
-              newProfile: targetProfile,
-              oldNumGpu,
-              newNumGpu: String(newNumGpu),
-              newNumCtx: String(newNumCtx),
-              newQuantization,
-              envUpdated: true,
-              warning: 'Docker not available — .env.enterprise updated but container not restarted',
-              restartError: restartSpawnErr instanceof Error ? restartSpawnErr.message : String(restartSpawnErr),
-            }));
+            res.end(
+              JSON.stringify({
+                success: true,
+                profileChanged: true,
+                containerRestarted: false,
+                oldProfile,
+                newProfile: targetProfile,
+                oldNumGpu,
+                newNumGpu: String(newNumGpu),
+                newNumCtx: String(newNumCtx),
+                newQuantization,
+                envUpdated: true,
+                warning: 'Docker not available — .env.enterprise updated but container not restarted',
+                restartError: restartSpawnErr instanceof Error ? restartSpawnErr.message : String(restartSpawnErr),
+              })
+            );
           }
         } catch (parseErr) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'Failed to parse request body',
-            detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
-          }));
+          res.end(
+            JSON.stringify({
+              error: 'Failed to parse request body',
+              detail: parseErr instanceof Error ? parseErr.message : String(parseErr),
+            })
+          );
         }
       });
       return;

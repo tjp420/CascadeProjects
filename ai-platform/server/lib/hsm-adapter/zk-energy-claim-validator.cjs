@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 75: ZK Energy Claim Validator.
@@ -14,8 +14,8 @@
  * @module hsm-adapter/zk-energy-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkEnergyClaimValidator {
   /**
@@ -42,62 +42,119 @@ class ZkEnergyClaimValidator {
   verifyEnergyClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('ENERGYCLAIM_HUB_MISSING', 'energy certificate gating hub is required');
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_HUB_MISSING",
+        "energy certificate gating hub is required",
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('ENERGYCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "ENERGYCLAIM_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('ENERGYCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "ENERGYCLAIM_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('ENERGYCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('ENERGYCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkEnergyRangeProofHash || typeof request.zkEnergyRangeProofHash !== 'string') {
+    if (
+      !request.zkEnergyRangeProofHash ||
+      typeof request.zkEnergyRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('ENERGYCLAIM_ZK_PROOF_MISSING', 'zero-knowledge energy range proof hash is required');
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge energy range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('ENERGYCLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('ENERGYCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.certificateExpirationSeconds === 'number' && request.certificateExpirationSeconds > (this.policy.maxCertificateExpirationSeconds || 63072000)) {
+    if (
+      typeof request.certificateExpirationSeconds === "number" &&
+      request.certificateExpirationSeconds >
+        (this.policy.maxCertificateExpirationSeconds || 63072000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('ENERGYCLAIM_CERTIFICATE_EXPIRATION_OUT_OF_BOUNDS', `certificate expiration seconds ${request.certificateExpirationSeconds} exceeds maximum ${this.policy.maxCertificateExpirationSeconds}`);
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_CERTIFICATE_EXPIRATION_OUT_OF_BOUNDS",
+        `certificate expiration seconds ${request.certificateExpirationSeconds} exceeds maximum ${this.policy.maxCertificateExpirationSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('ENERGYCLAIM_DUPLICATE', `energy claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "ENERGYCLAIM_DUPLICATE",
+        `energy claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedGridMetricCommitment: request.blindedGridMetricCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedGridMetricCommitment:
+        request.blindedGridMetricCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkEnergyRangeProofHash: request.zkEnergyRangeProofHash,
-      clearingCommitteeAttestationHash: request.clearingCommitteeAttestationHash || 'unspecified',
+      clearingCommitteeAttestationHash:
+        request.clearingCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markEnergyClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_ENERGY_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_ENERGY_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -125,7 +182,10 @@ class ZkEnergyClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderEnergyClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderEnergyClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -133,10 +193,19 @@ class ZkEnergyClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('ENERGYCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "ENERGYCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('ENERGYCLAIM_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "ENERGYCLAIM_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

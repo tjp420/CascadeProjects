@@ -83,13 +83,16 @@ interface FailoverConfig {
   healthCheckEnabled: boolean;
   healthCheckJitterMs: number;
   cooldownMs: number;
-  providerOverrides: Record<string, {
-    timeoutMs: number | null;
-    failureThreshold: number | null;
-    recoveryTimeoutMs: number | null;
-    latencyThresholdMs: number | null;
-    healthCheckEnabled: boolean | null;
-  }>;
+  providerOverrides: Record<
+    string,
+    {
+      timeoutMs: number | null;
+      failureThreshold: number | null;
+      recoveryTimeoutMs: number | null;
+      latencyThresholdMs: number | null;
+      healthCheckEnabled: boolean | null;
+    }
+  >;
 }
 
 export function ProviderFailoverDashboard() {
@@ -110,7 +113,12 @@ export function ProviderFailoverDashboard() {
   const [latencyOpenThreshold, setLatencyOpenThreshold] = useState('');
   const [latencyOpenConsecutive, setLatencyOpenConsecutive] = useState('');
   const [healthCheckJitter, setHealthCheckJitter] = useState('');
-  const [overrideEdits, setOverrideEdits] = useState<Record<string, { timeoutMs: string; failureThreshold: string; recoveryTimeoutMs: string; latencyThresholdMs: string }>>({});
+  const [overrideEdits, setOverrideEdits] = useState<
+    Record<
+      string,
+      { timeoutMs: string; failureThreshold: string; recoveryTimeoutMs: string; latencyThresholdMs: string }
+    >
+  >({});
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -137,7 +145,10 @@ export function ProviderFailoverDashboard() {
         setLatencyOpenThreshold(String(cfgData.config.latencyOpenThresholdMs || 15000));
         setLatencyOpenConsecutive(String(cfgData.config.latencyOpenConsecutiveCount || 3));
         setHealthCheckJitter(String(cfgData.config.healthCheckJitterMs || 2000));
-        var overrides: Record<string, { timeoutMs: string; failureThreshold: string; recoveryTimeoutMs: string; latencyThresholdMs: string }> = {};
+        var overrides: Record<
+          string,
+          { timeoutMs: string; failureThreshold: string; recoveryTimeoutMs: string; latencyThresholdMs: string }
+        > = {};
         var provList = provData.providers || [];
         for (var i = 0; i < provList.length; i++) {
           var p = provList[i];
@@ -166,23 +177,43 @@ export function ProviderFailoverDashboard() {
   const resetCircuit = async (id: string) => {
     setResetting(id);
     try {
-      const resp = await fetch(apiUrl(`/provider-failover/providers/${id}/reset`), { method: 'POST', headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/provider-failover/providers/${id}/reset`), {
+        method: 'POST',
+        headers: authHeaders(),
+      });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Reset failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Reset failed');
+        return;
+      }
       toast.success(`${id} circuit reset to closed`);
       fetchAll();
-    } catch { toast.error('Reset failed'); } finally { setResetting(null); }
+    } catch {
+      toast.error('Reset failed');
+    } finally {
+      setResetting(null);
+    }
   };
 
   const resetAllCircuits = async () => {
     setResettingAll(true);
     try {
-      const resp = await fetch(apiUrl('/provider-failover/providers/reset-all'), { method: 'POST', headers: authHeaders() });
+      const resp = await fetch(apiUrl('/provider-failover/providers/reset-all'), {
+        method: 'POST',
+        headers: authHeaders(),
+      });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Reset all failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Reset all failed');
+        return;
+      }
       toast.success('All circuits reset');
       fetchAll();
-    } catch { toast.error('Reset all failed'); } finally { setResettingAll(false); }
+    } catch {
+      toast.error('Reset all failed');
+    } finally {
+      setResettingAll(false);
+    }
   };
 
   const runHealthCheck = async () => {
@@ -190,10 +221,17 @@ export function ProviderFailoverDashboard() {
     try {
       const resp = await fetch(apiUrl('/provider-failover/health-check'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Health check failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Health check failed');
+        return;
+      }
       toast.success('Health checks complete');
       fetchAll();
-    } catch { toast.error('Health check failed'); } finally { setHealthChecking(false); }
+    } catch {
+      toast.error('Health check failed');
+    } finally {
+      setHealthChecking(false);
+    }
   };
 
   const saveConfig = async () => {
@@ -203,7 +241,10 @@ export function ProviderFailoverDashboard() {
         method: 'PUT',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          failoverChain: chainText.split(',').map((s) => s.trim()).filter(Boolean),
+          failoverChain: chainText
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
           circuitBreaker: {
             failureThreshold: parseInt(failureThreshold, 10) || 5,
             recoveryTimeoutMs: (parseInt(recoveryTimeout, 10) || 60) * 1000,
@@ -215,10 +256,17 @@ export function ProviderFailoverDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Failed to save config'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to save config');
+        return;
+      }
       toast.success('Config saved');
       setConfig(data.config);
-    } catch { toast.error('Failed to save config'); } finally { setSaving(false); }
+    } catch {
+      toast.error('Failed to save config');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleEnabled = async () => {
@@ -231,7 +279,9 @@ export function ProviderFailoverDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const toggleHealthCheck = async () => {
@@ -244,7 +294,9 @@ export function ProviderFailoverDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const toggleLatencyOpen = async () => {
@@ -257,7 +309,9 @@ export function ProviderFailoverDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const saveOverride = async (providerId: string) => {
@@ -275,33 +329,53 @@ export function ProviderFailoverDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error(`Failed to save ${providerId} override`); return; }
+      if (!resp.ok || !data.success) {
+        toast.error(`Failed to save ${providerId} override`);
+        return;
+      }
       toast.success(`${providerId} override saved`);
-    } catch { toast.error('Failed to save override'); }
+    } catch {
+      toast.error('Failed to save override');
+    }
   };
 
   const resetConfig = async () => {
     try {
       const resp = await fetch(apiUrl('/provider-failover/config/reset'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Config reset'); fetchAll(); }
-    } catch { toast.error('Failed to reset'); }
+      if (data.success) {
+        toast.success('Config reset');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to reset');
+    }
   };
 
   const clearEvents = async () => {
     try {
       const resp = await fetch(apiUrl('/provider-failover/events/clear'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Events cleared'); fetchAll(); }
-    } catch { toast.error('Failed to clear'); }
+      if (data.success) {
+        toast.success('Events cleared');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to clear');
+    }
   };
 
   const resetStats = async () => {
     try {
       const resp = await fetch(apiUrl('/provider-failover/stats/reset'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Stats reset'); fetchAll(); }
-    } catch { toast.error('Failed to reset'); }
+      if (data.success) {
+        toast.success('Stats reset');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to reset');
+    }
   };
 
   const circuitColor = (state: string) => {
@@ -318,8 +392,16 @@ export function ProviderFailoverDashboard() {
 
   const formatTime = (ts: string | null) => {
     if (!ts) return 'ΓÇö';
-    try { return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return ts; }
+    try {
+      return new Date(ts).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return ts;
+    }
   };
 
   if (loading && !stats) {
@@ -344,20 +426,26 @@ export function ProviderFailoverDashboard() {
                 <Server className="h-5 w-5 text-primary" />
                 Multi-Region Provider Failover & Circuit Breaker
               </CardTitle>
-              <CardDescription>
-                High-availability state machine for dynamic provider re-routing
-              </CardDescription>
+              <CardDescription>High-availability state machine for dynamic provider re-routing</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={fetchAll}>
                 <RefreshCw className="h-3.5 w-3.5" /> Refresh
               </Button>
               <Button variant="outline" size="sm" onClick={runHealthCheck} disabled={healthChecking}>
-                {healthChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <HeartPulse className="h-3.5 w-3.5" />}
+                {healthChecking ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <HeartPulse className="h-3.5 w-3.5" />
+                )}
                 Health Check
               </Button>
               <Button variant="outline" size="sm" onClick={resetAllCircuits} disabled={resettingAll}>
-                {resettingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                {resettingAll ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
+                )}
                 Reset All
               </Button>
             </div>
@@ -370,7 +458,9 @@ export function ProviderFailoverDashboard() {
                 <ShieldCheck className="h-4 w-4 text-green-600" />
                 <p className="text-xs text-foreground-muted">Healthy Providers</p>
               </div>
-              <p className="text-lg font-semibold">{stats?.healthyProviders ?? 0}/{stats?.totalProviders ?? 0}</p>
+              <p className="text-lg font-semibold">
+                {stats?.healthyProviders ?? 0}/{stats?.totalProviders ?? 0}
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
@@ -425,11 +515,17 @@ export function ProviderFailoverDashboard() {
                     </Badge>
                   </div>
                   <Button
-                    variant="outline" size="sm" className="h-6 text-[10px]"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px]"
                     onClick={() => resetCircuit(prov.providerId)}
                     disabled={resetting === prov.providerId}
                   >
-                    {resetting === prov.providerId ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    {resetting === prov.providerId ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3" />
+                    )}
                     Reset
                   </Button>
                 </div>
@@ -456,9 +552,7 @@ export function ProviderFailoverDashboard() {
                     <span className="text-yellow-600">High latency streak: {prov.consecutiveHighLatency}</span>
                   )}
                 </div>
-                {prov.openedAt && (
-                  <div className="text-[10px] text-red-600">Opened: {formatTime(prov.openedAt)}</div>
-                )}
+                {prov.openedAt && <div className="text-[10px] text-red-600">Opened: {formatTime(prov.openedAt)}</div>}
                 {/* Per-provider override controls */}
                 <div className="border-t border-border/50 pt-2 space-y-1">
                   <p className="text-[10px] font-medium text-foreground-muted">Per-provider calibration</p>
@@ -467,44 +561,68 @@ export function ProviderFailoverDashboard() {
                       <label className="text-[9px] text-foreground-muted">Ping timeout (ms)</label>
                       <Input
                         value={overrideEdits[prov.providerId]?.timeoutMs || ''}
-                        onChange={(e) => setOverrideEdits({
-                          ...overrideEdits,
-                          [prov.providerId]: { ...overrideEdits[prov.providerId], timeoutMs: e.target.value },
-                        })}
-                        type="number" className="text-[10px] h-6" />
+                        onChange={(e) =>
+                          setOverrideEdits({
+                            ...overrideEdits,
+                            [prov.providerId]: { ...overrideEdits[prov.providerId], timeoutMs: e.target.value },
+                          })
+                        }
+                        type="number"
+                        className="text-[10px] h-6"
+                      />
                     </div>
                     <div>
                       <label className="text-[9px] text-foreground-muted">Fail threshold</label>
                       <Input
                         value={overrideEdits[prov.providerId]?.failureThreshold || ''}
-                        onChange={(e) => setOverrideEdits({
-                          ...overrideEdits,
-                          [prov.providerId]: { ...overrideEdits[prov.providerId], failureThreshold: e.target.value },
-                        })}
-                        type="number" className="text-[10px] h-6" />
+                        onChange={(e) =>
+                          setOverrideEdits({
+                            ...overrideEdits,
+                            [prov.providerId]: { ...overrideEdits[prov.providerId], failureThreshold: e.target.value },
+                          })
+                        }
+                        type="number"
+                        className="text-[10px] h-6"
+                      />
                     </div>
                     <div>
                       <label className="text-[9px] text-foreground-muted">Recovery (s)</label>
                       <Input
                         value={overrideEdits[prov.providerId]?.recoveryTimeoutMs || ''}
-                        onChange={(e) => setOverrideEdits({
-                          ...overrideEdits,
-                          [prov.providerId]: { ...overrideEdits[prov.providerId], recoveryTimeoutMs: e.target.value },
-                        })}
-                        type="number" className="text-[10px] h-6" />
+                        onChange={(e) =>
+                          setOverrideEdits({
+                            ...overrideEdits,
+                            [prov.providerId]: { ...overrideEdits[prov.providerId], recoveryTimeoutMs: e.target.value },
+                          })
+                        }
+                        type="number"
+                        className="text-[10px] h-6"
+                      />
                     </div>
                     <div>
                       <label className="text-[9px] text-foreground-muted">Latency threshold (ms)</label>
                       <Input
                         value={overrideEdits[prov.providerId]?.latencyThresholdMs || ''}
-                        onChange={(e) => setOverrideEdits({
-                          ...overrideEdits,
-                          [prov.providerId]: { ...overrideEdits[prov.providerId], latencyThresholdMs: e.target.value },
-                        })}
-                        type="number" className="text-[10px] h-6" />
+                        onChange={(e) =>
+                          setOverrideEdits({
+                            ...overrideEdits,
+                            [prov.providerId]: {
+                              ...overrideEdits[prov.providerId],
+                              latencyThresholdMs: e.target.value,
+                            },
+                          })
+                        }
+                        type="number"
+                        className="text-[10px] h-6"
+                      />
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="h-5 text-[9px] w-full" onClick={() => saveOverride(prov.providerId)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-5 text-[9px] w-full"
+                    onClick={() => saveOverride(prov.providerId)}
+                  >
                     <Save className="h-2.5 w-2.5" /> Save Override
                   </Button>
                 </div>
@@ -545,29 +663,59 @@ export function ProviderFailoverDashboard() {
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="text-xs text-foreground-muted">Failure threshold</label>
-                <Input value={failureThreshold} onChange={(e) => setFailureThreshold(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={failureThreshold}
+                  onChange={(e) => setFailureThreshold(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Recovery (seconds)</label>
-                <Input value={recoveryTimeout} onChange={(e) => setRecoveryTimeout(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={recoveryTimeout}
+                  onChange={(e) => setRecoveryTimeout(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Latency threshold (ms)</label>
-                <Input value={latencyThreshold} onChange={(e) => setLatencyThreshold(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={latencyThreshold}
+                  onChange={(e) => setLatencyThreshold(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="text-xs text-foreground-muted">Latency open threshold (ms)</label>
-                <Input value={latencyOpenThreshold} onChange={(e) => setLatencyOpenThreshold(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={latencyOpenThreshold}
+                  onChange={(e) => setLatencyOpenThreshold(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Latency open consecutive</label>
-                <Input value={latencyOpenConsecutive} onChange={(e) => setLatencyOpenConsecutive(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={latencyOpenConsecutive}
+                  onChange={(e) => setLatencyOpenConsecutive(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Health check jitter (ms)</label>
-                <Input value={healthCheckJitter} onChange={(e) => setHealthCheckJitter(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={healthCheckJitter}
+                  onChange={(e) => setHealthCheckJitter(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
             </div>
             <Button variant="default" size="sm" onClick={saveConfig} disabled={saving}>
@@ -600,9 +748,13 @@ export function ProviderFailoverDashboard() {
               {events.map((evt) => (
                 <div key={evt.id} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="warning" className="text-[10px]">Failover</Badge>
+                    <Badge variant="warning" className="text-[10px]">
+                      Failover
+                    </Badge>
                     <span className="font-mono text-foreground-muted">{formatTime(evt.timestamp)}</span>
-                    <span><b>{evt.fromProvider}</b> ΓåÆ <b>{evt.toProvider}</b></span>
+                    <span>
+                      <b>{evt.fromProvider}</b> ΓåÆ <b>{evt.toProvider}</b>
+                    </span>
                     <span className="text-foreground-muted">({evt.reason})</span>
                   </div>
                   <div className="text-[10px] text-foreground-muted">

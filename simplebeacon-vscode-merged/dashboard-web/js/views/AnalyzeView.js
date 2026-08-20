@@ -1,13 +1,33 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import {
+  escapeHtml,
+  showToast,
+  downloadJson,
+  downloadBlob,
+  downloadText,
+  redactPathForDisplay,
+  formatPathLabel,
+  formatPathInputValue,
+  formatAiSummarySkipMessage,
+  isRedactedPathDisplay,
+  formatNumber,
+  renderEmptyState,
+} from '../utils.js';
 import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260716cachefix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import {
-  probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus,
-  getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions,
-  getAgentFallbackMessage
+  probeAgent,
+  scanViaAgent,
+  shouldUseAgent,
+  isLocalPath,
+  formatAgentStatus,
+  getAgentDownloadUrl,
+  detectPlatform,
+  getPlatformLabel,
+  getInstallInstructions,
+  getAgentFallbackMessage,
 } from '../services/localAgentService.js?v=20260716cachefix1';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
@@ -57,7 +77,7 @@ import {
   prepareGithubRepo,
   fetchAnalyzeTestSources,
   isAnalyzeProviderConfigured,
-  uploadDirectoryAndAnalyze
+  uploadDirectoryAndAnalyze,
 } from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
@@ -68,34 +88,44 @@ import {
   renderPathSuggestionsDatalistElement,
   saveRecentPath,
   removeRecentPath,
-  loadRecentPaths
+  loadRecentPaths,
 } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
-import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260716cachefix1';
+import {
+  renderModeFileScopePanel,
+  extractRoadmapFileMetrics,
+} from '../utils/analyze-mode-file-scope.browser.js?v=20260716cachefix1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260716cachefix1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import {
   AI_SYSTEM_ISSUES,
   ANALYZER_CATALOG,
   groupIssuesByCategory,
-  buildAiSystemsIssueAnalysis
+  buildAiSystemsIssueAnalysis,
 } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
-import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260716cachefix1';
+import {
+  renderDataCleanupPanel,
+  buildDataCleanupConclusion,
+} from '../components/DataCleanupReport.js?v=20260716cachefix1';
 import {
   buildCompleteScanAnalysis,
   renderCompleteScanAnalysisPanel,
   formatCompleteScanBytes,
   sanitizeCompleteScanBundle,
   sanitizeConsolidationExport,
-  sanitizeRoadmapExport
+  sanitizeRoadmapExport,
 } from '../utils/completeScanAnalysis.js?v=20260716cachefix1';
 import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260716cachefix1';
-import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260716cachefix1';
+import {
+  sanitizeComplianceBundleExport,
+  reconcileComplianceWithGate,
+  pickFreshGateReport,
+} from '../utils/compliance-export.browser.js?v=20260716cachefix1';
 import {
   buildCleanupAssistantBrief,
   buildCleanupBriefFromLastResult,
@@ -105,7 +135,7 @@ import {
   loadCleanupPolicy,
   saveCleanupPolicy,
   readCleanupPolicyFromDom,
-  renderCleanupAssistantPanel
+  renderCleanupAssistantPanel,
 } from '../utils/cleanupAssistant.js?v=20260716cachefix1';
 import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260716cachefix1';
 import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260716cachefix1';
@@ -113,7 +143,7 @@ import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.j
 import {
   sanitizeAiProblemAnalyzerExport,
   aiProblemAnalyzerExportFilename,
-  buildAiProblemAnalyzerCsv
+  buildAiProblemAnalyzerCsv,
 } from '../utils/ai-problem-analyzer-export.browser.js?v=20260716cachefix1';
 import { renderCodebasePanel, buildCodebaseConclusion } from '../components/CodebaseReport.js';
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
@@ -133,10 +163,11 @@ import {
   scanSnippetText,
   computeThreatScore,
   redactMatch,
-  severityLabel
+  severityLabel,
 } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
 
-const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
+const SNIPPET_ACCEPT =
+  '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 
 /**
  * Read hash query param.
@@ -144,7 +175,7 @@ const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.t
  * @returns {any}
  */
 function readHashQueryParam(name) {
-  const hash = typeof window !== 'undefined' ? (window.location.hash || '') : '';
+  const hash = typeof window !== 'undefined' ? window.location.hash || '' : '';
   const qIndex = hash.indexOf('?');
   if (qIndex === -1) return '';
   return new URLSearchParams(hash.slice(qIndex + 1)).get(name) || '';
@@ -207,102 +238,434 @@ function analysisTypeSupportsUnderstanding(type) {
 // File location: ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js
 const COMPLETE_STEPS = [
   // Core scans
-  { id: 'simplebeacon', label: 'Simplebeacon gate', category: 'Core Scans', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.' },
-  { id: 'consolidation', label: 'Data consolidation', category: 'Core Scans', desc: 'Duplicate file groups && monorepo markers.' },
-  { id: 'mock-scan', label: 'Fiction & KPI digest', category: 'Core Scans', desc: 'Fixture, sample, && test-data files.' },
-  { id: 'roadmap', label: 'Roadmap generation', category: 'Core Scans', desc: 'Task, fix, workaround, && bug markers in code.' },
-  { id: 'codebase', label: 'Codebase analysis', category: 'Core Scans', desc: 'File type breakdown, line counts, && structure.' },
-  { id: 'file-reduction', label: 'File reduction', category: 'Core Scans', desc: 'Unused image assets, duplicate content, && directory bloat.' },
+  {
+    id: 'simplebeacon',
+    label: 'Simplebeacon gate',
+    category: 'Core Scans',
+    desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.',
+  },
+  {
+    id: 'consolidation',
+    label: 'Data consolidation',
+    category: 'Core Scans',
+    desc: 'Duplicate file groups && monorepo markers.',
+  },
+  {
+    id: 'mock-scan',
+    label: 'Fiction & KPI digest',
+    category: 'Core Scans',
+    desc: 'Fixture, sample, && test-data files.',
+  },
+  {
+    id: 'roadmap',
+    label: 'Roadmap generation',
+    category: 'Core Scans',
+    desc: 'Task, fix, workaround, && bug markers in code.',
+  },
+  {
+    id: 'codebase',
+    label: 'Codebase analysis',
+    category: 'Core Scans',
+    desc: 'File type breakdown, line counts, && structure.',
+  },
+  {
+    id: 'file-reduction',
+    label: 'File reduction',
+    category: 'Core Scans',
+    desc: 'Unused image assets, duplicate content, && directory bloat.',
+  },
   { id: 'data-quality', label: 'Data quality', category: 'Core Scans', desc: 'Empty || trivial JSON files.' },
-  { id: 'cleanup-assistant', label: 'Cleanup assistant', category: 'Core Scans', desc: 'Debug artifacts: console.log, debugger, open items.' },
+  {
+    id: 'cleanup-assistant',
+    label: 'Cleanup assistant',
+    category: 'Core Scans',
+    desc: 'Debug artifacts: console.log, debugger, open items.',
+  },
   { id: 'npm-audit', label: 'npm audit', category: 'Core Scans', desc: 'Package.json files && dependency counts.' },
-  { id: 'compliance', label: 'Compliance checklist', category: 'Core Scans', desc: 'License, security, && governance files.' },
+  {
+    id: 'compliance',
+    label: 'Compliance checklist',
+    category: 'Core Scans',
+    desc: 'License, security, && governance files.',
+  },
   // Security
-  { id: 'dependency-vulns', label: 'Dependency Vulns', category: 'Security', desc: 'CVE && outdated dependency audit.' },
-  { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.' },
-  { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
-  { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
-  { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev'+'al(), new Function(), dynamic code execution risks.' },
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+  {
+    id: 'dependency-vulns',
+    label: 'Dependency Vulns',
+    category: 'Security',
+    desc: 'CVE && outdated dependency audit.',
+  },
+  {
+    id: 'sensitive-data',
+    label: 'Sensitive Data',
+    category: 'Security',
+    desc: 'PII patterns, email/phone/SSN in source.',
+  },
+  {
+    id: 'security-headers',
+    label: 'Security Headers',
+    category: 'Security',
+    desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.',
+  },
+  {
+    id: 'config-drift',
+    label: 'Config Drift',
+    category: 'Security',
+    desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.',
+  },
+  {
+    id: 'eval-danger',
+    label: 'Eval Danger',
+    category: 'Security',
+    desc: 'ev' + 'al(), new Function(), dynamic code execution risks.',
+  },
+  // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
   { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
-  { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
-  { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
-  { id: 'missing-rate-limit', label: 'Missing Rate Limit', category: 'Security', desc: 'API endpoints without rate limiting.' },
-  { id: 'insecure-random', label: 'Insecure Random', category: 'Security', desc: 'Math.random() used for security purposes.' },
-  { id: 'logging-secrets', label: 'Logging Secrets', category: 'Security', desc: 'Passwords, tokens, or secrets written to logs.' },
+  {
+    id: 'prototype-pollution',
+    label: 'Prototype Pollution',
+    category: 'Security',
+    desc: 'Object.prototype or __proto__ modification risks.',
+  },
+  {
+    id: 'unvalidated-redirect',
+    label: 'Unvalidated Redirect',
+    category: 'Security',
+    desc: 'Open redirect vulnerabilities.',
+  },
+  {
+    id: 'missing-rate-limit',
+    label: 'Missing Rate Limit',
+    category: 'Security',
+    desc: 'API endpoints without rate limiting.',
+  },
+  {
+    id: 'insecure-random',
+    label: 'Insecure Random',
+    category: 'Security',
+    desc: 'Math.random() used for security purposes.',
+  },
+  {
+    id: 'logging-secrets',
+    label: 'Logging Secrets',
+    category: 'Security',
+    desc: 'Passwords, tokens, or secrets written to logs.',
+  },
   // AI & LLM
-  { id: 'ai-indicators', label: 'AI System Indicators', category: 'AI & LLM', desc: 'AI/LLM SDK imports && model inference patterns.' },
-  { id: 'ai-residue', label: 'AI Residue', category: 'AI & LLM', desc: 'Hallucinated imports, stub implementations, error swallowing.' },
-  { id: 'llm-slop', label: 'LLM Slop', category: 'AI & LLM', desc: 'Placeholder debris, markdown code fences leaked into source.' },
+  {
+    id: 'ai-indicators',
+    label: 'AI System Indicators',
+    category: 'AI & LLM',
+    desc: 'AI/LLM SDK imports && model inference patterns.',
+  },
+  {
+    id: 'ai-residue',
+    label: 'AI Residue',
+    category: 'AI & LLM',
+    desc: 'Hallucinated imports, stub implementations, error swallowing.',
+  },
+  {
+    id: 'llm-slop',
+    label: 'LLM Slop',
+    category: 'AI & LLM',
+    desc: 'Placeholder debris, markdown code fences leaked into source.',
+  },
   { id: 'token-bleed', label: 'Token Bleed', category: 'AI & LLM', desc: 'LLM API calls without max_tokens limits.' },
-  { id: 'ai-placeholder-comment', label: 'AI Placeholder', category: 'AI & LLM', desc: 'Placeholder comments generated by AI.' },
-  { id: 'ai-placeholder-block', label: 'AI Placeholder Block', category: 'AI & LLM', desc: 'Block comments with AI placeholder text.' },
-  { id: 'markdown-fence-leak', label: 'Markdown Fence Leak', category: 'AI & LLM', desc: 'Markdown code fences (```) leaked into source files.' },
-  { id: 'empty-stub-function', label: 'Empty Stub', category: 'AI & LLM', desc: 'Empty function bodies — likely AI-generated stubs.' },
+  {
+    id: 'ai-placeholder-comment',
+    label: 'AI Placeholder',
+    category: 'AI & LLM',
+    desc: 'Placeholder comments generated by AI.',
+  },
+  {
+    id: 'ai-placeholder-block',
+    label: 'AI Placeholder Block',
+    category: 'AI & LLM',
+    desc: 'Block comments with AI placeholder text.',
+  },
+  {
+    id: 'markdown-fence-leak',
+    label: 'Markdown Fence Leak',
+    category: 'AI & LLM',
+    desc: 'Markdown code fences (```) leaked into source files.',
+  },
+  {
+    id: 'empty-stub-function',
+    label: 'Empty Stub',
+    category: 'AI & LLM',
+    desc: 'Empty function bodies — likely AI-generated stubs.',
+  },
   { id: 'arrow-stub', label: 'Arrow Stub', category: 'AI & LLM', desc: 'Arrow functions returning empty objects.' },
-  { id: 'fiction-kpi', label: 'Fiction KPI', category: 'AI & LLM', desc: 'Hardcoded metrics, completion rates, fabricated scores.' },
-  { id: 'hardcoded-confidence', label: 'Hardcoded Confidence', category: 'AI & LLM', desc: 'Static confidence scores that should be dynamic.' },
-  { id: 'hardcoded-completion', label: 'Hardcoded Completion', category: 'AI & LLM', desc: 'Static completion rates that should be real metrics.' },
+  {
+    id: 'fiction-kpi',
+    label: 'Fiction KPI',
+    category: 'AI & LLM',
+    desc: 'Hardcoded metrics, completion rates, fabricated scores.',
+  },
+  {
+    id: 'hardcoded-confidence',
+    label: 'Hardcoded Confidence',
+    category: 'AI & LLM',
+    desc: 'Static confidence scores that should be dynamic.',
+  },
+  {
+    id: 'hardcoded-completion',
+    label: 'Hardcoded Completion',
+    category: 'AI & LLM',
+    desc: 'Static completion rates that should be real metrics.',
+  },
   // Code Quality
-  { id: 'performance', label: 'Performance', category: 'Code Quality', desc: 'Nested loops, memory leaks, event listener leaks.' },
-  { id: 'type-safety', label: 'Type Safety', category: 'Code Quality', desc: 'any types, missing PropTypes, runtime typeof checks.' },
-  { id: 'documentation', label: 'Documentation', category: 'Code Quality', desc: 'Missing JSDoc, undocumented public functions.' },
-  { id: 'test-coverage', label: 'Test Coverage', category: 'Code Quality', desc: 'Source files without tests, empty test files.' },
-  { id: 'complexity', label: 'Complexity Metrics', category: 'Code Quality', desc: 'Over-long functions, bloated files, deep nesting.' },
-  { id: 'magic-number', label: 'Magic Numbers', category: 'Code Quality', desc: 'Hardcoded numeric literals that should be constants.' },
-  { id: 'missing-strict-mode', label: 'Missing Strict Mode', category: 'Code Quality', desc: "Files without 'use strict' — implicit globals risk." },
-  { id: 'uninitialized-read', label: 'Uninitialized Read', category: 'Code Quality', desc: 'Variables used before assignment.' },
-  { id: 'unhandled-promise', label: 'Unhandled Promise', category: 'Code Quality', desc: 'Promise chains missing .catch() error handlers.' },
-  { id: 'sync-io', label: 'Sync I/O', category: 'Code Quality', desc: 'Synchronous fs operations that block the event loop.' },
+  {
+    id: 'performance',
+    label: 'Performance',
+    category: 'Code Quality',
+    desc: 'Nested loops, memory leaks, event listener leaks.',
+  },
+  {
+    id: 'type-safety',
+    label: 'Type Safety',
+    category: 'Code Quality',
+    desc: 'any types, missing PropTypes, runtime typeof checks.',
+  },
+  {
+    id: 'documentation',
+    label: 'Documentation',
+    category: 'Code Quality',
+    desc: 'Missing JSDoc, undocumented public functions.',
+  },
+  {
+    id: 'test-coverage',
+    label: 'Test Coverage',
+    category: 'Code Quality',
+    desc: 'Source files without tests, empty test files.',
+  },
+  {
+    id: 'complexity',
+    label: 'Complexity Metrics',
+    category: 'Code Quality',
+    desc: 'Over-long functions, bloated files, deep nesting.',
+  },
+  {
+    id: 'magic-number',
+    label: 'Magic Numbers',
+    category: 'Code Quality',
+    desc: 'Hardcoded numeric literals that should be constants.',
+  },
+  {
+    id: 'missing-strict-mode',
+    label: 'Missing Strict Mode',
+    category: 'Code Quality',
+    desc: "Files without 'use strict' — implicit globals risk.",
+  },
+  {
+    id: 'uninitialized-read',
+    label: 'Uninitialized Read',
+    category: 'Code Quality',
+    desc: 'Variables used before assignment.',
+  },
+  {
+    id: 'unhandled-promise',
+    label: 'Unhandled Promise',
+    category: 'Code Quality',
+    desc: 'Promise chains missing .catch() error handlers.',
+  },
+  {
+    id: 'sync-io',
+    label: 'Sync I/O',
+    category: 'Code Quality',
+    desc: 'Synchronous fs operations that block the event loop.',
+  },
   // Architecture
-  { id: 'build-readiness', label: 'Build Readiness', category: 'Architecture', desc: 'Missing files, configs, scripts, deploy blockers.' },
-  { id: 'governance', label: 'License & Governance', category: 'Architecture', desc: 'License headers, copyright notices, governance markers.' },
-  { id: 'junk-files', label: 'Junk & Temp Files', category: 'Architecture', desc: 'OS/editor artifacts, backup files, caches.' },
-  { id: 'removable-files', label: 'Removable Files', category: 'Architecture', desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.' },
-  { id: 'database-patterns', label: 'Database Patterns', category: 'Architecture', desc: 'Raw SQL concatenation, missing limits, unindexed queries.' },
-  { id: 'framework-practices', label: 'Framework Practices', category: 'Architecture', desc: 'React hook misuse, Vue Options API in Vue 3.' },
-  { id: 'workspace-health', label: 'Workspace Health', category: 'Architecture', desc: 'Circular imports, mismatched dependency versions.' },
-  { id: 'unused-deps', label: 'Unused Dependencies', category: 'Architecture', desc: 'Packages in package.json with no import references.' },
-  { id: 'api-contract', label: 'API Contract', category: 'Architecture', desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.' },
-  { id: 'production-leak', label: 'Production Leak', category: 'Architecture', desc: 'Mock/fixture/sample data paths in production code.' },
-  { id: 'mock-path-leak', label: 'Mock Path Leak', category: 'Architecture', desc: 'Mock/fixture paths referenced in production code.' },
-  { id: 'sample-json-ref', label: 'Sample JSON Ref', category: 'Architecture', desc: 'Sample JSON files referenced in production code.' },
-  { id: 'architecture-drift', label: 'Architecture Drift', category: 'Architecture', desc: 'Hybrid/SSM model identifiers without schema validators.' },
-  { id: 'roadmap-marker', label: 'Roadmap Marker', category: 'Architecture', desc: 'Unresolved HACK/XXX/WORKAROUND markers.' },
-  { id: 'fix-preview', label: 'Fix Preview', category: 'Architecture', desc: 'Before/after code diffs with copyable patches.' },
+  {
+    id: 'build-readiness',
+    label: 'Build Readiness',
+    category: 'Architecture',
+    desc: 'Missing files, configs, scripts, deploy blockers.',
+  },
+  {
+    id: 'governance',
+    label: 'License & Governance',
+    category: 'Architecture',
+    desc: 'License headers, copyright notices, governance markers.',
+  },
+  {
+    id: 'junk-files',
+    label: 'Junk & Temp Files',
+    category: 'Architecture',
+    desc: 'OS/editor artifacts, backup files, caches.',
+  },
+  {
+    id: 'removable-files',
+    label: 'Removable Files',
+    category: 'Architecture',
+    desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.',
+  },
+  {
+    id: 'database-patterns',
+    label: 'Database Patterns',
+    category: 'Architecture',
+    desc: 'Raw SQL concatenation, missing limits, unindexed queries.',
+  },
+  {
+    id: 'framework-practices',
+    label: 'Framework Practices',
+    category: 'Architecture',
+    desc: 'React hook misuse, Vue Options API in Vue 3.',
+  },
+  {
+    id: 'workspace-health',
+    label: 'Workspace Health',
+    category: 'Architecture',
+    desc: 'Circular imports, mismatched dependency versions.',
+  },
+  {
+    id: 'unused-deps',
+    label: 'Unused Dependencies',
+    category: 'Architecture',
+    desc: 'Packages in package.json with no import references.',
+  },
+  {
+    id: 'api-contract',
+    label: 'API Contract',
+    category: 'Architecture',
+    desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.',
+  },
+  {
+    id: 'production-leak',
+    label: 'Production Leak',
+    category: 'Architecture',
+    desc: 'Mock/fixture/sample data paths in production code.',
+  },
+  {
+    id: 'mock-path-leak',
+    label: 'Mock Path Leak',
+    category: 'Architecture',
+    desc: 'Mock/fixture paths referenced in production code.',
+  },
+  {
+    id: 'sample-json-ref',
+    label: 'Sample JSON Ref',
+    category: 'Architecture',
+    desc: 'Sample JSON files referenced in production code.',
+  },
+  {
+    id: 'architecture-drift',
+    label: 'Architecture Drift',
+    category: 'Architecture',
+    desc: 'Hybrid/SSM model identifiers without schema validators.',
+  },
+  {
+    id: 'roadmap-marker',
+    label: 'Roadmap Marker',
+    category: 'Architecture',
+    desc: 'Unresolved HACK/XXX/WORKAROUND markers.',
+  },
+  {
+    id: 'fix-preview',
+    label: 'Fix Preview',
+    category: 'Architecture',
+    desc: 'Before/after code diffs with copyable patches.',
+  },
   // UX & Accessibility
-  { id: 'accessibility', label: 'Accessibility', category: 'UX & Accessibility', desc: 'Missing alt text, unlabeled inputs, color-only indicators.' },
-  { id: 'i18n', label: 'i18n Readiness', category: 'UX & Accessibility', desc: 'Hardcoded UI strings, locale-ignorant formatting.' },
-  { id: 'governance-marker', label: 'Governance Marker', category: 'UX & Accessibility', desc: 'License and copyright markers for open-source compliance.' }
+  {
+    id: 'accessibility',
+    label: 'Accessibility',
+    category: 'UX & Accessibility',
+    desc: 'Missing alt text, unlabeled inputs, color-only indicators.',
+  },
+  {
+    id: 'i18n',
+    label: 'i18n Readiness',
+    category: 'UX & Accessibility',
+    desc: 'Hardcoded UI strings, locale-ignorant formatting.',
+  },
+  {
+    id: 'governance-marker',
+    label: 'Governance Marker',
+    category: 'UX & Accessibility',
+    desc: 'License and copyright markers for open-source compliance.',
+  },
 ];
 
 const OPTIONAL_COMPLETE_ENGINES = [
-  { id: 'eu-ai-act', label: 'EU AI Act sprint', hint: 'Regulatory — not included in ZIP unless checked and completed' }
+  { id: 'eu-ai-act', label: 'EU AI Act sprint', hint: 'Regulatory — not included in ZIP unless checked and completed' },
 ];
 
-const COMPLETE_ENGINE_ORDER = [...COMPLETE_STEPS.map((step) => step.id), ...OPTIONAL_COMPLETE_ENGINES.map((step) => step.id)];
+const COMPLETE_ENGINE_ORDER = [
+  ...COMPLETE_STEPS.map((step) => step.id),
+  ...OPTIONAL_COMPLETE_ENGINES.map((step) => step.id),
+];
 
 const CORE_ENGINE_IDS = new Set([
-  'simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase',
-  'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit',
-  'compliance', 'eu-ai-act'
+  'simplebeacon',
+  'consolidation',
+  'mock-scan',
+  'roadmap',
+  'codebase',
+  'file-reduction',
+  'data-quality',
+  'cleanup-assistant',
+  'npm-audit',
+  'compliance',
+  'eu-ai-act',
 ]);
 
-const BROWSER_ANALYZER_IDS = COMPLETE_STEPS
-  .map((step) => step.id)
-  .filter((id) => !CORE_ENGINE_IDS.has(id));
+const BROWSER_ANALYZER_IDS = COMPLETE_STEPS.map((step) => step.id).filter((id) => !CORE_ENGINE_IDS.has(id));
 
 const ENGINE_DEPENDENCIES = {
   'mock-scan': ['simplebeacon'],
-  compliance: ['simplebeacon']
+  compliance: ['simplebeacon'],
 };
 
 /** Scan preset definitions for quick-selection buttons */
 const SCAN_PRESETS = [
-  { id: 'essential', label: 'Essential', icon: '⚡', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance'] },
-  { id: 'security', label: 'Security', icon: '🔒', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
+  {
+    id: 'essential',
+    label: 'Essential',
+    icon: '⚡',
+    engines: [
+      'simplebeacon',
+      'consolidation',
+      'mock-scan',
+      'roadmap',
+      'codebase',
+      'file-reduction',
+      'data-quality',
+      'cleanup-assistant',
+      'npm-audit',
+      'compliance',
+    ],
+  },
+  {
+    id: 'security',
+    label: 'Security',
+    icon: '🔒',
+    engines: [
+      'simplebeacon',
+      'consolidation',
+      'mock-scan',
+      'roadmap',
+      'codebase',
+      'file-reduction',
+      'data-quality',
+      'cleanup-assistant',
+      'npm-audit',
+      'compliance',
+      'dependency-vulns',
+      'sensitive-data',
+      'security-headers',
+      'config-drift',
+      'eval-danger',
+      'inner-html-xss',
+      'prototype-pollution',
+      'unvalidated-redirect',
+      'missing-rate-limit',
+      'insecure-random',
+      'logging-secrets',
+    ],
+  },
   { id: 'full', label: 'Full', icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
-  { id: 'custom', label: 'Custom', icon: '🔧', engines: [] }
+  { id: 'custom', label: 'Custom', icon: '🔧', engines: [] },
 ];
 
 /** Group engines by their category field */
@@ -313,7 +676,9 @@ function groupEnginesByCategory(engineIds) {
     const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === id);
     const category = step?.category || opt?.category || 'Other';
     if (!groups.has(category)) groups.set(category, []);
-    groups.get(category).push({ id, label: step?.label || opt?.label || id, desc: step?.desc || opt?.hint || '', optional: !!opt });
+    groups
+      .get(category)
+      .push({ id, label: step?.label || opt?.label || id, desc: step?.desc || opt?.hint || '', optional: !!opt });
   }
   return groups;
 }
@@ -349,7 +714,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Website Security Report — instant audit · zero-retention · delivered in 60 seconds',
     engines: ['simplebeacon'],
     analysisType: 'simplebeacon',
-    scans: ['SEO', 'SSL', 'Mobile responsiveness', 'Speed', 'Accessibility', 'Headers']
+    scans: ['SEO', 'SSL', 'Mobile responsiveness', 'Speed', 'Accessibility', 'Headers'],
   },
   {
     sku: 'community',
@@ -359,7 +724,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Simplebeacon gate only — free CLI + MCP on your machine',
     engines: ['simplebeacon'],
     analysisType: 'simplebeacon',
-    scans: ['Simplebeacon gate only']
+    scans: ['Simplebeacon gate only'],
   },
   {
     sku: 'clearance499',
@@ -369,7 +734,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
     engines: ['simplebeacon', 'mock-scan', 'compliance'],
     analysisType: 'complete',
-    scans: ['Gate', 'Fiction digest', 'Compliance', 'Executive PDF']
+    scans: ['Gate', 'Fiction digest', 'Compliance', 'Executive PDF'],
   },
   {
     sku: 'agency999',
@@ -379,7 +744,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Full complete scan plus co-branded milestone certificates',
     engines: defaultSelectedEngines(),
     analysisType: 'complete',
-    scans: ['Complete scan (10 engines)', 'Certificates']
+    scans: ['Complete scan (10 engines)', 'Certificates'],
   },
   {
     sku: 'agency1499',
@@ -389,7 +754,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Project pack plus priority review and included warranty re-scan',
     engines: defaultSelectedEngines(),
     analysisType: 'complete',
-    scans: ['Complete scan', 'Certificates', 'Warranty re-scan']
+    scans: ['Complete scan', 'Certificates', 'Warranty re-scan'],
   },
   {
     sku: 'euai2499',
@@ -399,7 +764,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Technical readiness audit — not legal conformity certification',
     engines: ['simplebeacon', 'compliance', 'eu-ai-act'],
     analysisType: 'complete',
-    scans: ['EU profile gate', 'EU patterns', 'Compliance', 'EU audit PDF']
+    scans: ['EU profile gate', 'EU patterns', 'Compliance', 'EU audit PDF'],
   },
   {
     sku: 'warranty199',
@@ -409,7 +774,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Formal 30-day re-attestation after release',
     engines: ['simplebeacon', 'compliance'],
     analysisType: 'complete',
-    scans: ['Gate re-run', 'Compliance', 'Executive PDF']
+    scans: ['Gate re-run', 'Compliance', 'Executive PDF'],
   },
   {
     sku: 'custom',
@@ -420,8 +785,8 @@ const CLIENT_DELIVERABLE_PLANS = [
     engines: null,
     analysisType: 'complete',
     allowManual: true,
-    scans: ['Manual engine toggles — no fixed list price']
-  }
+    scans: ['Manual engine toggles — no fixed list price'],
+  },
 ];
 
 const PRICING_DELIVERABLES_URL = 'https://simplebeacon.ai/pricing#client-deliverables';
@@ -471,9 +836,7 @@ function inferDeliverableSku(selectedEngines) {
  */
 function normalizeSelectedEngines(raw, { allowEmpty = false } = {}) {
   const allowed = new Set(COMPLETE_ENGINE_ORDER);
-  const selected = Array.isArray(raw)
-    ? raw.filter((id) => allowed.has(id))
-    : defaultSelectedEngines();
+  const selected = Array.isArray(raw) ? raw.filter((id) => allowed.has(id)) : defaultSelectedEngines();
   if (!selected.length && allowEmpty) return [];
   return selected.length ? selected : defaultSelectedEngines();
 }
@@ -543,9 +906,11 @@ function queueSelectAllState(selectedEngines) {
  * @returns {any}
  */
 function getCompleteEngineLabel(engineId) {
-  return COMPLETE_STEPS.find((step) => step.id === engineId)?.label
-    || OPTIONAL_COMPLETE_ENGINES.find((step) => step.id === engineId)?.label
-    || engineId;
+  return (
+    COMPLETE_STEPS.find((step) => step.id === engineId)?.label ||
+    OPTIONAL_COMPLETE_ENGINES.find((step) => step.id === engineId)?.label ||
+    engineId
+  );
 }
 
 /**
@@ -576,12 +941,15 @@ const SIMPLEBEACON_GATE_RULES = [
   { id: 'fiction-kpi-patterns', label: 'Fiction KPI placeholders across repository JSON' },
   { id: 'llm-slop-patterns', label: 'LLM slop — unresolved placeholders, code fences, filler metrics' },
   { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' }, // simplebeacon-ignore hardcoded-url — rule label text, not a URL
-  { id: 'file-naming-patterns', label: 'File naming — AI-generated or low-quality file names that degrade code readability' },
-  { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' }
+  {
+    id: 'file-naming-patterns',
+    label: 'File naming — AI-generated or low-quality file names that degrade code readability',
+  },
+  { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' },
 ];
 
 const EU_AI_ACT_EXTRA_RULES = [
-  { id: 'eu-ai-act-patterns', label: 'EU AI Act transparency, logging, and human-oversight markers' }
+  { id: 'eu-ai-act-patterns', label: 'EU AI Act transparency, logging, and human-oversight markers' },
 ];
 
 const DATA_QUALITY_SCANNERS = [
@@ -592,7 +960,7 @@ const DATA_QUALITY_SCANNERS = [
   'data-access-patterns',
   'data-privacy',
   'data-lineage',
-  'data-consistency'
+  'data-consistency',
 ];
 
 const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
@@ -605,7 +973,7 @@ const COMPLIANCE_CHECKLIST_RULES = [
   'DATA-002 — No fiction KPI drift in anchor samples',
   'SUPPLY-001 — No critical/high npm audit vulnerabilities',
   'SUPPLY-002 — Moderate npm vulnerabilities within policy',
-  'AUTH-001 — Production profile has JWT auth enabled (REQUIRE_AUTH)'
+  'AUTH-001 — Production profile has JWT auth enabled (REQUIRE_AUTH)',
 ];
 
 /**
@@ -637,7 +1005,7 @@ function resolveCompleteScanCounts(lastResult) {
     enginesRun,
     planned,
     succeeded,
-    failed: Math.max(0, planned - succeeded)
+    failed: Math.max(0, planned - succeeded),
   };
 }
 
@@ -693,9 +1061,7 @@ function formatScanProgressDetails(sp, options = {}) {
         : `This step scans ${formatNumber(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'configured dirs'}.`
     );
     if (explorer?.totalFiles != null && Math.abs(explorer.totalFiles - total) > 50) {
-      const folderPart = explorer.totalFolders != null
-        ? ` / ${formatNumber(explorer.totalFolders)} folders`
-        : '';
+      const folderPart = explorer.totalFolders != null ? ` / ${formatNumber(explorer.totalFolders)} folders` : '';
       scopeParts.push(
         `Repository inventory for the same path: ${formatNumber(explorer.totalFiles)} files${folderPart}.`
       );
@@ -743,17 +1109,19 @@ function summarizeCompleteStepMetric(engineId, result, canonicalCount = null) {
       return parts.join(' · ');
     }
     case 'consolidation': {
-      const count = canonicalCount ?? result.scan?.summary?.repositoryFilesTotal
-        ?? result.scan?.repositoryInventory?.totalFiles
-        ?? result.scan?.summary?.filesAnalyzed;
+      const count =
+        canonicalCount ??
+        result.scan?.summary?.repositoryFilesTotal ??
+        result.scan?.repositoryInventory?.totalFiles ??
+        result.scan?.summary?.filesAnalyzed;
       return count != null ? `${formatNumber(count)} files` : '';
     }
     case 'mock-scan': {
-/**
- * Hits.
- * @param {any} result.fictionIssues || []
- * @returns {any}
- */
+      /**
+       * Hits.
+       * @param {any} result.fictionIssues || []
+       * @returns {any}
+       */
       const hits = (result.fictionIssues || []).reduce((sum, item) => sum + (item.count || 1), 0);
       const m = getScanFileMetrics(result.report);
       const count = canonicalCount ?? m.mockSampleFiles;
@@ -768,24 +1136,36 @@ function summarizeCompleteStepMetric(engineId, result, canonicalCount = null) {
       return count != null ? `${formatNumber(count)} files scanned` : '';
     }
     case 'codebase': {
-      const count = canonicalCount ?? result.report?.summary?.codeFilesAnalyzed ?? result.report?.summary?.filesAnalyzed ?? result.report?.filesAnalyzed;
+      const count =
+        canonicalCount ??
+        result.report?.summary?.codeFilesAnalyzed ??
+        result.report?.summary?.filesAnalyzed ??
+        result.report?.filesAnalyzed;
       return count != null ? `${formatNumber(count)} code files` : '';
     }
     case 'file-reduction': {
       const findings = result.summary?.totalFindings ?? result.summary?.mergeCandidates ?? null;
-      const count = canonicalCount ?? result.inventory?.totalFiles ?? result.scan?.inventory?.totalFiles ?? result.scan?.repositoryInventory?.totalFiles;
+      const count =
+        canonicalCount ??
+        result.inventory?.totalFiles ??
+        result.scan?.inventory?.totalFiles ??
+        result.scan?.repositoryInventory?.totalFiles;
       if (findings != null && count != null) {
         return `${formatNumber(findings)} finding${findings === 1 ? '' : 's'} · ${formatNumber(count)} files inventoried`;
       }
       return count != null ? `${formatNumber(count)} files inventoried` : '';
     }
     case 'data-quality': {
-      const count = canonicalCount ?? result.inventory?.totalFiles ?? result.scan?.inventory?.totalFiles ?? result.scan?.repositoryInventory?.totalFiles;
+      const count =
+        canonicalCount ??
+        result.inventory?.totalFiles ??
+        result.scan?.inventory?.totalFiles ??
+        result.scan?.repositoryInventory?.totalFiles;
       return count != null ? `${formatNumber(count)} files inventoried` : '';
     }
     case 'cleanup-assistant': {
-      const count = canonicalCount ?? result.repositoryInventory?.totalFiles
-        ?? result.brief?.projectedInventory?.totalFiles;
+      const count =
+        canonicalCount ?? result.repositoryInventory?.totalFiles ?? result.brief?.projectedInventory?.totalFiles;
       return count != null ? `${formatNumber(count)} files in brief` : '';
     }
     case 'npm-audit': {
@@ -798,8 +1178,10 @@ function summarizeCompleteStepMetric(engineId, result, canonicalCount = null) {
       return passed != null && total ? `${passed}/${total} rules passed` : '';
     }
     case 'eu-ai-act': {
-      const count = canonicalCount ?? result.sprint?.report?.repositoryFilesTotal
-        ?? result.sprint?.report?.repositoryInventory?.totalFiles;
+      const count =
+        canonicalCount ??
+        result.sprint?.report?.repositoryFilesTotal ??
+        result.sprint?.report?.repositoryInventory?.totalFiles;
       return count != null ? `${formatNumber(count)} files audited` : '';
     }
     default: {
@@ -845,7 +1227,9 @@ function renderBrowserAnalyzerResult(step, errors = []) {
           <tr><th>Severity</th><th>File</th><th>Line</th><th>Description</th><th>Recommended Action</th></tr>
         </thead>
         <tbody>
-          ${findings.map((f) => `
+          ${findings
+            .map(
+              (f) => `
             <tr>
               <td><span class="severity-pill ${escapeHtml(f.severity || 'low')}">${escapeHtml(f.severity || 'low')}</span></td>
               <td><code>${escapeHtml(f.filePath ? f.filePath.split('/').pop().split('\\').pop() : '—')}</code></td>
@@ -853,7 +1237,9 @@ function renderBrowserAnalyzerResult(step, errors = []) {
               <td>${escapeHtml(f.description || f.type || '—')}</td>
               <td>${escapeHtml(f.recommendedAction || 'Review and fix manually')}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
       <div class="flex gap-2 mt-3">
@@ -867,9 +1253,11 @@ function renderBrowserAnalyzerResult(step, errors = []) {
       <summary><strong>${escapeHtml(label)}</strong> ${error ? '⚠️' : '✅'} <span class="text-muted" style="font-weight:400;">${escapeHtml(metric || 'No findings')}</span></summary>
       <div class="mt-4">
         ${error ? `<p class="text-muted" style="color: var(--warning-color, #f59e0b);">${escapeHtml(error)}</p>` : ''}
-        ${hasFindings
-          ? `<p class="text-muted">${formatNumber(findingsCount)} finding${findingsCount === 1 ? '' : 's'} in ${formatNumber(fileCount)} file${fileCount === 1 ? '' : 's'}</p>${findingsTable}`
-          : '<p class="text-muted">No findings detected.</p>'}
+        ${
+          hasFindings
+            ? `<p class="text-muted">${formatNumber(findingsCount)} finding${findingsCount === 1 ? '' : 's'} in ${formatNumber(fileCount)} file${fileCount === 1 ? '' : 's'}</p>${findingsTable}`
+            : '<p class="text-muted">No findings detected.</p>'
+        }
       </div>
     </details>
   `;
@@ -893,7 +1281,10 @@ function checklistRuleTotal(checklist) {
  * @returns {any}
  */
 function normalizePathKey(value) {
-  return String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  return String(value || '')
+    .replace(/\\/g, '/')
+    .replace(/\/+$/, '')
+    .toLowerCase();
 }
 
 /**
@@ -908,21 +1299,27 @@ function renderComplianceChecklistPanel(checklist, options = {}) {
     return '<p class="text-muted mt-4">Compliance checklist did not run.</p>';
   }
   const ruleTotal = checklistRuleTotal(checklist);
-  const profileLabel = options.profileLabel
-    || (checklist.summary?.checklistProfile === 'eu-ai-act' ? 'EU AI Act technical (10 rules)' : 'Corporate safety (8 rules)');
-  const notHandoff = checklist.summary?.benchmarkScan || checklist.summary?.hollowGate || checklist.summary?.handoffEligible === false;
+  const profileLabel =
+    options.profileLabel ||
+    (checklist.summary?.checklistProfile === 'eu-ai-act'
+      ? 'EU AI Act technical (10 rules)'
+      : 'Corporate safety (8 rules)');
+  const notHandoff =
+    checklist.summary?.benchmarkScan || checklist.summary?.hollowGate || checklist.summary?.handoffEligible === false;
   const passHandoff = options.handoffEligible === true || checklist.summary?.handoffEligible === true;
   const legalReady = checklist.summary?.legalHandoffEligible === true;
-  const callout = notHandoff && checklist.summary?.headline
-    ? `<div class="analyze-info-callout mb-4">${escapeHtml(checklist.summary.headline)}</div>`
-    : legalReady
-      ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical controls pass and legal classification is signed — ready for counsel-reviewed EU handoff pack.</div>'
-      : passHandoff
-        ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical checklist pass for this scan profile. Legal classification sign-off still required for EU conformity handoff.</div>'
-        : '';
-  const exportNotes = Array.isArray(options.exportNotes) && options.exportNotes.length
-    ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">${options.exportNotes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
-    : '';
+  const callout =
+    notHandoff && checklist.summary?.headline
+      ? `<div class="analyze-info-callout mb-4">${escapeHtml(checklist.summary.headline)}</div>`
+      : legalReady
+        ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical controls pass and legal classification is signed — ready for counsel-reviewed EU handoff pack.</div>'
+        : passHandoff
+          ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical checklist pass for this scan profile. Legal classification sign-off still required for EU conformity handoff.</div>'
+          : '';
+  const exportNotes =
+    Array.isArray(options.exportNotes) && options.exportNotes.length
+      ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">${options.exportNotes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+      : '';
   return `
     <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Profile: <strong>${escapeHtml(profileLabel)}</strong> · static scan only — not legal conformity certification.</p>
     ${callout}
@@ -936,10 +1333,14 @@ function renderComplianceChecklistPanel(checklist, options = {}) {
       ${checklist.summary?.readyForAutomation === false ? '<div class="metric-chip"><strong>Not automation-ready</strong></div>' : ''}
     </div>
     <ul class="analyze-mode-steps">
-      ${(checklist.rules || []).map((rule) => `
+      ${(checklist.rules || [])
+        .map(
+          (rule) => `
         <li><strong>${escapeHtml(rule.id)}</strong> — ${escapeHtml(rule.title || rule.name || '')}
           <span class="text-muted"> (${escapeHtml(rule.status || 'unknown')})</span></li>
-      `).join('')}
+      `
+        )
+        .join('')}
     </ul>
     ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="${escapeHtml(downloadId)}">Download compliance JSON</button>` : ''}
   `;
@@ -966,30 +1367,35 @@ function renderNpmAuditPanel(npmAudit, options = {}) {
       ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4" id="${escapeHtml(downloadId)}">Download npm audit JSON</button>` : ''}
     `;
   }
-  const auditRootNote = npmAudit.auditRoot && npmAudit.projectPath
-    && normalizePathKey(npmAudit.auditRoot) !== normalizePathKey(npmAudit.projectPath)
-    ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+  const auditRootNote =
+    npmAudit.auditRoot &&
+    npmAudit.projectPath &&
+    normalizePathKey(npmAudit.auditRoot) !== normalizePathKey(npmAudit.projectPath)
+      ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
         Audited <code>${escapeHtml(formatPathInputValue(npmAudit.auditRoot))}</code>
         (Node platform root for scan path <code>${escapeHtml(formatPathInputValue(npmAudit.projectPath))}</code>).
       </p>`
-    : npmAudit.auditRoot
-      ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+      : npmAudit.auditRoot
+        ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
           Audited <code>${escapeHtml(redactPathForDisplay(npmAudit.auditRoot))}</code>.
         </p>`
-      : '';
-  const supplyStatus = npmAudit.supplyChainStatus
-    || (npmAudit.summary?.critical === 0 && npmAudit.summary?.high === 0 ? 'pass' : 'review');
-  const passCallout = supplyStatus === 'pass'
-    ? `<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">
+        : '';
+  const supplyStatus =
+    npmAudit.supplyChainStatus ||
+    (npmAudit.summary?.critical === 0 && npmAudit.summary?.high === 0 ? 'pass' : 'review');
+  const passCallout =
+    supplyStatus === 'pass'
+      ? `<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">
         Supply chain: <strong>pass</strong> — 0 critical and 0 high npm audit findings.
         ${npmAudit.handoffEligible ? ' Eligible for platform handoff supply-chain rules.' : ''}
       </div>`
-    : '';
-  const exportNotes = Array.isArray(npmAudit.exportNotes) && npmAudit.exportNotes.length
-    ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+      : '';
+  const exportNotes =
+    Array.isArray(npmAudit.exportNotes) && npmAudit.exportNotes.length
+      ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">
         ${npmAudit.exportNotes.map((note) => `<li>${escapeHtml(note)}</li>`).join('')}
       </ul>`
-    : '';
+      : '';
   return `
     ${passCallout}
     ${auditRootNote}
@@ -1018,10 +1424,14 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
   const s = sprint;
   const failedRules = s.compliance?.failedRules || [];
   const failedRulesHtml = failedRules.length
-    ? `<ul class="analyze-mode-steps mb-4">${failedRules.map((rule) => `
+    ? `<ul class="analyze-mode-steps mb-4">${failedRules
+        .map(
+          (rule) => `
         <li><strong>${escapeHtml(rule.id)}</strong> — ${escapeHtml(rule.title || '')}
           <span class="text-muted"> (${escapeHtml(rule.evidence || '')})</span></li>
-      `).join('')}</ul>`
+      `
+        )
+        .join('')}</ul>`
     : '';
   const downloadId = options.downloadButtonId ?? 'download-eu-compliance-json';
   const showIntro = options.showIntro !== false;
@@ -1029,24 +1439,30 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
 
   // Categorize rules by EU AI Act article
   const rules = s.complianceChecklist?.rules || s.compliance?.rules || [];
-  const art5Rules = rules.filter(r => /ART-5|prohibited|banned|subliminal|manipulation|social scoring|biometric.*mass/i.test((r.id || '') + ' ' + (r.title || '')));
-  const art50Rules = rules.filter(r => /T50|transparency|disclosure|article.*50/i.test((r.id || '') + ' ' + (r.title || '')));
-  const otherRules = rules.filter(r => !art5Rules.includes(r) && !art50Rules.includes(r));
+  const art5Rules = rules.filter((r) =>
+    /ART-5|prohibited|banned|subliminal|manipulation|social scoring|biometric.*mass/i.test(
+      (r.id || '') + ' ' + (r.title || '')
+    )
+  );
+  const art50Rules = rules.filter((r) =>
+    /T50|transparency|disclosure|article.*50/i.test((r.id || '') + ' ' + (r.title || ''))
+  );
+  const otherRules = rules.filter((r) => !art5Rules.includes(r) && !art50Rules.includes(r));
 
-  const art5Status = art5Rules.length ? (art5Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'pass';
-  const art50Status = art50Rules.length ? (art50Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'info';
+  const art5Status = art5Rules.length ? (art5Rules.every((r) => r.status === 'pass') ? 'pass' : 'warn') : 'pass';
+  const art50Status = art50Rules.length ? (art50Rules.every((r) => r.status === 'pass') ? 'pass' : 'warn') : 'info';
   const highRiskStatus = s.summary?.highRiskIndicators > 0 ? 'warn' : 'pass';
   const aiSystemStatus = s.summary?.aiSystemIndicators > 0 ? 'info' : 'pass';
 
-/**
- * Render article card.
- * @param {any} title
- * @param {any} article
- * @param {Array} status
- * @param {any} rulesList
- * @param {any} description
- * @returns {any}
- */
+  /**
+   * Render article card.
+   * @param {any} title
+   * @param {any} article
+   * @param {Array} status
+   * @param {any} rulesList
+   * @param {any} description
+   * @returns {any}
+   */
   const renderArticleCard = (title, article, status, rulesList, description) => {
     const badgeClass = status === 'pass' ? 'pass' : status === 'warn' ? 'warn' : 'info';
     const badgeText = status === 'pass' ? 'PASS' : status === 'warn' ? 'WARN' : 'INFO';
@@ -1059,21 +1475,29 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
           </div>
           <p style="margin:0 0 8px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(article)}</p>
           ${description ? `<p style="margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(description)}</p>` : ''}
-          ${rulesList.length ? `
+          ${
+            rulesList.length
+              ? `
             <ul style="margin:0;padding-left:18px;font-size:0.8rem;color:var(--text-muted);">
-              ${rulesList.map(r => `<li><strong>${escapeHtml(r.id)}</strong> — ${escapeHtml(r.title || '')} <span style="color:${r.status==='pass'?'var(--color-success,#22c55e)':'var(--warning-color,#f59e0b)'};">(${escapeHtml(r.status || 'unknown')})</span></li>`).join('')}
+              ${rulesList.map((r) => `<li><strong>${escapeHtml(r.id)}</strong> — ${escapeHtml(r.title || '')} <span style="color:${r.status === 'pass' ? 'var(--color-success,#22c55e)' : 'var(--warning-color,#f59e0b)'};">(${escapeHtml(r.status || 'unknown')})</span></li>`).join('')}
             </ul>
-          ` : `<p style="margin:0;font-size:0.8rem;color:var(--text-muted);">No specific rules triggered.</p>`}
+          `
+              : `<p style="margin:0;font-size:0.8rem;color:var(--text-muted);">No specific rules triggered.</p>`
+          }
         </div>
       </div>
     `;
   };
 
   return `
-    ${showIntro ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+    ${
+      showIntro
+        ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
       <strong>Reference scan</strong> — not an active paid SKU. EU pattern hits flag AI integrations (usually MEDIUM warnings).
       Gate FAIL means ${s.gate?.blockingCount ?? '—'} HIGH-severity blocking issue(s) under <code>failOn: high</code>.
-    </p>` : ''}
+    </p>`
+        : ''
+    }
 
     <div class="metrics-row mb-4">
       <div class="metric-chip gate-badge ${s.gate?.pass ? 'pass' : 'warn'}">${s.gate?.pass ? 'PASS' : 'FAIL'}</div>
@@ -1089,7 +1513,9 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
       'Article 5 — Subliminal manipulation, social scoring, biometric mass surveillance',
       art5Status,
       art5Rules,
-      art5Status === 'pass' ? 'No prohibited practices detected.' : 'Review required: potential high-risk indicators found.'
+      art5Status === 'pass'
+        ? 'No prohibited practices detected.'
+        : 'Review required: potential high-risk indicators found.'
     )}
 
     ${renderArticleCard(
@@ -1105,7 +1531,9 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
       'Annex III — Employment, credit, biometric, education, insurance, law enforcement',
       highRiskStatus,
       [],
-      s.summary?.highRiskIndicators > 0 ? `${s.summary.highRiskIndicators} high-risk pattern(s) detected.` : 'No Annex III high-risk patterns detected.'
+      s.summary?.highRiskIndicators > 0
+        ? `${s.summary.highRiskIndicators} high-risk pattern(s) detected.`
+        : 'No Annex III high-risk patterns detected.'
     )}
 
     ${renderArticleCard(
@@ -1113,35 +1541,51 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
       'System inventory — LLM integrations, model inference, generative AI usage',
       aiSystemStatus,
       [],
-      s.summary?.aiSystemIndicators > 0 ? `${s.summary.aiSystemIndicators} AI system(s) detected in codebase.` : 'No AI systems detected.'
+      s.summary?.aiSystemIndicators > 0
+        ? `${s.summary.aiSystemIndicators} AI system(s) detected in codebase.`
+        : 'No AI systems detected.'
     )}
 
     ${s.compliance?.headline ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">${escapeHtml(s.compliance.headline)}</p>` : ''}
-    ${s.complianceChecklist ? renderComplianceChecklistPanel(s.complianceChecklist, {
-      downloadButtonId: downloadId,
-      profileLabel: 'EU AI Act technical + legal (10 rules)'
-    }) : ''}
+    ${
+      s.complianceChecklist
+        ? renderComplianceChecklistPanel(s.complianceChecklist, {
+            downloadButtonId: downloadId,
+            profileLabel: 'EU AI Act technical + legal (10 rules)',
+          })
+        : ''
+    }
     ${!s.complianceChecklist && failedRules.length ? `<h3 class="mb-2" style="font-size: var(--font-size-base);">Failed checklist rules</h3>${failedRulesHtml}` : ''}
-    ${s.relativeArtifacts ? `
+    ${
+      s.relativeArtifacts
+        ? `
       <h3 class="mb-2" style="font-size: var(--font-size-base);">Artifacts</h3>
       <ul class="analyze-mode-steps mb-4">
-        ${Object.entries(s.relativeArtifacts).map(([key, rel]) => `<li><strong>${escapeHtml(key)}</strong> — <code>${escapeHtml(rel)}</code></li>`).join('')}
+        ${Object.entries(s.relativeArtifacts)
+          .map(([key, rel]) => `<li><strong>${escapeHtml(key)}</strong> — <code>${escapeHtml(rel)}</code></li>`)
+          .join('')}
       </ul>
-    ` : ''}
+    `
+        : ''
+    }
     <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">${escapeHtml(s.disclaimer || 'Static technical readiness — not legal conformity certification.')}</p>
-    ${showActions ? `
+    ${
+      showActions
+        ? `
       <div class="analyze-action-row mb-4">
         <a class="btn btn-primary btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act results</a>
         <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
         <a class="btn btn-secondary btn-sm" href="/eu-ai-act-sample-report" target="_blank" rel="noopener">Sample report layout</a>
         <a class="btn btn-ghost btn-sm" href="/dashboard/results">Gate blocking issues</a>
       </div>
-    ` : `
+    `
+        : `
       <div class="analyze-action-row mb-4">
         <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
         <a class="btn btn-ghost btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act page</a>
       </div>
-    `}
+    `
+    }
   `;
 }
 
@@ -1164,9 +1608,9 @@ const ANALYSIS_MODES = [
       'Cleanup assistant — tiered safe-delete brief for agent mode',
       'Live npm audit — supply-chain vulnerabilities',
       'Compliance checklist — 8 corporate safety rules on gate report',
-      'EU AI Act sprint (optional) — eu-ai-act profile gate + 10-rule checklist + assessment artifacts'
+      'EU AI Act sprint (optional) — eu-ai-act profile gate + 10-rule checklist + assessment artifacts',
     ],
-    deliverable: 'Audit PDF + JSON bundle'
+    deliverable: 'Audit PDF + JSON bundle',
   },
   {
     value: 'simplebeacon',
@@ -1176,7 +1620,7 @@ const ANALYSIS_MODES = [
     icon: '🛡️',
     tag: 'Gate',
     steps: SIMPLEBEACON_GATE_RULES.map((rule) => rule.label),
-    deliverable: 'CI-ready pass/fail + .simplebeacon/report.json'
+    deliverable: 'CI-ready pass/fail + .simplebeacon/report.json',
   },
   {
     value: 'roadmap',
@@ -1185,7 +1629,7 @@ const ANALYSIS_MODES = [
     desc: 'Sprint phases, dependency graph, effort estimates',
     icon: '🗺️',
     tag: 'Planning',
-    deliverable: 'Filesystem roadmap JSON'
+    deliverable: 'Filesystem roadmap JSON',
   },
   {
     value: 'mock-scan',
@@ -1194,11 +1638,8 @@ const ANALYSIS_MODES = [
     desc: 'Fiction KPI patterns across repository JSON — runs Simplebeacon gate internally first',
     icon: '🔍',
     tag: 'Fiction',
-    steps: [
-      'Simplebeacon gate scan (automatic)',
-      'Fiction & KPI digest from gate report'
-    ],
-    deliverable: 'Fiction issue digest'
+    steps: ['Simplebeacon gate scan (automatic)', 'Fiction & KPI digest from gate report'],
+    deliverable: 'Fiction issue digest',
   },
   {
     value: 'consolidation',
@@ -1207,7 +1648,7 @@ const ANALYSIS_MODES = [
     desc: 'Duplicate JSON groups and merge candidates',
     icon: '🔀',
     tag: 'Ops',
-    deliverable: 'Dedup savings report'
+    deliverable: 'Dedup savings report',
   },
   {
     value: 'codebase',
@@ -1216,7 +1657,7 @@ const ANALYSIS_MODES = [
     desc: 'Tech debt, debug artifacts, ESLint (full repo depth)',
     icon: '🧹',
     tag: 'Hygiene',
-    deliverable: 'Health score + findings'
+    deliverable: 'Health score + findings',
   },
   {
     value: 'file-reduction',
@@ -1226,7 +1667,7 @@ const ANALYSIS_MODES = [
     icon: '📦',
     tag: 'Reduce',
     steps: FILE_REDUCTION_SCANNERS.map((id) => id.replace(/-/g, ' ')),
-    deliverable: 'Reclaimable space estimate + tier list'
+    deliverable: 'Reclaimable space estimate + tier list',
   },
   {
     value: 'removable-files',
@@ -1241,9 +1682,9 @@ const ANALYSIS_MODES = [
       'Find cache directories (.cache, .turbo)',
       'Identify log and temp files',
       'List OS metadata files (.DS_Store, Thumbs.db)',
-      'Calculate total reclaimable space'
+      'Calculate total reclaimable space',
     ],
-    deliverable: 'Removable files report with reclaimable space'
+    deliverable: 'Removable files report with reclaimable space',
   },
   {
     value: 'data-quality',
@@ -1253,7 +1694,7 @@ const ANALYSIS_MODES = [
     icon: '🧪',
     tag: 'Data',
     steps: DATA_QUALITY_SCANNERS.map((id) => id.replace(/-/g, ' ')),
-    deliverable: 'Hygiene + privacy findings JSON'
+    deliverable: 'Hygiene + privacy findings JSON',
   },
   {
     value: 'cleanup-assistant',
@@ -1262,12 +1703,8 @@ const ANALYSIS_MODES = [
     desc: 'Tier safe deletes, protect mock data, export agent brief — runs file reduction + data quality internally',
     icon: '🗂️',
     tag: 'Agent',
-    steps: [
-      'File reduction scan (automatic)',
-      'Data quality scan (automatic)',
-      'Tiered cleanup brief + export'
-    ],
-    deliverable: 'Cursor cleanup brief + prompt'
+    steps: ['File reduction scan (automatic)', 'Data quality scan (automatic)', 'Tiered cleanup brief + export'],
+    deliverable: 'Cursor cleanup brief + prompt',
   },
   {
     value: 'compliance',
@@ -1276,11 +1713,8 @@ const ANALYSIS_MODES = [
     desc: 'Corporate safety checklist (8 rules) on a fresh gate report — runs Simplebeacon gate internally first',
     icon: '✅',
     tag: 'Compliance',
-    steps: [
-      'Simplebeacon gate scan (automatic)',
-      ...COMPLIANCE_CHECKLIST_RULES
-    ],
-    deliverable: 'Rule-by-rule pass/fail JSON'
+    steps: ['Simplebeacon gate scan (automatic)', ...COMPLIANCE_CHECKLIST_RULES],
+    deliverable: 'Rule-by-rule pass/fail JSON',
   },
   {
     value: 'eu-ai-act',
@@ -1293,9 +1727,9 @@ const ANALYSIS_MODES = [
       ...SIMPLEBEACON_GATE_RULES.map((rule) => rule.label),
       ...EU_AI_ACT_EXTRA_RULES.map((rule) => rule.label),
       'EU compliance checklist profile + assessment report',
-      'Writes .simplebeacon/eu-ai-act-*.json under platform root'
+      'Writes .simplebeacon/eu-ai-act-*.json under platform root',
     ],
-    deliverable: 'Reference sample + .simplebeacon/eu-ai-act-*.json (not a paid SKU)'
+    deliverable: 'Reference sample + .simplebeacon/eu-ai-act-*.json (not a paid SKU)',
   },
   {
     value: 'npm-audit',
@@ -1304,7 +1738,7 @@ const ANALYSIS_MODES = [
     desc: 'Live npm audit for the project path on the server',
     icon: '📦',
     tag: 'Supply chain',
-    deliverable: 'Vulnerability summary JSON'
+    deliverable: 'Vulnerability summary JSON',
   },
   {
     value: 'workspace-health',
@@ -1313,7 +1747,7 @@ const ANALYSIS_MODES = [
     desc: 'Circular imports, mismatched dependency versions, and barrel-file anti-patterns',
     icon: '⚙️',
     tag: 'Architecture',
-    deliverable: 'Workspace health findings JSON'
+    deliverable: 'Workspace health findings JSON',
   },
   {
     value: 'auto',
@@ -1322,8 +1756,8 @@ const ANALYSIS_MODES = [
     desc: 'Mock-data path → Simplebeacon, else roadmap',
     icon: '🤖',
     tag: 'Smart pick',
-    deliverable: 'Best-fit single scan'
-  }
+    deliverable: 'Best-fit single scan',
+  },
 ];
 
 /**
@@ -1413,17 +1847,18 @@ export class AnalyzeView {
     this.aiProvider = prefs.aiProvider || 'demo';
     this.roadmapInsightsMode = prefs.roadmapInsightsMode || 'deterministic';
     this.understandingMode = prefs.understandingMode || 'deterministic';
-    this.analysisType = app.state.analyzeResult?.kind === 'complete'
-      ? 'complete'
-      : app.state.analyzeResult?.kind === 'consolidation'
-        ? 'consolidation'
-        : app.state.analyzeResult?.kind === 'codebase'
-          ? 'codebase'
-          : app.state.analyzeResult?.kind === 'workspace-health'
-            ? 'workspace-health'
-            : app.state.analyzeResult?.kind === 'eu-ai-act'
-              ? 'eu-ai-act'
-              : (prefs.analysisType || app.state.analyzeResult?.data?.analysisType || 'complete');
+    this.analysisType =
+      app.state.analyzeResult?.kind === 'complete'
+        ? 'complete'
+        : app.state.analyzeResult?.kind === 'consolidation'
+          ? 'consolidation'
+          : app.state.analyzeResult?.kind === 'codebase'
+            ? 'codebase'
+            : app.state.analyzeResult?.kind === 'workspace-health'
+              ? 'workspace-health'
+              : app.state.analyzeResult?.kind === 'eu-ai-act'
+                ? 'eu-ai-act'
+                : prefs.analysisType || app.state.analyzeResult?.data?.analysisType || 'complete';
     this.lastResult = app.state.analyzeResult || null;
     // Auto-clear stale cached results that don't match current path input
     this.clearStaleResultIfPathMismatch();
@@ -1445,8 +1880,7 @@ export class AnalyzeView {
     this.selectedEngines = Array.isArray(prefs.selectedEngines)
       ? normalizeSelectedEngines(prefs.selectedEngines, { allowEmpty: true })
       : defaultSelectedEngines();
-    this.selectedDeliverableSku = prefs.selectedDeliverableSku
-      || inferDeliverableSku(this.selectedEngines);
+    this.selectedDeliverableSku = prefs.selectedDeliverableSku || inferDeliverableSku(this.selectedEngines);
     const savedPlan = getClientDeliverablePlan(this.selectedDeliverableSku);
     const savedPlanEngines = getDeliverablePlanEngines(savedPlan);
     if (!Array.isArray(prefs.selectedEngines) && savedPlanEngines) {
@@ -1497,7 +1931,12 @@ export class AnalyzeView {
       const data = await resp.json();
       const report = data.report || data;
       if (!report) return false;
-      this.lastResult = { kind: 'simplebeacon-report', report: report, label: 'Demo scan', projectPath: report.project || report.projectPath || '' };
+      this.lastResult = {
+        kind: 'simplebeacon-report',
+        report: report,
+        label: 'Demo scan',
+        projectPath: report.project || report.projectPath || '',
+      };
       this.app.state.analyzeResult = this.lastResult;
       this.app.state.report = report;
       const resultsEl = (root || this._root)?.querySelector('#analyze-results');
@@ -1515,7 +1954,10 @@ export class AnalyzeView {
       const root = container || this._root;
       if (!root) return;
       const parent = root.querySelector ? root : { querySelector: () => null };
-      const results = parent.querySelector && parent.querySelector('#analyze-results') ? parent.querySelector('#analyze-results') : (container || null);
+      const results =
+        parent.querySelector && parent.querySelector('#analyze-results')
+          ? parent.querySelector('#analyze-results')
+          : container || null;
       if (!results) return;
       if (results.querySelector('.demo-bridge-banner')) return;
       const banner = `\n        <div class="bridge-notice-banner demo-bridge-banner">Demo data — showing offline fixture (sb_demo=1)</div>\n      `;
@@ -1532,12 +1974,26 @@ export class AnalyzeView {
     try {
       if (typeof window === 'undefined' || !window.parent) return;
       // Inform the wrapper/IDE that the dashboard route changed so it can update its URL bar
-      try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+      try {
+        window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*');
+      } catch (e) {
+        /* ignore */
+      }
       // Ask the wrapper to scroll the iframe to top so the top of the UI is visible in the IDE
-      try { window.parent.postMessage({ command: 'scrollToTop' }, '*'); } catch (e) { /* ignore */ }
+      try {
+        window.parent.postMessage({ command: 'scrollToTop' }, '*');
+      } catch (e) {
+        /* ignore */
+      }
       // Also ensure the frame itself is scrolled to top
-      try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
-    } catch (_e) { /* ignore */ }
+      try {
+        window.scrollTo(0, 0);
+      } catch (e) {
+        /* ignore */
+      }
+    } catch (_e) {
+      /* ignore */
+    }
   }
 
   get vscodeEnhanced() {
@@ -1557,7 +2013,11 @@ export class AnalyzeView {
 
   _getVscodeApi() {
     if (this._vscodeApiCached === true) {
-      try { return window.acquireVsCodeApi(); } catch { return null; }
+      try {
+        return window.acquireVsCodeApi();
+      } catch {
+        return null;
+      }
     }
     if (this._vscodeApiCached === false) return null;
     if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
@@ -1589,8 +2049,8 @@ export class AnalyzeView {
           high: sev.high || 0,
           medium: sev.medium || 0,
           low: sev.low || 0,
-          score: score
-        }
+          score: score,
+        },
       });
     } catch (err) {
       console['warn']('[Sidebar-Notify] vscode.postMessage failed:', err);
@@ -1603,7 +2063,9 @@ export class AnalyzeView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-    el.insertAdjacentHTML('afterbegin', `
+    el.insertAdjacentHTML(
+      'afterbegin',
+      `
       <!-- Hero header -->
       <div class="analyze-hero">
         <div class="analyze-hero-main">
@@ -1718,7 +2180,8 @@ export class AnalyzeView {
           </div>
         </div>
       </div>
-    `);
+    `
+    );
 
     this.bindEvents(el);
     this._root = el;
@@ -1768,22 +2231,22 @@ export class AnalyzeView {
 
   renderVscodeExtensionCard() {
     const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-    const inVsCodeHost = typeof window !== 'undefined' && (
-      /vscode|electron/i.test(navigator.userAgent) ||
-      /vscode-webview/i.test(navigator.userAgent)
-    );
+    const inVsCodeHost =
+      typeof window !== 'undefined' &&
+      (/vscode|electron/i.test(navigator.userAgent) || /vscode-webview/i.test(navigator.userAgent));
     const inVsCode = hasVsCodeApi || inVsCodeHost;
     const badge = inVsCode
       ? `<span class="ti-badge analyze-vscode-active-badge">● Active</span>`
       : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
     const subtitle = inVsCode
-      ? (hasVsCodeApi
+      ? hasVsCodeApi
         ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
-        : 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.')
+        : 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.'
       : 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide — directly in your editor.';
-    const sendToVscodeBtn = (!inVsCode && this.projectPath)
-      ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm">Open in VS Code</a>`
-      : '';
+    const sendToVscodeBtn =
+      !inVsCode && this.projectPath
+        ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm">Open in VS Code</a>`
+        : '';
     // Only show sync button when acquireVsCodeApi is available (true webview panel)
     // Simple Browser has no API access, so sync is not available there
     const syncBtn = hasVsCodeApi
@@ -1817,7 +2280,9 @@ export class AnalyzeView {
       : 'C:\\\\dev\\\\my-app · git@github.com:org/repo · https://codeberg.org/org/repo';
     const pathAria = isWeb ? 'Website URL' : 'Project path on server';
     const pathList = isWeb ? '' : pathInputListAttr();
-    const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
+    const datalist = isWeb
+      ? ''
+      : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
     const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
 
     return `
@@ -1922,17 +2387,24 @@ export class AnalyzeView {
           </div>
 
           <div class="options-row">
-            ${isWeb ? '' : `
+            ${
+              isWeb
+                ? ''
+                : `
             <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
               <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
               <strong>Full tree</strong> — SHA-256 every file, content-scan all text
-            </label>`}
+            </label>`
+            }
             <div id="analyze-inventory-provenance" style="margin-left:auto;">
               ${this.renderInventoryProvenanceLine(displayPath)}
             </div>
           </div>
 
-          ${isWeb ? '' : `
+          ${
+            isWeb
+              ? ''
+              : `
           <div class="quick-file" id="analyze-file-dropzone">
             <div class="quick-file-head">
               <i data-lucide="file-up" class="icon-18"></i>
@@ -1945,7 +2417,8 @@ export class AnalyzeView {
             </div>
             <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
             ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
-          </div>`}
+          </div>`
+          }
 
           ${pathSources}
         </div>
@@ -1964,29 +2437,34 @@ export class AnalyzeView {
 
     const findingsHtml = findings.length
       ? `<ul class="analyze-snippet-findings">
-          ${findings.slice(0, 8).map((f) => `
+          ${findings
+            .slice(0, 8)
+            .map(
+              (f) => `
             <li>
               <span class="analyze-snippet-sev analyze-snippet-sev--${escapeHtml(f.severity)}">${escapeHtml(severityLabel(f.severity))}</span>
               <strong>${escapeHtml(f.label)}</strong> line ${f.line}
               <code>${escapeHtml(redactMatch(f.match))}</code>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
           ${findings.length > 8 ? `<li class="text-muted">+ ${findings.length - 8} more — run a full repo scan for branch-wide coverage</li>` : ''}
         </ul>`
-        : (result.cacheMeta
+      : result.cacheMeta
         ? `<p class="text-muted analyze-snippet-clean">${
-          result.cacheMeta.documentation
-            // simplebeacon:production-leak-intent - legitimate sample path reference for documentation
-            ? 'Documentation file — rule names like `-sample.json` describe scanner behavior, not production imports.'
-            : result.cacheMeta.lockfile
-            ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
-            : `Scanner cache index${
-              result.cacheMeta.fileCount != null
-                ? ` (${formatNumber(result.cacheMeta.fileCount)} tracked path(s))`
-                : ''
-            } — path keys are not production leak findings. Run a full repo scan for gate coverage.`
-        }</p>`
-        : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>');
+            result.cacheMeta.documentation
+              ? // simplebeacon:production-leak-intent - legitimate sample path reference for documentation
+                'Documentation file — rule names like `-sample.json` describe scanner behavior, not production imports.'
+              : result.cacheMeta.lockfile
+                ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
+                : `Scanner cache index${
+                    result.cacheMeta.fileCount != null
+                      ? ` (${formatNumber(result.cacheMeta.fileCount)} tracked path(s))`
+                      : ''
+                  } — path keys are not production leak findings. Run a full repo scan for gate coverage.`
+          }</p>`
+        : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>';
 
     const understandingHtml = understanding
       ? `
@@ -1997,9 +2475,9 @@ export class AnalyzeView {
           <p style="font-size: var(--font-size-sm); margin: 0;">${escapeHtml(understanding.summary || understanding.layers?.semantic?.purpose || 'Summary unavailable.')}</p>
         </div>
       `
-      : (result.understandingSkipped
+      : result.understandingSkipped
         ? `<p class="text-muted analyze-snippet-note">${escapeHtml(result.understandingSkipped)}</p>`
-        : '');
+        : '';
 
     return `
       <div class="analyze-snippet-results" id="analyze-snippet-results">
@@ -2015,12 +2493,16 @@ export class AnalyzeView {
         <p class="text-muted analyze-snippet-meta">${findings.length} pattern hit(s) · ${critical} critical · ${high} high</p>
         ${findingsHtml}
         ${understandingHtml}
-        ${result.cacheMeta ? '' : `
+        ${
+          result.cacheMeta
+            ? ''
+            : `
         <div class="analyze-snippet-actions">
           <button type="button" class="btn btn-secondary btn-sm" id="analyze-snippet-understand-btn" ${this.snippetBusy ? 'disabled' : ''}>
             ${understanding ? 'Re-run server understanding' : 'Run server understanding'}
           </button>
-        </div>`}
+        </div>`
+        }
       </div>
     `;
   }
@@ -2030,24 +2512,26 @@ export class AnalyzeView {
     const recentChips = recent.map((p) => ({
       path: p,
       label: formatPathLabel(p) || basenamePath(p),
-      primary: false
+      primary: false,
     }));
     if (defaultPath) {
       recentChips.unshift({ path: defaultPath, label: `Server: ${basenamePath(defaultPath)}`, primary: true });
     }
     const recentHtml = recentChips.length
       ? this.renderSourceChips(
-        recentChips.map((c) => ({ id: c.path, kind: 'recent', label: c.label, value: c.path, primary: c.primary })),
-        currentPath,
-        'analyze-recent-paths',
-        { dismissible: true }
-      )
+          recentChips.map((c) => ({ id: c.path, kind: 'recent', label: c.label, value: c.path, primary: c.primary })),
+          currentPath,
+          'analyze-recent-paths',
+          { dismissible: true }
+        )
       : '';
 
     if (!recentHtml) return '';
 
     return `
-      ${recentHtml ? `
+      ${
+        recentHtml
+          ? `
         <div class="analyze-path-sources">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
             <span class="analyze-path-sources-label text-muted">Recent</span>
@@ -2055,7 +2539,9 @@ export class AnalyzeView {
           </div>
           ${recentHtml}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }
 
@@ -2067,12 +2553,13 @@ export class AnalyzeView {
     }
     return `
       <div class="analyze-quick-paths" id="${containerId}">
-        ${sources.map((source) => {
-          const value = source.value || '';
-          const kindClass = source.kind ? `analyze-path-chip--${source.kind}` : '';
-          const active = value === currentPath;
-          const dismissible = options.dismissible && !source.primary;
-          return `
+        ${sources
+          .map((source) => {
+            const value = source.value || '';
+            const kindClass = source.kind ? `analyze-path-chip--${source.kind}` : '';
+            const active = value === currentPath;
+            const dismissible = options.dismissible && !source.primary;
+            return `
           <span class="analyze-path-chip-wrap ${source.primary ? 'primary' : ''} ${active ? 'active' : ''} ${kindClass}">
             <button type="button" class="analyze-path-chip ${source.primary ? 'primary' : ''} ${active ? 'active' : ''} ${kindClass}"
               data-path="${escapeHtml(value)}" title="${escapeHtml(sourceChipTitle(source))}">
@@ -2080,7 +2567,8 @@ export class AnalyzeView {
             </button>
             ${dismissible ? `<button type="button" class="analyze-path-chip-dismiss" data-path="${escapeHtml(value)}" aria-label="Remove ${escapeHtml(source.label)} from quick paths" title="Remove">×</button>` : ''}
           </span>`;
-        }).join('')}
+          })
+          .join('')}
       </div>
     `;
   }
@@ -2094,21 +2582,25 @@ export class AnalyzeView {
       return;
     }
     this._testSourcesLoading = (async () => {
-    try {
-      const data = await fetchAnalyzeTestSources();
-      this.testSources = data.sources || [];
-      this._testSourcesLoadedAt = Date.now();
-      this._testSourcesFailedAt = null;
-      const pathInput = container?.querySelector('#project-path-input');
-      const displayPath = this.getActiveProjectPath(pathInput?.value);
-      refreshPathSuggestionsDatalist(container, this.app, this.testSources);
-    } catch {
-      this._testSourcesFailedAt = Date.now();
-      const el = container?.querySelector('#analyze-preset-paths');
-      if (el) {
-        el.replaceChildren(); el.insertAdjacentHTML('afterbegin', '<span class="text-muted" style="font-size:var(--font-size-xs)">Test sources unavailable — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal).</span>');
+      try {
+        const data = await fetchAnalyzeTestSources();
+        this.testSources = data.sources || [];
+        this._testSourcesLoadedAt = Date.now();
+        this._testSourcesFailedAt = null;
+        const pathInput = container?.querySelector('#project-path-input');
+        const displayPath = this.getActiveProjectPath(pathInput?.value);
+        refreshPathSuggestionsDatalist(container, this.app, this.testSources);
+      } catch {
+        this._testSourcesFailedAt = Date.now();
+        const el = container?.querySelector('#analyze-preset-paths');
+        if (el) {
+          el.replaceChildren();
+          el.insertAdjacentHTML(
+            'afterbegin',
+            '<span class="text-muted" style="font-size:var(--font-size-xs)">Test sources unavailable — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal).</span>'
+          );
+        }
       }
-    }
     })();
     try {
       await this._testSourcesLoading;
@@ -2249,7 +2741,7 @@ export class AnalyzeView {
       roadmapInsightsMode: this.roadmapInsightsMode,
       understandingMode: this.understandingMode,
       selectedEngines: this.selectedEngines,
-      selectedDeliverableSku: this.selectedDeliverableSku
+      selectedDeliverableSku: this.selectedDeliverableSku,
     });
     if (plan.analysisType && plan.analysisType !== this.analysisType) {
       const typeSelect = root?.querySelector('#analysis-type-select');
@@ -2264,9 +2756,7 @@ export class AnalyzeView {
   persistSelectedEngines(root = this._root, changedEngineId = null, checked = null) {
     // When called without changedEngineId it's a pre-run snapshot — don't overwrite from truncated DOM.
     // Only read from DOM when a specific engine was toggled by user interaction.
-    let selected = changedEngineId
-      ? this.readSelectedEnginesFromDom(root)
-      : this.selectedEngines;
+    let selected = changedEngineId ? this.readSelectedEnginesFromDom(root) : this.selectedEngines;
     if (changedEngineId) {
       const set = new Set(selected);
       applyEngineSelectionChange(set, changedEngineId, checked);
@@ -2293,7 +2783,7 @@ export class AnalyzeView {
       roadmapInsightsMode: this.roadmapInsightsMode,
       understandingMode: this.understandingMode,
       selectedEngines: this.selectedEngines,
-      selectedDeliverableSku: this.selectedDeliverableSku
+      selectedDeliverableSku: this.selectedDeliverableSku,
     });
     if (root) {
       root.querySelectorAll('.analyze-engine-input').forEach((input) => {
@@ -2317,7 +2807,7 @@ export class AnalyzeView {
       roadmapInsightsMode: this.roadmapInsightsMode,
       understandingMode: this.understandingMode,
       selectedEngines: this.selectedEngines,
-      selectedDeliverableSku: this.selectedDeliverableSku
+      selectedDeliverableSku: this.selectedDeliverableSku,
     });
     if (root) {
       root.querySelectorAll('.analyze-engine-input').forEach((input) => {
@@ -2359,10 +2849,10 @@ export class AnalyzeView {
 
     const allRows = Array.from(table.querySelectorAll('tr'));
 
-/**
- * Apply filter.
- * @returns {any}
- */
+    /**
+     * Apply filter.
+     * @returns {any}
+     */
     function applyFilter() {
       const activeCat = section.querySelector('.codebase-cat-filter.btn-primary')?.dataset?.cat || 'all';
       const includeNode = section.querySelector('#codebase-include-node')?.checked ?? false;
@@ -2410,10 +2900,10 @@ export class AnalyzeView {
 
     const allRows = Array.from(table.querySelectorAll('tr'));
 
-/**
- * Apply filter.
- * @returns {any}
- */
+    /**
+     * Apply filter.
+     * @returns {any}
+     */
     function applyFilter() {
       const activeCat = section.querySelector('.fr-cat-filter.btn-primary')?.dataset?.cat || 'all';
       const includeNode = section.querySelector('#fr-include-node')?.checked ?? false;
@@ -2498,7 +2988,11 @@ export class AnalyzeView {
     // Group head click to expand (but not when clicking checkbox)
     root.querySelectorAll('.analyze-engine-group-head').forEach((head) => {
       head.addEventListener('click', (event) => {
-        if (event.target.closest('.analyze-engine-group-input') || event.target.closest('.analyze-engine-group-expander')) return;
+        if (
+          event.target.closest('.analyze-engine-group-input') ||
+          event.target.closest('.analyze-engine-group-expander')
+        )
+          return;
         const group = head.closest('.analyze-engine-group');
         if (group) group.classList.toggle('is-expanded');
       });
@@ -2514,7 +3008,9 @@ export class AnalyzeView {
 
   applyScanPreset(presetId, root = this._root) {
     const preset = SCAN_PRESETS.find((p) => p.id === presetId);
-    if (!preset) { return; }
+    if (!preset) {
+      return;
+    }
     if (preset.id === 'custom') {
       this.setSelectedEngines([], root, { allowEmpty: true });
     } else {
@@ -2603,22 +3099,26 @@ export class AnalyzeView {
     let renderedCount = 0;
     const maxInitial = 10;
     const expanded = this._queueExpanded || false;
-    const groupHtml = Array.from(groups.entries()).map(([category, engines]) => {
-      const groupSelectedCount = engines.filter((e) => selected.has(e.id)).length;
-      const groupAllSelected = groupSelectedCount === engines.length;
-      const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
-      const slot = expanded ? engines.length : Math.max(0, maxInitial - renderedCount);
-      const visibleEngines = engines.slice(0, slot);
-      renderedCount += visibleEngines.length;
-      if (!visibleEngines.length) return '';
-      const rows = visibleEngines.map((engine) => {
-        const engineId = engine.id;
-        const isSelected = selected.has(engineId);
-        const inRun = isCompleteMode && runIndex.has(engineId);
-        const isCurrent = engineId === currentEngineId;
-        const depOnly = inRun && !isSelected;
-        const depNote = ENGINE_DEPENDENCIES[engineId] ? ` <span class="analyze-engine-queue-tag is-dependency">needs ${ENGINE_DEPENDENCIES[engineId].map((d) => getCompleteEngineLabel(d)).join(', ')}</span>` : '';
-        return `
+    const groupHtml = Array.from(groups.entries())
+      .map(([category, engines]) => {
+        const groupSelectedCount = engines.filter((e) => selected.has(e.id)).length;
+        const groupAllSelected = groupSelectedCount === engines.length;
+        const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
+        const slot = expanded ? engines.length : Math.max(0, maxInitial - renderedCount);
+        const visibleEngines = engines.slice(0, slot);
+        renderedCount += visibleEngines.length;
+        if (!visibleEngines.length) return '';
+        const rows = visibleEngines
+          .map((engine) => {
+            const engineId = engine.id;
+            const isSelected = selected.has(engineId);
+            const inRun = isCompleteMode && runIndex.has(engineId);
+            const isCurrent = engineId === currentEngineId;
+            const depOnly = inRun && !isSelected;
+            const depNote = ENGINE_DEPENDENCIES[engineId]
+              ? ` <span class="analyze-engine-queue-tag is-dependency">needs ${ENGINE_DEPENDENCIES[engineId].map((d) => getCompleteEngineLabel(d)).join(', ')}</span>`
+              : '';
+            return `
           <li class="analyze-engine-queue-item${isSelected ? ' is-checked' : ' is-unchecked'}${isCurrent ? ' is-current' : ''}${engine.optional ? ' is-optional' : ''}${depOnly ? ' is-dependency is-in-run' : ''}">
             <label class="analyze-engine-queue-toggle">
               <input type="checkbox" class="analyze-engine-input analyze-engine-queue-input" data-engine="${escapeHtml(engineId)}" ${isSelected ? 'checked' : ''} aria-label="Include ${escapeHtml(engine.label)} in scan">
@@ -2627,9 +3127,10 @@ export class AnalyzeView {
             <span class="analyze-engine-queue-desc">${escapeHtml(engine.desc)}</span>
           </li>
         `;
-      }).join('');
-      const isExpanded = groupSelectedCount > 0 || expanded;
-      return `
+          })
+          .join('');
+        const isExpanded = groupSelectedCount > 0 || expanded;
+        return `
         <div class="analyze-engine-group${isExpanded ? ' is-expanded' : ''}" data-category="${escapeHtml(category)}">
           <div class="analyze-engine-group-head">
             <label class="analyze-engine-group-toggle">
@@ -2648,11 +3149,14 @@ export class AnalyzeView {
           </div>
         </div>
       `;
-    }).filter(Boolean).join('');
+      })
+      .filter(Boolean)
+      .join('');
 
-    const expander = !expanded && renderedCount < COMPLETE_ENGINE_ORDER.length
-      ? `<div class="analyze-engine-queue-expander-wrap" style="padding:var(--space-2) 0;"><button type="button" class="btn btn-ghost btn-sm analyze-engine-queue-expander">Show all ${COMPLETE_ENGINE_ORDER.length} modules</button></div>`
-      : '';
+    const expander =
+      !expanded && renderedCount < COMPLETE_ENGINE_ORDER.length
+        ? `<div class="analyze-engine-queue-expander-wrap" style="padding:var(--space-2) 0;"><button type="button" class="btn btn-ghost btn-sm analyze-engine-queue-expander">Show all ${COMPLETE_ENGINE_ORDER.length} modules</button></div>`
+        : '';
 
     const runCountLabel = count
       ? isCompleteMode
@@ -2667,17 +3171,19 @@ export class AnalyzeView {
           <span class="analyze-engine-queue-count text-muted">${runCountLabel}</span>
         </div>
         <div class="analyze-engine-presets">${presetButtons}</div>
-        <p class="analyze-engine-queue-intro">${this.analysisType === 'complete'
-    ? 'Pick a preset or expand groups. Dependencies auto-select.'
-    : this.analysisType === 'cleanup-assistant'
-      ? 'Only <strong>Cleanup assistant</strong> runs in this mode.'
-      : this.analysisType === 'mock-scan'
-        ? 'Only <strong>Mock data</strong> runs in this mode.'
-        : this.analysisType === 'compliance'
-          ? 'Only <strong>Compliance</strong> runs in this mode.'
-          : modeToEngineId(this.analysisType)
-            ? `<strong>${escapeHtml(getAnalysisMode(this.analysisType).label)}</strong> runs as a single scan. Switch to <strong>Complete</strong> to use the queue.`
-            : 'Pick a preset or expand groups to customize which scans run.'}</p>
+        <p class="analyze-engine-queue-intro">${
+          this.analysisType === 'complete'
+            ? 'Pick a preset or expand groups. Dependencies auto-select.'
+            : this.analysisType === 'cleanup-assistant'
+              ? 'Only <strong>Cleanup assistant</strong> runs in this mode.'
+              : this.analysisType === 'mock-scan'
+                ? 'Only <strong>Mock data</strong> runs in this mode.'
+                : this.analysisType === 'compliance'
+                  ? 'Only <strong>Compliance</strong> runs in this mode.'
+                  : modeToEngineId(this.analysisType)
+                    ? `<strong>${escapeHtml(getAnalysisMode(this.analysisType).label)}</strong> runs as a single scan. Switch to <strong>Complete</strong> to use the queue.`
+                    : 'Pick a preset or expand groups to customize which scans run.'
+        }</p>
         ${groupHtml}
         ${expander}
       </div>
@@ -2687,17 +3193,19 @@ export class AnalyzeView {
   renderSelectedModeDetail() {
     const mode = getAnalysisMode(this.analysisType);
     const { projectPath, report, lastResult } = this.buildModeDetailContext();
-    const stepsHtml = this.analysisType !== 'complete' && mode.steps?.length
-      ? `<ol class="analyze-mode-steps">${mode.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
-      : '';
-    const alsoAvailable = this.analysisType === 'complete'
-      ? `<p class="analyze-mode-also text-muted">Export ZIP includes only checked engines that completed successfully. EU AI Act artifacts require 🇪🇺 checked and a successful sprint step.</p>`
-      : `<p class="analyze-mode-also text-muted">Check additional engines above for a <strong>Complete</strong> run, or use the deliverable SKU table to load a preset scan mix.</p>`;
+    const stepsHtml =
+      this.analysisType !== 'complete' && mode.steps?.length
+        ? `<ol class="analyze-mode-steps">${mode.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
+        : '';
+    const alsoAvailable =
+      this.analysisType === 'complete'
+        ? `<p class="analyze-mode-also text-muted">Export ZIP includes only checked engines that completed successfully. EU AI Act artifacts require 🇪🇺 checked and a successful sprint step.</p>`
+        : `<p class="analyze-mode-also text-muted">Check additional engines above for a <strong>Complete</strong> run, or use the deliverable SKU table to load a preset scan mix.</p>`;
     const fileScopeHtml = renderModeFileScopePanel(this.analysisType, {
       projectPath,
       config: this.app.state.config,
       report,
-      lastResult
+      lastResult,
     });
     const engineQueueHtml = this.renderSelectedEnginesQueuePanel();
 
@@ -2740,7 +3248,7 @@ export class AnalyzeView {
     const { report, lastResult } = this.buildModeDetailContext();
     const fileResultsHtml = renderModeFileResultsPanel(this.analysisType, {
       lastResult,
-      report
+      report,
     });
     return `
       <div class="analyze-file-results-section" id="analyze-file-results-section" style="margin-top:var(--space-6);">
@@ -2793,27 +3301,34 @@ export class AnalyzeView {
     const nonNode = findings.filter((f) => !String(f.filePath || '').includes('node_modules'));
     const nonNodeCount = nonNode.length;
 
-    const catPills = categories.map((cat) => `
+    const catPills = categories
+      .map(
+        (cat) => `
       <button type="button" class="btn btn-ghost btn-sm codebase-cat-filter" data-cat="${escapeHtml(cat.category)}" style="margin:2px;border-radius:999px;">
         ${escapeHtml(cat.label || cat.category)}
         <span class="gate-badge ${cat.severity === 'high' ? 'warn' : 'pass'}" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${cat.count}</span>
       </button>
-    `).join('');
+    `
+      )
+      .join('');
 
-    const severityBar = total > 0 ? `
+    const severityBar =
+      total > 0
+        ? `
       <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:var(--space-2);background:var(--border);">
-        ${critical > 0 ? `<div style="width:${(critical / total * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
-        ${high > 0 ? `<div style="width:${(high / total * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
-        ${medium > 0 ? `<div style="width:${(medium / total * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
-        ${low > 0 ? `<div style="width:${(low / total * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
+        ${critical > 0 ? `<div style="width:${((critical / total) * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
+        ${high > 0 ? `<div style="width:${((high / total) * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
+        ${medium > 0 ? `<div style="width:${((medium / total) * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
+        ${low > 0 ? `<div style="width:${((low / total) * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
       </div>
-    ` : '';
+    `
+        : '';
 
-/**
- * Row html.
- * @param {any} row
- * @returns {any}
- */
+    /**
+     * Row html.
+     * @param {any} row
+     * @returns {any}
+     */
     const rowHtml = (row) => `
       <tr data-cat="${escapeHtml(row.category || '')}" data-path="${escapeHtml(row.filePath || '')}">
         <td><span class="gate-badge ${row.severity === 'critical' || row.severity === 'high' ? 'warn' : row.severity === 'medium' ? '' : 'pass'}">${escapeHtml(row.severity || '—')}</span></td>
@@ -2824,12 +3339,13 @@ export class AnalyzeView {
       </tr>
     `;
 
-    const upgradePrompt = isStarter && totalFindings > maxFindings
-      ? `<div class="mb-4" style="padding:var(--space-3);background:var(--warning-bg, #fffbeb);border:1px solid var(--warning-border, #f59e0b);border-radius:8px;color:var(--warning-text, #92400e);font-size:var(--font-size-sm);">
+    const upgradePrompt =
+      isStarter && totalFindings > maxFindings
+        ? `<div class="mb-4" style="padding:var(--space-3);background:var(--warning-bg, #fffbeb);border:1px solid var(--warning-border, #f59e0b);border-radius:8px;color:var(--warning-text, #92400e);font-size:var(--font-size-sm);">
           <strong>🔒 Pro feature</strong> — ${totalFindings} findings detected. Upgrade to Pro to see all findings and the quality score.
           <a href="/pricing" data-pricing-cta="1" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
          </div>`
-      : '';
+        : '';
 
     return `
       <div class="section-block" id="codebase-health-section" style="margin-top:var(--space-6);">
@@ -2837,9 +3353,11 @@ export class AnalyzeView {
           <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
             <span style="font-size:1.25rem;">🏥</span> Codebase Health
           </h2>
-          ${isStarter
-            ? '<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>🔒 Pro</strong></span>'
-            : `<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>${s.healthScore ?? '—'}%</strong></span>`}
+          ${
+            isStarter
+              ? '<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>🔒 Pro</strong></span>'
+              : `<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>${s.healthScore ?? '—'}%</strong></span>`
+          }
         </div>
         ${upgradePrompt}
 
@@ -2921,11 +3439,11 @@ export class AnalyzeView {
     const nonNode = findings.filter((f) => !String(f.path || f.filePath || '').includes('node_modules'));
     const nonNodeCount = nonNode.length;
 
-/**
- * Format bytes.
- * @param {Array} bytes
- * @returns {any}
- */
+    /**
+     * Format bytes.
+     * @param {Array} bytes
+     * @returns {any}
+     */
     const formatBytes = (bytes) => {
       const n = Number(bytes) || 0;
       if (n < 1024) return `${n} B`;
@@ -2938,30 +3456,37 @@ export class AnalyzeView {
       { key: 'build-artifacts', label: 'Build artifacts', count: s.buildArtifactFindings },
       { key: 'asset-consolidation', label: 'Duplicate assets', count: s.duplicateAssetGroups },
       { key: 'unused-files', label: 'Unused files', count: s.unusedFileCandidates },
-      { key: 'directory-bloat', label: 'Directory bloat', count: s.directoryBloatFindings || 0 }
+      { key: 'directory-bloat', label: 'Directory bloat', count: s.directoryBloatFindings || 0 },
     ].filter((c) => c.count > 0);
 
-    const catPills = scannerCategories.map((cat) => `
+    const catPills = scannerCategories
+      .map(
+        (cat) => `
       <button type="button" class="btn btn-ghost btn-sm fr-cat-filter" data-cat="${escapeHtml(cat.key)}" style="margin:2px;border-radius:999px;">
         ${escapeHtml(cat.label)}
         <span class="gate-badge pass" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${cat.count}</span>
       </button>
-    `).join('');
+    `
+      )
+      .join('');
 
-    const severityBar = total > 0 ? `
+    const severityBar =
+      total > 0
+        ? `
       <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:var(--space-2);background:var(--border);">
-        ${critical > 0 ? `<div style="width:${(critical / total * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
-        ${high > 0 ? `<div style="width:${(high / total * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
-        ${medium > 0 ? `<div style="width:${(medium / total * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
-        ${low > 0 ? `<div style="width:${(low / total * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
+        ${critical > 0 ? `<div style="width:${((critical / total) * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
+        ${high > 0 ? `<div style="width:${((high / total) * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
+        ${medium > 0 ? `<div style="width:${((medium / total) * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
+        ${low > 0 ? `<div style="width:${((low / total) * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
       </div>
-    ` : '';
+    `
+        : '';
 
-/**
- * Row html.
- * @param {any} row
- * @returns {any}
- */
+    /**
+     * Row html.
+     * @param {any} row
+     * @returns {any}
+     */
     const rowHtml = (row) => `
       <tr data-cat="${escapeHtml(row.type || row.category || '')}" data-path="${escapeHtml(row.path || row.filePath || '')}">
         <td><span class="gate-badge ${row.severity === 'critical' || row.severity === 'high' ? 'warn' : row.severity === 'medium' ? '' : 'pass'}">${escapeHtml(row.severity || '—')}</span></td>
@@ -3043,19 +3568,27 @@ export class AnalyzeView {
   }
 
   _renderScanEnginesReferenceCard() {
-    const gateList = SIMPLEBEACON_GATE_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
+    const gateList = SIMPLEBEACON_GATE_RULES.map(
+      (rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`
+    ).join('');
     const dataList = DATA_QUALITY_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
     const fileList = FILE_REDUCTION_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
     const complianceList = COMPLIANCE_CHECKLIST_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('');
-    const euList = EU_AI_ACT_EXTRA_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
+    const euList = EU_AI_ACT_EXTRA_RULES.map(
+      (rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`
+    ).join('');
 
-    const aiAnalyzerGroups = this.issueTaxonomyGroups.map((group) => {
-      const issueList = group.issues.map((issue) => `<li><code>${escapeHtml(issue.id)}</code> — ${escapeHtml(issue.title)}</li>`).join('');
-      return `<div class="analyze-engines-col">
+    const aiAnalyzerGroups = this.issueTaxonomyGroups
+      .map((group) => {
+        const issueList = group.issues
+          .map((issue) => `<li><code>${escapeHtml(issue.id)}</code> — ${escapeHtml(issue.title)}</li>`)
+          .join('');
+        return `<div class="analyze-engines-col">
         <h3 class="analyze-engines-col-title">${escapeHtml(group.categoryName)} (${group.issues.length})</h3>
         <ul class="analyze-mode-steps">${issueList}</ul>
       </div>`;
-    }).join('');
+      })
+      .join('');
 
     // Derive browser analyzer reference grid from canonical COMPLETE_STEPS (single source of truth)
     const browserGroups = new Map();
@@ -3063,13 +3596,20 @@ export class AnalyzeView {
       if (!browserGroups.has(step.category)) browserGroups.set(step.category, []);
       browserGroups.get(step.category).push(step);
     }
-    const browserAnalyzerHtml = [...browserGroups.entries()].map(([cat, items]) => {
-      const itemList = items.map((item) => `<li><code>${escapeHtml(item.id)}</code> — ${escapeHtml(item.label)}${item.desc ? ` <span class="text-muted" style="font-size:0.75rem;">— ${escapeHtml(item.desc)}</span>` : ''}</li>`).join('');
-      return `<div class="analyze-engines-col">
+    const browserAnalyzerHtml = [...browserGroups.entries()]
+      .map(([cat, items]) => {
+        const itemList = items
+          .map(
+            (item) =>
+              `<li><code>${escapeHtml(item.id)}</code> — ${escapeHtml(item.label)}${item.desc ? ` <span class="text-muted" style="font-size:0.75rem;">— ${escapeHtml(item.desc)}</span>` : ''}</li>`
+          )
+          .join('');
+        return `<div class="analyze-engines-col">
         <h3 class="analyze-engines-col-title">${escapeHtml(cat)} (${items.length})</h3>
         <ul class="analyze-mode-steps">${itemList}</ul>
       </div>`;
-    }).join('');
+      })
+      .join('');
 
     return `
       <div class="card mb-6 analyze-engines-reference">
@@ -3156,9 +3696,11 @@ export class AnalyzeView {
         <div class="analyze-action-row mt-4">
           <button type="button" class="btn btn-primary" id="run-issue-analysis-btn" ${noneSelected ? 'disabled' : ''}>Analyze selected analyzers</button>
           <span class="text-muted" style="font-size: var(--font-size-xs);">
-            ${stubCount
-    ? 'Implemented analyzers run deterministic local logic; remaining analyzers return safe contract-valid stubs.'
-    : 'All catalog analyzers run deterministic local logic against scan/codebase context when available.'}
+            ${
+              stubCount
+                ? 'Implemented analyzers run deterministic local logic; remaining analyzers return safe contract-valid stubs.'
+                : 'All catalog analyzers run deterministic local logic against scan/codebase context when available.'
+            }
           </span>
         </div>
         <div id="ai-issue-analysis-results">
@@ -3176,7 +3718,9 @@ export class AnalyzeView {
           Methods: ${group.methods.map((method) => escapeHtml(method.name)).join(' · ')}
         </p>
         <ul class="analyze-issue-checkbox-list">
-          ${group.issues.map((issue) => `
+          ${group.issues
+            .map(
+              (issue) => `
             <li>
               <label class="analyze-issue-checkbox">
                 <input type="checkbox" data-ai-issue-id="${escapeHtml(issue.id)}" ${this.selectedIssueIds.has(issue.id) ? 'checked' : ''}>
@@ -3186,7 +3730,9 @@ export class AnalyzeView {
                 </span>
               </label>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
         </ul>
       </div>
     `;
@@ -3208,12 +3754,12 @@ export class AnalyzeView {
       coverageGaps,
       mitigationThemes,
       architecture,
-      payload
+      payload,
     } = this.aiIssueAnalysisResult;
     const executionStatus = riskSummary.executionStatus || {
       measured: riskSummary.measuredAnalyzerCount || 0,
       insufficientData: 0,
-      stub: summary.stubCount || 0
+      stub: summary.stubCount || 0,
     };
     return `
       <div class="card mt-4">
@@ -3242,20 +3788,28 @@ export class AnalyzeView {
           <div class="metric-chip"><strong>${executionStatus.insufficientData}</strong> insufficient data</div>
           <div class="metric-chip"><strong>${executionStatus.stub}</strong> stub</div>
         </div>
-        ${executionStatus.insufficientData > executionStatus.measured ? `
+        ${
+          executionStatus.insufficientData > executionStatus.measured
+            ? `
           <p class="text-muted mb-4" style="font-size: var(--font-size-sm); margin-top: 0;">
             Most analyzers need structured scan fields (subgroup outcomes, traces, benchmarks, transcripts).
             Run <strong>npm run simplebeacon</strong> first, then re-run analyzers — gate metrics are now mapped automatically when the report has zero issues.
           </p>
-        ` : ''}
+        `
+            : ''
+        }
         <h3 class="card-subtitle">Category distribution</h3>
         <ul class="roadmap-phase-list mb-4">
-          ${categoryDistribution.map((item) => `
+          ${categoryDistribution
+            .map(
+              (item) => `
             <li>
               <strong>${escapeHtml(item.categoryName)}</strong>
               <span class="text-muted"> — ${item.selectedCount} selected (${item.percentage}%)</span>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
         </ul>
         <h3 class="card-subtitle">Risk summary (measured analyzers only)</h3>
         <p class="text-muted mb-3" style="font-size: var(--font-size-sm); margin-top: 0;">
@@ -3266,44 +3820,64 @@ export class AnalyzeView {
           <span class="text-muted"> (${riskSummary.measuredAnalyzerCount} measured)</span>
         </p>
         <h3 class="card-subtitle">Top priority issues</h3>
-        ${topPriorityIssues.length ? `
+        ${
+          topPriorityIssues.length
+            ? `
           <ul class="roadmap-phase-list mb-4">
-            ${topPriorityIssues.map((issue) => `
+            ${topPriorityIssues
+              .map(
+                (issue) => `
               <li>
                 <strong>${escapeHtml(issue.id)} · ${escapeHtml(issue.title)}</strong>
                 <span class="text-muted"> — score ${issue.priorityScore}, ${escapeHtml(issue.severity)} severity (${escapeHtml(issue.riskBand)} band)</span>
               </li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
-        ` : `
+        `
+            : `
           <p class="text-muted mb-4" style="font-size: var(--font-size-sm); margin-top: 0;">
             No measured analyzers reported elevated risk. Review coverage gaps below to improve input completeness.
           </p>
-        `}
+        `
+        }
         <h3 class="card-subtitle">Coverage gaps</h3>
-        ${coverageGaps?.length ? `
+        ${
+          coverageGaps?.length
+            ? `
           <ul class="roadmap-phase-list mb-4">
-            ${coverageGaps.map((gap) => `
+            ${coverageGaps
+              .map(
+                (gap) => `
               <li>
                 <strong>${escapeHtml(gap.id)} · ${escapeHtml(gap.title)}</strong>
                 <span class="text-muted"> — missing ${escapeHtml(gap.missingInputPointer)}</span>
                 <div class="text-muted" style="font-size: var(--font-size-sm); margin-top: var(--space-1);">${escapeHtml(gap.detail)}</div>
               </li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
-        ` : `
+        `
+            : `
           <p class="text-muted mb-4" style="font-size: var(--font-size-sm); margin-top: 0;">All implemented analyzers received sufficient input.</p>
-        `}
+        `
+        }
         <h3 class="card-subtitle">Mitigation themes</h3>
         <ul class="roadmap-phase-list mb-4">
-          ${mitigationThemes.map((item) => `
+          ${mitigationThemes
+            .map(
+              (item) => `
             <li>
               <strong>${escapeHtml(item.categoryName)}</strong>
               <div class="text-muted" style="font-size: var(--font-size-sm); margin-top: var(--space-1);">
                 ${item.themes.map((theme) => escapeHtml(theme)).join(' · ')}
               </div>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
         </ul>
         <h3 class="card-subtitle">Architecture report</h3>
         <div class="analyze-architecture-grid mb-4">
@@ -3346,7 +3920,7 @@ export class AnalyzeView {
     const progressDetails = formatScanProgressDetails(sp, {
       explorerInventory,
       scanPathLabel: projectPath ? formatPathLabel(projectPath) : '',
-      fullDirectoryScan: this.fullDirectoryScan
+      fullDirectoryScan: this.fullDirectoryScan,
     });
     let pct = 0;
     if (this.analysisType === 'complete' && steps.length) {
@@ -3367,20 +3941,17 @@ export class AnalyzeView {
     let counter = progressDetails.counter;
     if (!counter && explorerInventory?.totalFiles != null) {
       counter = `Folder inventory · ${formatNumber(explorerInventory.totalFiles)} files${
-        explorerInventory.totalFolders != null
-          ? `, ${formatNumber(explorerInventory.totalFolders)} folders`
-          : ''
+        explorerInventory.totalFolders != null ? `, ${formatNumber(explorerInventory.totalFolders)} folders` : ''
       }`;
     }
     if (!counter && steps.length && steps.some((s) => s.status === 'done' || s.status === 'running')) {
-      const repoInv = this.repositoryInventory
-        ?? this.app?.state?.report?.repositoryInventory
-        ?? this.app?.scanService?.report?.repositoryInventory
-        ?? this.lastResult?.repositoryInventory;
+      const repoInv =
+        this.repositoryInventory ??
+        this.app?.state?.report?.repositoryInventory ??
+        this.app?.scanService?.report?.repositoryInventory ??
+        this.lastResult?.repositoryInventory;
       if (repoInv?.totalFiles != null) {
-        const folderPart = repoInv.totalFolders != null
-          ? `, ${formatNumber(repoInv.totalFolders)} folders`
-          : '';
+        const folderPart = repoInv.totalFolders != null ? `, ${formatNumber(repoInv.totalFolders)} folders` : '';
         counter = `Repository scope · ${formatNumber(repoInv.totalFiles)} files${folderPart}`;
       }
     }
@@ -3418,12 +3989,16 @@ export class AnalyzeView {
         ${scopeNote ? `<div class="analyze-progress-scope-note text-muted">${escapeHtml(scopeNote)}</div>` : '<div class="analyze-progress-scope-note text-muted" hidden></div>'}
         ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml(sp?.currentFile || '')}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
         <div class="analyze-step-list">
-          ${steps.map((step) => `
+          ${steps
+            .map(
+              (step) => `
             <div class="analyze-step-item ${step.status}">
               <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : step.status === 'skipped' ? '—' : '○'}</span>
               <span>${escapeHtml(formatCompleteStepLine(step))}</span>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     `;
@@ -3459,10 +4034,12 @@ export class AnalyzeView {
   }
 
   resolveProgressScanPath() {
-    return this._progressScanPath
-      || this.app.state.lastProjectPath
-      || this.getActiveProjectPath(this._root?.querySelector('#project-path-input')?.value)
-      || '';
+    return (
+      this._progressScanPath ||
+      this.app.state.lastProjectPath ||
+      this.getActiveProjectPath(this._root?.querySelector('#project-path-input')?.value) ||
+      ''
+    );
   }
 
   progressExplorerInventory() {
@@ -3479,7 +4056,10 @@ export class AnalyzeView {
     if (cached?.path && normalizeProjectPath(cached.path) !== normalizeProjectPath(projectPath)) {
       this.app.state.pathInventory = null;
     }
-    void refreshPathInventory(this.app, projectPath, { profile: 'universal', fullDirectoryScan: this.fullDirectoryScan })
+    void refreshPathInventory(this.app, projectPath, {
+      profile: 'universal',
+      fullDirectoryScan: this.fullDirectoryScan,
+    })
       .then(() => {
         if (this.busy) this.updateProgressDom();
       })
@@ -3487,10 +4067,10 @@ export class AnalyzeView {
     this._progressPollInactive = 0;
     this._progressEndpointDown = false;
 
-/**
- * Poll.
- * @returns {any}
- */
+    /**
+     * Poll.
+     * @returns {any}
+     */
     const poll = async () => {
       if (!this.busy || this._progressEndpointDown) return;
       try {
@@ -3549,7 +4129,7 @@ export class AnalyzeView {
     const progressDetails = formatScanProgressDetails(sp, {
       explorerInventory,
       scanPathLabel: projectPath ? formatPathLabel(projectPath) : '',
-      fullDirectoryScan: this.fullDirectoryScan
+      fullDirectoryScan: this.fullDirectoryScan,
     });
 
     let pct = 0;
@@ -3570,20 +4150,17 @@ export class AnalyzeView {
     let counter = progressDetails.counter;
     if (!counter && explorerInventory?.totalFiles != null) {
       counter = `Folder inventory · ${formatNumber(explorerInventory.totalFiles)} files${
-        explorerInventory.totalFolders != null
-          ? `, ${formatNumber(explorerInventory.totalFolders)} folders`
-          : ''
+        explorerInventory.totalFolders != null ? `, ${formatNumber(explorerInventory.totalFolders)} folders` : ''
       }`;
     }
     if (!counter && steps.length && steps.some((s) => s.status === 'done' || s.status === 'running')) {
-      const repoInv = this.repositoryInventory
-        ?? this.app?.state?.report?.repositoryInventory
-        ?? this.app?.scanService?.report?.repositoryInventory
-        ?? this.lastResult?.repositoryInventory;
+      const repoInv =
+        this.repositoryInventory ??
+        this.app?.state?.report?.repositoryInventory ??
+        this.app?.scanService?.report?.repositoryInventory ??
+        this.lastResult?.repositoryInventory;
       if (repoInv?.totalFiles != null) {
-        const folderPart = repoInv.totalFolders != null
-          ? `, ${formatNumber(repoInv.totalFolders)} folders`
-          : '';
+        const folderPart = repoInv.totalFolders != null ? `, ${formatNumber(repoInv.totalFolders)} folders` : '';
         counter = `Repository scope · ${formatNumber(repoInv.totalFiles)} files${folderPart}`;
       }
     }
@@ -3599,11 +4176,12 @@ export class AnalyzeView {
       const headerLabel = root.querySelector('.analyze-progress-label');
       if (headerLabel) {
         const runningStep = steps.find((s) => s.status === 'running');
-        const t = this.analysisType === 'complete' && steps.length
-          ? (runningStep
-            ? `Step ${doneCount + 1}/${totalSteps}: ${runningStep.label}…`
-            : `Complete scan — ${doneCount}/${totalSteps} steps`)
-          : (this.completeStep || sp?.label || 'Running analysis…');
+        const t =
+          this.analysisType === 'complete' && steps.length
+            ? runningStep
+              ? `Step ${doneCount + 1}/${totalSteps}: ${runningStep.label}…`
+              : `Complete scan — ${doneCount}/${totalSteps} steps`
+            : this.completeStep || sp?.label || 'Running analysis…';
         if (headerLabel.textContent !== t) headerLabel.textContent = t;
       }
 
@@ -3620,9 +4198,12 @@ export class AnalyzeView {
         let note = progressDetails.scopeNote || '';
         const runningStep = steps.find((s) => s.status === 'running');
         if (runningStep?.id === 'codebase') {
-          const repoFiles = this.repositoryInventory?.totalFiles ?? this.lastResult?.repositoryInventory?.totalFiles ?? 0;
+          const repoFiles =
+            this.repositoryInventory?.totalFiles ?? this.lastResult?.repositoryInventory?.totalFiles ?? 0;
           if (repoFiles > 5000) {
-            note += (note ? ' ' : '') + `Analyzing ${formatNumber(repoFiles)} files across the full repository tree — this may take several minutes for large codebases.`;
+            note +=
+              (note ? ' ' : '') +
+              `Analyzing ${formatNumber(repoFiles)} files across the full repository tree — this may take several minutes for large codebases.`;
           } else {
             note += (note ? ' ' : '') + 'Analyzing all source files for type safety, security, and quality patterns.';
           }
@@ -3653,11 +4234,19 @@ export class AnalyzeView {
       const runningStep = steps.find((s) => s.status === 'running');
       const terminalLabel = sp?.currentFile || (runningStep ? `Step: ${runningStep.label}` : sp?.label || '');
       if (terminalLabel) {
-        const lastRaw = this._terminalLogLines.length > 0
-          ? this._terminalLogLines[this._terminalLogLines.length - 1].replace(/.*terminal-file">/, '').replace(/<\/span>.*/, '')
-          : '';
+        const lastRaw =
+          this._terminalLogLines.length > 0
+            ? this._terminalLogLines[this._terminalLogLines.length - 1]
+                .replace(/.*terminal-file">/, '')
+                .replace(/<\/span>.*/, '')
+            : '';
         if (terminalLabel !== lastRaw) {
-          const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const time = new Date().toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
           const html = `<span class="terminal-time">[${time}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">${escapeHtml(terminalLabel)}</span>`;
           this._terminalLogLines.push(html);
           if (this._terminalLogLines.length > 50) {
@@ -3666,7 +4255,11 @@ export class AnalyzeView {
           // Re-render terminal body content
           const dropzoneTerminal = this._root?.querySelector('#dropzone-terminal-body');
           if (dropzoneTerminal) {
-            dropzoneTerminal.replaceChildren(); dropzoneTerminal.insertAdjacentHTML('afterbegin', this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join(''));
+            dropzoneTerminal.replaceChildren();
+            dropzoneTerminal.insertAdjacentHTML(
+              'afterbegin',
+              this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('')
+            );
             dropzoneTerminal.scrollTop = dropzoneTerminal.scrollHeight;
           }
         }
@@ -3691,12 +4284,19 @@ export class AnalyzeView {
           // Create the list container and populate it now.
           const listEl = document.createElement('div');
           listEl.className = 'analyze-step-list';
-          listEl.insertAdjacentHTML('afterbegin', steps.map((step) => `
+          listEl.insertAdjacentHTML(
+            'afterbegin',
+            steps
+              .map(
+                (step) => `
             <div class="analyze-step-item ${step.status}">
               <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : step.status === 'skipped' ? '—' : '○'}</span>
               <span>${escapeHtml(formatCompleteStepLine(step))}</span>
             </div>
-          `).join(''));
+          `
+              )
+              .join('')
+          );
           root.appendChild(listEl);
         } else {
           steps.forEach((step, index) => {
@@ -3706,10 +4306,16 @@ export class AnalyzeView {
             if (item.className !== cls) item.className = cls;
             const spans = item.querySelectorAll('span');
             if (spans[0]) {
-              const icon = step.status === 'done' ? '✓'
-                : step.status === 'error' ? '✕'
-                : step.status === 'running' ? '◉'
-                : step.status === 'skipped' ? '—' : '○';
+              const icon =
+                step.status === 'done'
+                  ? '✓'
+                  : step.status === 'error'
+                    ? '✕'
+                    : step.status === 'running'
+                      ? '◉'
+                      : step.status === 'skipped'
+                        ? '—'
+                        : '○';
               if (spans[0].textContent !== icon) spans[0].textContent = icon;
             }
             if (spans[1]) {
@@ -3765,11 +4371,15 @@ export class AnalyzeView {
             </ul>
           </div>
         </div>
-        ${defaultPath ? `
+        ${
+          defaultPath
+            ? `
           <div class="analyze-empty-actions">
             <button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn"><i data-lucide="play" class="icon-16"></i> Run default scan</button>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
@@ -3788,7 +4398,7 @@ export class AnalyzeView {
       roadmapInsightsMode: this.roadmapInsightsMode,
       understandingMode: this.understandingMode,
       selectedEngines: this.selectedEngines,
-      selectedDeliverableSku: this.selectedDeliverableSku
+      selectedDeliverableSku: this.selectedDeliverableSku,
     });
     this.syncAnalyzeModeUi();
   }
@@ -3837,14 +4447,12 @@ export class AnalyzeView {
     });
     this.syncRunAnalyzeButtonLabel(root);
     this.syncPathChipStates(root, projectPath);
-    root.querySelector('#analyze-roadmap-insights-wrap')?.classList.toggle(
-      'is-hidden',
-      !analysisTypeSupportsRoadmapInsights(this.analysisType)
-    );
-    root.querySelector('#analyze-understanding-wrap')?.classList.toggle(
-      'is-hidden',
-      !analysisTypeSupportsUnderstanding(this.analysisType)
-    );
+    root
+      .querySelector('#analyze-roadmap-insights-wrap')
+      ?.classList.toggle('is-hidden', !analysisTypeSupportsRoadmapInsights(this.analysisType));
+    root
+      .querySelector('#analyze-understanding-wrap')
+      ?.classList.toggle('is-hidden', !analysisTypeSupportsUnderstanding(this.analysisType));
     root.querySelector('#analyze-ai-provider-wrap')?.classList.toggle('is-hidden', !this.showAiProviderSelect());
     root.querySelector('#analyze-roadmap-no-ai-note')?.classList.toggle('is-hidden', !this.showRoadmapInsightsNote());
     this.syncAiProviderNote(root);
@@ -3874,16 +4482,21 @@ export class AnalyzeView {
     if (!note || !this.showAiProviderSelect()) return;
     const id = String(this.aiProvider || 'demo').toLowerCase();
     if (id === 'demo') {
-      note.replaceChildren(); note.insertAdjacentHTML('afterbegin', 'Deterministic scan only — no AI narrative will be added. Pick <strong>Ollama</strong> (with <code>ollama serve</code>) for an optional LLM summary after findings.');
+      note.replaceChildren();
+      note.insertAdjacentHTML(
+        'afterbegin',
+        'Deterministic scan only — no AI narrative will be added. Pick <strong>Ollama</strong> (with <code>ollama serve</code>) for an optional LLM summary after findings.'
+      );
       return;
     }
     const match = this.providers.find((p) => p.id === id);
     if (match && !isAnalyzeProviderConfigured(match)) {
-      const settingsLink = id === 'ollama'
-        ? ' Configure base URL and model under Settings → AI providers, then click Refresh provider status.'
-        : id === 'openai' || id === 'anthropic'
-          ? ' Add API keys under Settings → AI providers.'
-          : '';
+      const settingsLink =
+        id === 'ollama'
+          ? ' Configure base URL and model under Settings → AI providers, then click Refresh provider status.'
+          : id === 'openai' || id === 'anthropic'
+            ? ' Add API keys under Settings → AI providers.'
+            : '';
       note.textContent = `${match.statusMessage || match.description || `${match.label} is not configured.`}${settingsLink}`;
       return;
     }
@@ -3891,7 +4504,8 @@ export class AnalyzeView {
       note.textContent = match.statusMessage;
       return;
     }
-    note.textContent = 'Gate findings are always deterministic. This choice only adds an optional LLM summary after the scan.';
+    note.textContent =
+      'Gate findings are always deterministic. This choice only adds an optional LLM summary after the scan.';
   }
 
   attachDeterministicSummary(target, note) {
@@ -3912,7 +4526,8 @@ export class AnalyzeView {
     }
     if (!target || !aiProviderSupportsSummary(this.aiProvider)) {
       if (target && String(this.aiProvider || '').toLowerCase() === 'demo') {
-        target.aiSummaryNote = 'Deterministic scan only — select Ollama or a cloud provider for an optional AI narrative.';
+        target.aiSummaryNote =
+          'Deterministic scan only — select Ollama or a cloud provider for an optional AI narrative.';
       }
       return target;
     }
@@ -3922,14 +4537,13 @@ export class AnalyzeView {
       );
       return this.attachDeterministicSummary(target);
     }
-    const summaryFocus = options.summaryFocus
-      || (this.analysisType === 'mock-scan' ? 'fiction' : 'all');
+    const summaryFocus = options.summaryFocus || (this.analysisType === 'mock-scan' ? 'fiction' : 'all');
     try {
       const summary = await summarizeReport(target, {
         projectPath,
         reportType,
         aiProvider: this.aiProvider,
-        summaryFocus
+        summaryFocus,
       });
       if (summary.enhanced && summary.summary) {
         target.aiSummary = summary.summary;
@@ -3949,9 +4563,7 @@ export class AnalyzeView {
   }
 
   async attachRepositoryInventory(projectPath, report) {
-    const inventory = report?.repositoryInventory
-      || this.lastResult?.repositoryInventory
-      || null;
+    const inventory = report?.repositoryInventory || this.lastResult?.repositoryInventory || null;
     if (inventory?.totalFiles != null) {
       this.repositoryInventory = inventory;
       if (this.lastResult) this.lastResult.repositoryInventory = inventory;
@@ -3980,13 +4592,16 @@ export class AnalyzeView {
           placeholder="Search issues..."
           style="flex:1;min-width:200px;font-size:0.8rem;padding:6px 10px;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${['critical','high','medium','low','info'].map(sev =>
-            `<button type="button" class="severity-chip ${sev} active"
+          ${['critical', 'high', 'medium', 'low', 'info']
+            .map(
+              (sev) =>
+                `<button type="button" class="severity-chip ${sev} active"
               data-sev="${sev}"
               style="padding:4px 10px;border-radius:999px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-elevated);color:var(--text-secondary);transition:all 150ms;">
               ${sev} ${counts[sev] || 0}
             </button>`
-          ).join('')}
+            )
+            .join('')}
         </div>
       </div>
     `;
@@ -4001,15 +4616,16 @@ export class AnalyzeView {
 
     // Severity breakdown from severityCounts
     const sev = report?.severityCounts || {};
-    const severityMetrics = (sev.critical || sev.high || sev.medium || sev.low || sev.info)
-      ? `<div class="metric-chip" style="display:flex;gap:4px;align-items:center;" title="Issue severity breakdown">
+    const severityMetrics =
+      sev.critical || sev.high || sev.medium || sev.low || sev.info
+        ? `<div class="metric-chip" style="display:flex;gap:4px;align-items:center;" title="Issue severity breakdown">
           ${sev.critical ? `<span style="color:var(--color-danger, #ef4444);font-weight:700;">${sev.critical}C</span>` : ''}
           ${sev.high ? `<span style="color:var(--color-danger, #ef4444);font-weight:700;">${sev.high}H</span>` : ''}
           ${sev.medium ? `<span style="color:var(--color-warning, #f59e0b);font-weight:700;">${sev.medium}M</span>` : ''}
           ${sev.low ? `<span style="color:var(--color-info, #3b82f6);font-weight:700;">${sev.low}L</span>` : ''}
           ${sev.info ? `<span style="color:var(--text-muted, #737373);font-weight:700;">${sev.info}I</span>` : ''}
         </div>`
-      : '';
+        : '';
 
     if (repoFiles != null) {
       return `
@@ -4025,9 +4641,8 @@ export class AnalyzeView {
       `;
     }
 
-    const showRuleScoped = m.ruleScopedFilesAnalyzed != null
-      && m.mockSampleFiles != null
-      && m.mockSampleFiles !== m.ruleScopedFilesAnalyzed;
+    const showRuleScoped =
+      m.ruleScopedFilesAnalyzed != null && m.mockSampleFiles != null && m.mockSampleFiles !== m.ruleScopedFilesAnalyzed;
     return `
       ${severityMetrics}
       <div class="metric-chip" title="Files read across mock/sample, credential, and production-leak rules">
@@ -4061,12 +4676,21 @@ export class AnalyzeView {
     const warningIssues = (report.gate && report.gate.warningIssues) || [];
     // Prefer the processed `detectedIssues` list (which may come from `findings`) so
     // `severityCounts` and the primary issue list originate from the same source.
-    const primaryIssues = (detectedIssues && detectedIssues.length)
-      ? detectedIssues
-      : (rawIssues && rawIssues.length) ? rawIssues : (findings && findings.length ? findings : []);
+    const primaryIssues =
+      detectedIssues && detectedIssues.length
+        ? detectedIssues
+        : rawIssues && rawIssues.length
+          ? rawIssues
+          : findings && findings.length
+            ? findings
+            : [];
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
-    const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
-    const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+    const primaryTotal = Array.isArray(primaryIssues)
+      ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0)
+      : 0;
+    const warningTotal = Array.isArray(warningIssues)
+      ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0)
+      : 0;
     // Scanner splits non-blocking warning issues into gate.warningIssues while rawIssues holds blockers.
     // Only add warnings when the primary list does not already account for the full severityCounts.
     const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
@@ -4078,17 +4702,29 @@ export class AnalyzeView {
     }
 
     return `
-      ${stale || integrityWarnings.length > 0 ? `
+      ${
+        stale || integrityWarnings.length > 0
+          ? `
         <div class="card mb-4" style="border-color: ${integrityWarnings.length ? 'var(--color-danger, #ef4444)' : 'var(--warning-color, #f59e0b)'};">
-          ${stale ? `<p style="margin: 0 0 8px; font-size: var(--font-size-sm);">
+          ${
+            stale
+              ? `<p style="margin: 0 0 8px; font-size: var(--font-size-sm);">
             Stale or mismatched scan report — re-run the scan on <code>${escapeHtml(formatPathInputValue(projectPath) || 'this path')}</code>
             to attach full repository inventory and gate scope (reportVersion 2).
-          </p>` : ''}
-          ${integrityWarnings.length ? `<p style="margin: 0; font-size: var(--font-size-sm); color: var(--color-danger, #ef4444);">
+          </p>`
+              : ''
+          }
+          ${
+            integrityWarnings.length
+              ? `<p style="margin: 0; font-size: var(--font-size-sm); color: var(--color-danger, #ef4444);">
             ⚠️ Integrity warning: ${escapeHtml(integrityWarnings.join(' · '))}
-          </p>` : ''}
+          </p>`
+              : ''
+          }
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div class="card mb-4 analyze-project-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div>
@@ -4103,7 +4739,9 @@ export class AnalyzeView {
         ${ageHours != null && ageHours > 1 ? `<span class="badge badge-danger" style="font-size:0.65rem;">STALE</span>` : ''}
       </div>
 
-      ${monorepoNote ? `
+      ${
+        monorepoNote
+          ? `
         <div class="card mb-4 analyze-monorepo-scope">
           <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">Monorepo scan scope</p>
           <p style="margin: 0; font-size: var(--font-size-sm);">${escapeHtml(monorepoNote)}</p>
@@ -4112,7 +4750,9 @@ export class AnalyzeView {
             · Platform: <code>${escapeHtml(formatPathInputValue(report.platformRoot))}</code>
           </p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       ${renderScanScopePanel(report)}
     `;
   }
@@ -4150,26 +4790,43 @@ export class AnalyzeView {
           <span class="card-title">Strategic insights ${insights.mode === 'llm' ? '(LLM)' : '(deterministic)'}</span>
         </div>
         <p class="mb-3">${escapeHtml(insights.executiveSummary || '')}</p>
-        ${risk.overallRisk ? `
+        ${
+          risk.overallRisk
+            ? `
           <p class="text-muted mb-2" style="font-size: var(--font-size-sm); margin-top: 0;">
             Overall risk: <strong>${escapeHtml(risk.overallRisk)}</strong>
             ${risk.riskCategories ? ` · Performance ${escapeHtml(risk.riskCategories.performance || '—')} · Maintainability ${escapeHtml(risk.riskCategories.maintainability || '—')}` : ''}
           </p>
-        ` : ''}
-        ${recs.length ? `
+        `
+            : ''
+        }
+        ${
+          recs.length
+            ? `
           <h3 class="card-subtitle">Top recommendations</h3>
           <ul class="roadmap-phase-list mb-3">
-            ${recs.slice(0, 5).map((r) => `
+            ${recs
+              .slice(0, 5)
+              .map(
+                (r) => `
               <li><strong>${escapeHtml(r.priority || '—')}</strong> — ${escapeHtml(r.action || r.description || '')}</li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
-        ` : ''}
-        ${insights.complianceNarrative ? `
+        `
+            : ''
+        }
+        ${
+          insights.complianceNarrative
+            ? `
           <details>
             <summary>Compliance narrative (draft)</summary>
             <p class="text-muted mt-2 mb-0" style="font-size: var(--font-size-sm);">${escapeHtml(insights.complianceNarrative)}</p>
           </details>
-        ` : ''}
+        `
+            : ''
+        }
         ${insights.llmNote ? `<p class="text-muted mt-2 mb-0" style="font-size: var(--font-size-xs);">${escapeHtml(insights.llmNote)}</p>` : ''}
       </div>
     `;
@@ -4282,7 +4939,8 @@ export class AnalyzeView {
     const slot = root?.querySelector('#analyze-inventory-provenance');
     if (!slot) return;
     const pathInput = root.querySelector('#project-path-input');
-    slot.replaceChildren(); slot.insertAdjacentHTML('afterbegin', this.renderInventoryProvenanceLine(pathInput?.value));
+    slot.replaceChildren();
+    slot.insertAdjacentHTML('afterbegin', this.renderInventoryProvenanceLine(pathInput?.value));
   }
 
   buildModeDetailContext() {
@@ -4293,13 +4951,14 @@ export class AnalyzeView {
     // per-file results panel doesn't vanish immediately after a scan completes.
     const resultPath = this.lastResult?.projectPath || this.lastResult?.report?.projectRoot || '';
     const pathMatched = this.lastResult && reportMatchesPagePath({ projectRoot: resultPath }, projectPath);
-    const recentFallback = this.lastResult && !pathMatched
-      ? (() => {
-          const completedAt = this.lastResult.scanCompletedAt || this.scanStartedAt;
-          const ageMs = completedAt ? Date.now() - completedAt : Infinity;
-          return ageMs < 60000;
-        })()
-      : false;
+    const recentFallback =
+      this.lastResult && !pathMatched
+        ? (() => {
+            const completedAt = this.lastResult.scanCompletedAt || this.scanStartedAt;
+            const ageMs = completedAt ? Date.now() - completedAt : Infinity;
+            return ageMs < 60000;
+          })()
+        : false;
     const lastResult = pathMatched || recentFallback ? this.lastResult : null;
     return { projectPath, report, lastResult };
   }
@@ -4486,7 +5145,9 @@ export class AnalyzeView {
     const start = Date.now();
     const max = 120_000;
     const tick = async () => {
-      if (this.agentStatus?.available) { return; }
+      if (this.agentStatus?.available) {
+        return;
+      }
       if (Date.now() - start > max) {
         this._stopAgentWizardPolling();
         if (polling) polling.textContent = 'Still not detected. Try clicking the button above.';
@@ -4516,7 +5177,11 @@ export class AnalyzeView {
     } catch {
       this.agentStatus = { available: false, scannerAvailable: false };
     }
-    this.updateAgentStatusUI(root, formatAgentStatus(this.agentStatus), this.agentStatus.available && this.agentStatus.scannerAvailable);
+    this.updateAgentStatusUI(
+      root,
+      formatAgentStatus(this.agentStatus),
+      this.agentStatus.available && this.agentStatus.scannerAvailable
+    );
   }
 
   bindEvents(el) {
@@ -4540,7 +5205,7 @@ export class AnalyzeView {
         aiProvider: this.aiProvider,
         roadmapInsightsMode: this.roadmapInsightsMode,
         understandingMode: this.understandingMode,
-        localMode: this.localMode
+        localMode: this.localMode,
       });
       this.syncAnalyzeModeUi(el);
     });
@@ -4559,7 +5224,7 @@ export class AnalyzeView {
         analysisType: this.analysisType,
         aiProvider: this.aiProvider,
         roadmapInsightsMode: this.roadmapInsightsMode,
-        understandingMode: this.understandingMode
+        understandingMode: this.understandingMode,
       });
       this.syncAiProviderNote(el);
     });
@@ -4569,7 +5234,7 @@ export class AnalyzeView {
         analysisType: this.analysisType,
         aiProvider: this.aiProvider,
         roadmapInsightsMode: this.roadmapInsightsMode,
-        understandingMode: this.understandingMode
+        understandingMode: this.understandingMode,
       });
       this.syncAnalyzeModeUi(el);
     });
@@ -4579,7 +5244,7 @@ export class AnalyzeView {
         analysisType: this.analysisType,
         aiProvider: this.aiProvider,
         roadmapInsightsMode: this.roadmapInsightsMode,
-        understandingMode: this.understandingMode
+        understandingMode: this.understandingMode,
       });
       this.syncAnalyzeModeUi(el);
     });
@@ -4641,12 +5306,21 @@ export class AnalyzeView {
     // VS Code Extension card — sync report to sidebar
     el.querySelector('#vscode-sync-report-btn')?.addEventListener('click', () => {
       const report = this.resolveResultsReport();
-      if (!report) { showToast('No scan report to sync — run a scan first', 'error'); return; }
+      if (!report) {
+        showToast('No scan report to sync — run a scan first', 'error');
+        return;
+      }
       const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-      if (!hasVsCodeApi) { showToast('Not running inside a VS Code-family editor', 'error'); return; }
+      if (!hasVsCodeApi) {
+        showToast('Not running inside a VS Code-family editor', 'error');
+        return;
+      }
       try {
         const vscode = this._getVscodeApi();
-        if (!vscode) { showToast('VS Code API unavailable', 'error'); return; }
+        if (!vscode) {
+          showToast('VS Code API unavailable', 'error');
+          return;
+        }
         const allIssues = report.rawIssues || report.detectedIssues || [];
         const sev = report.severityCounts || {};
         vscode.postMessage({
@@ -4659,8 +5333,8 @@ export class AnalyzeView {
             gate: report.gate || { pass: false },
             issues: allIssues.slice(0, 200),
             projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || '',
-            severityCounts: sev
-          }
+            severityCounts: sev,
+          },
         });
         showToast('Scan report synced to sidebar', 'success');
       } catch (err) {
@@ -4716,7 +5390,10 @@ export class AnalyzeView {
           const entry = dt.items[0].webkitGetAsEntry?.();
           if (entry?.isDirectory) {
             const folderName = entry.name || '';
-            showToast(`Directory "${folderName}" detected. Use Browse Folder or type the full path for best results.`, 'warning');
+            showToast(
+              `Directory "${folderName}" detected. Use Browse Folder or type the full path for best results.`,
+              'warning'
+            );
             return;
           }
         }
@@ -4765,9 +5442,15 @@ export class AnalyzeView {
     // Run button (analyze-path-run-btn) triggers path analysis
     el.querySelector('#analyze-path-run-btn')?.addEventListener('click', () => {
       const raw = pathInput?.value?.trim();
-      if (!raw) { showToast('Enter a project path first', 'error'); return; }
+      if (!raw) {
+        showToast('Enter a project path first', 'error');
+        return;
+      }
       const resolvedPath = this.resolveProjectPath(raw);
-      if (!resolvedPath) { showToast('Invalid path', 'error'); return; }
+      if (!resolvedPath) {
+        showToast('Invalid path', 'error');
+        return;
+      }
       this.app.state.pathInputDraft = '';
       this.app.state.lastProjectPath = resolvedPath;
       this.setPathInputDisplay(pathInput, resolvedPath);
@@ -4792,9 +5475,15 @@ export class AnalyzeView {
     // Quick Scan button triggers a quick scan on the current path
     el.querySelector('#quick-file-scan-btn')?.addEventListener('click', () => {
       const raw = pathInput?.value?.trim();
-      if (!raw) { showToast('Enter a project path first', 'error'); return; }
+      if (!raw) {
+        showToast('Enter a project path first', 'error');
+        return;
+      }
       const resolvedPath = this.resolveProjectPath(raw);
-      if (!resolvedPath) { showToast('Invalid path', 'error'); return; }
+      if (!resolvedPath) {
+        showToast('Invalid path', 'error');
+        return;
+      }
       this.analysisType = 'quick';
       this.app.state.pathInputDraft = '';
       this.app.state.lastProjectPath = resolvedPath;
@@ -4941,10 +5630,9 @@ export class AnalyzeView {
       this.refresh();
     });
     el.querySelector('#run-issue-analysis-btn')?.addEventListener('click', () => {
-      this.aiIssueAnalysisResult = buildAiSystemsIssueAnalysis(
-        Array.from(this.selectedIssueIds),
-        { context: this.buildAnalyzerSuiteContext() }
-      );
+      this.aiIssueAnalysisResult = buildAiSystemsIssueAnalysis(Array.from(this.selectedIssueIds), {
+        context: this.buildAnalyzerSuiteContext(),
+      });
       this.refresh();
     });
     el.querySelector('#export-ai-analyzer-json-btn')?.addEventListener('click', () => {
@@ -4956,7 +5644,7 @@ export class AnalyzeView {
       const projectPath = this.resolveProjectPath(pathInput?.value);
       const payload = sanitizeAiProblemAnalyzerExport(this.aiIssueAnalysisResult, {
         projectPath,
-        context: this.buildAnalyzerSuiteContext()
+        context: this.buildAnalyzerSuiteContext(),
       });
       if (!payload) {
         showToast('Nothing to export', 'info');
@@ -4974,7 +5662,7 @@ export class AnalyzeView {
       const projectPath = this.resolveProjectPath(pathInput?.value);
       const payload = sanitizeAiProblemAnalyzerExport(this.aiIssueAnalysisResult, {
         projectPath,
-        context: this.buildAnalyzerSuiteContext()
+        context: this.buildAnalyzerSuiteContext(),
       });
       if (!payload) {
         showToast('Nothing to export', 'info');
@@ -5096,7 +5784,11 @@ export class AnalyzeView {
         pathDropzone.classList.remove('drag-active');
 
         // Preload providers so defaultProjectPath is available for path resolution
-        try { await ensureAllowedAnalysisRoots(this.app); } catch { /* ignore */ }
+        try {
+          await ensureAllowedAnalysisRoots(this.app);
+        } catch {
+          /* ignore */
+        }
 
         const items = event.dataTransfer?.items;
         const files = event.dataTransfer?.files;
@@ -5112,7 +5804,10 @@ export class AnalyzeView {
                 void this.handleDroppedFolderFallback(files, handle.name, event, handle, updateFingerprintStatus);
                 return;
               }
-              showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
+              showToast(
+                'Directory drop detected. Use Browse Folder or type the full path for best results.',
+                'warning'
+              );
               return;
             }
           } catch {
@@ -5133,14 +5828,22 @@ export class AnalyzeView {
           const dt = event.dataTransfer;
           if (!dt) return '';
           const tryGetData = (type) => {
-            try { return dt.getData(type) || ''; } catch { return ''; }
+            try {
+              return dt.getData(type) || '';
+            } catch {
+              return '';
+            }
           };
           const uriList = tryGetData('text/uri-list');
           if (uriList) {
             const uri = uriList.trim().split('\n')[0]?.trim();
             if (uri && uri.startsWith('file:///')) {
               let p = uri.slice(8).replace(/\/$/, '');
-              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              try {
+                p = decodeURIComponent(p);
+              } catch {
+                /* ignore */
+              }
               return p.replace(/\//g, '\\');
             }
           }
@@ -5157,7 +5860,11 @@ export class AnalyzeView {
             const url = mozUrl.trim().split('\n')[0]?.trim();
             if (url && url.startsWith('file:///')) {
               let p = url.slice(8).replace(/\/$/, '');
-              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              try {
+                p = decodeURIComponent(p);
+              } catch {
+                /* ignore */
+              }
               return p.replace(/\//g, '\\');
             }
           }
@@ -5174,12 +5881,18 @@ export class AnalyzeView {
               const idx = lower.indexOf(`/${fname}/`);
               if (idx >= 0) {
                 // Return the folder path without a trailing slash and using backslashes for Windows.
-                return norm.slice(0, idx + fname.length + 1).replace(/\/+$/, '').replace(/\//g, '\\');
+                return norm
+                  .slice(0, idx + fname.length + 1)
+                  .replace(/\/+$/, '')
+                  .replace(/\//g, '\\');
               }
               // Handle case where folderName is at the end: .../folderName
               const endIdx = lower.lastIndexOf(`/${fname}`);
               if (endIdx >= 0) {
-                return norm.slice(0, endIdx + fname.length).replace(/\/+$/, '').replace(/\//g, '\\');
+                return norm
+                  .slice(0, endIdx + fname.length)
+                  .replace(/\/+$/, '')
+                  .replace(/\//g, '\\');
               }
             }
             // Fallback: parent directory of the first file (may be subfolder — marked for review)
@@ -5228,9 +5941,7 @@ export class AnalyzeView {
           const rawDefault = String(this.app.state.defaultProjectPath || '')
             .replace(/\\/g, '/')
             .replace(/\/+$/, '');
-          const fallbackBase = String(this._deriveFallbackBase())
-            .replace(/\\/g, '/')
-            .replace(/\/+$/, '');
+          const fallbackBase = String(this._deriveFallbackBase()).replace(/\\/g, '/').replace(/\/+$/, '');
           const base = rawDefault || currentBase || fallbackBase;
           return base ? `${base}/${name}` : name;
         };
@@ -5299,11 +6010,16 @@ export class AnalyzeView {
     const modal = el.querySelector('#dir-browser-modal');
     if (!modal) return;
     const pathInput = el.querySelector('#project-path-input');
-    const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    const isRemoteDeployment =
+      typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
     let currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || '';
     // On a remote deployment, local Windows paths or bare folder names cannot be browsed
     // by the server. Start from the server's default project path instead.
-    if (isRemoteDeployment && (isLocalPath(currentPath) || (currentPath && !currentPath.startsWith('/') && !/^[a-zA-Z]:[\\/]/i.test(currentPath)))) {
+    if (
+      isRemoteDeployment &&
+      (isLocalPath(currentPath) ||
+        (currentPath && !currentPath.startsWith('/') && !/^[a-zA-Z]:[\\/]/i.test(currentPath)))
+    ) {
       currentPath = this.app.state.defaultProjectPath || '';
     }
     modal.classList.remove('hidden');
@@ -5325,29 +6041,41 @@ export class AnalyzeView {
     const listEl = el.querySelector('#dir-browser-list');
     const pathEl = el.querySelector('#dir-browser-current-path');
     if (!listEl || !pathEl) return;
-    listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">Loading directories…</div>');
+    listEl.replaceChildren();
+    listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">Loading directories…</div>');
     const displayPath = dirPath || 'Computer';
     pathEl.textContent = displayPath;
     this._dirBrowserPath = dirPath;
 
     // Local paths cannot be browsed by the remote server; type them directly into the path input.
     if (isLocalPath(dirPath)) {
-      listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">Local folders cannot be browsed from the server. Type the path above or run the Local Scan Agent.</div>');
+      listEl.replaceChildren();
+      listEl.insertAdjacentHTML(
+        'afterbegin',
+        '<div class="dir-browser-empty">Local folders cannot be browsed from the server. Type the path above or run the Local Scan Agent.</div>'
+      );
       return;
     }
 
     try {
-      const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
+      const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, {
+        cache: 'no-store',
+      });
       const data = await res.json();
       if (!data.success) {
-        listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`);
+        listEl.replaceChildren();
+        listEl.insertAdjacentHTML(
+          'afterbegin',
+          `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`
+        );
         return;
       }
       const current = data.current || dirPath;
       pathEl.textContent = current || 'Computer';
       this._dirBrowserPath = current;
       if (!data.directories || data.directories.length === 0) {
-        listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">No subdirectories</div>');
+        listEl.replaceChildren();
+        listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">No subdirectories</div>');
         return;
       }
       const parentItem = data.parent
@@ -5355,12 +6083,17 @@ export class AnalyzeView {
         : '';
       const isDriveList = !current;
       const icon = isDriveList ? '💾' : '📁';
-      const items = data.directories.map((dir) =>
-        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`
-      ).join('');
-      listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', parentItem + items);
+      const items = data.directories
+        .map(
+          (dir) =>
+            `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`
+        )
+        .join('');
+      listEl.replaceChildren();
+      listEl.insertAdjacentHTML('afterbegin', parentItem + items);
     } catch (err) {
-      listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', `<div class="dir-browser-empty">Error: ${escapeHtml(err.message)}</div>`);
+      listEl.replaceChildren();
+      listEl.insertAdjacentHTML('afterbegin', `<div class="dir-browser-empty">Error: ${escapeHtml(err.message)}</div>`);
     }
   }
 
@@ -5397,8 +6130,7 @@ export class AnalyzeView {
     // In Electron-like environments skip showDirectoryPicker because it cannot
     // reveal absolute paths; the webkitdirectory fallback gives files with .path.
     const isElectronLike = Boolean(
-      typeof window !== 'undefined' &&
-      (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
+      typeof window !== 'undefined' && (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
     );
     if (!canUseDirectoryPicker() || isElectronLike) return false;
     try {
@@ -5410,7 +6142,7 @@ export class AnalyzeView {
         .replace(/\/+$/, '');
       // Use the parent directory of the current path as the base, not stripped to user home
       const lastSlash = rawDefault.lastIndexOf('/');
-      const basePath = (lastSlash > 2) ? rawDefault.substring(0, lastSlash) : rawDefault;
+      const basePath = lastSlash > 2 ? rawDefault.substring(0, lastSlash) : rawDefault;
       const resolvedPath = `${basePath}/${folderName}`;
       const pathInput = el.querySelector('#project-path-input');
       const fingerprintStatus = el.querySelector('#fingerprint-status');
@@ -5421,7 +6153,10 @@ export class AnalyzeView {
         this.app.state.pathInputDraft = '';
         this.syncAnalyzeModeUi(el);
         void this.refreshReportForActivePath(el);
-        showToast(`Folder "${folderName}" selected — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+        showToast(
+          `Folder "${folderName}" selected — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`,
+          'info'
+        );
       }
       return true;
     } catch (err) {
@@ -5539,21 +6274,35 @@ export class AnalyzeView {
 
           // Try to extract the real absolute path from OS dataTransfer (same logic as path dropzone)
           const dt = event.dataTransfer;
-          const tryGetData = (type) => { try { return dt.getData(type) || ''; } catch { return ''; } };
+          const tryGetData = (type) => {
+            try {
+              return dt.getData(type) || '';
+            } catch {
+              return '';
+            }
+          };
           let actualPath = '';
           const uriList = tryGetData('text/uri-list');
           if (uriList) {
             const uri = uriList.trim().split('\n')[0]?.trim();
             if (uri && uri.startsWith('file:///')) {
               let p = uri.slice(8).replace(/\/$/, '');
-              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              try {
+                p = decodeURIComponent(p);
+              } catch {
+                /* ignore */
+              }
               actualPath = p.replace(/\//g, '\\');
             }
           }
           if (!actualPath) {
             const plain = tryGetData('text/plain');
             if (plain) {
-              let trimmed = plain.trim().split('\n')[0]?.trim().replace(/^["']|["']$/g, '');
+              let trimmed = plain
+                .trim()
+                .split('\n')[0]
+                ?.trim()
+                .replace(/^["']|["']$/g, '');
               if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
                 actualPath = trimmed.replace(/[\\\/]+$/, '');
               }
@@ -5565,7 +6314,11 @@ export class AnalyzeView {
               const url = mozUrl.trim().split('\n')[0]?.trim();
               if (url && url.startsWith('file:///')) {
                 let p = url.slice(8).replace(/\/$/, '');
-                try { p = decodeURIComponent(p); } catch { /* ignore */ }
+                try {
+                  p = decodeURIComponent(p);
+                } catch {
+                  /* ignore */
+                }
                 actualPath = p.replace(/\//g, '\\');
               }
             }
@@ -5588,7 +6341,10 @@ export class AnalyzeView {
             if (!actualPath) {
               // Last resort: parent of first file (likely a subfolder — will show for review)
               const lastSlash = norm.lastIndexOf('/');
-              actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+              actualPath =
+                lastSlash > 0
+                  ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash)
+                  : filePath;
             }
           }
 
@@ -5600,9 +6356,7 @@ export class AnalyzeView {
           const rawDefault = String(this.app.state.defaultProjectPath || '')
             .replace(/\\/g, '/')
             .replace(/\/+$/, '');
-          const fallbackBase = String(this._deriveFallbackBase())
-            .replace(/\\/g, '/')
-            .replace(/\/+$/, '');
+          const fallbackBase = String(this._deriveFallbackBase()).replace(/\\/g, '/').replace(/\/+$/, '');
           const base = rawDefault || currentBase || fallbackBase;
           const resolvedPath = actualPath || (base ? `${base}/${name}` : name);
           if (pathInput) {
@@ -5613,7 +6367,10 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(el);
             void this.refreshReportForActivePath(el);
           }
-          showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`, 'info');
+          showToast(
+            `Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`,
+            'info'
+          );
           return;
         }
       }
@@ -5643,9 +6400,13 @@ export class AnalyzeView {
       const m = err.message.match(/position (\d+)/);
       if (m) {
         const pos = parseInt(m[1], 10);
-        let line = 1, col = 1;
+        let line = 1,
+          col = 1;
         for (let i = 0; i < pos && i < text.length; i++) {
-          if (text[i] === '\n') { line++; col = 0; }
+          if (text[i] === '\n') {
+            line++;
+            col = 0;
+          }
           col++;
         }
         console.error(`JSON parse error at line ${line}, col ${col}: ${err.message}`);
@@ -5661,16 +6422,20 @@ export class AnalyzeView {
       type: parsed.type || '',
       projectPath: parsed.projectPath || parsed.projectRoot || '',
       generatedAt: parsed.generatedAt || parsed.exportedAt || parsed.scannedAt || '',
-      issueCount: Array.isArray(parsed.detectedIssues) ? parsed.detectedIssues.length
-        : Array.isArray(parsed.rawIssues) ? parsed.rawIssues.length
-        : Array.isArray(parsed.issues) ? parsed.issues.length : 0,
-      checksumSample: JSON.stringify(parsed).slice(0, 200)
+      issueCount: Array.isArray(parsed.detectedIssues)
+        ? parsed.detectedIssues.length
+        : Array.isArray(parsed.rawIssues)
+          ? parsed.rawIssues.length
+          : Array.isArray(parsed.issues)
+            ? parsed.issues.length
+            : 0,
+      checksumSample: JSON.stringify(parsed).slice(0, 200),
     };
     let hash = 0;
     const str = JSON.stringify(payload);
     for (let i = 0; i < str.length; i++) {
       const chr = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + chr;
+      hash = (hash << 5) - hash + chr;
       hash |= 0;
     }
     return String(hash);
@@ -5688,17 +6453,17 @@ export class AnalyzeView {
 
   validateReportIntegrity(parsed, fileName) {
     const issues = [];
-/**
- * Warn.
- * @param {number} msg
- * @returns {any}
- */
+    /**
+     * Warn.
+     * @param {number} msg
+     * @returns {any}
+     */
     const warn = (msg) => issues.push({ level: 'warn', msg });
-/**
- * Err.
- * @param {number} msg
- * @returns {any}
- */
+    /**
+     * Err.
+     * @param {number} msg
+     * @returns {any}
+     */
     const err = (msg) => issues.push({ level: 'error', msg });
 
     if (!parsed || typeof parsed !== 'object') {
@@ -5712,7 +6477,13 @@ export class AnalyzeView {
     const detectedIssues = parsed.detectedIssues || [];
     const findings = parsed.findings || [];
     const warningIssues = (parsed.gate && parsed.gate.warningIssues) || [];
-    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
+    const primaryIssues = rawIssues.length
+      ? rawIssues
+      : detectedIssues.length
+        ? detectedIssues
+        : findings.length
+          ? findings
+          : [];
 
     if (isSimplebeaconReport(parsed) || type === 'simplebeacon-complete-scan') {
       if (!parsed.projectRoot && !parsed.projectPath) {
@@ -5721,16 +6492,20 @@ export class AnalyzeView {
       if (typeof sev !== 'object') {
         warn('severityCounts is not an object');
       } else {
-        const counted = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
-        const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
-        const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+        const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
+        const primaryTotal = Array.isArray(primaryIssues)
+          ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0)
+          : 0;
+        const warningTotal = Array.isArray(warningIssues)
+          ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0)
+          : 0;
         const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
         if (Array.isArray(primaryIssues) && counted !== issueTotal) {
           warn(`severityCounts sum (${counted}) != issues.count (${issueTotal})`);
         }
       }
       if (Array.isArray(primaryIssues)) {
-        const bad = primaryIssues.filter(i => !i.severity || !i.type).length;
+        const bad = primaryIssues.filter((i) => !i.severity || !i.type).length;
         if (bad > 0) warn(`${bad}/${primaryIssues.length} issues missing severity or type`);
       }
     }
@@ -5771,13 +6546,15 @@ export class AnalyzeView {
     const results = parsed.results || {};
     const gateReport = results.simplebeacon || null;
     const mockDigest = results.mockScan || null;
-    const mockScanStep = mockDigest ? {
-      id: 'mock-scan',
-      report: mockDigest.sourceReport || gateReport,
-      fictionIssues: mockDigest.fictionIssues || [],
-      nonFictionIssues: mockDigest.nonFictionIssues || [],
-      conclusion: mockDigest.conclusion || null
-    } : null;
+    const mockScanStep = mockDigest
+      ? {
+          id: 'mock-scan',
+          report: mockDigest.sourceReport || gateReport,
+          fictionIssues: mockDigest.fictionIssues || [],
+          nonFictionIssues: mockDigest.nonFictionIssues || [],
+          conclusion: mockDigest.conclusion || null,
+        }
+      : null;
     const stepDefs = [
       { id: 'simplebeacon', report: gateReport },
       { id: 'consolidation', scan: results.consolidation },
@@ -5790,10 +6567,10 @@ export class AnalyzeView {
         id: 'cleanup-assistant',
         brief: results.cleanupAssistant,
         fileReduction: results.fileReduction,
-        dataQuality: results.dataQuality
+        dataQuality: results.dataQuality,
       },
       { id: 'npm-audit', npmAudit: results.npmAudit },
-      { id: 'compliance', checklist: results.compliance }
+      { id: 'compliance', checklist: results.compliance },
     ];
     const steps = stepDefs
       .filter((def) => def.report || def.scan || def.roadmap || def.brief || def.npmAudit || def.checklist)
@@ -5804,7 +6581,7 @@ export class AnalyzeView {
       projectPath: parsed.projectPath || '',
       label: `Imported: ${fileName}`,
       steps,
-      errors: parsed.errors || []
+      errors: parsed.errors || [],
     };
     this.app.state.analyzeResult = this.lastResult;
     if (results.simplebeacon) {
@@ -5821,14 +6598,17 @@ export class AnalyzeView {
   async importJsonReport(parsed, fileName, meta = {}) {
     // Validate structural integrity before import
     const integrity = this.validateReportIntegrity(parsed, fileName);
-    const errors = integrity.filter(i => i.level === 'error');
-    const warnings = integrity.filter(i => i.level === 'warn');
+    const errors = integrity.filter((i) => i.level === 'error');
+    const warnings = integrity.filter((i) => i.level === 'warn');
     if (errors.length > 0) {
       showToast(`Import blocked: ${errors[0].msg}`, 'error');
       return true; // handled (rejected)
     }
     if (warnings.length > 0) {
-            console['warn'](`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
+      console['warn'](
+        `[AnalyzeView] Import warnings for ${fileName}:`,
+        warnings.map((w) => w.msg)
+      );
     }
 
     // Duplicate detection
@@ -5867,7 +6647,7 @@ export class AnalyzeView {
         scan: parsed,
         projectPath: parsed.projectPath || parsed.projectRoot || '',
         label: `Imported codebase report: ${fileName}`,
-        conclusion: buildCodebaseConclusion(parsed)
+        conclusion: buildCodebaseConclusion(parsed),
       };
       this.app.state.analyzeResult = this.lastResult;
       showToast(`Imported codebase report from ${fileName}`, 'success');
@@ -5884,7 +6664,7 @@ export class AnalyzeView {
         kind: 'consolidation',
         scan: parsed,
         projectPath: parsed.projectRoot || parsed.projectPath || '',
-        label: `Imported consolidation: ${fileName}`
+        label: `Imported consolidation: ${fileName}`,
       };
       this.app.state.analyzeResult = this.lastResult;
       const typeSelect = this._root?.querySelector('#analysis-type-select');
@@ -5900,7 +6680,7 @@ export class AnalyzeView {
         scan: parsed,
         projectPath: parsed.projectRoot || '',
         label: `Imported ${profile}: ${fileName}`,
-        conclusion: buildDataCleanupConclusion(parsed, profile)
+        conclusion: buildDataCleanupConclusion(parsed, profile),
       };
       this.app.state.analyzeResult = this.lastResult;
       showToast(`Imported ${profile} report from ${fileName}`, 'success');
@@ -5915,41 +6695,34 @@ export class AnalyzeView {
         text: '',
         findings: [],
         threatScore: 0,
-        cacheMeta: { fileCount, lastScan: parsed.lastScan || null }
+        cacheMeta: { fileCount, lastScan: parsed.lastScan || null },
       };
-      showToast(
-        `Scanner cache index (${fileCount} path(s)) — not a production source file`,
-        'info'
-      );
+      showToast(`Scanner cache index (${fileCount} path(s)) — not a production source file`, 'info');
       this.refresh();
       return true;
     }
     if (isCleanupExportJson(parsed)) {
-      const unusedCount = parsed.brief?.unusedFiles?.length
-        ?? parsed.unusedFiles?.length
-        ?? parsed.brief?.tiers?.reviewFirst?.files
-        ?? 0;
+      const unusedCount =
+        parsed.brief?.unusedFiles?.length ?? parsed.unusedFiles?.length ?? parsed.brief?.tiers?.reviewFirst?.files ?? 0;
       this.snippetResult = {
         fileName,
         bytes: meta.bytes ?? 0,
         text: '',
         findings: [],
         threatScore: 0,
-        cacheMeta: { cleanupExport: true, phase: parsed.phase || null, unusedCount }
+        cacheMeta: { cleanupExport: true, phase: parsed.phase || null, unusedCount },
       };
-      showToast(
-        `Cleanup export inventory (${unusedCount || 'path'} listing) — not a production source file`,
-        'info'
-      );
+      showToast(`Cleanup export inventory (${unusedCount || 'path'} listing) — not a production source file`, 'info');
       this.refresh();
       return true;
     }
     if (parsed.type === 'dynamic-project-roadmap-analysis' || parsed.codeAnalysis?.structure) {
       const metrics = extractRoadmapFileMetrics(parsed);
-      const scanTarget = parsed.scanTargetRoot
-        || parsed.projectRoot
-        || String(parsed.directoryStructure?.server?.path || '').replace(/[/\\]server$/i, '')
-        || '';
+      const scanTarget =
+        parsed.scanTargetRoot ||
+        parsed.projectRoot ||
+        String(parsed.directoryStructure?.server?.path || '').replace(/[/\\]server$/i, '') ||
+        '';
       this.lastResult = {
         kind: 'roadmap',
         data: parsed,
@@ -5957,7 +6730,7 @@ export class AnalyzeView {
         label: `Imported roadmap: ${fileName}`,
         conclusion: metrics
           ? `Roadmap walk — ${Number(metrics.totalFiles).toLocaleString()} files (${Number(metrics.codeFiles).toLocaleString()} code).`
-          : 'Imported filesystem roadmap analysis.'
+          : 'Imported filesystem roadmap analysis.',
       };
       this.app.state.analyzeResult = this.lastResult;
       const typeSelect = this._root?.querySelector('#analysis-type-select');
@@ -5969,11 +6742,11 @@ export class AnalyzeView {
     if (isFictionDigestJson(parsed)) {
       const digest = sanitizeFictionDigestExport(parsed);
       const report = digest.sourceReport;
-/**
- * Fiction count.
- * @param {any} digest.fictionIssues || []
- * @returns {any}
- */
+      /**
+       * Fiction count.
+       * @param {any} digest.fictionIssues || []
+       * @returns {any}
+       */
       const fictionCount = (digest.fictionIssues || []).reduce((sum, i) => sum + (i.count || 1), 0);
       this.lastResult = {
         kind: 'mock-scan',
@@ -5982,7 +6755,7 @@ export class AnalyzeView {
         fictionIssues: digest.fictionIssues || [],
         projectPath: report.projectRoot || report.projectPath || '',
         label: `Imported fiction digest: ${fileName}`,
-        conclusion: digest.conclusion || buildScanConclusion(report, { focus: 'fiction' })
+        conclusion: digest.conclusion || buildScanConclusion(report, { focus: 'fiction' }),
       };
       this.app.state.analyzeResult = this.lastResult;
       this.app.state.report = report;
@@ -6008,7 +6781,7 @@ export class AnalyzeView {
     try {
       const data = await uploadDirectoryAndAnalyze(fileList, {
         analysisType: this.analysisType || 'simplebeacon',
-        timeoutMs: 600000
+        timeoutMs: 600000,
       });
       const report = data.results?.simplebeacon || data.simplebeacon || data;
       const projectPath = report?.projectPath || report?.projectRoot || `upload://${folderName || 'folder'}`;
@@ -6022,10 +6795,13 @@ export class AnalyzeView {
         projectPath,
         report,
         analysisType: this.analysisType || 'simplebeacon',
-        generatedAt: report?.generatedAt || new Date().toISOString()
+        generatedAt: report?.generatedAt || new Date().toISOString(),
       };
       this.lastScanId = report?.scanId || report?.id || Date.now().toString();
-      showToast(`Uploaded "${folderName || 'folder'}" and scanned ${report?.ruleScopedFilesAnalyzed || report?.filesAnalyzed || fileList.length} files`, 'success');
+      showToast(
+        `Uploaded "${folderName || 'folder'}" and scanned ${report?.ruleScopedFilesAnalyzed || report?.filesAnalyzed || fileList.length} files`,
+        'success'
+      );
       this.refresh();
     } catch (error) {
       showToast(error.message || 'Folder upload scan failed', 'error');
@@ -6046,13 +6822,21 @@ export class AnalyzeView {
     const dt = event.dataTransfer;
     if (!dt) return '';
     const tryGetData = (type) => {
-      try { return dt.getData(type) || ''; } catch { return ''; }
+      try {
+        return dt.getData(type) || '';
+      } catch {
+        return '';
+      }
     };
 
     const decodeFileUri = (uri) => {
       if (!uri || !uri.startsWith('file:///')) return '';
       let p = uri.slice(8).replace(/\/$/, '');
-      try { p = decodeURIComponent(p); } catch { /* ignore */ }
+      try {
+        p = decodeURIComponent(p);
+      } catch {
+        /* ignore */
+      }
       return p.replace(/\//g, '\\');
     };
 
@@ -6065,7 +6849,11 @@ export class AnalyzeView {
 
     const plain = tryGetData('text/plain');
     if (plain) {
-      const trimmed = plain.trim().split('\n')[0]?.trim().replace(/^["']|["']$/g, '');
+      const trimmed = plain
+        .trim()
+        .split('\n')[0]
+        ?.trim()
+        .replace(/^["']|["']$/g, '');
       if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
         return trimmed.replace(/[\\\/]+$/, '');
       }
@@ -6126,7 +6914,9 @@ export class AnalyzeView {
       updateFingerprintStatus('Fingerprinting dropped folder…');
       try {
         const fp = await fingerprintDirectory(directoryHandle, folderName);
-        const status = [formatFingerprint(fp), 'Type the full path and press Enter to scan'].filter(Boolean).join(' · ');
+        const status = [formatFingerprint(fp), 'Type the full path and press Enter to scan']
+          .filter(Boolean)
+          .join(' · ');
         updateFingerprintStatus(status);
       } catch {
         updateFingerprintStatus('');
@@ -6142,7 +6932,10 @@ export class AnalyzeView {
 
     if (shouldUseAgent(folderName, agentStatus)) {
       // Agent is reachable but we still have no path to give it. Ask the user to type it.
-      showToast(`Dropped folder path could not be read. Type the full path (e.g., C:/Users/${folderName}) and press Enter.`, 'warning');
+      showToast(
+        `Dropped folder path could not be read. Type the full path (e.g., C:/Users/${folderName}) and press Enter.`,
+        'warning'
+      );
       return;
     }
 
@@ -6204,7 +6997,7 @@ export class AnalyzeView {
           threatScore: 0,
           cacheMeta: { scannerMeta: true },
           understanding: null,
-          understandingSkipped: null
+          understandingSkipped: null,
         };
         showToast(`${file.name} is scanner metadata — skipped pattern scan`, 'info');
         return;
@@ -6219,7 +7012,7 @@ export class AnalyzeView {
           threatScore: 0,
           cacheMeta: { lockfile: true },
           understanding: null,
-          understandingSkipped: null
+          understandingSkipped: null,
         };
         showToast(`${file.name} is a dependency lockfile — skipped mock-path quick check`, 'info');
         return;
@@ -6236,7 +7029,7 @@ export class AnalyzeView {
         threatScore: computeThreatScore(findings),
         cacheMeta: isDocumentation && findings.length === 0 ? { documentation: true } : null,
         understanding: null,
-        understandingSkipped: null
+        understandingSkipped: null,
       };
       showToast(
         isDocumentation && rawFindings.length !== findings.length
@@ -6272,18 +7065,18 @@ export class AnalyzeView {
         filePath: this.snippetResult.fileName,
         projectPath: projectPath || undefined,
         understandingMode: this.understandingMode === 'off' ? 'deterministic' : this.understandingMode,
-        aiProvider: this.aiProvider || 'demo'
+        aiProvider: this.aiProvider || 'demo',
       });
       this.snippetResult = {
         ...this.snippetResult,
         understanding: data.report,
-        understandingSkipped: null
+        understandingSkipped: null,
       };
       showToast('Server understanding complete', 'success');
     } catch (error) {
       this.snippetResult = {
         ...this.snippetResult,
-        understandingSkipped: error.message || 'Server understanding failed'
+        understandingSkipped: error.message || 'Server understanding failed',
       };
       showToast(error.message || 'Server understanding failed', 'error');
     } finally {
@@ -6301,44 +7094,59 @@ export class AnalyzeView {
 
       const order = ['demo', 'ollama', 'openai', 'anthropic', 'active'];
       const sorted = [...data.providers].sort(
-        (a, b) => (order.indexOf(a.id) === -1 ? 99 : order.indexOf(a.id))
-          - (order.indexOf(b.id) === -1 ? 99 : order.indexOf(b.id))
+        (a, b) =>
+          (order.indexOf(a.id) === -1 ? 99 : order.indexOf(a.id)) -
+          (order.indexOf(b.id) === -1 ? 99 : order.indexOf(b.id))
       );
-      select.replaceChildren(); select.insertAdjacentHTML('afterbegin', sorted.map((p) => {
-        const configured = isAnalyzeProviderConfigured(p);
-        const suffix = configured ? '' : ' (not configured)';
-        const title = [p.description, p.statusMessage].filter(Boolean).join(' · ');
-        const disabled = configured ? '' : 'disabled';
-        return `<option value="${escapeHtml(p.id)}" ${disabled} title="${escapeHtml(title)}">${escapeHtml(p.label || p.id)}${suffix}</option>`;
-      }).join(''));
+      select.replaceChildren();
+      select.insertAdjacentHTML(
+        'afterbegin',
+        sorted
+          .map((p) => {
+            const configured = isAnalyzeProviderConfigured(p);
+            const suffix = configured ? '' : ' (not configured)';
+            const title = [p.description, p.statusMessage].filter(Boolean).join(' · ');
+            const disabled = configured ? '' : 'disabled';
+            return `<option value="${escapeHtml(p.id)}" ${disabled} title="${escapeHtml(title)}">${escapeHtml(p.label || p.id)}${suffix}</option>`;
+          })
+          .join('')
+      );
 
       const preferred = this.aiProvider;
-      const preferredOk = data.providers.some(
-        (p) => p.id === preferred && isAnalyzeProviderConfigured(p)
-      );
+      const preferredOk = data.providers.some((p) => p.id === preferred && isAnalyzeProviderConfigured(p));
       const ollama = data.providers.find((p) => p.id === 'ollama' && isAnalyzeProviderConfigured(p));
       const activeLlm = data.providers.find((p) => p.id === 'active' && isAnalyzeProviderConfigured(p));
       if (preferredOk) {
         select.value = preferred;
       } else {
-        const fallback = data.providers.find((p) => p.id === 'demo' && isAnalyzeProviderConfigured(p))
-          || data.providers.find((p) => isAnalyzeProviderConfigured(p));
+        const fallback =
+          data.providers.find((p) => p.id === 'demo' && isAnalyzeProviderConfigured(p)) ||
+          data.providers.find((p) => isAnalyzeProviderConfigured(p));
         if (fallback) {
           this.aiProvider = fallback.id;
           select.value = fallback.id;
-          saveAnalyzePrefs({ analysisType: this.analysisType, aiProvider: this.aiProvider, roadmapInsightsMode: this.roadmapInsightsMode });
+          saveAnalyzePrefs({
+            analysisType: this.analysisType,
+            aiProvider: this.aiProvider,
+            roadmapInsightsMode: this.roadmapInsightsMode,
+          });
         }
       }
       this.syncAiProviderNote(this._root);
     } catch (err) {
       if (select) {
-        select.replaceChildren(); select.insertAdjacentHTML('afterbegin', `
+        select.replaceChildren();
+        select.insertAdjacentHTML(
+          'afterbegin',
+          `
           <option value="demo">Filesystem scan (no AI narrative)</option>
           <option value="ollama" disabled>Ollama — reload providers</option>
-        `);
+        `
+        );
       }
       showToast(
-        err?.message || 'Could not load AI providers — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal)',
+        err?.message ||
+          'Could not load AI providers — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal)',
         'error'
       );
     }
@@ -6362,15 +7170,14 @@ export class AnalyzeView {
     if (!scan) return '';
     return [
       renderUnderstandingPanel(scan.codeUnderstanding),
-      renderZscriptReportPanel(scan.zscriptReport, { error: scan.zscriptReportError })
+      renderZscriptReportPanel(scan.zscriptReport, { error: scan.zscriptReportError }),
     ].join('');
   }
 
   buildCodeInsightsConclusion(scan) {
-    return [
-      buildUnderstandingConclusion(scan?.codeUnderstanding),
-      buildZscriptConclusion(scan?.zscriptReport)
-    ].filter(Boolean).join(' ');
+    return [buildUnderstandingConclusion(scan?.codeUnderstanding), buildZscriptConclusion(scan?.zscriptReport)]
+      .filter(Boolean)
+      .join(' ');
   }
 
   async runLocalScan() {
@@ -6391,7 +7198,7 @@ export class AnalyzeView {
         onProgress: (processed, total) => {
           this.scanProgress = { processed, total, percent: Math.round((processed / Math.max(1, total)) * 100) };
           this.refresh();
-        }
+        },
       });
       const conclusion = buildScanConclusion(report);
       this.repositoryInventory = report.inventory || null;
@@ -6401,7 +7208,7 @@ export class AnalyzeView {
         projectPath: report.projectPath,
         repositoryInventory: report.inventory || null,
         label: `Local scan: ${report.projectPath}`,
-        conclusion
+        conclusion,
       };
       this.applyReport(report, this.lastResult.label, { conclusion });
       this.app.state.analyzeResult = this.lastResult;
@@ -6421,8 +7228,15 @@ export class AnalyzeView {
     this.busy = true;
     this.scanStartedAt = Date.now();
     this._terminalLogLines = [];
-    const startTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    this._terminalLogLines.push(`<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing local agent scan…</span>`);
+    const startTime = new Date().toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    this._terminalLogLines.push(
+      `<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing local agent scan…</span>`
+    );
     this.refresh();
     try {
       const report = await scanViaAgent(projectPath);
@@ -6435,7 +7249,7 @@ export class AnalyzeView {
         projectPath: report.projectPath || projectPath,
         repositoryInventory: report.repositoryInventory || null,
         label: `Agent scan: ${report.projectPath || projectPath}`,
-        conclusion
+        conclusion,
       };
       this.applyReport(report, this.lastResult.label, { conclusion });
       this.app.state.analyzeResult = this.lastResult;
@@ -6456,7 +7270,10 @@ export class AnalyzeView {
       if (!window.showDirectoryPicker) {
         const typedPath = String(inputPath || '').trim();
         if (isLocalPath(typedPath) && shouldUseAgent(typedPath, this.agentStatus)) {
-          showToast('Privacy mode requires Chrome/Edge for directory picker. Falling back to local agent scan.', 'info');
+          showToast(
+            'Privacy mode requires Chrome/Edge for directory picker. Falling back to local agent scan.',
+            'info'
+          );
           await this.runAgentScan(typedPath);
           return;
         }
@@ -6476,7 +7293,11 @@ export class AnalyzeView {
       } catch {
         this.agentStatus = { available: false, scannerAvailable: false };
       }
-      this.updateAgentStatusUI(this._root, formatAgentStatus(this.agentStatus), this.agentStatus?.available && this.agentStatus?.scannerAvailable);
+      this.updateAgentStatusUI(
+        this._root,
+        formatAgentStatus(this.agentStatus),
+        this.agentStatus?.available && this.agentStatus?.scannerAvailable
+      );
 
       if (shouldUseAgent(projectPath, this.agentStatus)) {
         await this.runAgentScan(projectPath);
@@ -6538,14 +7359,25 @@ export class AnalyzeView {
     this.busy = true;
     this.scanStartedAt = Date.now();
     this._terminalLogLines = [];
-    const startTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    this._terminalLogLines.push(`<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing scan…</span>`);
+    const startTime = new Date().toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    this._terminalLogLines.push(
+      `<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing scan…</span>`
+    );
     this.app.state.pathInputDraft = '';
     this.app.state.lastProjectPath = projectPath;
     if (sourceRepoUrl) {
       this.app.state.lastRepoUrl = sourceRepoUrl;
     }
-    saveAnalyzePrefs({ analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
+    saveAnalyzePrefs({
+      analysisType: this.analysisType,
+      aiProvider: this.aiProvider,
+      understandingMode: this.understandingMode,
+    });
     this.startProgressPolling(projectPath);
     this.refresh();
 
@@ -6588,7 +7420,9 @@ export class AnalyzeView {
       if (vscode) {
         try {
           vscode.postMessage({ command: 'toggleRealtimeMonitoring', enabled: true });
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       showToast('VS Code AI Slop Cop enabled — enhanced analysis active', 'success');
     }
@@ -6621,15 +7455,15 @@ export class AnalyzeView {
           throw new Error('Scan completed but returned no report — check server logs');
         }
         report = await enrichScanReport(report, projectPath);
-      this.repositoryInventory = report.repositoryInventory || null;
-      const conclusion = buildScanConclusion(report);
+        this.repositoryInventory = report.repositoryInventory || null;
+        const conclusion = buildScanConclusion(report);
         this.lastResult = {
           kind: 'simplebeacon-report',
           report,
           projectPath,
           repositoryInventory: report.repositoryInventory || null,
           label: `Simplebeacon scan: ${formatPathLabel(projectPath)}`,
-          conclusion
+          conclusion,
         };
         this.applyReport(report, this.lastResult.label, { conclusion });
         analysisSucceeded = true;
@@ -6647,7 +7481,7 @@ export class AnalyzeView {
           fictionIssues: digest?.fictionIssues || [],
           nonFictionIssues: digest?.nonFictionIssues || [],
           label: `Mock & fiction KPIs: ${formatPathLabel(projectPath)}`,
-          conclusion: digest?.conclusion || null
+          conclusion: digest?.conclusion || null,
         };
         await this.attachRepositoryInventory(projectPath, report);
         this.app.state.analyzeResult = this.lastResult;
@@ -6668,7 +7502,7 @@ export class AnalyzeView {
           kind: 'consolidation',
           scan,
           projectPath,
-          label: `Data consolidation: ${formatPathLabel(projectPath)}`
+          label: `Data consolidation: ${formatPathLabel(projectPath)}`,
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6683,7 +7517,7 @@ export class AnalyzeView {
           includeEslint: true,
           includeAllFiles: true,
           understandingMode: this.understandingMode,
-          timeoutMs: 900000
+          timeoutMs: 900000,
         });
         scan = await this.attachCodeInsights(scan, projectPath);
         scan = await this.attachOptionalAiSummary(scan, projectPath, scan?.type);
@@ -6693,7 +7527,7 @@ export class AnalyzeView {
           scan,
           projectPath,
           label: `Codebase analysis: ${formatPathLabel(projectPath)}`,
-          conclusion: [buildCodebaseConclusion(scan), insightNote].filter(Boolean).join(' ')
+          conclusion: [buildCodebaseConclusion(scan), insightNote].filter(Boolean).join(' '),
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6712,7 +7546,7 @@ export class AnalyzeView {
           projectPath,
           profile: effectiveType,
           label: `${effectiveType === 'file-reduction' ? 'File reduction' : 'Data quality'}: ${formatPathLabel(projectPath)}`,
-          conclusion: buildDataCleanupConclusion(scan, effectiveType)
+          conclusion: buildDataCleanupConclusion(scan, effectiveType),
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6728,7 +7562,7 @@ export class AnalyzeView {
           profile: 'file-reduction',
           refresh: true,
           requireFindings: false,
-          timeoutMs: 300000
+          timeoutMs: 300000,
         });
         this.completeStep = '2/3 Data quality…';
         this.refresh();
@@ -6736,25 +7570,25 @@ export class AnalyzeView {
           profile: 'data-quality',
           refresh: true,
           requireFindings: false,
-          timeoutMs: 300000
+          timeoutMs: 300000,
         });
         this.completeStep = '3/3 Cleanup brief…';
         this.refresh();
         await this.attachRepositoryInventory(projectPath, fileReduction);
-        const repositoryInventory = this.repositoryInventory
-          || this.lastResult?.repositoryInventory
-          || fileReduction?.inventory
-          || null;
+        const repositoryInventory =
+          this.repositoryInventory || this.lastResult?.repositoryInventory || fileReduction?.inventory || null;
         const policy = loadCleanupPolicy();
         const brief = buildCleanupAssistantBrief({
           projectPath,
           fileReduction,
           dataQuality,
           repositoryInventory,
-          policy
+          policy,
         });
         if (!isCleanupBriefRunnable({ brief, fileReduction, dataQuality })) {
-          throw new Error('Cleanup assistant could not build a brief — scans returned no inventory or quality signals. Restart the dashboard server and retry.');
+          throw new Error(
+            'Cleanup assistant could not build a brief — scans returned no inventory or quality signals. Restart the dashboard server and retry.'
+          );
         }
         this.lastResult = {
           kind: 'cleanup-assistant',
@@ -6765,7 +7599,7 @@ export class AnalyzeView {
           brief,
           policy,
           label: `Cleanup assistant: ${formatPathLabel(projectPath)}`,
-          conclusion: buildCleanupAssistantConclusion(brief)
+          conclusion: buildCleanupAssistantConclusion(brief),
         };
         this.app.state.analyzeResult = this.lastResult;
         this.completeStep = '';
@@ -6790,7 +7624,7 @@ export class AnalyzeView {
         const npmAudit = await fetchProjectNpmAudit(projectPath);
         const complianceData = await fetchComplianceChecklist(report, projectPath, {
           npmAudit,
-          checklistProfile: 'default'
+          checklistProfile: 'default',
         });
         const checklist = complianceData.complianceChecklist;
         const complianceExport = complianceData.complianceExport || null;
@@ -6804,7 +7638,7 @@ export class AnalyzeView {
           label: `Compliance checklist: ${formatPathLabel(projectPath)}`,
           conclusion: checklist?.summary
             ? `${checklist.summary.passed ?? 0}/${checklistRuleTotal(checklist)} rules passed${checklist.summary.failed ? ` — ${checklist.summary.failed} failed` : ''}.`
-            : 'Compliance checklist complete.'
+            : 'Compliance checklist complete.',
         };
         this.app.state.analyzeResult = this.lastResult;
         this.app.state.report = report;
@@ -6827,7 +7661,7 @@ export class AnalyzeView {
           label: `npm audit: ${formatPathLabel(projectPath)}`,
           conclusion: npmAudit?.summary
             ? `${npmAudit.summary.total ?? npmAudit.vulnerabilityTotal ?? 0} vulnerabilities across ${npmAudit.summary.dependencies ?? npmAudit.dependencies?.total ?? '—'} dependencies.`
-            : 'npm audit complete.'
+            : 'npm audit complete.',
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6847,7 +7681,9 @@ export class AnalyzeView {
           this.app.state.lastProjectPath = euPath;
         }
         if (isBenchmarkCachePath(projectPath)) {
-          throw new Error('EU AI Act sprint requires the product root (ai-platform), not github-cache benchmark clones.');
+          throw new Error(
+            'EU AI Act sprint requires the product root (ai-platform), not github-cache benchmark clones.'
+          );
         }
         const sprint = await runEuAiActSprint({ projectPath, initProfile: true, forceInit: true });
         const checklist = sprint.compliance || {};
@@ -6859,8 +7695,8 @@ export class AnalyzeView {
           conclusion: [
             sprint.gate?.pass ? 'Gate PASS' : 'Gate FAIL',
             `${sprint.euPatternHits ?? 0} EU pattern hits`,
-            `${checklist.passed ?? 0}/${checklist.total ?? 0} checklist rules passed`
-          ].join(' · ')
+            `${checklist.passed ?? 0}/${checklist.total ?? 0} checklist rules passed`,
+          ].join(' · '),
         };
         this.app.state.analyzeResult = this.lastResult;
         this._lastEuAiActScanAt = Date.now();
@@ -6875,7 +7711,7 @@ export class AnalyzeView {
         aiProvider: this.aiProvider,
         analysisType: effectiveType,
         roadmapInsightsMode: this.roadmapInsightsMode,
-        understandingMode: this.understandingMode
+        understandingMode: this.understandingMode,
       });
 
       this.lastResult = { kind: data.analysisType, data, projectPath };
@@ -6887,7 +7723,7 @@ export class AnalyzeView {
           data,
           projectPath,
           label: `Roadmap: ${formatPathLabel(projectPath)}`,
-          conclusion: 'Filesystem roadmap scan — sprint metrics from directory structure, not Simplebeacon gate rules.'
+          conclusion: 'Filesystem roadmap scan — sprint metrics from directory structure, not Simplebeacon gate rules.',
         };
         await this.attachRepositoryInventory(projectPath);
         this.app.state.analyzeResult = this.lastResult;
@@ -6900,7 +7736,7 @@ export class AnalyzeView {
           scan,
           projectPath,
           label: `Workspace health: ${formatPathLabel(projectPath)}`,
-          conclusion: `Workspace health scan complete — ${(scan.findings || []).length} finding(s).`
+          conclusion: `Workspace health scan complete — ${(scan.findings || []).length} finding(s).`,
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6913,10 +7749,7 @@ export class AnalyzeView {
           scan,
           projectPath,
           label: `Codebase analysis: ${formatPathLabel(projectPath)}`,
-          conclusion: [
-            buildCodebaseConclusion(scan),
-            this.buildCodeInsightsConclusion(scan)
-          ].filter(Boolean).join(' ')
+          conclusion: [buildCodebaseConclusion(scan), this.buildCodeInsightsConclusion(scan)].filter(Boolean).join(' '),
         };
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
@@ -6966,18 +7799,18 @@ export class AnalyzeView {
         id,
         label: getCompleteEngineLabel(id),
         status: 'pending',
-        error: null
-      }))
+        error: null,
+      })),
     };
 
-/**
- * Run step.
- * @param {number} index
- * @param {string} engineId
- * @param {any} label
- * @param {Function} fn
- * @returns {any}
- */
+    /**
+     * Run step.
+     * @param {number} index
+     * @param {string} engineId
+     * @param {any} label
+     * @param {Function} fn
+     * @returns {any}
+     */
     const runStep = async (index, engineId, label, fn) => {
       this.completeProgress.steps[index].status = 'running';
       this.completeStep = label;
@@ -7020,7 +7853,7 @@ export class AnalyzeView {
           gateFailed: Boolean(data.gateFailed),
           gatePass: report.gate?.pass ?? null,
           publicGateLocked: Boolean(data.publicGateLocked),
-          publicSummary: data.publicSummary || null
+          publicSummary: data.publicSummary || null,
         };
       },
       consolidation: async () => {
@@ -7028,22 +7861,23 @@ export class AnalyzeView {
         if (!scan?.summary) {
           throw new Error('Consolidation scan returned no summary metrics — restart the dashboard server and retry.');
         }
-        const inventory = this.repositoryInventory
-          || this.lastResult?.repositoryInventory
-          || await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
+        const inventory =
+          this.repositoryInventory ||
+          this.lastResult?.repositoryInventory ||
+          (await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(
+            () => null
+          ));
         if (inventory?.totalFiles && scan?.summary) {
           scan = {
             ...scan,
             reportVersion: scan.reportVersion || 2,
-            repositoryInventory: scan.repositoryInventory?.totalFiles != null
-              ? scan.repositoryInventory
-              : inventory,
+            repositoryInventory: scan.repositoryInventory?.totalFiles != null ? scan.repositoryInventory : inventory,
             summary: {
               ...scan.summary,
               repositoryFilesTotal: scan.summary.repositoryFilesTotal ?? inventory.totalFiles,
               repositoryFoldersTotal: scan.summary.repositoryFoldersTotal ?? inventory.totalFolders,
-              filesAnalyzed: scan.summary.repositoryFilesTotal ?? scan.summary.filesAnalyzed ?? inventory.totalFiles
-            }
+              filesAnalyzed: scan.summary.repositoryFilesTotal ?? scan.summary.filesAnalyzed ?? inventory.totalFiles,
+            },
           };
         }
         scan = await this.attachOptionalAiSummary(scan, projectPath, scan?.type);
@@ -7063,7 +7897,7 @@ export class AnalyzeView {
           report,
           fictionIssues,
           nonFictionIssues: digest?.nonFictionIssues || [],
-          conclusion: digest?.conclusion || null
+          conclusion: digest?.conclusion || null,
         };
       },
       roadmap: async () => {
@@ -7073,7 +7907,7 @@ export class AnalyzeView {
           analysisType: 'roadmap',
           roadmapInsightsMode: this.roadmapInsightsMode || 'off',
           timeoutMs: 180000,
-          requestedScanRoot: projectPath
+          requestedScanRoot: projectPath,
         });
         if (!data.roadmap) {
           throw new Error('Roadmap analysis returned no roadmap payload');
@@ -7090,7 +7924,7 @@ export class AnalyzeView {
           understandingMode: 'off',
           timeoutMs: 900000,
           requestedScanRoot: projectPath,
-          includeBrowserAnalyzers: hasBrowserAnalyzer
+          includeBrowserAnalyzers: hasBrowserAnalyzer,
         });
         scan = await this.attachCodeInsights(scan, analysisPath);
         scan = await this.attachOptionalAiSummary(scan, analysisPath, scan?.type);
@@ -7099,14 +7933,14 @@ export class AnalyzeView {
           scan,
           analysisPath,
           publicGateLocked: Boolean(scan?.publicGateLocked),
-          publicSummary: scan?.publicSummary || null
+          publicSummary: scan?.publicSummary || null,
         };
       },
       'file-reduction': async () => {
         const scan = await fetchDataCleanupScan(projectPath, {
           profile: 'file-reduction',
           refresh: true,
-          timeoutMs: 300000
+          timeoutMs: 300000,
         });
         assertCompleteScanFileReductionFresh(scan);
         return { id: 'file-reduction', scan, profile: 'file-reduction' };
@@ -7115,7 +7949,7 @@ export class AnalyzeView {
         const scan = await fetchDataCleanupScan(projectPath, {
           profile: 'data-quality',
           refresh: true,
-          timeoutMs: 300000
+          timeoutMs: 300000,
         });
         return { id: 'data-quality', scan, profile: 'data-quality' };
       },
@@ -7124,7 +7958,7 @@ export class AnalyzeView {
         const data = await analyzePath(analysisPath, {
           aiProvider: this.aiProvider,
           analysisType: 'removable-files',
-          fullDirectoryScan: this.fullDirectoryScan
+          fullDirectoryScan: this.fullDirectoryScan,
         });
         return { id: 'removable-files', scan: data.removableFiles || data.report || data };
       },
@@ -7136,7 +7970,7 @@ export class AnalyzeView {
             profile: 'file-reduction',
             refresh: true,
             requireFindings: false,
-            timeoutMs: 300000
+            timeoutMs: 300000,
           });
         }
         if (!dataQuality) {
@@ -7144,24 +7978,24 @@ export class AnalyzeView {
             profile: 'data-quality',
             refresh: true,
             requireFindings: false,
-            timeoutMs: 300000
+            timeoutMs: 300000,
           });
         }
         await this.attachRepositoryInventory(projectPath, fileReduction || dataQuality);
-        const repositoryInventory = this.repositoryInventory
-          || this.lastResult?.repositoryInventory
-          || fileReduction?.inventory
-          || null;
+        const repositoryInventory =
+          this.repositoryInventory || this.lastResult?.repositoryInventory || fileReduction?.inventory || null;
         const policy = loadCleanupPolicy();
         const brief = buildCleanupAssistantBrief({
           projectPath,
           fileReduction,
           dataQuality,
           repositoryInventory,
-          policy
+          policy,
         });
         if (!isCleanupBriefRunnable({ brief, fileReduction, dataQuality })) {
-          throw new Error('Cleanup assistant could not build a brief — scans returned no inventory or quality signals. Restart the dashboard server and retry.');
+          throw new Error(
+            'Cleanup assistant could not build a brief — scans returned no inventory or quality signals. Restart the dashboard server and retry.'
+          );
         }
         return {
           id: 'cleanup-assistant',
@@ -7169,7 +8003,7 @@ export class AnalyzeView {
           fileReduction,
           dataQuality,
           repositoryInventory,
-          policy
+          policy,
         };
       },
       'npm-audit': async () => {
@@ -7187,14 +8021,14 @@ export class AnalyzeView {
         const npmAudit = npmAuditStep?.npmAudit || null;
         const data = await fetchComplianceChecklist(report, projectPath, {
           npmAudit,
-          checklistProfile: 'default'
+          checklistProfile: 'default',
         });
         assertCompleteScanComplianceFresh(report, data.complianceChecklist);
         return {
           id: 'compliance',
           checklist: data.complianceChecklist,
           complianceExport: data.complianceExport || null,
-          npmAudit
+          npmAudit,
         };
       },
       'eu-ai-act': async () => {
@@ -7204,11 +8038,13 @@ export class AnalyzeView {
           showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euScanPath)}`, 'warning');
         }
         if (isBenchmarkCachePath(euScanPath)) {
-          throw new Error('EU AI Act sprint requires the product root (ai-platform), not github-cache benchmark clones.');
+          throw new Error(
+            'EU AI Act sprint requires the product root (ai-platform), not github-cache benchmark clones.'
+          );
         }
         const sprint = await runEuAiActSprint({ projectPath: euScanPath, initProfile: true, forceInit: true });
         return { id: 'eu-ai-act', sprint, projectPath: euScanPath };
-      }
+      },
     };
 
     // Hidden codebase prerequisite: if browser analyzers are selected but codebase is not,
@@ -7226,10 +8062,14 @@ export class AnalyzeView {
           understandingMode: 'off',
           timeoutMs: 300000,
           requestedScanRoot: projectPath,
-          includeBrowserAnalyzers: true
+          includeBrowserAnalyzers: true,
         });
         hiddenCodebaseResult = await this.attachCodeInsights(hiddenCodebaseResult, analysisPath);
-        hiddenCodebaseResult = await this.attachOptionalAiSummary(hiddenCodebaseResult, analysisPath, hiddenCodebaseResult?.type);
+        hiddenCodebaseResult = await this.attachOptionalAiSummary(
+          hiddenCodebaseResult,
+          analysisPath,
+          hiddenCodebaseResult?.type
+        );
       } catch (err) {
         // hidden codebase failure is non-fatal; browser analyzers will skip gracefully
       }
@@ -7245,11 +8085,11 @@ export class AnalyzeView {
             throw new Error('Codebase analysis must complete before this analyzer');
           }
           // codebase-analyzer stores pattern hits under f.category matching the analyzerId
-/**
- * Step findings.
- * @param {any} scan.findings || []
- * @returns {any}
- */
+          /**
+           * Step findings.
+           * @param {any} scan.findings || []
+           * @returns {any}
+           */
           const stepFindings = (scan.findings || []).filter((f) => f.category === analyzerId).slice(0, 200);
           // Derive categoryData from findings when scan.categories is empty (common in complete scans)
           let categoryData = scan.categories?.find((c) => c.category === analyzerId) || null;
@@ -7259,8 +8099,11 @@ export class AnalyzeView {
               category: analyzerId,
               count: stepFindings.length,
               fileCount: new Set(filePaths).size,
-              severity: stepFindings.some((f) => f.severity === 'high') ? 'high'
-                : stepFindings.some((f) => f.severity === 'medium') ? 'medium' : 'low'
+              severity: stepFindings.some((f) => f.severity === 'high')
+                ? 'high'
+                : stepFindings.some((f) => f.severity === 'medium')
+                  ? 'medium'
+                  : 'low',
             };
           }
           return {
@@ -7269,7 +8112,7 @@ export class AnalyzeView {
             findingsCount: categoryData?.count || 0,
             fileCount: categoryData?.fileCount || 0,
             severity: categoryData?.severity || 'low',
-            findings: stepFindings
+            findings: stepFindings,
           };
         };
       }
@@ -7280,7 +8123,8 @@ export class AnalyzeView {
       const runner = stepRunners[engineId];
       if (!runner) {
         this.completeProgress.steps[index].status = 'skipped';
-        this.completeProgress.steps[index].error = 'No runner available for this analyzer — results are included in the codebase step';
+        this.completeProgress.steps[index].error =
+          'No runner available for this analyzer — results are included in the codebase step';
         this.updateProgressDom();
         continue;
       }
@@ -7299,20 +8143,21 @@ export class AnalyzeView {
       enginesRun,
       analysisConfig: {
         selectedEngines: [...this.selectedEngines],
-        enginesRun
+        enginesRun,
       },
       errors,
       scanCompletedAt: Date.now(),
-      publicGateLocked: steps.some((step) => step.publicGateLocked || step.report?.publicGateLocked || step.scan?.publicGateLocked),
-      publicSummary: steps.find((step) => step.publicSummary)?.publicSummary
-        || steps.find((step) => step.scan?.publicSummary)?.scan?.publicSummary
-        || null
+      publicGateLocked: steps.some(
+        (step) => step.publicGateLocked || step.report?.publicGateLocked || step.scan?.publicGateLocked
+      ),
+      publicSummary:
+        steps.find((step) => step.publicSummary)?.publicSummary ||
+        steps.find((step) => step.scan?.publicSummary)?.scan?.publicSummary ||
+        null,
     };
     const simplebeaconReport = steps.find((s) => s.id === 'simplebeacon')?.report;
     await this.attachRepositoryInventory(this.lastResult.projectPath, simplebeaconReport);
-    this.lastResult.repositoryInventory = simplebeaconReport?.repositoryInventory
-      || this.repositoryInventory
-      || null;
+    this.lastResult.repositoryInventory = simplebeaconReport?.repositoryInventory || this.repositoryInventory || null;
     this.app.state.analyzeResult = this.lastResult;
 
     if (errors.length) {
@@ -7342,25 +8187,23 @@ export class AnalyzeView {
   }
 
   resolveZipExportButtonMeta() {
-/**
- * Completed steps.
- * @param {string} this.lastResult?.steps || []
- * @returns {any}
- */
+    /**
+     * Completed steps.
+     * @param {string} this.lastResult?.steps || []
+     * @returns {any}
+     */
     const completedSteps = (this.lastResult?.steps || []).map((step) => step.id);
     const selectedForExport = this.resolveExportEngineSelection();
-    const allSelected = completedSteps.length > 0
-      && selectedForExport.length === completedSteps.length;
+    const allSelected = completedSteps.length > 0 && selectedForExport.length === completedSteps.length;
     const count = selectedForExport.length;
     return {
       count,
       allSelected,
-      label: allSelected || !count
-        ? 'Download all reports (ZIP)'
-        : `Download selected reports (${count}) ZIP`,
-      title: allSelected || !count
-        ? 'ZIP with every step JSON plus audit PDF sources'
-        : `ZIP with JSON and PDF sources for ${count} checked scan${count === 1 ? '' : 's'} in the queue`
+      label: allSelected || !count ? 'Download all reports (ZIP)' : `Download selected reports (${count}) ZIP`,
+      title:
+        allSelected || !count
+          ? 'ZIP with every step JSON plus audit PDF sources'
+          : `ZIP with JSON and PDF sources for ${count} checked scan${count === 1 ? '' : 's'} in the queue`,
     };
   }
 
@@ -7385,16 +8228,15 @@ export class AnalyzeView {
   }
 
   buildEuAiActSprintArtifacts() {
-    const sprint = this.lastResult?.kind === 'complete'
-      ? this.getCompleteStep('eu-ai-act')?.sprint
-      : this.lastResult?.sprint;
+    const sprint =
+      this.lastResult?.kind === 'complete' ? this.getCompleteStep('eu-ai-act')?.sprint : this.lastResult?.sprint;
     if (!sprint) return null;
     return {
       projectPath: sprint.projectPath || this.resolveEuAiActExportPath(),
       platformRoot: sprint.platformRoot || null,
       report: sprint.report || null,
       complianceChecklist: sprint.complianceChecklist || null,
-      assessment: sprint.assessment || null
+      assessment: sprint.assessment || null,
     };
   }
 
@@ -7412,7 +8254,7 @@ export class AnalyzeView {
     const data = await fetchEuAiActAuditReport({
       projectPath: projectPath || sprintArtifacts?.projectPath,
       client: formatPathLabel(projectPath || sprintArtifacts?.projectPath) || undefined,
-      sprintArtifacts
+      sprintArtifacts,
     });
     openAuditReportPrintWindow(data.html, data.filename);
     return data;
@@ -7423,19 +8265,56 @@ export class AnalyzeView {
     const out = {};
     for (const key of Object.keys(results)) {
       const val = results[key];
-      if (!val || typeof val !== 'object') { out[key] = val; continue; }
+      if (!val || typeof val !== 'object') {
+        out[key] = val;
+        continue;
+      }
       if (key === 'simplebeacon') {
-        out[key] = { ...val, rawIssues: val.rawIssues?.slice(0, 20), detectedIssues: val.detectedIssues?.slice(0, 20), exportNotes: undefined, disclaimers: undefined, limitations: undefined, mockDataCategories: undefined, hygieneSummary: undefined, scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+        out[key] = {
+          ...val,
+          rawIssues: val.rawIssues?.slice(0, 20),
+          detectedIssues: val.detectedIssues?.slice(0, 20),
+          exportNotes: undefined,
+          disclaimers: undefined,
+          limitations: undefined,
+          mockDataCategories: undefined,
+          hygieneSummary: undefined,
+          scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope,
+        };
       } else if (key === 'codebase') {
-        out[key] = { ...val, findings: val.findings?.slice(0, 10), categories: undefined, exportNotes: undefined, hygieneSummary: undefined, scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+        out[key] = {
+          ...val,
+          findings: val.findings?.slice(0, 10),
+          categories: undefined,
+          exportNotes: undefined,
+          hygieneSummary: undefined,
+          scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope,
+        };
       } else if (key === 'consolidation') {
-        out[key] = { ...val, duplicatePairs: val.duplicatePairs?.slice(0, 10), scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+        out[key] = {
+          ...val,
+          duplicatePairs: val.duplicatePairs?.slice(0, 10),
+          scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope,
+        };
       } else if (key === 'fileReduction') {
         out[key] = { ...val, scanners: undefined, executiveSummary: undefined };
       } else if (key === 'dataQuality') {
-        out[key] = { ...val, inventory: val.inventory ? { ...val.inventory, files: undefined, fileList: undefined } : val.inventory };
+        out[key] = {
+          ...val,
+          inventory: val.inventory ? { ...val.inventory, files: undefined, fileList: undefined } : val.inventory,
+        };
       } else if (key === 'roadmap') {
-        out[key] = { ...val, developmentPhases: undefined, implementationPhases: undefined, featureCategories: undefined, recommendations: undefined, progressMetrics: undefined, resourceEstimate: undefined, exportNotes: undefined, hygieneSummary: undefined };
+        out[key] = {
+          ...val,
+          developmentPhases: undefined,
+          implementationPhases: undefined,
+          featureCategories: undefined,
+          recommendations: undefined,
+          progressMetrics: undefined,
+          resourceEstimate: undefined,
+          exportNotes: undefined,
+          hygieneSummary: undefined,
+        };
       } else {
         out[key] = val;
       }
@@ -7444,36 +8323,43 @@ export class AnalyzeView {
   }
 
   buildCompleteScanExport(options = {}) {
-    const { projectPath, steps: rawSteps = [], errors = [], enginesRun = rawSteps.map((step) => step.id) } = this.lastResult || {};
+    const {
+      projectPath,
+      steps: rawSteps = [],
+      errors = [],
+      enginesRun = rawSteps.map((step) => step.id),
+    } = this.lastResult || {};
     // Slim engine steps to lightweight metadata — browser analyzers carry their own findings
-    const steps = rawSteps.map((s) => {
-      if (!s) return null;
-      const isBrowserAnalyzer = !CORE_ENGINE_IDS.has(s.id) && s.id !== 'eu-ai-act';
-      if (isBrowserAnalyzer) {
-        // Preserve browser analyzer findings; they are not duplicated in results/
-        return {
-          id: s.id,
-          status: s.status,
-          error: s.error || null,
-          metric: s.metric || null,
-          findingsCount: s.findingsCount ?? null,
-          fileCount: s.fileCount ?? null,
-          severity: s.severity || null,
-          findings: s.findings || null,
-          category: s.category || null
-        };
-      }
-      return { id: s.id, status: s.status, error: s.error || null, metric: s.metric || null };
-    }).filter(Boolean);
+    const steps = rawSteps
+      .map((s) => {
+        if (!s) return null;
+        const isBrowserAnalyzer = !CORE_ENGINE_IDS.has(s.id) && s.id !== 'eu-ai-act';
+        if (isBrowserAnalyzer) {
+          // Preserve browser analyzer findings; they are not duplicated in results/
+          return {
+            id: s.id,
+            status: s.status,
+            error: s.error || null,
+            metric: s.metric || null,
+            findingsCount: s.findingsCount ?? null,
+            fileCount: s.fileCount ?? null,
+            severity: s.severity || null,
+            findings: s.findings || null,
+            category: s.category || null,
+          };
+        }
+        return { id: s.id, status: s.status, error: s.error || null, metric: s.metric || null };
+      })
+      .filter(Boolean);
     const euAiActStep = this.getCompleteStep('eu-ai-act');
     const simplebeacon = this.getCompleteStep('simplebeacon')?.report ?? null;
     const consolidation = this.getCompleteStep('consolidation')?.scan ?? null;
     const mockStep = this.getCompleteStep('mock-scan');
     const mockScan = mockStep?.report
       ? buildFictionDigestPayload(mockStep.report, {
-        generatedAt: mockStep.report.generatedAt || new Date().toISOString(),
-        projectPath: projectPath || mockStep.report.projectRoot
-      })
+          generatedAt: mockStep.report.generatedAt || new Date().toISOString(),
+          projectPath: projectPath || mockStep.report.projectRoot,
+        })
       : null;
     const roadmapStep = this.getCompleteStep('roadmap');
     const roadmap = roadmapStep?.roadmap ?? roadmapStep?.data?.roadmap ?? null;
@@ -7481,21 +8367,20 @@ export class AnalyzeView {
     const fileReduction = this.getCompleteStep('file-reduction')?.scan ?? null;
     const dataQuality = this.getCompleteStep('data-quality')?.scan ?? null;
     const cleanupStep = this.getCompleteStep('cleanup-assistant');
-    const cleanupAssistant = buildCleanupBriefFromLastResult(this.lastResult, cleanupStep?.policy)
-      ?? cleanupStep?.brief
-      ?? null;
+    const cleanupAssistant =
+      buildCleanupBriefFromLastResult(this.lastResult, cleanupStep?.policy) ?? cleanupStep?.brief ?? null;
     const enrichedFileReduction = fileReduction?.fileReductionPlan
       ? fileReduction
       : (() => {
-        const plan = resolveFileReductionPlan(fileReduction);
-        return plan?.safeToDelete?.topDirectories?.length || plan?.totals?.safeToDeleteBytes
-          ? { ...fileReduction, fileReductionPlan: plan }
-          : fileReduction;
-      })();
+          const plan = resolveFileReductionPlan(fileReduction);
+          return plan?.safeToDelete?.topDirectories?.length || plan?.totals?.safeToDeleteBytes
+            ? { ...fileReduction, fileReductionPlan: plan }
+            : fileReduction;
+        })();
     const completeScanAnalysis = buildCompleteScanAnalysis({
       fileReduction: enrichedFileReduction,
       dataQuality,
-      projectPath
+      projectPath,
     });
 
     const scanDurationMs = this.scanStartedAt ? Date.now() - this.scanStartedAt : null;
@@ -7511,7 +8396,7 @@ export class AnalyzeView {
       enginesRun,
       analysisConfig: this.lastResult?.analysisConfig || {
         selectedEngines: this.selectedEngines,
-        enginesRun
+        enginesRun,
       },
       complianceNote: enginesRun.includes('eu-ai-act')
         ? 'Includes EU AI Act sprint artifacts when that engine completed successfully.'
@@ -7530,13 +8415,16 @@ export class AnalyzeView {
         codebaseFindings: codebase?.summary?.findingsTotal ?? null,
         fileReductionFindings: fileReduction?.summary?.totalFindings ?? null,
         fileReductionReclaimableBytes: fileReduction?.summary?.reclaimableBytes ?? null,
-        fileReductionSafeToDeleteBytes: fileReduction?.fileReductionPlan?.totals?.safeToDeleteBytes
-          ?? fileReduction?.scanners?.['build-artifacts']?.safeToDeleteBytes
-          ?? null,
-        fileReductionImmediateSavingsBytes: fileReduction?.fileReductionPlan?.totals?.estimatedImmediateSavingsBytes ?? null,
-        fileReductionUnusedCandidates: fileReduction?.fileReductionPlan?.unusedFiles?.candidates
-          ?? fileReduction?.summary?.unusedFileCandidates
-          ?? null,
+        fileReductionSafeToDeleteBytes:
+          fileReduction?.fileReductionPlan?.totals?.safeToDeleteBytes ??
+          fileReduction?.scanners?.['build-artifacts']?.safeToDeleteBytes ??
+          null,
+        fileReductionImmediateSavingsBytes:
+          fileReduction?.fileReductionPlan?.totals?.estimatedImmediateSavingsBytes ?? null,
+        fileReductionUnusedCandidates:
+          fileReduction?.fileReductionPlan?.unusedFiles?.candidates ??
+          fileReduction?.summary?.unusedFileCandidates ??
+          null,
         dataQualityFindings: dataQuality?.summary?.totalFindings ?? null,
         dataQualityWorkspacePackages: dataQuality?.executiveSummary?.workspace?.packageJsonFiles ?? null,
         dataQualityUnusedDependencies: dataQuality?.executiveSummary?.workspace?.unusedDependencies ?? null,
@@ -7554,7 +8442,7 @@ export class AnalyzeView {
         euAiActGatePass: euAiActStep?.sprint?.gate?.pass ?? null,
         euAiActReadinessScore: euAiActStep?.sprint?.compliance?.score ?? null,
         euAiActChecklistPassed: euAiActStep?.sprint?.compliance?.passed ?? null,
-        euAiActChecklistTotal: euAiActStep?.sprint?.compliance?.total ?? null
+        euAiActChecklistTotal: euAiActStep?.sprint?.compliance?.total ?? null,
       },
       completeScanAnalysis,
       enrichedAt: new Date().toISOString(),
@@ -7569,8 +8457,8 @@ export class AnalyzeView {
         cleanupAssistant,
         compliance: this.getCompleteStep('compliance')?.checklist ?? null,
         npmAudit: this.getCompleteStep('npm-audit')?.npmAudit ?? null,
-        sprint: euAiActStep?.sprint ?? null
-      })
+        sprint: euAiActStep?.sprint ?? null,
+      }),
     };
 
     return sanitizeCompleteScanBundle(bundle, {
@@ -7578,7 +8466,7 @@ export class AnalyzeView {
       sanitizeConsolidationExport,
       sanitizeRoadmapExport,
       sanitizeFictionDigestExport,
-      exportFilename: options.exportFilename
+      exportFilename: options.exportFilename,
     });
   }
 
@@ -7588,9 +8476,10 @@ export class AnalyzeView {
     const isComplete = kind === 'complete';
     const showGotoResults = kind === 'complete' || kind === 'simplebeacon-report' || kind === 'mock-scan';
     const gotoLabel = kind === 'complete' ? 'Open Simplebeacon Results →' : 'Open in Results →';
-    const extraButtons = kind === 'roadmap'
-      ? '<button type="button" class="btn btn-secondary btn-sm" id="copy-roadmap-json">Copy JSON</button>'
-      : '<button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>';
+    const extraButtons =
+      kind === 'roadmap'
+        ? '<button type="button" class="btn btn-secondary btn-sm" id="copy-roadmap-json">Copy JSON</button>'
+        : '<button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>';
 
     return `
       <div class="scan-results-export-bar card mb-4">
@@ -7602,7 +8491,7 @@ export class AnalyzeView {
             showGotoResults,
             gotoLabel,
             extraButtons,
-            auditButtonLabel: this.getAuditExportButtonLabel()
+            auditButtonLabel: this.getAuditExportButtonLabel(),
           })}
         </div>
         <div id="analyze-ai-panel" class="card mt-3" style="display:none;padding:var(--space-3);background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);">
@@ -7649,12 +8538,14 @@ export class AnalyzeView {
     }
     const preview = this.getAuditExportPreview();
     if (!preview || preview.exportBlocked || preview.tier === 'handoff') return '';
-    const gateNote = preview.tier === 'gate-only' || preview.tier === 'codebase-only'
-      ? 'Gate attestation is not combined with codebase in this export.'
-      : 'This PDF covers this step only — gate attestation is not included unless you run Simplebeacon gate or Complete scan.';
-    const missing = preview.tier === 'gate-only' || preview.tier === 'codebase-only'
-      ? 'For vendor handoff, also export the complementary gate or codebase PDF, or run Complete scan.'
-      : 'For vendor handoff, run Analyze → Complete (all steps).';
+    const gateNote =
+      preview.tier === 'gate-only' || preview.tier === 'codebase-only'
+        ? 'Gate attestation is not combined with codebase in this export.'
+        : 'This PDF covers this step only — gate attestation is not included unless you run Simplebeacon gate or Complete scan.';
+    const missing =
+      preview.tier === 'gate-only' || preview.tier === 'codebase-only'
+        ? 'For vendor handoff, also export the complementary gate or codebase PDF, or run Complete scan.'
+        : 'For vendor handoff, run Analyze → Complete (all steps).';
     return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Supplementary deliverable (${escapeHtml(preview.label)}).</strong> ${escapeHtml(gateNote)} ${escapeHtml(missing)}</p>`;
   }
 
@@ -7671,7 +8562,7 @@ export class AnalyzeView {
       files_scanned: report.filesScanned ?? report.fictionJsonFilesScanned ?? 0,
       total_files: this.repositoryInventory?.totalFiles ?? report.totalFiles ?? 0,
       quality_score: report.qualityScore ?? report.gate?.score ?? 0,
-      findings: report.rawIssues || report.detectedIssues || []
+      findings: report.rawIssues || report.detectedIssues || [],
     };
 
     const funnel = evaluateFunnelMetrics(metrics);
@@ -7696,7 +8587,7 @@ export class AnalyzeView {
     showGotoResults = false,
     gotoLabel = 'Open Simplebeacon Results →',
     extraButtons = '',
-    auditButtonLabel = 'Download audit PDF'
+    auditButtonLabel = 'Download audit PDF',
   } = {}) {
     const locked = this.isResultsLocked();
     const checkoutUrl = this.app.billingService?.getAuditCheckoutUrl?.() || null;
@@ -7708,19 +8599,27 @@ export class AnalyzeView {
     return `
       <div class="roadmap-result-actions">
         <button type="button" class="btn btn-primary btn-sm" id="download-scan-result">${downloadLabel}</button>
-        ${isComplete
-          ? `<button type="button" class="btn btn-secondary btn-sm" id="download-export-bundle-zip" title="${escapeHtml(zipMeta?.title || 'ZIP with step JSON plus audit PDF sources')}">${escapeHtml(zipMeta?.label || 'Download all reports (ZIP)')}</button>`
-          : ''}
+        ${
+          isComplete
+            ? `<button type="button" class="btn btn-secondary btn-sm" id="download-export-bundle-zip" title="${escapeHtml(zipMeta?.title || 'ZIP with step JSON plus audit PDF sources')}">${escapeHtml(zipMeta?.label || 'Download all reports (ZIP)')}</button>`
+            : ''
+        }
         <button type="button" class="btn btn-secondary btn-sm" id="export-for-remediation" title="Download JSON ready for the Remediation Roadmap page">Export for Remediation</button>
-        ${showEuPdf && !locked
-          ? `<button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf" title="EU AI Act readiness HTML — Print → Save as PDF">Download EU PDF</button>`
-          : ''}
-        ${locked
-          ? `<a class="btn btn-accent btn-sm cta-pay-button" href="${escapeHtml(checkoutUrl || '#')}" target="_blank" rel="noopener noreferrer">Unlock audit PDF (${escapeHtml(priceLabel)})</a>`
-          : `<button type="button" class="btn btn-accent btn-sm" id="download-audit-pdf" title="Professional audit PDF — print to save">${escapeHtml(auditButtonLabel)}</button>`}
-        ${showGotoResults
-          ? `<button type="button" class="btn btn-secondary btn-sm" id="goto-results-btn">${escapeHtml(gotoLabel)}</button>`
-          : ''}
+        ${
+          showEuPdf && !locked
+            ? `<button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf" title="EU AI Act readiness HTML — Print → Save as PDF">Download EU PDF</button>`
+            : ''
+        }
+        ${
+          locked
+            ? `<a class="btn btn-accent btn-sm cta-pay-button" href="${escapeHtml(checkoutUrl || '#')}" target="_blank" rel="noopener noreferrer">Unlock audit PDF (${escapeHtml(priceLabel)})</a>`
+            : `<button type="button" class="btn btn-accent btn-sm" id="download-audit-pdf" title="Professional audit PDF — print to save">${escapeHtml(auditButtonLabel)}</button>`
+        }
+        ${
+          showGotoResults
+            ? `<button type="button" class="btn btn-secondary btn-sm" id="goto-results-btn">${escapeHtml(gotoLabel)}</button>`
+            : ''
+        }
         ${extraButtons}
       </div>
     `;
@@ -7743,14 +8642,15 @@ export class AnalyzeView {
       const exportFilename = this.resolveScanExportFilename();
       try {
         const result = this.buildCompleteScanExport({ exportFilename });
-          return result;
+        return result;
       } catch (err) {
         console.error('[buildScanResultExport] buildCompleteScanExport threw:', err);
         return null;
       }
     }
 
-    const { kind, projectPath, report, scan, data, _brief, fileReduction, dataQuality, profile, policy } = this.lastResult || {};
+    const { kind, projectPath, report, scan, data, _brief, fileReduction, dataQuality, profile, policy } =
+      this.lastResult || {};
     const generatedAt = new Date().toISOString();
     const scanDurationMs = this.scanStartedAt ? Date.now() - this.scanStartedAt : null;
 
@@ -7760,9 +8660,9 @@ export class AnalyzeView {
       case 'mock-scan':
         return report
           ? buildFictionDigestPayload(report, {
-            generatedAt: report.generatedAt || generatedAt,
-            projectPath: this.lastResult?.projectPath || report.projectRoot
-          })
+              generatedAt: report.generatedAt || generatedAt,
+              projectPath: this.lastResult?.projectPath || report.projectRoot,
+            })
           : null;
       case 'consolidation':
       case 'codebase':
@@ -7770,9 +8670,7 @@ export class AnalyzeView {
         return scan || null;
       case 'file-reduction':
       case 'data-quality':
-        return scan
-          ? { ...scan, scanProfile: profile || kind }
-          : null;
+        return scan ? { ...scan, scanProfile: profile || kind } : null;
       case 'cleanup-assistant': {
         const rebuiltBrief = buildCleanupBriefFromLastResult(this.lastResult, policy);
         if (!rebuiltBrief) return null;
@@ -7786,53 +8684,57 @@ export class AnalyzeView {
           fileReduction,
           dataQuality,
           repositoryInventory: this.lastResult.repositoryInventory || null,
-          policy: policy || null
+          policy: policy || null,
         };
       }
       case 'roadmap':
         return data?.roadmap || null;
       case 'compliance': {
-        const npmAudit = this.lastResult?.kind === 'complete'
-          ? this.getCompleteStep('npm-audit')?.npmAudit
-          : this.lastResult?.npmAudit;
+        const npmAudit =
+          this.lastResult?.kind === 'complete'
+            ? this.getCompleteStep('npm-audit')?.npmAudit
+            : this.lastResult?.npmAudit;
         if (this.lastResult?.complianceExport) {
           return {
             ...this.lastResult.complianceExport,
             generatedAt,
-            scanDurationMs
+            scanDurationMs,
           };
         }
         return this.lastResult?.checklist
           ? sanitizeComplianceBundleExport({
-            type: 'simplebeacon-compliance-checklist',
-            generatedAt,
-            projectPath,
-            scanDurationMs,
-            gateReport: report || null,
-            checklist: this.lastResult.checklist,
-            npmAudit: npmAudit || null
-          })
+              type: 'simplebeacon-compliance-checklist',
+              generatedAt,
+              projectPath,
+              scanDurationMs,
+              gateReport: report || null,
+              checklist: this.lastResult.checklist,
+              npmAudit: npmAudit || null,
+            })
           : null;
       }
       case 'npm-audit':
         return this.lastResult?.npmAudit
-          ? sanitizeNpmAuditExport({
-            type: 'simplebeacon-npm-audit',
-            generatedAt,
-            projectPath,
-            scanDurationMs,
-            ...this.lastResult.npmAudit
-          }, projectPath)
+          ? sanitizeNpmAuditExport(
+              {
+                type: 'simplebeacon-npm-audit',
+                generatedAt,
+                projectPath,
+                scanDurationMs,
+                ...this.lastResult.npmAudit,
+              },
+              projectPath
+            )
           : null;
       case 'eu-ai-act':
         return this.lastResult?.sprint
           ? {
-            type: 'simplebeacon-eu-ai-act-sprint',
-            generatedAt,
-            projectPath,
-            scanDurationMs,
-            sprint: this.lastResult.sprint
-          }
+              type: 'simplebeacon-eu-ai-act-sprint',
+              generatedAt,
+              projectPath,
+              scanDurationMs,
+              sprint: this.lastResult.sprint,
+            }
           : null;
       default:
         return this.lastResult || null;
@@ -7850,8 +8752,8 @@ export class AnalyzeView {
           projectName: parsed.credentials?.projectName || '',
           signatoryName: parsed.credentials?.signatoryName || '',
           signatoryTitle: parsed.credentials?.signatoryTitle || '',
-          contactEmail: parsed.credentials?.contactEmail || ''
-        }
+          contactEmail: parsed.credentials?.contactEmail || '',
+        },
       };
     } catch {
       return { autoGeneratePdf: false, promptForCredentials: true, credentials: {} };
@@ -7875,7 +8777,7 @@ export class AnalyzeView {
       const data = await fetchCompleteAuditReport(payload, {
         aiProvider: this.aiProvider || 'demo',
         client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
-        credentials: settings.credentials
+        credentials: settings.credentials,
       });
       openAuditReportPrintWindow(data.html, data.filename);
       const tierLabel = data.exportTierLabel || data.tier || 'audit';
@@ -7901,8 +8803,11 @@ export class AnalyzeView {
       if (this.lastResult?.kind === 'eu-ai-act') {
         const data = await fetchEuAiActAuditReport({
           projectPath: this.lastResult.projectPath,
-          client: formatPathLabel(this.lastResult.projectPath) || redactPathForDisplay(this.lastResult.projectPath) || undefined,
-          credentials
+          client:
+            formatPathLabel(this.lastResult.projectPath) ||
+            redactPathForDisplay(this.lastResult.projectPath) ||
+            undefined,
+          credentials,
         });
         openAuditReportPrintWindow(data.html, data.filename);
         showToast(
@@ -7919,7 +8824,7 @@ export class AnalyzeView {
       const data = await fetchCompleteAuditReport(payload, {
         aiProvider: this.aiProvider || 'demo',
         client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
-        credentials
+        credentials,
       });
       openAuditReportPrintWindow(data.html, data.filename);
       const tierLabel = data.exportTierLabel || data.tier || 'audit';
@@ -7954,12 +8859,13 @@ export class AnalyzeView {
         aiProvider: this.aiProvider || 'demo',
         selectedEngines: exportEngines,
         enginesRun: exportEngines,
-        credentials
+        credentials,
       });
       downloadBlob(blob, filename);
-      const engineNote = exportEngines.length === (this.lastResult?.steps?.length || exportEngines.length)
-        ? ''
-        : ` · ${exportEngines.length} scan${exportEngines.length === 1 ? '' : 's'}`;
+      const engineNote =
+        exportEngines.length === (this.lastResult?.steps?.length || exportEngines.length)
+          ? ''
+          : ` · ${exportEngines.length} scan${exportEngines.length === 1 ? '' : 's'}`;
       const warnNote = warnings.length ? ` (${warnings.length} note(s) in manifest)` : '';
       showToast(`Export bundle downloaded (${tierId || 'bundle'}${engineNote})${warnNote}`, 'success');
     } catch (err) {
@@ -7980,25 +8886,26 @@ export class AnalyzeView {
     if (!this.scanExportHasPayload(payload)) return null;
 
     const issues = [];
-/**
- * Add issues.
- * @param {any} source
- * @param {Array} defaults
- * @returns {any}
- */
+    /**
+     * Add issues.
+     * @param {any} source
+     * @param {Array} defaults
+     * @returns {any}
+     */
     const addIssues = (source, defaults = {}) => {
       if (!Array.isArray(source)) return;
       for (const item of source) {
         issues.push({
-          id: item.id || `${item.severity || 'info'}|${item.type || 'Issue'}|${item.description || ''}|${issues.length}`,
-          severity: ['critical','high','medium','low','info'].includes(item.severity) ? item.severity : 'info',
+          id:
+            item.id || `${item.severity || 'info'}|${item.type || 'Issue'}|${item.description || ''}|${issues.length}`,
+          severity: ['critical', 'high', 'medium', 'low', 'info'].includes(item.severity) ? item.severity : 'info',
           type: item.type || 'Issue',
           category: item.category || defaults.category || 'General',
           description: item.description || item.message || item.detail || '',
           filePath: item.filePath || item.filePaths?.[0] || item.affectedFiles?.[0] || item.location || '—',
           action: item.recommendedAction || item.action || defaults.action || 'Review && remediate',
           effort: item.effort || defaults.effort || '20 min',
-          completed: item.completed || false
+          completed: item.completed || false,
         });
       }
     };
@@ -8006,43 +8913,61 @@ export class AnalyzeView {
     if (payload.type === 'simplebeacon-complete-scan') {
       const results = payload.results || {};
       if (results.simplebeacon?.rawIssues) addIssues(results.simplebeacon.rawIssues, { category: 'Security' });
-      else if (results.simplebeacon?.detectedIssues) addIssues(results.simplebeacon.detectedIssues, { category: 'Security' });
+      else if (results.simplebeacon?.detectedIssues)
+        addIssues(results.simplebeacon.detectedIssues, { category: 'Security' });
       else if (results.simplebeacon?.findings) addIssues(results.simplebeacon.findings, { category: 'Security' });
       if (results.codebase?.findings) addIssues(results.codebase.findings, { category: 'Codebase' });
       if (results.roadmap?.phases) {
         const converted = this._convertRoadmapPhases(results.roadmap.phases);
         addIssues(converted);
       }
-      if (results.fileReduction?.findings) addIssues(results.fileReduction.findings, { category: 'Cleanup', effort: '10 min' });
-      if (results.dataQuality?.findings) addIssues(results.dataQuality.findings, { category: 'Quality', effort: '10 min' });
-      else if (results.dataCleanup?.findings) addIssues(results.dataCleanup.findings, { category: 'Quality', effort: '10 min' });
+      if (results.fileReduction?.findings)
+        addIssues(results.fileReduction.findings, { category: 'Cleanup', effort: '10 min' });
+      if (results.dataQuality?.findings)
+        addIssues(results.dataQuality.findings, { category: 'Quality', effort: '10 min' });
+      else if (results.dataCleanup?.findings)
+        addIssues(results.dataCleanup.findings, { category: 'Quality', effort: '10 min' });
       if (results.npmAudit?.vulnerabilities) {
-        const validVulns = results.npmAudit.vulnerabilities.filter(v => v && v.name && v.name !== 'undefined');
+        const validVulns = results.npmAudit.vulnerabilities.filter((v) => v && v.name && v.name !== 'undefined');
         if (validVulns.length) {
-          addIssues(validVulns.map(v => ({
-            id: `npm-${v.name}-${v.via?.[0]?.title || v.via?.[0] || 'audit'}`,
-            severity: v.severity === 'critical' ? 'critical' : v.severity === 'high' ? 'high' : v.severity === 'moderate' ? 'medium' : 'low',
-            type: `npm audit: ${v.name}`,
-            description: `${v.via?.[0]?.title || v.via?.[0] || 'Vulnerability'} — range: ${v.range || 'unknown'}`,
-            filePath: v.filePath || 'package.json',
-            action: `Update ${v.name} to a patched version`,
-            effort: '20 min'
-          })), { category: 'Security' });
+          addIssues(
+            validVulns.map((v) => ({
+              id: `npm-${v.name}-${v.via?.[0]?.title || v.via?.[0] || 'audit'}`,
+              severity:
+                v.severity === 'critical'
+                  ? 'critical'
+                  : v.severity === 'high'
+                    ? 'high'
+                    : v.severity === 'moderate'
+                      ? 'medium'
+                      : 'low',
+              type: `npm audit: ${v.name}`,
+              description: `${v.via?.[0]?.title || v.via?.[0] || 'Vulnerability'} — range: ${v.range || 'unknown'}`,
+              filePath: v.filePath || 'package.json',
+              action: `Update ${v.name} to a patched version`,
+              effort: '20 min',
+            })),
+            { category: 'Security' }
+          );
         }
       }
-      if (results.cleanupAssistant?.items) addIssues(results.cleanupAssistant.items, { category: 'Cleanup', effort: '5 min' });
+      if (results.cleanupAssistant?.items)
+        addIssues(results.cleanupAssistant.items, { category: 'Cleanup', effort: '5 min' });
       if (results.compliance?.rules) {
-        const failedRules = results.compliance.rules.filter(r => r.status === 'fail');
+        const failedRules = results.compliance.rules.filter((r) => r.status === 'fail');
         if (failedRules.length) {
-          addIssues(failedRules.map(r => ({
-            id: r.id || r.rule || 'compliance-rule',
-            severity: r.severity || 'medium',
-            type: r.title || r.name || 'Compliance Rule',
-            description: r.impact || r.description || '',
-            filePath: '—',
-            action: r.fix || 'Review compliance requirement',
-            effort: '20 min'
-          })), { category: 'Compliance' });
+          addIssues(
+            failedRules.map((r) => ({
+              id: r.id || r.rule || 'compliance-rule',
+              severity: r.severity || 'medium',
+              type: r.title || r.name || 'Compliance Rule',
+              description: r.impact || r.description || '',
+              filePath: '—',
+              action: r.fix || 'Review compliance requirement',
+              effort: '20 min',
+            })),
+            { category: 'Compliance' }
+          );
         }
       }
     } else if (payload.type === 'simplebeacon-report') {
@@ -8051,30 +8976,35 @@ export class AnalyzeView {
       // Fallback: if standard arrays are empty, look in gate.blockingFindings and aiContext.suggestedFixes
       if (!source.length) {
         if (Array.isArray(payload.gate?.blockingFindings)) {
-          addIssues(payload.gate.blockingFindings.map(f => ({
-            id: f.rule || f.type,
-            severity: f.severity || 'high',
-            type: f.type || 'Blocking Finding',
-            category: 'Security',
-            description: f.impact || f.fix || '',
-            filePath: f.filePath || '—',
-            action: f.fix || 'Review && remediate',
-            effort: '20 min',
-            completed: false
-          })), { category: 'Security' });
+          addIssues(
+            payload.gate.blockingFindings.map((f) => ({
+              id: f.rule || f.type,
+              severity: f.severity || 'high',
+              type: f.type || 'Blocking Finding',
+              category: 'Security',
+              description: f.impact || f.fix || '',
+              filePath: f.filePath || '—',
+              action: f.fix || 'Review && remediate',
+              effort: '20 min',
+              completed: false,
+            })),
+            { category: 'Security' }
+          );
         }
         if (Array.isArray(payload.aiContext?.suggestedFixes)) {
-          addIssues(payload.aiContext.suggestedFixes.map(f => ({
-            id: `${f.type || 'issue'}|${f.file || '—'}:${f.line || 0}`,
-            severity: f.severity || 'medium',
-            type: f.type || 'Issue',
-            category: f.type || 'General',
-            description: `${f.action || 'Review'} — ${f.file || '—'}:${f.line || 0} — ${f.snippet || ''}`,
-            filePath: f.file || '—',
-            action: f.action || 'Review && remediate',
-            effort: '20 min',
-            completed: false
-          })));
+          addIssues(
+            payload.aiContext.suggestedFixes.map((f) => ({
+              id: `${f.type || 'issue'}|${f.file || '—'}:${f.line || 0}`,
+              severity: f.severity || 'medium',
+              type: f.type || 'Issue',
+              category: f.type || 'General',
+              description: `${f.action || 'Review'} — ${f.file || '—'}:${f.line || 0} — ${f.snippet || ''}`,
+              filePath: f.file || '—',
+              action: f.action || 'Review && remediate',
+              effort: '20 min',
+              completed: false,
+            }))
+          );
         }
       }
     } else if (Array.isArray(payload.issues)) {
@@ -8091,7 +9021,7 @@ export class AnalyzeView {
     return {
       exportedAt: new Date().toISOString(),
       totalIssues: issues.length,
-      issues
+      issues,
     };
   }
 
@@ -8103,30 +9033,52 @@ export class AnalyzeView {
         for (const task of phase.tasks) {
           out.push({
             id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
-            severity: ['critical','high','medium','low','info'].includes(phase.severity) ? phase.severity : 'medium',
+            severity: ['critical', 'high', 'medium', 'low', 'info'].includes(phase.severity)
+              ? phase.severity
+              : 'medium',
             type: phase.id || phase.phase || 'phase',
             category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id || 'Phase',
             description: task.description,
             filePath: task.location || '-',
-            action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
+            action:
+              task.type === 'fix'
+                ? 'Fix required'
+                : task.type === 'verify'
+                  ? 'Verify'
+                  : task.type === 'audit'
+                    ? 'Audit'
+                    : task.type === 'doc'
+                      ? 'Document'
+                      : 'Review',
             effort: phase.effort || '20 min',
-            completed: task.done || false
+            completed: task.done || false,
           });
         }
       } else {
         out.push({
           id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
-          severity: phase.status === 'completed' ? 'info' : phase.status === 'in-progress' ? 'medium' : phase.progress >= 50 ? 'medium' : 'low',
+          severity:
+            phase.status === 'completed'
+              ? 'info'
+              : phase.status === 'in-progress'
+                ? 'medium'
+                : phase.progress >= 50
+                  ? 'medium'
+                  : 'low',
           type: phase.phase || phase.name || phase.title || 'Phase',
           category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.phase || 'Phase',
-          description: [phase.description].filter(Boolean).concat(
-            Array.isArray(phase.features) ? ['Features: ' + phase.features.join('; ')] : [],
-            Array.isArray(phase.milestones) ? ['Milestones: ' + phase.milestones.join('; ')] : []
-          ).join(' — '),
+          description: [phase.description]
+            .filter(Boolean)
+            .concat(
+              Array.isArray(phase.features) ? ['Features: ' + phase.features.join('; ')] : [],
+              Array.isArray(phase.milestones) ? ['Milestones: ' + phase.milestones.join('; ')] : []
+            )
+            .join(' — '),
           filePath: '-',
-          action: phase.status === 'completed' ? 'Completed' : phase.status === 'in-progress' ? 'In progress' : 'Planned',
+          action:
+            phase.status === 'completed' ? 'Completed' : phase.status === 'in-progress' ? 'In progress' : 'Planned',
           effort: '—',
-          completed: phase.status === 'completed' || phase.progress >= 100
+          completed: phase.status === 'completed' || phase.progress >= 100,
         });
       }
     }
@@ -8148,7 +9100,7 @@ export class AnalyzeView {
       codebase: null,
       fileReduction: null,
       dataQuality: null,
-      cleanupAssistant: null
+      cleanupAssistant: null,
     };
 
     switch (kind) {
@@ -8175,7 +9127,10 @@ export class AnalyzeView {
         results.dataQuality = scan || null;
         break;
       case 'cleanup-assistant': {
-        const rebuiltBrief = buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy());
+        const rebuiltBrief = buildCleanupBriefFromLastResult(
+          this.lastResult,
+          this.lastResult?.policy || loadCleanupPolicy()
+        );
         results.cleanupAssistant = rebuiltBrief ?? this.lastResult?.brief ?? null;
         results.fileReduction = fileReduction || null;
         results.dataQuality = dataQuality || null;
@@ -8204,7 +9159,7 @@ export class AnalyzeView {
     const completeScanAnalysis = buildCompleteScanAnalysis({
       fileReduction: results.fileReduction,
       dataQuality: results.dataQuality,
-      projectPath
+      projectPath,
     });
 
     const payload = {
@@ -8225,11 +9180,11 @@ export class AnalyzeView {
         codebaseFindings: results.codebase?.summary?.findingsTotal ?? null,
         fileReductionFindings: results.fileReduction?.summary?.totalFindings ?? null,
         fileReductionReclaimableBytes: results.fileReduction?.summary?.reclaimableBytes ?? null,
-        dataQualityFindings: results.dataQuality?.summary?.totalFindings ?? null
+        dataQualityFindings: results.dataQuality?.summary?.totalFindings ?? null,
       },
       completeScanAnalysis,
       enrichedAt: new Date().toISOString(),
-      results
+      results,
     };
 
     if (this.scanExportHasPayload(payload)) return payload;
@@ -8239,7 +9194,7 @@ export class AnalyzeView {
       return this.buildGateOnlyAuditPayload(fallbackReport, {
         projectPath: projectPath || fallbackReport.projectRoot,
         scanKind: kind || 'simplebeacon-report',
-        compliance: results.compliance
+        compliance: results.compliance,
       });
     }
 
@@ -8270,7 +9225,7 @@ export class AnalyzeView {
       fileReduction: null,
       dataQuality: null,
       cleanupAssistant: null,
-      compliance: compliance || null
+      compliance: compliance || null,
     };
     return {
       type: 'simplebeacon-complete-scan',
@@ -8282,11 +9237,11 @@ export class AnalyzeView {
       summary: {
         scanKind,
         simplebeaconGatePass: report.gate?.pass ?? null,
-        simplebeaconIssues: report.issueCount ?? report.rawIssues?.length ?? null
+        simplebeaconIssues: report.issueCount ?? report.rawIssues?.length ?? null,
       },
       completeScanAnalysis: buildCompleteScanAnalysis({ projectPath: projectPath || report.projectRoot }),
       enrichedAt: new Date().toISOString(),
-      results
+      results,
     };
   }
 
@@ -8299,7 +9254,7 @@ export class AnalyzeView {
       const report = await this.app.scanService.fetchReport(projectPath || undefined);
       payload = this.buildGateOnlyAuditPayload(report, {
         projectPath: projectPath || report?.projectRoot || this.lastResult?.projectPath,
-        scanKind: this.lastResult?.kind || 'simplebeacon-report'
+        scanKind: this.lastResult?.kind || 'simplebeacon-report',
       });
     } catch {
       /* ignore */
@@ -8319,13 +9274,19 @@ export class AnalyzeView {
   applyReport(report, label, options = {}) {
     this.app.state.report = report;
     this.app.scanService.report = report;
-    const projectPath = options.projectPath || this.app.state.lastProjectPath || report.projectPath || report.projectRoot || report.platformRoot || '';
+    const projectPath =
+      options.projectPath ||
+      this.app.state.lastProjectPath ||
+      report.projectPath ||
+      report.projectRoot ||
+      report.platformRoot ||
+      '';
     this.lastResult = {
       kind: 'simplebeacon-report',
       report,
       projectPath,
       label,
-      conclusion: options.conclusion || buildScanConclusion(report)
+      conclusion: options.conclusion || buildScanConclusion(report),
     };
     this.app.state.analyzeResult = this.lastResult;
     showToast(label, 'success');
@@ -8354,11 +9315,7 @@ export class AnalyzeView {
     const scan = lr.scan || this.getCompleteStep('codebase')?.scan || this.getCompleteStep('consolidation')?.scan;
     const rawIssues = (report?.rawIssues ?? report?.detectedIssues ?? []).slice(0, 50);
     const aiSummary = String(
-      report?.aiSummary
-      || scan?.aiSummary
-      || lr.conclusion
-      || report?.summary?.headline
-      || ''
+      report?.aiSummary || scan?.aiSummary || lr.conclusion || report?.summary?.headline || ''
     ).trim();
     const backlogSnippet = rawIssues
       .slice(0, 8)
@@ -8370,13 +9327,15 @@ export class AnalyzeView {
       .slice(0, 6);
     const codeText = [
       lr.uploadedCodeText,
-      ...codeFindings.map((finding) => String(finding.snippet || finding.message || finding.path || ''))
+      ...codeFindings.map((finding) => String(finding.snippet || finding.message || finding.path || '')),
     ]
       .map((value) => String(value || '').trim())
       .filter(Boolean)
       .join('\n');
     const logLines = rawIssues
-      .map((issue) => `${issue.severity || 'info'} ${issue.type || 'issue'}: ${issue.description || issue.message || ''}`)
+      .map(
+        (issue) => `${issue.severity || 'info'} ${issue.type || 'issue'}: ${issue.description || issue.message || ''}`
+      )
       .filter(Boolean);
     if (scan?.eslintSummary?.totalIssues) {
       logLines.push(`ESLint total issues: ${scan.eslintSummary.totalIssues}`);
@@ -8398,17 +9357,15 @@ export class AnalyzeView {
     }
     scalabilityNotes.push('Dashboard data-cleanup API uses TTL caching for repeat scan profiles.');
 
-    const responseText = [
-      aiSummary || backlogSnippet,
-      ...scalabilityNotes,
-      String(lr.conclusion || '').trim()
-    ].filter(Boolean).join(' ');
+    const responseText = [aiSummary || backlogSnippet, ...scalabilityNotes, String(lr.conclusion || '').trim()]
+      .filter(Boolean)
+      .join(' ');
 
     const metrics = {
       ...(scan?.summary?.throughputRps ? { throughputRps: scan.summary.throughputRps } : {}),
       ...(scan?.summary?.p95LatencyMs ? { p95LatencyMs: scan.summary.p95LatencyMs } : {}),
       ...(fileReduction?.durationMs ? { scanDurationMs: fileReduction.durationMs } : {}),
-      ...(dataQuality?.durationMs ? { dataQualityScanDurationMs: dataQuality.durationMs } : {})
+      ...(dataQuality?.durationMs ? { dataQualityScanDurationMs: dataQuality.durationMs } : {}),
     };
 
     return {
@@ -8438,7 +9395,7 @@ export class AnalyzeView {
       datasetSamples: lr.datasetSamples,
       errorCases: lr.errorCases,
       subgroupOutcomes: lr.subgroupOutcomes,
-      claims: lr.claims
+      claims: lr.claims,
     };
   }
 
@@ -8477,7 +9434,7 @@ export class AnalyzeView {
         ${renderEmptyState({
           icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
           title: 'Path mismatch',
-          body: `Results below are for a different folder than the path above. Run analysis again to scan <code>${escapeHtml(formatPathInputValue(activePath))}</code>.`
+          body: `Results below are for a different folder than the path above. Run analysis again to scan <code>${escapeHtml(formatPathInputValue(activePath))}</code>.`,
         })}
       `;
     }
@@ -8489,8 +9446,10 @@ export class AnalyzeView {
     }
 
     if (kind === 'mock-scan' && report) {
-      const fictionCount = (this.lastResult.fictionIssues || filterIssuesByKind(report, 'fiction'))
-        .reduce((sum, i) => sum + (i.count || 1), 0);
+      const fictionCount = (this.lastResult.fictionIssues || filterIssuesByKind(report, 'fiction')).reduce(
+        (sum, i) => sum + (i.count || 1),
+        0
+      );
       return this.wrapAnalyzeResults(`
         <div class="section-block">
           <div class="section-heading">
@@ -8526,18 +9485,26 @@ export class AnalyzeView {
           </div>
           ${this.renderIssueFilterToolbar(rawIssues)}
           <div id="inline-issue-list"></div>
-          ${r.fileNaming ? `
+          ${
+            r.fileNaming
+              ? `
             <div class="card mb-4">
               <div class="section-heading"><h3>File Naming Analysis</h3></div>
               ${this.renderFileNamingPanel(r.fileNaming)}
             </div>
-          ` : ''}
-          ${r.removableFiles ? `
+          `
+              : ''
+          }
+          ${
+            r.removableFiles
+              ? `
             <div class="card mb-4">
               <div class="section-heading"><h3>Removable Files Analysis</h3></div>
               ${this.renderRemovableFilesPanel(r.removableFiles)}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       `);
     }
@@ -8615,7 +9582,8 @@ export class AnalyzeView {
           ${renderCodebasePanel({ scan: this.lastResult.scan })}
           ${this.renderScanSummary(
             this.lastResult.scan,
-            conclusion || `Workspace health scan complete — ${(this.lastResult.scan.findings || []).length} finding(s).`,
+            conclusion ||
+              `Workspace health scan complete — ${(this.lastResult.scan.findings || []).length} finding(s).`,
             'Workspace health — circular imports, mismatched dependency versions, barrel-file anti-patterns'
           )}
         </div>
@@ -8702,31 +9670,43 @@ export class AnalyzeView {
           ${this.renderRoadmapProvenance(roadmap)}
           ${this.renderStrategicInsightsPanel(roadmap.strategicInsights)}
           <p class="mb-4 text-muted">${escapeHtml(roadmap.executiveSummary?.notes || roadmap.summary || roadmap.title || 'Generated from filesystem scan')}</p>
-          ${roadmap.platformRoot && roadmap.sourceProjectPath && roadmap.platformRoot !== roadmap.sourceProjectPath ? `
+          ${
+            roadmap.platformRoot && roadmap.sourceProjectPath && roadmap.platformRoot !== roadmap.sourceProjectPath
+              ? `
             <p class="roadmap-path-hint mb-4 text-muted">
               Scanned <code>${escapeHtml(formatPathInputValue(roadmap.sourceProjectPath))}</code> —
               sprint metrics use platform root <code>${escapeHtml(formatPathInputValue(roadmap.platformRoot))}</code>.
               For a tighter scan, set the path to the platform folder.
             </p>
-          ` : ''}
+          `
+              : ''
+          }
           <div class="metrics-row mb-4">
             <div class="metric-chip"><strong>${summary.totalFeatures ?? '—'}</strong> sprints</div>
             <div class="metric-chip"><strong>${summary.completionRate ?? '—'}%</strong> complete</div>
             <div class="metric-chip"><strong>${escapeHtml(summary.projectHealth || '—')}</strong> health</div>
             <div class="metric-chip"><strong>${roadmap.codeAnalysis?.structure?.totalFiles ?? '—'}</strong> files scanned</div>
           </div>
-          ${phases.length ? `
+          ${
+            phases.length
+              ? `
             <h3 class="card-subtitle">Development phases</h3>
             <ul class="roadmap-phase-list mb-4">
-              ${phases.map((p) => `
+              ${phases
+                .map(
+                  (p) => `
                 <li>
                   <strong>${escapeHtml(p.phase || p.name || p.title || 'Phase')}</strong>
                   <span class="text-muted"> — ${escapeHtml(p.status || '')}${p.progress != null ? ` (${p.progress}%)` : ''}</span>
                   ${p.description ? `<div class="text-muted" style="font-size:var(--font-size-sm);margin-top:var(--space-1)">${escapeHtml(p.description)}</div>` : ''}
                 </li>
-              `).join('')}
+              `
+                )
+                .join('')}
             </ul>
-          ` : ''}
+          `
+              : ''
+          }
           <details class="roadmap-json-details" open>
             <summary>Full roadmap JSON (${jsonPretty.length.toLocaleString()} characters)</summary>
             <pre class="audit-log roadmap-json-full">${escapeHtml(jsonPretty)}</pre>
@@ -8735,7 +9715,9 @@ export class AnalyzeView {
       `);
     }
 
-    return this.wrapAnalyzeResults(`<pre class="audit-log card">${escapeHtml(JSON.stringify(this.lastResult, null, 2))}</pre>`);
+    return this.wrapAnalyzeResults(
+      `<pre class="audit-log card">${escapeHtml(JSON.stringify(this.lastResult, null, 2))}</pre>`
+    );
   }
 
   isResultsLocked() {
@@ -8759,43 +9741,44 @@ export class AnalyzeView {
     const cleanupBrief = cleanupStep?.brief ?? null;
     const complianceStep = steps.find((s) => s.id === 'compliance');
     const gateForChecklist = pickFreshGateReport(simplebeacon, this.app.state.report);
-    const complianceChecklist = reconcileComplianceWithGate(
-      complianceStep?.checklist ?? null,
-      gateForChecklist
-    );
+    const complianceChecklist = reconcileComplianceWithGate(complianceStep?.checklist ?? null, gateForChecklist);
     const npmAuditStep = steps.find((s) => s.id === 'npm-audit');
     const npmAudit = npmAuditStep?.npmAudit ?? null;
     const euAiActStep = steps.find((s) => s.id === 'eu-ai-act');
     const euSprint = euAiActStep?.sprint ?? null;
-    const { enginesRun, planned: stepTotal, succeeded: succeededCount, failed: failedCount } =
-      resolveCompleteScanCounts(this.lastResult);
+    const {
+      enginesRun,
+      planned: stepTotal,
+      succeeded: succeededCount,
+      failed: failedCount,
+    } = resolveCompleteScanCounts(this.lastResult);
 
     const completeScanAnalysis = buildCompleteScanAnalysis({ fileReduction, dataQuality, projectPath });
 
-/**
- * Step ok.
- * @param {string} id
- * @returns {any}
- */
+    /**
+     * Step ok.
+     * @param {string} id
+     * @returns {any}
+     */
     const stepOk = (id) => steps.some((s) => s.id === id);
-/**
- * Step failure message.
- * @param {string} id
- * @param {any} labelHint
- * @returns {any}
- */
+    /**
+     * Step failure message.
+     * @param {string} id
+     * @param {any} labelHint
+     * @returns {any}
+     */
     const stepFailureMessage = (id, labelHint) => {
       const progressErr = this.completeProgress?.steps?.find((s) => s.id === id)?.error;
       if (progressErr) return progressErr;
       const match = errors.find((e) => e.step?.includes(labelHint));
       return match?.message || '';
     };
-/**
- * Render step failure.
- * @param {string} id
- * @param {any} labelHint
- * @returns {any}
- */
+    /**
+     * Render step failure.
+     * @param {string} id
+     * @param {any} labelHint
+     * @returns {any}
+     */
     const renderStepFailure = (id, labelHint) => {
       const message = stepFailureMessage(id, labelHint);
       if (message) {
@@ -8813,21 +9796,27 @@ export class AnalyzeView {
         <div class="section-heading">
           <h2>Complete scan — ${escapeHtml(formatPathLabel(projectPath) || '')}</h2>
         </div>
-        ${errors.length ? `
+        ${
+          errors.length
+            ? `
           <div class="card mb-4" style="border-color: var(--warning);">
             <p class="text-muted" style="font-size: var(--font-size-sm); margin:0;">
               ${errors.map((e) => `<strong>${escapeHtml(e.step)}:</strong> ${escapeHtml(e.message)}`).join('<br>')}
             </p>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="metrics-row mb-6">
           <div class="metric-chip"><strong>${stepTotal}</strong> analyses</div>
           <div class="metric-chip"><strong>${succeededCount}</strong> succeeded</div>
           ${failedCount ? `<div class="metric-chip gate-badge warn"><strong>${failedCount}</strong> failed/skipped</div>` : ''}
           <div class="metric-chip gate-badge ${simplebeacon?.gate?.pass ? 'pass' : 'warn'}">${simplebeacon?.gate?.pass ? 'GATE PASS' : 'GATE REVIEW'}</div>
-          ${simplebeacon?.gate?.pass && codebase?.summary?.codeFilesAnalyzed
-            ? '<div class="metric-chip gate-badge pass">READY FOR SIGN-OFF</div>'
-            : ''}
+          ${
+            simplebeacon?.gate?.pass && codebase?.summary?.codeFilesAnalyzed
+              ? '<div class="metric-chip gate-badge pass">READY FOR SIGN-OFF</div>'
+              : ''
+          }
           <div class="metric-chip"><strong>${codebase?.summary?.codeFilesAnalyzed ?? '—'}/${codebase?.summary?.codeFilesDiscovered ?? '—'}</strong> code files</div>
           <div class="metric-chip"><strong>${codebase?.summary?.healthScore ?? '—'}%</strong> code health</div>
           <div class="metric-chip"><strong>${consolidation?.summary?.exactDuplicateGroups ?? '—'}</strong> dup groups</div>
@@ -8842,13 +9831,18 @@ export class AnalyzeView {
 
         ${renderCompleteScanAnalysisPanel(completeScanAnalysis)}
 
-        ${locked ? renderScanPaywall(
-          this.lastResult.publicSummary || buildPublicSummaryFromScan(this.lastResult),
-          { checkoutUrl, auditPriceLabel: priceLabel }
-        ) : `
+        ${
+          locked
+            ? renderScanPaywall(this.lastResult.publicSummary || buildPublicSummaryFromScan(this.lastResult), {
+                checkoutUrl,
+                auditPriceLabel: priceLabel,
+              })
+            : `
         <details class="card mb-4" open>
           <summary><strong>1. Simplebeacon</strong> ${stepOk('simplebeacon') ? '✅' : '⚠️'}</summary>
-          ${simplebeacon ? `
+          ${
+            simplebeacon
+              ? `
             ${this.renderScanScopeBanner(simplebeacon, projectPath)}
             <div class="metrics-row mb-4 mt-4">
               <div class="metric-chip"><strong>${simplebeacon.qualityScore ?? '—'}%</strong> quality</div>
@@ -8856,58 +9850,86 @@ export class AnalyzeView {
               <div class="metric-chip"><strong>${simplebeacon.issueCount ?? 0}</strong> issues</div>
               ${simplebeacon.llmSlopPatternHits != null ? `<div class="metric-chip"><strong>${simplebeacon.llmSlopPatternHits}</strong> LLM slop hits</div>` : ''}
             </div>
-            ${(getScanFileMetrics(simplebeacon).mockSampleFiles ?? 0) === 0 ? `
+            ${
+              (getScanFileMetrics(simplebeacon).mockSampleFiles ?? 0) === 0
+                ? `
               <p class="text-muted text-sm mb-4">
                 No mock/sample files found. Try scanning <code>…\\ai-platform</code> or add
                 <code>.simplebeacon/config.json</code> with <code>scanPaths</code> for this project.
               </p>
-            ` : ''}
+            `
+                : ''
+            }
             ${this.renderScanSummary(simplebeacon, buildScanConclusion(simplebeacon))}
             <button type="button" class="btn btn-secondary btn-sm mb-4" id="download-simplebeacon-json">Download Simplebeacon JSON</button>
             <div id="inline-issue-list"></div>
-          ` : '<p class="text-muted mt-4">Step did not complete.</p>'}
+          `
+              : '<p class="text-muted mt-4">Step did not complete.</p>'
+          }
         </details>
 
         <details class="card mb-4" open>
           <summary><strong>2. Data consolidation</strong> ${stepOk('consolidation') ? '✅' : '⚠️'}</summary>
           <div class="mt-4">
-            ${consolidation ? `
+            ${
+              consolidation
+                ? `
               <button type="button" class="btn btn-secondary btn-sm mb-4" id="download-consolidation-json">Download consolidation JSON</button>
               ${renderConsolidationPanel({ scan: consolidation })}
               ${this.renderScanSummary(consolidation, buildConsolidationConclusion(consolidation), 'Data consolidation — not a compliance gate')}
-            ` : '<p class="text-muted">Step did not complete.</p>'}
+            `
+                : '<p class="text-muted">Step did not complete.</p>'
+            }
           </div>
         </details>
 
         <details class="card mb-4">
           <summary><strong>3. Fiction & KPI digest</strong> ${stepOk('mock-scan') ? '✅' : '⚠️'}</summary>
-          ${mockScan?.report ? `
+          ${
+            mockScan?.report
+              ? `
             ${this.renderConclusionBanner(
               mockScan.conclusion || buildScanConclusion(mockScan.report, { focus: 'fiction' }),
               mockScan.report.fictionScope === 'repository-json'
                 ? `Derived from step 1 — ${formatNumber(mockScan.report.fictionJsonFilesScanned ?? mockScan.report.consistencyChecked ?? '—')} repository JSON files fiction-scanned`
                 : 'Derived from step 1 Simplebeacon scan — *-sample.json only'
             )}
-            ${(mockScan.nonFictionIssues || []).length ? `
+            ${
+              (mockScan.nonFictionIssues || []).length
+                ? `
               <p class="text-muted text-sm mb-4">
                 ${formatNumber((mockScan.nonFictionIssues || []).reduce((s, i) => s + (i.count || 1), 0))} non-fiction gate finding(s) in step 1
-                (${(mockScan.nonFictionIssues || []).map((i) => i.type).slice(0, 3).join(', ')}) — see Simplebeacon section above.
+                (${(mockScan.nonFictionIssues || [])
+                  .map((i) => i.type)
+                  .slice(0, 3)
+                  .join(', ')}) — see Simplebeacon section above.
               </p>
-            ` : ''}
+            `
+                : ''
+            }
             <div class="metrics-row mb-4 mt-4">
               <div class="metric-chip"><strong>${(mockScan.fictionIssues || []).reduce((s, i) => s + (i.count || 1), 0)}</strong> fiction/KPI hits</div>
               ${this.renderScanFileMetrics(mockScan.report, canonicalCount)}
             </div>
             <button type="button" class="btn btn-secondary btn-sm mb-4" id="download-mock-scan-json">Download fiction digest JSON</button>
-          ` : '<p class="text-muted mt-4">Step did not complete.</p>'}
+          `
+              : '<p class="text-muted mt-4">Step did not complete.</p>'
+          }
         </details>
 
         <details class="card mb-4">
           <summary><strong>4. Roadmap</strong> ${stepOk('roadmap') ? '✅' : '⚠️'}</summary>
-          ${roadmap ? `
-            ${roadmapStep?.analysisPath && normalizeProjectPath(roadmapStep.analysisPath) !== normalizeProjectPath(projectPath) ? `
+          ${
+            roadmap
+              ? `
+            ${
+              roadmapStep?.analysisPath &&
+              normalizeProjectPath(roadmapStep.analysisPath) !== normalizeProjectPath(projectPath)
+                ? `
               <p class="text-muted text-sm mt-4 mb-0">Scoped to platform root <code>${escapeHtml(formatPathInputValue(roadmapStep.analysisPath))}</code> (monorepo parent scan).</p>
-            ` : ''}
+            `
+                : ''
+            }
             <div class="metrics-row mb-4 mt-4">
               <div class="metric-chip"><strong>${canonicalCount ?? roadmap.codeAnalysis?.structure?.totalFiles ?? '—'}</strong> files</div>
               <div class="metric-chip"><strong>${(roadmap.developmentPhases || roadmap.phases || []).length}</strong> phases</div>
@@ -8917,50 +9939,73 @@ export class AnalyzeView {
               <summary>Preview roadmap JSON</summary>
               <pre class="audit-log roadmap-json-full mt-2">${escapeHtml(JSON.stringify(roadmap, null, 2).slice(0, 12000))}${JSON.stringify(roadmap).length > 12000 ? '\n… (truncated — download for full file)' : ''}</pre>
             </details>
-          ` : renderStepFailure('roadmap', 'Roadmap')}
+          `
+              : renderStepFailure('roadmap', 'Roadmap')
+          }
         </details>
 
         <details class="card mb-4">
           <summary><strong>5. Codebase analysis</strong> ${stepOk('codebase') ? '✅' : '⚠️'}</summary>
-          ${codebase ? `
-            ${codebaseStep?.analysisPath && normalizeProjectPath(codebaseStep.analysisPath) !== normalizeProjectPath(projectPath) ? `
+          ${
+            codebase
+              ? `
+            ${
+              codebaseStep?.analysisPath &&
+              normalizeProjectPath(codebaseStep.analysisPath) !== normalizeProjectPath(projectPath)
+                ? `
               <p class="text-muted text-sm mt-4 mb-0">Scoped to platform root <code>${escapeHtml(formatPathInputValue(codebaseStep.analysisPath))}</code> (monorepo parent scan).</p>
-            ` : ''}
+            `
+                : ''
+            }
             <button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="download-codebase-json">Download codebase JSON</button>
             ${renderCodebasePanel({ scan: codebase })}
             ${this.renderCodeInsightsPanels(codebase)}
             ${this.renderScanSummary(codebase, buildCodebaseConclusion(codebase), 'Codebase analysis — technical debt and broken files')}
-          ` : renderStepFailure('codebase', 'Codebase')}
+          `
+              : renderStepFailure('codebase', 'Codebase')
+          }
         </details>
 
         <details class="card mb-4">
           <summary><strong>6. File reduction</strong> ${stepOk('file-reduction') ? '✅' : '⚠️'}</summary>
-          ${fileReduction ? `
+          ${
+            fileReduction
+              ? `
             <button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="download-file-reduction-json">Export report</button>
             ${renderDataCleanupPanel({ scan: fileReduction, profile: 'file-reduction' })}
             ${this.renderScanSummary(fileReduction, buildDataCleanupConclusion(fileReduction, 'file-reduction'), 'File reduction — dry-run reclaim estimate')}
-          ` : renderStepFailure('file-reduction', 'File reduction')}
+          `
+              : renderStepFailure('file-reduction', 'File reduction')
+          }
         </details>
 
         <details class="card mb-4">
           <summary><strong>7. Data quality</strong> ${stepOk('data-quality') ? '✅' : '⚠️'}</summary>
-          ${dataQuality ? `
+          ${
+            dataQuality
+              ? `
             <button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="download-data-quality-json">Export report</button>
             ${renderDataCleanupPanel({ scan: dataQuality, profile: 'data-quality' })}
             ${this.renderScanSummary(dataQuality, buildDataCleanupConclusion(dataQuality, 'data-quality'), 'Data quality — config, privacy, lineage, shape drift')}
-          ` : renderStepFailure('data-quality', 'Data quality')}
+          `
+              : renderStepFailure('data-quality', 'Data quality')
+          }
         </details>
 
         <details class="card mb-4">
           <summary><strong>8. Cleanup assistant</strong> ${stepOk('cleanup-assistant') ? '✅' : '⚠️'}</summary>
-          ${cleanupBrief ? `
+          ${
+            cleanupBrief
+              ? `
             ${renderCleanupAssistantPanel(cleanupBrief, { policy: cleanupStep?.policy || loadCleanupPolicy() })}
             ${this.renderScanSummary(
               cleanupStep?.fileReduction || fileReduction,
               `Tiered cleanup — ${Number(cleanupBrief.estimatedReduction?.files || 0).toLocaleString()} files safe now (${formatCompleteScanBytes(cleanupBrief.estimatedReduction?.bytes)}), ${Number(cleanupBrief.projectedInventory?.totalFiles || 0).toLocaleString()} projected after phase 1.`,
               'Cleanup assistant — export agent brief for Cursor; phase 1 deletes safe directories only'
             )}
-          ` : renderStepFailure('cleanup-assistant', 'Cleanup assistant')}
+          `
+              : renderStepFailure('cleanup-assistant', 'Cleanup assistant')
+          }
         </details>
 
         <details class="card mb-4">
@@ -8973,38 +10018,59 @@ export class AnalyzeView {
           ${complianceChecklist ? renderComplianceChecklistPanel(complianceChecklist, { profileLabel: 'Corporate safety (8 rules)' }) : renderStepFailure('compliance', 'Compliance')}
         </details>
 
-        ${enginesRun.includes('eu-ai-act') || stepOk('eu-ai-act') ? `
+        ${
+          enginesRun.includes('eu-ai-act') || stepOk('eu-ai-act')
+            ? `
         <details class="card mb-4">
           <summary><strong>11. EU AI Act sprint</strong> ${stepOk('eu-ai-act') ? '✅' : '⚠️'} <span class="text-muted" style="font-weight:400;">(10 rules + legal attestation — optional regulatory engine)</span></summary>
           <div class="mt-4">
-            ${euSprint
-    ? renderEuAiActSprintPanel(euSprint, { downloadButtonId: 'download-eu-compliance-json', showActions: false })
-    : renderStepFailure('eu-ai-act', 'EU AI Act')}
+            ${
+              euSprint
+                ? renderEuAiActSprintPanel(euSprint, {
+                    downloadButtonId: 'download-eu-compliance-json',
+                    showActions: false,
+                  })
+                : renderStepFailure('eu-ai-act', 'EU AI Act')
+            }
           </div>
         </details>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${simplebeacon?.fileNaming ? `
+        ${
+          simplebeacon?.fileNaming
+            ? `
         <details class="card mb-4">
           <summary><strong>File Naming Analysis</strong></summary>
           <div class="mt-4">
             ${this.renderFileNamingPanel(simplebeacon.fileNaming)}
           </div>
         </details>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${removableFiles ? `
+        ${
+          removableFiles
+            ? `
         <details class="card mb-4">
           <summary><strong>Removable Files</strong> ${stepOk('removable-files') ? '✅' : '⚠️'}</summary>
           <div class="mt-4">
             ${this.renderRemovableFilesPanel(removableFiles)}
           </div>
         </details>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${steps.filter((s) => BROWSER_ANALYZER_IDS.includes(s.id)).map((s) => renderBrowserAnalyzerResult(s, errors)).join('')}
+        ${steps
+          .filter((s) => BROWSER_ANALYZER_IDS.includes(s.id))
+          .map((s) => renderBrowserAnalyzerResult(s, errors))
+          .join('')}
 
-        `}
+        `
+        }
       </div>
     `;
   }
@@ -9013,7 +10079,10 @@ export class AnalyzeView {
     if (!fileNaming || !fileNaming.findings || fileNaming.findings.length === 0) {
       return '<p class="text-muted">No file naming issues detected.</p>';
     }
-    const items = fileNaming.findings.slice(0, 10).map((f) => `
+    const items = fileNaming.findings
+      .slice(0, 10)
+      .map(
+        (f) => `
       <div class="issue-row" style="padding:0.5rem 0;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <span class="badge badge-${f.severity === 'medium' ? 'warn' : 'info'}">${escapeHtml(f.severity)}</span>
@@ -9023,9 +10092,14 @@ export class AnalyzeView {
         ${f.detail ? `<div class="text-sm mt-1">${escapeHtml(f.detail)}</div>` : ''}
         ${f.suggestion ? `<div class="text-sm mt-1" style="color:var(--success);">Suggestion: ${escapeHtml(typeof f.suggestion === 'string' ? f.suggestion : JSON.stringify(f.suggestion))}</div>` : ''}
       </div>
-    `).join('');
+    `
+      )
+      .join('');
     const styleStats = fileNaming.styleStats || {};
-    const statsHtml = Object.entries(styleStats).filter(([, v]) => v > 0).map(([k, v]) => `<span class="metric-chip"><strong>${v}</strong> ${escapeHtml(k)}</span>`).join('');
+    const statsHtml = Object.entries(styleStats)
+      .filter(([, v]) => v > 0)
+      .map(([k, v]) => `<span class="metric-chip"><strong>${v}</strong> ${escapeHtml(k)}</span>`)
+      .join('');
     return `
       <div class="metrics-row mb-4">
         <div class="metric-chip"><strong>${fileNaming.hits}</strong> naming issues</div>
@@ -9040,7 +10114,10 @@ export class AnalyzeView {
       return '<p class="text-muted">No removable files detected.</p>';
     }
     const cats = removableFiles.categories;
-    const items = cats.slice(0, 10).map((c) => `
+    const items = cats
+      .slice(0, 10)
+      .map(
+        (c) => `
       <div class="issue-row" style="padding:0.5rem 0;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <span class="badge badge-warn">removable</span>
@@ -9050,7 +10127,9 @@ export class AnalyzeView {
         <div class="text-sm mt-1">${escapeHtml(c.action || 'Review before deleting')}</div>
         ${c.examples && c.examples.length ? `<div class="text-sm mt-1 text-muted">Examples: ${escapeHtml(c.examples.slice(0, 3).join(', '))}</div>` : ''}
       </div>
-    `).join('');
+    `
+      )
+      .join('');
     return `
       <div class="metrics-row mb-4">
         <div class="metric-chip"><strong>${cats.length}</strong> categories</div>
@@ -9083,29 +10162,29 @@ export class AnalyzeView {
     const scrollContainerIsWindow = !main;
     if (scrollContainerIsWindow) {
       savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-    }
-    else {
+    } else {
       savedScrollY = main.scrollTop || 0;
     }
     try {
       this.mount(main);
     } catch (err) {
-       
       console.error('AnalyzeView mount error:', err);
       showToast('Scan UI failed to update. See console.', 'error');
       return;
     }
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (scrollContainerIsWindow) {
-            window.scrollTo(0, savedScrollY);
+        if (scrollContainerIsWindow) {
+          window.scrollTo(0, savedScrollY);
+        } else {
+          try {
+            main.scrollTo(0, savedScrollY);
+          } catch (e) {
+            main.scrollTop = savedScrollY;
           }
-          else {
-            try { main.scrollTo(0, savedScrollY); }
-            catch (e) { main.scrollTop = savedScrollY; }
-          }
-        });
+        }
       });
+    });
   }
 
   async ensureDefaultProjectPath() {
@@ -9148,7 +10227,7 @@ export class AnalyzeView {
       void this.tryAutoLoadCompleteScan();
     }
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     const view = this.render();
     const el = view;
@@ -9159,9 +10238,15 @@ export class AnalyzeView {
       const params = new URLSearchParams(window.location.search || '');
       const sbParent = params.get('sb_parent_urlbar') === '1';
       if (sbParent) {
-        try { this.notifyParentEmbed(); } catch (e) { /* ignore */ }
+        try {
+          this.notifyParentEmbed();
+        } catch (e) {
+          /* ignore */
+        }
       }
-    } catch (_e) { /* ignore */ }
+    } catch (_e) {
+      /* ignore */
+    }
 
     view.querySelector('#goto-results-btn')?.addEventListener('click', () => {
       this.openResultsView();
@@ -9172,30 +10257,36 @@ export class AnalyzeView {
     });
 
     view.querySelector('#quick-rescan-btn')?.addEventListener('click', () => {
-      const path = this.resolveProjectPath(document.getElementById('project-path-input')?.value)
-        || this.app.state.defaultProjectPath;
+      const path =
+        this.resolveProjectPath(document.getElementById('project-path-input')?.value) ||
+        this.app.state.defaultProjectPath;
       if (!path) {
         showToast('No project path available', 'error');
         return;
       }
       this.analysisType = 'complete';
-      saveAnalyzePrefs({ analysisType: 'complete', aiProvider: this.aiProvider, roadmapInsightsMode: this.roadmapInsightsMode });
+      saveAnalyzePrefs({
+        analysisType: 'complete',
+        aiProvider: this.aiProvider,
+        roadmapInsightsMode: this.roadmapInsightsMode,
+      });
       this.runPathAnalysis(path);
     });
 
     const slug = pathToFileSlug(this.lastResult?.projectPath);
-    const roadmap = this.lastResult?.kind === 'roadmap'
-      ? this.lastResult.data?.roadmap
-      : this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('roadmap')?.roadmap
-          || this.getCompleteStep('roadmap')?.data?.roadmap
-        : null;
+    const roadmap =
+      this.lastResult?.kind === 'roadmap'
+        ? this.lastResult.data?.roadmap
+        : this.lastResult?.kind === 'complete'
+          ? this.getCompleteStep('roadmap')?.roadmap || this.getCompleteStep('roadmap')?.data?.roadmap
+          : null;
 
-    const simplebeaconReport = this.lastResult?.kind === 'complete'
-      ? this.getCompleteStep('simplebeacon')?.report
-      : this.lastResult?.kind === 'mock-scan'
-        ? this.lastResult.report
-        : this.lastResult?.report;
+    const simplebeaconReport =
+      this.lastResult?.kind === 'complete'
+        ? this.getCompleteStep('simplebeacon')?.report
+        : this.lastResult?.kind === 'mock-scan'
+          ? this.lastResult.report
+          : this.lastResult?.report;
 
     view.querySelector('#download-scan-result')?.addEventListener('click', () => {
       const payload = this.buildScanResultExport();
@@ -9234,14 +10325,17 @@ export class AnalyzeView {
 
     const doSendToAi = async (notes = '') => {
       const report = this.lastResult?.report || this.app.state.report;
-      if (!report) { showToast('No report loaded — run a scan first', 'error'); return; }
+      if (!report) {
+        showToast('No report loaded — run a scan first', 'error');
+        return;
+      }
       const allIssues = report.rawIssues || report.detectedIssues || [];
       const reportSummary = {
         gatePass: report.gate?.pass ?? 'N/A',
         qualityScore: report.qualityScore ?? 'N/A',
         totalIssues: allIssues.length,
         filesScanned: report.repositoryFilesTotal ?? report.totalFiles ?? 'N/A',
-        reportType: report.type || 'simplebeacon'
+        reportType: report.type || 'simplebeacon',
       };
 
       // If running inside a VS Code-family webview, message the extension directly
@@ -9251,11 +10345,12 @@ export class AnalyzeView {
           vscode.postMessage({
             command: 'sendToAI',
             data: {
-              projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
+              projectPath:
+                report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
               notes,
               reportSummary,
-              issues: allIssues
-            }
+              issues: allIssues,
+            },
           });
           showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
           return;
@@ -9270,11 +10365,12 @@ export class AnalyzeView {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
+            projectPath:
+              report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
             notes,
             reportSummary,
-            issues: allIssues
-          })
+            issues: allIssues,
+          }),
         });
         const json = await res.json();
         if (json.success) {
@@ -9302,14 +10398,19 @@ export class AnalyzeView {
     view.querySelector('#analyze-ai-cancel')?.addEventListener('click', () => {
       if (analyzeAiPanel) analyzeAiPanel.style.display = 'none';
       if (analyzeAiNotes) analyzeAiNotes.value = '';
-      if (analyzeAiStatus) { analyzeAiStatus.style.display = 'none'; analyzeAiStatus.textContent = ''; }
+      if (analyzeAiStatus) {
+        analyzeAiStatus.style.display = 'none';
+        analyzeAiStatus.textContent = '';
+      }
     });
     view.querySelector('#analyze-ai-confirm')?.addEventListener('click', async () => {
       const btn = view.querySelector('#analyze-ai-confirm');
       if (!btn) return;
-      btn.disabled = true; btn.textContent = 'Sending…';
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
       await doSendToAi(analyzeAiNotes?.value || '');
-      btn.disabled = false; btn.textContent = 'Confirm Send';
+      btn.disabled = false;
+      btn.textContent = 'Confirm Send';
     });
 
     view.querySelector('#download-export-bundle-zip')?.addEventListener('click', async () => {
@@ -9338,7 +10439,7 @@ export class AnalyzeView {
           onSubmit: (credentials) => {
             this.saveDownloadSettings({ ...settings, credentials });
             this._doZipDownload(btn, priorLabel, payload, exportEngines, credentials);
-          }
+          },
         });
         return;
       }
@@ -9377,7 +10478,7 @@ export class AnalyzeView {
           onSubmit: (credentials) => {
             this.saveDownloadSettings({ ...settings, credentials });
             this._doPdfDownload(btn, priorLabel, credentials);
-          }
+          },
         });
         return;
       }
@@ -9394,7 +10495,7 @@ export class AnalyzeView {
       downloadJson(
         this.prepareReportForResults(report, {
           projectPath: this.lastResult?.projectPath || report.projectRoot,
-          exportFilename: filename
+          exportFilename: filename,
         }),
         filename
       );
@@ -9416,7 +10517,7 @@ export class AnalyzeView {
           label: getCompleteEngineLabel(stepId),
           findingsCount: step.findingsCount ?? 0,
           fileCount: step.fileCount ?? 0,
-          findings: step.findings || []
+          findings: step.findings || [],
         };
         downloadJson(payload, `${stepId}-${slug}-${dateStamp()}.json`);
         showToast(`${getCompleteEngineLabel(stepId)} JSON downloaded`, 'success');
@@ -9433,7 +10534,7 @@ export class AnalyzeView {
       downloadJson(
         sanitizeConsolidationExport(scan, {
           projectPath: this.lastResult?.projectPath || scan.projectRoot,
-          exportFilename: consolidationFilename
+          exportFilename: consolidationFilename,
         }),
         consolidationFilename
       );
@@ -9450,17 +10551,17 @@ export class AnalyzeView {
       downloadJson(
         sanitizeCodebaseReportExport(scan, {
           requestedProjectPath: this.lastResult?.projectPath,
-          exportFilename: codebaseFilename
+          exportFilename: codebaseFilename,
         }),
         codebaseFilename
       );
       showToast('Codebase report downloaded', 'success');
     });
 
-/**
- * Export brief.
- * @returns {any}
- */
+    /**
+     * Export brief.
+     * @returns {any}
+     */
     const exportBrief = () => {
       const brief = sanitizeCleanupBriefExport(
         buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy())
@@ -9476,14 +10577,15 @@ export class AnalyzeView {
 
     el.querySelector('#cleanup-brief-export-btn')?.addEventListener('click', exportBrief);
 
-/**
- * Copy prompt.
- * @returns {any}
- */
+    /**
+     * Copy prompt.
+     * @returns {any}
+     */
     const copyPrompt = async () => {
-      const brief = buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy())
-        || this.lastResult?.brief
-        || null;
+      const brief =
+        buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy()) ||
+        this.lastResult?.brief ||
+        null;
       const prompt = brief?.agentPrompt;
       if (!prompt) {
         showToast('Run Cleanup assistant first', 'error');
@@ -9522,7 +10624,7 @@ export class AnalyzeView {
         fileReduction: this.lastResult.fileReduction,
         dataQuality: this.lastResult.dataQuality,
         repositoryInventory: this.lastResult.repositoryInventory,
-        policy
+        policy,
       });
       this.lastResult.conclusion = `Tiered cleanup plan — ${Number(this.lastResult.brief.estimatedReduction.files || 0).toLocaleString()} files safe now (${formatCompleteScanBytes(this.lastResult.brief.estimatedReduction.bytes)}), ${Number(this.lastResult.brief.projectedInventory.totalFiles || 0).toLocaleString()} projected after phase 1.`;
       this.app.state.analyzeResult = this.lastResult;
@@ -9553,9 +10655,10 @@ export class AnalyzeView {
     el.querySelectorAll('.data-cleanup-download-json').forEach((btn) => {
       btn.addEventListener('click', () => {
         const profile = btn.dataset.profile;
-        const scan = profile === 'data-quality'
-          ? this.getCompleteStep('data-quality')?.scan
-          : this.getCompleteStep('file-reduction')?.scan;
+        const scan =
+          profile === 'data-quality'
+            ? this.getCompleteStep('data-quality')?.scan
+            : this.getCompleteStep('file-reduction')?.scan;
         if (!scan) {
           showToast(`${profile} step has no report`, 'error');
           return;
@@ -9569,18 +10672,18 @@ export class AnalyzeView {
       const mockStep = this.getCompleteStep('mock-scan');
       const payload = mockStep?.report
         ? buildFictionDigestPayload(mockStep.report, {
-          projectPath: this.lastResult?.projectPath || mockStep.report.projectRoot
-        })
+            projectPath: this.lastResult?.projectPath || mockStep.report.projectRoot,
+          })
         : mockStep?.fictionIssues
           ? {
-            type: 'simplebeacon-fiction-digest',
-            generatedAt: new Date().toISOString(),
-            conclusion: mockStep.conclusion,
-            fictionIssues: mockStep.fictionIssues,
-            nonFictionIssues: mockStep.nonFictionIssues || [],
-            sourceReport: mockStep.report
-          }
-          : mockStep?.report ?? mockStep?.data?.report ?? mockStep?.data;
+              type: 'simplebeacon-fiction-digest',
+              generatedAt: new Date().toISOString(),
+              conclusion: mockStep.conclusion,
+              fictionIssues: mockStep.fictionIssues,
+              nonFictionIssues: mockStep.nonFictionIssues || [],
+              sourceReport: mockStep.report,
+            }
+          : (mockStep?.report ?? mockStep?.data?.report ?? mockStep?.data);
       if (!payload) {
         showToast('Fiction digest step has no report', 'error');
         return;
@@ -9589,7 +10692,7 @@ export class AnalyzeView {
       downloadJson(
         sanitizeFictionDigestExport(payload, {
           projectPath: this.lastResult?.projectPath || mockStep?.projectPath,
-          exportFilename: fictionFilename
+          exportFilename: fictionFilename,
         }),
         fictionFilename
       );
@@ -9606,7 +10709,7 @@ export class AnalyzeView {
       downloadJson(
         sanitizeRoadmapExport(roadmap, {
           requestedProjectPath: this.lastResult?.projectPath,
-          exportFilename: roadmapFilename
+          exportFilename: roadmapFilename,
         }),
         roadmapFilename
       );
@@ -9614,9 +10717,10 @@ export class AnalyzeView {
     });
 
     el.querySelector('#download-eu-compliance-json')?.addEventListener('click', () => {
-      const checklist = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('eu-ai-act')?.sprint?.complianceChecklist
-        : this.lastResult?.sprint?.complianceChecklist;
+      const checklist =
+        this.lastResult?.kind === 'complete'
+          ? this.getCompleteStep('eu-ai-act')?.sprint?.complianceChecklist
+          : this.lastResult?.sprint?.complianceChecklist;
       if (!checklist) {
         showToast('EU compliance checklist has no report', 'error');
         return;
@@ -9626,50 +10730,49 @@ export class AnalyzeView {
     });
 
     el.querySelector('#download-compliance-json')?.addEventListener('click', () => {
-      const complianceStep = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('compliance')
-        : this.lastResult;
+      const complianceStep =
+        this.lastResult?.kind === 'complete' ? this.getCompleteStep('compliance') : this.lastResult;
       const checklist = complianceStep?.checklist;
       if (!checklist) {
         showToast('Compliance checklist has no report', 'error');
         return;
       }
-      const gateReport = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('simplebeacon')?.report
-        : this.lastResult?.report;
-      const npmAudit = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('npm-audit')?.npmAudit
-        : complianceStep?.npmAudit;
+      const gateReport =
+        this.lastResult?.kind === 'complete' ? this.getCompleteStep('simplebeacon')?.report : this.lastResult?.report;
+      const npmAudit =
+        this.lastResult?.kind === 'complete' ? this.getCompleteStep('npm-audit')?.npmAudit : complianceStep?.npmAudit;
       const payload = complianceStep?.complianceExport
         ? { ...complianceStep.complianceExport, generatedAt: new Date().toISOString() }
         : sanitizeComplianceBundleExport({
-          type: 'simplebeacon-compliance-checklist',
-          generatedAt: new Date().toISOString(),
-          projectPath: this.lastResult?.projectPath,
-          gateReport: gateReport || null,
-          checklist,
-          npmAudit: npmAudit || null
-        });
+            type: 'simplebeacon-compliance-checklist',
+            generatedAt: new Date().toISOString(),
+            projectPath: this.lastResult?.projectPath,
+            gateReport: gateReport || null,
+            checklist,
+            npmAudit: npmAudit || null,
+          });
       downloadJson(payload, `compliance-${slug}-${dateStamp()}.json`);
       showToast('Compliance checklist downloaded', 'success');
     });
 
     el.querySelector('#download-npm-audit-json')?.addEventListener('click', () => {
-      const npmAudit = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('npm-audit')?.npmAudit
-        : this.lastResult?.npmAudit;
+      const npmAudit =
+        this.lastResult?.kind === 'complete' ? this.getCompleteStep('npm-audit')?.npmAudit : this.lastResult?.npmAudit;
       if (!npmAudit) {
         showToast('npm audit has no report', 'error');
         return;
       }
       const projectPath = this.lastResult?.projectPath;
       downloadJson(
-        sanitizeNpmAuditExport({
-          type: 'simplebeacon-npm-audit',
-          generatedAt: new Date().toISOString(),
-          projectPath,
-          ...npmAudit
-        }, projectPath),
+        sanitizeNpmAuditExport(
+          {
+            type: 'simplebeacon-npm-audit',
+            generatedAt: new Date().toISOString(),
+            projectPath,
+            ...npmAudit,
+          },
+          projectPath
+        ),
         `npm-audit-${slug}-${dateStamp()}.json`
       );
       showToast('npm audit downloaded', 'success');
@@ -9678,11 +10781,13 @@ export class AnalyzeView {
     el.querySelector('#copy-roadmap-json')?.addEventListener('click', async () => {
       if (!roadmap) return;
       try {
-        await navigator.clipboard.writeText(JSON.stringify(
-          sanitizeRoadmapExport(roadmap, { requestedProjectPath: this.lastResult?.projectPath }),
-          null,
-          2
-        ));
+        await navigator.clipboard.writeText(
+          JSON.stringify(
+            sanitizeRoadmapExport(roadmap, { requestedProjectPath: this.lastResult?.projectPath }),
+            null,
+            2
+          )
+        );
         showToast('Roadmap JSON copied', 'success');
       } catch (err) {
         showToast(err.message || 'Copy failed', 'error');
@@ -9692,12 +10797,13 @@ export class AnalyzeView {
     const issueSlot = el.querySelector('#inline-issue-list');
     if (issueSlot && simplebeaconReport && !this.isResultsLocked()) {
       const categories = this.app.scanService.getIssueCategories(simplebeaconReport);
-      const displayCategories = this.lastResult?.kind === 'mock-scan'
-        ? categories.filter((cat) => cat.id === 'consistency')
-        : categories;
-      issueSlot.appendChild(renderIssueList(displayCategories.length ? displayCategories : categories, {
-        onSelect: (cat) => this.openResultsView({ filter: cat })
-      }));
+      const displayCategories =
+        this.lastResult?.kind === 'mock-scan' ? categories.filter((cat) => cat.id === 'consistency') : categories;
+      issueSlot.appendChild(
+        renderIssueList(displayCategories.length ? displayCategories : categories, {
+          onSelect: (cat) => this.openResultsView({ filter: cat }),
+        })
+      );
 
       // Wire up severity filter chips
       const toolbar = el.querySelector('[data-issue-toolbar]');
@@ -9706,7 +10812,11 @@ export class AnalyzeView {
         const searchInput = toolbar.querySelector('#issue-search-input');
 
         const applyFilters = () => {
-          const activeSevs = new Set(Array.from(chips).filter(c => c.classList.contains('active')).map(c => c.dataset.sev));
+          const activeSevs = new Set(
+            Array.from(chips)
+              .filter((c) => c.classList.contains('active'))
+              .map((c) => c.dataset.sev)
+          );
           const q = searchInput?.value?.toLowerCase() || '';
           const cards = issueSlot.querySelectorAll('.issue-card');
           for (const card of cards) {
@@ -9723,14 +10833,22 @@ export class AnalyzeView {
             chip.classList.toggle('active');
             const sev = chip.dataset.sev;
             if (chip.classList.contains('active')) {
-              chip.style.background = sev === 'critical' || sev === 'high' ? 'rgba(239,68,68,0.15)'
-                : sev === 'medium' ? 'rgba(245,158,11,0.15)'
-                : sev === 'low' ? 'rgba(59,130,246,0.15)'
-                : 'rgba(107,114,128,0.15)';
-              chip.style.color = sev === 'critical' || sev === 'high' ? 'var(--color-danger, #ef4444)'
-                : sev === 'medium' ? 'var(--color-warning, #f59e0b)'
-                : sev === 'low' ? 'var(--color-info, #3b82f6)'
-                : 'var(--text-muted, #737373)';
+              chip.style.background =
+                sev === 'critical' || sev === 'high'
+                  ? 'rgba(239,68,68,0.15)'
+                  : sev === 'medium'
+                    ? 'rgba(245,158,11,0.15)'
+                    : sev === 'low'
+                      ? 'rgba(59,130,246,0.15)'
+                      : 'rgba(107,114,128,0.15)';
+              chip.style.color =
+                sev === 'critical' || sev === 'high'
+                  ? 'var(--color-danger, #ef4444)'
+                  : sev === 'medium'
+                    ? 'var(--color-warning, #f59e0b)'
+                    : sev === 'low'
+                      ? 'var(--color-info, #3b82f6)'
+                      : 'var(--text-muted, #737373)';
               chip.style.borderColor = chip.style.color;
             } else {
               chip.style.background = 'var(--surface-elevated)';
@@ -9754,7 +10872,12 @@ export class AnalyzeView {
         if (!email) return;
         // Store lead for follow-up; in production this would POST to a lead capture endpoint
         const leads = JSON.parse(localStorage.getItem('simplebeaconPaywallLeads') || '[]');
-        leads.push({ email, projectPath: this.lastResult?.projectPath || '', scannedAt: new Date().toISOString(), findingsCount: this.lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report?.issueCount ?? null });
+        leads.push({
+          email,
+          projectPath: this.lastResult?.projectPath || '',
+          scannedAt: new Date().toISOString(),
+          findingsCount: this.lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report?.issueCount ?? null,
+        });
         localStorage.setItem('simplebeaconPaywallLeads', JSON.stringify(leads.slice(-50))); // keep last 50
         showToast(`Sample report requested for ${email}. We'll send a preview within 24 hours.`, 'success');
         emailInput.value = '';
@@ -9769,15 +10892,16 @@ export class AnalyzeView {
     this._autoLoadAttempted = true;
     // Skip when served from a static file server that lacks the /data/ directory
     if (window.location.protocol === 'file:') return;
-    const isLikelyDashboardServer = window.location.pathname.startsWith('/simplebeacon-dashboard/')
-      || window.location.port === '3000'
-      || window.location.port === '3002'
-      || window.location.port === '3001'
-      || window.location.port === '54449';
+    const isLikelyDashboardServer =
+      window.location.pathname.startsWith('/simplebeacon-dashboard/') ||
+      window.location.port === '3000' ||
+      window.location.port === '3002' ||
+      window.location.port === '3001' ||
+      window.location.port === '54449';
     if (!isLikelyDashboardServer) return;
     const paths = [
       '/data/complete-scan-ai-platform-2026-06-12.json',
-      '/data/complete-scan-cascadeprojects-2026-06-11.json'
+      '/data/complete-scan-cascadeprojects-2026-06-11.json',
     ];
     for (const url of paths) {
       try {
@@ -9801,4 +10925,3 @@ export class AnalyzeView {
     }
   }
 }
-

@@ -8,8 +8,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'packages/simplebeacon-cli/**'
-      - '.github/workflows/cli-test-gate.yml'
+      - "packages/simplebeacon-cli/**"
+      - ".github/workflows/cli-test-gate.yml"
 
 permissions:
   contents: read

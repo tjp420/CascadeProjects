@@ -108,11 +108,14 @@ export function WorkspaceConfigView() {
   const handleSave = useCallback(
     async (scope: string, updates: Partial<Budget>): Promise<boolean> => {
       try {
-        const res = await fetch(apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}?orgId=${encodeURIComponent(orgId)}`), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ ...updates, orgId }),
-        });
+        const res = await fetch(
+          apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}?orgId=${encodeURIComponent(orgId)}`),
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ ...updates, orgId }),
+          }
+        );
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.message || `HTTP ${res.status}`);
@@ -131,11 +134,14 @@ export function WorkspaceConfigView() {
   const handleReset = useCallback(
     async (scope: string): Promise<boolean> => {
       try {
-        const res = await fetch(apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}/reset?orgId=${encodeURIComponent(orgId)}`), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ orgId }),
-        });
+        const res = await fetch(
+          apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}/reset?orgId=${encodeURIComponent(orgId)}`),
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ orgId }),
+          }
+        );
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.message || `HTTP ${res.status}`);
@@ -165,13 +171,15 @@ export function WorkspaceConfigView() {
         </div>
         <div className="flex items-center gap-2">
           <Label className="text-sm">Organization</Label>
-          <Input
-            value={orgId}
-            onChange={(e) => setOrgId(e.target.value)}
-            placeholder="org-id"
-            className="w-48"
-          />
-          <Button onClick={() => { fetchSummary(); fetchBudgets(); }}>Load</Button>
+          <Input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="org-id" className="w-48" />
+          <Button
+            onClick={() => {
+              fetchSummary();
+              fetchBudgets();
+            }}
+          >
+            Load
+          </Button>
         </div>
       </div>
 
@@ -191,18 +199,12 @@ export function WorkspaceConfigView() {
             loading={loadingBudgets}
           />
           {budgetError && (
-            <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {budgetError}
-            </div>
+            <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{budgetError}</div>
           )}
         </TabsContent>
 
         <TabsContent value="sandbox" className="mt-4">
-          <WorkspaceSandboxPanel
-            summary={summary}
-            loading={loadingSummary}
-            error={summaryError}
-          />
+          <WorkspaceSandboxPanel summary={summary} loading={loadingSummary} error={summaryError} />
         </TabsContent>
       </Tabs>
     </div>

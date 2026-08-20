@@ -11,21 +11,21 @@
 
 ## Variable Categories
 
-| Category | Count | Status |
-|----------|-------|--------|
-| [Runtime](#1-runtime) | 4 | All in render.yaml |
-| [Database](#2-database) | 4 | All in render.yaml |
-| [Security & Auth](#3-security--auth) | 8 | 5 in render.yaml, 3 missing |
-| [Stripe Billing](#4-stripe-billing) | 10 | 4 in render.yaml, 6 sync:false |
-| [Email & Notifications](#5-email--notifications) | 12 | All in render.yaml |
-| [LLM / Ollama](#6-llm--ollama) | 7 | **0 in render.yaml — all missing** |
-| [Redis](#7-redis) | 4 | 0 in render.yaml (optional) |
-| [CORS & Origins](#8-cors--origins) | 5 | 2 in render.yaml, 3 missing |
-| [Feature Flags](#9-feature-flags) | 8 | 6 in render.yaml, 2 missing |
-| [Report Signing](#10-report-signing) | 2 | **0 in render.yaml — missing** |
-| [Admin & Support](#11-admin--support) | 1 | 1 in render.yaml |
-| [Stripe Checkout Links](#12-stripe-checkout-links) | 3 | **0 in render.yaml — missing** |
-| [Analytics](#13-analytics) | 1 | 1 in render.yaml |
+| Category                                           | Count | Status                             |
+| -------------------------------------------------- | ----- | ---------------------------------- |
+| [Runtime](#1-runtime)                              | 4     | All in render.yaml                 |
+| [Database](#2-database)                            | 4     | All in render.yaml                 |
+| [Security & Auth](#3-security--auth)               | 8     | 5 in render.yaml, 3 missing        |
+| [Stripe Billing](#4-stripe-billing)                | 10    | 4 in render.yaml, 6 sync:false     |
+| [Email & Notifications](#5-email--notifications)   | 12    | All in render.yaml                 |
+| [LLM / Ollama](#6-llm--ollama)                     | 7     | **0 in render.yaml — all missing** |
+| [Redis](#7-redis)                                  | 4     | 0 in render.yaml (optional)        |
+| [CORS & Origins](#8-cors--origins)                 | 5     | 2 in render.yaml, 3 missing        |
+| [Feature Flags](#9-feature-flags)                  | 8     | 6 in render.yaml, 2 missing        |
+| [Report Signing](#10-report-signing)               | 2     | **0 in render.yaml — missing**     |
+| [Admin & Support](#11-admin--support)              | 1     | 1 in render.yaml                   |
+| [Stripe Checkout Links](#12-stripe-checkout-links) | 3     | **0 in render.yaml — missing**     |
+| [Analytics](#13-analytics)                         | 1     | 1 in render.yaml                   |
 
 **Total**: 69 environment variables (43 in render.yaml, 26 missing)
 
@@ -33,12 +33,12 @@
 
 ## 1. Runtime
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `NODE_ENV` | Yes | — | `production` | Environment mode. Must be `production` on Render. |
-| `NODE_VERSION` | Yes | — | `22` | Node.js version for Render runtime. |
-| `PORT` | Yes | `3000` | `10000` | HTTP port the server listens on. Render injects this automatically, but render.yaml sets it explicitly. |
-| `LOG_LEVEL` | No | `info` | — | Logging verbosity: `error`, `warn`, `info`, `debug`. Set to `info` for production. |
+| Variable       | Required | Default | Render Value | Description                                                                                             |
+| -------------- | -------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`     | Yes      | —       | `production` | Environment mode. Must be `production` on Render.                                                       |
+| `NODE_VERSION` | Yes      | —       | `22`         | Node.js version for Render runtime.                                                                     |
+| `PORT`         | Yes      | `3000`  | `10000`      | HTTP port the server listens on. Render injects this automatically, but render.yaml sets it explicitly. |
+| `LOG_LEVEL`    | No       | `info`  | —            | Logging verbosity: `error`, `warn`, `info`, `debug`. Set to `info` for production.                      |
 
 **Action needed**: Add `LOG_LEVEL=info` to render.yaml.
 
@@ -46,12 +46,12 @@
 
 ## 2. Database
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `DATABASE_URL` | Yes | — | `fromDatabase: simplebeacon-db.connectionString` | PostgreSQL connection string. Auto-injected by Render from the `simplebeacon-db` database resource. |
-| `ENABLE_DATABASE` | Yes | `false` | `true` | Enables PostgreSQL persistence for registrations, tokens, and telemetry. |
-| `ENABLE_DB_AUTO_MIGRATE` | No | `true` | `true` | Auto-runs schema migrations on boot. Set to `false` to disable. |
-| `DB_SSL` | No | `false` | — | Set to `true` if the PostgreSQL connection requires SSL (Render internal connections do not). |
+| Variable                 | Required | Default | Render Value                                     | Description                                                                                         |
+| ------------------------ | -------- | ------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | Yes      | —       | `fromDatabase: simplebeacon-db.connectionString` | PostgreSQL connection string. Auto-injected by Render from the `simplebeacon-db` database resource. |
+| `ENABLE_DATABASE`        | Yes      | `false` | `true`                                           | Enables PostgreSQL persistence for registrations, tokens, and telemetry.                            |
+| `ENABLE_DB_AUTO_MIGRATE` | No       | `true`  | `true`                                           | Auto-runs schema migrations on boot. Set to `false` to disable.                                     |
+| `DB_SSL`                 | No       | `false` | —                                                | Set to `true` if the PostgreSQL connection requires SSL (Render internal connections do not).       |
 
 **Status**: All present in render.yaml. No action needed.
 
@@ -59,16 +59,16 @@
 
 ## 3. Security & Auth
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `JWT_SECRET` | Yes | — | `generateValue: true` | Secret for signing JWT auth tokens. Auto-generated by Render. |
-| `JWT_EXPIRES_IN` | No | `15m` | — | JWT token lifetime. Default 15 minutes is appropriate for production. |
-| `SIMPLEBEACON_LICENSE_SECRET` | Yes | — | `generateValue: true` | Secret for signing license tokens. Auto-generated by Render. |
-| `DASHBOARD_VAULT_PASSWORD` | Yes (prod) | — | **MISSING** | Password for the internal dashboard vault. Required in production — without it, the internal dashboard is disabled. Set a strong random password. |
-| `SSO_STATE_SECRET` | No | falls back to `JWT_SECRET` | — | Secret for signing SSO state cookies. If not set, uses `JWT_SECRET`. |
-| `SSO_CONFIG_ENCRYPTION_KEY` | No | falls back to `JWT_SECRET` | — | Encryption key for SSO provider configs. If not set, uses `JWT_SECRET`. |
-| `DEV_AUTH_BYPASS` | No | — | **Must NOT be set** | Dev-only auth bypass. Must be `1` AND `NODE_ENV=development` to activate. **Never set in production.** |
-| `REQUIRE_AUTH` | Yes | `true` | `true` | Requires authentication for all API endpoints. Must be `true` in production. |
+| Variable                      | Required   | Default                    | Render Value          | Description                                                                                                                                       |
+| ----------------------------- | ---------- | -------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`                  | Yes        | —                          | `generateValue: true` | Secret for signing JWT auth tokens. Auto-generated by Render.                                                                                     |
+| `JWT_EXPIRES_IN`              | No         | `15m`                      | —                     | JWT token lifetime. Default 15 minutes is appropriate for production.                                                                             |
+| `SIMPLEBEACON_LICENSE_SECRET` | Yes        | —                          | `generateValue: true` | Secret for signing license tokens. Auto-generated by Render.                                                                                      |
+| `DASHBOARD_VAULT_PASSWORD`    | Yes (prod) | —                          | **MISSING**           | Password for the internal dashboard vault. Required in production — without it, the internal dashboard is disabled. Set a strong random password. |
+| `SSO_STATE_SECRET`            | No         | falls back to `JWT_SECRET` | —                     | Secret for signing SSO state cookies. If not set, uses `JWT_SECRET`.                                                                              |
+| `SSO_CONFIG_ENCRYPTION_KEY`   | No         | falls back to `JWT_SECRET` | —                     | Encryption key for SSO provider configs. If not set, uses `JWT_SECRET`.                                                                           |
+| `DEV_AUTH_BYPASS`             | No         | —                          | **Must NOT be set**   | Dev-only auth bypass. Must be `1` AND `NODE_ENV=development` to activate. **Never set in production.**                                            |
+| `REQUIRE_AUTH`                | Yes        | `true`                     | `true`                | Requires authentication for all API endpoints. Must be `true` in production.                                                                      |
 
 **Action needed**: Add `DASHBOARD_VAULT_PASSWORD` (sync: false — set manually in Render dashboard with a strong random password).
 
@@ -76,18 +76,18 @@
 
 ## 4. Stripe Billing
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `STRIPE_SECRET_KEY` | Yes | — | `sync: false` | Stripe API secret key. Must start with `sk_` (live) or `sk_test_` (test). Set manually in Render dashboard. |
-| `STRIPE_PUBLISHABLE_KEY` | Yes | — | `sync: false` | Stripe publishable key for client-side. Set manually. |
-| `STRIPE_WEBHOOK_SECRET` | Yes | — | `sync: false` | Stripe webhook signing secret. Must start with `whsec_`. Set manually after creating a webhook endpoint in Stripe. |
-| `STRIPE_PRICE_ID_TEAMS_MONTHLY` | No | — | `sync: false` | Stripe Price ID for Team Pro monthly. |
-| `STRIPE_PRICE_ID_TEAMS_ANNUAL` | No | — | `sync: false` | Stripe Price ID for Team Pro annual. |
-| `STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE` | No | — | `sync: false` | Stripe Price ID for Executive Clearance. |
-| `STRIPE_PRICE_ID_INSTANT_REPORT` | No | — | `sync: false` | Stripe Price ID for Instant Report. |
-| `STRIPE_PRICE_ID_EU_AI_ACT_SPRINT` | No | — | `sync: false` | Stripe Price ID for EU AI Act Sprint. |
-| `STRIPE_PRICE_ID_CONTINUOUS_SHIELD` | No | — | `sync: false` | Stripe Price ID for Continuous Shield. |
-| `STRIPE_PRICE_ID_RUNTIME_SHIELD` | No | — | `sync: false` | Stripe Price ID for Runtime Shield. |
+| Variable                              | Required | Default | Render Value  | Description                                                                                                        |
+| ------------------------------------- | -------- | ------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `STRIPE_SECRET_KEY`                   | Yes      | —       | `sync: false` | Stripe API secret key. Must start with `sk_` (live) or `sk_test_` (test). Set manually in Render dashboard.        |
+| `STRIPE_PUBLISHABLE_KEY`              | Yes      | —       | `sync: false` | Stripe publishable key for client-side. Set manually.                                                              |
+| `STRIPE_WEBHOOK_SECRET`               | Yes      | —       | `sync: false` | Stripe webhook signing secret. Must start with `whsec_`. Set manually after creating a webhook endpoint in Stripe. |
+| `STRIPE_PRICE_ID_TEAMS_MONTHLY`       | No       | —       | `sync: false` | Stripe Price ID for Team Pro monthly.                                                                              |
+| `STRIPE_PRICE_ID_TEAMS_ANNUAL`        | No       | —       | `sync: false` | Stripe Price ID for Team Pro annual.                                                                               |
+| `STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE` | No       | —       | `sync: false` | Stripe Price ID for Executive Clearance.                                                                           |
+| `STRIPE_PRICE_ID_INSTANT_REPORT`      | No       | —       | `sync: false` | Stripe Price ID for Instant Report.                                                                                |
+| `STRIPE_PRICE_ID_EU_AI_ACT_SPRINT`    | No       | —       | `sync: false` | Stripe Price ID for EU AI Act Sprint.                                                                              |
+| `STRIPE_PRICE_ID_CONTINUOUS_SHIELD`   | No       | —       | `sync: false` | Stripe Price ID for Continuous Shield.                                                                             |
+| `STRIPE_PRICE_ID_RUNTIME_SHIELD`      | No       | —       | `sync: false` | Stripe Price ID for Runtime Shield.                                                                                |
 
 **Status**: All present in render.yaml with `sync: false`. Set manually in Render dashboard from your Stripe dashboard.
 
@@ -95,20 +95,20 @@
 
 ## 5. Email & Notifications
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `RESEND_API_KEY` | Yes | — | `sync: false` | Resend REST API key for transactional email. Must start with `re_`. Set manually. |
-| `RESEND_FROM` | No | — | `admin@simplebeacon.ai` | From address for Resend emails. |
-| `SMTP_HOST` | Yes | — | `smtp.zohocloud.ca` | Zoho Mail Canadian data center SMTP host. |
-| `SMTP_PORT` | No | `587` | `465` | Zoho SMTP port. 465 for SSL, 587 for STARTTLS. |
-| `SMTP_SECURE` | No | `false` | `true` | Enable SSL/TLS for SMTP. Set to `true` when port is 465. |
-| `SMTP_USER` | Yes | — | `sync: false` | Zoho mailbox login (e.g. `admin@simplebeacon.ai`). Set manually. |
-| `SMTP_PASS` | Yes | — | `sync: false` | Zoho app-specific password. Generate in Zoho Mail settings. Set manually. |
-| `SMTP_FROM` | No | `admin@simplebeacon.ai` | `admin@simplebeacon.ai` | Outbound From address for SMTP fallback. |
-| `CONTACT_NOTIFY_EMAIL` | No | falls back to `SMTP_USER` | `admin@simplebeacon.ai` | Where contact form submissions are delivered. |
-| `SUPPORT_EMAIL` | No | — | `support@simplebeacon.ai` | Used by chatbot API appeal process. |
-| `DISPUTE_ALERT_EMAIL` | No | — | `billing@simplebeacon.ai` | Where Stripe dispute alerts are sent. |
-| `SUPER_ADMIN_EMAIL` | No | `admin@simplebeacon.ai` | `admin@simplebeacon.ai` | Email that has admin access to improvement reports. |
+| Variable               | Required | Default                   | Render Value              | Description                                                                       |
+| ---------------------- | -------- | ------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`       | Yes      | —                         | `sync: false`             | Resend REST API key for transactional email. Must start with `re_`. Set manually. |
+| `RESEND_FROM`          | No       | —                         | `admin@simplebeacon.ai`   | From address for Resend emails.                                                   |
+| `SMTP_HOST`            | Yes      | —                         | `smtp.zohocloud.ca`       | Zoho Mail Canadian data center SMTP host.                                         |
+| `SMTP_PORT`            | No       | `587`                     | `465`                     | Zoho SMTP port. 465 for SSL, 587 for STARTTLS.                                    |
+| `SMTP_SECURE`          | No       | `false`                   | `true`                    | Enable SSL/TLS for SMTP. Set to `true` when port is 465.                          |
+| `SMTP_USER`            | Yes      | —                         | `sync: false`             | Zoho mailbox login (e.g. `admin@simplebeacon.ai`). Set manually.                  |
+| `SMTP_PASS`            | Yes      | —                         | `sync: false`             | Zoho app-specific password. Generate in Zoho Mail settings. Set manually.         |
+| `SMTP_FROM`            | No       | `admin@simplebeacon.ai`   | `admin@simplebeacon.ai`   | Outbound From address for SMTP fallback.                                          |
+| `CONTACT_NOTIFY_EMAIL` | No       | falls back to `SMTP_USER` | `admin@simplebeacon.ai`   | Where contact form submissions are delivered.                                     |
+| `SUPPORT_EMAIL`        | No       | —                         | `support@simplebeacon.ai` | Used by chatbot API appeal process.                                               |
+| `DISPUTE_ALERT_EMAIL`  | No       | —                         | `billing@simplebeacon.ai` | Where Stripe dispute alerts are sent.                                             |
+| `SUPER_ADMIN_EMAIL`    | No       | `admin@simplebeacon.ai`   | `admin@simplebeacon.ai`   | Email that has admin access to improvement reports.                               |
 
 **Status**: All present in render.yaml. No action needed.
 
@@ -122,15 +122,15 @@
 > `354f97ce5`). See `coming-soon/public/models/manifest.json` for model-specific
 > context window values.
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `OLLAMA_BASE_URL` | No | `http://127.0.0.1:11434` | **MISSING** | Ollama API base URL. On Render, set to the Ollama service URL. If Ollama runs on the same instance, use the default. |
-| `OLLAMA_MODEL` | No | `unbreakable-oracle:latest` | **MISSING** | Model ID for inference. Must match a model created via `ollama create` from a SimpleBeacon Modelfile. |
-| `OLLAMA_NUM_CTX` | Yes | `8192` | **MISSING** | Context window size in tokens. **Must match the Modelfile's `PARAMETER num_ctx`**. Values: 4096 (llama3.2), 8192 (unbreakable-oracle), 32768 (mistral, qwen2.5-coder). |
-| `OLLAMA_TIMEOUT_MS` | No | `120000` (2 min) | **MISSING** | Inference request timeout in milliseconds. Increase for large multi-file sweeps. |
-| `OLLAMA_TAGS_CACHE_TTL_MS` | No | `7000` (5s+2s) | **MISSING** | Cache TTL for Ollama `/api/tags` model list. |
-| `OLLAMA_DEFAULT_URL` | No | falls back to `OLLAMA_BASE_URL` | **MISSING** | Override for the client-side config endpoint. Rarely needed. |
-| `SIMPLEBEACON_OFFLINE` | No | `true` in production | **MISSING** | Forces offline mode (local Ollama only, no cloud providers). Set to `true` for zero-custody deployments. |
+| Variable                   | Required | Default                         | Render Value | Description                                                                                                                                                            |
+| -------------------------- | -------- | ------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OLLAMA_BASE_URL`          | No       | `http://127.0.0.1:11434`        | **MISSING**  | Ollama API base URL. On Render, set to the Ollama service URL. If Ollama runs on the same instance, use the default.                                                   |
+| `OLLAMA_MODEL`             | No       | `unbreakable-oracle:latest`     | **MISSING**  | Model ID for inference. Must match a model created via `ollama create` from a SimpleBeacon Modelfile.                                                                  |
+| `OLLAMA_NUM_CTX`           | Yes      | `8192`                          | **MISSING**  | Context window size in tokens. **Must match the Modelfile's `PARAMETER num_ctx`**. Values: 4096 (llama3.2), 8192 (unbreakable-oracle), 32768 (mistral, qwen2.5-coder). |
+| `OLLAMA_TIMEOUT_MS`        | No       | `120000` (2 min)                | **MISSING**  | Inference request timeout in milliseconds. Increase for large multi-file sweeps.                                                                                       |
+| `OLLAMA_TAGS_CACHE_TTL_MS` | No       | `7000` (5s+2s)                  | **MISSING**  | Cache TTL for Ollama `/api/tags` model list.                                                                                                                           |
+| `OLLAMA_DEFAULT_URL`       | No       | falls back to `OLLAMA_BASE_URL` | **MISSING**  | Override for the client-side config endpoint. Rarely needed.                                                                                                           |
+| `SIMPLEBEACON_OFFLINE`     | No       | `true` in production            | **MISSING**  | Forces offline mode (local Ollama only, no cloud providers). Set to `true` for zero-custody deployments.                                                               |
 
 **Action needed**: Add all 7 variables to render.yaml. See [render.yaml patch](#renderyaml-patch) below.
 
@@ -142,12 +142,12 @@
 > instances. If not set, falls back to in-memory rate limiting (sufficient for
 > single-instance free tier).
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `REDIS_URL` | No | `redis://127.0.0.1:6379` | **MISSING** | Redis connection URL. Set to Render Redis internal connection string. |
-| `REDIS` | No | — | — | Alias for `REDIS_URL`. Either one works. |
-| `ENABLE_REDIS_RATE_LIMIT` | No | `true` when `REDIS_URL` is set | — | Set to `false` to disable Redis rate limiting without affecting other Redis features. |
-| `REDIS_RATE_LIMIT_PREFIX` | No | `ratelimit:` | — | Key prefix for rate limit keys in Redis. |
+| Variable                  | Required | Default                        | Render Value | Description                                                                           |
+| ------------------------- | -------- | ------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
+| `REDIS_URL`               | No       | `redis://127.0.0.1:6379`       | **MISSING**  | Redis connection URL. Set to Render Redis internal connection string.                 |
+| `REDIS`                   | No       | —                              | —            | Alias for `REDIS_URL`. Either one works.                                              |
+| `ENABLE_REDIS_RATE_LIMIT` | No       | `true` when `REDIS_URL` is set | —            | Set to `false` to disable Redis rate limiting without affecting other Redis features. |
+| `REDIS_RATE_LIMIT_PREFIX` | No       | `ratelimit:`                   | —            | Key prefix for rate limit keys in Redis.                                              |
 
 **Action needed**: Add `REDIS_URL` to render.yaml if using Redis (recommended for paid plans with multiple instances).
 
@@ -155,13 +155,13 @@
 
 ## 8. CORS & Origins
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `ALLOWED_ORIGIN` | Yes | `https://simplebeacon.ai` | `https://simplebeacon.ai,https://simplebeacon.onrender.com` | Comma-separated list of allowed CORS origins. |
-| `CORS_ORIGIN` | No | falls back to `ALLOWED_ORIGIN` | — | Single CORS origin. Takes precedence over `CORS_ORIGINS`. |
-| `CORS_ORIGINS` | No | falls back to `ALLOWED_ORIGIN` | — | Comma-separated CORS origins (alternative to `ALLOWED_ORIGIN`). |
-| `PUBLIC_URL` | Yes | — | `https://simplebeacon.ai` | Public-facing URL for the server. Used in redirects and email links. |
-| `PUBLIC_APP_URL` | No | falls back to `SIMPLEBEACON_APP_URL` | `sync: false` | Public URL for the dashboard app. Set if different from `PUBLIC_URL`. |
+| Variable         | Required | Default                              | Render Value                                                | Description                                                           |
+| ---------------- | -------- | ------------------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `ALLOWED_ORIGIN` | Yes      | `https://simplebeacon.ai`            | `https://simplebeacon.ai,https://simplebeacon.onrender.com` | Comma-separated list of allowed CORS origins.                         |
+| `CORS_ORIGIN`    | No       | falls back to `ALLOWED_ORIGIN`       | —                                                           | Single CORS origin. Takes precedence over `CORS_ORIGINS`.             |
+| `CORS_ORIGINS`   | No       | falls back to `ALLOWED_ORIGIN`       | —                                                           | Comma-separated CORS origins (alternative to `ALLOWED_ORIGIN`).       |
+| `PUBLIC_URL`     | Yes      | —                                    | `https://simplebeacon.ai`                                   | Public-facing URL for the server. Used in redirects and email links.  |
+| `PUBLIC_APP_URL` | No       | falls back to `SIMPLEBEACON_APP_URL` | `sync: false`                                               | Public URL for the dashboard app. Set if different from `PUBLIC_URL`. |
 
 **Status**: `ALLOWED_ORIGIN` and `PUBLIC_URL` are in render.yaml. `CORS_ORIGIN` and `CORS_ORIGINS` are optional aliases. No action needed.
 
@@ -169,16 +169,16 @@
 
 ## 9. Feature Flags
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `SIMPLEBEACON_LANDING` | No | `false` | `true` | Enables the marketing landing page at `/`. |
-| `SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION` | No | `false` | `true` | Allows public user registration. |
-| `SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE` | No | `false` | `true` | Auto-activates new registrations without admin approval. |
-| `SEED_DEMO_USERS` | Yes | `false` | `false` | Seeds demo user accounts. **Must be `false` in production.** |
-| `ALLOW_LEGACY_LOGIN` | Yes | `false` | `false` | Allows legacy login flow. **Must be `false` in production.** |
-| `SIMPLEBEACON_ENABLE_DEMO_REPORT` | No | `false` | **MISSING** | Enables demo report in production. Set to `true` only for staging. |
-| `ENABLE_EXTERNAL_APIS` | No | `false` | **MISSING** | Enables external API calls (e.g. weather for chatbot). Set to `true` only if needed. |
-| `SIMPLEBEACON_IMPROVEMENT_REPORT_ENABLED` | No | `false` | `true` | Enables the internal improvement report cron job. |
+| Variable                                  | Required | Default | Render Value | Description                                                                          |
+| ----------------------------------------- | -------- | ------- | ------------ | ------------------------------------------------------------------------------------ |
+| `SIMPLEBEACON_LANDING`                    | No       | `false` | `true`       | Enables the marketing landing page at `/`.                                           |
+| `SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION`  | No       | `false` | `true`       | Allows public user registration.                                                     |
+| `SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE` | No       | `false` | `true`       | Auto-activates new registrations without admin approval.                             |
+| `SEED_DEMO_USERS`                         | Yes      | `false` | `false`      | Seeds demo user accounts. **Must be `false` in production.**                         |
+| `ALLOW_LEGACY_LOGIN`                      | Yes      | `false` | `false`      | Allows legacy login flow. **Must be `false` in production.**                         |
+| `SIMPLEBEACON_ENABLE_DEMO_REPORT`         | No       | `false` | **MISSING**  | Enables demo report in production. Set to `true` only for staging.                   |
+| `ENABLE_EXTERNAL_APIS`                    | No       | `false` | **MISSING**  | Enables external API calls (e.g. weather for chatbot). Set to `true` only if needed. |
+| `SIMPLEBEACON_IMPROVEMENT_REPORT_ENABLED` | No       | `false` | `true`       | Enables the internal improvement report cron job.                                    |
 
 **Action needed**: Add `SIMPLEBEACON_ENABLE_DEMO_REPORT=false` to render.yaml (explicitly disable for production clarity).
 
@@ -189,10 +189,10 @@
 > **Missing from render.yaml**: These variables are required for tamper-evident
 > report bundles (signed PDF + JSON compliance evidence packs).
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `REPORT_SIGNING_KEY` | Yes | — | **MISSING** | Secret key for signing report bundles. Used by `report-bundle-builder.cjs`. Generate a strong random string. |
-| `REPORT_SIGNING_KEY_ID` | No | `1` | **MISSING** | Key ID for report signing key rotation. Increment when rotating keys. |
+| Variable                | Required | Default | Render Value | Description                                                                                                  |
+| ----------------------- | -------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------------ |
+| `REPORT_SIGNING_KEY`    | Yes      | —       | **MISSING**  | Secret key for signing report bundles. Used by `report-bundle-builder.cjs`. Generate a strong random string. |
+| `REPORT_SIGNING_KEY_ID` | No       | `1`     | **MISSING**  | Key ID for report signing key rotation. Increment when rotating keys.                                        |
 
 **Action needed**: Add both variables to render.yaml with `sync: false` (set manually with strong random values).
 
@@ -200,9 +200,9 @@
 
 ## 11. Admin & Support
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `SUPER_ADMIN_EMAIL` | No | `admin@simplebeacon.ai` | `admin@simplebeacon.ai` | Email with admin access to improvement reports. |
+| Variable            | Required | Default                 | Render Value            | Description                                     |
+| ------------------- | -------- | ----------------------- | ----------------------- | ----------------------------------------------- |
+| `SUPER_ADMIN_EMAIL` | No       | `admin@simplebeacon.ai` | `admin@simplebeacon.ai` | Email with admin access to improvement reports. |
 
 **Status**: Present in render.yaml. No action needed.
 
@@ -214,11 +214,11 @@
 > self-service purchases. The code has hardcoded fallbacks, but setting them
 > as env vars allows updating without code changes.
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `STRIPE_LINK_INSTANT` | No | `https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07` | **MISSING** | Stripe Checkout link for Instant Report ($99). |
-| `STRIPE_LINK_EXECUTIVE` | No | `https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05` | **MISSING** | Stripe Checkout link for Executive Clearance ($499). |
-| `STRIPE_LINK_EU_SPRINT` | No | `https://buy.stripe.com/fZu28qesn6fB1ODftceEo06` | **MISSING** | Stripe Checkout link for EU AI Act Sprint ($199). |
+| Variable                | Required | Default                                          | Render Value | Description                                          |
+| ----------------------- | -------- | ------------------------------------------------ | ------------ | ---------------------------------------------------- |
+| `STRIPE_LINK_INSTANT`   | No       | `https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07` | **MISSING**  | Stripe Checkout link for Instant Report ($99).       |
+| `STRIPE_LINK_EXECUTIVE` | No       | `https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05` | **MISSING**  | Stripe Checkout link for Executive Clearance ($499). |
+| `STRIPE_LINK_EU_SPRINT` | No       | `https://buy.stripe.com/fZu28qesn6fB1ODftceEo06` | **MISSING**  | Stripe Checkout link for EU AI Act Sprint ($199).    |
 
 **Action needed**: Add all 3 to render.yaml with `sync: false`.
 
@@ -226,9 +226,9 @@
 
 ## 13. Analytics
 
-| Variable | Required | Default | Render Value | Description |
-|----------|----------|---------|--------------|-------------|
-| `CF_BEACON_TOKEN` | No | — | `sync: false` | Cloudflare Web Analytics beacon token. Set manually. |
+| Variable          | Required | Default | Render Value  | Description                                          |
+| ----------------- | -------- | ------- | ------------- | ---------------------------------------------------- |
+| `CF_BEACON_TOKEN` | No       | —       | `sync: false` | Cloudflare Web Analytics beacon token. Set manually. |
 
 **Status**: Present in render.yaml. No action needed.
 
@@ -276,7 +276,6 @@ The following env vars need to be added to `render.yaml` under the `simplebeacon
   value: "false"
 - key: LOG_LEVEL
   value: "info"
-
 # ── Redis (optional — add if using Redis for distributed rate limiting) ──
 # - key: REDIS_URL
 #   sync: false
@@ -291,6 +290,7 @@ The following env vars need to be added to `render.yaml` under the `simplebeacon
 ### Step 1: Auto-generated secrets (already in render.yaml)
 
 These are auto-generated by Render on first deploy:
+
 - `JWT_SECRET`
 - `SIMPLEBEACON_LICENSE_SECRET`
 
@@ -302,25 +302,25 @@ These are auto-generated by Render on first deploy:
 
 Set these in the Render dashboard under **Environment** → **Environment Variables**:
 
-| Variable | How to generate |
-|----------|----------------|
-| `STRIPE_SECRET_KEY` | Stripe Dashboard → Developers → API keys |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard → Developers → API keys |
-| `STRIPE_WEBHOOK_SECRET` | Stripe Dashboard → Developers → Webhooks → create endpoint → reveal signing secret |
-| `STRIPE_PRICE_ID_*` (6 vars) | Stripe Dashboard → Products → each product → price ID |
-| `RESEND_API_KEY` | Resend Dashboard → API Keys → create key (starts with `re_`) |
-| `SMTP_USER` | Zoho Mail admin mailbox (`admin@simplebeacon.ai`) |
-| `SMTP_PASS` | Zoho Mail → Settings → Mail Accounts → SMTP/IMAP → app-specific password |
-| `PUBLIC_APP_URL` | `https://simplebeacon.ai` (or leave unset if same as `PUBLIC_URL`) |
-| `SIMPLEBEACON_APP_URL` | `https://simplebeacon.ai` (or leave unset if same as `PUBLIC_URL`) |
-| `OPENAI_API_KEY` | OpenAI Dashboard → API keys (optional — for cloud AI fallback) |
-| `ANTHROPIC_API_KEY` | Anthropic Console → API keys (optional — for cloud AI fallback) |
-| `CF_BEACON_TOKEN` | Cloudflare Dashboard → Web Analytics → site settings |
-| `DASHBOARD_VAULT_PASSWORD` | Generate: `openssl rand -base64 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `REPORT_SIGNING_KEY` | Generate: `openssl rand -base64 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `STRIPE_LINK_INSTANT` | Stripe Dashboard → Payment Links → copy link |
-| `STRIPE_LINK_EXECUTIVE` | Stripe Dashboard → Payment Links → copy link |
-| `STRIPE_LINK_EU_SPRINT` | Stripe Dashboard → Payment Links → copy link |
+| Variable                     | How to generate                                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`          | Stripe Dashboard → Developers → API keys                                                                          |
+| `STRIPE_PUBLISHABLE_KEY`     | Stripe Dashboard → Developers → API keys                                                                          |
+| `STRIPE_WEBHOOK_SECRET`      | Stripe Dashboard → Developers → Webhooks → create endpoint → reveal signing secret                                |
+| `STRIPE_PRICE_ID_*` (6 vars) | Stripe Dashboard → Products → each product → price ID                                                             |
+| `RESEND_API_KEY`             | Resend Dashboard → API Keys → create key (starts with `re_`)                                                      |
+| `SMTP_USER`                  | Zoho Mail admin mailbox (`admin@simplebeacon.ai`)                                                                 |
+| `SMTP_PASS`                  | Zoho Mail → Settings → Mail Accounts → SMTP/IMAP → app-specific password                                          |
+| `PUBLIC_APP_URL`             | `https://simplebeacon.ai` (or leave unset if same as `PUBLIC_URL`)                                                |
+| `SIMPLEBEACON_APP_URL`       | `https://simplebeacon.ai` (or leave unset if same as `PUBLIC_URL`)                                                |
+| `OPENAI_API_KEY`             | OpenAI Dashboard → API keys (optional — for cloud AI fallback)                                                    |
+| `ANTHROPIC_API_KEY`          | Anthropic Console → API keys (optional — for cloud AI fallback)                                                   |
+| `CF_BEACON_TOKEN`            | Cloudflare Dashboard → Web Analytics → site settings                                                              |
+| `DASHBOARD_VAULT_PASSWORD`   | Generate: `openssl rand -base64 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `REPORT_SIGNING_KEY`         | Generate: `openssl rand -base64 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `STRIPE_LINK_INSTANT`        | Stripe Dashboard → Payment Links → copy link                                                                      |
+| `STRIPE_LINK_EXECUTIVE`      | Stripe Dashboard → Payment Links → copy link                                                                      |
+| `STRIPE_LINK_EU_SPRINT`      | Stripe Dashboard → Payment Links → copy link                                                                      |
 
 ### Step 4: Verify deployment
 
@@ -353,6 +353,7 @@ If validation fails in production, the server logs an error but continues bootin
 runtime until the keys are fixed.
 
 To run validation manually:
+
 ```bash
 node -e "require('./server/config/validate-env.cjs').validateEnvironment({ fatal: false })"
 ```

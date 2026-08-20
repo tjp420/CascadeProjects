@@ -5,6 +5,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ## Current Status
 
 **Completed Engineering Tasks (90% done):**
+
 - ✅ Extension product (v0.5.11) with real-time scanning, tier validation, webview dashboard
 - ✅ CLI scanner with 38 rule engines, gate enforcement, fix suggestions
 - ✅ Billing backend with Stripe integration, webhook handlers, email delivery
@@ -15,6 +16,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - ✅ License token system (JWT generation and validation)
 
 **Completed Go-to-Market Prep:**
+
 - ✅ Icon scaled to 128x128px for marketplace validation
 - ✅ Screenshot capture guide created
 - ✅ Stripe configuration guide created
@@ -106,6 +108,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ### Phase 1: Foundation (Week 1)
 
 **Day 1-2: Domain and Hosting**
+
 - [ ] Purchase domains (simplebeacon.ai, simplebeacon.com)
 - [ ] Set up hosting (Render, Vercel, or similar)
 - [ ] Configure DNS records
@@ -114,6 +117,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Test all marketing site flows
 
 **Day 3-4: Stripe Configuration**
+
 - [ ] Create Stripe account (if not already done)
 - [ ] Complete Stripe onboarding (bank account, business details)
 - [ ] Create 7 products in Stripe Dashboard
@@ -124,6 +128,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Update environment variables with live keys
 
 **Day 5: Support Email**
+
 - [ ] Create support@simplebeacon.com
 - [ ] Configure email forwarding to personal inbox
 - [ ] Test email delivery
@@ -132,12 +137,14 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ### Phase 2: Marketplace Preparation (Week 2)
 
 **Day 1-2: VS Code Marketplace Account**
+
 - [ ] Register publisher account at https://marketplace.visualstudio.com/manage
 - [ ] Choose publisher name: `simplebeacon`
 - [ ] Complete publisher verification
 - [ ] Claim extension ID
 
 **Day 3-4: Screenshots and Assets**
+
 - [ ] Capture 5 screenshots (1280x800px) following guide
 - [ ] Review screenshots for quality and consistency
 - [ ] Create featured image (1280x720px) if desired
@@ -145,6 +152,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Organize assets in sales/marketplace/screenshots/
 
 **Day 5: Extension Package**
+
 - [ ] Update version number if needed
 - [ ] Run `npm run build` in vscode-extension/
 - [ ] Create VSIX package: `vsce package`
@@ -154,6 +162,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ### Phase 3: Testing (Week 3)
 
 **Day 1-2: End-to-End License Flow Test**
+
 - [ ] Follow license flow test guide
 - [ ] Complete test purchase in Stripe (use test mode first)
 - [ ] Verify webhook delivery
@@ -164,6 +173,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Document any issues and fix
 
 **Day 3-4: Integration Testing**
+
 - [ ] Test GitHub Action in real repository
 - [ ] Verify gate enforcement works
 - [ ] Test CLI scanner with various projects
@@ -172,6 +182,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Verify all 38 rule engines work
 
 **Day 5: Documentation**
+
 - [ ] Deploy documentation site to production
 - [ ] Verify all documentation links work
 - [ ] Test getting started guide
@@ -181,6 +192,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ### Phase 4: Launch (Week 4)
 
 **Day 1: Marketplace Publish**
+
 - [ ] Upload extension package to VSCode Marketplace
 - [ ] Add screenshots with captions
 - [ ] Add icon and featured image
@@ -190,6 +202,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Wait for marketplace approval (usually 1-3 business days)
 
 **Day 2-3: Monitoring Setup**
+
 - [ ] Set up error monitoring (Sentry, LogRocket, etc.)
 - [ ] Configure analytics for extension usage
 - [ ] Set up Stripe webhook monitoring
@@ -198,6 +211,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Test all monitoring alerts
 
 **Day 4: Final Checks**
+
 - [ ] Verify all environment variables are set correctly
 - [ ] Test live purchase flow (small amount, refundable)
 - [ ] Verify license token generation works
@@ -207,6 +221,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - [ ] Verify all documentation links work
 
 **Day 5: Launch**
+
 - [ ] Switch Stripe to live mode (if using test mode)
 - [ ] Announce launch on social media
 - [ ] Send launch email to waitlist (if exists)
@@ -247,31 +262,39 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ### Technical Risks
 
 **Risk:** Extension fails marketplace validation
+
 - **Mitigation:** Test package locally before upload, follow all marketplace guidelines
 
 **Risk:** Stripe webhooks fail
+
 - **Mitigation:** Set up retry logic, monitor webhook delivery, have manual fallback
 
 **Risk:** Email delivery fails
+
 - **Mitigation:** Use reputable email service (Resend), monitor delivery rates, have backup SMTP
 
 **Risk:** License token validation fails
+
 - **Mitigation:** Thorough testing, clear error messages, support contact info
 
 ### Business Risks
 
 **Risk:** Low adoption
+
 - **Mitigation:** Focus on developer experience, create compelling content, leverage existing networks
 
 **Risk:** Pricing too high/low
+
 - **Mitigation:** Start with competitive pricing, be willing to adjust based on feedback
 
 **Risk:** Support overwhelmed
+
 - **Mitigation:** Clear documentation, FAQ, automated responses, prioritize critical issues
 
 ## Success Metrics
 
 ### Technical Metrics
+
 - Extension downloads: 100+ in first month
 - Active users: 50+ in first month
 - License activation rate: 20%+ of downloads
@@ -279,6 +302,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 - Email delivery rate: 95%+
 
 ### Business Metrics
+
 - Revenue: $1,000+ in first month
 - Customer satisfaction: 4.0+ star rating
 - Support response time: <24 hours
@@ -287,6 +311,7 @@ This document outlines the step-by-step plan to launch Simplebeacon and start ac
 ## Contact Information
 
 For questions about this launch plan:
+
 - **Product:** simplebeacon
 - **Support:** support@simplebeacon.com
 - **GitHub:** https://github.com/tjp420/simplebeacon/issues

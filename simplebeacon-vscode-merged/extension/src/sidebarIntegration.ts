@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 
 // Helper to create/update the SimpleBeacon sidebar webview and wire a secure loopback API base
 export function createSidebarWebview(context: vscode.ExtensionContext) {
-  const panel = vscode.window.createWebviewView('simplebeacon-modern', { retainContextWhenHidden: true } as any, undefined);
+  const panel = vscode.window.createWebviewView(
+    'simplebeacon-modern',
+    { retainContextWhenHidden: true } as any,
+    undefined
+  );
   // Note: the actual view HTML is provided elsewhere; this helper exposes messaging and loopback base
 
   function getLoopbackApiBase() {
@@ -15,7 +19,9 @@ export function createSidebarWebview(context: vscode.ExtensionContext) {
     const apiBase = getLoopbackApiBase();
     try {
       panel.webview.postMessage({ type: 'init', apiBase });
-    } catch (e) { void e; }
+    } catch (e) {
+      void e;
+    }
   });
 
   // Handle messages from webview

@@ -9,7 +9,7 @@ name: Render Keep-Alive
 on:
   schedule:
     # Every 13 minutes — safely under Render's 15-min spin-down threshold
-    - cron: '*/13 * * * *'
+    - cron: "*/13 * * * *"
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:

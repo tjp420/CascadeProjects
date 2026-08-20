@@ -2,10 +2,10 @@ name: Publish Procurement Field-Kit
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - '.simplebeacon/docs/**'
-      - 'packages/simplebeacon-cli/scripts/bundle-procurement-kit.js'
+      - ".simplebeacon/docs/**"
+      - "packages/simplebeacon-cli/scripts/bundle-procurement-kit.js"
   workflow_dispatch:
 
 jobs:
@@ -20,8 +20,8 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install Runtime Dependencies
         run: npm ci
@@ -101,7 +101,7 @@ jobs:
           body: |
             ### 📡 Automated Enterprise Procurement Asset Package (Unsigned)
             This archive contains loopback-verified security documentation, custom rule guidelines, and cryptographic validation checksums.
-            
+
             **Verification Signature Matrix:**
             - Generated: ${{ github.event.head_commit.timestamp }}
             - Commit Reference: ${{ github.sha }}
@@ -119,12 +119,12 @@ jobs:
           body: |
             ### 📡 Automated Enterprise Procurement Asset Package
             This archive contains loopback-verified security documentation, custom rule guidelines, and cryptographic validation checksums.
-            
+
             **Verification Signature Matrix:**
             - Generated: ${{ github.event.head_commit.timestamp }}
             - Commit Reference: ${{ github.sha }}
             - GPG Detached Signature: true
-            
+
             **Verify integrity:**
             ```bash
             gpg --verify simplebeacon-procurement-kit.zip.sig simplebeacon-procurement-kit.zip

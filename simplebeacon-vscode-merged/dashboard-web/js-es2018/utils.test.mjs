@@ -7,31 +7,104 @@ import assert from 'assert';
 
 // Import all inline utilities from the barrel (skip default to avoid full tree load)
 const {
-  compose, pipe, curry, partial, tap, flip, tryCatch, defaultTo,
-  prop, getPath, pathOr, when, unless, ifElse, cond,
-  allPass, anyPass, complement, always, T, F,
-  head, tail, last, init, take, drop, takeLast, dropLast,
-  pluck, find, findIndex, propEq, pathEq, contains,
-  isPlainObject, isElement, isPromise, isFormData, isBlob, isFile, isArrayLike,
-  evolve, dissoc, mergeDeepLeft, mergeDeepRight, project,
-  memoizeBy, onceInline, match, replace, trim, toLower, toUpper,
-  startsWith, endsWith, includes, split, join, reverseInline, sort,
-  sortByInline, uniqBy, flattenInline, zip, unzip,
-  isWeakMap, isWeakSet, isArrayBuffer, isSharedArrayBuffer, isDataView,
-  isTypedArray, isGenerator, isAsyncGenerator, isIterable, isAsyncIterable,
-  zipWith, freezeNamespace
+  compose,
+  pipe,
+  curry,
+  partial,
+  tap,
+  flip,
+  tryCatch,
+  defaultTo,
+  prop,
+  getPath,
+  pathOr,
+  when,
+  unless,
+  ifElse,
+  cond,
+  allPass,
+  anyPass,
+  complement,
+  always,
+  T,
+  F,
+  head,
+  tail,
+  last,
+  init,
+  take,
+  drop,
+  takeLast,
+  dropLast,
+  pluck,
+  find,
+  findIndex,
+  propEq,
+  pathEq,
+  contains,
+  isPlainObject,
+  isElement,
+  isPromise,
+  isFormData,
+  isBlob,
+  isFile,
+  isArrayLike,
+  evolve,
+  dissoc,
+  mergeDeepLeft,
+  mergeDeepRight,
+  project,
+  memoizeBy,
+  onceInline,
+  match,
+  replace,
+  trim,
+  toLower,
+  toUpper,
+  startsWith,
+  endsWith,
+  includes,
+  split,
+  join,
+  reverseInline,
+  sort,
+  sortByInline,
+  uniqBy,
+  flattenInline,
+  zip,
+  unzip,
+  isWeakMap,
+  isWeakSet,
+  isArrayBuffer,
+  isSharedArrayBuffer,
+  isDataView,
+  isTypedArray,
+  isGenerator,
+  isAsyncGenerator,
+  isIterable,
+  isAsyncIterable,
+  zipWith,
+  freezeNamespace,
 } = await import('./utils.js');
 
 let pass = 0;
 let fail = 0;
 function test(name, fn) {
-  try { fn(); pass++; }
-  catch (e) { fail++; console.error('FAIL: ' + name + ' — ' + e.message); }
+  try {
+    fn();
+    pass++;
+  } catch (e) {
+    fail++;
+    console.error('FAIL: ' + name + ' — ' + e.message);
+  }
 }
 
 // ── Functional helpers ─────────────────────────────────────────
 test('compose(f,g)(x) === f(g(x))', () => {
-  const result = compose((x) => x + 1, (x) => x * 2)(3);
+  const result = compose(
+    (x) => x + 1,
+    (x) => x * 2
+  )(3);
   assert.strictEqual(result, 7);
 });
 
@@ -40,7 +113,10 @@ test('compose() returns identity', () => {
 });
 
 test('pipe(f,g)(x) === g(f(x))', () => {
-  const result = pipe((x) => x + 1, (x) => x * 2)(3);
+  const result = pipe(
+    (x) => x + 1,
+    (x) => x * 2
+  )(3);
   assert.strictEqual(result, 8);
 });
 
@@ -61,7 +137,9 @@ test('partial presets args', () => {
 
 test('tap executes side effect and returns value', () => {
   let side = 0;
-  const result = tap(5, (v) => { side = v; });
+  const result = tap(5, (v) => {
+    side = v;
+  });
   assert.strictEqual(result, 5);
   assert.strictEqual(side, 5);
 });
@@ -72,12 +150,20 @@ test('flip swaps first two args', () => {
 });
 
 test('tryCatch returns fn result on success', () => {
-  const safe = tryCatch((x) => x * 2, () => 0);
+  const safe = tryCatch(
+    (x) => x * 2,
+    () => 0
+  );
   assert.strictEqual(safe(5), 10);
 });
 
 test('tryCatch returns handler on error', () => {
-  const safe = tryCatch(() => { throw new Error('oops'); }, (e) => e.message);
+  const safe = tryCatch(
+    () => {
+      throw new Error('oops');
+    },
+    (e) => e.message
+  );
   assert.strictEqual(safe(), 'oops');
 });
 
@@ -91,25 +177,69 @@ test('defaultTo returns default for null/undefined/NaN', () => {
 
 // ── Conditional / branching ────────────────────────────────────
 test('when applies fn when pred true', () => {
-  assert.strictEqual(when((x) => x > 0, (x) => x * 2, 3), 6);
-  assert.strictEqual(when((x) => x > 0, (x) => x * 2, -1), -1);
+  assert.strictEqual(
+    when(
+      (x) => x > 0,
+      (x) => x * 2,
+      3
+    ),
+    6
+  );
+  assert.strictEqual(
+    when(
+      (x) => x > 0,
+      (x) => x * 2,
+      -1
+    ),
+    -1
+  );
 });
 
 test('unless applies fn when pred false', () => {
-  assert.strictEqual(unless((x) => x > 0, (x) => x * 2, -1), -2);
-  assert.strictEqual(unless((x) => x > 0, (x) => x * 2, 3), 3);
+  assert.strictEqual(
+    unless(
+      (x) => x > 0,
+      (x) => x * 2,
+      -1
+    ),
+    -2
+  );
+  assert.strictEqual(
+    unless(
+      (x) => x > 0,
+      (x) => x * 2,
+      3
+    ),
+    3
+  );
 });
 
 test('ifElse branches correctly', () => {
-  assert.strictEqual(ifElse((x) => x > 0, (x) => x + 1, (x) => x - 1, 5), 6);
-  assert.strictEqual(ifElse((x) => x > 0, (x) => x + 1, (x) => x - 1, -3), -4);
+  assert.strictEqual(
+    ifElse(
+      (x) => x > 0,
+      (x) => x + 1,
+      (x) => x - 1,
+      5
+    ),
+    6
+  );
+  assert.strictEqual(
+    ifElse(
+      (x) => x > 0,
+      (x) => x + 1,
+      (x) => x - 1,
+      -3
+    ),
+    -4
+  );
 });
 
 test('cond returns first match', () => {
   const fn = cond([
     [(x) => x < 0, () => 'negative'],
     [(x) => x === 0, () => 'zero'],
-    [(x) => x > 0, () => 'positive']
+    [(x) => x > 0, () => 'positive'],
   ]);
   assert.strictEqual(fn(-1), 'negative');
   assert.strictEqual(fn(0), 'zero');
@@ -137,8 +267,12 @@ test('always returns constant', () => {
   assert.strictEqual(always(42)(), 42);
 });
 
-test('T() always true', () => { assert.strictEqual(T()(), true); });
-test('F() always false', () => { assert.strictEqual(F()(), false); });
+test('T() always true', () => {
+  assert.strictEqual(T()(), true);
+});
+test('F() always false', () => {
+  assert.strictEqual(F()(), false);
+});
 
 // ── List helpers ───────────────────────────────────────────────
 test('head returns first element', () => {
@@ -187,13 +321,25 @@ test('pluck extracts key', () => {
 });
 
 test('find returns first match', () => {
-  assert.strictEqual(find((x) => x > 2, [1, 3, 2]), 3);
-  assert.strictEqual(find((x) => x > 5, [1, 3, 2]), undefined);
+  assert.strictEqual(
+    find((x) => x > 2, [1, 3, 2]),
+    3
+  );
+  assert.strictEqual(
+    find((x) => x > 5, [1, 3, 2]),
+    undefined
+  );
 });
 
 test('findIndex returns correct index', () => {
-  assert.strictEqual(findIndex((x) => x > 2, [1, 3, 2]), 1);
-  assert.strictEqual(findIndex((x) => x > 5, [1, 3, 2]), -1);
+  assert.strictEqual(
+    findIndex((x) => x > 2, [1, 3, 2]),
+    1
+  );
+  assert.strictEqual(
+    findIndex((x) => x > 5, [1, 3, 2]),
+    -1
+  );
 });
 
 test('contains checks membership', () => {
@@ -211,11 +357,17 @@ test('sort copies and sorts', () => {
 });
 
 test('sortByInline sorts by iteratee', () => {
-  assert.deepStrictEqual(sortByInline((x) => x.a, [{ a: 3 }, { a: 1 }]), [{ a: 1 }, { a: 3 }]);
+  assert.deepStrictEqual(
+    sortByInline((x) => x.a, [{ a: 3 }, { a: 1 }]),
+    [{ a: 1 }, { a: 3 }]
+  );
 });
 
 test('uniqBy deduplicates by iteratee', () => {
-  assert.deepStrictEqual(uniqBy((x) => x.a, [{ a: 1 }, { a: 2 }, { a: 1 }]), [{ a: 1 }, { a: 2 }]);
+  assert.deepStrictEqual(
+    uniqBy((x) => x.a, [{ a: 1 }, { a: 2 }, { a: 1 }]),
+    [{ a: 1 }, { a: 2 }]
+  );
 });
 
 test('flattenInline flattens to depth', () => {
@@ -224,15 +376,30 @@ test('flattenInline flattens to depth', () => {
 });
 
 test('zip pairs arrays', () => {
-  assert.deepStrictEqual(zip([1, 2], ['a', 'b']), [[1, 'a'], [2, 'b']]);
+  assert.deepStrictEqual(zip([1, 2], ['a', 'b']), [
+    [1, 'a'],
+    [2, 'b'],
+  ]);
 });
 
 test('unzip splits pairs', () => {
-  assert.deepStrictEqual(unzip([[1, 'a'], [2, 'b']]), [[1, 2], ['a', 'b']]);
+  assert.deepStrictEqual(
+    unzip([
+      [1, 'a'],
+      [2, 'b'],
+    ]),
+    [
+      [1, 2],
+      ['a', 'b'],
+    ]
+  );
 });
 
 test('zipWith combines with fn', () => {
-  assert.deepStrictEqual(zipWith([1, 2], [3, 4], (a, b) => a + b), [4, 6]);
+  assert.deepStrictEqual(
+    zipWith([1, 2], [3, 4], (a, b) => a + b),
+    [4, 6]
+  );
 });
 
 // ── Object helpers ─────────────────────────────────────────────
@@ -282,7 +449,16 @@ test('mergeDeepRight b wins on conflicts', () => {
 });
 
 test('project picks keys from list', () => {
-  assert.deepStrictEqual(project(['a'], [{ a: 1, b: 2 }, { a: 3, b: 4 }]), [{ a: 1 }, { a: 3 }]);
+  assert.deepStrictEqual(
+    project(
+      ['a'],
+      [
+        { a: 1, b: 2 },
+        { a: 3, b: 4 },
+      ]
+    ),
+    [{ a: 1 }, { a: 3 }]
+  );
 });
 
 // ── Type guards ────────────────────────────────────────────────
@@ -360,13 +536,17 @@ test('isTypedArray', () => {
 });
 
 test('isGenerator', () => {
-  function* gen() { yield 1; }
+  function* gen() {
+    yield 1;
+  }
   assert.strictEqual(isGenerator(gen), true);
   assert.strictEqual(isGenerator(gen()), false);
 });
 
 test('isAsyncGenerator', () => {
-  async function* agen() { yield 1; }
+  async function* agen() {
+    yield 1;
+  }
   assert.strictEqual(isAsyncGenerator(agen), true);
   assert.strictEqual(isAsyncGenerator(agen()), false);
 });
@@ -377,7 +557,9 @@ test('isIterable', () => {
 });
 
 test('isAsyncIterable', () => {
-  async function* agen() { yield 1; }
+  async function* agen() {
+    yield 1;
+  }
   assert.strictEqual(isAsyncIterable(agen()), true);
   assert.strictEqual(isAsyncIterable([]), false);
 });
@@ -436,7 +618,13 @@ test('join', () => {
 // ── Misc inline helpers ────────────────────────────────────────
 test('memoizeBy custom keyFn', () => {
   let calls = 0;
-  const fn = memoizeBy((x) => { calls++; return x.id * 2; }, (x) => x.id);
+  const fn = memoizeBy(
+    (x) => {
+      calls++;
+      return x.id * 2;
+    },
+    (x) => x.id
+  );
   assert.strictEqual(fn({ id: 1, name: 'a' }), 2);
   assert.strictEqual(fn({ id: 1, name: 'b' }), 2); // same key, cached
   assert.strictEqual(calls, 1);
@@ -444,7 +632,10 @@ test('memoizeBy custom keyFn', () => {
 
 test('onceInline runs once', () => {
   let calls = 0;
-  const fn = onceInline(() => { calls++; return calls; });
+  const fn = onceInline(() => {
+    calls++;
+    return calls;
+  });
   assert.strictEqual(fn(), 1);
   assert.strictEqual(fn(), 1);
   assert.strictEqual(calls, 1);

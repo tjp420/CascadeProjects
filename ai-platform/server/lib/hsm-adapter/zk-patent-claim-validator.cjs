@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 74: ZK Patent Claim Validator.
@@ -18,28 +18,28 @@
  * @module hsm-adapter/zk-patent-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const CLAIM_STATUS = {
-  VERIFIED: 'verified',
-  SLASHED: 'slashed',
+  VERIFIED: "verified",
+  SLASHED: "slashed",
 };
 
 const SLASH_REASON = {
-  MALFORMED: 'malformed_claim',
-  DUPLICATE: 'duplicate_claim',
-  PATENT_EXPIRATION_OUT_OF_BOUNDS: 'patent_expiration_out_of_bounds',
-  POOL_NOT_FOUND: 'pool_not_found',
-  BANNED_PEER: 'banned_peer',
-  OUT_OF_WINDOW: 'out_of_window',
+  MALFORMED: "malformed_claim",
+  DUPLICATE: "duplicate_claim",
+  PATENT_EXPIRATION_OUT_OF_BOUNDS: "patent_expiration_out_of_bounds",
+  POOL_NOT_FOUND: "pool_not_found",
+  BANNED_PEER: "banned_peer",
+  OUT_OF_WINDOW: "out_of_window",
 };
 
 const HW_ACCEL_TYPES = {
-  GPU_CUDA: 'gpu_cuda',
-  FPGA: 'fpga',
-  ASIC: 'asic',
-  SIMULATED: 'simulated',
+  GPU_CUDA: "gpu_cuda",
+  FPGA: "fpga",
+  ASIC: "asic",
+  SIMULATED: "simulated",
 };
 
 class ZkPatentClaimValidator {
@@ -74,62 +74,131 @@ class ZkPatentClaimValidator {
   verifyPatentClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('PATENTCLAIM_HUB_MISSING', 'patent verification gating hub is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_HUB_MISSING",
+        "patent verification gating hub is required",
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('PATENTCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "PATENTCLAIM_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('PATENTCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "PATENTCLAIM_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('PATENTCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "PATENTCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.BANNED_PEER);
-      throw new HsmAdapterError('PATENTCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.BANNED_PEER,
+      );
+      throw new HsmAdapterError(
+        "PATENTCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkPatentRangeProofHash || typeof request.zkPatentRangeProofHash !== 'string') {
+    if (
+      !request.zkPatentRangeProofHash ||
+      typeof request.zkPatentRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('PATENTCLAIM_ZK_PROOF_MISSING', 'zero-knowledge patent range proof hash is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge patent range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.MALFORMED);
-      throw new HsmAdapterError('PATENTCLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.POOL_NOT_FOUND);
-      throw new HsmAdapterError('PATENTCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.POOL_NOT_FOUND,
+      );
+      throw new HsmAdapterError(
+        "PATENTCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.patentExpirationSeconds === 'number' && request.patentExpirationSeconds > (this.policy.maxPatentExpirationSeconds || 47304000)) {
+    if (
+      typeof request.patentExpirationSeconds === "number" &&
+      request.patentExpirationSeconds >
+        (this.policy.maxPatentExpirationSeconds || 47304000)
+    ) {
       this._banPeerIfPolicy(request);
-      this._recordSlash(request.poolId, request.peerId, SLASH_REASON.PATENT_EXPIRATION_OUT_OF_BOUNDS);
-      throw new HsmAdapterError('PATENTCLAIM_PATENT_EXPIRATION_OUT_OF_BOUNDS', `patent expiration seconds ${request.patentExpirationSeconds} exceeds maximum ${this.policy.maxPatentExpirationSeconds}`);
+      this._recordSlash(
+        request.poolId,
+        request.peerId,
+        SLASH_REASON.PATENT_EXPIRATION_OUT_OF_BOUNDS,
+      );
+      throw new HsmAdapterError(
+        "PATENTCLAIM_PATENT_EXPIRATION_OUT_OF_BOUNDS",
+        `patent expiration seconds ${request.patentExpirationSeconds} exceeds maximum ${this.policy.maxPatentExpirationSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
       this._recordSlash(request.poolId, request.peerId, SLASH_REASON.DUPLICATE);
-      throw new HsmAdapterError('PATENTCLAIM_DUPLICATE', `patent claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "PATENTCLAIM_DUPLICATE",
+        `patent claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedLicensingMetricCommitment: request.blindedLicensingMetricCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedLicensingMetricCommitment:
+        request.blindedLicensingMetricCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkPatentRangeProofHash: request.zkPatentRangeProofHash,
-      clearingCommitteeAttestationHash: request.clearingCommitteeAttestationHash || 'unspecified',
+      clearingCommitteeAttestationHash:
+        request.clearingCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
       status: CLAIM_STATUS.VERIFIED,
     };
@@ -137,7 +206,7 @@ class ZkPatentClaimValidator {
     this._hub.markPatentClaimVerified(request.poolId);
     this._claimCount++;
     if (this._audit) {
-      this._audit('ZK_PATENT_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_PATENT_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -149,34 +218,51 @@ class ZkPatentClaimValidator {
    */
   generateHwSnarkProof(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('PATENTCLAIM_HW_PROOF_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_HW_PROOF_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof request.licensingMetric !== 'number' || typeof request.claimValue !== 'number') {
-      throw new HsmAdapterError('PATENTCLAIM_HW_PROOF_FIELDS_MISSING',
-        'licensingMetric and claimValue numbers are required');
+    if (
+      typeof request.licensingMetric !== "number" ||
+      typeof request.claimValue !== "number"
+    ) {
+      throw new HsmAdapterError(
+        "PATENTCLAIM_HW_PROOF_FIELDS_MISSING",
+        "licensingMetric and claimValue numbers are required",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('PATENTCLAIM_HUB_MISSING', 'patent verification gating hub is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_HUB_MISSING",
+        "patent verification gating hub is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    const proofHash = crypto.createHash('sha256')
-      .update(`${request.poolId}:${request.licensingMetric}:${request.claimValue}:${this._hwAccelType}`)
-      .digest('hex');
+    const proofHash = crypto
+      .createHash("sha256")
+      .update(
+        `${request.poolId}:${request.licensingMetric}:${request.claimValue}:${this._hwAccelType}`,
+      )
+      .digest("hex");
     const proof = {
       zkPatentRangeProofHash: proofHash,
       poolId: request.poolId,
       licensingMetric: request.licensingMetric,
       claimValue: request.claimValue,
       hwAccelType: this._hwAccelType,
-      proofSystem: 'groth16',
+      proofSystem: "groth16",
       generatedAt: Math.floor(Date.now() / 1000),
     };
     this._hwProofCount++;
     if (this._audit) {
-      this._audit('PATENTCLAIM_HW_SNARK_PROOF_GENERATED', { ...proof });
+      this._audit("PATENTCLAIM_HW_SNARK_PROOF_GENERATED", { ...proof });
     }
     return proof;
   }
@@ -188,11 +274,16 @@ class ZkPatentClaimValidator {
    */
   batchVerifyPatentClaims(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('PATENTCLAIM_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('PATENTCLAIM_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "PATENTCLAIM_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let verifiedCount = 0;
@@ -208,9 +299,9 @@ class ZkPatentClaimValidator {
         verifiedCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'unknown',
+          poolId: req.poolId || "unknown",
           verified: false,
-          error: err.code || 'PATENTCLAIM_BATCH_ERROR',
+          error: err.code || "PATENTCLAIM_BATCH_ERROR",
         });
         failedCount++;
       }
@@ -223,9 +314,18 @@ class ZkPatentClaimValidator {
       verifiedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('PATENTCLAIM_BATCH_VERIFIED', { verifiedCount, failedCount, batchSize: requests.length });
+      this._audit("PATENTCLAIM_BATCH_VERIFIED", {
+        verifiedCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, verifiedCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      verifiedCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -236,17 +336,29 @@ class ZkPatentClaimValidator {
    */
   validateSlashingWindow(poolId, claimTimestamp) {
     if (!poolId) {
-      throw new HsmAdapterError('PATENTCLAIM_WINDOW_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_WINDOW_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
-    if (typeof claimTimestamp !== 'number' || claimTimestamp <= 0) {
-      throw new HsmAdapterError('PATENTCLAIM_WINDOW_FIELDS_MISSING', 'claimTimestamp must be a positive number');
+    if (typeof claimTimestamp !== "number" || claimTimestamp <= 0) {
+      throw new HsmAdapterError(
+        "PATENTCLAIM_WINDOW_FIELDS_MISSING",
+        "claimTimestamp must be a positive number",
+      );
     }
     if (!this._hub) {
-      throw new HsmAdapterError('PATENTCLAIM_HUB_MISSING', 'patent verification gating hub is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_HUB_MISSING",
+        "patent verification gating hub is required",
+      );
     }
     const pool = this._hub.getPool(poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTCLAIM_POOL_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTCLAIM_POOL_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const maxWindow = this.policy.maxPatentExpirationSeconds || 47304000;
@@ -270,33 +382,47 @@ class ZkPatentClaimValidator {
    */
   aggregatePartialSignatures(poolId, partialSignatures) {
     if (!poolId) {
-      throw new HsmAdapterError('PATENTCLAIM_AGG_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_AGG_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('PATENTCLAIM_AGG_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "PATENTCLAIM_AGG_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     for (const sig of partialSignatures) {
       if (sig.peerId && this._bannedPeers.has(sig.peerId)) {
-        throw new HsmAdapterError('PATENTCLAIM_PEER_BANNED',
-          `peer ${sig.peerId} is banned and cannot participate in aggregation`);
+        throw new HsmAdapterError(
+          "PATENTCLAIM_PEER_BANNED",
+          `peer ${sig.peerId} is banned and cannot participate in aggregation`,
+        );
       }
     }
     if (partialSignatures.length < (this.policy.minLicensingQuorum || 3)) {
-      throw new HsmAdapterError('PATENTCLAIM_AGG_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minLicensingQuorum || 3}`);
+      throw new HsmAdapterError(
+        "PATENTCLAIM_AGG_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minLicensingQuorum || 3}`,
+      );
     }
-    const aggregatedSignature = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSignature = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('PATENTCLAIM_PARTIAL_SIGS_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("PATENTCLAIM_PARTIAL_SIGS_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -372,7 +498,10 @@ class ZkPatentClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderPatentClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderPatentClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -387,22 +516,31 @@ class ZkPatentClaimValidator {
   _recordSlash(poolId, peerId, reason) {
     this._slashedClaims.push({
       poolId,
-      peerId: peerId || 'anonymous',
+      peerId: peerId || "anonymous",
       reason,
       slashedAt: Math.floor(Date.now() / 1000),
     });
     if (this._audit) {
-      this._audit('PATENTCLAIM_SLASHED', { poolId, peerId, reason });
+      this._audit("PATENTCLAIM_SLASHED", { poolId, peerId, reason });
     }
   }
 }
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('PATENTCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "PATENTCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('PATENTCLAIM_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "PATENTCLAIM_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

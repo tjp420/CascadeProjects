@@ -1,696 +1,902 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SimpleBeacon — Admin Dashboard</title>
-    <meta name="description" content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health.">
-    <link rel="canonical" href="https://simplebeacon.ai/admin.html">
-    <meta name="robots" content="noindex, nofollow">
-    <meta property="og:title" content="SimpleBeacon — Admin Dashboard">
-    <meta property="og:description" content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://simplebeacon.ai/admin.html">
-    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Admin Dashboard">
-    <meta name="twitter:description" content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health.">
+    <head>
+        <meta charset="UTF-8" />
+        <title>SimpleBeacon — Admin Dashboard</title>
+        <meta
+            name="description"
+            content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health."
+        />
+        <link rel="canonical" href="https://simplebeacon.ai/admin.html" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content="SimpleBeacon — Admin Dashboard" />
+        <meta
+            property="og:description"
+            content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/admin.html" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="SimpleBeacon — Admin Dashboard" />
+        <meta
+            name="twitter:description"
+            content="Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health."
+        />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    
-    <style>
-        :root {
-            --bg: #0f1117;
-            --surface: #161922;
-            --border: #2a2e3a;
-            --text-main: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent: #6366f1;
-            --accent-hover: #818cf8;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --primary-subtle: rgba(99,102,241,0.12);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 32px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        header h1 { font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
-        .auth-bar {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .auth-bar input {
-            padding: 8px 12px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-main);
-            font-size: 0.85rem;
-            width: 320px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 150ms;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: #fff;
-        }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-secondary {
-            background: var(--surface);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        .btn-danger {
-            background: rgba(239,68,68,0.15);
-            color: var(--error);
-            border: 1px solid rgba(239,68,68,0.3);
-        }
-        .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-        }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
-        .stat-value { font-size: 1.6rem; font-weight: 700; }
-        .stat-card.tokens .stat-value { color: var(--accent); }
-        .stat-card.active .stat-value { color: var(--success); }
-        .stat-card.expired .stat-value { color: var(--warning); }
-        .stat-card.revoked .stat-value { color: var(--error); }
+        <style>
+            :root {
+                --bg: #0f1117;
+                --surface: #161922;
+                --border: #2a2e3a;
+                --text-main: #e2e8f0;
+                --text-secondary: #94a3b8;
+                --text-muted: #64748b;
+                --accent: #6366f1;
+                --accent-hover: #818cf8;
+                --success: #10b981;
+                --warning: #f59e0b;
+                --error: #ef4444;
+                --primary-subtle: rgba(99, 102, 241, 0.12);
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: var(--bg);
+                color: var(--text-main);
+                min-height: 100vh;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 24px;
+            }
+            header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 32px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid var(--border);
+            }
+            header h1 {
+                font-size: 1.4rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .auth-bar {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            .auth-bar input {
+                padding: 8px 12px;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                color: var(--text-main);
+                font-size: 0.85rem;
+                width: 320px;
+            }
+            .btn {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 150ms;
+            }
+            .btn-primary {
+                background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+                color: #fff;
+            }
+            .btn-primary:hover {
+                opacity: 0.9;
+            }
+            .btn-secondary {
+                background: var(--surface);
+                color: var(--text-secondary);
+                border: 1px solid var(--border);
+            }
+            .btn-danger {
+                background: rgba(239, 68, 68, 0.15);
+                color: var(--error);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+            }
+            .btn-sm {
+                padding: 4px 10px;
+                font-size: 0.75rem;
+            }
 
-        .section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .section-title { font-size: 1rem; font-weight: 600; }
-        .section-count {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            background: var(--bg);
-            padding: 2px 8px;
-            border-radius: 6px;
-        }
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+            .stat-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px;
+            }
+            .stat-label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                margin-bottom: 6px;
+            }
+            .stat-value {
+                font-size: 1.6rem;
+                font-weight: 700;
+            }
+            .stat-card.tokens .stat-value {
+                color: var(--accent);
+            }
+            .stat-card.active .stat-value {
+                color: var(--success);
+            }
+            .stat-card.expired .stat-value {
+                color: var(--warning);
+            }
+            .stat-card.revoked .stat-value {
+                color: var(--error);
+            }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-        }
-        th {
-            text-align: left;
-            padding: 10px 12px;
-            color: var(--text-muted);
-            font-weight: 500;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-secondary);
-        }
-        tr:hover td { background: rgba(99,102,241,0.04); }
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-        .badge-active { background: rgba(16,185,129,0.15); color: var(--success); }
-        .badge-expired { background: rgba(245,158,11,0.15); color: var(--warning); }
-        .badge-revoked { background: rgba(239,68,68,0.15); color: var(--error); }
-        .badge-community { background: var(--primary-subtle); color: var(--accent); }
-        .badge-admin { background: rgba(217,119,6,0.15); color: var(--warning); }
-        .badge-critical { background: rgba(239,68,68,0.2); color: var(--error); }
-        .badge-high { background: rgba(245,158,11,0.15); color: var(--warning); }
-        .badge-medium { background: rgba(99,102,241,0.15); color: var(--accent); }
+            .section {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            .section-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+            .section-title {
+                font-size: 1rem;
+                font-weight: 600;
+            }
+            .section-count {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                background: var(--bg);
+                padding: 2px 8px;
+                border-radius: 6px;
+            }
 
-        .violation-row { border-left: 3px solid transparent; }
-        .violation-row.critical { border-left-color: var(--error); }
-        .violation-row.high { border-left-color: var(--warning); }
-        .violation-row.medium { border-left-color: var(--accent); }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.82rem;
+            }
+            th {
+                text-align: left;
+                padding: 10px 12px;
+                color: var(--text-muted);
+                font-weight: 500;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+            td {
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--border);
+                color: var(--text-secondary);
+            }
+            tr:hover td {
+                background: rgba(99, 102, 241, 0.04);
+            }
+            .badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 6px;
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+            .badge-active {
+                background: rgba(16, 185, 129, 0.15);
+                color: var(--success);
+            }
+            .badge-expired {
+                background: rgba(245, 158, 11, 0.15);
+                color: var(--warning);
+            }
+            .badge-revoked {
+                background: rgba(239, 68, 68, 0.15);
+                color: var(--error);
+            }
+            .badge-community {
+                background: var(--primary-subtle);
+                color: var(--accent);
+            }
+            .badge-admin {
+                background: rgba(217, 119, 6, 0.15);
+                color: var(--warning);
+            }
+            .badge-critical {
+                background: rgba(239, 68, 68, 0.2);
+                color: var(--error);
+            }
+            .badge-high {
+                background: rgba(245, 158, 11, 0.15);
+                color: var(--warning);
+            }
+            .badge-medium {
+                background: rgba(99, 102, 241, 0.15);
+                color: var(--accent);
+            }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-        .error-bar {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            color: var(--error);
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            display: none;
-        }
+            .violation-row {
+                border-left: 3px solid transparent;
+            }
+            .violation-row.critical {
+                border-left-color: var(--error);
+            }
+            .violation-row.high {
+                border-left-color: var(--warning);
+            }
+            .violation-row.medium {
+                border-left-color: var(--accent);
+            }
 
-        .login-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15,17,23,0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .login-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px;
-            width: 420px;
-            max-width: 90%;
-        }
-        .login-box h2 { margin-bottom: 8px; font-size: 1.2rem; }
-        .login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
-        .login-box input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-main);
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-        }
-        .login-box button { width: 100%; padding: 12px; }
-        .hidden { display: none !important; }
+            .empty-state {
+                text-align: center;
+                padding: 40px;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+            }
+            .error-bar {
+                background: rgba(239, 68, 68, 0.1);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                color: var(--error);
+                padding: 10px 16px;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                margin-bottom: 16px;
+                display: none;
+            }
 
-        .truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; }
-        .select-tier {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text-main);
-            font-size: 0.75rem;
-        }
-        .sub-count {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-        .search-bar {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .search-bar input {
-            flex: 1;
-            padding: 10px 14px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-main);
-            font-size: 0.9rem;
-        }
-        .search-bar input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        .search-bar .search-meta {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
-    </style>
-</head>
-<body>
-    <!-- Login Overlay -->
-    <div id="loginOverlay" class="login-overlay">
-        <div class="login-box">
-            <h2>🛡️ Admin Login</h2>
-            <p>Enter your admin token to access the dashboard.</p>
-            <input id="adminTokenInput" type="password" placeholder="Paste admin token…" />
-            <button class="btn btn-primary" id="loginBtn">Authenticate</button>
-            <p id="loginError" style="color:var(--error);font-size:0.8rem;margin-top:12px;display:none;"></p>
-        </div>
-    </div>
+            .login-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 17, 23, 0.95);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            .login-box {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 32px;
+                width: 420px;
+                max-width: 90%;
+            }
+            .login-box h2 {
+                margin-bottom: 8px;
+                font-size: 1.2rem;
+            }
+            .login-box p {
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            }
+            .login-box input {
+                width: 100%;
+                padding: 12px 16px;
+                background: var(--bg);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                color: var(--text-main);
+                font-size: 0.9rem;
+                margin-bottom: 12px;
+            }
+            .login-box button {
+                width: 100%;
+                padding: 12px;
+            }
+            .hidden {
+                display: none !important;
+            }
 
-    <div id="dashboard" class="hidden">
-        <div class="container">
-            <header>
-                <h1>🛡️ SimpleBeacon Admin Dashboard</h1>
-                <div class="auth-bar">
-                    <span id="adminEmail" style="font-size:0.8rem;color:var(--text-muted);">—</span>
-                    <button class="btn btn-secondary btn-sm" id="refreshBtn">🔄 Refresh</button>
-                    <button class="btn btn-danger btn-sm" id="logoutBtn">Logout</button>
-                </div>
-            </header>
-
-            <div id="errorBar" class="error-bar"></div>
-
-            <!-- Search -->
-            <div class="search-bar">
-                <input id="accountSearch" type="text" placeholder="Search customers, users, emails, tiers…" />
-                <span class="search-meta" id="searchMeta">Type to filter tables</span>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card tokens">
-                    <div class="stat-label">Total Tokens</div>
-                    <div class="stat-value" id="statTotalTokens">—</div>
-                </div>
-                <div class="stat-card active">
-                    <div class="stat-label">Active</div>
-                    <div class="stat-value" id="statActiveTokens">—</div>
-                </div>
-                <div class="stat-card expired">
-                    <div class="stat-label">Expired</div>
-                    <div class="stat-value" id="statExpiredTokens">—</div>
-                </div>
-                <div class="stat-card revoked">
-                    <div class="stat-label">Revoked</div>
-                    <div class="stat-value" id="statRevokedTokens">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Customers</div>
-                    <div class="stat-value" id="statCustomers">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Subscriptions</div>
-                    <div class="stat-value" id="statSubscriptions">—</div>
-                </div>
-                <div class="stat-card revoked">
-                    <div class="stat-label">Errors (24h)</div>
-                    <div class="stat-value" id="statErrors">—</div>
-                </div>
-            </div>
-
-            <!-- Violations -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">⚠️ Violations</div>
-                    <div class="section-count" id="violationsCount">0</div>
-                </div>
-                <div id="violationsTableWrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Severity</th>
-                                <th>Type</th>
-                                <th>Token / IP</th>
-                                <th>Details</th>
-                                <th>Detected</th>
-                            </tr>
-                        </thead>
-                        <tbody id="violationsBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Tokens -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">🔑 All Tokens</div>
-                    <div class="section-count" id="tokensCount">0</div>
-                </div>
-                <div id="tokensTableWrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Hash</th>
-                                <th>Tier</th>
-                                <th>Status</th>
-                                <th>Email</th>
-                                <th>Created</th>
-                                <th>Expires</th>
-                                <th>Violations</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tokensBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Customers -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">👥 Customers</div>
-                    <div class="section-count" id="customersCount">0</div>
-                </div>
-                <div id="customersTableWrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Tier</th>
-                                <th>Status</th>
-                                <th>Subs</th>
-                                <th>Refunds</th>
-                                <th>Created</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customersBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Users -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">🔐 Registered Users</div>
-                    <div class="section-count" id="usersCount">0</div>
-                </div>
-                <div id="usersTableWrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Tier</th>
-                                <th>Created</th>
-                                <th>Updated</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersBody"></tbody>
-                    </table>
-                </div>
+            .truncate {
+                max-width: 180px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .actions-cell {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .select-tier {
+                padding: 4px 8px;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+                background: var(--bg);
+                color: var(--text-main);
+                font-size: 0.75rem;
+            }
+            .sub-count {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+            }
+            .search-bar {
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .search-bar input {
+                flex: 1;
+                padding: 10px 14px;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                color: var(--text-main);
+                font-size: 0.9rem;
+            }
+            .search-bar input:focus {
+                outline: none;
+                border-color: var(--accent);
+            }
+            .search-bar .search-meta {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                white-space: nowrap;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Login Overlay -->
+        <div id="loginOverlay" class="login-overlay">
+            <div class="login-box">
+                <h2>🛡️ Admin Login</h2>
+                <p>Enter your admin token to access the dashboard.</p>
+                <input id="adminTokenInput" type="password" placeholder="Paste admin token…" />
+                <button class="btn btn-primary" id="loginBtn">Authenticate</button>
+                <p id="loginError" style="color: var(--error); font-size: 0.8rem; margin-top: 12px; display: none"></p>
             </div>
         </div>
-    </div>
 
-    <script>
-        (function() {
-            const API_BASE = window.location.origin;
-            let adminToken = localStorage.getItem('sb_admin_token') || '';
+        <div id="dashboard" class="hidden">
+            <div class="container">
+                <header>
+                    <h1>🛡️ SimpleBeacon Admin Dashboard</h1>
+                    <div class="auth-bar">
+                        <span id="adminEmail" style="font-size: 0.8rem; color: var(--text-muted)">—</span>
+                        <button class="btn btn-secondary btn-sm" id="refreshBtn">🔄 Refresh</button>
+                        <button class="btn btn-danger btn-sm" id="logoutBtn">Logout</button>
+                    </div>
+                </header>
 
-            const loginOverlay = document.getElementById('loginOverlay');
-            const dashboard = document.getElementById('dashboard');
-            const adminTokenInput = document.getElementById('adminTokenInput');
-            const loginBtn = document.getElementById('loginBtn');
-            const loginError = document.getElementById('loginError');
-            const errorBar = document.getElementById('errorBar');
-            const refreshBtn = document.getElementById('refreshBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
+                <div id="errorBar" class="error-bar"></div>
 
-            function showError(msg) {
-                errorBar.textContent = msg;
-                errorBar.style.display = 'block';
-                setTimeout(() => { errorBar.style.display = 'none'; }, 5000);
-            }
+                <!-- Search -->
+                <div class="search-bar">
+                    <input id="accountSearch" type="text" placeholder="Search customers, users, emails, tiers…" />
+                    <span class="search-meta" id="searchMeta">Type to filter tables</span>
+                </div>
 
-            function formatDate(iso) {
-                if (!iso) return '—';
-                const d = new Date(iso);
-                return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-            }
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card tokens">
+                        <div class="stat-label">Total Tokens</div>
+                        <div class="stat-value" id="statTotalTokens">—</div>
+                    </div>
+                    <div class="stat-card active">
+                        <div class="stat-label">Active</div>
+                        <div class="stat-value" id="statActiveTokens">—</div>
+                    </div>
+                    <div class="stat-card expired">
+                        <div class="stat-label">Expired</div>
+                        <div class="stat-value" id="statExpiredTokens">—</div>
+                    </div>
+                    <div class="stat-card revoked">
+                        <div class="stat-label">Revoked</div>
+                        <div class="stat-value" id="statRevokedTokens">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Customers</div>
+                        <div class="stat-value" id="statCustomers">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Subscriptions</div>
+                        <div class="stat-value" id="statSubscriptions">—</div>
+                    </div>
+                    <div class="stat-card revoked">
+                        <div class="stat-label">Errors (24h)</div>
+                        <div class="stat-value" id="statErrors">—</div>
+                    </div>
+                </div>
 
-            async function verifyAdmin() {
-                if (!adminToken) return false;
-                try {
-                    const res = await fetch(API_BASE + '/api/admin/verify', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: adminToken })
-                    });
-                    const data = await res.json();
-                    return data.valid;
-                } catch { return false; }
-            }
+                <!-- Violations -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">⚠️ Violations</div>
+                        <div class="section-count" id="violationsCount">0</div>
+                    </div>
+                    <div id="violationsTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Type</th>
+                                    <th>Token / IP</th>
+                                    <th>Details</th>
+                                    <th>Detected</th>
+                                </tr>
+                            </thead>
+                            <tbody id="violationsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-            function showDashboard() {
-                loginOverlay.classList.add('hidden');
-                dashboard.classList.remove('hidden');
-            }
+                <!-- Tokens -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">🔑 All Tokens</div>
+                        <div class="section-count" id="tokensCount">0</div>
+                    </div>
+                    <div id="tokensTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Hash</th>
+                                    <th>Tier</th>
+                                    <th>Status</th>
+                                    <th>Email</th>
+                                    <th>Created</th>
+                                    <th>Expires</th>
+                                    <th>Violations</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tokensBody"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-            function showLogin() {
-                loginOverlay.classList.remove('hidden');
-                dashboard.classList.add('hidden');
-            }
+                <!-- Customers -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">👥 Customers</div>
+                        <div class="section-count" id="customersCount">0</div>
+                    </div>
+                    <div id="customersTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Tier</th>
+                                    <th>Status</th>
+                                    <th>Subs</th>
+                                    <th>Refunds</th>
+                                    <th>Created</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-            async function loadDashboard() {
-                if (!adminToken) { showLogin(); return; }
-                const isValid = await verifyAdmin();
-                if (!isValid) { showLogin(); return; }
-                showDashboard();
+                <!-- Users -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-title">🔐 Registered Users</div>
+                        <div class="section-count" id="usersCount">0</div>
+                    </div>
+                    <div id="usersTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Tier</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                try {
-                    // Stats
-                    const statsRes = await fetch(API_BASE + '/api/admin/stats', {
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
-                    });
-                    const statsData = await statsRes.json();
-                    if (statsData.success) {
-                        const s = statsData.stats;
-                        document.getElementById('statTotalTokens').textContent = s.totalTokens;
-                        document.getElementById('statActiveTokens').textContent = s.activeTokens;
-                        document.getElementById('statExpiredTokens').textContent = s.expiredTokens;
-                        document.getElementById('statRevokedTokens').textContent = s.revokedTokens;
-                        document.getElementById('statCustomers').textContent = s.customers;
-                        document.getElementById('statSubscriptions').textContent = s.activeTokens;
-                        document.getElementById('statErrors').textContent = '0';
-                    }
+        <script>
+            (function () {
+                const API_BASE = window.location.origin;
+                let adminToken = localStorage.getItem('sb_admin_token') || '';
 
-                    // Tokens
-                    const tokRes = await fetch(API_BASE + '/api/admin/tokens', {
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
-                    });
-                    const tokData = await tokRes.json();
-                    const tokBody = document.getElementById('tokensBody');
-                    document.getElementById('tokensCount').textContent = tokData.tokens ? tokData.tokens.length : 0;
-                    if (tokData.success && tokData.tokens.length) {
-                        tokBody.innerHTML = tokData.tokens.map(t => {
-                            const status = t.revoked ? 'revoked' : ((Date.now() - t.lastSeenAt) < (30 * 60 * 1000) ? 'active' : 'expired');
-                            const statusBadge = status === 'active' ? 'badge-active' : (status === 'expired' ? 'badge-expired' : 'badge-revoked');
-                            const tierBadge = t.plan === 'admin' ? 'badge-admin' : 'badge-active';
-                            return '<tr>' +
-                                '<td>' + (t.id || '—') + '</td>' +
-                                '<td class="truncate" title="' + (t.masked || '') + '">' + (t.masked || '—') + '</td>' +
-                                '<td><span class="badge ' + tierBadge + '">' + (t.plan || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td><span class="badge ' + statusBadge + '">' + status.toUpperCase() + '</span></td>' +
-                                '<td>' + (t.email || '—') + '</td>' +
-                                '<td>' + formatDate(t.createdAt) + '</td>' +
-                                '<td>' + formatDate(t.lastSeenAt) + '</td>' +
-                                '<td>' + (t.authMethod || '—') + '</td>' +
-                                '<td>' + (t.revoked ? '—' : '<button class="btn btn-danger btn-sm" onclick="revokeToken(\'' + (t.id || '') + '\')">Revoke</button>') + ' ' +
-                                '<button class="btn btn-danger btn-sm" onclick="deleteToken(\'' + (t.id || '') + '\')">Delete</button></td>' +
-                                '</tr>';
-                        }).join('');
-                    } else {
-                        tokBody.innerHTML = '<tr><td colspan="9"><div class="empty-state">No tokens found. Sign in on the dashboard to register tokens.</div></td></tr>';
-                    }
+                const loginOverlay = document.getElementById('loginOverlay');
+                const dashboard = document.getElementById('dashboard');
+                const adminTokenInput = document.getElementById('adminTokenInput');
+                const loginBtn = document.getElementById('loginBtn');
+                const loginError = document.getElementById('loginError');
+                const errorBar = document.getElementById('errorBar');
+                const refreshBtn = document.getElementById('refreshBtn');
+                const logoutBtn = document.getElementById('logoutBtn');
 
-                    // Customers (derived from tokens)
-                    const custBody = document.getElementById('customersBody');
-                    const customers = {};
-                    if (tokData.success && tokData.tokens.length) {
-                        tokData.tokens.forEach(t => {
-                            const c = customers[t.email] || { email: t.email, plan: t.plan, revoked: true, createdAt: t.createdAt };
-                            if (!t.revoked) c.revoked = false;
-                            if (t.createdAt < c.createdAt) c.createdAt = t.createdAt;
-                            customers[t.email] = c;
+                function showError(msg) {
+                    errorBar.textContent = msg;
+                    errorBar.style.display = 'block';
+                    setTimeout(() => {
+                        errorBar.style.display = 'none';
+                    }, 5000);
+                }
+
+                function formatDate(iso) {
+                    if (!iso) return '—';
+                    const d = new Date(iso);
+                    return (
+                        d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    );
+                }
+
+                async function verifyAdmin() {
+                    if (!adminToken) return false;
+                    try {
+                        const res = await fetch(API_BASE + '/api/admin/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: adminToken })
                         });
-                        const rows = Object.values(customers).map(c => {
-                            const tierBadge = c.plan === 'admin' ? 'badge-admin' : 'badge-active';
-                            const statusBadge = c.revoked ? 'badge-revoked' : 'badge-active';
-                            return '<tr>' +
-                                '<td>' + (c.email || '—') + '</td>' +
-                                '<td><span class="badge ' + tierBadge + '">' + (c.plan || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td><span class="badge ' + statusBadge + '">' + (c.revoked ? 'REVOKED' : 'ACTIVE') + '</span></td>' +
-                                '<td>' + formatDate(c.createdAt) + '</td>' +
-                                '<td class="actions-cell">' + (c.revoked ? '—' : '<button class="btn btn-danger btn-sm" onclick="refundCustomer(\'' + encodeURIComponent(c.email) + '\')">Refund</button>') + '</td>' +
-                                '</tr>';
-                        }).join('');
-                        custBody.innerHTML = rows;
-                        document.getElementById('customersCount').textContent = Object.keys(customers).length;
-                    } else {
-                        custBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No customers found</div></td></tr>';
-                        document.getElementById('customersCount').textContent = '0';
+                        const data = await res.json();
+                        return data.valid;
+                    } catch {
+                        return false;
                     }
-
-                    // Users placeholder (same as customers for now)
-                    const userBody = document.getElementById('usersBody');
-                    userBody.innerHTML = custBody.innerHTML;
-                    document.getElementById('usersCount').textContent = document.getElementById('customersCount').textContent;
-                } catch (err) {
-                    showError('Failed to load dashboard: ' + (err.message || ''));
                 }
-            }
 
-            window.refundCustomer = async function(email) {
-                if (!email) return;
-                const reason = prompt('Enter refund reason (optional):');
-                if (reason === null) return;
-                if (!confirm('Process refund for ' + decodeURIComponent(email) + '? This will revoke all tokens for this account.')) return;
-                try {
-                    const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
-                        body: JSON.stringify({ email: decodeURIComponent(email) })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        alert('Refund processed');
+                function showDashboard() {
+                    loginOverlay.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                }
+
+                function showLogin() {
+                    loginOverlay.classList.remove('hidden');
+                    dashboard.classList.add('hidden');
+                }
+
+                async function loadDashboard() {
+                    if (!adminToken) {
+                        showLogin();
+                        return;
+                    }
+                    const isValid = await verifyAdmin();
+                    if (!isValid) {
+                        showLogin();
+                        return;
+                    }
+                    showDashboard();
+
+                    try {
+                        // Stats
+                        const statsRes = await fetch(API_BASE + '/api/admin/stats', {
+                            headers: { Authorization: 'Bearer ' + adminToken }
+                        });
+                        const statsData = await statsRes.json();
+                        if (statsData.success) {
+                            const s = statsData.stats;
+                            document.getElementById('statTotalTokens').textContent = s.totalTokens;
+                            document.getElementById('statActiveTokens').textContent = s.activeTokens;
+                            document.getElementById('statExpiredTokens').textContent = s.expiredTokens;
+                            document.getElementById('statRevokedTokens').textContent = s.revokedTokens;
+                            document.getElementById('statCustomers').textContent = s.customers;
+                            document.getElementById('statSubscriptions').textContent = s.activeTokens;
+                            document.getElementById('statErrors').textContent = '0';
+                        }
+
+                        // Tokens
+                        const tokRes = await fetch(API_BASE + '/api/admin/tokens', {
+                            headers: { Authorization: 'Bearer ' + adminToken }
+                        });
+                        const tokData = await tokRes.json();
+                        const tokBody = document.getElementById('tokensBody');
+                        document.getElementById('tokensCount').textContent = tokData.tokens ? tokData.tokens.length : 0;
+                        if (tokData.success && tokData.tokens.length) {
+                            tokBody.innerHTML = tokData.tokens
+                                .map(t => {
+                                    const status = t.revoked
+                                        ? 'revoked'
+                                        : Date.now() - t.lastSeenAt < 30 * 60 * 1000
+                                          ? 'active'
+                                          : 'expired';
+                                    const statusBadge =
+                                        status === 'active'
+                                            ? 'badge-active'
+                                            : status === 'expired'
+                                              ? 'badge-expired'
+                                              : 'badge-revoked';
+                                    const tierBadge = t.plan === 'admin' ? 'badge-admin' : 'badge-active';
+                                    return (
+                                        '<tr>' +
+                                        '<td>' +
+                                        (t.id || '—') +
+                                        '</td>' +
+                                        '<td class="truncate" title="' +
+                                        (t.masked || '') +
+                                        '">' +
+                                        (t.masked || '—') +
+                                        '</td>' +
+                                        '<td><span class="badge ' +
+                                        tierBadge +
+                                        '">' +
+                                        (t.plan || 'unknown').toUpperCase() +
+                                        '</span></td>' +
+                                        '<td><span class="badge ' +
+                                        statusBadge +
+                                        '">' +
+                                        status.toUpperCase() +
+                                        '</span></td>' +
+                                        '<td>' +
+                                        (t.email || '—') +
+                                        '</td>' +
+                                        '<td>' +
+                                        formatDate(t.createdAt) +
+                                        '</td>' +
+                                        '<td>' +
+                                        formatDate(t.lastSeenAt) +
+                                        '</td>' +
+                                        '<td>' +
+                                        (t.authMethod || '—') +
+                                        '</td>' +
+                                        '<td>' +
+                                        (t.revoked
+                                            ? '—'
+                                            : '<button class="btn btn-danger btn-sm" onclick="revokeToken(\'' +
+                                              (t.id || '') +
+                                              '\')">Revoke</button>') +
+                                        ' ' +
+                                        '<button class="btn btn-danger btn-sm" onclick="deleteToken(\'' +
+                                        (t.id || '') +
+                                        '\')">Delete</button></td>' +
+                                        '</tr>'
+                                    );
+                                })
+                                .join('');
+                        } else {
+                            tokBody.innerHTML =
+                                '<tr><td colspan="9"><div class="empty-state">No tokens found. Sign in on the dashboard to register tokens.</div></td></tr>';
+                        }
+
+                        // Customers (derived from tokens)
+                        const custBody = document.getElementById('customersBody');
+                        const customers = {};
+                        if (tokData.success && tokData.tokens.length) {
+                            tokData.tokens.forEach(t => {
+                                const c = customers[t.email] || {
+                                    email: t.email,
+                                    plan: t.plan,
+                                    revoked: true,
+                                    createdAt: t.createdAt
+                                };
+                                if (!t.revoked) c.revoked = false;
+                                if (t.createdAt < c.createdAt) c.createdAt = t.createdAt;
+                                customers[t.email] = c;
+                            });
+                            const rows = Object.values(customers)
+                                .map(c => {
+                                    const tierBadge = c.plan === 'admin' ? 'badge-admin' : 'badge-active';
+                                    const statusBadge = c.revoked ? 'badge-revoked' : 'badge-active';
+                                    return (
+                                        '<tr>' +
+                                        '<td>' +
+                                        (c.email || '—') +
+                                        '</td>' +
+                                        '<td><span class="badge ' +
+                                        tierBadge +
+                                        '">' +
+                                        (c.plan || 'unknown').toUpperCase() +
+                                        '</span></td>' +
+                                        '<td><span class="badge ' +
+                                        statusBadge +
+                                        '">' +
+                                        (c.revoked ? 'REVOKED' : 'ACTIVE') +
+                                        '</span></td>' +
+                                        '<td>' +
+                                        formatDate(c.createdAt) +
+                                        '</td>' +
+                                        '<td class="actions-cell">' +
+                                        (c.revoked
+                                            ? '—'
+                                            : '<button class="btn btn-danger btn-sm" onclick="refundCustomer(\'' +
+                                              encodeURIComponent(c.email) +
+                                              '\')">Refund</button>') +
+                                        '</td>' +
+                                        '</tr>'
+                                    );
+                                })
+                                .join('');
+                            custBody.innerHTML = rows;
+                            document.getElementById('customersCount').textContent = Object.keys(customers).length;
+                        } else {
+                            custBody.innerHTML =
+                                '<tr><td colspan="5"><div class="empty-state">No customers found</div></td></tr>';
+                            document.getElementById('customersCount').textContent = '0';
+                        }
+
+                        // Users placeholder (same as customers for now)
+                        const userBody = document.getElementById('usersBody');
+                        userBody.innerHTML = custBody.innerHTML;
+                        document.getElementById('usersCount').textContent =
+                            document.getElementById('customersCount').textContent;
+                    } catch (err) {
+                        showError('Failed to load dashboard: ' + (err.message || ''));
+                    }
+                }
+
+                window.refundCustomer = async function (email) {
+                    if (!email) return;
+                    const reason = prompt('Enter refund reason (optional):');
+                    if (reason === null) return;
+                    if (
+                        !confirm(
+                            'Process refund for ' +
+                                decodeURIComponent(email) +
+                                '? This will revoke all tokens for this account.'
+                        )
+                    )
+                        return;
+                    try {
+                        const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken },
+                            body: JSON.stringify({ email: decodeURIComponent(email) })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('Refund processed');
+                            loadDashboard();
+                        } else {
+                            showError(data.error || 'Refund failed');
+                        }
+                    } catch (err) {
+                        showError('Refund failed: ' + err.message);
+                    }
+                };
+
+                window.revokeToken = async function (id) {
+                    if (!id) return;
+                    if (!confirm('Revoke this token? Users will lose access.')) return;
+                    try {
+                        const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken },
+                            body: JSON.stringify({ id })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('Token revoked');
+                            loadDashboard();
+                        } else {
+                            showError(data.error || 'Revoke failed');
+                        }
+                    } catch (err) {
+                        showError('Revoke failed: ' + err.message);
+                    }
+                };
+
+                window.deleteToken = async function (id) {
+                    if (!id) return;
+                    if (!confirm('Delete this token permanently? This cannot be undone.')) return;
+                    try {
+                        const res = await fetch(API_BASE + '/api/admin/tokens/' + encodeURIComponent(id), {
+                            method: 'DELETE',
+                            headers: { Authorization: 'Bearer ' + adminToken }
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('Token deleted');
+                            loadDashboard();
+                        } else {
+                            showError(data.error || 'Delete failed');
+                        }
+                    } catch (err) {
+                        showError('Delete failed: ' + err.message);
+                    }
+                };
+
+                loginBtn.addEventListener('click', async () => {
+                    const token = adminTokenInput.value.trim();
+                    if (!token) {
+                        loginError.textContent = 'Token required';
+                        loginError.style.display = 'block';
+                        return;
+                    }
+                    adminToken = token;
+                    const isValid = await verifyAdmin();
+                    if (isValid) {
+                        localStorage.setItem('sb_admin_token', token);
+                        loginError.style.display = 'none';
                         loadDashboard();
                     } else {
-                        showError(data.error || 'Refund failed');
+                        loginError.textContent = 'Invalid admin token';
+                        loginError.style.display = 'block';
                     }
-                } catch (err) {
-                    showError('Refund failed: ' + err.message);
-                }
-            };
+                });
 
-            window.revokeToken = async function(id) {
-                if (!id) return;
-                if (!confirm('Revoke this token? Users will lose access.')) return;
-                try {
-                    const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
-                        body: JSON.stringify({ id })
+                refreshBtn.addEventListener('click', loadDashboard);
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('sb_admin_token');
+                    adminToken = '';
+                    showLogin();
+                });
+
+                // Search filter for customers and users tables
+                document.getElementById('accountSearch').addEventListener('input', function (e) {
+                    const q = e.target.value.toLowerCase().trim();
+                    const meta = document.getElementById('searchMeta');
+                    let visibleCustomers = 0,
+                        totalCustomers = 0;
+                    let visibleUsers = 0,
+                        totalUsers = 0;
+
+                    // Filter customers
+                    const custRows = document.querySelectorAll('#customersBody tr');
+                    custRows.forEach(function (row) {
+                        if (row.querySelector('.empty-state')) return;
+                        totalCustomers++;
+                        const text = row.textContent.toLowerCase();
+                        if (!q || text.includes(q)) {
+                            row.style.display = '';
+                            visibleCustomers++;
+                        } else {
+                            row.style.display = 'none';
+                        }
                     });
-                    const data = await res.json();
-                    if (data.success) {
-                        alert('Token revoked');
-                        loadDashboard();
-                    } else {
-                        showError(data.error || 'Revoke failed');
-                    }
-                } catch (err) {
-                    showError('Revoke failed: ' + err.message);
-                }
-            };
 
-            window.deleteToken = async function(id) {
-                if (!id) return;
-                if (!confirm('Delete this token permanently? This cannot be undone.')) return;
-                try {
-                    const res = await fetch(API_BASE + '/api/admin/tokens/' + encodeURIComponent(id), {
-                        method: 'DELETE',
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
+                    // Filter users
+                    const userRows = document.querySelectorAll('#usersBody tr');
+                    userRows.forEach(function (row) {
+                        if (row.querySelector('.empty-state')) return;
+                        totalUsers++;
+                        const text = row.textContent.toLowerCase();
+                        if (!q || text.includes(q)) {
+                            row.style.display = '';
+                            visibleUsers++;
+                        } else {
+                            row.style.display = 'none';
+                        }
                     });
-                    const data = await res.json();
-                    if (data.success) {
-                        alert('Token deleted');
-                        loadDashboard();
-                    } else {
-                        showError(data.error || 'Delete failed');
-                    }
-                } catch (err) {
-                    showError('Delete failed: ' + err.message);
-                }
-            };
 
-            loginBtn.addEventListener('click', async () => {
-                const token = adminTokenInput.value.trim();
-                if (!token) { loginError.textContent = 'Token required'; loginError.style.display = 'block'; return; }
-                adminToken = token;
-                const isValid = await verifyAdmin();
-                if (isValid) {
-                    localStorage.setItem('sb_admin_token', token);
-                    loginError.style.display = 'none';
+                    if (q) {
+                        meta.textContent =
+                            'Customers: ' +
+                            visibleCustomers +
+                            '/' +
+                            totalCustomers +
+                            ' | Users: ' +
+                            visibleUsers +
+                            '/' +
+                            totalUsers;
+                    } else {
+                        meta.textContent = 'Type to filter tables';
+                    }
+                });
+
+                // Auto-load if token exists
+                if (adminToken) {
                     loadDashboard();
-                } else {
-                    loginError.textContent = 'Invalid admin token';
-                    loginError.style.display = 'block';
                 }
-            });
-
-            refreshBtn.addEventListener('click', loadDashboard);
-            logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('sb_admin_token');
-                adminToken = '';
-                showLogin();
-            });
-
-            // Search filter for customers and users tables
-            document.getElementById('accountSearch').addEventListener('input', function(e) {
-                const q = e.target.value.toLowerCase().trim();
-                const meta = document.getElementById('searchMeta');
-                let visibleCustomers = 0, totalCustomers = 0;
-                let visibleUsers = 0, totalUsers = 0;
-
-                // Filter customers
-                const custRows = document.querySelectorAll('#customersBody tr');
-                custRows.forEach(function(row) {
-                    if (row.querySelector('.empty-state')) return;
-                    totalCustomers++;
-                    const text = row.textContent.toLowerCase();
-                    if (!q || text.includes(q)) {
-                        row.style.display = '';
-                        visibleCustomers++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                // Filter users
-                const userRows = document.querySelectorAll('#usersBody tr');
-                userRows.forEach(function(row) {
-                    if (row.querySelector('.empty-state')) return;
-                    totalUsers++;
-                    const text = row.textContent.toLowerCase();
-                    if (!q || text.includes(q)) {
-                        row.style.display = '';
-                        visibleUsers++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                if (q) {
-                    meta.textContent = 'Customers: ' + visibleCustomers + '/' + totalCustomers + ' | Users: ' + visibleUsers + '/' + totalUsers;
-                } else {
-                    meta.textContent = 'Type to filter tables';
-                }
-            });
-
-            // Auto-load if token exists
-            if (adminToken) {
-                loadDashboard();
-            }
-        })();
-    </script>
-</body>
+            })();
+        </script>
+    </body>
 </html>

@@ -25,8 +25,12 @@ function projectLabelFromPath(projectPath) {
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -59,16 +63,18 @@ function redactComplianceProjectPath(value, options = {}) {
  * @returns {any}
  */
 function resolveComplianceExportPathContext(projectPath, context = {}) {
-  const productPlatformRoot = context.productPlatformRoot
-    || (isBenchmarkCacheProjectPath(projectPath) ? resolveProductPlatformRoot(projectPath) : null);
+  const productPlatformRoot =
+    context.productPlatformRoot ||
+    (isBenchmarkCacheProjectPath(projectPath) ? resolveProductPlatformRoot(projectPath) : null);
   const projectLabel = projectLabelFromPath(productPlatformRoot || projectPath || 'ai-platform');
   return {
     projectLabel,
     productPlatformLabel: projectLabel,
-    redact: (value) => redactComplianceProjectPath(value, {
-      projectLabel,
-      productPlatformLabel: projectLabel
-    })
+    redact: (value) =>
+      redactComplianceProjectPath(value, {
+        projectLabel,
+        productPlatformLabel: projectLabel,
+      }),
   };
 }
 
@@ -78,7 +84,9 @@ function resolveComplianceExportPathContext(projectPath, context = {}) {
  * @returns {any}
  */
 function normalizeRel(projectPath) {
-  return String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+  return String(projectPath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
 }
 
 /**
@@ -109,9 +117,7 @@ function resolveProductPlatformRoot(projectPath) {
  * @returns {any}
  */
 function ruleScopedFromGate(gateReport) {
-  return gateReport?.ruleScopedFilesAnalyzed
-    ?? gateReport?.scanScope?.ruleScopedFilesAnalyzed
-    ?? 0;
+  return gateReport?.ruleScopedFilesAnalyzed ?? gateReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
 }
 
 /**
@@ -173,7 +179,7 @@ function recomputeChecklistSummary(rules, prior = {}) {
     skipped,
     total: rules.length,
     score: scored ? Math.round((passed / scored) * 100) : null,
-    readyForAutomation: failed === 0 && passed > 0
+    readyForAutomation: failed === 0 && passed > 0,
   };
 }
 
@@ -190,11 +196,11 @@ function refreshComplianceChecklistFromGate(checklist, gateReport) {
   const schemaOk = schemaComplianceOk(gateReport);
   const schemaChecked = gateReport.schemaChecked ?? gateReport.pageSampleSchemaChecked ?? 0;
   const schemaPassed = gateReport.schemaPassed ?? gateReport.pageSampleSchemaPassed ?? 0;
-/**
- * Rules.
- * @param {any} checklist.rules || []
- * @returns {any}
- */
+  /**
+   * Rules.
+   * @param {any} checklist.rules || []
+   * @returns {any}
+   */
   const rules = (checklist.rules || []).map((rule) => {
     if (rule.status !== 'fail') return rule;
     if (rule.id === 'GATE-001' && gateReport.gate?.pass) {
@@ -207,7 +213,7 @@ function refreshComplianceChecklistFromGate(checklist, gateReport) {
       return {
         ...rule,
         status: 'pass',
-        evidence: `Scanned ${gateReport.productionLeakScanned ?? 0} production file(s) — no sample-path leaks`
+        evidence: `Scanned ${gateReport.productionLeakScanned ?? 0} production file(s) — no sample-path leaks`,
       };
     }
     return rule;
@@ -268,7 +274,7 @@ function patchSupplyRulesFromNpmAudit(rules, npmAudit) {
         status: ok ? 'pass' : 'fail',
         evidence: ok
           ? `npm audit: ${critical} critical, ${high} high (${source})`
-          : `npm audit: ${critical} critical, ${high} high — upgrade dependencies`
+          : `npm audit: ${critical} critical, ${high} high — upgrade dependencies`,
       };
     }
     if (rule.id === 'SUPPLY-002' && npmAudit.summary) {
@@ -280,7 +286,7 @@ function patchSupplyRulesFromNpmAudit(rules, npmAudit) {
       return {
         ...rule,
         status: ok ? 'pass' : 'fail',
-        evidence: ok ? `${moderate} moderate (limit 0) — ${source}` : `${moderate} moderate exceeds policy limit of 0`
+        evidence: ok ? `${moderate} moderate (limit 0) — ${source}` : `${moderate} moderate exceeds policy limit of 0`,
       };
     }
     return rule;
@@ -322,26 +328,36 @@ function normalizeComplianceBranding(value) {
  */
 function buildComplianceHygieneSummary(checklist, gateReport, npmAudit, context) {
   const summary = checklist?.summary || {};
-  const gateProfile = gateReport?.scanScope?.profile
-    ?? checklist?.scanScope?.gateRuleBundleProfile
-    ?? checklist?.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
-  const repoTotal = gateReport?.repositoryFilesTotal
-    ?? gateReport?.repositoryInventory?.totalFiles
-    ?? checklist?.hygieneSummary?.gateRepositoryFilesTotal
-    ?? ruleScopedFromGate(gateReport);
-  const credentialScanned = gateReport?.credentialScanned
-    ?? gateReport?.scanScope?.productionDirsScanned
-    ?? checklist?.hygieneSummary?.credentialScanned
-    ?? null;
-  const contentScanned = gateReport?.scanScope?.fullDirectoryStats?.contentScanned
-    ?? gateReport?.scanScope?.fullDirectoryStats?.filesContentScanned
-    ?? gateReport?.credentialScanned
-    ?? checklist?.hygieneSummary?.contentFilesScanned
-    ?? null;
+  const gateProfile =
+    gateReport?.scanScope?.profile ??
+    checklist?.scanScope?.gateRuleBundleProfile ??
+    checklist?.hygieneSummary?.gateRuleBundleProfile ??
+    null;
+  const repoTotal =
+    gateReport?.repositoryFilesTotal ??
+    gateReport?.repositoryInventory?.totalFiles ??
+    checklist?.hygieneSummary?.gateRepositoryFilesTotal ??
+    ruleScopedFromGate(gateReport);
+  const credentialScanned =
+    gateReport?.credentialScanned ??
+    gateReport?.scanScope?.productionDirsScanned ??
+    checklist?.hygieneSummary?.credentialScanned ??
+    null;
+  const contentScanned =
+    gateReport?.scanScope?.fullDirectoryStats?.contentScanned ??
+    gateReport?.scanScope?.fullDirectoryStats?.filesContentScanned ??
+    gateReport?.credentialScanned ??
+    checklist?.hygieneSummary?.contentFilesScanned ??
+    null;
   const failed = summary.failed ?? 0;
   return {
-    complianceStatus: context.benchmarkScan ? 'benchmark-cache' : context.hollowGate ? 'limited-gate-scope' : failed > 0 ? 'failed' : 'pass',
+    complianceStatus: context.benchmarkScan
+      ? 'benchmark-cache'
+      : context.hollowGate
+        ? 'limited-gate-scope'
+        : failed > 0
+          ? 'failed'
+          : 'pass',
     rulesPassed: summary.passed ?? null,
     rulesFailed: failed,
     rulesSkipped: summary.skipped ?? 0,
@@ -353,21 +369,24 @@ function buildComplianceHygieneSummary(checklist, gateReport, npmAudit, context)
       ? { metadataOnlyInventoryFiles: repoTotal - credentialScanned }
       : {}),
     ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
-    fictionJsonFilesScanned: gateReport?.fictionJsonFilesScanned
-      ?? gateReport?.scanScope?.fictionJsonFilesScanned
-      ?? checklist?.hygieneSummary?.fictionJsonFilesScanned
-      ?? null,
-    fictionSampleFilesScanned: gateReport?.fictionSampleFilesScanned
-      ?? gateReport?.scanScope?.fictionSampleFilesScanned
-      ?? checklist?.hygieneSummary?.fictionSampleFilesScanned
-      ?? null,
+    fictionJsonFilesScanned:
+      gateReport?.fictionJsonFilesScanned ??
+      gateReport?.scanScope?.fictionJsonFilesScanned ??
+      checklist?.hygieneSummary?.fictionJsonFilesScanned ??
+      null,
+    fictionSampleFilesScanned:
+      gateReport?.fictionSampleFilesScanned ??
+      gateReport?.scanScope?.fictionSampleFilesScanned ??
+      checklist?.hygieneSummary?.fictionSampleFilesScanned ??
+      null,
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     npmAuditCritical: npmAudit?.summary?.critical ?? checklist?.hygieneSummary?.npmAuditCritical ?? null,
     npmAuditHigh: npmAudit?.summary?.high ?? checklist?.hygieneSummary?.npmAuditHigh ?? null,
     ...(gateReport?.jestBaselineChecked === false || checklist?.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'Corporate safety checklist — automated CI gate rules only, not vendor security handoff or legal conformity certification.'
+    attestationNote:
+      'Corporate safety checklist — automated CI gate rules only, not vendor security handoff or legal conformity certification.',
   };
 }
 
@@ -379,16 +398,18 @@ function buildComplianceHygieneSummary(checklist, gateReport, npmAudit, context)
  */
 function buildComplianceScanScope(gateReport, options = {}) {
   const checklist = options.checklist || null;
-  const repoTotal = options.repositoryFilesTotal
-    ?? gateReport?.repositoryFilesTotal
-    ?? gateReport?.repositoryInventory?.totalFiles
-    ?? checklist?.scanScope?.gateRepositoryFilesTotal
-    ?? checklist?.hygieneSummary?.gateRepositoryFilesTotal
-    ?? null;
-  const gateProfile = gateReport?.scanScope?.profile
-    ?? checklist?.scanScope?.gateRuleBundleProfile
-    ?? checklist?.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
+  const repoTotal =
+    options.repositoryFilesTotal ??
+    gateReport?.repositoryFilesTotal ??
+    gateReport?.repositoryInventory?.totalFiles ??
+    checklist?.scanScope?.gateRepositoryFilesTotal ??
+    checklist?.hygieneSummary?.gateRepositoryFilesTotal ??
+    null;
+  const gateProfile =
+    gateReport?.scanScope?.profile ??
+    checklist?.scanScope?.gateRuleBundleProfile ??
+    checklist?.hygieneSummary?.gateRuleBundleProfile ??
+    null;
   return {
     checklistProfile: checklist?.scanScope?.checklistProfile || 'default',
     resultsViewScope: 'platform-only',
@@ -397,8 +418,8 @@ function buildComplianceScanScope(gateReport, options = {}) {
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     sourceArtifacts: {
       gateReport: Boolean(gateReport || checklist?.scanScope?.sourceArtifacts?.gateReport),
-      npmAudit: Boolean(options.npmAudit || checklist?.scanScope?.sourceArtifacts?.npmAudit)
-    }
+      npmAudit: Boolean(options.npmAudit || checklist?.scanScope?.sourceArtifacts?.npmAudit),
+    },
   };
 }
 
@@ -413,7 +434,9 @@ function buildComplianceScanScope(gateReport, options = {}) {
 function buildExportNotes(checklist, gateReport, npmAudit, context) {
   const notes = [];
   if (!context.benchmarkScan) {
-    notes.push('securityHandoffEligible is false — checklist attests CI automation rules only, not vendor security handoff.');
+    notes.push(
+      'securityHandoffEligible is false — checklist attests CI automation rules only, not vendor security handoff.'
+    );
     notes.push('Absolute scan paths are redacted to project label in operator exports.');
   }
   if (context.benchmarkScan) {
@@ -432,12 +455,10 @@ function buildExportNotes(checklist, gateReport, npmAudit, context) {
   if (summary.readyForAutomation && !context.benchmarkScan && !context.hollowGate) {
     notes.push('readyForAutomation reflects CI deploy-gate readiness — not SimpleBeacon vendor security handoff.');
   }
-  const repoTotal = gateReport?.repositoryFilesTotal
-    ?? gateReport?.repositoryInventory?.totalFiles
-    ?? ruleScopedFromGate(gateReport);
-  const credentialScanned = gateReport?.credentialScanned
-    ?? gateReport?.productionLeakScanned
-    ?? gateReport?.scanScope?.productionDirsScanned;
+  const repoTotal =
+    gateReport?.repositoryFilesTotal ?? gateReport?.repositoryInventory?.totalFiles ?? ruleScopedFromGate(gateReport);
+  const credentialScanned =
+    gateReport?.credentialScanned ?? gateReport?.productionLeakScanned ?? gateReport?.scanScope?.productionDirsScanned;
   if (repoTotal > 0 && credentialScanned != null && credentialScanned < repoTotal) {
     const metadataOnly = repoTotal - credentialScanned;
     notes.push(
@@ -457,20 +478,29 @@ function buildExportNotes(checklist, gateReport, npmAudit, context) {
       `${summary.operatorDocumentationCount} operator documentation path(s) in gate EU AI Act summary — use json/eu-ai-act-sprint.json for sprint handoff pack.`
     );
   }
-  const gateProfile = gateReport?.scanScope?.profile
-    ?? checklist?.scanScope?.gateRuleBundleProfile
-    ?? checklist?.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
+  const gateProfile =
+    gateReport?.scanScope?.profile ??
+    checklist?.scanScope?.gateRuleBundleProfile ??
+    checklist?.hygieneSummary?.gateRuleBundleProfile ??
+    null;
   if (gateProfile) {
-    notes.push(`Gate rule bundle profile: ${gateProfile} — pair checklist with json/simplebeacon-gate.json for rule evidence.`);
+    notes.push(
+      `Gate rule bundle profile: ${gateProfile} — pair checklist with json/simplebeacon-gate.json for rule evidence.`
+    );
   }
-  const complianceStatus = context.benchmarkScan ? 'benchmark-cache' : context.hollowGate ? 'limited-gate-scope' : (summary.failed ?? 0) > 0 ? 'failed' : 'pass';
+  const complianceStatus = context.benchmarkScan
+    ? 'benchmark-cache'
+    : context.hollowGate
+      ? 'limited-gate-scope'
+      : (summary.failed ?? 0) > 0
+        ? 'failed'
+        : 'pass';
   if (complianceStatus === 'failed' && gateReport?.gate?.pass === false) {
-/**
- * Failed ids.
- * @param {any} checklist?.rules || []
- * @returns {any}
- */
+    /**
+     * Failed ids.
+     * @param {any} checklist?.rules || []
+     * @returns {any}
+     */
     const failedIds = (checklist?.rules || []).filter((rule) => rule.status === 'fail').map((rule) => rule.id);
     const blocking = gateReport.gate?.blockingCount ?? gateReport.issueCount ?? null;
     if (failedIds.length) {
@@ -510,7 +540,7 @@ function sanitizeComplianceForExport(compliance, context) {
       skipped,
       total: next.rules.length,
       score: scored ? Math.round((passed / scored) * 100) : null,
-      handoffEligible: !benchmarkScan && !hollowGate && failed === 0
+      handoffEligible: !benchmarkScan && !hollowGate && failed === 0,
     };
   }
   if (benchmarkScan || hollowGate) {
@@ -521,7 +551,7 @@ function sanitizeComplianceForExport(compliance, context) {
       headline: benchmarkScan
         ? 'Benchmark clone — not valid for Simplebeacon platform handoff. Run Complete scan on ai-platform.'
         : 'Limited gate scope — configure production paths before enabling automated deploy gates.',
-      scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'limited-gate-scope'
+      scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'limited-gate-scope',
     };
   }
   return next;
@@ -555,16 +585,14 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
   const gateReport = options.gateReport || null;
   const hollowGate = hasHollowGate(gateReport);
   const benchmarkScan = isBenchmarkCacheProjectPath(projectPath);
-  const npmAudit = options.npmAudit
-    ? sanitizeNpmAuditExport(options.npmAudit, projectPath)
-    : undefined;
+  const npmAudit = options.npmAudit ? sanitizeNpmAuditExport(options.npmAudit, projectPath) : undefined;
   const context = {
     benchmarkScan,
     hollowGate,
     productPlatformRoot: benchmarkScan ? resolveProductPlatformRoot(projectPath) : null,
     projectPath,
     gateReport,
-    npmAudit
+    npmAudit,
   };
   const sanitized = sanitizeComplianceForExport(unwrapComplianceChecklist(checklist), context);
   const exportNotes = buildExportNotes(sanitized, gateReport, npmAudit, context);
@@ -577,11 +605,10 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
   const redactedProjectRoot = pathContext.redact(sanitized.projectRoot || projectPath);
   const hygieneSummary = buildComplianceHygieneSummary(sanitized, gateReport, npmAudit, context);
   const scanScope = buildComplianceScanScope(gateReport, {
-    repositoryFilesTotal: options.repositoryFilesTotal
-      ?? gateReport?.repositoryFilesTotal
-      ?? gateReport?.repositoryInventory?.totalFiles,
+    repositoryFilesTotal:
+      options.repositoryFilesTotal ?? gateReport?.repositoryFilesTotal ?? gateReport?.repositoryInventory?.totalFiles,
     npmAudit,
-    checklist: { scanScope: checklist?.scanScope, hygieneSummary }
+    checklist: { scanScope: checklist?.scanScope, hygieneSummary },
   });
   const summary = {
     ...sanitized.summary,
@@ -589,7 +616,7 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
     handoffEligible: false,
     ...(sanitized.summary?.productPlatformRoot
       ? { productPlatformRoot: pathContext.redact(sanitized.summary.productPlatformRoot) }
-      : {})
+      : {}),
   };
   return {
     ...sanitized,
@@ -598,14 +625,21 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
     exportNormalized: true,
     exportSanitized: true,
     handoffEligible: false,
-    scanTargetProfile: sanitized.summary?.scanTargetProfile
-      || (benchmarkScan ? 'benchmark-cache' : hollowGate ? 'limited-gate-scope' : 'product'),
+    scanTargetProfile:
+      sanitized.summary?.scanTargetProfile ||
+      (benchmarkScan ? 'benchmark-cache' : hollowGate ? 'limited-gate-scope' : 'product'),
     securityHandoffEligible: false,
-    complianceStatus: benchmarkScan ? 'benchmark-cache' : hollowGate ? 'limited-gate-scope' : (sanitized.summary?.failed ?? 0) > 0 ? 'failed' : 'pass',
+    complianceStatus: benchmarkScan
+      ? 'benchmark-cache'
+      : hollowGate
+        ? 'limited-gate-scope'
+        : (sanitized.summary?.failed ?? 0) > 0
+          ? 'failed'
+          : 'pass',
     exportNotes: [...new Set(exportNotes)].slice(0, 10),
     hygieneSummary,
     scanScope,
-    summary
+    summary,
   };
 }
 
@@ -615,24 +649,19 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
  * @returns {any}
  */
 export function sanitizeComplianceBundleExport(payload = {}) {
-  const projectPath = payload.projectPath
-    || payload.checklist?.projectRoot
-    || payload.gateReport?.projectRoot
-    || '';
+  const projectPath = payload.projectPath || payload.checklist?.projectRoot || payload.gateReport?.projectRoot || '';
   const benchmarkScan = isBenchmarkCacheProjectPath(projectPath);
   const productPlatformRoot = benchmarkScan ? resolveProductPlatformRoot(projectPath) : null;
   const gateReport = payload.gateReport || null;
   const hollowGate = hasHollowGate(gateReport);
-  const npmAudit = payload.npmAudit
-    ? sanitizeNpmAuditExport(payload.npmAudit, projectPath)
-    : undefined;
+  const npmAudit = payload.npmAudit ? sanitizeNpmAuditExport(payload.npmAudit, projectPath) : undefined;
   const context = {
     benchmarkScan,
     hollowGate,
     productPlatformRoot,
     projectPath,
     gateReport,
-    npmAudit
+    npmAudit,
   };
   const checklist = sanitizeComplianceForExport(unwrapComplianceChecklist(payload.checklist), context);
   const handoffEligible = resolveBundleHandoffEligible(checklist, context);
@@ -644,13 +673,17 @@ export function sanitizeComplianceBundleExport(payload = {}) {
     generatedAt: payload.generatedAt || checklist?.evaluatedAt || new Date().toISOString(),
     projectPath: pathContext.redact(projectPath),
     exportNormalized: true,
-    complianceStatus: benchmarkScan ? 'benchmark-cache' : hollowGate ? 'limited-gate-scope' : failed > 0 ? 'failed' : 'pass',
+    complianceStatus: benchmarkScan
+      ? 'benchmark-cache'
+      : hollowGate
+        ? 'limited-gate-scope'
+        : failed > 0
+          ? 'failed'
+          : 'pass',
     scanTargetProfile: benchmarkScan ? 'benchmark-cache' : hollowGate ? 'limited-gate-scope' : 'product',
     handoffEligible,
     readyForAutomation: checklist?.summary?.readyForAutomation ?? false,
-    productPlatformRoot: productPlatformRoot
-      ? pathContext.redact(productPlatformRoot)
-      : undefined,
+    productPlatformRoot: productPlatformRoot ? pathContext.redact(productPlatformRoot) : undefined,
     benchmarkScan: benchmarkScan || undefined,
     npmAudit,
     gateReport,
@@ -659,11 +692,11 @@ export function sanitizeComplianceBundleExport(payload = {}) {
       projectRoot: pathContext.redact(checklist.projectRoot || projectPath),
       summary: checklist.summary?.productPlatformRoot
         ? {
-          ...checklist.summary,
-          productPlatformRoot: pathContext.redact(checklist.summary.productPlatformRoot)
-        }
-        : checklist.summary
+            ...checklist.summary,
+            productPlatformRoot: pathContext.redact(checklist.summary.productPlatformRoot),
+          }
+        : checklist.summary,
     },
-    exportNotes: buildExportNotes(checklist, gateReport, npmAudit, context)
+    exportNotes: buildExportNotes(checklist, gateReport, npmAudit, context),
   };
 }

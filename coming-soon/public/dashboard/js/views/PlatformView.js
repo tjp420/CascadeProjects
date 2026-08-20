@@ -1,10 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatScanPathForDisplay } from '../utils.js';
-import {
-  resolveJestTestsLabel,
-  resolvePageSpecsLabel,
-  hydrateDashboardHome
-} from '../services/analyzeService.js';
+import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js';
 
 /**
  * Format percent.
@@ -12,12 +8,12 @@ import {
  * @returns {any}
  */
 function formatPercent(value) {
-  if (value == null || value === '') return '—';
-  const str = String(value).trim();
-  if (str.endsWith('%')) return str;
-  const num = Number(str);
-  if (Number.isFinite(num)) return `${num}%`;
-  return str;
+    if (value == null || value === '') return '—';
+    const str = String(value).trim();
+    if (str.endsWith('%')) return str;
+    const num = Number(str);
+    if (Number.isFinite(num)) return `${num}%`;
+    return str;
 }
 
 /**
@@ -26,9 +22,11 @@ function formatPercent(value) {
  * @returns {any}
  */
 function parseNumeric(value) {
-  if (value == null) return null;
-  const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
+    if (value == null) return null;
+    const match = String(value)
+        .replace(/,/g, '')
+        .match(/-?\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
 }
 
 /**
@@ -38,10 +36,10 @@ function parseNumeric(value) {
  * @returns {any}
  */
 function formatSignedDelta(delta, unit = '') {
-  if (!Number.isFinite(delta)) return '—';
-  const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
-  const suffix = unit ? ` ${unit}` : '';
-  return `${sign}${delta}${suffix}`;
+    if (!Number.isFinite(delta)) return '—';
+    const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
+    const suffix = unit ? ` ${unit}` : '';
+    return `${sign}${delta}${suffix}`;
 }
 
 /**
@@ -52,17 +50,17 @@ function formatSignedDelta(delta, unit = '') {
  * @returns {any}
  */
 function buildPlatformMetrics(home, report, baseline) {
-  const overview = home?.overview || {};
-  return {
-    mockScanFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.totalFiles,
-    qualityScore: report?.qualityScore ?? parseNumeric(overview.codeQuality),
-    schemaPassRate: report?.schemaCompliance ?? overview.schemaPassRate,
-    scannerIssues: report?.issueCount ?? overview.scannerIssues,
-    securityScore: overview.securityScore ?? '80/100',
-    jestTests: resolveJestTestsLabel(baseline, home, report),
-    pageSamples: resolvePageSpecsLabel(report, baseline) ?? overview.pageSamplesLabel,
-    sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles
-  };
+    const overview = home?.overview || {};
+    return {
+        mockScanFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.totalFiles,
+        qualityScore: report?.qualityScore ?? parseNumeric(overview.codeQuality),
+        schemaPassRate: report?.schemaCompliance ?? overview.schemaPassRate,
+        scannerIssues: report?.issueCount ?? overview.scannerIssues,
+        securityScore: overview.securityScore ?? '80/100',
+        jestTests: resolveJestTestsLabel(baseline, home, report),
+        pageSamples: resolvePageSpecsLabel(report, baseline) ?? overview.pageSamplesLabel,
+        sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles
+    };
 }
 
 /**
@@ -72,75 +70,75 @@ function buildPlatformMetrics(home, report, baseline) {
  * @returns {any}
  */
 function buildComparativeRows(home, metrics) {
-  const staticRows = home?.comparativeAnalysis || [];
-  const liveByMetric = {
-    'jest tests': {
-      current: parseNumeric(metrics.jestTests?.split('/')[0]) ?? parseNumeric(metrics.jestTests),
-      format: (v) => (v == null ? '—' : String(v))
-    },
-    'sample json files': {
-      current: metrics.sampleJsonFiles,
-      format: (v) => (v == null ? '—' : String(v))
-    },
-    'mock / sample files': {
-      current: metrics.mockScanFiles,
-      format: (v) => (v == null ? '—' : String(v))
-    },
-    'schema pass rate': {
-      current: metrics.schemaPassRate,
-      format: (v) => (v == null ? '—' : `${v}%`)
-    },
-    'security posture': {
-      current: metrics.securityScore,
-      format: (v) => (v == null ? '—' : String(v))
-    }
-  };
+    const staticRows = home?.comparativeAnalysis || [];
+    const liveByMetric = {
+        'jest tests': {
+            current: parseNumeric(metrics.jestTests?.split('/')[0]) ?? parseNumeric(metrics.jestTests),
+            format: v => (v == null ? '—' : String(v))
+        },
+        'sample json files': {
+            current: metrics.sampleJsonFiles,
+            format: v => (v == null ? '—' : String(v))
+        },
+        'mock / sample files': {
+            current: metrics.mockScanFiles,
+            format: v => (v == null ? '—' : String(v))
+        },
+        'schema pass rate': {
+            current: metrics.schemaPassRate,
+            format: v => (v == null ? '—' : `${v}%`)
+        },
+        'security posture': {
+            current: metrics.securityScore,
+            format: v => (v == null ? '—' : String(v))
+        }
+    };
 
-  return staticRows.map((row) => {
-    const key = String(row.metric || '').toLowerCase();
-    const live = liveByMetric[key];
-    const previous = row.previous;
-    const current = live?.current != null ? live.format(live.current) : row.current;
-    const prevNum = parseNumeric(previous);
-    const curNum = live?.current != null ? live.current : parseNumeric(current);
+    return staticRows.map(row => {
+        const key = String(row.metric || '').toLowerCase();
+        const live = liveByMetric[key];
+        const previous = row.previous;
+        const current = live?.current != null ? live.format(live.current) : row.current;
+        const prevNum = parseNumeric(previous);
+        const curNum = live?.current != null ? live.current : parseNumeric(current);
 
-    let change = row.change;
-    if (prevNum != null && curNum != null && prevNum !== curNum) {
-      const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
-      const unit = unitMatch?.[1] || '';
-      if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
-        change = formatSignedDelta(curNum - prevNum, '%');
-      } else if (String(row.metric).toLowerCase().includes('security')) {
-        change = formatSignedDelta(curNum - prevNum, 'pts');
-      } else {
-        change = formatSignedDelta(curNum - prevNum, unit);
-      }
-    }
+        let change = row.change;
+        if (prevNum != null && curNum != null && prevNum !== curNum) {
+            const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
+            const unit = unitMatch?.[1] || '';
+            if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
+                change = formatSignedDelta(curNum - prevNum, '%');
+            } else if (String(row.metric).toLowerCase().includes('security')) {
+                change = formatSignedDelta(curNum - prevNum, 'pts');
+            } else {
+                change = formatSignedDelta(curNum - prevNum, unit);
+            }
+        }
 
-    return { ...row, current, change };
-  });
+        return { ...row, current, change };
+    });
 }
 
 /**
  * Platform view.
  */
 export class PlatformView {
-  constructor(app) {
-    this.app = app;
-  }
+    constructor(app) {
+        this.app = app;
+    }
 
-  render() {
-    const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
-    const report = this.app.state.report;
-    const baseline = this.app.state.baseline;
-    const metrics = buildPlatformMetrics(home, report, baseline);
-    const comparativeRows = buildComparativeRows(home, metrics);
-    const scanPathProjectRoot = report?.projectRoot || this.app.state.config?.projectRoot || '';
-    const scanPaths = report?.scanPaths || this.app.state.config?.scanPaths || [];
+    render() {
+        const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
+        const report = this.app.state.report;
+        const baseline = this.app.state.baseline;
+        const metrics = buildPlatformMetrics(home, report, baseline);
+        const comparativeRows = buildComparativeRows(home, metrics);
+        const scanPathProjectRoot = report?.projectRoot || this.app.state.config?.projectRoot || '';
+        const scanPaths = report?.scanPaths || this.app.state.config?.scanPaths || [];
 
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-el.innerHTML = `
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Platform</h1>
         <p class="text-muted analyze-hero-sub">${escapeHtml(home?.subtitle || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
@@ -175,54 +173,74 @@ el.innerHTML = `
         <div class="card">
           <div class="card-header"><span class="card-title">Scan Paths</span></div>
           <ul class="settings-path-list">
-            ${scanPaths.map((p) => `<li><code>${escapeHtml(formatScanPathForDisplay(typeof p === 'string' ? p : String(p), scanPathProjectRoot))}</code></li>`).join('') || '<li class="text-muted">No paths configured</li>'}
+            ${scanPaths.map(p => `<li><code>${escapeHtml(formatScanPathForDisplay(typeof p === 'string' ? p : String(p), scanPathProjectRoot))}</code></li>`).join('') || '<li class="text-muted">No paths configured</li>'}
           </ul>
         </div>
       </div>
 
-      ${comparativeRows.length ? `
+      ${
+          comparativeRows.length
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Comparative Analysis</h2></div>
           <div class="card" style="padding:0;overflow:hidden;">
             <table class="results-table">
               <thead><tr><th>Metric</th><th>Previous</th><th>Current</th><th>Change</th></tr></thead>
               <tbody>
-                ${comparativeRows.map((r) => `
+                ${comparativeRows
+                    .map(
+                        r => `
                   <tr>
                     <td>${escapeHtml(r.metric)}</td>
                     <td>${escapeHtml(String(r.previous))}</td>
                     <td>${escapeHtml(String(r.current))}</td>
                     <td class="text-success">${escapeHtml(r.change)}</td>
                   </tr>
-                `).join('')}
+                `
+                    )
+                    .join('')}
               </tbody>
             </table>
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${home?.insights?.length ? `
+      ${
+          home?.insights?.length
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Insights</h2></div>
           <div class="insight-list">
-            ${home.insights.map((i) => `
+            ${home.insights
+                .map(
+                    i => `
               <div class="insight-item card">
                 <h3>${escapeHtml(i.title)}</h3>
                 <p>${escapeHtml(i.description)}</p>
               </div>
-            `).join('')}
+            `
+                )
+                .join('')}
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${report?.mockDataCategories?.length ? `
+      ${
+          report?.mockDataCategories?.length
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Mock Data Categories</h2></div>
           <div class="card" style="padding:0;overflow:hidden;">
             <table class="results-table">
               <thead><tr><th>Category</th><th>Files</th><th>Size</th><th>Quality</th><th>Issues</th></tr></thead>
               <tbody>
-                ${report.mockDataCategories.map((c) => `
+                ${report.mockDataCategories
+                    .map(
+                        c => `
                   <tr>
                     <td>${escapeHtml(c.category)}</td>
                     <td>${c.fileCount}</td>
@@ -230,18 +248,22 @@ el.innerHTML = `
                     <td>${formatPercent(c.qualityScore)}</td>
                     <td>${c.issues}</td>
                   </tr>
-                `).join('')}
+                `
+                    )
+                    .join('')}
               </tbody>
             </table>
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
     `;
-    return el;
-  }
+        return el;
+    }
 
-  mount(container) {
-container.innerHTML = '';
-    container.appendChild(this.render());
-  }
+    mount(container) {
+        container.innerHTML = '';
+        container.appendChild(this.render());
+    }
 }

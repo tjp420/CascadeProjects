@@ -18,7 +18,7 @@ name: Snapshot Backup
 on:
   schedule:
     # Daily at 02:00 UTC (off-peak hours)
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Create snapshot
         run: node scripts/snapshot-backup.cjs --once

@@ -3,32 +3,43 @@
  * Sample / demo report generation for marketing.
  */
 
-const { buildLaunchReadiness, calculateAuditConfidence, buildDeterministicExecutive } = require('./executive.cjs');
-const { buildBusinessRiskCounts, enrichFindings } = require('./finding-utils.cjs');
-const { renderCompleteAuditHtml } = require('./html-renderer.cjs');
-const { enrichRemediationRow } = require('../audit-remediation-recipes.cjs');
+const {
+  buildLaunchReadiness,
+  calculateAuditConfidence,
+  buildDeterministicExecutive,
+} = require("./executive.cjs");
+const {
+  buildBusinessRiskCounts,
+  enrichFindings,
+} = require("./finding-utils.cjs");
+const { renderCompleteAuditHtml } = require("./html-renderer.cjs");
+const { enrichRemediationRow } = require("../audit-remediation-recipes.cjs");
 // simplebeacon:production-leak-intent: fixtures-path - Legitimate fixture data for audit report generation in development/demo mode
-const { buildSampleAuditReportModel: buildSampleAuditReportModelFromFixtures } = require('../fixtures/sample-audit-report-data.cjs');
+const {
+  buildSampleAuditReportModel: buildSampleAuditReportModelFromFixtures,
+} = require("../fixtures/sample-audit-report-data.cjs");
 
-const ENGINE_VERSION = '1.1.0';
+const ENGINE_VERSION = "1.1.0";
 
 /**
  * Build sample audit report model.
  * @returns {any}
  */
 function buildSampleAuditReportModel() {
-    const model = buildSampleAuditReportModelFromFixtures(ENGINE_VERSION);
-    model.readiness = buildLaunchReadiness(model);
-    model.summary.confidenceScore = calculateAuditConfidence(model.summary, {
-        credentialScanned: 342,
-        productionLeakScanned: 298,
-        schemaChecked: 12,
-        schemaPassed: 12,
-        ruleScopedFilesAnalyzed: 342
-    });
-    model.businessRiskCounts = buildBusinessRiskCounts(model);
-    model.remediationRows = (model.remediationRows || []).map(enrichRemediationRow);
-    return model;
+  const model = buildSampleAuditReportModelFromFixtures(ENGINE_VERSION);
+  model.readiness = buildLaunchReadiness(model);
+  model.summary.confidenceScore = calculateAuditConfidence(model.summary, {
+    credentialScanned: 342,
+    productionLeakScanned: 298,
+    schemaChecked: 12,
+    schemaPassed: 12,
+    ruleScopedFilesAnalyzed: 342,
+  });
+  model.businessRiskCounts = buildBusinessRiskCounts(model);
+  model.remediationRows = (model.remediationRows || []).map(
+    enrichRemediationRow,
+  );
+  return model;
 }
 
 /**
@@ -37,16 +48,16 @@ function buildSampleAuditReportModel() {
  * @returns {any}
  */
 function buildSampleAuditReportHtml(options = {}) {
-    const model = buildSampleAuditReportModel();
-    const auditHtml = renderCompleteAuditHtml(model, {
-        executive: buildDeterministicExecutive(model)
-    });
+  const model = buildSampleAuditReportModel();
+  const auditHtml = renderCompleteAuditHtml(model, {
+    executive: buildDeterministicExecutive(model),
+  });
 
-    if (options.siteChrome === false) {
-        return auditHtml;
-    }
+  if (options.siteChrome === false) {
+    return auditHtml;
+  }
 
-    const siteStyles = `
+  const siteStyles = `
     .sample-site-bar {
       position: sticky; top: 0; z-index: 20;
       background: rgba(210, 153, 34, 0.12);
@@ -70,7 +81,7 @@ function buildSampleAuditReportHtml(options = {}) {
       .sample-site-bar, .sample-site-nav { display: none !important; }
     }`;
 
-    const siteBar = `
+  const siteBar = `
     <div class="sample-site-bar" role="status">
       <strong>Sample deliverable only.</strong> Fictional client and redacted paths.
       Paid audits use this same dark layout with your repository&rsquo;s actual findings.
@@ -81,9 +92,9 @@ function buildSampleAuditReportHtml(options = {}) {
       <span><a href="/">Home</a><a href="/sample-report">Sample report</a><a href="mailto:admin@simplebeacon.ai">admin@simplebeacon.ai</a></span>
     </div>`;
 
-    return auditHtml
-        .replace('</head>', `<style>${siteStyles}</style></head>`)
-        .replace('<body>', `<body>${siteBar}`);
+  return auditHtml
+    .replace("</head>", `<style>${siteStyles}</style></head>`)
+    .replace("<body>", `<body>${siteBar}`);
 }
 
 /**
@@ -92,11 +103,11 @@ function buildSampleAuditReportHtml(options = {}) {
  * @returns {any}
  */
 function wrapSampleReportForWebsite(_fullHtml) {
-    return buildSampleAuditReportHtml({ siteChrome: true });
+  return buildSampleAuditReportHtml({ siteChrome: true });
 }
 
 module.exports = {
-    buildSampleAuditReportModel,
-    buildSampleAuditReportHtml,
-    wrapSampleReportForWebsite
+  buildSampleAuditReportModel,
+  buildSampleAuditReportHtml,
+  wrapSampleReportForWebsite,
 };

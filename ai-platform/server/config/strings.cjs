@@ -9,7 +9,9 @@
  * @returns {boolean}
  */
 function isBlank(value) {
-  return value == null || (typeof value === 'string' && value.trim().length === 0);
+  return (
+    value == null || (typeof value === "string" && value.trim().length === 0)
+  );
 }
 
 /**
@@ -18,7 +20,11 @@ function isBlank(value) {
  * @returns {string}
  */
 function safeString(value) {
-  try { return String(value); } catch { return '[unstringable error]'; }
+  try {
+    return String(value);
+  } catch {
+    return "[unstringable error]";
+  }
 }
 
 /**
@@ -27,7 +33,7 @@ function safeString(value) {
  * @returns {string}
  */
 function safeErrorMessage(err) {
-  if (err && typeof err.message === 'string') return err.message;
+  if (err && typeof err.message === "string") return err.message;
   return safeString(err);
 }
 
@@ -38,8 +44,9 @@ function safeErrorMessage(err) {
  * @returns {number}
  */
 function safeParseInt(str, fallback = 0) {
-  if (typeof str === 'number') return Number.isFinite(str) ? Math.floor(str) : fallback;
-  if (typeof str !== 'string') return fallback;
+  if (typeof str === "number")
+    return Number.isFinite(str) ? Math.floor(str) : fallback;
+  if (typeof str !== "string") return fallback;
   const parsed = Number.parseInt(str, 10);
   return Number.isNaN(parsed) ? fallback : parsed;
 }
@@ -51,8 +58,8 @@ function safeParseInt(str, fallback = 0) {
  * @returns {number}
  */
 function safeParseFloat(str, fallback = 0) {
-  if (typeof str === 'number') return Number.isFinite(str) ? str : fallback;
-  if (typeof str !== 'string') return fallback;
+  if (typeof str === "number") return Number.isFinite(str) ? str : fallback;
+  if (typeof str !== "string") return fallback;
   const parsed = Number.parseFloat(str);
   return Number.isNaN(parsed) ? fallback : parsed;
 }
@@ -63,12 +70,12 @@ function safeParseFloat(str, fallback = 0) {
  * @returns {boolean | undefined}
  */
 function parseBoolean(str) {
-  if (typeof str === 'boolean') return str;
-  if (typeof str === 'number') return str !== 0;
-  if (typeof str !== 'string') return undefined;
+  if (typeof str === "boolean") return str;
+  if (typeof str === "number") return str !== 0;
+  if (typeof str !== "string") return undefined;
   const lowered = str.toLowerCase().trim();
-  if (['true', '1', 'yes', 'on'].includes(lowered)) return true;
-  if (['false', '0', 'no', 'off'].includes(lowered)) return false;
+  if (["true", "1", "yes", "on"].includes(lowered)) return true;
+  if (["false", "0", "no", "off"].includes(lowered)) return false;
   return undefined;
 }
 
@@ -78,7 +85,7 @@ function parseBoolean(str) {
  * @returns {string}
  */
 function capitalize(str) {
-  const s = String(str ?? '');
+  const s = String(str ?? "");
   if (!s) return s;
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -104,12 +111,12 @@ function pluralize(count, singular, plural) {
  * @param {string} [suffix='…']
  * @returns {string}
  */
-function truncate(str, maxLen = 80, suffix = '…') {
-  const s = String(str ?? '');
+function truncate(str, maxLen = 80, suffix = "…") {
+  const s = String(str ?? "");
   const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
   if (s.length <= limit) return s;
-  const endLen = Math.max(0, limit - String(suffix ?? '…').length);
-  return s.slice(0, endLen) + String(suffix ?? '…');
+  const endLen = Math.max(0, limit - String(suffix ?? "…").length);
+  return s.slice(0, endLen) + String(suffix ?? "…");
 }
 
 /**
@@ -130,9 +137,10 @@ function ensureArray(value) {
  */
 function isEmpty(value) {
   if (value == null) return true;
-  if (typeof value === 'string' || Array.isArray(value)) return value.length === 0;
+  if (typeof value === "string" || Array.isArray(value))
+    return value.length === 0;
   if (value instanceof Map || value instanceof Set) return value.size === 0;
-  if (typeof value === 'object') return Object.keys(value).length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
   return false;
 }
 
@@ -147,5 +155,5 @@ module.exports = Object.freeze({
   pluralize,
   truncate,
   ensureArray,
-  isEmpty
+  isEmpty,
 });

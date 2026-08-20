@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * Mock Lead Seed Script — Generates realistic sample prospects (CLO/CCO/CRO
@@ -14,7 +14,7 @@
  *   generateMockProspect, generateMockProspects, seedDatabase
  */
 
-const path = require('path');
+const path = require("path");
 const {
   PERSONAS,
   QUALIFICATION_CRITERIA,
@@ -23,64 +23,367 @@ const {
   isQualified,
   saveProspects,
   generateProspectId,
-} = require('./prospect-scraper');
+} = require("./prospect-scraper");
 
 // ── Name Pools ───────────────────────────────────────────────────────────────
 
 const FIRST_NAMES = [
-  'James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda',
-  'David', 'Elizabeth', 'William', 'Barbara', 'Richard', 'Susan', 'Joseph',
-  'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy',
-  'Daniel', 'Lisa', 'Matthew', 'Margaret', 'Anthony', 'Sandra', 'Mark', 'Ashley',
-  'Donald', 'Kimberly', 'Steven', 'Emily', 'Paul', 'Donna', 'Andrew', 'Michelle',
-  'Joshua', 'Carol', 'Kenneth', 'Amanda', 'Kevin', 'Melissa', 'Brian', 'Deborah',
-  'George', 'Stephanie', 'Edward', 'Rebecca', 'Ronald', 'Laura', 'Timothy', 'Sharon',
-  'Jason', 'Cynthia', 'Jeffrey', 'Kathleen', 'Ryan', 'Amy', 'Jacob', 'Shirley',
-  'Gary', 'Angela', 'Nicholas', 'Helen', 'Eric', 'Anna', 'Jonathan', 'Brenda',
-  'Stephen', 'Pamela', 'Larry', 'Nicole', 'Justin', 'Emma', 'Scott', 'Samantha',
-  'Brandon', 'Katherine', 'Benjamin', 'Christine', 'Samuel', 'Debra', 'Gregory',
-  'Rachel', 'Frank', 'Catherine', 'Alexander', 'Carolyn', 'Raymond', 'Janet',
-  'Patrick', 'Ruth', 'Jack', 'Maria', 'Dennis', 'Heather', 'Jerry', 'Diane',
+  "James",
+  "Mary",
+  "Robert",
+  "Patricia",
+  "John",
+  "Jennifer",
+  "Michael",
+  "Linda",
+  "David",
+  "Elizabeth",
+  "William",
+  "Barbara",
+  "Richard",
+  "Susan",
+  "Joseph",
+  "Jessica",
+  "Thomas",
+  "Sarah",
+  "Charles",
+  "Karen",
+  "Christopher",
+  "Nancy",
+  "Daniel",
+  "Lisa",
+  "Matthew",
+  "Margaret",
+  "Anthony",
+  "Sandra",
+  "Mark",
+  "Ashley",
+  "Donald",
+  "Kimberly",
+  "Steven",
+  "Emily",
+  "Paul",
+  "Donna",
+  "Andrew",
+  "Michelle",
+  "Joshua",
+  "Carol",
+  "Kenneth",
+  "Amanda",
+  "Kevin",
+  "Melissa",
+  "Brian",
+  "Deborah",
+  "George",
+  "Stephanie",
+  "Edward",
+  "Rebecca",
+  "Ronald",
+  "Laura",
+  "Timothy",
+  "Sharon",
+  "Jason",
+  "Cynthia",
+  "Jeffrey",
+  "Kathleen",
+  "Ryan",
+  "Amy",
+  "Jacob",
+  "Shirley",
+  "Gary",
+  "Angela",
+  "Nicholas",
+  "Helen",
+  "Eric",
+  "Anna",
+  "Jonathan",
+  "Brenda",
+  "Stephen",
+  "Pamela",
+  "Larry",
+  "Nicole",
+  "Justin",
+  "Emma",
+  "Scott",
+  "Samantha",
+  "Brandon",
+  "Katherine",
+  "Benjamin",
+  "Christine",
+  "Samuel",
+  "Debra",
+  "Gregory",
+  "Rachel",
+  "Frank",
+  "Catherine",
+  "Alexander",
+  "Carolyn",
+  "Raymond",
+  "Janet",
+  "Patrick",
+  "Ruth",
+  "Jack",
+  "Maria",
+  "Dennis",
+  "Heather",
+  "Jerry",
+  "Diane",
 ];
 
 const LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
-  'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson',
-  'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker',
-  'Young', 'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
-  'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
-  'Carter', 'Roberts', 'Gomez', 'Phillips', 'Evans', 'Turner', 'Diaz', 'Parker',
-  'Cruz', 'Edwards', 'Collins', 'Reyes', 'Stewart', 'Morris', 'Morales', 'Murphy',
-  'Cook', 'Rogers', 'Gutierrez', 'Ortiz', 'Morgan', 'Cooper', 'Peterson', 'Bailey',
-  'Reed', 'Kelly', 'Howard', 'Ramos', 'Kim', 'Cox', 'Ward', 'Richardson', 'Watson',
-  'Brooks', 'Chavez', 'Wood', 'James', 'Bennett', 'Gray', 'Mendoza', 'Ruiz',
-  'Hughes', 'Price', 'Alvarez', 'Castillo', 'Sanders', 'Patel', 'Myers', 'Long',
-  'Ross', 'Foster', 'Jimenez', 'Powell', 'Jenkins', 'Perry', 'Russell', 'Sullivan',
+  "Smith",
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Garcia",
+  "Miller",
+  "Davis",
+  "Rodriguez",
+  "Martinez",
+  "Hernandez",
+  "Lopez",
+  "Gonzalez",
+  "Wilson",
+  "Anderson",
+  "Thomas",
+  "Taylor",
+  "Moore",
+  "Jackson",
+  "Martin",
+  "Lee",
+  "Perez",
+  "Thompson",
+  "White",
+  "Harris",
+  "Sanchez",
+  "Clark",
+  "Ramirez",
+  "Lewis",
+  "Robinson",
+  "Walker",
+  "Young",
+  "Allen",
+  "King",
+  "Wright",
+  "Scott",
+  "Torres",
+  "Nguyen",
+  "Hill",
+  "Flores",
+  "Green",
+  "Adams",
+  "Nelson",
+  "Baker",
+  "Hall",
+  "Rivera",
+  "Campbell",
+  "Mitchell",
+  "Carter",
+  "Roberts",
+  "Gomez",
+  "Phillips",
+  "Evans",
+  "Turner",
+  "Diaz",
+  "Parker",
+  "Cruz",
+  "Edwards",
+  "Collins",
+  "Reyes",
+  "Stewart",
+  "Morris",
+  "Morales",
+  "Murphy",
+  "Cook",
+  "Rogers",
+  "Gutierrez",
+  "Ortiz",
+  "Morgan",
+  "Cooper",
+  "Peterson",
+  "Bailey",
+  "Reed",
+  "Kelly",
+  "Howard",
+  "Ramos",
+  "Kim",
+  "Cox",
+  "Ward",
+  "Richardson",
+  "Watson",
+  "Brooks",
+  "Chavez",
+  "Wood",
+  "James",
+  "Bennett",
+  "Gray",
+  "Mendoza",
+  "Ruiz",
+  "Hughes",
+  "Price",
+  "Alvarez",
+  "Castillo",
+  "Sanders",
+  "Patel",
+  "Myers",
+  "Long",
+  "Ross",
+  "Foster",
+  "Jimenez",
+  "Powell",
+  "Jenkins",
+  "Perry",
+  "Russell",
+  "Sullivan",
 ];
 
 // ── Company Name Components ──────────────────────────────────────────────────
 
 const COMPANY_PREFIXES = {
-  fintech: ['Pay', 'Fin', 'Lend', 'Vault', 'Ledger', 'Coin', 'Swift', 'Clear'],
-  banking: ['Trust', 'Capital', 'Mercantile', 'Union', 'Federal', 'Heritage', 'Pioneer', 'Sterling'],
-  insurance: ['Shield', 'Guardian', 'Safe', 'Mutual', 'Assure', 'Sentinel', 'Pillar', 'Haven'],
-  healthcare: ['Med', 'Care', 'Health', 'Vital', 'Bio', 'Therapy', 'Wellness', 'Cure'],
-  pharmaceutical: ['Pharma', 'Bio', 'Thera', 'Gen', 'Nova', 'Celsus', 'Vax', 'Mereo'],
-  technology: ['Nex', 'Cyber', 'Quantum', 'Data', 'Cloud', 'Byte', 'Logic', 'Apex'],
-  telecommunications: ['Tele', 'Signal', 'Connect', 'Wave', 'Link', 'Pulse', 'Band', 'Stream'],
-  energy: ['Power', 'Energy', 'Grid', 'Solar', 'Volt', 'Flux', 'Atlas', 'Terra'],
-  manufacturing: ['Iron', 'Forge', 'Industrial', 'Precision', 'Craft', 'Works', 'Titan', 'Vanguard'],
-  'government contractor': ['Defense', 'Aerospace', 'Systems', 'Federal', 'Strategic', 'Allied', 'Sentinel', 'Liberty'],
-  aerospace: ['Aero', 'Orbit', 'Jet', 'Stellar', 'Apex', 'Vector', 'Nova', 'Horizon'],
-  automotive: ['Auto', 'Motor', 'Drive', 'Velocity', 'Gear', 'Motive', 'Precision', 'Apex'],
+  fintech: ["Pay", "Fin", "Lend", "Vault", "Ledger", "Coin", "Swift", "Clear"],
+  banking: [
+    "Trust",
+    "Capital",
+    "Mercantile",
+    "Union",
+    "Federal",
+    "Heritage",
+    "Pioneer",
+    "Sterling",
+  ],
+  insurance: [
+    "Shield",
+    "Guardian",
+    "Safe",
+    "Mutual",
+    "Assure",
+    "Sentinel",
+    "Pillar",
+    "Haven",
+  ],
+  healthcare: [
+    "Med",
+    "Care",
+    "Health",
+    "Vital",
+    "Bio",
+    "Therapy",
+    "Wellness",
+    "Cure",
+  ],
+  pharmaceutical: [
+    "Pharma",
+    "Bio",
+    "Thera",
+    "Gen",
+    "Nova",
+    "Celsus",
+    "Vax",
+    "Mereo",
+  ],
+  technology: [
+    "Nex",
+    "Cyber",
+    "Quantum",
+    "Data",
+    "Cloud",
+    "Byte",
+    "Logic",
+    "Apex",
+  ],
+  telecommunications: [
+    "Tele",
+    "Signal",
+    "Connect",
+    "Wave",
+    "Link",
+    "Pulse",
+    "Band",
+    "Stream",
+  ],
+  energy: [
+    "Power",
+    "Energy",
+    "Grid",
+    "Solar",
+    "Volt",
+    "Flux",
+    "Atlas",
+    "Terra",
+  ],
+  manufacturing: [
+    "Iron",
+    "Forge",
+    "Industrial",
+    "Precision",
+    "Craft",
+    "Works",
+    "Titan",
+    "Vanguard",
+  ],
+  "government contractor": [
+    "Defense",
+    "Aerospace",
+    "Systems",
+    "Federal",
+    "Strategic",
+    "Allied",
+    "Sentinel",
+    "Liberty",
+  ],
+  aerospace: [
+    "Aero",
+    "Orbit",
+    "Jet",
+    "Stellar",
+    "Apex",
+    "Vector",
+    "Nova",
+    "Horizon",
+  ],
+  automotive: [
+    "Auto",
+    "Motor",
+    "Drive",
+    "Velocity",
+    "Gear",
+    "Motive",
+    "Precision",
+    "Apex",
+  ],
 };
 
-const COMPANY_SUFFIXES = ['Systems', 'Corp', 'Group', 'Labs', 'Partners', 'Holdings', 'Solutions', 'Technologies', 'Industries', 'Networks'];
+const COMPANY_SUFFIXES = [
+  "Systems",
+  "Corp",
+  "Group",
+  "Labs",
+  "Partners",
+  "Holdings",
+  "Solutions",
+  "Technologies",
+  "Industries",
+  "Networks",
+];
 
-const CI_CD_PLATFORMS = ['azure-devops', 'github-actions', 'gitlab-ci', 'unknown'];
+const CI_CD_PLATFORMS = [
+  "azure-devops",
+  "github-actions",
+  "gitlab-ci",
+  "unknown",
+];
 
-const PROSPECT_STATUSES = ['new', 'qualified', 'contacted', 'replied', 'meeting', 'pilot', 'closed', 'disqualified'];
+const PROSPECT_STATUSES = [
+  "new",
+  "qualified",
+  "contacted",
+  "replied",
+  "meeting",
+  "pilot",
+  "closed",
+  "disqualified",
+];
 
 // ── Seeded PRNG (mulberry32) ─────────────────────────────────────────────────
 
@@ -94,7 +397,7 @@ function createPrng(seed) {
   let a = seed >>> 0;
   return function () {
     a |= 0;
-    a = (a + 0x6D2B79F5) | 0;
+    a = (a + 0x6d2b79f5) | 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -192,7 +495,7 @@ function generateRevenue(rand) {
  * @returns {string} Company name.
  */
 function generateCompanyName(sector, rand) {
-  const prefixes = COMPANY_PREFIXES[sector] || ['Acme'];
+  const prefixes = COMPANY_PREFIXES[sector] || ["Acme"];
   const prefix = pick(prefixes, rand);
   const suffix = pick(COMPANY_SUFFIXES, rand);
   return `${prefix}${suffix}`;
@@ -205,7 +508,7 @@ function generateCompanyName(sector, rand) {
  * @returns {string} Lowercased domain with no spaces.
  */
 function deriveDomain(company) {
-  return company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+  return company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
 }
 
 /**
@@ -220,19 +523,19 @@ function determineStatus(prospect, rand) {
   if (isQualified(prospect)) {
     // Qualified: mostly 'qualified', some progressed further.
     const roll = rand();
-    if (roll < 0.55) return 'qualified';
-    if (roll < 0.70) return 'contacted';
-    if (roll < 0.80) return 'replied';
-    if (roll < 0.88) return 'meeting';
-    if (roll < 0.93) return 'pilot';
-    if (roll < 0.98) return 'closed';
-    return 'new';
+    if (roll < 0.55) return "qualified";
+    if (roll < 0.7) return "contacted";
+    if (roll < 0.8) return "replied";
+    if (roll < 0.88) return "meeting";
+    if (roll < 0.93) return "pilot";
+    if (roll < 0.98) return "closed";
+    return "new";
   }
   // Unqualified: mostly 'new', a few disqualified.
   const roll = rand();
-  if (roll < 0.85) return 'new';
-  if (roll < 0.95) return 'contacted';
-  return 'disqualified';
+  if (roll < 0.85) return "new";
+  if (roll < 0.95) return "contacted";
+  return "disqualified";
 }
 
 /**
@@ -249,7 +552,7 @@ function generateMockProspect(options) {
   const rand = opts.rand || Math.random;
   const sectors = QUALIFICATION_CRITERIA.targetSectors;
   const sector = opts.sector || pick(sectors, rand);
-  const personaId = opts.persona || pick(['CLO', 'CCO', 'CRO'], rand);
+  const personaId = opts.persona || pick(["CLO", "CCO", "CRO"], rand);
   const persona = PERSONAS[personaId];
   const title = pick(persona.titles, rand);
 
@@ -285,7 +588,7 @@ function generateMockProspect(options) {
     hasRegulatoryExposure,
     ciCdPlatform,
     qualificationScore: 0,
-    status: 'new',
+    status: "new",
     createdAt: now,
     updatedAt: now,
   };
@@ -308,7 +611,7 @@ function generateMockProspects(count, options) {
   const opts = options || {};
   const rand = opts.rand || Math.random;
   const sectors = QUALIFICATION_CRITERIA.targetSectors;
-  const personas = ['CLO', 'CCO', 'CRO'];
+  const personas = ["CLO", "CCO", "CRO"];
 
   // Distribute personas roughly evenly: ~17/17/16 for count=50.
   const personaCounts = { CLO: 0, CCO: 0, CRO: 0 };
@@ -354,11 +657,12 @@ function generateMockProspects(count, options) {
 function seedDatabase(options) {
   const opts = options || {};
   const count = parseInt(opts.count, 10) || 50;
-  const output = opts.output || path.join(__dirname, 'prospects.json');
+  const output = opts.output || path.join(__dirname, "prospects.json");
 
   let rand = Math.random;
   if (opts.seed !== undefined) {
-    const seedNum = typeof opts.seed === 'number' ? opts.seed : hashSeed(String(opts.seed));
+    const seedNum =
+      typeof opts.seed === "number" ? opts.seed : hashSeed(String(opts.seed));
     rand = createPrng(seedNum);
   }
 
@@ -368,7 +672,9 @@ function seedDatabase(options) {
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log(`[seed-leads] Generated ${result.totalProspects} prospects`);
   console.log(`[seed-leads] Qualified: ${result.qualified}`);
-  console.log(`[seed-leads] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`);
+  console.log(
+    `[seed-leads] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`,
+  );
   console.log(`[seed-leads] By sector:`);
   for (const [sector, n] of Object.entries(result.bySector).sort()) {
     console.log(`  ${sector}: ${n}`);
@@ -390,18 +696,18 @@ function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg.startsWith('--')) {
+    if (arg.startsWith("--")) {
       const key = arg.slice(2);
-      if (arg.includes('=')) {
-        const eqIdx = arg.indexOf('=');
+      if (arg.includes("=")) {
+        const eqIdx = arg.indexOf("=");
         args[arg.slice(2, eqIdx)] = arg.slice(eqIdx + 1);
       } else {
         const next = argv[i + 1];
-        if (next && !next.startsWith('--')) {
+        if (next && !next.startsWith("--")) {
           args[key] = next;
           i++;
         } else {
-          args[key] = 'true';
+          args[key] = "true";
         }
       }
     }

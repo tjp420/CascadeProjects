@@ -1,22 +1,26 @@
-'use strict';
+"use strict";
 
 /**
  * Track 34 Phase 7: Implicit outbound transport signing tests.
  */
-const crypto = require('crypto');
-const { ClusterConsensusEngine, NODE_STATE, CONSENSUS_EVENT } = require('../cluster-consensus-engine.cjs');
+const crypto = require("crypto");
+const {
+  ClusterConsensusEngine,
+  NODE_STATE,
+  CONSENSUS_EVENT,
+} = require("../cluster-consensus-engine.cjs");
 
 function generateKeyPair() {
-  return crypto.generateKeyPairSync('ed25519');
+  return crypto.generateKeyPairSync("ed25519");
 }
 
-describe('Track 34 Phase 7 implicit signing — startElection', () => {
-  test('requestVote callback receives signed envelope with signature/nonce/timestamp', async () => {
+describe("Track 34 Phase 7 implicit signing — startElection", () => {
+  test("requestVote callback receives signed envelope with signature/nonce/timestamp", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     let receivedEnvelope = null;
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       requestVote: async (targetId, envelope) => {
         receivedEnvelope = envelope;
@@ -27,20 +31,20 @@ describe('Track 34 Phase 7 implicit signing — startElection', () => {
     await engine.startElection();
 
     expect(receivedEnvelope).not.toBeNull();
-    expect(typeof receivedEnvelope.signature).toBe('string');
-    expect(typeof receivedEnvelope.nonce).toBe('number');
-    expect(typeof receivedEnvelope.timestamp).toBe('number');
+    expect(typeof receivedEnvelope.signature).toBe("string");
+    expect(typeof receivedEnvelope.nonce).toBe("number");
+    expect(typeof receivedEnvelope.timestamp).toBe("number");
     expect(receivedEnvelope.term).toBe(engine.getState().term);
-    expect(receivedEnvelope.candidateId).toBe('node-a');
+    expect(receivedEnvelope.candidateId).toBe("node-a");
 
     engine.stop();
   });
 
-  test('requestVote callback receives unsigned payload when no signing key configured', async () => {
+  test("requestVote callback receives unsigned payload when no signing key configured", async () => {
     let receivedEnvelope = null;
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       requestVote: async (targetId, envelope) => {
         receivedEnvelope = envelope;
         return true;
@@ -56,12 +60,12 @@ describe('Track 34 Phase 7 implicit signing — startElection', () => {
     engine.stop();
   });
 
-  test('requestVote callback receives unsigned payload when autoSignOutbound is false', async () => {
+  test("requestVote callback receives unsigned payload when autoSignOutbound is false", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     let receivedEnvelope = null;
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       autoSignOutbound: false,
       requestVote: async (targetId, envelope) => {
@@ -78,12 +82,12 @@ describe('Track 34 Phase 7 implicit signing — startElection', () => {
     engine.stop();
   });
 
-  test('OUTBOUND_SIGNED audit event emitted during election', async () => {
+  test("OUTBOUND_SIGNED audit event emitted during election", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     const events = [];
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       audit: (event, info) => events.push({ event, info }),
       requestVote: async () => true,
@@ -91,19 +95,21 @@ describe('Track 34 Phase 7 implicit signing — startElection', () => {
     engine.start();
     await engine.startElection();
 
-    expect(events.some((e) => e.event === CONSENSUS_EVENT.OUTBOUND_SIGNED)).toBe(true);
+    expect(
+      events.some((e) => e.event === CONSENSUS_EVENT.OUTBOUND_SIGNED),
+    ).toBe(true);
 
     engine.stop();
   });
 });
 
-describe('Track 34 Phase 7 implicit signing — sendHeartbeats', () => {
-  test('sendHeartbeat callback receives signed envelope', async () => {
+describe("Track 34 Phase 7 implicit signing — sendHeartbeats", () => {
+  test("sendHeartbeat callback receives signed envelope", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     const receivedEnvelopes = [];
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       sendHeartbeat: async (targetId, envelope) => {
         receivedEnvelopes.push({ targetId, envelope });
@@ -116,20 +122,20 @@ describe('Track 34 Phase 7 implicit signing — sendHeartbeats', () => {
 
     expect(receivedEnvelopes.length).toBe(2);
     for (const { envelope } of receivedEnvelopes) {
-      expect(typeof envelope.signature).toBe('string');
-      expect(typeof envelope.nonce).toBe('number');
-      expect(typeof envelope.timestamp).toBe('number');
-      expect(envelope.leaderId).toBe('node-a');
+      expect(typeof envelope.signature).toBe("string");
+      expect(typeof envelope.nonce).toBe("number");
+      expect(typeof envelope.timestamp).toBe("number");
+      expect(envelope.leaderId).toBe("node-a");
     }
 
     engine.stop();
   });
 
-  test('sendHeartbeat callback receives unsigned payload when no signing key', async () => {
+  test("sendHeartbeat callback receives unsigned payload when no signing key", async () => {
     const receivedEnvelopes = [];
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       sendHeartbeat: async (targetId, envelope) => {
         receivedEnvelopes.push({ targetId, envelope });
         return true;
@@ -147,12 +153,12 @@ describe('Track 34 Phase 7 implicit signing — sendHeartbeats', () => {
     engine.stop();
   });
 
-  test('heartbeat envelopes have incrementing nonces', async () => {
+  test("heartbeat envelopes have incrementing nonces", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     const receivedEnvelopes = [];
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       sendHeartbeat: async (targetId, envelope) => {
         receivedEnvelopes.push(envelope);
@@ -164,19 +170,21 @@ describe('Track 34 Phase 7 implicit signing — sendHeartbeats', () => {
     await engine.sendHeartbeats();
 
     expect(receivedEnvelopes.length).toBe(2);
-    expect(receivedEnvelopes[1].nonce).toBeGreaterThan(receivedEnvelopes[0].nonce);
+    expect(receivedEnvelopes[1].nonce).toBeGreaterThan(
+      receivedEnvelopes[0].nonce,
+    );
 
     engine.stop();
   });
 });
 
-describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
-  test('replicateLog callback receives signed envelope with entries', async () => {
+describe("Track 34 Phase 7 implicit signing — appendAndReplicate", () => {
+  test("replicateLog callback receives signed envelope with entries", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     let receivedEnvelope = null;
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       replicateLog: async (targetId, envelope) => {
         receivedEnvelope = envelope;
@@ -185,25 +193,25 @@ describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
     });
     engine.start();
     await engine.startElection();
-    await engine.appendAndReplicate({ operation: 'test' });
+    await engine.appendAndReplicate({ operation: "test" });
 
     expect(receivedEnvelope).not.toBeNull();
-    expect(typeof receivedEnvelope.signature).toBe('string');
-    expect(typeof receivedEnvelope.nonce).toBe('number');
-    expect(typeof receivedEnvelope.timestamp).toBe('number');
+    expect(typeof receivedEnvelope.signature).toBe("string");
+    expect(typeof receivedEnvelope.nonce).toBe("number");
+    expect(typeof receivedEnvelope.timestamp).toBe("number");
     expect(Array.isArray(receivedEnvelope.entries)).toBe(true);
     expect(receivedEnvelope.entries.length).toBe(1);
-    expect(receivedEnvelope.leaderId).toBe('node-a');
+    expect(receivedEnvelope.leaderId).toBe("node-a");
 
     engine.stop();
   });
 
-  test('replicateLog callback receives unsigned payload when autoSignOutbound is false', async () => {
+  test("replicateLog callback receives unsigned payload when autoSignOutbound is false", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     let receivedEnvelope = null;
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       autoSignOutbound: false,
       replicateLog: async (targetId, envelope) => {
@@ -213,7 +221,7 @@ describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
     });
     engine.start();
     await engine.startElection();
-    await engine.appendAndReplicate({ operation: 'test' });
+    await engine.appendAndReplicate({ operation: "test" });
 
     expect(receivedEnvelope).not.toBeNull();
     expect(receivedEnvelope.signature).toBeUndefined();
@@ -222,13 +230,16 @@ describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
     engine.stop();
   });
 
-  test('replicateLog signed envelope can be verified by follower', async () => {
+  test("replicateLog signed envelope can be verified by follower", async () => {
     const leaderKeys = generateKeyPair();
     let capturedEnvelope = null;
     const leader = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      signingKeyPair: { privateKey: leaderKeys.privateKey, publicKey: leaderKeys.publicKey },
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      signingKeyPair: {
+        privateKey: leaderKeys.privateKey,
+        publicKey: leaderKeys.publicKey,
+      },
       replicateLog: async (targetId, envelope) => {
         capturedEnvelope = envelope;
         return true;
@@ -236,13 +247,13 @@ describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
     });
     leader.start();
     await leader.startElection();
-    await leader.appendAndReplicate({ operation: 'test' });
+    await leader.appendAndReplicate({ operation: "test" });
 
     // Now verify the captured envelope as a follower would
     const follower = new ClusterConsensusEngine({
-      nodeId: 'node-b',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      peerPublicKeys: new Map([['node-a', leaderKeys.publicKey]]),
+      nodeId: "node-b",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      peerPublicKeys: new Map([["node-a", leaderKeys.publicKey]]),
       requireRpcSigning: true,
       replayWindowMs: 60000,
     });
@@ -255,16 +266,19 @@ describe('Track 34 Phase 7 implicit signing — appendAndReplicate', () => {
   });
 });
 
-describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => {
-  test('full election cycle with implicit signing — follower verifies leader frames', async () => {
+describe("Track 34 Phase 7 implicit signing — end-to-end verification", () => {
+  test("full election cycle with implicit signing — follower verifies leader frames", async () => {
     const leaderKeys = generateKeyPair();
     let voteEnvelope = null;
     let heartbeatEnvelope = null;
 
     const leader = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      signingKeyPair: { privateKey: leaderKeys.privateKey, publicKey: leaderKeys.publicKey },
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      signingKeyPair: {
+        privateKey: leaderKeys.privateKey,
+        publicKey: leaderKeys.publicKey,
+      },
       requestVote: async (targetId, envelope) => {
         voteEnvelope = envelope;
         return true;
@@ -288,9 +302,9 @@ describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => 
 
     // A follower with the leader's public key should verify both
     const follower = new ClusterConsensusEngine({
-      nodeId: 'node-b',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      peerPublicKeys: new Map([['node-a', leaderKeys.publicKey]]),
+      nodeId: "node-b",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      peerPublicKeys: new Map([["node-a", leaderKeys.publicKey]]),
       requireRpcSigning: true,
       replayWindowMs: 60000,
     });
@@ -308,14 +322,17 @@ describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => 
     follower.stop();
   });
 
-  test('follower rejects implicitly signed frame from wrong key', async () => {
+  test("follower rejects implicitly signed frame from wrong key", async () => {
     const leaderKeys = generateKeyPair();
     const attackerKeys = generateKeyPair();
 
     const leader = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      signingKeyPair: { privateKey: attackerKeys.privateKey, publicKey: attackerKeys.publicKey },
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      signingKeyPair: {
+        privateKey: attackerKeys.privateKey,
+        publicKey: attackerKeys.publicKey,
+      },
       replicateLog: async (targetId, envelope) => true,
     });
     leader.start();
@@ -324,9 +341,12 @@ describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => 
     // Follower expects leader's key to be leaderKeys, but leader signed with attackerKeys
     let capturedEnvelope = null;
     const leader2 = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      signingKeyPair: { privateKey: leaderKeys.privateKey, publicKey: leaderKeys.publicKey },
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      signingKeyPair: {
+        privateKey: leaderKeys.privateKey,
+        publicKey: leaderKeys.publicKey,
+      },
       replicateLog: async (targetId, envelope) => {
         capturedEnvelope = envelope;
         return true;
@@ -334,13 +354,13 @@ describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => 
     });
     leader2.start();
     await leader2.startElection();
-    await leader2.appendAndReplicate({ operation: 'test' });
+    await leader2.appendAndReplicate({ operation: "test" });
 
     // Follower has leaderKeys registered, but the envelope was signed by leader2 (correctly)
     const follower = new ClusterConsensusEngine({
-      nodeId: 'node-b',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      peerPublicKeys: new Map([['node-a', leaderKeys.publicKey]]),
+      nodeId: "node-b",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      peerPublicKeys: new Map([["node-a", leaderKeys.publicKey]]),
       requireRpcSigning: true,
       replayWindowMs: 60000,
     });
@@ -354,14 +374,14 @@ describe('Track 34 Phase 7 implicit signing — end-to-end verification', () => 
   });
 });
 
-describe('Track 34 Phase 7 implicit signing — Prometheus metrics', () => {
-  test('outbound signed counter increments during election', async () => {
-    const metrics = require('../hsm-metrics.cjs');
+describe("Track 34 Phase 7 implicit signing — Prometheus metrics", () => {
+  test("outbound signed counter increments during election", async () => {
+    const metrics = require("../hsm-metrics.cjs");
     metrics.reset();
     const { privateKey, publicKey } = generateKeyPair();
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       requestVote: async () => true,
     });
@@ -374,13 +394,13 @@ describe('Track 34 Phase 7 implicit signing — Prometheus metrics', () => {
     engine.stop();
   });
 
-  test('outbound signed counter increments during heartbeat', async () => {
-    const metrics = require('../hsm-metrics.cjs');
+  test("outbound signed counter increments during heartbeat", async () => {
+    const metrics = require("../hsm-metrics.cjs");
     metrics.reset();
     const { privateKey, publicKey } = generateKeyPair();
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       sendHeartbeat: async () => true,
     });
@@ -394,19 +414,19 @@ describe('Track 34 Phase 7 implicit signing — Prometheus metrics', () => {
     engine.stop();
   });
 
-  test('outbound signed counter increments during replication', async () => {
-    const metrics = require('../hsm-metrics.cjs');
+  test("outbound signed counter increments during replication", async () => {
+    const metrics = require("../hsm-metrics.cjs");
     metrics.reset();
     const { privateKey, publicKey } = generateKeyPair();
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       replicateLog: async () => true,
     });
     engine.start();
     await engine.startElection();
-    await engine.appendAndReplicate({ operation: 'test' });
+    await engine.appendAndReplicate({ operation: "test" });
 
     const m = metrics.getMetrics();
     expect(m.hsm_consensus_outbound_signed_total).toBeGreaterThan(0);
@@ -414,13 +434,13 @@ describe('Track 34 Phase 7 implicit signing — Prometheus metrics', () => {
     engine.stop();
   });
 
-  test('no outbound signed counter when autoSignOutbound is false', async () => {
-    const metrics = require('../hsm-metrics.cjs');
+  test("no outbound signed counter when autoSignOutbound is false", async () => {
+    const metrics = require("../hsm-metrics.cjs");
     metrics.reset();
     const { privateKey, publicKey } = generateKeyPair();
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
       signingKeyPair: { privateKey, publicKey },
       autoSignOutbound: false,
       requestVote: async () => true,
@@ -435,23 +455,32 @@ describe('Track 34 Phase 7 implicit signing — Prometheus metrics', () => {
   });
 });
 
-describe('Track 34 Phase 7 implicit signing — backward compatibility', () => {
-  test('callbacks still work when no signing key and autoSignOutbound is true', async () => {
+describe("Track 34 Phase 7 implicit signing — backward compatibility", () => {
+  test("callbacks still work when no signing key and autoSignOutbound is true", async () => {
     let voteCalled = false;
     let heartbeatCalled = false;
     let replicateCalled = false;
 
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
-      requestVote: async () => { voteCalled = true; return true; },
-      sendHeartbeat: async () => { heartbeatCalled = true; return true; },
-      replicateLog: async () => { replicateCalled = true; return true; },
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
+      requestVote: async () => {
+        voteCalled = true;
+        return true;
+      },
+      sendHeartbeat: async () => {
+        heartbeatCalled = true;
+        return true;
+      },
+      replicateLog: async () => {
+        replicateCalled = true;
+        return true;
+      },
     });
     engine.start();
     await engine.startElection();
     await engine.sendHeartbeats();
-    await engine.appendAndReplicate({ operation: 'test' });
+    await engine.appendAndReplicate({ operation: "test" });
 
     expect(voteCalled).toBe(true);
     expect(heartbeatCalled).toBe(true);
@@ -460,16 +489,16 @@ describe('Track 34 Phase 7 implicit signing — backward compatibility', () => {
     engine.stop();
   });
 
-  test('existing tests with no callbacks still work (no signing key)', async () => {
+  test("existing tests with no callbacks still work (no signing key)", async () => {
     const engine = new ClusterConsensusEngine({
-      nodeId: 'node-a',
-      clusterNodes: ['node-a', 'node-b', 'node-c'],
+      nodeId: "node-a",
+      clusterNodes: ["node-a", "node-b", "node-c"],
     });
     engine.start();
     await engine.startElection();
     expect(engine.getState().state).toBe(NODE_STATE.LEADER);
 
-    const result = await engine.appendAndReplicate({ operation: 'test' });
+    const result = await engine.appendAndReplicate({ operation: "test" });
     expect(result.committed).toBe(true);
 
     engine.stop();

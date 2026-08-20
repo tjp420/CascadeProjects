@@ -4,15 +4,16 @@
  * @module simplebeacon-subscription-store
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const logger = require('../../src/lib/app-logger.cjs');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const logger = require("../../src/lib/app-logger.cjs");
 
-const constants = require('../config/constants.cjs');
-const PROJECT_ROOT = path.join(__dirname, '../..');
-const STORE_PATH = process.env.SIMPLEBEACON_SUBSCRIPTION_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'subscriptions.json');
+const constants = require("../config/constants.cjs");
+const PROJECT_ROOT = path.join(__dirname, "../..");
+const STORE_PATH =
+  process.env.SIMPLEBEACON_SUBSCRIPTION_STORE ||
+  path.join(PROJECT_ROOT, ".simplebeacon", "subscriptions.json");
 const PAID_API_LIMIT = Number(process.env.SIMPLEBEACON_PAID_API_LIMIT || 100);
 const PAID_PERIOD_MS = 30 * 24 * 60 * constants.ONE_MINUTE_MS;
 
@@ -20,7 +21,7 @@ const PAID_PERIOD_MS = 30 * 24 * 60 * constants.ONE_MINUTE_MS;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** API token prefix. */
-const TOKEN_PREFIX = 'sb_';
+const TOKEN_PREFIX = "sb_";
 /** API token hex length after prefix. */
 const TOKEN_HEX_LEN = 48;
 /** Full API token length including prefix. */
@@ -42,7 +43,7 @@ const SCAN_QUOTA_MAP = {
   enterprise: Infinity,
   free: Infinity,
   pro: 2500,
-  team: 10000
+  team: 10000,
 };
 
 /**
@@ -92,10 +93,10 @@ const SCAN_QUOTA_MAP = {
  * @returns {boolean}
  */
 function isMonetizationEnabled() {
-  if (process.env.SIMPLEBEACON_MONETIZATION_ENABLED === 'false') {
+  if (process.env.SIMPLEBEACON_MONETIZATION_ENABLED === "false") {
     return false;
   }
-  if (process.env.SIMPLEBEACON_MONETIZATION_ENABLED === 'true') {
+  if (process.env.SIMPLEBEACON_MONETIZATION_ENABLED === "true") {
     return true;
   }
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
@@ -128,11 +129,11 @@ async function readStore() {
     return _cache;
   }
   try {
-    const raw = await fs.promises.readFile(STORE_PATH, 'utf8');
+    const raw = await fs.promises.readFile(STORE_PATH, "utf8");
     const parsed = JSON.parse(raw);
     _cache = {
       subscriptions: parsed.subscriptions || {},
-      byApiToken: parsed.byApiToken || {}
+      byApiToken: parsed.byApiToken || {},
     };
     _cacheDirty = false;
     return _cache;
@@ -179,12 +180,12 @@ async function _doWrite(store) {
   const json = `${JSON.stringify(store, null, 2)}\n`;
   const tmpPath = `${STORE_PATH}.tmp.${Date.now()}`;
   try {
-    await fs.promises.writeFile(tmpPath, json, 'utf8');
+    await fs.promises.writeFile(tmpPath, json, "utf8");
     await fs.promises.rename(tmpPath, STORE_PATH);
   } catch (err) {
     // On Windows the target may be locked; fall back to direct overwrite
-    if (err.code === 'EPERM') {
-      await fs.promises.writeFile(STORE_PATH, json, 'utf8');
+    if (err.code === "EPERM") {
+      await fs.promises.writeFile(STORE_PATH, json, "utf8");
     } else {
       throw err;
     }
@@ -206,8 +207,10 @@ async function _doWrite(store) {
  * @returns {string} Normalized email or empty string if invalid.
  */
 function normalizeEmail(email) {
-  const s = String(email || '').trim().toLowerCase();
-  if (!s || !EMAIL_RE.test(s)) return '';
+  const s = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!s || !EMAIL_RE.test(s)) return "";
   return s;
 }
 
@@ -216,7 +219,7 @@ function normalizeEmail(email) {
  * @returns {string}
  */
 function createApiToken() {
-  return `${TOKEN_PREFIX}${crypto.randomBytes(TOKEN_HEX_LEN / 2).toString('hex')}`;
+  return `${TOKEN_PREFIX}${crypto.randomBytes(TOKEN_HEX_LEN / 2).toString("hex")}`;
 }
 
 /**
@@ -225,9 +228,11 @@ function createApiToken() {
  * @returns {boolean}
  */
 function isValidApiTokenFormat(token) {
-  return typeof token === 'string'
-    && token.startsWith(TOKEN_PREFIX)
-    && token.length === TOKEN_FULL_LEN;
+  return (
+    typeof token === "string" &&
+    token.startsWith(TOKEN_PREFIX) &&
+    token.length === TOKEN_FULL_LEN
+  );
 }
 
 /**
@@ -244,12 +249,12 @@ function subscriptionRecord(email, overrides = {}) {
     stripeCustomerId: null,
     subscriptionId: null,
     product: null,
-    tier: 'developer',
+    tier: "developer",
     apiToken: createApiToken(),
     apiCallsThisPeriod: 0,
     scansThisPeriod: 0,
     scanQuota: SCAN_QUOTA_MAP.developer,
-    scanType: 'local',
+    scanType: "local",
     periodStart: now,
     updatedAt: now,
     licenseToken: null,
@@ -258,13 +263,13 @@ function subscriptionRecord(email, overrides = {}) {
     complianceCertLimit: 0,
     certClientName: null,
     certProjectName: null,
-    certMilestone: 'release',
-    certOrgId: 'default',
+    certMilestone: "release",
+    certOrgId: "default",
     customConfigEnabled: false,
     allowlistEnabled: false,
     seatCount: 1,
     extraSeats: 0,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -303,16 +308,17 @@ async function getSubscriptionByApiToken(token) {
 async function upsertSubscription(email, patch = {}) {
   const normalized = normalizeEmail(email);
   if (!normalized) {
-    throw new Error('Email is required and must be a valid email address');
+    throw new Error("Email is required and must be a valid email address");
   }
 
   const store = await readStore();
-  const existing = store.subscriptions[normalized] || subscriptionRecord(normalized);
+  const existing =
+    store.subscriptions[normalized] || subscriptionRecord(normalized);
   const next = {
     ...existing,
     email: normalized,
     ...patch,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   if (existing.apiToken && existing.apiToken !== next.apiToken) {
@@ -338,7 +344,7 @@ async function upsertSubscription(email, patch = {}) {
 async function setSubscriptionActive(email, active, stripeFields = {}) {
   return upsertSubscription(email, {
     subscriptionActive: Boolean(active),
-    ...stripeFields
+    ...stripeFields,
   });
 }
 
@@ -355,7 +361,7 @@ function resetPeriodIfNeeded(record) {
       apiCallsThisPeriod: 0,
       scansThisPeriod: 0,
       complianceCertsThisPeriod: 0,
-      periodStart: new Date().toISOString()
+      periodStart: new Date().toISOString(),
     };
   }
   return record;
@@ -368,17 +374,17 @@ function resetPeriodIfNeeded(record) {
  */
 async function consumeApiCall(token) {
   if (!isValidApiTokenFormat(token)) {
-    return { allowed: false, reason: 'invalid_token' };
+    return { allowed: false, reason: "invalid_token" };
   }
   const store = await readStore();
   const email = store.byApiToken[token];
   if (!email) {
-    return { allowed: false, reason: 'invalid_token' };
+    return { allowed: false, reason: "invalid_token" };
   }
 
   let record = store.subscriptions[email];
   if (!record?.subscriptionActive) {
-    return { allowed: false, reason: 'subscription_inactive' };
+    return { allowed: false, reason: "subscription_inactive" };
   }
 
   record = resetPeriodIfNeeded(record);
@@ -387,10 +393,10 @@ async function consumeApiCall(token) {
     await writeStore(store);
     return {
       allowed: false,
-      reason: 'rate_limit',
+      reason: "rate_limit",
       limit: PAID_API_LIMIT,
       remaining: 0,
-      periodStart: record.periodStart
+      periodStart: record.periodStart,
     };
   }
 
@@ -403,7 +409,7 @@ async function consumeApiCall(token) {
     allowed: true,
     remaining: PAID_API_LIMIT - record.apiCallsThisPeriod,
     limit: PAID_API_LIMIT,
-    periodStart: record.periodStart
+    periodStart: record.periodStart,
   };
 }
 
@@ -413,9 +419,9 @@ async function consumeApiCall(token) {
  * @param {string} [scanType='local']
  * @returns {Promise<ConsumptionResult>}
  */
-async function consumeScan(email, scanType = 'local') {
+async function consumeScan(email, scanType = "local") {
   const normalized = normalizeEmail(email);
-  if (!normalized) return { allowed: false, reason: 'email_required' };
+  if (!normalized) return { allowed: false, reason: "email_required" };
 
   const store = await readStore();
   let record = store.subscriptions[normalized];
@@ -427,17 +433,17 @@ async function consumeScan(email, scanType = 'local') {
   record = resetPeriodIfNeeded(record);
   const quota = Number.isFinite(record.scanQuota)
     ? record.scanQuota
-    : (SCAN_QUOTA_MAP[record.tier] || SCAN_QUOTA_MAP.developer);
+    : SCAN_QUOTA_MAP[record.tier] || SCAN_QUOTA_MAP.developer;
 
   if (quota !== Infinity && record.scansThisPeriod >= quota) {
     store.subscriptions[normalized] = record;
     await writeStore(store);
     return {
       allowed: false,
-      reason: 'scan_quota_exceeded',
+      reason: "scan_quota_exceeded",
       limit: quota,
       remaining: 0,
-      periodStart: record.periodStart
+      periodStart: record.periodStart,
     };
   }
 
@@ -449,9 +455,12 @@ async function consumeScan(email, scanType = 'local') {
 
   return {
     allowed: true,
-    remaining: quota === Infinity ? Infinity : Math.max(0, quota - record.scansThisPeriod),
+    remaining:
+      quota === Infinity
+        ? Infinity
+        : Math.max(0, quota - record.scansThisPeriod),
     limit: quota,
-    periodStart: record.periodStart
+    periodStart: record.periodStart,
   };
 }
 
@@ -463,15 +472,15 @@ async function consumeScan(email, scanType = 'local') {
  */
 async function consumeComplianceCert(email) {
   const normalized = normalizeEmail(email);
-  if (!normalized) return { allowed: false, reason: 'email_required' };
+  if (!normalized) return { allowed: false, reason: "email_required" };
 
   const store = await readStore();
   let record = store.subscriptions[normalized];
   if (!record?.subscriptionActive) {
-    return { allowed: false, reason: 'subscription_inactive' };
+    return { allowed: false, reason: "subscription_inactive" };
   }
-  if (record.product !== 'continuous_shield') {
-    return { allowed: false, reason: 'tier_not_continuous_shield' };
+  if (record.product !== "continuous_shield") {
+    return { allowed: false, reason: "tier_not_continuous_shield" };
   }
 
   record = resetPeriodIfNeeded(record);
@@ -479,7 +488,13 @@ async function consumeComplianceCert(email) {
   if (record.complianceCertsThisPeriod >= limit) {
     store.subscriptions[normalized] = record;
     await writeStore(store);
-    return { allowed: false, reason: 'cert_limit_reached', limit, remaining: 0, periodStart: record.periodStart };
+    return {
+      allowed: false,
+      reason: "cert_limit_reached",
+      limit,
+      remaining: 0,
+      periodStart: record.periodStart,
+    };
   }
 
   record.complianceCertsThisPeriod += 1;
@@ -487,7 +502,12 @@ async function consumeComplianceCert(email) {
   store.subscriptions[normalized] = record;
   await writeStore(store);
 
-  return { allowed: true, remaining: limit - record.complianceCertsThisPeriod, limit, periodStart: record.periodStart };
+  return {
+    allowed: true,
+    remaining: limit - record.complianceCertsThisPeriod,
+    limit,
+    periodStart: record.periodStart,
+  };
 }
 
 /**
@@ -511,11 +531,11 @@ async function syncSubscriptionToDb(db, record) {
         record.subscriptionActive,
         record.stripeCustomerId,
         record.subscriptionId,
-        record.apiToken
-      ]
+        record.apiToken,
+      ],
     );
   } catch (error) {
-    logger.warn('[Simplebeacon billing] DB sync skipped:', error.message);
+    logger.warn("[Simplebeacon billing] DB sync skipped:", error.message);
   }
 }
 
@@ -527,9 +547,9 @@ async function syncSubscriptionToDb(db, record) {
 function publicSubscriptionStatus(record) {
   if (!record) {
     return {
-      tier: 'free',
+      tier: "free",
       subscriptionActive: false,
-      apiLimit: PAID_API_LIMIT
+      apiLimit: PAID_API_LIMIT,
     };
   }
 
@@ -537,30 +557,38 @@ function publicSubscriptionStatus(record) {
   const certLimit = reset.complianceCertLimit || 0;
   const scanQuota = Number.isFinite(reset.scanQuota)
     ? reset.scanQuota
-    : (SCAN_QUOTA_MAP[reset.tier] || SCAN_QUOTA_MAP.developer);
+    : SCAN_QUOTA_MAP[reset.tier] || SCAN_QUOTA_MAP.developer;
   return {
-    tier: reset.subscriptionActive ? (reset.product || reset.tier || 'paid') : 'free',
+    tier: reset.subscriptionActive
+      ? reset.product || reset.tier || "paid"
+      : "free",
     email: reset.email,
     subscriptionActive: Boolean(reset.subscriptionActive),
     apiToken: reset.subscriptionActive ? reset.apiToken : null,
     apiLimit: PAID_API_LIMIT,
     apiCallsThisPeriod: reset.apiCallsThisPeriod,
     apiRemaining: Math.max(0, PAID_API_LIMIT - reset.apiCallsThisPeriod),
-    scanQuota: scanQuota === Infinity ? 'unlimited' : scanQuota,
+    scanQuota: scanQuota === Infinity ? "unlimited" : scanQuota,
     scansThisPeriod: reset.scansThisPeriod || 0,
-    scansRemaining: scanQuota === Infinity ? 'unlimited' : Math.max(0, scanQuota - (reset.scansThisPeriod || 0)),
-    scanType: reset.scanType || 'local',
+    scansRemaining:
+      scanQuota === Infinity
+        ? "unlimited"
+        : Math.max(0, scanQuota - (reset.scansThisPeriod || 0)),
+    scanType: reset.scanType || "local",
     customConfigEnabled: Boolean(reset.customConfigEnabled),
     allowlistEnabled: Boolean(reset.allowlistEnabled),
     periodStart: reset.periodStart,
     product: reset.product || null,
     complianceCertLimit: certLimit,
     complianceCertsThisPeriod: reset.complianceCertsThisPeriod || 0,
-    complianceCertsRemaining: Math.max(0, certLimit - (reset.complianceCertsThisPeriod || 0)),
+    complianceCertsRemaining: Math.max(
+      0,
+      certLimit - (reset.complianceCertsThisPeriod || 0),
+    ),
     certClientName: reset.certClientName || null,
     certProjectName: reset.certProjectName || null,
-    certMilestone: reset.certMilestone || 'release',
-    certOrgId: reset.certOrgId || 'default'
+    certMilestone: reset.certMilestone || "release",
+    certOrgId: reset.certOrgId || "default",
   };
 }
 
@@ -587,5 +615,5 @@ module.exports = {
   createApiToken,
   isValidApiTokenFormat,
   subscriptionRecord,
-  resetPeriodIfNeeded
+  resetPeriodIfNeeded,
 };

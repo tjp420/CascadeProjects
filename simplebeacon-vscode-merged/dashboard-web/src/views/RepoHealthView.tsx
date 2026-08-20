@@ -2,7 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, RefreshCw, AlertCircle, FileCode, FolderTree, Gauge, Shield, FileText, Bug, Zap, Download } from 'lucide-react';
+import {
+  Package,
+  RefreshCw,
+  AlertCircle,
+  FileCode,
+  FolderTree,
+  Gauge,
+  Shield,
+  FileText,
+  Bug,
+  Zap,
+  Download,
+} from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders, waitForApiBase } from '@/config';
 
 type CategoryInfo = {
@@ -100,7 +112,15 @@ export function RepoHealthView() {
         } as Summary,
         categories: r.categories || [],
         repositoryInventory: inv || { projectRoot: '', totalFiles: 0, totalFolders: 0, profile: '' },
-        structureInsights: r.structureInsights || { summary: { sampledFiles: 0, byLanguage: {}, approximateFunctions: 0, approximateClasses: 0, tier: 'baseline' } },
+        structureInsights: r.structureInsights || {
+          summary: {
+            sampledFiles: 0,
+            byLanguage: {},
+            approximateFunctions: 0,
+            approximateClasses: 0,
+            tier: 'baseline',
+          },
+        },
         generatedAt: r.generatedAt || json.generatedAt || '',
       });
     } catch {
@@ -111,11 +131,17 @@ export function RepoHealthView() {
   }, [apiBase]);
 
   // simplebeacon-ignore: framework-practices
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const fmtDate = (s: string) => {
     if (!s) return '—';
-    try { return new Date(s).toLocaleString(); } catch { return s; }
+    try {
+      return new Date(s).toLocaleString();
+    } catch {
+      return s;
+    }
   };
 
   const handleExport = () => {
@@ -125,7 +151,10 @@ export function RepoHealthView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const root = (data.projectRoot || 'repository').replace(/[\/:\\\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    const root = (data.projectRoot || 'repository')
+      .replace(/[\/:\\\s]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60);
     const name = `repository-health-${root || 'repo'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
     a.download = name;
     document.body.appendChild(a);
@@ -191,9 +220,7 @@ export function RepoHealthView() {
   const s = data.summary;
   const inv = data.repositoryInventory;
   const si = data.structureInsights?.summary;
-  const topCategories = (data.categories || [])
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 12);
+  const topCategories = (data.categories || []).sort((a, b) => b.count - a.count).slice(0, 12);
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
@@ -212,7 +239,9 @@ export function RepoHealthView() {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-foreground-muted">{data.projectRoot} — {fmtDate(data.generatedAt)}</p>
+        <p className="text-xs text-foreground-muted">
+          {data.projectRoot} — {fmtDate(data.generatedAt)}
+        </p>
       </div>
 
       {/* Health Score & Key Metrics */}
@@ -239,7 +268,9 @@ export function RepoHealthView() {
               <FolderTree className="h-8 w-8 text-purple-500" />
               <div>
                 <div className="text-xs text-foreground-muted">Folders</div>
-                <div className="font-semibold">{(inv.totalFolders || s.repositoryFoldersTotal || 0).toLocaleString()}</div>
+                <div className="font-semibold">
+                  {(inv.totalFolders || s.repositoryFoldersTotal || 0).toLocaleString()}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -268,17 +299,22 @@ export function RepoHealthView() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {Object.entries(s.severityCounts).sort(([a],[b]) => {
-                const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-                return (order[a] ?? 5) - (order[b] ?? 5);
-              }).map(([k, v]) => (
-                <div key={k} className="flex items-center gap-2 rounded-md border px-3 py-2">
-                  <Badge variant={k === 'critical' || k === 'high' ? 'destructive' : 'outline'} className="capitalize">
-                    {k}
-                  </Badge>
-                  <span className="font-semibold">{v}</span>
-                </div>
-              ))}
+              {Object.entries(s.severityCounts)
+                .sort(([a], [b]) => {
+                  const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+                  return (order[a] ?? 5) - (order[b] ?? 5);
+                })
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-center gap-2 rounded-md border px-3 py-2">
+                    <Badge
+                      variant={k === 'critical' || k === 'high' ? 'destructive' : 'outline'}
+                      className="capitalize"
+                    >
+                      {k}
+                    </Badge>
+                    <span className="font-semibold">{v}</span>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>
@@ -348,11 +384,13 @@ export function RepoHealthView() {
             <div>
               <div className="text-xs text-foreground-muted mb-1">Languages Detected</div>
               <div className="flex flex-wrap gap-1">
-                {Object.entries(si.byLanguage).sort(([,a],[,b]) => (b as number) - (a as number)).map(([lang, count]) => (
-                  <Badge key={lang} variant="secondary" className="text-xs">
-                    {lang}: {count}
-                  </Badge>
-                ))}
+                {Object.entries(si.byLanguage)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .map(([lang, count]) => (
+                    <Badge key={lang} variant="secondary" className="text-xs">
+                      {lang}: {count}
+                    </Badge>
+                  ))}
               </div>
             </div>
           </CardContent>
@@ -370,7 +408,10 @@ export function RepoHealthView() {
               {topCategories.map((cat) => (
                 <div key={cat.category} className="flex items-center justify-between rounded-md border px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant={cat.severity === 'critical' || cat.severity === 'high' ? 'destructive' : 'outline'} className="text-xs">
+                    <Badge
+                      variant={cat.severity === 'critical' || cat.severity === 'high' ? 'destructive' : 'outline'}
+                      className="text-xs"
+                    >
                       {cat.severity}
                     </Badge>
                     <span className="text-sm font-medium">{cat.label || cat.category}</span>
@@ -396,7 +437,9 @@ export function RepoHealthView() {
             <div className="flex flex-wrap gap-3">
               {Object.entries(s.tierCounts).map(([k, v]) => (
                 <div key={k} className="flex items-center gap-2 rounded-md border px-3 py-2">
-                  <Badge variant="secondary" className="capitalize">{k}</Badge>
+                  <Badge variant="secondary" className="capitalize">
+                    {k}
+                  </Badge>
                   <span className="font-semibold">{v}</span>
                 </div>
               ))}

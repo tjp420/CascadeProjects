@@ -3,6 +3,7 @@
 **Scope:** Ratchet rotation counters, handshake latency histograms, forensic events.
 
 **Tasks:**
+
 - Instrument ratchet rotations with low-cardinality counters
 - Add histograms for handshake latencies (p50/p95/p99)
 - Emit sparse forensic events on signature/handshake failures linked to trace ids

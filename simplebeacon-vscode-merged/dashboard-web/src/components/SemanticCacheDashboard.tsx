@@ -134,10 +134,17 @@ export function SemanticCacheDashboard() {
         }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Failed to save config'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to save config');
+        return;
+      }
       toast.success('Cache config saved');
       setConfig(data.config);
-    } catch { toast.error('Failed to save config'); } finally { setSaving(false); }
+    } catch {
+      toast.error('Failed to save config');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleEnabled = async () => {
@@ -150,7 +157,9 @@ export function SemanticCacheDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const togglePartition = async () => {
@@ -163,23 +172,35 @@ export function SemanticCacheDashboard() {
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
-    } catch { toast.error('Failed to toggle'); }
+    } catch {
+      toast.error('Failed to toggle');
+    }
   };
 
   const resetConfig = async () => {
     try {
       const resp = await fetch(apiUrl('/semantic-cache/config/reset'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Config reset'); fetchAll(); }
-    } catch { toast.error('Failed to reset'); }
+      if (data.success) {
+        toast.success('Config reset');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to reset');
+    }
   };
 
   const clearCache = async () => {
     try {
       const resp = await fetch(apiUrl('/semantic-cache/clear'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success(`Cache cleared (${data.cleared} entries)`); fetchAll(); }
-    } catch { toast.error('Failed to clear'); }
+      if (data.success) {
+        toast.success(`Cache cleared (${data.cleared} entries)`);
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to clear');
+    }
   };
 
   const doInvalidateProvider = async () => {
@@ -191,8 +212,13 @@ export function SemanticCacheDashboard() {
         body: JSON.stringify({ provider: invalidateProvider }),
       });
       const data = await resp.json();
-      if (data.success) { toast.success(`Invalidated ${data.invalidated} entries for ${invalidateProvider}`); fetchAll(); }
-    } catch { toast.error('Failed to invalidate'); }
+      if (data.success) {
+        toast.success(`Invalidated ${data.invalidated} entries for ${invalidateProvider}`);
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to invalidate');
+    }
   };
 
   const doInvalidatePattern = async () => {
@@ -204,8 +230,13 @@ export function SemanticCacheDashboard() {
         body: JSON.stringify({ pattern: invalidatePattern }),
       });
       const data = await resp.json();
-      if (data.success) { toast.success(`Invalidated ${data.invalidated} entries matching pattern`); fetchAll(); }
-    } catch { toast.error('Failed to invalidate'); }
+      if (data.success) {
+        toast.success(`Invalidated ${data.invalidated} entries matching pattern`);
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to invalidate');
+    }
   };
 
   const runTestSimilarity = async () => {
@@ -218,9 +249,16 @@ export function SemanticCacheDashboard() {
         body: JSON.stringify({ textA, textB }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error('Test failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error('Test failed');
+        return;
+      }
       setSimilarityResult(data.result);
-    } catch { toast.error('Test failed'); } finally { setTesting(false); }
+    } catch {
+      toast.error('Test failed');
+    } finally {
+      setTesting(false);
+    }
   };
 
   const formatDuration = (ms: number) => {
@@ -231,8 +269,16 @@ export function SemanticCacheDashboard() {
 
   const formatTime = (ts: string) => {
     if (!ts) return '\u2014';
-    try { return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return ts; }
+    try {
+      return new Date(ts).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return ts;
+    }
   };
 
   if (loading && !stats) {
@@ -257,7 +303,8 @@ export function SemanticCacheDashboard() {
                 Semantic Cache & Vector Optimization Proxy
               </CardTitle>
               <CardDescription>
-                Vector-based prompt similarity matching for local response serving — slashes token latency and provider overhead
+                Vector-based prompt similarity matching for local response serving — slashes token latency and provider
+                overhead
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchAll}>
@@ -279,7 +326,9 @@ export function SemanticCacheDashboard() {
                 <Zap className="h-4 w-4 text-yellow-600" />
                 <p className="text-xs text-foreground-muted">Cache Size</p>
               </div>
-              <p className="text-lg font-semibold">{stats?.cacheSize ?? 0} / {stats?.maxEntries ?? 1000}</p>
+              <p className="text-lg font-semibold">
+                {stats?.cacheSize ?? 0} / {stats?.maxEntries ?? 1000}
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
@@ -310,20 +359,32 @@ export function SemanticCacheDashboard() {
               Vectors: {stats?.vectorDimensions ?? 256}d
             </Badge>
             {stats?.perProviderPartition && (
-              <Badge variant="outline" className="text-xs">Per-provider partition</Badge>
+              <Badge variant="outline" className="text-xs">
+                Per-provider partition
+              </Badge>
             )}
           </div>
           <div className="mt-3 flex flex-wrap gap-4 text-xs text-foreground-muted">
-            <span>Hits: <strong className="text-foreground">{stats?.hits ?? 0}</strong></span>
-            <span>Misses: <strong className="text-foreground">{stats?.misses ?? 0}</strong></span>
-            <span>Evictions: <strong className="text-foreground">{stats?.evictions ?? 0}</strong></span>
-            <span>Avg saved/hit: <strong className="text-foreground">{stats?.avgSavedLatencyMs ?? 0}ms</strong></span>
+            <span>
+              Hits: <strong className="text-foreground">{stats?.hits ?? 0}</strong>
+            </span>
+            <span>
+              Misses: <strong className="text-foreground">{stats?.misses ?? 0}</strong>
+            </span>
+            <span>
+              Evictions: <strong className="text-foreground">{stats?.evictions ?? 0}</strong>
+            </span>
+            <span>
+              Avg saved/hit: <strong className="text-foreground">{stats?.avgSavedLatencyMs ?? 0}ms</strong>
+            </span>
           </div>
           {stats && stats.byProvider && Object.keys(stats.byProvider).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="text-xs text-foreground-muted">By provider:</span>
               {Object.entries(stats.byProvider).map(([prov, count]) => (
-                <Badge key={prov} variant="outline" className="text-[10px]">{prov}: {count}</Badge>
+                <Badge key={prov} variant="outline" className="text-[10px]">
+                  {prov}: {count}
+                </Badge>
               ))}
             </div>
           )}
@@ -355,19 +416,42 @@ export function SemanticCacheDashboard() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-foreground-muted">Similarity threshold (0-1)</label>
-                <Input value={threshold} onChange={(e) => setThreshold(e.target.value)} type="number" step="0.01" min="0" max="1" className="text-sm" />
+                <Input
+                  value={threshold}
+                  onChange={(e) => setThreshold(e.target.value)}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">TTL (minutes)</label>
-                <Input value={ttlMinutes} onChange={(e) => setTtlMinutes(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={ttlMinutes}
+                  onChange={(e) => setTtlMinutes(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Max entries</label>
-                <Input value={maxEntries} onChange={(e) => setMaxEntries(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={maxEntries}
+                  onChange={(e) => setMaxEntries(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="text-xs text-foreground-muted">Min prompt length</label>
-                <Input value={minPromptLen} onChange={(e) => setMinPromptLen(e.target.value)} type="number" className="text-sm" />
+                <Input
+                  value={minPromptLen}
+                  onChange={(e) => setMinPromptLen(e.target.value)}
+                  type="number"
+                  className="text-sm"
+                />
               </div>
             </div>
             <Button variant="default" size="sm" onClick={saveConfig} disabled={saving}>
@@ -414,10 +498,15 @@ export function SemanticCacheDashboard() {
                   <Badge variant={similarityResult.wouldMatch ? 'success' : 'secondary'} className="text-[10px]">
                     {(similarityResult.similarity * 100).toFixed(2)}%
                   </Badge>
-                  {similarityResult.wouldMatch && <Badge variant="success" className="text-[10px]">Would match</Badge>}
+                  {similarityResult.wouldMatch && (
+                    <Badge variant="success" className="text-[10px]">
+                      Would match
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-[10px] text-foreground-muted">
-                  Threshold: {(similarityResult.threshold * 100).toFixed(0)}% | Tokens A: {similarityResult.tokensA} | Tokens B: {similarityResult.tokensB}
+                  Threshold: {(similarityResult.threshold * 100).toFixed(0)}% | Tokens A: {similarityResult.tokensA} |
+                  Tokens B: {similarityResult.tokensB}
                 </div>
               </div>
             )}
@@ -434,14 +523,24 @@ export function SemanticCacheDashboard() {
           <div className="flex flex-wrap gap-2 items-end">
             <div>
               <label className="text-xs text-foreground-muted">Invalidate by provider</label>
-              <Input value={invalidateProvider} onChange={(e) => setInvalidateProvider(e.target.value)} placeholder="openai" className="text-sm w-40" />
+              <Input
+                value={invalidateProvider}
+                onChange={(e) => setInvalidateProvider(e.target.value)}
+                placeholder="openai"
+                className="text-sm w-40"
+              />
             </div>
             <Button variant="outline" size="sm" onClick={doInvalidateProvider} disabled={!invalidateProvider}>
               <Trash2 className="h-3 w-3" /> Invalidate Provider
             </Button>
             <div>
               <label className="text-xs text-foreground-muted">Invalidate by pattern</label>
-              <Input value={invalidatePattern} onChange={(e) => setInvalidatePattern(e.target.value)} placeholder="memory leak" className="text-sm w-40" />
+              <Input
+                value={invalidatePattern}
+                onChange={(e) => setInvalidatePattern(e.target.value)}
+                placeholder="memory leak"
+                className="text-sm w-40"
+              />
             </div>
             <Button variant="outline" size="sm" onClick={doInvalidatePattern} disabled={!invalidatePattern}>
               <Trash2 className="h-3 w-3" /> Invalidate Pattern
@@ -466,10 +565,16 @@ export function SemanticCacheDashboard() {
               {entries.map((entry) => (
                 <div key={entry.key} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-[10px]">{entry.provider}</Badge>
-                    <Badge variant="outline" className="text-[10px]">{entry.model}</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {entry.provider}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {entry.model}
+                    </Badge>
                     {entry.hitCount > 0 && (
-                      <Badge variant="success" className="text-[10px]">{entry.hitCount} hits</Badge>
+                      <Badge variant="success" className="text-[10px]">
+                        {entry.hitCount} hits
+                      </Badge>
                     )}
                     <span className="font-mono text-foreground-muted ml-auto">{formatTime(entry.lastAccessedAt)}</span>
                   </div>

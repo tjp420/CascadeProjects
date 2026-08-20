@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Extension version (optional)'
+        description: "Extension version (optional)"
         required: false
         type: string
 
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: |
@@ -108,7 +108,7 @@ on:
   workflow_dispatch:
     inputs:
       pre-release:
-        description: 'Publish as pre-release version'
+        description: "Publish as pre-release version"
         required: false
         type: boolean
         default: false
@@ -130,8 +130,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install Monorepo Dependencies
         run: npm ci

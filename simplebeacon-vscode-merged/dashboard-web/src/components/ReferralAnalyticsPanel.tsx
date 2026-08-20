@@ -109,7 +109,9 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
             <input
               type="text"
               readOnly
-              value={loading ? 'Loading share URL…' : shareUrl || 'No partner link yet — run a scan and share from Results.'}
+              value={
+                loading ? 'Loading share URL…' : shareUrl || 'No partner link yet — run a scan and share from Results.'
+              }
               className="bg-transparent text-foreground-muted text-xs px-2 py-1 w-full font-mono outline-none truncate"
             />
             <Button type="button" size="sm" onClick={handleCopy} disabled={loading || !shareUrl}>
@@ -125,9 +127,7 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
             </Button>
           </div>
           {stats?.partnerCode && (
-            <p className="text-xs text-foreground-muted mt-2 font-mono">
-              Partner code: {stats.partnerCode}
-            </p>
+            <p className="text-xs text-foreground-muted mt-2 font-mono">Partner code: {stats.partnerCode}</p>
           )}
         </CardContent>
       </Card>
@@ -143,36 +143,39 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
               <Loader2 className="h-4 w-4 animate-spin" /> Loading ledger…
             </div>
           )}
-          {!loading && (!data?.ledger?.length ? (
-            <p className="text-sm text-foreground-muted">No attribution events yet. Share your link to get started.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-foreground-muted">
-                    <th className="pb-2 pr-4 font-medium">Date</th>
-                    <th className="pb-2 pr-4 font-medium">Referee</th>
-                    <th className="pb-2 pr-4 font-medium">Status</th>
-                    <th className="pb-2 font-medium text-right">Reward</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.ledger.map((row) => (
-                    <tr key={row.id} className="border-b border-border/60 last:border-0">
-                      <td className="py-2.5 pr-4 font-mono text-xs">{row.date || '—'}</td>
-                      <td className="py-2.5 pr-4 truncate max-w-[180px]">{row.refereeEmail || '—'}</td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant={statusBadgeVariant(row.status)}>{formatStatus(row.status)}</Badge>
-                      </td>
-                      <td className="py-2.5 text-right font-mono">
-                        {row.reward > 0 ? `$${row.reward.toFixed(2)}` : '—'}
-                      </td>
+          {!loading &&
+            (!data?.ledger?.length ? (
+              <p className="text-sm text-foreground-muted">
+                No attribution events yet. Share your link to get started.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-foreground-muted">
+                      <th className="pb-2 pr-4 font-medium">Date</th>
+                      <th className="pb-2 pr-4 font-medium">Referee</th>
+                      <th className="pb-2 pr-4 font-medium">Status</th>
+                      <th className="pb-2 font-medium text-right">Reward</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                  </thead>
+                  <tbody>
+                    {data.ledger.map((row) => (
+                      <tr key={row.id} className="border-b border-border/60 last:border-0">
+                        <td className="py-2.5 pr-4 font-mono text-xs">{row.date || '—'}</td>
+                        <td className="py-2.5 pr-4 truncate max-w-[180px]">{row.refereeEmail || '—'}</td>
+                        <td className="py-2.5 pr-4">
+                          <Badge variant={statusBadgeVariant(row.status)}>{formatStatus(row.status)}</Badge>
+                        </td>
+                        <td className="py-2.5 text-right font-mono">
+                          {row.reward > 0 ? `$${row.reward.toFixed(2)}` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
         </CardContent>
       </Card>
     </div>

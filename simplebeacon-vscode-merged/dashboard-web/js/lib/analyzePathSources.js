@@ -8,7 +8,7 @@ export const REMOTE_REPO_HOSTS = [
   'bitbucket.org',
   'www.bitbucket.org',
   'codeberg.org',
-  'www.codeberg.org'
+  'www.codeberg.org',
 ];
 
 /**

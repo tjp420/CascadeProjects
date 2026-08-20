@@ -67,19 +67,19 @@ variables, the production container will crash and refuse to boot.
 
 Log into your cloud hosting dashboard and set the following:
 
-| Variable | Production Value | Impact if Missing/Invalid |
-|----------|-----------------|--------------------------|
-| `NODE_ENV` | `production` | Critical: triggers fatal validator mode |
-| `STRIPE_SECRET_KEY` | `sk_live_...` | Critical: must start with `sk_` or server exits(1) |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Critical: must start with `whsec_` or server exits(1) |
-| `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` | Required for frontend checkout modal |
-| `STRIPE_PRICE_ID_DEVELOPER_MONTHLY` | `price_developer_monthly` | Required for Developer tier checkout |
-| `STRIPE_PRICE_ID_DEVELOPER_ANNUAL` | `price_developer_annual` | Required for Developer annual billing |
-| `STRIPE_PRICE_ID_TEAM_PRO_MONTHLY` | `price_team_pro_monthly` | Required for Team Pro tier checkout |
-| `STRIPE_PRICE_ID_TEAM_PRO_ANNUAL` | `price_team_pro_annual` | Required for Team Pro annual billing |
-| `PURCHASE_ALERT_WEBHOOK` | Slack/Discord URL | Optional: leave blank to disable chat alerts |
-| `RESEND_API_KEY` | `re_...` | Required for transactional email delivery |
-| `RESEND_FROM` | `noreply@simplebeacon.ai` | Required for email sender address |
+| Variable                            | Production Value          | Impact if Missing/Invalid                             |
+| ----------------------------------- | ------------------------- | ----------------------------------------------------- |
+| `NODE_ENV`                          | `production`              | Critical: triggers fatal validator mode               |
+| `STRIPE_SECRET_KEY`                 | `sk_live_...`             | Critical: must start with `sk_` or server exits(1)    |
+| `STRIPE_WEBHOOK_SECRET`             | `whsec_...`               | Critical: must start with `whsec_` or server exits(1) |
+| `STRIPE_PUBLISHABLE_KEY`            | `pk_live_...`             | Required for frontend checkout modal                  |
+| `STRIPE_PRICE_ID_DEVELOPER_MONTHLY` | `price_developer_monthly` | Required for Developer tier checkout                  |
+| `STRIPE_PRICE_ID_DEVELOPER_ANNUAL`  | `price_developer_annual`  | Required for Developer annual billing                 |
+| `STRIPE_PRICE_ID_TEAM_PRO_MONTHLY`  | `price_team_pro_monthly`  | Required for Team Pro tier checkout                   |
+| `STRIPE_PRICE_ID_TEAM_PRO_ANNUAL`   | `price_team_pro_annual`   | Required for Team Pro annual billing                  |
+| `PURCHASE_ALERT_WEBHOOK`            | Slack/Discord URL         | Optional: leave blank to disable chat alerts          |
+| `RESEND_API_KEY`                    | `re_...`                  | Required for transactional email delivery             |
+| `RESEND_FROM`                       | `noreply@simplebeacon.ai` | Required for email sender address                     |
 
 > **Full reference:** See `ai-platform/.env.example` for all supported variables.
 
@@ -93,6 +93,7 @@ Merge `fix/audit-token-flow` to your production branch (`main`).
 
 The `stripe-compliance-check.yml` GitHub Actions workflow will run
 automatically, executing:
+
 - 26 webhook tier mapping tests (Node test runner)
 - 47 billing & email template tests (Jest)
 - Catalog schema validation (4 required price IDs)
@@ -107,6 +108,7 @@ Monitor your container logs during initialization. Look for:
 ```
 
 If the server exits with code 1, check for:
+
 - Accidental whitespace in env var values
 - Missing `sk_` or `whsec_` prefixes
 - `NODE_ENV` not set to `production` (validator runs in warn-only mode otherwise)
@@ -136,6 +138,7 @@ If the server exits with code 1, check for:
 ### 4.4 Verify Post-Checkout Flow
 
 After successful checkout, verify:
+
 - [ ] License activation email arrives in the customer's inbox
 - [ ] Slack/Discord alert received (if `PURCHASE_ALERT_WEBHOOK` is set)
 - [ ] Alert shows masked email (`j***r@company.com`), tier, and amount
@@ -144,6 +147,7 @@ After successful checkout, verify:
 ### 4.5 Test Legacy Backward Compatibility
 
 Existing subscribers on legacy price IDs (`price_startup_monthly`, `price_growth_monthly`) should:
+
 - [ ] Continue to be recognized by the webhook handler
 - [ ] Map to `developer` and `team_pro` tiers respectively
 - [ ] Receive correct email templates
@@ -163,17 +167,17 @@ If critical issues arise:
 
 ## File Reference
 
-| Artifact | Path |
-|----------|------|
-| Product catalog schema | `ai-platform/config/stripe_product_catalog.json` |
-| Stripe tier mapping | `ai-platform/server/config/stripe.cjs` |
-| Email templates | `ai-platform/src/api/billing/email-templates.cjs` |
-| License utils | `ai-platform/src/api/billing/license-utils.cjs` |
-| Env validator | `ai-platform/server/config/validate-env.cjs` |
-| Webhook handler | `ai-platform/server/routes/stripe-webhook-routes.cjs` |
-| Purchase alerts | `ai-platform/server/lib/purchase-alerts.cjs` |
-| Pricing page | `coming-soon/public/pricing.html` |
-| CI workflow | `.github/workflows/stripe-compliance-check.yml` |
-| Env boilerplate | `ai-platform/.env.example` |
-| Webhook test fixtures | `ai-platform/test-fixtures/stripe/` |
-| Webhook test script | `ai-platform/tools/send-test-webhook-3tier.cjs` |
+| Artifact               | Path                                                  |
+| ---------------------- | ----------------------------------------------------- |
+| Product catalog schema | `ai-platform/config/stripe_product_catalog.json`      |
+| Stripe tier mapping    | `ai-platform/server/config/stripe.cjs`                |
+| Email templates        | `ai-platform/src/api/billing/email-templates.cjs`     |
+| License utils          | `ai-platform/src/api/billing/license-utils.cjs`       |
+| Env validator          | `ai-platform/server/config/validate-env.cjs`          |
+| Webhook handler        | `ai-platform/server/routes/stripe-webhook-routes.cjs` |
+| Purchase alerts        | `ai-platform/server/lib/purchase-alerts.cjs`          |
+| Pricing page           | `coming-soon/public/pricing.html`                     |
+| CI workflow            | `.github/workflows/stripe-compliance-check.yml`       |
+| Env boilerplate        | `ai-platform/.env.example`                            |
+| Webhook test fixtures  | `ai-platform/test-fixtures/stripe/`                   |
+| Webhook test script    | `ai-platform/tools/send-test-webhook-3tier.cjs`       |

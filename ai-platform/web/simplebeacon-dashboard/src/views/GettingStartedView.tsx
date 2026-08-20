@@ -1,14 +1,22 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Rocket, FolderSearch, ClipboardList, Settings } from 'lucide-react';
-import { navigate } from '@/router/HashRouter';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Rocket, FolderSearch, ClipboardList, Settings } from "lucide-react";
+import { navigate } from "@/router/HashRouter";
 
 export function GettingStartedView() {
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Getting Started</h1>
-        <p className="text-foreground-muted">Quick start guide for SimpleBeacon</p>
+        <p className="text-foreground-muted">
+          Quick start guide for SimpleBeacon
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -16,10 +24,16 @@ export function GettingStartedView() {
           <CardHeader>
             <Rocket className="h-8 w-8 text-primary" />
             <CardTitle>1. Run Your First Scan</CardTitle>
-            <CardDescription>Analyze a project for AI safety issues</CardDescription>
+            <CardDescription>
+              Analyze a project for AI safety issues
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" onClick={() => navigate('analyze')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("analyze")}
+            >
               Go to Analyze
             </Button>
           </CardContent>
@@ -29,10 +43,16 @@ export function GettingStartedView() {
           <CardHeader>
             <FolderSearch className="h-8 w-8 text-primary" />
             <CardTitle>2. Configure Scan Paths</CardTitle>
-            <CardDescription>Set up production paths and scan scope</CardDescription>
+            <CardDescription>
+              Set up production paths and scan scope
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" onClick={() => navigate('settings')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("settings")}
+            >
               Open Settings
             </Button>
           </CardContent>
@@ -45,7 +65,11 @@ export function GettingStartedView() {
             <CardDescription>Check findings and gate status</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" onClick={() => navigate('results')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("results")}
+            >
               View Results
             </Button>
           </CardContent>
@@ -55,10 +79,16 @@ export function GettingStartedView() {
           <CardHeader>
             <Settings className="h-8 w-8 text-primary" />
             <CardTitle>4. Export Reports</CardTitle>
-            <CardDescription>Generate audit and compliance reports</CardDescription>
+            <CardDescription>
+              Generate audit and compliance reports
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" onClick={() => navigate('audit')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("audit")}
+            >
               Go to Audit
             </Button>
           </CardContent>

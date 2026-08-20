@@ -29,12 +29,8 @@
       "source": "local-extension-scan",
       "reason": "Scan passed with trust score 100."
     },
-    "disclaimers": [
-      "Trust snapshot generated from local VS Code extension scan."
-    ],
-    "methodology": [
-      "Run Simplebeacon scan from the VS Code command palette to refresh."
-    ],
+    "disclaimers": ["Trust snapshot generated from local VS Code extension scan."],
+    "methodology": ["Run Simplebeacon scan from the VS Code command palette to refresh."],
     "fictionScope": {
       "mode": "repository-json",
       "fictionJsonFilesScanned": 0,

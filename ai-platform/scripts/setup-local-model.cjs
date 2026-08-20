@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * SimpleBeacon Local Model Setup Script
@@ -18,27 +18,33 @@
  *   - Ollama daemon must be running (ollama serve)
  */
 
-const { execSync, spawnSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execSync, spawnSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
-const MODELS_DIR = path.resolve(__dirname, '..', 'coming-soon', 'public', 'models');
-const MANIFEST_PATH = path.join(MODELS_DIR, 'manifest.json');
+const MODELS_DIR = path.resolve(
+  __dirname,
+  "..",
+  "coming-soon",
+  "public",
+  "models",
+);
+const MANIFEST_PATH = path.join(MODELS_DIR, "manifest.json");
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function loadManifest() {
   try {
-    return JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+    return JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
   } catch (e) {
-    console.error('Failed to load model manifest:', e.message);
+    console.error("Failed to load model manifest:", e.message);
     process.exit(1);
   }
 }
 
 function checkOllamaInstalled() {
   try {
-    execSync('ollama --version', { stdio: 'pipe' });
+    execSync("ollama --version", { stdio: "pipe" });
     return true;
   } catch {
     return false;
@@ -47,11 +53,15 @@ function checkOllamaInstalled() {
 
 function checkOllamaRunning(baseUrl) {
   try {
-    const result = spawnSync('curl', ['-s', '-o', '/dev/null', '-w', '%{http_code}', `${baseUrl}/api/tags`], {
-      stdio: 'pipe',
-      timeout: 5000,
-    });
-    return result.stdout.toString().trim() === '200';
+    const result = spawnSync(
+      "curl",
+      ["-s", "-o", "/dev/null", "-w", "%{http_code}", `${baseUrl}/api/tags`],
+      {
+        stdio: "pipe",
+        timeout: 5000,
+      },
+    );
+    return result.stdout.toString().trim() === "200";
   } catch {
     return false;
   }
@@ -59,20 +69,29 @@ function checkOllamaRunning(baseUrl) {
 
 function listInstalledModels(baseUrl) {
   try {
-    const result = spawnSync('curl', ['-s', `${baseUrl}/api/tags`], { stdio: 'pipe', timeout: 5000 });
+    const result = spawnSync("curl", ["-s", `${baseUrl}/api/tags`], {
+      stdio: "pipe",
+      timeout: 5000,
+    });
     const body = JSON.parse(result.stdout.toString());
-    return (body.models || []).map(m => m.name);
+    return (body.models || []).map((m) => m.name);
   } catch {
     return [];
   }
 }
 
 function createModel(modelfilePath, modelName) {
-  console.log(`\nCreating Ollama model '${modelName}' from ${path.basename(modelfilePath)}...`);
-  const result = spawnSync('ollama', ['create', modelName, '-f', modelfilePath], {
-    stdio: 'inherit',
-    timeout: 300000, // 5 minutes for model creation
-  });
+  console.log(
+    `\nCreating Ollama model '${modelName}' from ${path.basename(modelfilePath)}...`,
+  );
+  const result = spawnSync(
+    "ollama",
+    ["create", modelName, "-f", modelfilePath],
+    {
+      stdio: "inherit",
+      timeout: 300000, // 5 minutes for model creation
+    },
+  );
   return result.status === 0;
 }
 
@@ -80,48 +99,58 @@ function createModel(modelfilePath, modelName) {
 
 function cmdList() {
   const manifest = loadManifest();
-  console.log('\nAvailable SimpleBeacon local models:\n');
+  console.log("\nAvailable SimpleBeacon local models:\n");
   for (const [id, config] of Object.entries(manifest.models)) {
     const isDefault = id === manifest.defaultModel;
-    console.log(`  ${isDefault ? '* ' : '  '}${id.padEnd(28)} ctx=${String(config.contextWindow).padEnd(6)} ${config.description}`);
+    console.log(
+      `  ${isDefault ? "* " : "  "}${id.padEnd(28)} ctx=${String(config.contextWindow).padEnd(6)} ${config.description}`,
+    );
   }
   console.log(`\n  * = default model\n`);
 }
 
 function cmdVerify() {
   const manifest = loadManifest();
-  const baseUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-  const configuredModel = process.env.OLLAMA_MODEL || `${manifest.defaultModel}:latest`;
+  const baseUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+  const configuredModel =
+    process.env.OLLAMA_MODEL || `${manifest.defaultModel}:latest`;
 
-  console.log('\nSimpleBeacon Local Model Verification\n');
-  console.log('=====================================\n');
+  console.log("\nSimpleBeacon Local Model Verification\n");
+  console.log("=====================================\n");
 
   // Check Ollama installed
   if (!checkOllamaInstalled()) {
-    console.log('  [FAIL] Ollama is not installed');
-    console.log('         Install from: https://ollama.com/download\n');
+    console.log("  [FAIL] Ollama is not installed");
+    console.log("         Install from: https://ollama.com/download\n");
     process.exit(1);
   }
-  console.log('  [OK]   Ollama is installed');
+  console.log("  [OK]   Ollama is installed");
 
   // Check Ollama running
   if (!checkOllamaRunning(baseUrl)) {
-    console.log('  [FAIL] Ollama daemon is not running');
-    console.log('         Start it with: ollama serve\n');
+    console.log("  [FAIL] Ollama daemon is not running");
+    console.log("         Start it with: ollama serve\n");
     process.exit(1);
   }
-  console.log('  [OK]   Ollama daemon is running');
+  console.log("  [OK]   Ollama daemon is running");
 
   // Check configured model
   const installed = listInstalledModels(baseUrl);
-  const modelExists = installed.some(m => m === configuredModel || m === configuredModel.replace(':latest', ''));
+  const modelExists = installed.some(
+    (m) =>
+      m === configuredModel || m === configuredModel.replace(":latest", ""),
+  );
 
   if (modelExists) {
     console.log(`  [OK]   Model '${configuredModel}' is installed`);
   } else {
     console.log(`  [WARN] Model '${configuredModel}' is NOT installed`);
-    console.log(`         Installed models: ${installed.join(', ') || '(none)'}`);
-    console.log(`         Run: node scripts/setup-local-model.cjs --model ${configuredModel.replace(':latest', '')}\n`);
+    console.log(
+      `         Installed models: ${installed.join(", ") || "(none)"}`,
+    );
+    console.log(
+      `         Run: node scripts/setup-local-model.cjs --model ${configuredModel.replace(":latest", "")}\n`,
+    );
   }
 
   // Check num_ctx
@@ -129,13 +158,15 @@ function cmdVerify() {
   if (numCtx) {
     console.log(`  [OK]   OLLAMA_NUM_CTX=${numCtx} (env override active)`);
   } else {
-    console.log('  [INFO] OLLAMA_NUM_CTX not set — using Modelfile default (8192)');
+    console.log(
+      "  [INFO] OLLAMA_NUM_CTX not set — using Modelfile default (8192)",
+    );
   }
 
   // Check OLLAMA_BASE_URL
   console.log(`  [INFO] OLLAMA_BASE_URL=${baseUrl}`);
 
-  console.log('\nVerification complete.\n');
+  console.log("\nVerification complete.\n");
 }
 
 function cmdSetup(modelId) {
@@ -143,11 +174,11 @@ function cmdSetup(modelId) {
   const model = manifest.models[modelId];
   if (!model) {
     console.error(`Unknown model: ${modelId}`);
-    console.error('Run --list to see available models.');
+    console.error("Run --list to see available models.");
     process.exit(1);
   }
 
-  const baseUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
+  const baseUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
 
   console.log(`\nSimpleBeacon Local Model Setup: ${modelId}\n`);
   console.log(`  Base model: ${model.baseModel}`);
@@ -156,22 +187,29 @@ function cmdSetup(modelId) {
 
   // Check prerequisites
   if (!checkOllamaInstalled()) {
-    console.error('Ollama is not installed. Install from: https://ollama.com/download');
+    console.error(
+      "Ollama is not installed. Install from: https://ollama.com/download",
+    );
     process.exit(1);
   }
 
   if (!checkOllamaRunning(baseUrl)) {
-    console.error('Ollama daemon is not running. Start it with: ollama serve');
+    console.error("Ollama daemon is not running. Start it with: ollama serve");
     process.exit(1);
   }
 
   // Pull base model if needed
   const installed = listInstalledModels(baseUrl);
-  const baseModelInstalled = installed.some(m => m === model.baseModel || m === `${model.baseModel}:latest`);
+  const baseModelInstalled = installed.some(
+    (m) => m === model.baseModel || m === `${model.baseModel}:latest`,
+  );
 
-  if (!baseModelInstalled && model.baseModel !== 'llama3.2') {
+  if (!baseModelInstalled && model.baseModel !== "llama3.2") {
     console.log(`Pulling base model '${model.baseModel}'...`);
-    const pullResult = spawnSync('ollama', ['pull', model.baseModel], { stdio: 'inherit', timeout: 600000 });
+    const pullResult = spawnSync("ollama", ["pull", model.baseModel], {
+      stdio: "inherit",
+      timeout: 600000,
+    });
     if (pullResult.status !== 0) {
       console.error(`Failed to pull base model '${model.baseModel}'`);
       process.exit(1);
@@ -193,7 +231,7 @@ function cmdSetup(modelId) {
   }
 
   console.log(`\nModel '${model.ollamaModel}' created successfully!\n`);
-  console.log('Next steps:');
+  console.log("Next steps:");
   console.log(`  1. Set environment variables:`);
   console.log(`     OLLAMA_MODEL=${model.ollamaModel}:latest`);
   console.log(`     OLLAMA_NUM_CTX=${model.contextWindow}`);
@@ -208,17 +246,17 @@ function cmdSetup(modelId) {
 function main() {
   const args = process.argv.slice(2);
 
-  if (args.includes('--list') || args.includes('-l')) {
+  if (args.includes("--list") || args.includes("-l")) {
     cmdList();
     return;
   }
 
-  if (args.includes('--verify') || args.includes('-v')) {
+  if (args.includes("--verify") || args.includes("-v")) {
     cmdVerify();
     return;
   }
 
-  if (args.includes('--help') || args.includes('-h')) {
+  if (args.includes("--help") || args.includes("-h")) {
     console.log(`
 SimpleBeacon Local Model Setup
 
@@ -244,8 +282,8 @@ Environment Variables:
   }
 
   // Default: setup with --model arg or default model
-  const modelIdx = args.indexOf('--model');
-  const modelId = modelIdx >= 0 ? args[modelIdx + 1] : 'unbreakable-oracle';
+  const modelIdx = args.indexOf("--model");
+  const modelId = modelIdx >= 0 ? args[modelIdx + 1] : "unbreakable-oracle";
   cmdSetup(modelId);
 }
 

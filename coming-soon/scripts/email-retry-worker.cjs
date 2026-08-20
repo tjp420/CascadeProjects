@@ -55,7 +55,7 @@ async function processPendingEmails() {
             } else if (result.queued) {
                 // Still pending after retry — will be picked up next cycle if attempts < MAX
                 logger.warn(`Retry ${email.id} failed again. attempts=${email.attempts + 1}`);
-                if ((email.attempts + 1) >= MAX_ATTEMPTS) {
+                if (email.attempts + 1 >= MAX_ATTEMPTS) {
                     db.updateEmailStatus(email.id, 'failed', result.error || 'Max retries exceeded');
                     failedCount++;
                     logger.error(`Email ${email.id} permanently failed after ${MAX_ATTEMPTS} attempts.`);
@@ -96,7 +96,7 @@ async function main() {
 }
 
 if (require.main === module) {
-    main().catch((err) => {
+    main().catch(err => {
         logger.error('Fatal error:', err.message);
         process.exit(1);
     });

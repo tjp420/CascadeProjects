@@ -14,11 +14,11 @@ export class UploadView {
 
   mount(container) {
     const params = this.app?.state?.routeParams || {};
-    const prefillToken = params.token || '';
-    const sessionId = params.session_id || '';
+    const prefillToken = params.token || "";
+    const sessionId = params.session_id || "";
     const autoLookup = Boolean(sessionId && !prefillToken);
 
-container.innerHTML = `
+    container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Upload Scan Report</h1>
         <p class="text-muted analyze-hero-sub">Upload the report JSON to generate your Executive Risk Certificate.</p>
@@ -39,7 +39,7 @@ container.innerHTML = `
         <div class="form-group">
           <label for="upload-license-token" style="display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">License Token</label>
           <input type="text" id="upload-license-token" class="input" placeholder="sb_euai_17805..." autocomplete="off" value="${this.escapeHtml(prefillToken)}">
-          <p id="upload-token-help" style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">${autoLookup ? 'Retrieving your license token from checkout...' : 'Paste the license token from your payment confirmation email.'}</p>
+          <p id="upload-token-help" style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">${autoLookup ? "Retrieving your license token from checkout..." : "Paste the license token from your payment confirmation email."}</p>
         </div>
       </div>
 
@@ -84,100 +84,127 @@ container.innerHTML = `
   }
 
   bindEvents(container, sessionId) {
-    const licenseInput = container.querySelector('#upload-license-token');
-    const tokenHelp = container.querySelector('#upload-token-help');
+    const licenseInput = container.querySelector("#upload-license-token");
+    const tokenHelp = container.querySelector("#upload-token-help");
 
     // Auto-lookup license token from Stripe checkout session
     if (sessionId) {
-      fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`)
+      fetch(
+        `/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`,
+      )
         .then((res) => res.json())
         .then((data) => {
           if (data.licenseToken && !licenseInput.value.trim()) {
             licenseInput.value = data.licenseToken;
-            tokenHelp.textContent = 'License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.';
-            tokenHelp.style.color = 'var(--success)';
+            tokenHelp.textContent =
+              "License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.";
+            tokenHelp.style.color = "var(--success)";
             this.reportData = null;
             updateSubmit();
           } else {
-            tokenHelp.textContent = 'Could not retrieve license token from checkout. Paste it manually from your email.';
-            tokenHelp.style.color = 'var(--error)';
+            tokenHelp.textContent =
+              "Could not retrieve license token from checkout. Paste it manually from your email.";
+            tokenHelp.style.color = "var(--error)";
           }
         })
         .catch(() => {
-          tokenHelp.textContent = 'Could not retrieve license token from checkout. Paste it manually from your email.';
-          tokenHelp.style.color = 'var(--error)';
+          tokenHelp.textContent =
+            "Could not retrieve license token from checkout. Paste it manually from your email.";
+          tokenHelp.style.color = "var(--error)";
         });
     }
 
-    const dropZone = container.querySelector('#upload-drop-zone');
-    const fileInput = container.querySelector('#upload-file-input');
-    const fileName = container.querySelector('#upload-file-name');
-    const submitBtn = container.querySelector('#upload-submit-btn');
-    const status = container.querySelector('#upload-status');
-    const scanPreview = container.querySelector('#upload-scan-preview');
-    const scanMeta = container.querySelector('#upload-scan-meta');
-    const previewContent = container.querySelector('#upload-preview-content');
+    const dropZone = container.querySelector("#upload-drop-zone");
+    const fileInput = container.querySelector("#upload-file-input");
+    const fileName = container.querySelector("#upload-file-name");
+    const submitBtn = container.querySelector("#upload-submit-btn");
+    const status = container.querySelector("#upload-status");
+    const scanPreview = container.querySelector("#upload-scan-preview");
+    const scanMeta = container.querySelector("#upload-scan-meta");
+    const previewContent = container.querySelector("#upload-preview-content");
 
-/**
- * Update submit.
- * @returns {any}
- */
+    /**
+     * Update submit.
+     * @returns {any}
+     */
     const updateSubmit = () => {
       const hasToken = licenseInput.value.trim().length > 10;
       const hasFile = this.reportData !== null;
       submitBtn.disabled = !(hasToken && hasFile);
     };
 
-    licenseInput.addEventListener('input', updateSubmit);
+    licenseInput.addEventListener("input", updateSubmit);
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener("click", () => fileInput.click());
     let dragDepth = 0;
-    dropZone.addEventListener('dragenter', (e) => {
+    dropZone.addEventListener("dragenter", (e) => {
       e.preventDefault();
       dragDepth++;
-      dropZone.style.borderColor = 'var(--accent)';
-      dropZone.style.background = 'rgba(37,99,235,0.05)';
+      dropZone.style.borderColor = "var(--accent)";
+      dropZone.style.background = "rgba(37,99,235,0.05)";
     });
-    dropZone.addEventListener('dragover', (e) => {
+    dropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
     });
-    dropZone.addEventListener('dragleave', () => {
+    dropZone.addEventListener("dragleave", () => {
       dragDepth--;
       if (dragDepth <= 0) {
         dragDepth = 0;
-        dropZone.style.borderColor = 'var(--border)';
-        dropZone.style.background = 'var(--bg-input)';
+        dropZone.style.borderColor = "var(--border)";
+        dropZone.style.background = "var(--bg-input)";
       }
     });
-    dropZone.addEventListener('drop', (e) => {
+    dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dragDepth = 0;
-      dropZone.style.borderColor = 'var(--border)';
-      dropZone.style.background = 'var(--bg-input)';
+      dropZone.style.borderColor = "var(--border)";
+      dropZone.style.background = "var(--bg-input)";
       const file = e.dataTransfer.files[0];
-      if (file) this.handleFile(file, fileName, scanPreview, scanMeta, previewContent, updateSubmit);
+      if (file)
+        this.handleFile(
+          file,
+          fileName,
+          scanPreview,
+          scanMeta,
+          previewContent,
+          updateSubmit,
+        );
     });
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener("change", (e) => {
       if (e.target.files[0]) {
-        this.handleFile(e.target.files[0], fileName, scanPreview, scanMeta, previewContent, updateSubmit);
+        this.handleFile(
+          e.target.files[0],
+          fileName,
+          scanPreview,
+          scanMeta,
+          previewContent,
+          updateSubmit,
+        );
       }
     });
 
-    submitBtn.addEventListener('click', async () => {
+    submitBtn.addEventListener("click", async () => {
       const token = licenseInput.value.trim();
       if (!token || !this.reportData) return;
 
       submitBtn.disabled = true;
-      this.showStatus(status, 'Uploading scan report and generating certificate...', 'loading');
+      this.showStatus(
+        status,
+        "Uploading scan report and generating certificate...",
+        "loading",
+      );
 
       try {
-        const response = await fetch('/api/reports/upload', {
-          method: 'POST',
+        const response = await fetch("/api/reports/upload", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ reportJson: this.reportData, licenseToken: token })
+          body: JSON.stringify({
+            reportJson: this.reportData,
+            licenseToken: token,
+          }),
         });
 
         const result = await response.json();
@@ -186,23 +213,36 @@ container.innerHTML = `
           this.showStatus(
             status,
             `Certificate generated successfully! Delivery ID: ${result.deliveryId}. Check your inbox for the ZIP bundle containing the audit report, certificate, and all JSON artifacts.`,
-            'success'
+            "success",
           );
         } else {
-          this.showStatus(status, result.error || 'Upload failed', 'error');
+          this.showStatus(status, result.error || "Upload failed", "error");
         }
       } catch (err) {
-        this.showStatus(status, 'Network error — please check your connection and try again. (' + err.message + ')', 'error');
+        this.showStatus(
+          status,
+          "Network error — please check your connection and try again. (" +
+            err.message +
+            ")",
+          "error",
+        );
       } finally {
         submitBtn.disabled = false;
       }
     });
   }
 
-  handleFile(file, fileNameEl, scanPreviewEl, scanMetaEl, previewContentEl, updateSubmit) {
-    if (!file.name.endsWith('.json')) {
-      const status = document.getElementById('upload-status');
-      this.showStatus(status, 'Please upload a .json file', 'error');
+  handleFile(
+    file,
+    fileNameEl,
+    scanPreviewEl,
+    scanMetaEl,
+    previewContentEl,
+    updateSubmit,
+  ) {
+    if (!file.name.endsWith(".json")) {
+      const status = document.getElementById("upload-status");
+      this.showStatus(status, "Please upload a .json file", "error");
       return;
     }
     fileNameEl.textContent = file.name;
@@ -211,11 +251,11 @@ container.innerHTML = `
       try {
         this.reportData = JSON.parse(e.target.result);
         this.renderPreview(this.reportData, scanMetaEl, previewContentEl);
-        scanPreviewEl.style.display = 'block';
+        scanPreviewEl.style.display = "block";
         updateSubmit();
       } catch (err) {
-        const status = document.getElementById('upload-status');
-        this.showStatus(status, 'Invalid JSON file', 'error');
+        const status = document.getElementById("upload-status");
+        this.showStatus(status, "Invalid JSON file", "error");
         this.reportData = null;
         updateSubmit();
       }
@@ -228,14 +268,31 @@ container.innerHTML = `
     const gatePass = gate.pass ?? false;
     const detectedIssues = data.detectedIssues || data.rawIssues || [];
     const rawIssues = data.rawIssues || detectedIssues || [];
-    const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : '—');
-    const files = data.repositoryFilesTotal ?? data.totalFiles ?? data.filesAnalyzed ?? data.summary?.files ?? '—';
-    const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? '—';
-    const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
+    const quality =
+      data.qualityScore ??
+      data.results?.simplebeacon?.qualityScore ??
+      (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : "—");
+    const files =
+      data.repositoryFilesTotal ??
+      data.totalFiles ??
+      data.filesAnalyzed ??
+      data.summary?.files ??
+      "—";
+    const issues =
+      data.issueCount ??
+      gate.blockingCount ??
+      detectedIssues.length ??
+      rawIssues.length ??
+      "—";
+    const project =
+      data.projectRoot ||
+      data.scanTargetRoot ||
+      (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) ||
+      "—";
 
-scanMetaEl.innerHTML = `
+    scanMetaEl.innerHTML = `
       <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:1.3rem;font-weight:700;color:${gatePass ? 'var(--success)' : 'var(--error)'};">${gatePass ? 'PASS' : 'REVIEW'}</div>
+        <div style="font-size:1.3rem;font-weight:700;color:${gatePass ? "var(--success)" : "var(--error)"};">${gatePass ? "PASS" : "REVIEW"}</div>
         <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Gate</div>
       </div>
       <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
@@ -257,33 +314,35 @@ scanMetaEl.innerHTML = `
     `;
 
     const snippet = JSON.stringify(data, null, 2).slice(0, 1200);
-    previewContentEl.textContent = snippet + (snippet.length >= 1200 ? '\n\n... (truncated for preview)' : '');
+    previewContentEl.textContent =
+      snippet +
+      (snippet.length >= 1200 ? "\n\n... (truncated for preview)" : "");
   }
 
   showStatus(el, message, type) {
-    el.style.display = 'block';
+    el.style.display = "block";
     el.textContent = message;
-    if (type === 'success') {
-      el.style.background = 'rgba(16,185,129,0.1)';
-      el.style.border = '1px solid rgba(16,185,129,0.3)';
-      el.style.color = 'var(--success)';
-    } else if (type === 'error') {
-      el.style.background = 'rgba(239,68,68,0.1)';
-      el.style.border = '1px solid rgba(239,68,68,0.3)';
-      el.style.color = 'var(--error)';
-    } else if (type === 'loading') {
-      el.style.background = 'rgba(37,99,235,0.1)';
-      el.style.border = '1px solid rgba(37,99,235,0.3)';
-      el.style.color = '#60A5FA';
+    if (type === "success") {
+      el.style.background = "rgba(16,185,129,0.1)";
+      el.style.border = "1px solid rgba(16,185,129,0.3)";
+      el.style.color = "var(--success)";
+    } else if (type === "error") {
+      el.style.background = "rgba(239,68,68,0.1)";
+      el.style.border = "1px solid rgba(239,68,68,0.3)";
+      el.style.color = "var(--error)";
+    } else if (type === "loading") {
+      el.style.background = "rgba(37,99,235,0.1)";
+      el.style.border = "1px solid rgba(37,99,235,0.3)";
+      el.style.color = "#60A5FA";
     }
   }
 
   escapeHtml(str) {
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   destroy() {}

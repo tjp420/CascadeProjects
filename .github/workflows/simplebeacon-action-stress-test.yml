@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'github-action/action.yml'
-      - 'packages/simplebeacon-cli/**'
-      - '.github/workflows/simplebeacon-action-stress-test.yml'
+      - "github-action/action.yml"
+      - "packages/simplebeacon-cli/**"
+      - ".github/workflows/simplebeacon-action-stress-test.yml"
   schedule:
-    - cron: '0 6 * * 1'  # Every Monday 06:00 UTC
+    - cron: "0 6 * * 1" # Every Monday 06:00 UTC
 
 permissions:
   contents: read
@@ -30,15 +30,15 @@ jobs:
       matrix:
         profile:
           - name: clean-repo
-            description: 'Clean repository — gate should pass'
+            description: "Clean repository — gate should pass"
             files: 100
             expect-gate: pass
           - name: dirty-repo
-            description: 'Dirty repository with AI slop, credentials, debug artifacts — gate should fail'
+            description: "Dirty repository with AI slop, credentials, debug artifacts — gate should fail"
             files: 50
             expect-gate: fail
           - name: large-repo
-            description: 'Large repository (2,000 files) — performance & memory stability'
+            description: "Large repository (2,000 files) — performance & memory stability"
             files: 2000
             expect-gate: pass
     steps:
@@ -48,7 +48,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install monorepo dependencies
         run: npm ci --ignore-scripts

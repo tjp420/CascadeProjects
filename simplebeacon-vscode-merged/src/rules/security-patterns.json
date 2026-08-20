@@ -116,7 +116,16 @@
     "suggestion": "Never log credentials. Remove the log statement or redact the sensitive field",
     "contextExclusions": {
       "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
-      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// nosec", "// redact", "// mask", "// sanitize", "// scrub", "// hash"]
+      "linePrefixes": [
+        "// simplebeacon-ignore",
+        "// eslint-disable",
+        "// nosec",
+        "// redact",
+        "// mask",
+        "// sanitize",
+        "// scrub",
+        "// hash"
+      ]
     }
   },
   {
@@ -161,7 +170,13 @@
     "suggestion": "Replace MD5/SHA1 with SHA-256 or SHA-512 from the crypto module",
     "contextExclusions": {
       "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
-      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// legacy", "// backward compat", "// compatibility"]
+      "linePrefixes": [
+        "// simplebeacon-ignore",
+        "// eslint-disable",
+        "// legacy",
+        "// backward compat",
+        "// compatibility"
+      ]
     }
   },
   {
@@ -176,7 +191,19 @@
     "suggestion": "Replace Math.random() with crypto.randomBytes() or crypto.randomUUID() for security contexts",
     "contextExclusions": {
       "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".css", ".scss", ".html"],
-      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// test", "// demo", "// example", "// sample", "// animation", "// game", "// position", "// color", "// style"]
+      "linePrefixes": [
+        "// simplebeacon-ignore",
+        "// eslint-disable",
+        "// test",
+        "// demo",
+        "// example",
+        "// sample",
+        "// animation",
+        "// game",
+        "// position",
+        "// color",
+        "// style"
+      ]
     }
   },
   {
@@ -191,7 +218,15 @@
     "suggestion": "Replace *Sync methods with their async equivalents (fs.promises.readFile, fs.promises.writeFile, etc.)",
     "contextExclusions": {
       "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
-      "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable", "// bin", "// cli", "// script", "// startup", "// bootstrap"]
+      "linePrefixes": [
+        "// simplebeacon-ignore",
+        "// eslint-disable",
+        "// bin",
+        "// cli",
+        "// script",
+        "// startup",
+        "// bootstrap"
+      ]
     }
   },
   {

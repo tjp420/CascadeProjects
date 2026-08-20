@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const { EventEmitter } = require('events');
+const crypto = require("crypto");
+const { EventEmitter } = require("events");
 
 /**
  * Track 25: EU AI Act Article 15 runtime robustness telemetry agent.
@@ -42,20 +42,24 @@ class RobustnessTelemetryAgent extends EventEmitter {
     // Chain hash links this event to all prior events for tamper evidence.
     const serialized = JSON.stringify(envelope);
     this._chainHash = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(this._chainHash)
       .update(serialized)
       .digest();
 
-    envelope.integrity = this._chainHash.toString('hex');
+    envelope.integrity = this._chainHash.toString("hex");
 
     this._events.push(envelope);
     if (this._events.length > this._retention) {
       this._events.shift();
     }
 
-    this._log('info', 'telemetry.record', { category, event, integrity: envelope.integrity });
-    this.emit('record', envelope);
+    this._log("info", "telemetry.record", {
+      category,
+      event,
+      integrity: envelope.integrity,
+    });
+    this.emit("record", envelope);
     return envelope;
   }
 
@@ -67,7 +71,7 @@ class RobustnessTelemetryAgent extends EventEmitter {
     return {
       generatedAt: Date.now(),
       eventCount: this._events.length,
-      latestIntegrity: this._chainHash.toString('hex'),
+      latestIntegrity: this._chainHash.toString("hex"),
       events: this._events.map((e) => ({
         category: e.category,
         event: e.event,
@@ -84,31 +88,35 @@ class RobustnessTelemetryAgent extends EventEmitter {
    * @returns {function} unsubscribe
    */
   subscribe(listener) {
-    this.on('record', listener);
-    return () => this.off('record', listener);
+    this.on("record", listener);
+    return () => this.off("record", listener);
   }
 
   _sanitize(metadata) {
     const safe = {};
     for (const [key, value] of Object.entries(metadata)) {
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
         safe[key] = value;
       } else if (value === null || value === undefined) {
         safe[key] = value;
       } else if (Buffer.isBuffer(value)) {
         // Never store key material or plaintext; record length only.
         safe[key] = { length: value.length };
-      } else if (typeof value === 'object') {
+      } else if (typeof value === "object") {
         safe[key] = this._sanitize(value);
       } else {
-        safe[key] = '[redacted]';
+        safe[key] = "[redacted]";
       }
     }
     return safe;
   }
 
   _log(level, message, extra) {
-    if (!this._logger || typeof this._logger[level] !== 'function') return;
+    if (!this._logger || typeof this._logger[level] !== "function") return;
     this._logger[level](message, extra);
   }
 }

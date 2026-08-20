@@ -8,12 +8,12 @@ on:
   pull_request:
     branches: [main, master, develop]
     paths:
-      - 'ai-platform/**'
-      - '.github/workflows/simplebeacon-enterprise-gate.yml'
+      - "ai-platform/**"
+      - ".github/workflows/simplebeacon-enterprise-gate.yml"
   push:
     branches: [main, master]
     paths:
-      - 'ai-platform/**'
+      - "ai-platform/**"
   workflow_dispatch:
 
 defaults:
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install workspace (monorepo lockfile)
         run: npm ci --ignore-scripts
@@ -41,8 +41,8 @@ jobs:
 
       - name: Run enterprise guardrail gate (offline)
         env:
-          SIMPLEBEACON_PARALLEL: '1'
-          SIMPLEBEACON_OFFLINE: '1'
+          SIMPLEBEACON_PARALLEL: "1"
+          SIMPLEBEACON_OFFLINE: "1"
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . --format json --output .simplebeacon/report.json \

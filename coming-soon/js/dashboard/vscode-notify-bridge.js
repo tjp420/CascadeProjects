@@ -16,8 +16,9 @@
                     sessionStorage.setItem(key, value);
                 }
             });
+        } catch (e) {
+            /* ignore */
         }
-        catch (e) { /* ignore */ }
     }
     function getEmbedParams() {
         var out = new URLSearchParams();
@@ -30,8 +31,9 @@
                     sessionStorage.setItem(key, value);
                 }
             });
+        } catch (e) {
+            /* ignore */
         }
-        catch (e) { /* ignore */ }
         return out;
     }
     function buildEmbeddedUrl(path) {
@@ -58,38 +60,38 @@
         var absoluteUrl;
         try {
             absoluteUrl = new URL(targetPath, window.location.origin).toString();
-        }
-        catch (e) {
+        } catch (e) {
             absoluteUrl = targetPath;
         }
         if (window.parent && window.parent !== window) {
             try {
-                window.parent.postMessage({
-                    command: 'navigateToRoute',
-                    url: absoluteUrl,
-                    displayUrl: absoluteUrl
-                }, '*');
+                window.parent.postMessage(
+                    {
+                        command: 'navigateToRoute',
+                        url: absoluteUrl,
+                        displayUrl: absoluteUrl
+                    },
+                    '*'
+                );
                 return;
+            } catch (e) {
+                /* fall through */
             }
-            catch (e) { /* fall through */ }
         }
         window.location.href = targetPath;
     }
     function stashReportForRoadmap(report) {
-        if (!report || typeof report !== 'object')
-            return false;
+        if (!report || typeof report !== 'object') return false;
         try {
             sessionStorage.setItem('sb_audit_report', JSON.stringify(report));
             return true;
-        }
-        catch (e) {
+        } catch (e) {
             return false;
         }
     }
     function notifyUrlFromBase(notifyBase) {
         var base = String(notifyBase || '').replace(/\/+$/, '');
-        if (!base)
-            return null;
+        if (!base) return null;
         var hostRoot = base.replace(/\/api\/?$/, '');
         return hostRoot + '/api/notify';
     }
@@ -97,32 +99,32 @@
         try {
             var params = new URLSearchParams(window.location.search);
             return params.get('sb_notify_base') || sessionStorage.getItem('sb_notify_base') || '';
-        }
-        catch (e) {
+        } catch (e) {
             return '';
         }
     }
     function notifyVSCode(entry) {
-        if (!entry || typeof entry.type !== 'string')
-            return;
+        if (!entry || typeof entry.type !== 'string') return;
         if (window.parent && window.parent !== window) {
             try {
                 if (entry.type === 'downloadComplete' && entry.payload && entry.payload.filename) {
-                    window.parent.postMessage({
-                        command: 'downloadComplete',
-                        filename: entry.payload.filename,
-                        filePath: entry.payload.filePath || ''
-                    }, '*');
+                    window.parent.postMessage(
+                        {
+                            command: 'downloadComplete',
+                            filename: entry.payload.filename,
+                            filePath: entry.payload.filePath || ''
+                        },
+                        '*'
+                    );
                 }
+            } catch (e) {
+                /* ignore */
             }
-            catch (e) { /* ignore */ }
         }
         var notifyBase = getNotifyBase();
-        if (!notifyBase || !window.fetch)
-            return;
+        if (!notifyBase || !window.fetch) return;
         var url = notifyUrlFromBase(notifyBase);
-        if (!url)
-            return;
+        if (!url) return;
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -132,20 +134,26 @@
             // Fall back to a tiny image beacon because passive mixed content is usually allowed.
             try {
                 var payload = entry.payload || {};
-                var beaconUrl = url.replace(/\/api\/notify\/?$/, '/api/notify/beacon')
-                    + '?type=' + encodeURIComponent(entry.type)
-                    + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+                var beaconUrl =
+                    url.replace(/\/api\/notify\/?$/, '/api/notify/beacon') +
+                    '?type=' +
+                    encodeURIComponent(entry.type) +
+                    '&payload=' +
+                    encodeURIComponent(JSON.stringify(payload));
                 var img = new Image();
                 img.src = beaconUrl;
+            } catch (beaconErr) {
+                /* ignore */
             }
-            catch (beaconErr) { /* ignore */ }
-            console.warn('[vscode-notify-bridge] POST to /api/notify failed, tried image beacon:', err && err.message ? err.message : err);
+            console.warn(
+                '[vscode-notify-bridge] POST to /api/notify failed, tried image beacon:',
+                err && err.message ? err.message : err
+            );
         });
     }
     window.notifyDownloadComplete = function (filename, filePath) {
-        if (typeof filename !== 'string' || !filename)
-            return;
-        var pseudoPath = filePath || ('browser://' + filename + '?t=' + Date.now() + '.' + (++_downloadNotifyId));
+        if (typeof filename !== 'string' || !filename) return;
+        var pseudoPath = filePath || 'browser://' + filename + '?t=' + Date.now() + '.' + ++_downloadNotifyId;
         notifyVSCode({
             type: 'downloadComplete',
             payload: { filename: filename, filePath: pseudoPath }

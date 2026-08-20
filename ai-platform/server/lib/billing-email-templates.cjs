@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Billing Email Templates — centralized HTML/text email generators for
@@ -16,10 +16,13 @@
  *   await sendEmail({ to: customerEmail, subject, text, html });
  */
 
-const { getTierMonthlyPrice } = require('./proration-calculator.cjs');
+const { getTierMonthlyPrice } = require("./proration-calculator.cjs");
 
 // Public-facing URL for email links — override via env var for staging/whitelabel deployments
-const PUBLIC_URL = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL || 'https://simplebeacon.ai';
+const PUBLIC_URL =
+  process.env.PUBLIC_APP_URL ||
+  process.env.SIMPLEBEACON_APP_URL ||
+  "https://simplebeacon.ai";
 
 const BASE_STYLES = `
   <style>
@@ -120,16 +123,23 @@ function wrapHtml(title, bodyContent) {
 }
 
 function fmtDate(iso) {
-  if (!iso) return 'soon';
-  try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
-  catch { return iso; }
+  if (!iso) return "soon";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 const TIER_DISPLAY_NAMES = {
-  developer: 'Developer',
-  team_pro: 'Team Pro',
-  enterprise: 'Enterprise',
-  pro: 'Pro (Legacy)',
+  developer: "Developer",
+  team_pro: "Team Pro",
+  enterprise: "Enterprise",
+  pro: "Pro (Legacy)",
 };
 
 function tierDisplayName(tier) {
@@ -146,19 +156,25 @@ function tierDisplayName(tier) {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderSubscriptionActivated(opts = {}) {
-  const { tier = 'pro', licenseToken, totalSeats, extraSeats } = opts;
+  const { tier = "pro", licenseToken, totalSeats, extraSeats } = opts;
   const tierName = tierDisplayName(tier);
-  const seatInfo = extraSeats > 0
-    ? `\n\nYour Team Pro subscription includes 5 base seats plus ${extraSeats} extra seat${extraSeats === 1 ? '' : 's'} (${totalSeats} total).`
-    : (tier === 'team_pro' ? '\n\nYour Team Pro subscription includes 5 seats.' : '');
+  const seatInfo =
+    extraSeats > 0
+      ? `\n\nYour Team Pro subscription includes 5 base seats plus ${extraSeats} extra seat${extraSeats === 1 ? "" : "s"} (${totalSeats} total).`
+      : tier === "team_pro"
+        ? "\n\nYour Team Pro subscription includes 5 seats."
+        : "";
 
   const subject = `Welcome to SimpleBeacon ${tierName} — Your License Token Inside`;
   const monthlyPriceCents = getTierMonthlyPrice(tier);
-  const monthlyPriceUsd = monthlyPriceCents > 0 ? `$${(monthlyPriceCents / 100).toFixed(0)}/month` : 'custom pricing';
-  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} (${monthlyPriceUsd}). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: ${PUBLIC_URL}/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: ${PUBLIC_URL}\n\nNeed help? Reply to this email or visit ${PUBLIC_URL}`;
+  const monthlyPriceUsd =
+    monthlyPriceCents > 0
+      ? `$${(monthlyPriceCents / 100).toFixed(0)}/month`
+      : "custom pricing";
+  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} (${monthlyPriceUsd}). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || "(no token generated yet — contact support)"}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || "<your-token>"}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || "<your-token>"}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: ${PUBLIC_URL}/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: ${PUBLIC_URL}\n\nNeed help? Reply to this email or visit ${PUBLIC_URL}`;
 
   // ---- Build body (table-row based for email client compat) ----
-  let body = '';
+  let body = "";
 
   // Header
   body += `
@@ -177,8 +193,8 @@ function renderSubscriptionActivated(opts = {}) {
         <p class="body-text">Your ${tierName} subscription is now active. You have <strong>unlimited scans</strong>, <strong>38 analyzer engines</strong>, and <strong>CI/CD gate integration</strong>. Here's everything you need to run your first scan in under a minute.</p>`;
 
   if (extraSeats > 0) {
-    body += `<p class="body-text">Your Team Pro subscription includes 5 base seats plus <strong>${extraSeats} extra seat${extraSeats === 1 ? '' : 's'}</strong> (${totalSeats} total).</p>`;
-  } else if (tier === 'team_pro') {
+    body += `<p class="body-text">Your Team Pro subscription includes 5 base seats plus <strong>${extraSeats} extra seat${extraSeats === 1 ? "" : "s"}</strong> (${totalSeats} total).</p>`;
+  } else if (tier === "team_pro") {
     body += `<p class="body-text">Your Team Pro subscription includes 5 seats.</p>`;
   }
 
@@ -213,7 +229,7 @@ npm install -g simplebeacon</pre></div>
     <div class="step-row">
       <div class="step-header"><span class="num">2</span>Activate your license</div>
       <div class="code-block"><pre><span class="c"># Option A: Set as environment variable</span>
-export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken ? licenseToken.substring(0, 45) + '...' : '<your-token>'}"
+export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken ? licenseToken.substring(0, 45) + "..." : "<your-token>"}"
 
 <span class="c"># Option B: Save to file (recommended)</span>
 mkdir -p ~/.simplebeacon
@@ -290,7 +306,11 @@ Scanning 247 files...
       </td>
     </tr>`;
 
-  return { subject, text, html: wrapHtml(`Welcome to SimpleBeacon ${tierName}`, body) };
+  return {
+    subject,
+    text,
+    html: wrapHtml(`Welcome to SimpleBeacon ${tierName}`, body),
+  };
 }
 
 /**
@@ -298,7 +318,7 @@ Scanning 247 files...
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderSubscriptionCanceled() {
-  const subject = 'SimpleBeacon Subscription Canceled';
+  const subject = "SimpleBeacon Subscription Canceled";
   const text = `Your SimpleBeacon subscription has been canceled.\n\nYou will retain access until the end of your current billing period. After that, your account will revert to the free tier.\n\nWe hope to see you again soon.`;
   const bodyContent = `
     <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Subscription Canceled</div></td></tr>
@@ -310,7 +330,11 @@ function renderSubscriptionCanceled() {
       <p class="body-text">We hope to see you again soon. <a href="${PUBLIC_URL}/settings/billing">Reactivate anytime</a>.</p>
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
-  return { subject, text, html: wrapHtml('Subscription Canceled', bodyContent) };
+  return {
+    subject,
+    text,
+    html: wrapHtml("Subscription Canceled", bodyContent),
+  };
 }
 
 /**
@@ -318,7 +342,7 @@ function renderSubscriptionCanceled() {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderSubscriptionReactivated() {
-  const subject = 'SimpleBeacon Subscription Reactivated';
+  const subject = "SimpleBeacon Subscription Reactivated";
   const text = `Your SimpleBeacon subscription has been reactivated following successful payment.\n\nAll features are restored. Thank you for your continued subscription.`;
   const bodyContent = `
     <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Subscription Reactivated</div></td></tr>
@@ -329,7 +353,11 @@ function renderSubscriptionReactivated() {
       </div>
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
-  return { subject, text, html: wrapHtml('Subscription Reactivated', bodyContent) };
+  return {
+    subject,
+    text,
+    html: wrapHtml("Subscription Reactivated", bodyContent),
+  };
 }
 
 /**
@@ -345,12 +373,12 @@ function renderPaymentFailed(opts = {}) {
   const retryDate = nextRetry ? fmtDate(nextRetry) : null;
 
   const subject = isFinal
-    ? 'SimpleBeacon Subscription — Final Payment Attempt Failed'
-    : 'SimpleBeacon Subscription — Payment Failed';
+    ? "SimpleBeacon Subscription — Final Payment Attempt Failed"
+    : "SimpleBeacon Subscription — Payment Failed";
 
   const retryLine = nextRetry
     ? `Stripe will automatically retry the payment on ${retryDate}.`
-    : 'This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.';
+    : "This was the final retry attempt. Your subscription will be deactivated at the end of the current billing period.";
 
   const text = `A payment for your SimpleBeacon subscription failed (attempt ${attemptCount}).\n\n${retryLine}\n\nPlease update your payment method at ${PUBLIC_URL}/settings/billing to avoid service interruption.\n\nIf you believe this is an error, please contact support@simplebeacon.ai.`;
 
@@ -367,7 +395,7 @@ function renderPaymentFailed(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Payment Failed', bodyContent) };
+  return { subject, text, html: wrapHtml("Payment Failed", bodyContent) };
 }
 
 /**
@@ -380,7 +408,7 @@ function renderTrialEnding(opts = {}) {
   const { trialEnd = null } = opts;
   const trialEndDate = fmtDate(trialEnd);
 
-  const subject = 'SimpleBeacon Trial Ending Soon — Add a Payment Method';
+  const subject = "SimpleBeacon Trial Ending Soon — Add a Payment Method";
   const text = `Your SimpleBeacon trial will end on ${trialEndDate}.\n\nTo continue using all features without interruption, please add a payment method at ${PUBLIC_URL}/settings/billing.\n\nIf you do not add a payment method, your account will revert to the free tier after the trial ends.`;
 
   const bodyContent = `
@@ -395,7 +423,7 @@ function renderTrialEnding(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Trial Ending Soon', bodyContent) };
+  return { subject, text, html: wrapHtml("Trial Ending Soon", bodyContent) };
 }
 
 /**
@@ -409,8 +437,14 @@ function renderTrialEnding(opts = {}) {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderDisputeAlert(opts = {}) {
-  const { chargeId, reason = 'unspecified', status = 'needs_response', amountCents, currency = 'usd' } = opts;
-  const amount = amountCents ? (amountCents / 100).toFixed(2) : 'unknown';
+  const {
+    chargeId,
+    reason = "unspecified",
+    status = "needs_response",
+    amountCents,
+    currency = "usd",
+  } = opts;
+  const amount = amountCents ? (amountCents / 100).toFixed(2) : "unknown";
   const cur = currency.toUpperCase();
 
   const subject = `DISPUTE ALERT: ${reason} — $${amount} ${cur}`;
@@ -433,7 +467,7 @@ function renderDisputeAlert(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Charge Dispute Filed', bodyContent) };
+  return { subject, text, html: wrapHtml("Charge Dispute Filed", bodyContent) };
 }
 
 /**
@@ -447,20 +481,26 @@ function renderDisputeAlert(opts = {}) {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderInvoiceUpcoming(opts = {}) {
-  const { amountCents, currency = 'usd', dueDate = null, tier = 'pro', invoiceNumber = null } = opts;
-  const amount = amountCents ? (amountCents / 100).toFixed(2) : 'unknown';
+  const {
+    amountCents,
+    currency = "usd",
+    dueDate = null,
+    tier = "pro",
+    invoiceNumber = null,
+  } = opts;
+  const amount = amountCents ? (amountCents / 100).toFixed(2) : "unknown";
   const cur = currency.toUpperCase();
   const dueDateStr = fmtDate(dueDate);
 
   const subject = `SimpleBeacon — Upcoming Payment of $${amount} ${cur} on ${dueDateStr}`;
-  const text = `Your SimpleBeacon ${tier} subscription payment of $${amount} ${cur} will be charged on ${dueDateStr}.${invoiceNumber ? `\n\nInvoice: ${invoiceNumber}` : ''}\n\nThis is an automated reminder — no action is needed if your payment method is up to date.\n\nTo review or update your payment method, visit ${PUBLIC_URL}/settings/billing`;
+  const text = `Your SimpleBeacon ${tier} subscription payment of $${amount} ${cur} will be charged on ${dueDateStr}.${invoiceNumber ? `\n\nInvoice: ${invoiceNumber}` : ""}\n\nThis is an automated reminder — no action is needed if your payment method is up to date.\n\nTo review or update your payment method, visit ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
     <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Upcoming Payment</div></td></tr>
     <tr><td class="content">
       <p class="greeting">Payment of $${amount} ${cur} on ${dueDateStr}</p>
       <p class="body-text">Your SimpleBeacon <strong>${tier}</strong> subscription payment will be charged on <strong>${dueDateStr}</strong>.</p>
-      ${invoiceNumber ? `<div class="meta"><div class="meta-row"><span class="meta-label">Invoice</span><span class="meta-value">${invoiceNumber}</span></div></div>` : ''}
+      ${invoiceNumber ? `<div class="meta"><div class="meta-row"><span class="meta-label">Invoice</span><span class="meta-value">${invoiceNumber}</span></div></div>` : ""}
       <div class="callout callout-info">
         <p>This is an automated reminder &mdash; no action is needed if your payment method is up to date.</p>
       </div>
@@ -468,7 +508,11 @@ function renderInvoiceUpcoming(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Upcoming Payment Reminder', bodyContent) };
+  return {
+    subject,
+    text,
+    html: wrapHtml("Upcoming Payment Reminder", bodyContent),
+  };
 }
 
 /**
@@ -485,27 +529,27 @@ function renderInvoiceUpcoming(opts = {}) {
  */
 function renderProrationNotice(opts = {}) {
   const {
-    fromTier = 'developer',
-    toTier = 'developer',
+    fromTier = "developer",
+    toTier = "developer",
     isUpgrade = true,
     daysRemaining = 0,
     netAdjustmentCents = 0,
-    netAdjustmentDisplay = '$0.00',
+    netAdjustmentDisplay = "$0.00",
     isAnnual = false,
   } = opts;
 
   const fromName = tierDisplayName(fromTier);
   const toName = tierDisplayName(toTier);
-  const cycleLabel = isAnnual ? 'annual' : 'monthly';
-  const action = isUpgrade ? 'upgraded' : 'changed';
-  const calloutClass = isUpgrade ? 'callout-info' : 'callout-success';
-  const direction = netAdjustmentCents > 0 ? 'charged' : 'credited';
+  const cycleLabel = isAnnual ? "annual" : "monthly";
+  const action = isUpgrade ? "upgraded" : "changed";
+  const calloutClass = isUpgrade ? "callout-info" : "callout-success";
+  const direction = netAdjustmentCents > 0 ? "charged" : "credited";
 
-  const subject = `SimpleBeacon — Subscription ${isUpgrade ? 'Upgrade' : 'Change'}: ${fromName} → ${toName}`;
+  const subject = `SimpleBeacon — Subscription ${isUpgrade ? "Upgrade" : "Change"}: ${fromName} → ${toName}`;
   const text = `Your SimpleBeacon subscription has been ${action} from ${fromName} to ${toName}.\n\nProration for remaining ${daysRemaining} days of your ${cycleLabel} billing cycle:\n  Adjustment: ${netAdjustmentDisplay} (${direction} to your next invoice)\n\nYour new ${toName} tier features are now active.\n\nTo review your subscription details, visit ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
-    <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">${isUpgrade ? 'Subscription Upgraded' : 'Subscription Changed'}</div></td></tr>
+    <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">${isUpgrade ? "Subscription Upgraded" : "Subscription Changed"}</div></td></tr>
     <tr><td class="content">
       <p class="greeting">${action.charAt(0).toUpperCase() + action.slice(1)} from ${fromName} to ${toName}</p>
       <div class="meta">
@@ -522,7 +566,14 @@ function renderProrationNotice(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml(isUpgrade ? 'Subscription Upgraded' : 'Subscription Changed', bodyContent) };
+  return {
+    subject,
+    text,
+    html: wrapHtml(
+      isUpgrade ? "Subscription Upgraded" : "Subscription Changed",
+      bodyContent,
+    ),
+  };
 }
 
 /**
@@ -533,12 +584,12 @@ function renderProrationNotice(opts = {}) {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderSubscriptionPaused(opts = {}) {
-  const { tier = 'pro', resumeDate = null } = opts;
+  const { tier = "pro", resumeDate = null } = opts;
   const tierName = tierDisplayName(tier);
   const resumeStr = fmtDate(resumeDate);
 
-  const subject = 'SimpleBeacon Subscription Paused';
-  const text = `Your SimpleBeacon ${tierName} subscription has been paused.\n\nDuring the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.\n\nYou can resume your subscription at any time${resumeDate ? ` (no earlier than ${resumeStr})` : ''} by visiting ${PUBLIC_URL}/settings/billing`;
+  const subject = "SimpleBeacon Subscription Paused";
+  const text = `Your SimpleBeacon ${tierName} subscription has been paused.\n\nDuring the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.\n\nYou can resume your subscription at any time${resumeDate ? ` (no earlier than ${resumeStr})` : ""} by visiting ${PUBLIC_URL}/settings/billing`;
 
   const bodyContent = `
     <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Subscription Paused</div></td></tr>
@@ -547,12 +598,12 @@ function renderSubscriptionPaused(opts = {}) {
       <div class="callout callout-warning">
         <p>During the pause, you will not be billed and your scan features are suspended. Your data and configuration are preserved.</p>
       </div>
-      <p class="body-text">You can resume your subscription at any time${resumeDate ? ` (no earlier than <strong>${resumeStr}</strong>)` : ''}.</p>
+      <p class="body-text">You can resume your subscription at any time${resumeDate ? ` (no earlier than <strong>${resumeStr}</strong>)` : ""}.</p>
       <div class="btn-container"><a href="${PUBLIC_URL}/settings/billing" class="btn">Resume Subscription</a></div>
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Subscription Paused', bodyContent) };
+  return { subject, text, html: wrapHtml("Subscription Paused", bodyContent) };
 }
 
 /**
@@ -562,10 +613,10 @@ function renderSubscriptionPaused(opts = {}) {
  * @returns {{subject:string,text:string,html:string}}
  */
 function renderSubscriptionResumed(opts = {}) {
-  const { tier = 'pro' } = opts;
+  const { tier = "pro" } = opts;
   const tierName = tierDisplayName(tier);
 
-  const subject = 'SimpleBeacon Subscription Resumed';
+  const subject = "SimpleBeacon Subscription Resumed";
   const text = `Your SimpleBeacon ${tierName} subscription has been resumed.\n\nAll features are restored and billing has restarted. Thank you for coming back!`;
 
   const bodyContent = `
@@ -578,7 +629,7 @@ function renderSubscriptionResumed(opts = {}) {
     </td></tr>
     <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
 
-  return { subject, text, html: wrapHtml('Subscription Resumed', bodyContent) };
+  return { subject, text, html: wrapHtml("Subscription Resumed", bodyContent) };
 }
 
 module.exports = {
@@ -591,5 +642,5 @@ module.exports = {
   renderInvoiceUpcoming,
   renderProrationNotice,
   renderSubscriptionPaused,
-  renderSubscriptionResumed
+  renderSubscriptionResumed,
 };

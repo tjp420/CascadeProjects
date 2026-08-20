@@ -74,9 +74,7 @@ class SecurityGatekeeper {
         this.redisClient = options.redisClient || null;
         this.strictRedis = options.strictRedis === true;
         this.turnstileSecret = options.turnstileSecret || process.env.TURNSTILE_SECRET_KEY || '';
-        this.disposableDomains = new Set(
-            (options.disposableDomains || []).map(d => d.toLowerCase().trim())
-        );
+        this.disposableDomains = new Set((options.disposableDomains || []).map(d => d.toLowerCase().trim()));
         this._memoryCache = new MemoryCache();
         this._useRedis = Boolean(this.redisClient);
     }
@@ -188,33 +186,38 @@ class SecurityGatekeeper {
      * @returns {Promise<boolean>}
      */
     _verifyTurnstile(token, remoteIp) {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             const payload = new URLSearchParams();
             payload.append('secret', this.turnstileSecret);
             payload.append('response', token);
             if (remoteIp) payload.append('remoteip', remoteIp);
 
             const body = payload.toString();
-            const req = https.request({
-                hostname: 'challenges.cloudflare.com',
-                path: '/turnstile/v0/siteverify',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Content-Length': Buffer.byteLength(body)
-                }
-            }, (res) => {
-                let data = '';
-                res.on('data', (chunk) => { data += chunk; });
-                res.on('end', () => {
-                    try {
-                        const result = JSON.parse(data);
-                        resolve(Boolean(result.success));
-                    } catch {
-                        resolve(false);
+            const req = https.request(
+                {
+                    hostname: 'challenges.cloudflare.com',
+                    path: '/turnstile/v0/siteverify',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Length': Buffer.byteLength(body)
                     }
-                });
-            });
+                },
+                res => {
+                    let data = '';
+                    res.on('data', chunk => {
+                        data += chunk;
+                    });
+                    res.on('end', () => {
+                        try {
+                            const result = JSON.parse(data);
+                            resolve(Boolean(result.success));
+                        } catch {
+                            resolve(false);
+                        }
+                    });
+                }
+            );
             req.on('error', () => resolve(false));
             req.write(body);
             req.end();
@@ -232,7 +235,9 @@ class SecurityGatekeeper {
         const ip = this._getClientIp(req);
         const ipPrefix = ip.split('.').slice(0, 3).join('.'); // first 3 octets
         const userAgent = String(req.headers['user-agent'] || '').trim();
-        const acceptLanguage = String(req.headers['accept-language'] || '').trim().toLowerCase();
+        const acceptLanguage = String(req.headers['accept-language'] || '')
+            .trim()
+            .toLowerCase();
         const fingerprint = `${ipPrefix}|${userAgent}|${acceptLanguage}`;
         return crypto.createHash('sha256').update(fingerprint).digest('hex');
     }

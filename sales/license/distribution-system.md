@@ -32,28 +32,28 @@ Create a simple Node.js service:
 
 ```javascript
 // server.js
-const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const crypto = require('crypto');
-const { execSync } = require('child_process');
-const nodemailer = require('nodemailer');
+const express = require("express");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const crypto = require("crypto");
+const { execSync } = require("child_process");
+const nodemailer = require("nodemailer");
 
 const app = express();
-app.use(express.raw({ type: 'application/json' }));
+app.use(express.raw({ type: "application/json" }));
 
 // Email configuration
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
-app.post('/webhook/stripe', async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+app.post("/webhook/stripe", async (req, res) => {
+  const sig = req.headers["stripe-signature"];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  
+
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
@@ -61,30 +61,34 @@ app.post('/webhook/stripe', async (req, res) => {
     console.log(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send();
   }
-  
-  if (event.type === 'checkout.session.completed') {
+
+  if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const email = session.customer_details.email;
     const tier = session.metadata.tier;
-    
+
     // Generate token
-    const token = execSync(`node ../packages/simplebeacon-cli/bin/generate-license-token.cjs ${tier}`).toString().trim();
-    
+    const token = execSync(
+      `node ../packages/simplebeacon-cli/bin/generate-license-token.cjs ${tier}`,
+    )
+      .toString()
+      .trim();
+
     // Store in database (implement this)
     await storeToken(token, email, tier);
-    
+
     // Send email
     await sendLicenseEmail(email, token, tier);
   }
-  
+
   res.json({ received: true });
 });
 
 async function sendLicenseEmail(email, token, tier) {
   const mailOptions = {
-    from: 'noreply@simplebeacon.com',
+    from: "noreply@simplebeacon.com",
     to: email,
-    subject: 'Your AI Slop Cop License Token',
+    subject: "Your AI Slop Cop License Token",
     html: `
       <h2>Thank you for purchasing AI Slop Cop!</h2>
       <p>Your license token:</p>
@@ -97,18 +101,18 @@ async function sendLicenseEmail(email, token, tier) {
         <li>Click "Activate"</li>
       </ol>
       <p><strong>Tier:</strong> ${tier.toUpperCase()}</p>
-      <p><strong>Valid until:</strong> ${new Date(Date.now() + 365*24*60*60*1000).toLocaleDateString()}</p>
+      <p><strong>Valid until:</strong> ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
       <p>Need help? Contact <a href="mailto:support@simplebeacon.com">support@simplebeacon.com</a></p>
-    `
+    `,
   };
-  
+
   await transporter.sendMail(mailOptions);
 }
 
 async function storeToken(token, email, tier) {
   // Implement database storage
   // Hash the token for security
-  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
   // Store hash, email, tier, issued_at, expires_at
 }
 
@@ -121,6 +125,7 @@ app.listen(PORT, () => console.log(`License server running on port ${PORT}`));
 #### Option A: Render (Recommended)
 
 1. Create `render.yaml`:
+
 ```yaml
 services:
   - type: web
@@ -145,6 +150,7 @@ services:
 #### Option B: Vercel
 
 1. Create `api/webhook.js`:
+
 ```javascript
 export default async function handler(req, res) {
   // Same logic as above
@@ -179,6 +185,7 @@ CREATE INDEX idx_email ON licenses(email);
 ### Step 5: Environment Variables
 
 Required environment variables:
+
 ```
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -193,6 +200,7 @@ LICENSE_SECRET=fb578fe0edf57520edd3b1b53477fbafb20a43ee3d0162feb02974ca990cca54
 ### Local Testing
 
 1. Use Stripe CLI for local webhooks:
+
 ```bash
 stripe listen --forward-to localhost:3000/webhook/stripe
 ```
@@ -211,6 +219,7 @@ stripe listen --forward-to localhost:3000/webhook/stripe
 ## Monitoring
 
 Add logging for:
+
 - Webhook receipts
 - Token generation
 - Email delivery

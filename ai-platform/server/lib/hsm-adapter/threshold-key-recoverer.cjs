@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 17: Threshold key recoverer (Shamir's Secret Sharing reconstruction).
@@ -9,9 +9,9 @@
  * @module hsm-adapter/threshold-key-recoverer
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { PRIME } = require('./threshold-secret-splitter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const { PRIME } = require("./threshold-secret-splitter.cjs");
 
 function _bytesToBigInt(buf) {
   let value = 0n;
@@ -64,19 +64,31 @@ class ThresholdKeyRecoverer {
    */
   recover(shards, threshold) {
     if (!Array.isArray(shards) || shards.length === 0) {
-      throw new HsmAdapterError('INSUFFICIENT_SHARDS', 'shards must be a non-empty array');
+      throw new HsmAdapterError(
+        "INSUFFICIENT_SHARDS",
+        "shards must be a non-empty array",
+      );
     }
-    if (typeof threshold !== 'number' || threshold < 1) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold must be a positive integer');
+    if (typeof threshold !== "number" || threshold < 1) {
+      throw new HsmAdapterError(
+        "INVALID_THRESHOLD",
+        "threshold must be a positive integer",
+      );
     }
     if (shards.length < threshold) {
-      throw new HsmAdapterError('INSUFFICIENT_SHARDS', `received ${shards.length} shards, need at least ${threshold}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_SHARDS",
+        `received ${shards.length} shards, need at least ${threshold}`,
+      );
     }
 
     const seenCustodians = new Set();
     for (const shard of shards) {
       if (seenCustodians.has(shard.custodianId)) {
-        throw new HsmAdapterError('SHARD_CUSTODIAN_MISMATCH', `duplicate custodian ${shard.custodianId}`);
+        throw new HsmAdapterError(
+          "SHARD_CUSTODIAN_MISMATCH",
+          `duplicate custodian ${shard.custodianId}`,
+        );
       }
       seenCustodians.add(shard.custodianId);
     }
@@ -85,10 +97,13 @@ class ThresholdKeyRecoverer {
     const chunkCount = reference.ys.length;
     const chunkSize = reference.chunkSize;
     const secretLength = reference.secretLength;
-    const prime = BigInt('0x' + reference.prime);
+    const prime = BigInt("0x" + reference.prime);
 
     const selected = shards.slice(0, threshold);
-    const points = selected.map((s) => ({ x: BigInt(s.x), ys: s.ys.map((y) => _bytesToBigInt(Buffer.from(y, 'base64'))) }));
+    const points = selected.map((s) => ({
+      x: BigInt(s.x),
+      ys: s.ys.map((y) => _bytesToBigInt(Buffer.from(y, "base64"))),
+    }));
 
     const recoveredChunks = [];
     for (let c = 0; c < chunkCount; c++) {

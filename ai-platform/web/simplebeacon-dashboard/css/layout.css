@@ -57,7 +57,9 @@
   background: var(--background);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .app-header-search input:focus {
@@ -106,12 +108,14 @@
   color: var(--text-secondary);
   text-decoration: none;
   white-space: nowrap;
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
 .app-header-link:hover {
   color: var(--text-primary);
-  background: var(--surface-elevated, rgba(255,255,255,0.04));
+  background: var(--surface-elevated, rgba(255, 255, 255, 0.04));
 }
 
 .app-header-link[hidden] {
@@ -140,7 +144,9 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
+  transition:
+    background var(--transition),
+    color var(--transition);
 }
 
 .icon-btn:hover {
@@ -207,7 +213,9 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
 .nav-group-toggle:hover {
@@ -215,7 +223,7 @@
   background: var(--surface-hover);
 }
 
-.nav-group-toggle[aria-expanded='false'] .nav-group-chevron {
+.nav-group-toggle[aria-expanded="false"] .nav-group-chevron {
   transform: rotate(-90deg);
 }
 
@@ -248,7 +256,9 @@
   color: var(--text-secondary);
   font-weight: 500;
   font-size: var(--font-size-sm);
-  transition: background var(--transition), color var(--transition);
+  transition:
+    background var(--transition),
+    color var(--transition);
   text-decoration: none;
   position: relative;
 }
@@ -266,7 +276,7 @@
 }
 
 .nav-link.active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 6px;
@@ -311,7 +321,9 @@
   height: 32px;
   border-radius: var(--radius-md);
   color: var(--text-muted);
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
   background: transparent;
   border: none;
   cursor: pointer;

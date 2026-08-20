@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   redis-test:
     image: redis:7.2-alpine

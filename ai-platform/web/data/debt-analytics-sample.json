@@ -3,15 +3,9 @@
   "overview": {
     "totalDebt": 28
   },
-  "reports": [
-    {}
-  ],
-  "insights": [
-    {}
-  ],
-  "alerts": [
-    {}
-  ],
+  "reports": [{}],
+  "insights": [{}],
+  "alerts": [{}],
   "trends": {},
   "predictions": {},
   "kpis": {}

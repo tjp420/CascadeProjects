@@ -11,7 +11,7 @@ import { resolveJestTestsLabel } from '../services/analyzeService.js';
 function parseJestTotal(jestTestsLabel, fallback) {
   if (!jestTestsLabel) return fallback ?? null;
   const match = String(jestTestsLabel).match(/\/(\d+)/);
-  return match ? Number(match[1]) : fallback ?? null;
+  return match ? Number(match[1]) : (fallback ?? null);
 }
 
 /**
@@ -27,10 +27,11 @@ function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
 
   const jestLabel = resolveJestTestsLabel(baseline, dashboardHome);
   const passed = merged.passedTests ?? baseline?.jestTestsPassing ?? dashboardHome?.overview?.passedTests;
-  const total = merged.totalTests
-    ?? parseJestTotal(baseline?.jestTestsLabel, passed)
-    ?? dashboardHome?.overview?.totalTests
-    ?? passed;
+  const total =
+    merged.totalTests ??
+    parseJestTotal(baseline?.jestTestsLabel, passed) ??
+    dashboardHome?.overview?.totalTests ??
+    passed;
 
   if (passed != null) merged.passedTests = passed;
   if (total != null) merged.totalTests = total;
@@ -44,8 +45,9 @@ function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
  */
 function coveragePendingMessage(coverage) {
   if (coverage?.branchCoverage != null || coverage?.lineCoverage != null) return '';
-  return coverage?.notes
-    || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.';
+  return (
+    coverage?.notes || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.'
+  );
 }
 
 /**
@@ -64,8 +66,8 @@ function npmAuditSummary(audit) {
     high: summary.high ?? 0,
     moderate: summary.moderate ?? summary.medium ?? 0,
     low: summary.low ?? 0,
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? (audit?.vulnerabilities?.length ?? 0),
-    generatedAt: audit?.generatedAt ?? null
+    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? audit?.vulnerabilities?.length ?? 0,
+    generatedAt: audit?.generatedAt ?? null,
   };
 }
 
@@ -100,12 +102,13 @@ export class QualityView {
     const coverageHint = coveragePendingMessage(coverage);
     const npmAudit = this.app.state.npmAudit;
     const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
-    const dependencyVulnTotal = auditStats?.vulnerabilityTotal ?? security.npmAuditTotal ?? security.openVulnerabilities ?? '—';
+    const dependencyVulnTotal =
+      auditStats?.vulnerabilityTotal ?? security.npmAuditTotal ?? security.openVulnerabilities ?? '—';
     const engineeringFindings = security.openEngineeringFindings ?? '—';
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-el.innerHTML = `
+    el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Quality & Security</h1>
         <p class="text-muted analyze-hero-sub">Measured coverage, security checklist, and live npm audit.</p>
@@ -166,7 +169,11 @@ el.innerHTML = `
     el.querySelector('#run-audit-btn')?.addEventListener('click', () => this.runAudit());
     el.querySelector('#quality-send-ai-btn')?.addEventListener('click', async () => {
       const security = this.app.state.security || {};
-      const coverage = resolveCoverageSnapshot(this.app.state.coverage, this.app.state.baseline, this.app.state.dashboardHome);
+      const coverage = resolveCoverageSnapshot(
+        this.app.state.coverage,
+        this.app.state.baseline,
+        this.app.state.dashboardHome
+      );
       const quality = this.app.state.quality || {};
       const npmAudit = this.app.state.npmAudit;
       const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
@@ -191,22 +198,37 @@ el.innerHTML = `
           securityScore: security.securityScore ?? 'N/A',
           qualityScore: quality.overallScore ?? quality.qualityScore ?? 'N/A',
           npmVulnerabilities: auditStats?.vulnerabilityTotal ?? 'N/A',
-          openEngineeringFindings: security.openEngineeringFindings ?? 'N/A'
+          openEngineeringFindings: security.openEngineeringFindings ?? 'N/A',
         },
         issues: vulnList.slice(0, 200),
-        notes: 'Quality & Security — coverage, security checklist, and npm audit'
+        notes: 'Quality & Security — coverage, security checklist, and npm audit',
       };
       const vscode = this._getVscodeApi();
       if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data sent to AI agent', 'success'); return; }
-        catch (err) { window["console"]["warn"]('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        try {
+          vscode.postMessage({ command: 'sendToAI', data: payload });
+          showToast('Quality & Security data sent to AI agent', 'success');
+          return;
+        } catch (err) {
+          window['console']['warn']('[Quality-AI] vscode.postMessage failed:', err);
+        } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
       }
       try {
-        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch('/api/ai-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
         const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+        if (json.success && json.content) {
+          await navigator.clipboard.writeText(json.content);
+          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+        } else {
+          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+        }
+      } catch (err) {
+        showToast('Failed to send: ' + err.message, 'error');
+      }
     });
 
     return el;
@@ -229,7 +251,7 @@ el.innerHTML = `
 
     const s = npmAuditSummary(audit);
     const rawVulns = audit.vulnerabilities || audit.advisories;
-    const vulnerabilities = Array.isArray(rawVulns) ? rawVulns : (rawVulns ? Object.values(rawVulns) : []);
+    const vulnerabilities = Array.isArray(rawVulns) ? rawVulns : rawVulns ? Object.values(rawVulns) : [];
     const clean = s.vulnerabilityTotal === 0;
 
     return `
@@ -243,26 +265,45 @@ el.innerHTML = `
           <div class="metric-chip"><strong>${s.moderate}</strong> moderate</div>
           <div class="metric-chip"><strong>${s.low}</strong> low</div>
         </div>
-        ${s.prod != null ? `
+        ${
+          s.prod != null
+            ? `
           <p class="text-muted text-sm mb-4">${formatNumber(s.prod)} prod · ${formatNumber(s.dev)} dev dependencies scanned.</p>
-        ` : ''}
-        ${clean ? `
+        `
+            : ''
+        }
+        ${
+          clean
+            ? `
           <p class="text-success">Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>
-        ` : ''}
-        ${vulnerabilities.length ? `
+        `
+            : ''
+        }
+        ${
+          vulnerabilities.length
+            ? `
           <table class="results-table">
             <thead><tr><th>Severity</th><th>Package</th><th>Title</th></tr></thead>
             <tbody>
-              ${vulnerabilities.slice(0, 20).map((v) => `
+              ${vulnerabilities
+                .slice(0, 20)
+                .map(
+                  (v) => `
                 <tr>
                   <td><span class="severity-pill ${escapeHtml(v.severity || 'unknown')}">${escapeHtml(v.severity || 'unknown')}</span></td>
                   <td><code>${escapeHtml(v.component || v.name || v.module_name || '—')}</code></td>
                   <td>${escapeHtml(v.title || v.overview || v.url || '—')}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
-        ` : (!clean ? `<p class="text-muted">No vulnerability details returned.</p>` : '')}
+        `
+            : !clean
+              ? `<p class="text-muted">No vulnerability details returned.</p>`
+              : ''
+        }
         ${s.generatedAt ? `<p class="text-muted text-sm mt-4">Generated ${escapeHtml(new Date(s.generatedAt).toLocaleString())}</p>` : ''}
       </div>
     `;
@@ -301,7 +342,7 @@ el.innerHTML = `
   updateAuditResults() {
     const slot = document.getElementById('audit-results');
     if (slot && this.app.currentView === this) {
-slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
+      slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
       this.refreshAuditButton();
       return;
     }
@@ -318,7 +359,7 @@ slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
 
     const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
     if (needsPlatformData) {
-container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
+      container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
       try {
         await this.app.loadPlatformData();
       } catch (err) {
@@ -327,7 +368,7 @@ container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>
     }
 
     if (this._container !== container) return;
-container.innerHTML = '';
+    container.innerHTML = '';
     container.appendChild(this.render());
     if (!this.app.state.npmAudit && !this.auditLoading) {
       this.runAudit();

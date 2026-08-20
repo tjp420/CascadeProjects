@@ -10,24 +10,24 @@ const path = require('path');
 process.env.SIMPLEBEACON_TEST_DB = 'token-chain-test.db';
 
 const {
-  hashToken,
-  createTokenChain,
-  getTokenNode,
-  getChain,
-  activateToken,
-  revokeToken,
-  getChainStatus
+    hashToken,
+    createTokenChain,
+    getTokenNode,
+    getChain,
+    activateToken,
+    revokeToken,
+    getChainStatus
 } = require('../lib/token-chain-store.cjs');
-const {
-  validateChainToken,
-  ensureTokenActive,
-  getRemainingMinutes
-} = require('../lib/token-chain-utils.cjs');
+const { validateChainToken, ensureTokenActive, getRemainingMinutes } = require('../lib/token-chain-utils.cjs');
 
 // Clean up test DB before run
 const dbPath = path.join(__dirname, '..', '.simplebeacon', process.env.SIMPLEBEACON_TEST_DB);
 const fs = require('fs');
-try { fs.unlinkSync(dbPath); } catch { /* ignore */ }
+try {
+    fs.unlinkSync(dbPath);
+} catch {
+    /* ignore */
+}
 
 console.log('Running token chain tests...\n');
 
@@ -37,15 +37,15 @@ const attached1Jwt = 'jwt_attached1_test_' + Date.now();
 const attached2Jwt = 'jwt_attached2_test_' + Date.now();
 
 const chain = createTokenChain(
-  'owner@example.com',
-  { tier: 'team', features: ['scan'] },
-  ownerJwt,
-  60,
-  [
-    { email: 'dev1@example.com', tier: 'team' },
-    { email: 'dev2@example.com', tier: 'team' }
-  ],
-  [attached1Jwt, attached2Jwt]
+    'owner@example.com',
+    { tier: 'team', features: ['scan'] },
+    ownerJwt,
+    60,
+    [
+        { email: 'dev1@example.com', tier: 'team' },
+        { email: 'dev2@example.com', tier: 'team' }
+    ],
+    [attached1Jwt, attached2Jwt]
 );
 
 assert(chain.chainId, 'chainId should be set');
@@ -120,4 +120,8 @@ console.log('✅ Test 9 passed: getRemainingMinutes');
 console.log('\n✅ All token chain tests passed.');
 
 // Cleanup
-try { fs.unlinkSync(dbPath); } catch { /* ignore */ }
+try {
+    fs.unlinkSync(dbPath);
+} catch {
+    /* ignore */
+}

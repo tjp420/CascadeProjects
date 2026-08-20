@@ -42,13 +42,7 @@ interface WorkspaceBudgetPanelProps {
   loading: boolean;
 }
 
-export function WorkspaceBudgetPanel({
-  budgets,
-  isAdmin,
-  onSave,
-  onReset,
-  loading,
-}: WorkspaceBudgetPanelProps) {
+export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loading }: WorkspaceBudgetPanelProps) {
   const [dirty, setDirty] = useState<Record<string, Partial<Budget> | undefined>>({});
 
   const updateDraft = useCallback((scope: string, patch: Partial<Budget>) => {
@@ -79,9 +73,7 @@ export function WorkspaceBudgetPanel({
           <DollarSign className="h-5 w-5" />
           Token Budget Allocation
         </CardTitle>
-        <CardDescription>
-          Live capacity, threshold, and alerting controls.{!isAdmin && ' View-only.'}
-        </CardDescription>
+        <CardDescription>Live capacity, threshold, and alerting controls.{!isAdmin && ' View-only.'}</CardDescription>
       </CardHeader>
       <CardContent>
         {loading && (
@@ -96,16 +88,11 @@ export function WorkspaceBudgetPanel({
             const pct = b.limitUSD > 0 ? (b.spentUSD / b.limitUSD) * 100 : 0;
             const isDirty = !!dirty[b.scope];
             return (
-              <div
-                key={b.scope}
-                className="rounded-lg border border-border p-4"
-              >
+              <div key={b.scope} className="rounded-lg border border-border p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold">{b.scope}</h4>
-                    <p className="text-xs text-foreground-muted">
-                      {b.name || 'Default workspace budget'}
-                    </p>
+                    <p className="text-xs text-foreground-muted">{b.name || 'Default workspace budget'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {pct >= (b.config?.hardStopPercent || 100) && (
@@ -115,14 +102,18 @@ export function WorkspaceBudgetPanel({
                       </Badge>
                     )}
                     {isDirty && isAdmin && (
-                      <Badge variant="outline" className="text-xs">Unsaved</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Unsaved
+                      </Badge>
                     )}
                   </div>
                 </div>
 
                 <div className="mb-4">
                   <div className="mb-1 flex justify-between text-xs text-foreground-muted">
-                    <span>${b.spentUSD.toFixed(2)} of ${b.limitUSD.toFixed(2)}</span>
+                    <span>
+                      ${b.spentUSD.toFixed(2)} of ${b.limitUSD.toFixed(2)}
+                    </span>
                     <span>{pct.toFixed(1)}%</span>
                   </div>
                   <Progress value={Math.min(pct, 100)} className="h-2" />
@@ -158,9 +149,7 @@ export function WorkspaceBudgetPanel({
                       step={1}
                       value={display.config?.softCapPercent ?? 80}
                       disabled={!isAdmin}
-                      onChange={(e) =>
-                        updateDraftConfig(b.scope, { softCapPercent: parseInt(e.target.value, 10) })
-                      }
+                      onChange={(e) => updateDraftConfig(b.scope, { softCapPercent: parseInt(e.target.value, 10) })}
                     />
                   </BudgetField>
 
@@ -172,9 +161,7 @@ export function WorkspaceBudgetPanel({
                       step={1}
                       value={display.config?.hardStopPercent ?? 100}
                       disabled={!isAdmin}
-                      onChange={(e) =>
-                        updateDraftConfig(b.scope, { hardStopPercent: parseInt(e.target.value, 10) })
-                      }
+                      onChange={(e) => updateDraftConfig(b.scope, { hardStopPercent: parseInt(e.target.value, 10) })}
                     />
                   </BudgetField>
 

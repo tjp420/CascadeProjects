@@ -22,20 +22,20 @@ on:
   workflow_dispatch:
     inputs:
       component:
-        description: 'Which component to release'
+        description: "Which component to release"
         required: true
         type: choice
-        default: 'both'
+        default: "both"
         options:
           - both
           - cli
           - vscode
       otp:
-        description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
+        description: "6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)"
         required: false
         type: string
       pre-release:
-        description: 'Publish VS Code extension as pre-release'
+        description: "Publish VS Code extension as pre-release"
         required: false
         type: boolean
         default: false
@@ -108,9 +108,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci
@@ -183,8 +183,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci

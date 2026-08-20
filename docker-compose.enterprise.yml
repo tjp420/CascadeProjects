@@ -81,7 +81,13 @@ services:
     networks:
       - simplebeacon-net
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       start_period: 15s
@@ -129,7 +135,11 @@ services:
     networks:
       - simplebeacon-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:11434/api/tags > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:11434/api/tags > /dev/null || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       start_period: 60s

@@ -5,64 +5,75 @@
  * This patches the existing codemap.html with the new features from extension.ts changes.
  */
 
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const CODEMAP_JSON = path.join(process.cwd(), '.simplebeacon', 'codemap.json');
-const CODEMAP_HTML = path.join(process.cwd(), '.simplebeacon', 'codemap.html');
+const CODEMAP_JSON = path.join(process.cwd(), ".simplebeacon", "codemap.json");
+const CODEMAP_HTML = path.join(process.cwd(), ".simplebeacon", "codemap.html");
 
 if (!fs.existsSync(CODEMAP_JSON)) {
-  console.error('[codemap] Error: .simplebeacon/codemap.json not found.');
+  console.error("[codemap] Error: .simplebeacon/codemap.json not found.");
   process.exit(1);
 }
 if (!fs.existsSync(CODEMAP_HTML)) {
-  console.error('[codemap] Error: .simplebeacon/codemap.html not found.');
+  console.error("[codemap] Error: .simplebeacon/codemap.html not found.");
   process.exit(1);
 }
 
-const codemap = JSON.parse(fs.readFileSync(CODEMAP_JSON, 'utf8'));
-let html = fs.readFileSync(CODEMAP_HTML, 'utf8');
+const codemap = JSON.parse(fs.readFileSync(CODEMAP_JSON, "utf8"));
+let html = fs.readFileSync(CODEMAP_HTML, "utf8");
 
 // Determine which files are in the dependency graph
-const graphNodeIds = new Set((codemap.dependencyGraph?.nodes || []).map(n => n.id));
+const graphNodeIds = new Set(
+  (codemap.dependencyGraph?.nodes || []).map((n) => n.id),
+);
 
 // 1. Inject graph-dot CSS after the tree-node .node-meta rule
 const cssInsertAfter = `.tree-node .node-meta{color:#64748b;font-size:10px;flex-shrink:0;max-width:90px;overflow:hidden;text-overflow:ellipsis}`;
 const cssToAdd = `.graph-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}.graph-dot.in-graph{background:#22c55e}.graph-dot.not-in-graph{background:#334155}`;
-if (html.includes(cssInsertAfter) && !html.includes('.graph-dot.in-graph')) {
-  html = html.replace(cssInsertAfter, cssInsertAfter + '\n' + cssToAdd);
-  console.log('[codemap] Added graph-dot CSS.');
+if (html.includes(cssInsertAfter) && !html.includes(".graph-dot.in-graph")) {
+  html = html.replace(cssInsertAfter, cssInsertAfter + "\n" + cssToAdd);
+  console.log("[codemap] Added graph-dot CSS.");
 }
 
 // 2. Inject treeData script tag after graphData
 const graphDataScript = '<script type="application/json" id="graphData">';
-const treeDataPayload = JSON.stringify(codemap.dependencyGraph || { nodes: [], edges: [] });
+const treeDataPayload = JSON.stringify(
+  codemap.dependencyGraph || { nodes: [], edges: [] },
+);
 const treeDataScript = `<script type="application/json" id="treeData">${treeDataPayload}</script>`;
 if (html.includes(graphDataScript) && !html.includes('id="treeData"')) {
-  html = html.replace(graphDataScript, treeDataScript + '\n' + graphDataScript);
-  console.log('[codemap] Added treeData script tag.');
+  html = html.replace(graphDataScript, treeDataScript + "\n" + graphDataScript);
+  console.log("[codemap] Added treeData script tag.");
 }
 
 // 3. Add TREE constant parsing after GRAPH
-if (html.includes('const GRAPH = JSON.parse') && !html.includes('const TREE =')) {
+if (
+  html.includes("const GRAPH = JSON.parse") &&
+  !html.includes("const TREE =")
+) {
   html = html.replace(
-    'const GRAPH = JSON.parse(document.getElementById(\'graphData\').textContent);',
-    'const GRAPH = JSON.parse(document.getElementById(\'graphData\').textContent);\nconst TREE = JSON.parse(document.getElementById(\'treeData\')?.textContent || \'{}\');'
+    "const GRAPH = JSON.parse(document.getElementById('graphData').textContent);",
+    "const GRAPH = JSON.parse(document.getElementById('graphData').textContent);\nconst TREE = JSON.parse(document.getElementById('treeData')?.textContent || '{}');",
   );
-  console.log('[codemap] Added TREE constant.');
+  console.log("[codemap] Added TREE constant.");
 }
 
 // 4. Update legend with JS/TS-only note
-const legendEnd = '<div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>';
+const legendEnd =
+  '<div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>';
 const legendNote = `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #334155;font-size:10px;color:#94a3b8;line-height:1.4">
           <span style="color:#22c55e">&#9679;</span> In graph &nbsp; <span style="color:#64748b">&#9679;</span> Not in graph<br>
           Graph shows JS/TS modules only.
         </div>`;
-if (html.includes(legendEnd) && !html.includes('Graph shows JS/TS modules only')) {
-  html = html.replace(legendEnd, legendEnd + '\n        ' + legendNote);
-  console.log('[codemap] Updated legend.');
+if (
+  html.includes(legendEnd) &&
+  !html.includes("Graph shows JS/TS modules only")
+) {
+  html = html.replace(legendEnd, legendEnd + "\n        " + legendNote);
+  console.log("[codemap] Updated legend.");
 }
 
 // 5. Add PNG export button to graph controls
@@ -72,7 +83,7 @@ const exportGraphBtnNew = `<button id="toggleSidebarBtn" class="sidebar-toggle" 
         <button id="exportPngBtn" title="Export graph PNG">🖼</button>`;
 if (html.includes(exportGraphBtnOld)) {
   html = html.replace(exportGraphBtnOld, exportGraphBtnNew);
-  console.log('[codemap] Added PNG export button to controls.');
+  console.log("[codemap] Added PNG export button to controls.");
 }
 
 // 6. Add PNG export button to analysis section
@@ -83,38 +94,44 @@ const analysisExportsNew = `<button class="export-btn" id="exportJsonBtn">&#x1f4
       <button class="export-btn" id="exportPngBtn2">&#x1f5bc; Export PNG</button>`;
 if (html.includes(analysisExportsOld)) {
   html = html.replace(analysisExportsOld, analysisExportsNew);
-  console.log('[codemap] Added PNG export button to analysis section.');
+  console.log("[codemap] Added PNG export button to analysis section.");
 }
 
 // 7. Patch tree nodes to add graph dots
 // Find all tree-node file divs and add data-path + data-in-graph + dot
 // Tolerates re-runs: strips existing data-in-graph/data-path, reads clean path from data-path or title
-const fileNodeRegex = /<div class="tree-node clickable (viewable|non-viewable)" data-type="file" data-viewable="([^"]*)"(?: data-in-graph="[^"]*")?(?: data-path="[^"]*")? style="padding-left:([^"]+)">\s*<span class="toggle-spacer"><\/span><span class="node-icon" style="color:([^"]+)">([^<]+)<\/span>\s*<span class="node-name" title="([^"]+)">([^<]+)<\/span>/g;
+const fileNodeRegex =
+  /<div class="tree-node clickable (viewable|non-viewable)" data-type="file" data-viewable="([^"]*)"(?: data-in-graph="[^"]*")?(?: data-path="[^"]*")? style="padding-left:([^"]+)">\s*<span class="toggle-spacer"><\/span><span class="node-icon" style="color:([^"]+)">([^<]+)<\/span>\s*<span class="node-name" title="([^"]+)">([^<]+)<\/span>/g;
 
 let match;
 let patchedCount = 0;
-html = html.replace(fileNodeRegex, (fullMatch, viewableCls, viewable, padding, color, icon, titlePath, name) => {
-  // Use data-path if already present (clean path), otherwise strip suffix from title
-  const cleanPath = titlePath.split(' — ')[0].trim();
-  const filePath = cleanPath;
-  const inGraph = graphNodeIds.has(filePath);
-  const dotHtml = inGraph
-    ? '<span class="graph-dot in-graph" title="In dependency graph"></span>'
-    : `<span class="graph-dot not-in-graph" title="Not in dependency graph — file type not parsed for imports"></span>`;
-  const newTitle = `${filePath} — ${inGraph ? 'In dependency graph' : 'Not in dependency graph'}`;
-  const dataPath = ` data-path="${filePath}"`;
-  const dataInGraph = ` data-in-graph="${inGraph}"`;
+html = html.replace(
+  fileNodeRegex,
+  (fullMatch, viewableCls, viewable, padding, color, icon, titlePath, name) => {
+    // Use data-path if already present (clean path), otherwise strip suffix from title
+    const cleanPath = titlePath.split(" — ")[0].trim();
+    const filePath = cleanPath;
+    const inGraph = graphNodeIds.has(filePath);
+    const dotHtml = inGraph
+      ? '<span class="graph-dot in-graph" title="In dependency graph"></span>'
+      : `<span class="graph-dot not-in-graph" title="Not in dependency graph — file type not parsed for imports"></span>`;
+    const newTitle = `${filePath} — ${inGraph ? "In dependency graph" : "Not in dependency graph"}`;
+    const dataPath = ` data-path="${filePath}"`;
+    const dataInGraph = ` data-in-graph="${inGraph}"`;
 
-  patchedCount++;
-  return `<div class="tree-node clickable ${viewableCls}" data-type="file" data-viewable="${viewable}"${dataPath}${dataInGraph} style="padding-left:${padding}">
+    patchedCount++;
+    return `<div class="tree-node clickable ${viewableCls}" data-type="file" data-viewable="${viewable}"${dataPath}${dataInGraph} style="padding-left:${padding}">
         <span class="toggle-spacer"></span><span class="node-icon" style="color:${color}">${icon}</span>
         <span class="node-name" title="${newTitle}">${name}</span>
         ${dotHtml}`;
-});
-console.log(`[codemap] Patched ${patchedCount} tree-node files with graph dots.`);
+  },
+);
+console.log(
+  `[codemap] Patched ${patchedCount} tree-node files with graph dots.`,
+);
 
 // 8. Inject export handlers before "// Theme + layout selectors"
-const themeSelectAnchor = '// Theme + layout selectors';
+const themeSelectAnchor = "// Theme + layout selectors";
 const exportHandlers = `
 // Graph-toolbar export (full topology JSON)
 document.getElementById('exportGraphBtn')?.addEventListener('click', () => {
@@ -155,22 +172,31 @@ document.getElementById('exportPngBtn2')?.addEventListener('click', exportPng);
 
 `;
 
-if (html.includes(themeSelectAnchor) && !html.includes('Graph-toolbar export (full topology JSON)')) {
+if (
+  html.includes(themeSelectAnchor) &&
+  !html.includes("Graph-toolbar export (full topology JSON)")
+) {
   html = html.replace(themeSelectAnchor, exportHandlers + themeSelectAnchor);
-  console.log('[codemap] Added export handlers.');
+  console.log("[codemap] Added export handlers.");
 }
 
 // 9. Update the existing exportJsonBtn handler to include tree data
-if (html.includes("const payload = {\n      meta: {\n        exportedAt: new Date().toISOString(),") && !html.includes('tree: TREE,')) {
+if (
+  html.includes(
+    "const payload = {\n      meta: {\n        exportedAt: new Date().toISOString(),",
+  ) &&
+  !html.includes("tree: TREE,")
+) {
   html = html.replace(
-    'graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },',
-    'tree: TREE,\n      graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },'
+    "graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },",
+    "tree: TREE,\n      graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },",
   );
-  console.log('[codemap] Updated exportJsonBtn to include tree.');
+  console.log("[codemap] Updated exportJsonBtn to include tree.");
 }
 
 // 10. Update exportCsvBtn to include In Graph column
-const csvHeaderOld = "let csv = 'File Path,Lines,Size (KB),Connections,In Cycle,Is Orphan,Missing Tests,Very Large,Needs Work Reason\\n';";
+const csvHeaderOld =
+  "let csv = 'File Path,Lines,Size (KB),Connections,In Cycle,Is Orphan,Missing Tests,Very Large,Needs Work Reason\\n';";
 const csvHeaderNew = `// Flatten TREE to get inGraph status for every file
     const treeInGraph = {};
     function flattenTree(nodes) {
@@ -183,7 +209,7 @@ const csvHeaderNew = `// Flatten TREE to get inGraph status for every file
     let csv = 'File Path,Lines,Size (KB),Connections,In Graph,In Cycle,Is Orphan,Missing Tests,Very Large,Needs Work Reason\\n';`;
 if (html.includes(csvHeaderOld)) {
   html = html.replace(csvHeaderOld, csvHeaderNew);
-  console.log('[codemap] Updated CSV header to include In Graph.');
+  console.log("[codemap] Updated CSV header to include In Graph.");
 }
 
 // Also update the CSV row generation to include inGraph
@@ -194,15 +220,15 @@ const csvRowNew = `const connections = connCounts[fp] || 0;
       const cycle = inCycle.has(fp) ? 'Yes' : 'No';`;
 if (html.includes(csvRowOld)) {
   html = html.replace(csvRowOld, csvRowNew);
-  console.log('[codemap] Updated CSV row generation.');
+  console.log("[codemap] Updated CSV row generation.");
 }
 
 const csvLineOld = `csv += '"' + fp + '",' + lines + ',' + size + ',' + connections + ',' + cycle + ',' + orphan + ',' + missing + ',' + veryLarge + ',"' + reason + '"\\n';`;
 const csvLineNew = `csv += '"' + fp + '",' + lines + ',' + size + ',' + connections + ',' + inGraph + ',' + cycle + ',' + orphan + ',' + missing + ',' + veryLarge + ',"' + reason + '"\\n';`;
 if (html.includes(csvLineOld)) {
   html = html.replace(csvLineOld, csvLineNew);
-  console.log('[codemap] Updated CSV line format.');
+  console.log("[codemap] Updated CSV line format.");
 }
 
-fs.writeFileSync(CODEMAP_HTML, html, 'utf8');
-console.log('[codemap] .simplebeacon/codemap.html regenerated successfully.');
+fs.writeFileSync(CODEMAP_HTML, html, "utf8");
+console.log("[codemap] .simplebeacon/codemap.html regenerated successfully.");

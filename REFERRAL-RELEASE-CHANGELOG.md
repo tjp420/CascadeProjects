@@ -68,60 +68,60 @@ SimpleBeacon shipped a six-track referral and growth engine connecting marketing
 
 ### Track 1 — Database ledger
 
-| File | Role |
-|------|------|
-| `coming-soon/lib/db.cjs` | Tables: `referrers`, `referral_links`, `referral_attributions`, `referral_rewards` + indexes |
-| | Helpers: `getOrCreateReferrer`, `createReferralAttribution`, `markReferralAttributionConverted`, `grantReferralReward`, etc. |
-| | Idempotent conversion via `attribution_id` constraint (no double-credit on webhook retry) |
+| File                     | Role                                                                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `coming-soon/lib/db.cjs` | Tables: `referrers`, `referral_links`, `referral_attributions`, `referral_rewards` + indexes                                 |
+|                          | Helpers: `getOrCreateReferrer`, `createReferralAttribution`, `markReferralAttributionConverted`, `grantReferralReward`, etc. |
+|                          | Idempotent conversion via `attribution_id` constraint (no double-credit on webhook retry)                                    |
 
 ### Track 2 — Edge capture and routing
 
-| File | Role |
-|------|------|
-| `coming-soon/js/referral-capture.js` | Source: reads `?ref=`, writes `localStorage sb_ref_slug`, POSTs capture |
-| `coming-soon/public/js-es2018/referral-capture.js` | Deployed asset (committed path; avoids gitignored `public/js/`) |
-| `coming-soon/functions/_middleware.js` | Sets HttpOnly 30-day `sb_ref` cookie; async backend capture on `?ref=` |
-| `coming-soon/lib/referral-tracking.cjs` | Cookie middleware + IP hash helpers for Express |
-| `coming-soon/public/_routes.json` | Functions on `/api/*`, `/dashboard/*`, `/app/*`; static bypass for `/js-es2018/*`, `/js/*`, `/css/*`, etc. |
-| `coming-soon/build-public.js` | Injects `/js-es2018/referral-capture.js` on marketing pages and dashboard shell |
+| File                                               | Role                                                                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `coming-soon/js/referral-capture.js`               | Source: reads `?ref=`, writes `localStorage sb_ref_slug`, POSTs capture                                    |
+| `coming-soon/public/js-es2018/referral-capture.js` | Deployed asset (committed path; avoids gitignored `public/js/`)                                            |
+| `coming-soon/functions/_middleware.js`             | Sets HttpOnly 30-day `sb_ref` cookie; async backend capture on `?ref=`                                     |
+| `coming-soon/lib/referral-tracking.cjs`            | Cookie middleware + IP hash helpers for Express                                                            |
+| `coming-soon/public/_routes.json`                  | Functions on `/api/*`, `/dashboard/*`, `/app/*`; static bypass for `/js-es2018/*`, `/js/*`, `/css/*`, etc. |
+| `coming-soon/build-public.js`                      | Injects `/js-es2018/referral-capture.js` on marketing pages and dashboard shell                            |
 
 ### Track 3 — Dashboard UI
 
-| File | Role |
-|------|------|
-| `ai-platform/web/simplebeacon-dashboard/src/lib/gradeFromScore.ts` | Maps quality score → letter grade (B+ passes) |
-| `ai-platform/web/simplebeacon-dashboard/src/components/ResultsReferralBanner.tsx` | Copy-ready share box + Email Link action |
-| `ai-platform/web/simplebeacon-dashboard/src/views/ResultsView.tsx` | Renders banner when grade ≥ B and user is authenticated |
+| File                                                                              | Role                                                    |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `ai-platform/web/simplebeacon-dashboard/src/lib/gradeFromScore.ts`                | Maps quality score → letter grade (B+ passes)           |
+| `ai-platform/web/simplebeacon-dashboard/src/components/ResultsReferralBanner.tsx` | Copy-ready share box + Email Link action                |
+| `ai-platform/web/simplebeacon-dashboard/src/views/ResultsView.tsx`                | Renders banner when grade ≥ B and user is authenticated |
 
 ### Track 4 — Stripe webhook bridge
 
-| File | Role |
-|------|------|
-| `coming-soon/lib/referral-webhook.cjs` | `processStripeReferralAttribution`, `buildReferralCheckoutMetadata`, `processReferralSignup` |
-| `ai-platform/src/api/simplebeacon-billing-api.cjs` | Production webhook hook + checkout metadata merge |
-| `coming-soon/routes/checkout.cjs` | Legacy/alternate checkout webhook path |
-| `coming-soon/routes/subscriptions-billing.cjs` | Subscription billing webhook path |
-| `coming-soon/routes/auth.cjs` | Signup advances attribution `clicked` → `signed_up` |
-| `ai-platform/server/routes/auth.cjs` | Production register hook for referral signup |
+| File                                               | Role                                                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `coming-soon/lib/referral-webhook.cjs`             | `processStripeReferralAttribution`, `buildReferralCheckoutMetadata`, `processReferralSignup` |
+| `ai-platform/src/api/simplebeacon-billing-api.cjs` | Production webhook hook + checkout metadata merge                                            |
+| `coming-soon/routes/checkout.cjs`                  | Legacy/alternate checkout webhook path                                                       |
+| `coming-soon/routes/subscriptions-billing.cjs`     | Subscription billing webhook path                                                            |
+| `coming-soon/routes/auth.cjs`                      | Signup advances attribution `clicked` → `signed_up`                                          |
+| `ai-platform/server/routes/auth.cjs`               | Production register hook for referral signup                                                 |
 
 **Conversion reward:** `cert_credit_cents += 4900` ($49 certificate export credit) on paid checkout.
 
 ### Track 5 — Lifecycle email mesh
 
-| File | Role |
-|------|------|
+| File                                 | Role                                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `coming-soon/lib/referral-email.cjs` | `sendReferrerLinkEmail`, `sendReferralInviteEmail`, `sendReferralConversionEmail`, `sendRefereeWelcomeEmail` |
-| `coming-soon/routes/referral.cjs` | Invite rate limit: 10 emails/hour per referrer |
+| `coming-soon/routes/referral.cjs`    | Invite rate limit: 10 emails/hour per referrer                                                               |
 
 Uses existing `coming-soon/services/email.cjs` (Resend/SMTP). Requires `RESEND_API_KEY` on Render for live delivery.
 
 ### Track 6 — CLI subcommand
 
-| File | Role |
-|------|------|
-| `packages/simplebeacon-cli/src/lib/referral-cli.js` | API client + identity resolution |
-| `packages/simplebeacon-cli/bin/simplebeacon.js` | `refer` command registration and help |
-| `packages/simplebeacon-cli/tests/referral-cli.test.js` | 3 regression tests (identity chain) |
+| File                                                   | Role                                  |
+| ------------------------------------------------------ | ------------------------------------- |
+| `packages/simplebeacon-cli/src/lib/referral-cli.js`    | API client + identity resolution      |
+| `packages/simplebeacon-cli/bin/simplebeacon.js`        | `refer` command registration and help |
+| `packages/simplebeacon-cli/tests/referral-cli.test.js` | 3 regression tests (identity chain)   |
 
 **Identity resolution order:** `--from` → `SIMPLEBEACON_REFERRER_EMAIL` → `SIMPLEBEACON_EMAIL` → JWT in `~/.simplebeacon/license.jwt`
 
@@ -131,12 +131,12 @@ Uses existing `coming-soon/services/email.cjs` (Resend/SMTP). Requires `RESEND_A
 
 Production backend entry: `ai-platform/simplebeacon-server.cjs` (Render `render.yaml`).
 
-| Integration | File |
-|-------------|------|
-| Referral routes mounted | `ai-platform/simplebeacon-server.cjs` → `coming-soon/routes/referral.cjs` |
-| Public API whitelist | `ai-platform/server/bootstrap/public-api-routes.cjs` → `referral/capture`, `link`, `stats`, `invite` |
-| Stripe conversion | `ai-platform/src/api/simplebeacon-billing-api.cjs` |
-| Register attribution | `ai-platform/server/routes/auth.cjs` |
+| Integration             | File                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| Referral routes mounted | `ai-platform/simplebeacon-server.cjs` → `coming-soon/routes/referral.cjs`                            |
+| Public API whitelist    | `ai-platform/server/bootstrap/public-api-routes.cjs` → `referral/capture`, `link`, `stats`, `invite` |
+| Stripe conversion       | `ai-platform/src/api/simplebeacon-billing-api.cjs`                                                   |
+| Register attribution    | `ai-platform/server/routes/auth.cjs`                                                                 |
 
 With `REQUIRE_AUTH=true`, referral endpoints bypass the global auth gate via the public allowlist above.
 
@@ -144,12 +144,12 @@ With `REQUIRE_AUTH=true`, referral endpoints bypass the global auth gate via the
 
 ## 4. API reference
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/referral/capture` | Public | Record click from `?ref=` or client payload |
-| `GET` | `/api/referral/link?email=...` | Public | Generate or fetch partner link; optional `sendEmail=true` |
-| `GET` | `/api/referral/stats?email=...` | Public | Referrer metrics + share URL |
-| `POST` | `/api/referral/invite` | Public | Send invite email (rate limited) |
+| Method | Path                            | Auth   | Description                                               |
+| ------ | ------------------------------- | ------ | --------------------------------------------------------- |
+| `POST` | `/api/referral/capture`         | Public | Record click from `?ref=` or client payload               |
+| `GET`  | `/api/referral/link?email=...`  | Public | Generate or fetch partner link; optional `sendEmail=true` |
+| `GET`  | `/api/referral/stats?email=...` | Public | Referrer metrics + share URL                              |
+| `POST` | `/api/referral/invite`          | Public | Send invite email (rate limited)                          |
 
 **Example stats response:**
 
@@ -185,11 +185,11 @@ simplebeacon refer --from developer@domain.com --email partner@target.com
 
 ## 6. Deployment topology
 
-| Layer | Target | Deploy method |
-|-------|--------|---------------|
-| Static + Functions | Cloudflare Pages project `simplebeacon` | `cd coming-soon && npm run deploy` |
-| API + webhooks + email | Render (`cascadeprojects-yzzd.onrender.com`) | Git push to `main` |
-| Custom domains | `simplebeacon.ai`, `www.simplebeacon.ai` | Cloudflare Pages custom domain binding |
+| Layer                  | Target                                       | Deploy method                          |
+| ---------------------- | -------------------------------------------- | -------------------------------------- |
+| Static + Functions     | Cloudflare Pages project `simplebeacon`      | `cd coming-soon && npm run deploy`     |
+| API + webhooks + email | Render (`cascadeprojects-yzzd.onrender.com`) | Git push to `main`                     |
+| Custom domains         | `simplebeacon.ai`, `www.simplebeacon.ai`     | Cloudflare Pages custom domain binding |
 
 **Build pipeline:** `npm run build` in `coming-soon` → copies dashboard to `public/`, injects referral script tags.
 
@@ -204,13 +204,13 @@ cd coming-soon
 .\scripts\verify-production.ps1
 ```
 
-| # | Check | Expected |
-|---|-------|----------|
-| 1 | `/js-es2018/referral-capture.js` | HTTP 200, `Content-Type: javascript` |
-| 2 | Root HTML script tag | `/js-es2018/referral-capture.js` |
-| 3 | `/api/referral/stats?email=...` | JSON `{ "success": true }` |
-| 4 | HSTS header | `Strict-Transport-Security` present |
-| 5 | API cache policy | `CF-Cache-Status: DYNAMIC` (not edge-cached) |
+| #   | Check                            | Expected                                     |
+| --- | -------------------------------- | -------------------------------------------- |
+| 1   | `/js-es2018/referral-capture.js` | HTTP 200, `Content-Type: javascript`         |
+| 2   | Root HTML script tag             | `/js-es2018/referral-capture.js`             |
+| 3   | `/api/referral/stats?email=...`  | JSON `{ "success": true }`                   |
+| 4   | HSTS header                      | `Strict-Transport-Security` present          |
+| 5   | API cache policy                 | `CF-Cache-Status: DYNAMIC` (not edge-cached) |
 
 **Manual curl equivalents:**
 
@@ -224,23 +224,23 @@ curl -s "https://simplebeacon.ai/api/referral/stats?email=you@company.com"
 
 ## 8. Commits in this release
 
-| Commit | Summary |
-|--------|---------|
+| Commit     | Summary                                                             |
+| ---------- | ------------------------------------------------------------------- |
 | `93faffb4` | Six-track referral engine (DB, edge, dashboard, Stripe, email, CLI) |
-| `5d8c7cfd` | Production auth whitelist + Stripe billing hooks |
-| `4fff55cf` | Serve capture script from committed `js-es2018` path |
-| `2c7516ad` | Harden `_routes.json` + add `verify-production.ps1` |
+| `5d8c7cfd` | Production auth whitelist + Stripe billing hooks                    |
+| `4fff55cf` | Serve capture script from committed `js-es2018` path                |
+| `2c7516ad` | Harden `_routes.json` + add `verify-production.ps1`                 |
 
 ---
 
 ## 9. Follow-up roadmap
 
-| Priority | Epic | Notes |
-|----------|------|-------|
-| P0 | **Resend activation** | Set `RESEND_API_KEY` + `RESEND_FROM` on Render; run `coming-soon/tools/setup-email.cjs --send` |
-| P1 | **Referral analytics dashboard** | User-facing stats panel under Profile/Settings |
-| P2 | **Post-scan CLI nudge** | Suggest `simplebeacon refer --link` after gate pass (grade ≥ B) |
-| P3 | **Email deliverability audit** | Extend `coming-soon/scripts/verify-dns.ps1` with Resend delivery trace |
+| Priority | Epic                             | Notes                                                                                          |
+| -------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| P0       | **Resend activation**            | Set `RESEND_API_KEY` + `RESEND_FROM` on Render; run `coming-soon/tools/setup-email.cjs --send` |
+| P1       | **Referral analytics dashboard** | User-facing stats panel under Profile/Settings                                                 |
+| P2       | **Post-scan CLI nudge**          | Suggest `simplebeacon refer --link` after gate pass (grade ≥ B)                                |
+| P3       | **Email deliverability audit**   | Extend `coming-soon/scripts/verify-dns.ps1` with Resend delivery trace                         |
 
 ---
 
@@ -257,4 +257,4 @@ curl -s "https://simplebeacon.ai/api/referral/stats?email=you@company.com"
 
 ---
 
-*Generated as part of the SimpleBeacon v1.4.0 referral launch. For QA framework artifacts see `.simplebeacon/qa/`.*
+_Generated as part of the SimpleBeacon v1.4.0 referral launch. For QA framework artifacts see `.simplebeacon/qa/`._

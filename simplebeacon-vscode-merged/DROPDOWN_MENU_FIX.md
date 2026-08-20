@@ -13,6 +13,7 @@ The `view/title` menu configuration in `package.json` was missing the `simplebea
 Updated the `view/title` menu configuration to include all SimpleBeacon views:
 
 ### Before
+
 ```json
 {
   "command": "simplebeacon.scanWorkspace",
@@ -22,6 +23,7 @@ Updated the `view/title` menu configuration to include all SimpleBeacon views:
 ```
 
 ### After
+
 ```json
 {
   "command": "simplebeacon.scanWorkspace",
@@ -33,6 +35,7 @@ Updated the `view/title` menu configuration to include all SimpleBeacon views:
 ## Menu Items by View
 
 ### Common Actions (All Views)
+
 - **Scan Workspace** - Start a comprehensive scan
 - **Clear Results** - Clear all scan results
 - **Open Settings** - Open the settings panel
@@ -40,6 +43,7 @@ Updated the `view/title` menu configuration to include all SimpleBeacon views:
 - **Analyze with AI Agent** - Send findings to AI agent
 
 ### Enhanced AI View (Additional)
+
 - **Enhanced Analysis** - Run comprehensive AI analysis
 - **Real-time Analysis** - Enable live code analysis
 - **Pattern Detection** - Detect code patterns
@@ -49,24 +53,26 @@ Updated the `view/title` menu configuration to include all SimpleBeacon views:
 
 The menu items are organized into logical groups:
 
-| Group | Items | Purpose |
-|-------|-------|---------|
-| navigation@1 | Scan Workspace | Primary scanning action |
-| navigation@2 | Clear Results | Reset/清理 actions |
-| navigation@3 | Open Settings | Configuration |
-| navigation@4-7 | Enhanced AI actions | AI-specific features |
-| navigation@8 | Show Code Map | Visualization |
-| navigation@9 | Analyze with AI Agent | AI integration |
+| Group          | Items                 | Purpose                 |
+| -------------- | --------------------- | ----------------------- |
+| navigation@1   | Scan Workspace        | Primary scanning action |
+| navigation@2   | Clear Results         | Reset/清理 actions      |
+| navigation@3   | Open Settings         | Configuration           |
+| navigation@4-7 | Enhanced AI actions   | AI-specific features    |
+| navigation@8   | Show Code Map         | Visualization           |
+| navigation@9   | Analyze with AI Agent | AI integration          |
 
 ## Technical Details
 
 ### View Identifiers
+
 - `simplebeacon-phases` - Scan results view
 - `simplebeacon-summary` - Summary view
 - `simplebeacon-settings` - Settings view
 - `simplebeacon-enhanced` - Enhanced AI view
 
 ### Command Registration
+
 All commands are properly registered in `extension.ts`:
 
 ```typescript
@@ -76,6 +82,7 @@ vscode.commands.registerCommand('simplebeacon.enhancedAnalysis', () => {
 ```
 
 ### Menu Configuration
+
 The menu configuration uses VSCode's `when` clauses to show context-appropriate actions:
 
 ```json
@@ -89,6 +96,7 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 ## Testing
 
 ### Verification Steps
+
 1. Install the updated extension
 2. Open any SimpleBeacon sidebar view
 3. Click the "..." (kebab) menu
@@ -96,6 +104,7 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 5. Test each menu item works correctly
 
 ### Expected Behavior
+
 - **All Views**: Should show common actions (Scan, Clear, Settings, etc.)
 - **Enhanced AI View**: Should show additional AI-specific actions
 - **Menu Items**: Should be properly grouped and ordered
@@ -104,12 +113,14 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 ## Troubleshooting
 
 ### If Menu Still Empty
+
 1. **Reload VSCode**: Use `Ctrl+Shift+P` → "Developer: Reload Window"
 2. **Check Extension**: Ensure SimpleBeacon extension is enabled
 3. **Verify Installation**: Confirm latest version is installed
 4. **Check Logs**: Look for errors in Developer Tools console
 
 ### If Menu Items Don't Work
+
 1. **Check Commands**: Verify commands are registered in extension.ts
 2. **Check Context**: Ensure `when` clauses match current view
 3. **Check Groups**: Verify group numbers don't conflict
@@ -118,6 +129,7 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 ## Files Modified
 
 ### `package.json`
+
 - Updated `view/title` menu configuration
 - Added `simplebeacon-enhanced` to all relevant `when` clauses
 - Added new menu items for Enhanced AI view
@@ -126,11 +138,13 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 ## Impact
 
 ### User Experience
+
 - **Before**: Empty dropdown menu, no access to actions
 - **After**: Full menu with context-appropriate actions
 - **Benefit**: Users can now access all features from the UI
 
 ### Functionality
+
 - **Before**: Users had to use command palette for all actions
 - **After**: Direct access to actions from dropdown menu
 - **Benefit**: Improved discoverability and usability
@@ -138,12 +152,14 @@ The menu configuration uses VSCode's `when` clauses to show context-appropriate 
 ## Future Considerations
 
 ### Potential Enhancements
+
 - **Context Menus**: Add right-click context menus for items
 - **Keyboard Shortcuts**: Add keyboard shortcuts for common actions
 - **Dynamic Menus**: Show/hide items based on scan state
 - **Custom Actions**: Allow users to customize menu items
 
 ### Maintenance
+
 - **New Views**: Ensure new views are added to menu `when` clauses
 - **New Commands**: Register new commands and add to appropriate menus
 - **Testing**: Verify menu functionality after changes

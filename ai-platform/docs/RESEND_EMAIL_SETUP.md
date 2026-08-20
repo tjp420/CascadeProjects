@@ -3,12 +3,15 @@ Resend email setup and production checklist
 
 Overview
 --------
+
 This document describes how to provision `RESEND_API_KEY` and related environment variables for production, how to test outbound delivery, and how to rotate Resend API keys safely with zero-downtime.
 
 Production env var snippets
 ---------------------------
+
 Render (dashboard)
 -------------------
+
 - Render dashboard → Service → Environment → Add variables:
   - `RESEND_API_KEY` = `re_...`
   - `RESEND_FROM` = `certificates@simplebeacon.ai`
@@ -23,6 +26,7 @@ render services redeploy <SERVICE_ID>
 
 Vercel (dashboard / CLI)
 ------------------------
+
 - Vercel → Project → Settings → Environment Variables → Add `RESEND_API_KEY` and `RESEND_FROM` for `Production`.
 - CLI example:
 
@@ -33,6 +37,7 @@ vercel env add RESEND_FROM production
 
 Docker / docker-compose
 ------------------------
+
 - Use host `.env.production` (keep it outside git):
 
 ```
@@ -53,6 +58,7 @@ services:
 
 GitHub Actions
 --------------
+
 - Add secrets in `Settings -> Secrets -> Actions`: `RESEND_API_KEY`, `RESEND_FROM`.
 - Example verification step (requires Node 18+ on runner):
 
@@ -75,6 +81,7 @@ steps:
 
 Testing the live send
 ---------------------
+
 Use the included helper to send a signed test message to a recipient:
 
 ```bash
@@ -86,16 +93,24 @@ If the API key and `RESEND_FROM` are correct, the script will print the Resend A
 
 Resend API key rotation checklist
 ---------------------------------
+
 1. In Resend dashboard generate a new API key (`re_...`) and record it securely.
 2. Add the new key to your host secrets as `RESEND_API_KEY_NEW` (or similar) without removing the old key.
 3. Update the email sending code (temporary) to attempt sending with `RESEND_API_KEY` then fallback to `RESEND_API_KEY_NEW` on auth failures. Example pattern:
 
 ```js
 async function sendWithResend(payload) {
-  const keys = [process.env.RESEND_API_KEY, process.env.RESEND_API_KEY_NEW].filter(Boolean);
+  const keys = [
+    process.env.RESEND_API_KEY,
+    process.env.RESEND_API_KEY_NEW,
+  ].filter(Boolean);
   for (const k of keys) {
     try {
-      const res = await fetch('https://api.resend.com/emails', { headers: { Authorization: `Bearer ${k}` }, method: 'POST', body: JSON.stringify(payload) });
+      const res = await fetch("https://api.resend.com/emails", {
+        headers: { Authorization: `Bearer ${k}` },
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
       if (res.ok) return await res.json();
       // if 401 or 403 try next key
       if (res.status === 401 || res.status === 403) continue;
@@ -104,7 +119,7 @@ async function sendWithResend(payload) {
       // log and try next
     }
   }
-  throw new Error('All Resend API keys failed');
+  throw new Error("All Resend API keys failed");
 }
 ```
 
@@ -115,6 +130,7 @@ async function sendWithResend(payload) {
 
 Security reminders
 ------------------
+
 - Never commit `RESEND_API_KEY` to source control. Use host-managed secrets.
 - Limit access to secrets to deploy pipelines and ops personnel.
 - Monitor bounce and suppression reports in Resend dashboard.

@@ -8,9 +8,10 @@ export class TeamGatePassTrendChart {
     }
 
     render(trend = [], _options = {}) {
-        const data = Array.isArray(trend) && trend.length
-            ? trend
-            : [{ date: new Date().toISOString().slice(0, 10), gate_pass_rate: 0, scan_count: 0 }];
+        const data =
+            Array.isArray(trend) && trend.length
+                ? trend
+                : [{ date: new Date().toISOString().slice(0, 10), gate_pass_rate: 0, scan_count: 0 }];
         const dpr = window.devicePixelRatio || 1;
         const rect = this.canvas.parentElement.getBoundingClientRect();
         this.canvas.width = rect.width * dpr;
@@ -31,7 +32,7 @@ export class TeamGatePassTrendChart {
 
         const points = data.map((d, i) => ({
             x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
-            y: pad.top + chartH - (Math.min(1, Math.max(0, Number(d.gate_pass_rate) || 0)) * chartH),
+            y: pad.top + chartH - Math.min(1, Math.max(0, Number(d.gate_pass_rate) || 0)) * chartH,
             label: d.date
                 ? new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                 : '',
@@ -50,7 +51,7 @@ export class TeamGatePassTrendChart {
             this.ctx.fillStyle = muted;
             this.ctx.font = '10px system-ui, sans-serif';
             this.ctx.textAlign = 'right';
-            this.ctx.fillText(`${100 - (i * 25)}%`, pad.left - 6, y + 3);
+            this.ctx.fillText(`${100 - i * 25}%`, pad.left - 6, y + 3);
         }
 
         if (points.length > 1) {
@@ -60,7 +61,7 @@ export class TeamGatePassTrendChart {
             this.ctx.fillStyle = grad;
             this.ctx.beginPath();
             this.ctx.moveTo(points[0].x, pad.top + chartH);
-            points.forEach((p) => this.ctx.lineTo(p.x, p.y));
+            points.forEach(p => this.ctx.lineTo(p.x, p.y));
             this.ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
             this.ctx.closePath();
             this.ctx.fill();
@@ -72,14 +73,13 @@ export class TeamGatePassTrendChart {
         points.forEach((p, i) => {
             if (i === 0) {
                 this.ctx.moveTo(p.x, p.y);
-            }
-            else {
+            } else {
                 this.ctx.lineTo(p.x, p.y);
             }
         });
         this.ctx.stroke();
 
-        points.forEach((p) => {
+        points.forEach(p => {
             this.ctx.fillStyle = primary;
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
@@ -89,9 +89,8 @@ export class TeamGatePassTrendChart {
         this.ctx.fillStyle = text;
         this.ctx.font = '11px system-ui, sans-serif';
         this.ctx.textAlign = 'center';
-        const labelIdx = [0, Math.floor(points.length / 2), points.length - 1]
-            .filter((v, i, a) => a.indexOf(v) === i);
-        labelIdx.forEach((i) => {
+        const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+        labelIdx.forEach(i => {
             if (points[i]?.label) {
                 this.ctx.fillText(points[i].label, points[i].x, h - 8);
             }

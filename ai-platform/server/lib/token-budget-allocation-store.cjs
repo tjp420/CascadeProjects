@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Token Budget Allocation Store — Real-time monetary expenditure tracking
@@ -16,39 +16,43 @@
  * @module token-budget-allocation-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const logger = require('./app-logger.cjs');
-const webhookEngine = require('./webhook-engine.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const logger = require("./app-logger.cjs");
+const webhookEngine = require("./webhook-engine.cjs");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'token-budgets.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "token-budgets.json",
+);
 const MAX_ALERTS = 300;
 
 // ── Default model cost rates (per 1K tokens) ─────────────────────────────────
 
 const DEFAULT_MODEL_RATES = {
-  'gpt-4': { input: 0.03, output: 0.06 },
-  'gpt-4-turbo': { input: 0.01, output: 0.03 },
-  'gpt-4o': { input: 0.005, output: 0.015 },
-  'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
-  'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
-  'claude-3-opus': { input: 0.015, output: 0.075 },
-  'claude-3-sonnet': { input: 0.003, output: 0.015 },
-  'claude-3-haiku': { input: 0.00025, output: 0.00125 },
-  'claude-3.5-sonnet': { input: 0.003, output: 0.015 },
-  'ollama': { input: 0, output: 0 },
-  'default': { input: 0.002, output: 0.006 },
+  "gpt-4": { input: 0.03, output: 0.06 },
+  "gpt-4-turbo": { input: 0.01, output: 0.03 },
+  "gpt-4o": { input: 0.005, output: 0.015 },
+  "gpt-4o-mini": { input: 0.00015, output: 0.0006 },
+  "gpt-3.5-turbo": { input: 0.0005, output: 0.0015 },
+  "claude-3-opus": { input: 0.015, output: 0.075 },
+  "claude-3-sonnet": { input: 0.003, output: 0.015 },
+  "claude-3-haiku": { input: 0.00025, output: 0.00125 },
+  "claude-3.5-sonnet": { input: 0.003, output: 0.015 },
+  ollama: { input: 0, output: 0 },
+  default: { input: 0.002, output: 0.006 },
 };
 
 const DEFAULT_BUDGET_CONFIG = {
-  period: 'monthly',
+  period: "monthly",
   softCapPercent: 80,
   hardStopPercent: 100,
   alertCooldownMinutes: 30,
   autoResetEnabled: true,
   webhookAlertsEnabled: true,
-  webhookEvent: 'budget_threshold_exceeded',
+  webhookEvent: "budget_threshold_exceeded",
   alertIntervals: [],
 };
 
@@ -68,53 +72,65 @@ const recentAlerts = new Map();
 
 function readStore() {
   try {
-    if (!fs.existsSync(STORE_PATH)) return { budgets: {}, modelRates: DEFAULT_MODEL_RATES, config: DEFAULT_BUDGET_CONFIG };
-    return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+    if (!fs.existsSync(STORE_PATH))
+      return {
+        budgets: {},
+        modelRates: DEFAULT_MODEL_RATES,
+        config: DEFAULT_BUDGET_CONFIG,
+      };
+    return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
   } catch {
-    return { budgets: {}, modelRates: DEFAULT_MODEL_RATES, config: DEFAULT_BUDGET_CONFIG };
+    return {
+      budgets: {},
+      modelRates: DEFAULT_MODEL_RATES,
+      config: DEFAULT_BUDGET_CONFIG,
+    };
   }
 }
 
 function writeStore(store) {
   var dir = path.dirname(STORE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  var tmp = STORE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  var tmp = STORE_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmp, STORE_PATH);
 }
 
 function makeKey(orgId, scope) {
-  return scope ? orgId + '::' + scope : orgId;
+  return scope ? orgId + "::" + scope : orgId;
 }
 
 // ── Budget CRUD ──────────────────────────────────────────────────────────────
 
 function getBudget(orgId, scope) {
   var store = readStore();
-  return store.budgets[makeKey(orgId, scope || 'org')] || null;
+  return store.budgets[makeKey(orgId, scope || "org")] || null;
 }
 
 function getAllBudgets(orgId) {
   var store = readStore();
-  return Object.values(store.budgets).filter(function (b) { return b.orgId === orgId; });
+  return Object.values(store.budgets).filter(function (b) {
+    return b.orgId === orgId;
+  });
 }
 
 function createBudget(orgId, budgetDef, scope) {
   var store = readStore();
-  var key = makeKey(orgId, scope || 'org');
-  if (store.budgets[key]) return { success: false, error: 'Budget already exists for this scope' };
+  var key = makeKey(orgId, scope || "org");
+  if (store.budgets[key])
+    return { success: false, error: "Budget already exists for this scope" };
 
   var now = new Date();
   var periodDays = PERIOD_DAYS[budgetDef.period] || 30;
   var periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
   store.budgets[key] = {
-    id: 'budget-' + crypto.randomBytes(4).toString('hex'),
+    id: "budget-" + crypto.randomBytes(4).toString("hex"),
     orgId: orgId,
-    scope: scope || 'org',
-    name: budgetDef.name || 'Default Budget',
+    scope: scope || "org",
+    name: budgetDef.name || "Default Budget",
     limitUSD: parseFloat(budgetDef.limitUSD) || 100,
-    period: budgetDef.period || 'monthly',
+    period: budgetDef.period || "monthly",
     periodStart: now.toISOString(),
     periodEnd: periodEnd.toISOString(),
     spentUSD: 0,
@@ -131,14 +147,21 @@ function createBudget(orgId, budgetDef, scope) {
   };
 
   writeStore(store);
-  logger.info('[TokenBudget] Budget created for org=' + orgId + ' scope=' + (scope || 'org') + ' limit=$' + store.budgets[key].limitUSD);
+  logger.info(
+    "[TokenBudget] Budget created for org=" +
+      orgId +
+      " scope=" +
+      (scope || "org") +
+      " limit=$" +
+      store.budgets[key].limitUSD,
+  );
   return { success: true, budget: store.budgets[key] };
 }
 
 function updateBudget(orgId, updates, scope) {
   var store = readStore();
-  var key = makeKey(orgId, scope || 'org');
-  if (!store.budgets[key]) return { success: false, error: 'Budget not found' };
+  var key = makeKey(orgId, scope || "org");
+  if (!store.budgets[key]) return { success: false, error: "Budget not found" };
   var b = store.budgets[key];
   if (updates.limitUSD !== undefined) b.limitUSD = parseFloat(updates.limitUSD);
   if (updates.period !== undefined) b.period = updates.period;
@@ -152,8 +175,8 @@ function updateBudget(orgId, updates, scope) {
 
 function deleteBudget(orgId, scope) {
   var store = readStore();
-  var key = makeKey(orgId, scope || 'org');
-  if (!store.budgets[key]) return { success: false, error: 'Budget not found' };
+  var key = makeKey(orgId, scope || "org");
+  if (!store.budgets[key]) return { success: false, error: "Budget not found" };
   delete store.budgets[key];
   writeStore(store);
   return { success: true };
@@ -161,13 +184,15 @@ function deleteBudget(orgId, scope) {
 
 function resetBudget(orgId, scope) {
   var store = readStore();
-  var key = makeKey(orgId, scope || 'org');
-  if (!store.budgets[key]) return { success: false, error: 'Budget not found' };
+  var key = makeKey(orgId, scope || "org");
+  if (!store.budgets[key]) return { success: false, error: "Budget not found" };
   var b = store.budgets[key];
   var now = new Date();
   var periodDays = PERIOD_DAYS[b.period] || 30;
   b.periodStart = now.toISOString();
-  b.periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000).toISOString();
+  b.periodEnd = new Date(
+    now.getTime() + periodDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
   b.spentUSD = 0;
   b.tokenCount = 0;
   b.inputTokens = 0;
@@ -177,7 +202,12 @@ function resetBudget(orgId, scope) {
   b.alerts = [];
   b.updatedAt = now.toISOString();
   writeStore(store);
-  logger.info('[TokenBudget] Budget reset for org=' + orgId + ' scope=' + (scope || 'org'));
+  logger.info(
+    "[TokenBudget] Budget reset for org=" +
+      orgId +
+      " scope=" +
+      (scope || "org"),
+  );
   return { success: true, budget: b };
 }
 
@@ -191,7 +221,10 @@ function getModelRates() {
 function updateModelRate(model, rates) {
   var store = readStore();
   if (!store.modelRates) store.modelRates = DEFAULT_MODEL_RATES;
-  store.modelRates[model] = { input: parseFloat(rates.input) || 0, output: parseFloat(rates.output) || 0 };
+  store.modelRates[model] = {
+    input: parseFloat(rates.input) || 0,
+    output: parseFloat(rates.output) || 0,
+  };
   writeStore(store);
   return { success: true, rate: store.modelRates[model] };
 }
@@ -201,7 +234,8 @@ function getRateForModel(model) {
   if (rates[model]) return rates[model];
   // Try prefix match
   for (var key in rates) {
-    if (key !== 'default' && model && model.indexOf(key) === 0) return rates[key];
+    if (key !== "default" && model && model.indexOf(key) === 0)
+      return rates[key];
   }
   return rates.default || { input: 0.002, output: 0.006 };
 }
@@ -217,17 +251,23 @@ function getRateForModel(model) {
  */
 function recordUsage(orgId, usage, scope) {
   var store = readStore();
-  var key = makeKey(orgId, scope || 'org');
+  var key = makeKey(orgId, scope || "org");
   var budget = store.budgets[key];
-  if (!budget || !budget.enabled) return { recorded: false, reason: 'no_budget' };
+  if (!budget || !budget.enabled)
+    return { recorded: false, reason: "no_budget" };
 
   // Auto-reset on period rollover before recording new spend
   var now = new Date();
   var budgetConfig = budget.config || DEFAULT_BUDGET_CONFIG;
-  if (budgetConfig.autoResetEnabled !== false && now > new Date(budget.periodEnd)) {
+  if (
+    budgetConfig.autoResetEnabled !== false &&
+    now > new Date(budget.periodEnd)
+  ) {
     var periodDays = PERIOD_DAYS[budget.period] || 30;
     budget.periodStart = now.toISOString();
-    budget.periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000).toISOString();
+    budget.periodEnd = new Date(
+      now.getTime() + periodDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
     budget.spentUSD = 0;
     budget.tokenCount = 0;
     budget.inputTokens = 0;
@@ -235,16 +275,22 @@ function recordUsage(orgId, usage, scope) {
     budget.byModel = {};
     budget.byUser = {};
     budget.alerts = [];
-    logger.info('[TokenBudget] Auto-reset budget for org=' + orgId + ' scope=' + (scope || 'org'));
+    logger.info(
+      "[TokenBudget] Auto-reset budget for org=" +
+        orgId +
+        " scope=" +
+        (scope || "org"),
+    );
   }
 
-  var model = usage.model || 'default';
+  var model = usage.model || "default";
   var inputTokens = usage.inputTokens || 0;
   var outputTokens = usage.outputTokens || 0;
   var totalTokens = inputTokens + outputTokens;
 
   var rate = getRateForModel(model);
-  var costUSD = (inputTokens / 1000) * rate.input + (outputTokens / 1000) * rate.output;
+  var costUSD =
+    (inputTokens / 1000) * rate.input + (outputTokens / 1000) * rate.output;
 
   // Update budget
   budget.spentUSD = Math.round((budget.spentUSD + costUSD) * 1000000) / 1000000;
@@ -253,15 +299,20 @@ function recordUsage(orgId, usage, scope) {
   budget.outputTokens += outputTokens;
 
   // Update per-model breakdown
-  if (!budget.byModel[model]) budget.byModel[model] = { costUSD: 0, tokenCount: 0, calls: 0 };
-  budget.byModel[model].costUSD = Math.round((budget.byModel[model].costUSD + costUSD) * 1000000) / 1000000;
+  if (!budget.byModel[model])
+    budget.byModel[model] = { costUSD: 0, tokenCount: 0, calls: 0 };
+  budget.byModel[model].costUSD =
+    Math.round((budget.byModel[model].costUSD + costUSD) * 1000000) / 1000000;
   budget.byModel[model].tokenCount += totalTokens;
   budget.byModel[model].calls += 1;
 
   // Update per-user breakdown
   if (usage.userId) {
-    if (!budget.byUser[usage.userId]) budget.byUser[usage.userId] = { costUSD: 0, tokenCount: 0, calls: 0 };
-    budget.byUser[usage.userId].costUSD = Math.round((budget.byUser[usage.userId].costUSD + costUSD) * 1000000) / 1000000;
+    if (!budget.byUser[usage.userId])
+      budget.byUser[usage.userId] = { costUSD: 0, tokenCount: 0, calls: 0 };
+    budget.byUser[usage.userId].costUSD =
+      Math.round((budget.byUser[usage.userId].costUSD + costUSD) * 1000000) /
+      1000000;
     budget.byUser[usage.userId].tokenCount += totalTokens;
     budget.byUser[usage.userId].calls += 1;
   }
@@ -289,8 +340,19 @@ function checkThresholds(budget, pct, orgId, scope) {
 
   // Build the interval set: explicit alertIntervals take priority, otherwise fall back to soft/hard caps
   var intervals = [];
-  if (Array.isArray(config.alertIntervals) && config.alertIntervals.length > 0) {
-    intervals = config.alertIntervals.slice().map(Number).filter(function (v) { return !isNaN(v) && v > 0; }).sort(function (a, b) { return a - b; });
+  if (
+    Array.isArray(config.alertIntervals) &&
+    config.alertIntervals.length > 0
+  ) {
+    intervals = config.alertIntervals
+      .slice()
+      .map(Number)
+      .filter(function (v) {
+        return !isNaN(v) && v > 0;
+      })
+      .sort(function (a, b) {
+        return a - b;
+      });
   }
   if (intervals.length === 0) {
     intervals = [config.softCapPercent || 80, config.hardStopPercent || 100];
@@ -307,30 +369,42 @@ function checkThresholds(budget, pct, orgId, scope) {
   if (crossedValue === null) return null;
 
   // Classify the alert severity and threshold type
-  var thresholdType = 'interval';
-  var severity = 'medium';
+  var thresholdType = "interval";
+  var severity = "medium";
   if (pct >= (config.hardStopPercent || 100)) {
-    thresholdType = 'hard_stop';
-    severity = 'critical';
+    thresholdType = "hard_stop";
+    severity = "critical";
   } else if (pct >= (config.softCapPercent || 80)) {
-    thresholdType = 'soft_cap';
-    severity = 'high';
+    thresholdType = "soft_cap";
+    severity = "high";
   }
 
   // Dedup: per-org/scope/threshold-value cooldown
-  var alertKey = orgId + '::' + (scope || 'org') + '::' + thresholdType + '::' + crossedValue;
+  var alertKey =
+    orgId +
+    "::" +
+    (scope || "org") +
+    "::" +
+    thresholdType +
+    "::" +
+    crossedValue;
   var now = Date.now();
   var lastAlert = recentAlerts.get(alertKey);
   var cooldownMs = (config.alertCooldownMinutes || 30) * 60 * 1000;
-  if (lastAlert && (now - lastAlert) < cooldownMs) {
-    return { type: thresholdType, pct: pct, deduped: true, crossed: crossedValue };
+  if (lastAlert && now - lastAlert < cooldownMs) {
+    return {
+      type: thresholdType,
+      pct: pct,
+      deduped: true,
+      crossed: crossedValue,
+    };
   }
 
   recentAlerts.set(alertKey, now);
 
   // Record alert in budget
   var alertEntry = {
-    id: 'alert-' + crypto.randomBytes(4).toString('hex'),
+    id: "alert-" + crypto.randomBytes(4).toString("hex"),
     timestamp: new Date().toISOString(),
     type: thresholdType,
     crossedValue: crossedValue,
@@ -338,7 +412,7 @@ function checkThresholds(budget, pct, orgId, scope) {
     spentUSD: budget.spentUSD,
     limitUSD: budget.limitUSD,
     orgId: orgId,
-    scope: scope || 'org',
+    scope: scope || "org",
   };
   budget.alerts.push(alertEntry);
   if (budget.alerts.length > 50) budget.alerts.shift();
@@ -347,31 +421,63 @@ function checkThresholds(budget, pct, orgId, scope) {
   alertHistory.push(alertEntry);
   if (alertHistory.length > MAX_ALERTS) alertHistory.shift();
 
-  logger.warn('[TokenBudget] ' + thresholdType.toUpperCase() + ' threshold crossed for org=' + orgId + ': ' + pct.toFixed(1) + '% ($' + budget.spentUSD.toFixed(2) + '/$' + budget.limitUSD + ')');
+  logger.warn(
+    "[TokenBudget] " +
+      thresholdType.toUpperCase() +
+      " threshold crossed for org=" +
+      orgId +
+      ": " +
+      pct.toFixed(1) +
+      "% ($" +
+      budget.spentUSD.toFixed(2) +
+      "/$" +
+      budget.limitUSD +
+      ")",
+  );
 
   // Dispatch webhook via the integration engine
   if (config.webhookAlertsEnabled !== false) {
-    var event = config.webhookEvent || 'budget_threshold_exceeded';
-    var summary = 'Budget ' + thresholdType + ' crossed for org ' + orgId +
-      ' (' + (scope || 'org') + ') at ' + pct.toFixed(1) + '%' +
-      ' — $' + budget.spentUSD.toFixed(2) + ' / $' + budget.limitUSD +
-      ' (threshold ' + crossedValue + '%)';
-    webhookEngine.dispatchEvent(event, {
-      orgId: orgId,
-      severity: severity,
-      summary: summary,
-      percentUsed: pct,
-      spentUSD: budget.spentUSD,
-      limitUSD: budget.limitUSD,
-      scope: scope || 'org',
-      thresholdType: thresholdType,
-      thresholdValue: crossedValue,
-    }).catch(function (err) {
-      logger.warn('[TokenBudget] Webhook dispatch failed:', err.message);
-    });
+    var event = config.webhookEvent || "budget_threshold_exceeded";
+    var summary =
+      "Budget " +
+      thresholdType +
+      " crossed for org " +
+      orgId +
+      " (" +
+      (scope || "org") +
+      ") at " +
+      pct.toFixed(1) +
+      "%" +
+      " — $" +
+      budget.spentUSD.toFixed(2) +
+      " / $" +
+      budget.limitUSD +
+      " (threshold " +
+      crossedValue +
+      "%)";
+    webhookEngine
+      .dispatchEvent(event, {
+        orgId: orgId,
+        severity: severity,
+        summary: summary,
+        percentUsed: pct,
+        spentUSD: budget.spentUSD,
+        limitUSD: budget.limitUSD,
+        scope: scope || "org",
+        thresholdType: thresholdType,
+        thresholdValue: crossedValue,
+      })
+      .catch(function (err) {
+        logger.warn("[TokenBudget] Webhook dispatch failed:", err.message);
+      });
   }
 
-  return { type: thresholdType, pct: pct, alert: alertEntry, crossed: crossedValue };
+  return {
+    type: thresholdType,
+    pct: pct,
+    alert: alertEntry,
+    crossed: crossedValue,
+  };
 }
 
 /**
@@ -384,7 +490,7 @@ function checkHardStop(orgId, scope) {
   if (pct >= budget.config.hardStopPercent) {
     return {
       blocked: true,
-      reason: 'budget_hard_stop_exceeded',
+      reason: "budget_hard_stop_exceeded",
       pct: pct,
       spentUSD: budget.spentUSD,
       limitUSD: budget.limitUSD,
@@ -417,12 +523,21 @@ function getConfig() {
 function updateConfig(updates) {
   var store = readStore();
   if (!store.config) store.config = DEFAULT_BUDGET_CONFIG;
-  if (updates.softCapPercent !== undefined) store.config.softCapPercent = parseFloat(updates.softCapPercent);
-  if (updates.hardStopPercent !== undefined) store.config.hardStopPercent = parseFloat(updates.hardStopPercent);
-  if (updates.alertCooldownMinutes !== undefined) store.config.alertCooldownMinutes = parseInt(updates.alertCooldownMinutes, 10);
-  if (updates.autoResetEnabled !== undefined) store.config.autoResetEnabled = updates.autoResetEnabled;
-  if (updates.webhookAlertsEnabled !== undefined) store.config.webhookAlertsEnabled = updates.webhookAlertsEnabled;
-  if (updates.webhookEvent !== undefined) store.config.webhookEvent = updates.webhookEvent;
+  if (updates.softCapPercent !== undefined)
+    store.config.softCapPercent = parseFloat(updates.softCapPercent);
+  if (updates.hardStopPercent !== undefined)
+    store.config.hardStopPercent = parseFloat(updates.hardStopPercent);
+  if (updates.alertCooldownMinutes !== undefined)
+    store.config.alertCooldownMinutes = parseInt(
+      updates.alertCooldownMinutes,
+      10,
+    );
+  if (updates.autoResetEnabled !== undefined)
+    store.config.autoResetEnabled = updates.autoResetEnabled;
+  if (updates.webhookAlertsEnabled !== undefined)
+    store.config.webhookAlertsEnabled = updates.webhookAlertsEnabled;
+  if (updates.webhookEvent !== undefined)
+    store.config.webhookEvent = updates.webhookEvent;
   if (updates.period !== undefined) store.config.period = updates.period;
   writeStore(store);
   return { success: true, config: store.config };
@@ -459,7 +574,8 @@ function getStats(orgId) {
     totalTokens: totalTokens,
     overSoftCap: overSoftCap,
     overHardStop: overHardStop,
-    avgUtilization: totalLimit > 0 ? Math.round((totalSpent / totalLimit) * 10000) / 100 : 0,
+    avgUtilization:
+      totalLimit > 0 ? Math.round((totalSpent / totalLimit) * 10000) / 100 : 0,
     totalAlerts: alertHistory.length,
     modelRates: getModelRates(),
   };

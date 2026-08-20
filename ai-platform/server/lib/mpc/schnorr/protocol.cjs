@@ -1,21 +1,22 @@
-const crypto = require('crypto');
-const { PrimeField } = require('./field.cjs');
+const crypto = require("crypto");
+const { PrimeField } = require("./field.cjs");
 
 let HsmAdapterError;
 let hsmMetrics;
 try {
-  HsmAdapterError = require('../../hsm-adapter/base-adapter.cjs').HsmAdapterError;
+  HsmAdapterError =
+    require("../../hsm-adapter/base-adapter.cjs").HsmAdapterError;
 } catch (e) {
   HsmAdapterError = class extends Error {
     constructor(code, message) {
       super(message);
-      this.name = 'HsmAdapterError';
+      this.name = "HsmAdapterError";
       this.code = code;
     }
   };
 }
 try {
-  hsmMetrics = require('../../hsm-adapter/hsm-metrics.cjs');
+  hsmMetrics = require("../../hsm-adapter/hsm-metrics.cjs");
 } catch (e) {
   hsmMetrics = { incrementCounter: () => {} };
 }
@@ -23,7 +24,10 @@ try {
 class SchnorrThresholdAggregator {
   constructor(modulus, subgroupOrder = modulus, generator = 2n) {
     this.field = new PrimeField(modulus);
-    this.subgroupOrder = subgroupOrder === undefined || subgroupOrder === null ? this.field.q : this.field.toBig(subgroupOrder);
+    this.subgroupOrder =
+      subgroupOrder === undefined || subgroupOrder === null
+        ? this.field.q
+        : this.field.toBig(subgroupOrder);
     this.generator = this.field.toBig(generator);
     this._tenantShares = new Map();
   }
@@ -40,13 +44,17 @@ class SchnorrThresholdAggregator {
     try {
       bg = BigInt(value);
     } catch (e) {
-      throw new Error(`SchnorrThresholdAggregator: ${name} must be a BigInt or BigInt-coercible, got ${typeof value}`);
+      throw new Error(
+        `SchnorrThresholdAggregator: ${name} must be a BigInt or BigInt-coercible, got ${typeof value}`,
+      );
     }
     if (!allowZero && bg === 0n) {
       throw new Error(`SchnorrThresholdAggregator: ${name} must not be zero`);
     }
     if (bg < 0n || bg >= this.field.q) {
-      throw new Error(`SchnorrThresholdAggregator: ${name} must be in field range [0, q-1]`);
+      throw new Error(
+        `SchnorrThresholdAggregator: ${name} must be in field range [0, q-1]`,
+      );
     }
     return bg;
   }
@@ -56,39 +64,49 @@ class SchnorrThresholdAggregator {
    * @private
    */
   _hashToField(...parts) {
-    const hasher = crypto.createHash('sha256');
+    const hasher = crypto.createHash("sha256");
     for (const p of parts) {
-      const str = typeof p === 'bigint' ? p.toString(16) : String(p);
+      const str = typeof p === "bigint" ? p.toString(16) : String(p);
       hasher.update(str);
     }
-    return BigInt('0x' + hasher.digest('hex')) % this.field.q;
+    return BigInt("0x" + hasher.digest("hex")) % this.field.q;
   }
 
   // Compute Lagrange coefficient for interpolation at 0 for participant i
   // quorum is array of numeric identifiers (small integers)
   computeLagrangeWeight(i, quorum) {
     if (i === undefined || i === null) {
-      throw new Error('SchnorrThresholdAggregator.computeLagrangeWeight: i is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeLagrangeWeight: i is required",
+      );
     }
     if (!Array.isArray(quorum)) {
-      throw new Error('SchnorrThresholdAggregator.computeLagrangeWeight: quorum must be an array');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeLagrangeWeight: quorum must be an array",
+      );
     }
     if (quorum.length < 2) {
-      throw new Error('SchnorrThresholdAggregator.computeLagrangeWeight: quorum must have at least 2 elements');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeLagrangeWeight: quorum must have at least 2 elements",
+      );
     }
     // Check for duplicates
     const seen = new Set();
     for (const q of quorum) {
       const qs = String(q);
       if (seen.has(qs)) {
-        throw new Error('SchnorrThresholdAggregator.computeLagrangeWeight: quorum contains duplicate participant IDs');
+        throw new Error(
+          "SchnorrThresholdAggregator.computeLagrangeWeight: quorum contains duplicate participant IDs",
+        );
       }
       seen.add(qs);
     }
     // Check that i is in quorum
     const idxStr = String(i);
     if (!seen.has(idxStr)) {
-      throw new Error(`SchnorrThresholdAggregator.computeLagrangeWeight: participant ${i} is not in quorum`);
+      throw new Error(
+        `SchnorrThresholdAggregator.computeLagrangeWeight: participant ${i} is not in quorum`,
+      );
     }
 
     const idx = BigInt(i);
@@ -114,16 +132,22 @@ class SchnorrThresholdAggregator {
    */
   computeChallenge(aggPublicKey, aggNonce, messageHash) {
     if (aggPublicKey === undefined || aggPublicKey === null) {
-      throw new Error('SchnorrThresholdAggregator.computeChallenge: aggPublicKey is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeChallenge: aggPublicKey is required",
+      );
     }
     if (aggNonce === undefined || aggNonce === null) {
-      throw new Error('SchnorrThresholdAggregator.computeChallenge: aggNonce is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeChallenge: aggNonce is required",
+      );
     }
     if (messageHash === undefined || messageHash === null) {
-      throw new Error('SchnorrThresholdAggregator.computeChallenge: messageHash is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeChallenge: messageHash is required",
+      );
     }
-    const P = this._validateBigInt(aggPublicKey, 'aggPublicKey');
-    const R = this._validateBigInt(aggNonce, 'aggNonce');
+    const P = this._validateBigInt(aggPublicKey, "aggPublicKey");
+    const R = this._validateBigInt(aggNonce, "aggNonce");
     return this._hashToField(R, P, messageHash);
   }
 
@@ -135,17 +159,23 @@ class SchnorrThresholdAggregator {
    */
   computeBindingFactor(aggPublicKey, nonceCommitments) {
     if (aggPublicKey === undefined || aggPublicKey === null) {
-      throw new Error('SchnorrThresholdAggregator.computeBindingFactor: aggPublicKey is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeBindingFactor: aggPublicKey is required",
+      );
     }
     if (!Array.isArray(nonceCommitments) || nonceCommitments.length === 0) {
-      throw new Error('SchnorrThresholdAggregator.computeBindingFactor: nonceCommitments must be a non-empty array');
+      throw new Error(
+        "SchnorrThresholdAggregator.computeBindingFactor: nonceCommitments must be a non-empty array",
+      );
     }
-    const P = this._validateBigInt(aggPublicKey, 'aggPublicKey');
+    const P = this._validateBigInt(aggPublicKey, "aggPublicKey");
     const parts = [P];
     for (let i = 0; i < nonceCommitments.length; i++) {
       const nc = nonceCommitments[i];
       if (!nc || (!nc.h1 && !nc.h2)) {
-        throw new Error(`SchnorrThresholdAggregator.computeBindingFactor: nonceCommitments[${i}] missing h1/h2`);
+        throw new Error(
+          `SchnorrThresholdAggregator.computeBindingFactor: nonceCommitments[${i}] missing h1/h2`,
+        );
       }
       if (nc.h1) parts.push(nc.h1);
       if (nc.h2) parts.push(nc.h2);
@@ -162,14 +192,18 @@ class SchnorrThresholdAggregator {
    */
   aggregatePublicKeys(publicKeys, quorum) {
     if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
-      throw new Error('SchnorrThresholdAggregator.aggregatePublicKeys: publicKeys must be a non-empty array');
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregatePublicKeys: publicKeys must be a non-empty array",
+      );
     }
     if (publicKeys.length === 1) {
-      return this._validateBigInt(publicKeys[0], 'publicKeys[0]');
+      return this._validateBigInt(publicKeys[0], "publicKeys[0]");
     }
     const ids = quorum || publicKeys.map((_, i) => i + 1);
     if (ids.length !== publicKeys.length) {
-      throw new Error('SchnorrThresholdAggregator.aggregatePublicKeys: quorum length must match publicKeys length');
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregatePublicKeys: quorum length must match publicKeys length",
+      );
     }
     let agg = 0n;
     for (let i = 0; i < publicKeys.length; i++) {
@@ -189,12 +223,16 @@ class SchnorrThresholdAggregator {
    */
   aggregateNonces(publicNonces, bindingFactor) {
     if (!Array.isArray(publicNonces) || publicNonces.length === 0) {
-      throw new Error('SchnorrThresholdAggregator.aggregateNonces: publicNonces must be a non-empty array');
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregateNonces: publicNonces must be a non-empty array",
+      );
     }
     if (bindingFactor === undefined || bindingFactor === null) {
-      throw new Error('SchnorrThresholdAggregator.aggregateNonces: bindingFactor is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregateNonces: bindingFactor is required",
+      );
     }
-    const b = this._validateBigInt(bindingFactor, 'bindingFactor');
+    const b = this._validateBigInt(bindingFactor, "bindingFactor");
     let agg = 0n;
     for (let i = 0; i < publicNonces.length; i++) {
       const R = this._validateBigInt(publicNonces[i], `publicNonces[${i}]`);
@@ -212,12 +250,16 @@ class SchnorrThresholdAggregator {
    */
   assembleSignature(aggNonce, partialShares) {
     if (aggNonce === undefined || aggNonce === null) {
-      throw new Error('SchnorrThresholdAggregator.assembleSignature: aggNonce is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.assembleSignature: aggNonce is required",
+      );
     }
     if (!Array.isArray(partialShares) || partialShares.length === 0) {
-      throw new Error('SchnorrThresholdAggregator.assembleSignature: partialShares must be a non-empty array');
+      throw new Error(
+        "SchnorrThresholdAggregator.assembleSignature: partialShares must be a non-empty array",
+      );
     }
-    const R = this._validateBigInt(aggNonce, 'aggNonce');
+    const R = this._validateBigInt(aggNonce, "aggNonce");
     let s = 0n;
     for (let i = 0; i < partialShares.length; i++) {
       const si = this._validateBigInt(partialShares[i], `partialShares[${i}]`);
@@ -230,7 +272,7 @@ class SchnorrThresholdAggregator {
    * Build a tenant-scoped share cache key.
    */
   _shareKey(tenantId, sessionId) {
-    return `${tenantId || 'default'}::${sessionId || 'global'}`;
+    return `${tenantId || "default"}::${sessionId || "global"}`;
   }
 
   /**
@@ -273,35 +315,42 @@ class SchnorrThresholdAggregator {
     nodeId,
   }) {
     if (publicKey === undefined || publicKey === null) {
-      throw new Error('SchnorrThresholdAggregator.verifyPartialShare: publicKey is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.verifyPartialShare: publicKey is required",
+      );
     }
     if (publicNonce1 === undefined || publicNonce1 === null) {
-      throw new Error('SchnorrThresholdAggregator.verifyPartialShare: publicNonce1 is required');
+      throw new Error(
+        "SchnorrThresholdAggregator.verifyPartialShare: publicNonce1 is required",
+      );
     }
-    const P = this._validateBigInt(publicKey, 'publicKey');
-    const R1 = this._validateBigInt(publicNonce1, 'publicNonce1');
-    const R2 = publicNonce2 === undefined || publicNonce2 === null ? 1n : this._validateBigInt(publicNonce2, 'publicNonce2');
-    const s = this._validateBigInt(partialShare, 'partialShare');
-    const c = this._validateBigInt(challenge, 'challenge');
-    const lambda = this._validateBigInt(lagrangeWeight, 'lagrangeWeight');
-    const b = this._validateBigInt(bindingFactor, 'bindingFactor');
+    const P = this._validateBigInt(publicKey, "publicKey");
+    const R1 = this._validateBigInt(publicNonce1, "publicNonce1");
+    const R2 =
+      publicNonce2 === undefined || publicNonce2 === null
+        ? 1n
+        : this._validateBigInt(publicNonce2, "publicNonce2");
+    const s = this._validateBigInt(partialShare, "partialShare");
+    const c = this._validateBigInt(challenge, "challenge");
+    const lambda = this._validateBigInt(lagrangeWeight, "lagrangeWeight");
+    const b = this._validateBigInt(bindingFactor, "bindingFactor");
 
     const q = this.subgroupOrder;
     const sMod = s % q;
-    const exp = (c % q) * (lambda % q) % q;
+    const exp = ((c % q) * (lambda % q)) % q;
     const bMod = b % q;
     const lhs = this.field.exp(this.generator, sMod);
     const rhs = this.field.mul(
       this.field.mul(this.field.exp(P, exp), R1),
-      this.field.exp(R2, bMod)
+      this.field.exp(R2, bMod),
     );
     if (lhs !== rhs) {
       if (hsmMetrics && hsmMetrics.incrementCounter) {
-        hsmMetrics.incrementCounter('hsm_mpc_schnorr_fault_total');
+        hsmMetrics.incrementCounter("hsm_mpc_schnorr_fault_total");
       }
       throw new HsmAdapterError(
-        'SCHNORR_THRESHOLD_VIOLATION',
-        `SchnorrThresholdAggregator.verifyPartialShare: partial share from node ${nodeId ?? 'unknown'} failed verification (SCHNORR_THRESHOLD_VIOLATION)`
+        "SCHNORR_THRESHOLD_VIOLATION",
+        `SchnorrThresholdAggregator.verifyPartialShare: partial share from node ${nodeId ?? "unknown"} failed verification (SCHNORR_THRESHOLD_VIOLATION)`,
       );
     }
     return true;
@@ -325,15 +374,19 @@ class SchnorrThresholdAggregator {
     bindingFactors,
   }) {
     if (!Array.isArray(partialShares) || partialShares.length === 0) {
-      throw new Error('SchnorrThresholdAggregator.aggregateVerifiedPartialShares: partialShares must be a non-empty array');
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregateVerifiedPartialShares: partialShares must be a non-empty array",
+      );
     }
-    if (typeof threshold !== 'number' || threshold < 1) {
-      throw new Error('SchnorrThresholdAggregator.aggregateVerifiedPartialShares: threshold must be a positive integer');
+    if (typeof threshold !== "number" || threshold < 1) {
+      throw new Error(
+        "SchnorrThresholdAggregator.aggregateVerifiedPartialShares: threshold must be a positive integer",
+      );
     }
     if (partialShares.length < threshold + 1) {
       throw new HsmAdapterError(
-        'SCHNORR_THRESHOLD_VIOLATION',
-        'SchnorrThresholdAggregator.aggregateVerifiedPartialShares: insufficient partial shares to reach threshold (t+1)'
+        "SCHNORR_THRESHOLD_VIOLATION",
+        "SchnorrThresholdAggregator.aggregateVerifiedPartialShares: insufficient partial shares to reach threshold (t+1)",
       );
     }
 
@@ -353,11 +406,11 @@ class SchnorrThresholdAggregator {
         });
       } catch (e) {
         if (hsmMetrics && hsmMetrics.incrementCounter) {
-          hsmMetrics.incrementCounter('hsm_mpc_schnorr_fault_total');
+          hsmMetrics.incrementCounter("hsm_mpc_schnorr_fault_total");
         }
         throw new HsmAdapterError(
-          'SCHNORR_THRESHOLD_VIOLATION',
-          `SchnorrThresholdAggregator.aggregateVerifiedPartialShares: node ${nodeId} submitted a malformed partial signature share`
+          "SCHNORR_THRESHOLD_VIOLATION",
+          `SchnorrThresholdAggregator.aggregateVerifiedPartialShares: node ${nodeId} submitted a malformed partial signature share`,
         );
       }
       this._setShare(tenantId, sessionId, nodeId, partialShares[i]);
@@ -390,17 +443,27 @@ class SchnorrThresholdAggregator {
    * @param {bigint} [options.aggSecretNonce] - Aggregate secret nonce for field-based verification
    * @returns {boolean} True if signature verifies
    */
-  verifySignature(aggPublicKey, aggNonce, signature, messageHash, options = {}) {
-    if (!signature || typeof signature !== 'object') {
-      throw new Error('SchnorrThresholdAggregator.verifySignature: signature object is required');
+  verifySignature(
+    aggPublicKey,
+    aggNonce,
+    signature,
+    messageHash,
+    options = {},
+  ) {
+    if (!signature || typeof signature !== "object") {
+      throw new Error(
+        "SchnorrThresholdAggregator.verifySignature: signature object is required",
+      );
     }
     if (signature.R === undefined || signature.s === undefined) {
-      throw new Error('SchnorrThresholdAggregator.verifySignature: signature must have R and s components');
+      throw new Error(
+        "SchnorrThresholdAggregator.verifySignature: signature must have R and s components",
+      );
     }
-    const P = this._validateBigInt(aggPublicKey, 'aggPublicKey');
-    const R = this._validateBigInt(aggNonce, 'aggNonce');
-    const s = this._validateBigInt(signature.s, 'signature.s');
-    const sigR = this._validateBigInt(signature.R, 'signature.R');
+    const P = this._validateBigInt(aggPublicKey, "aggPublicKey");
+    const R = this._validateBigInt(aggNonce, "aggNonce");
+    const s = this._validateBigInt(signature.s, "signature.s");
+    const sigR = this._validateBigInt(signature.R, "signature.R");
 
     // R must match
     if (sigR !== R) {
@@ -412,10 +475,18 @@ class SchnorrThresholdAggregator {
 
     // Field-based verification (for testing without EC points):
     // s ≡ k_agg + c * x_agg (mod q)
-    if (options.aggPrivateKey !== undefined && options.aggSecretNonce !== undefined) {
-      const x_agg = this._validateBigInt(options.aggPrivateKey, 'aggPrivateKey') % this.subgroupOrder;
-      const k_agg = this._validateBigInt(options.aggSecretNonce, 'aggSecretNonce') % this.subgroupOrder;
-      const expected = (k_agg + (c % this.subgroupOrder) * x_agg) % this.subgroupOrder;
+    if (
+      options.aggPrivateKey !== undefined &&
+      options.aggSecretNonce !== undefined
+    ) {
+      const x_agg =
+        this._validateBigInt(options.aggPrivateKey, "aggPrivateKey") %
+        this.subgroupOrder;
+      const k_agg =
+        this._validateBigInt(options.aggSecretNonce, "aggSecretNonce") %
+        this.subgroupOrder;
+      const expected =
+        (k_agg + (c % this.subgroupOrder) * x_agg) % this.subgroupOrder;
       return s === expected;
     }
 
@@ -424,7 +495,9 @@ class SchnorrThresholdAggregator {
     // This requires EC point arithmetic which is not available in this
     // field-only implementation. For now, return false if no private
     // key material is provided (fail-closed).
-    throw new Error('SchnorrThresholdAggregator.verifySignature: EC-based verification requires aggPrivateKey and aggSecretNonce for field-based verification (no EC point arithmetic available)');
+    throw new Error(
+      "SchnorrThresholdAggregator.verifySignature: EC-based verification requires aggPrivateKey and aggSecretNonce for field-based verification (no EC point arithmetic available)",
+    );
   }
 }
 

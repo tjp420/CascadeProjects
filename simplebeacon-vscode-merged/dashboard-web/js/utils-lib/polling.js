@@ -51,7 +51,10 @@ export function createPoller(fn, intervalMs, opts = {}) {
 
   const stop = () => {
     running = false;
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
   };
 
   const isRunning = () => running;

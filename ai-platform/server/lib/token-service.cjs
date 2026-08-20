@@ -10,30 +10,31 @@
  *   - Access token blocklisting for explicit logout
  */
 
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
-const logger = require('./app-logger.cjs');
-const { jwtConfig, refreshConfig } = require('./jwt-config.cjs');
-const { withZeroizedBuffer } = require('./crypto/zeroize.cjs');
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const logger = require("./app-logger.cjs");
+const { jwtConfig, refreshConfig } = require("./jwt-config.cjs");
+const { withZeroizedBuffer } = require("./crypto/zeroize.cjs");
 
 // In-memory fallback stores (used when PostgreSQL is unavailable)
-const _refreshStore = new Map();      // tokenHash -> tokenRecord
-const _blacklistStore = new Map();    // tokenHash -> expiryTimestamp
-const _familyStore = new Map();       // familyId -> { userId, revoked }
+const _refreshStore = new Map(); // tokenHash -> tokenRecord
+const _blacklistStore = new Map(); // tokenHash -> expiryTimestamp
+const _familyStore = new Map(); // familyId -> { userId, revoked }
 
-const USE_DB = process.env.ENABLE_DATABASE === 'true' || process.env.DATABASE_URL;
+const USE_DB =
+  process.env.ENABLE_DATABASE === "true" || process.env.DATABASE_URL;
 
 // Token hashing helper
 // Token hashing helper — zeroizes token buffer after hashing
 function hashToken(token) {
   return withZeroizedBuffer(token, (buf) => {
-    return crypto.createHash('sha256').update(buf).digest('hex');
+    return crypto.createHash("sha256").update(buf).digest("hex");
   });
 }
 
 // Generate opaque refresh token (256-bit random)
 function generateOpaqueToken() {
-  return crypto.randomBytes(32).toString('base64url');
+  return crypto.randomBytes(32).toString("base64url");
 }
 
 // Generate access token (JWT)
@@ -42,7 +43,7 @@ function generateAccessToken(payload) {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
-    expiresIn: jwtConfig.expiresIn
+    expiresIn: jwtConfig.expiresIn,
   });
 }
 
@@ -51,7 +52,7 @@ function verifyAccessToken(token) {
   return jwt.verify(token, jwtConfig.secret, {
     algorithms: [jwtConfig.algorithm],
     issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
+    audience: jwtConfig.audience,
   });
 }
 
@@ -60,7 +61,7 @@ function verifyRefreshToken(token) {
   return jwt.verify(token, refreshConfig.secret, {
     algorithms: [refreshConfig.algorithm],
     issuer: refreshConfig.issuer,
-    audience: refreshConfig.audience
+    audience: refreshConfig.audience,
   });
 }
 
@@ -79,26 +80,48 @@ async function issueRefreshToken(userId, options = {}) {
 
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       await query(
         `INSERT INTO refresh_tokens
          (user_id, token_hash, token_family, parent_token_id, device_fingerprint, ip_address, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [userId, tokenHash, family, parentId, options.deviceFingerprint || null, options.ipAddress || null, expiresAt]
+        [
+          userId,
+          tokenHash,
+          family,
+          parentId,
+          options.deviceFingerprint || null,
+          options.ipAddress || null,
+          expiresAt,
+        ],
       );
     } catch (err) {
-      logger.warn('[token-service] DB insert failed, falling back to memory');
+      logger.warn("[token-service] DB insert failed, falling back to memory");
       _refreshStore.set(tokenHash, {
-        userId, tokenHash, tokenFamily: family, parentTokenId: parentId,
-        deviceFingerprint: options.deviceFingerprint, ipAddress: options.ipAddress,
-        expiresAt, consumedAt: null, revoked: false, createdAt: new Date()
+        userId,
+        tokenHash,
+        tokenFamily: family,
+        parentTokenId: parentId,
+        deviceFingerprint: options.deviceFingerprint,
+        ipAddress: options.ipAddress,
+        expiresAt,
+        consumedAt: null,
+        revoked: false,
+        createdAt: new Date(),
       });
     }
   } else {
     _refreshStore.set(tokenHash, {
-      userId, tokenHash, tokenFamily: family, parentTokenId: parentId,
-      deviceFingerprint: options.deviceFingerprint, ipAddress: options.ipAddress,
-      expiresAt, consumedAt: null, revoked: false, createdAt: new Date()
+      userId,
+      tokenHash,
+      tokenFamily: family,
+      parentTokenId: parentId,
+      deviceFingerprint: options.deviceFingerprint,
+      ipAddress: options.ipAddress,
+      expiresAt,
+      consumedAt: null,
+      revoked: false,
+      createdAt: new Date(),
     });
   }
 
@@ -118,15 +141,15 @@ async function rotateRefreshToken(refreshToken, options = {}) {
   let record;
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       const result = await query(
         `SELECT id, user_id, token_family, parent_token_id, consumed_at, revoked, expires_at
          FROM refresh_tokens WHERE token_hash = $1`,
-        [tokenHash]
+        [tokenHash],
       );
       record = result.rows[0] || null;
     } catch (err) {
-      logger.warn('[token-service] DB lookup failed, falling back to memory');
+      logger.warn("[token-service] DB lookup failed, falling back to memory");
       record = _refreshStore.get(tokenHash) || null;
     }
   } else {
@@ -134,37 +157,49 @@ async function rotateRefreshToken(refreshToken, options = {}) {
   }
 
   if (!record) {
-    throw Object.assign(new Error('Refresh token not found'), { statusCode: 401, code: 'TOKEN_NOT_FOUND' });
+    throw Object.assign(new Error("Refresh token not found"), {
+      statusCode: 401,
+      code: "TOKEN_NOT_FOUND",
+    });
   }
 
   const now = new Date();
   const expiresAt = new Date(record.expires_at || record.expiresAt);
   if (expiresAt < now) {
-    throw Object.assign(new Error('Refresh token expired'), { statusCode: 401, code: 'TOKEN_EXPIRED' });
+    throw Object.assign(new Error("Refresh token expired"), {
+      statusCode: 401,
+      code: "TOKEN_EXPIRED",
+    });
   }
   if (record.revoked) {
-    throw Object.assign(new Error('Refresh token revoked'), { statusCode: 401, code: 'TOKEN_REVOKED' });
+    throw Object.assign(new Error("Refresh token revoked"), {
+      statusCode: 401,
+      code: "TOKEN_REVOKED",
+    });
   }
 
   const family = record.token_family || record.tokenFamily;
 
   // Reuse detection: if already consumed, revoke entire family
   if (record.consumed_at || record.consumedAt) {
-    logger.warn('[token-service] Reuse detected — revoking entire family');
-    await revokeTokenFamily(family, 'reuse_detected');
-    throw Object.assign(new Error('Token reuse detected — session terminated'), { statusCode: 401, code: 'TOKEN_REUSE' });
+    logger.warn("[token-service] Reuse detected — revoking entire family");
+    await revokeTokenFamily(family, "reuse_detected");
+    throw Object.assign(
+      new Error("Token reuse detected — session terminated"),
+      { statusCode: 401, code: "TOKEN_REUSE" },
+    );
   }
 
   // Mark current token as consumed
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       await query(
         `UPDATE refresh_tokens SET consumed_at = NOW() WHERE token_hash = $1`,
-        [tokenHash]
+        [tokenHash],
       );
     } catch (err) {
-      logger.warn('[token-service] DB consume failed, updating memory');
+      logger.warn("[token-service] DB consume failed, updating memory");
       const mem = _refreshStore.get(tokenHash);
       if (mem) mem.consumedAt = now;
     }
@@ -179,7 +214,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
     family,
     parentId: record.id || null,
     deviceFingerprint: options.deviceFingerprint,
-    ipAddress: options.ipAddress
+    ipAddress: options.ipAddress,
   });
 
   const accessPayload = { userId, ...options.accessPayload };
@@ -189,7 +224,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
     newRefreshToken: newRefresh.refreshToken,
     newAccessToken: newAccess,
     family,
-    expiresAt: newRefresh.expiresAt
+    expiresAt: newRefresh.expiresAt,
   };
 }
 
@@ -198,24 +233,30 @@ async function rotateRefreshToken(refreshToken, options = {}) {
  * @param {string} family
  * @param {string} reason
  */
-async function revokeTokenFamily(family, reason = 'manual_revoke') {
+async function revokeTokenFamily(family, reason = "manual_revoke") {
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       await query(
         `UPDATE refresh_tokens SET revoked = TRUE, revoked_reason = $2, revoked_at = NOW()
          WHERE token_family = $1 AND revoked = FALSE`,
-        [family, reason]
+        [family, reason],
       );
     } catch (err) {
-      logger.warn('[token-service] DB family revoke failed, updating memory');
+      logger.warn("[token-service] DB family revoke failed, updating memory");
       for (const [, rec] of _refreshStore) {
-        if (rec.tokenFamily === family) { rec.revoked = true; rec.revokedReason = reason; }
+        if (rec.tokenFamily === family) {
+          rec.revoked = true;
+          rec.revokedReason = reason;
+        }
       }
     }
   } else {
     for (const [, rec] of _refreshStore) {
-      if (rec.tokenFamily === family) { rec.revoked = true; rec.revokedReason = reason; }
+      if (rec.tokenFamily === family) {
+        rec.revoked = true;
+        rec.revokedReason = reason;
+      }
     }
   }
 }
@@ -225,23 +266,29 @@ async function revokeTokenFamily(family, reason = 'manual_revoke') {
  * @param {string} tokenHash
  * @param {string} reason
  */
-async function revokeRefreshToken(tokenHash, reason = 'logout') {
+async function revokeRefreshToken(tokenHash, reason = "logout") {
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       await query(
         `UPDATE refresh_tokens SET revoked = TRUE, revoked_reason = $2, revoked_at = NOW()
          WHERE token_hash = $1`,
-        [tokenHash, reason]
+        [tokenHash, reason],
       );
     } catch (err) {
-      logger.warn('[token-service] DB single revoke failed, updating memory');
+      logger.warn("[token-service] DB single revoke failed, updating memory");
       const mem = _refreshStore.get(tokenHash);
-      if (mem) { mem.revoked = true; mem.revokedReason = reason; }
+      if (mem) {
+        mem.revoked = true;
+        mem.revokedReason = reason;
+      }
     }
   } else {
     const mem = _refreshStore.get(tokenHash);
-    if (mem) { mem.revoked = true; mem.revokedReason = reason; }
+    if (mem) {
+      mem.revoked = true;
+      mem.revokedReason = reason;
+    }
   }
 }
 
@@ -251,7 +298,7 @@ async function revokeRefreshToken(tokenHash, reason = 'logout') {
  * @param {string} accessToken
  * @param {string} reason
  */
-async function blacklistAccessToken(accessToken, reason = 'logout') {
+async function blacklistAccessToken(accessToken, reason = "logout") {
   let decoded;
   try {
     decoded = jwt.decode(accessToken);
@@ -265,15 +312,21 @@ async function blacklistAccessToken(accessToken, reason = 'logout') {
 
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       await query(
         `INSERT INTO blacklisted_tokens (token_hash, token_jti, user_id, expires_at, reason)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (token_hash) DO NOTHING`,
-        [tokenHash, decoded.jti || null, decoded.userId || decoded.sub || null, expiresAt, reason]
+        [
+          tokenHash,
+          decoded.jti || null,
+          decoded.userId || decoded.sub || null,
+          expiresAt,
+          reason,
+        ],
       );
     } catch (err) {
-      logger.warn('[token-service] DB blacklist failed, updating memory');
+      logger.warn("[token-service] DB blacklist failed, updating memory");
       _blacklistStore.set(tokenHash, expiresAt);
     }
   } else {
@@ -291,14 +344,14 @@ async function isAccessTokenBlacklisted(accessToken) {
 
   if (USE_DB) {
     try {
-      const { query } = require('./database-adapter.cjs');
+      const { query } = require("./database-adapter.cjs");
       const result = await query(
         `SELECT 1 FROM blacklisted_tokens WHERE token_hash = $1 AND expires_at > NOW()`,
-        [tokenHash]
+        [tokenHash],
       );
       return result.rows.length > 0;
     } catch (err) {
-      logger.warn('[token-service] DB blacklist check failed, checking memory');
+      logger.warn("[token-service] DB blacklist check failed, checking memory");
       return _blacklistStore.has(tokenHash);
     }
   }
@@ -309,7 +362,8 @@ async function isAccessTokenBlacklisted(accessToken) {
 function cleanupMemoryStores() {
   const now = Date.now();
   for (const [hash, rec] of _refreshStore) {
-    if (new Date(rec.expiresAt).getTime() < now - 86400000) _refreshStore.delete(hash);
+    if (new Date(rec.expiresAt).getTime() < now - 86400000)
+      _refreshStore.delete(hash);
   }
   for (const [hash, expiry] of _blacklistStore) {
     if (expiry.getTime() < now) _blacklistStore.delete(hash);
@@ -318,20 +372,29 @@ function cleanupMemoryStores() {
 
 // Helper: convert human-readable duration to ms
 function ms(val) {
-  if (typeof val === 'number') return val;
+  if (typeof val === "number") return val;
   const m = String(val).match(/^(\d+(?:\.\d+)?)\s*([a-z]+)?$/i);
   if (!m) return 0;
   const n = parseFloat(m[1]);
-  const u = (m[2] || 'ms').toLowerCase();
-  const mult = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000, w: 604800000, y: 31536000000 };
+  const u = (m[2] || "ms").toLowerCase();
+  const mult = {
+    ms: 1,
+    s: 1000,
+    m: 60000,
+    h: 3600000,
+    d: 86400000,
+    w: 604800000,
+    y: 31536000000,
+  };
   return n * (mult[u] || 1);
 }
 
 // Schedule periodic memory cleanup
 // Avoid creating test-time timers which keep the event loop alive.
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   const _cleanupTimer = setInterval(cleanupMemoryStores, 600000); // every 10 minutes
-  if (_cleanupTimer && typeof _cleanupTimer.unref === 'function') _cleanupTimer.unref();
+  if (_cleanupTimer && typeof _cleanupTimer.unref === "function")
+    _cleanupTimer.unref();
 }
 
 module.exports = {
@@ -345,5 +408,5 @@ module.exports = {
   revokeRefreshToken,
   blacklistAccessToken,
   isAccessTokenBlacklisted,
-  cleanupMemoryStores
+  cleanupMemoryStores,
 };

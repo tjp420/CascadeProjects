@@ -7,7 +7,7 @@ export async function checkLocalNetworkAccess(apiBase: string, timeoutMs = 2000)
     const res = await fetch(url, {
       method: 'GET',
       mode: 'cors',
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(id);
     return res.ok || res.status === 401 || res.status === 403 || res.status === 404;

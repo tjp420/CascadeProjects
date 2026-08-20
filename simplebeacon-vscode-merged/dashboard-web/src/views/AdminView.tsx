@@ -106,7 +106,9 @@ export function AdminView() {
             <p className="text-sm text-foreground-muted">Admin access required. Sign in with an admin account.</p>
             <div className="mt-4 flex gap-2">
               <Button onClick={() => navigate('signin')}>Sign In</Button>
-              <Button variant="ghost" onClick={() => navigate('dashboard')}>Back</Button>
+              <Button variant="ghost" onClick={() => navigate('dashboard')}>
+                Back
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -214,7 +216,11 @@ export function AdminView() {
           <CardContent className="flex flex-wrap gap-3">
             {Object.entries(stats.statusCounts).map(([status, count]) => (
               <div key={status} className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                {status === 'active' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Ban className="h-4 w-4 text-red-500" />}
+                {status === 'active' ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Ban className="h-4 w-4 text-red-500" />
+                )}
                 <span className="text-sm font-medium capitalize">{status}</span>
                 <Badge variant={status === 'active' ? 'success' : 'danger'}>{count}</Badge>
               </div>
@@ -246,14 +252,14 @@ export function AdminView() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate">{user.name || user.email || 'Unknown'}</span>
-                        {user.online && (
-                          <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" title="Online" />
-                        )}
+                        {user.online && <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" title="Online" />}
                       </div>
                       <span className="text-xs text-foreground-muted truncate block">{user.email || '—'}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={variant} className="text-xs capitalize">{user.trustLevel || 'bronze'}</Badge>
+                      <Badge variant={variant} className="text-xs capitalize">
+                        {user.trustLevel || 'bronze'}
+                      </Badge>
                       <Badge variant={user.status === 'active' ? 'success' : 'danger'} className="text-xs capitalize">
                         {user.status || 'active'}
                       </Badge>

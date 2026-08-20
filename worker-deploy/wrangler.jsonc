@@ -6,43 +6,41 @@
   "routes": [
     {
       "pattern": "simplebeacon.ai/*",
-      "zone_name": "simplebeacon.ai"
+      "zone_name": "simplebeacon.ai",
     },
     {
       "pattern": "www.simplebeacon.ai/*",
-      "zone_name": "simplebeacon.ai"
-    }
+      "zone_name": "simplebeacon.ai",
+    },
   ],
   "assets": {
     "directory": "../coming-soon/public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash",
-    "run_worker_first": true
+    "run_worker_first": true,
   },
   "vars": {
     "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com",
-    "GA_MEASUREMENT_ID": ""
+    "GA_MEASUREMENT_ID": "",
   },
   "kv_namespaces": [
     {
       "binding": "API_CACHE",
-      "id": "f2bca2a5a41442c5bd52fd67cf754e44"
+      "id": "f2bca2a5a41442c5bd52fd67cf754e44",
     },
     {
       "binding": "LICENSE_STORE",
-      "id": "5a5a2125a7e14bf6b3e9b7b6d1e4441c"
-    }
+      "id": "5a5a2125a7e14bf6b3e9b7b6d1e4441c",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "MODELS_BUCKET",
-      "bucket_name": "simplebeacon-models"
-    }
+      "bucket_name": "simplebeacon-models",
+    },
   ],
   "triggers": {
-    "crons": [
-      "*/5 * * * *"
-    ]
-  }
+    "crons": ["*/5 * * * *"],
+  },
 }

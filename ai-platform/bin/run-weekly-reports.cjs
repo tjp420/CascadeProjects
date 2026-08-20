@@ -15,19 +15,23 @@
  *   2 = runtime error during dispatch
  */
 
-'use strict';
+"use strict";
 
-const path = require('path');
+const path = require("path");
 
 // Load .env from the ai-platform root
 try {
-  require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+  require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 } catch (_e) {
   // dotenv not installed — env vars must be set by the environment
 }
 
-const { executeWeeklyReportingJob } = require('../server/cron/weekly-reporter.cjs');
-const { readStore } = require('../server/lib/simplebeacon-subscription-store.cjs');
+const {
+  executeWeeklyReportingJob,
+} = require("../server/cron/weekly-reporter.cjs");
+const {
+  readStore,
+} = require("../server/lib/simplebeacon-subscription-store.cjs");
 
 /**
  * Fetches active team_pro and enterprise subscriptions from the store.
@@ -42,30 +46,37 @@ async function fetchActiveSubscriptions() {
     for (const email of Object.keys(subscriptions)) {
       const sub = subscriptions[email];
       if (!sub || !sub.active) continue;
-      if (sub.tier !== 'team_pro' && sub.tier !== 'enterprise') continue;
+      if (sub.tier !== "team_pro" && sub.tier !== "enterprise") continue;
 
       active.push({
         orgId: sub.orgId || sub.customerId || email,
-        orgName: sub.orgName || sub.companyName || email.split('@')[0],
+        orgName: sub.orgName || sub.companyName || email.split("@")[0],
         adminEmail: email,
-        tier: sub.tier
+        tier: sub.tier,
       });
     }
 
     return active;
   } catch (err) {
-    console.error('[WeeklyReports] Failed to read subscription store: ' + (err && err.message ? err.message : err));
+    console.error(
+      "[WeeklyReports] Failed to read subscription store: " +
+        (err && err.message ? err.message : err),
+    );
     return [];
   }
 }
 
 async function run() {
   var timestamp = new Date().toISOString();
-  console.log('[' + timestamp + '] Initializing scheduled weekly reporting task...');
+  console.log(
+    "[" + timestamp + "] Initializing scheduled weekly reporting task...",
+  );
 
   // Guard: verify required infrastructure credentials are present
   if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('[WeeklyReports] Aborted: Missing STRIPE_SECRET_KEY environment variable.');
+    console.error(
+      "[WeeklyReports] Aborted: Missing STRIPE_SECRET_KEY environment variable.",
+    );
     process.exit(1);
   }
 
@@ -73,17 +84,30 @@ async function run() {
   var activeSubscriptions = await fetchActiveSubscriptions();
 
   if (activeSubscriptions.length === 0) {
-    console.log('[WeeklyReports] No active team_pro/enterprise subscriptions found. Nothing to send.');
+    console.log(
+      "[WeeklyReports] No active team_pro/enterprise subscriptions found. Nothing to send.",
+    );
     process.exit(0);
   }
 
-  console.log('[WeeklyReports] Found ' + activeSubscriptions.length + ' eligible subscription(s).');
+  console.log(
+    "[WeeklyReports] Found " +
+      activeSubscriptions.length +
+      " eligible subscription(s).",
+  );
 
   // Execute the weekly reporting job
   var summary = await executeWeeklyReportingJob(activeSubscriptions);
 
-  console.log('[WeeklyReports] Job complete: ' + summary.succeeded + ' dispatched, ' +
-    summary.skipped + ' skipped, ' + summary.failed + ' failed.');
+  console.log(
+    "[WeeklyReports] Job complete: " +
+      summary.succeeded +
+      " dispatched, " +
+      summary.skipped +
+      " skipped, " +
+      summary.failed +
+      " failed.",
+  );
 
   // Exit with error code if any dispatch failed
   if (summary.failed > 0) {
@@ -94,6 +118,9 @@ async function run() {
 }
 
 run().catch(function (err) {
-  console.error('[WeeklyReports] Unhandled error: ' + (err && err.message ? err.message : err));
+  console.error(
+    "[WeeklyReports] Unhandled error: " +
+      (err && err.message ? err.message : err),
+  );
   process.exit(2);
 });
