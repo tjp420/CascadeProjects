@@ -13,10 +13,12 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err: any) {
+    } catch (err) {
       // depcruise exits non-zero when there are errors
-      output = err.stdout || '';
-      const stderr = err.stderr || '';
+      // err is intentionally untyped here because execSync throws Error-like objects with stdout/stderr
+      // @ts-ignore - these properties may exist on the thrown object
+      output = (err as any).stdout || '';
+      const stderr = (err as any).stderr || '';
       if (stderr) {
         throw new Error(`dependency-cruiser failed to run: ${stderr}`);
       }
@@ -34,8 +36,9 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err: any) {
-      output = err.stdout || '';
+    } catch (err) {
+      // @ts-ignore - the thrown object may carry stdout on failure
+      output = (err as any).stdout || '';
     }
 
     const lines = output.split('\n');

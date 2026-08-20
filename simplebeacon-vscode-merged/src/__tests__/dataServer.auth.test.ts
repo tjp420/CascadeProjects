@@ -10,12 +10,12 @@ let tempWorkspace: string;
 jest.mock(
   'vscode',
   () => {
-    const workspaceFolders: any[] = [];
+    const workspaceFolders: unknown[] = [];
     return {
       workspace: {
         workspaceFolders,
         getConfiguration: () => ({
-          get: (key: string, def: any) => (key === 'dataServerPort' ? 0 : def),
+          get: (key: string, def: unknown) => (key === 'dataServerPort' ? 0 : def),
           has: () => false,
           update: async () => {},
         }),
@@ -32,7 +32,7 @@ jest.mock(
       ExtensionContext: class {
         extensionPath = process.cwd();
         extension = { packageJSON: { version: '0.0.0' } };
-        subscriptions: any[] = [];
+        subscriptions: unknown[] = [];
         workspaceState = { get: () => undefined, update: async () => {} };
         globalState = { get: () => undefined, update: async () => {} };
         secrets = { get: async () => undefined, store: async () => {}, delete: async () => {} };
@@ -42,6 +42,7 @@ jest.mock(
   { virtual: true }
 );
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const vscode = require('vscode');
 
 function waitForServer(): Promise<void> {
