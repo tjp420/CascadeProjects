@@ -28,6 +28,25 @@ function runBuild(target) {
     for (const t of runs) {
       // skip non-existent directories
       try { require('fs').accessSync(t.cwd); } catch (e) { console.warn('Skipping missing path', t.cwd); continue; }
+
+      // Ensure dashboard assets are available under a /dashboard/assets path when expected
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const dashboardAssetsSrc = path.join(t.cwd, 'assets');
+        const dashboardAssetsDst = path.join(t.cwd, 'dashboard', 'assets');
+        if (fs.existsSync(dashboardAssetsSrc) && !fs.existsSync(dashboardAssetsDst)) {
+          fs.mkdirSync(path.join(t.cwd, 'dashboard'), { recursive: true });
+          // copy files (shallow copy)
+          fs.readdirSync(dashboardAssetsSrc).forEach(f => {
+            const src = path.join(dashboardAssetsSrc, f);
+            const dst = path.join(dashboardAssetsDst, f);
+            try { fs.copyFileSync(src, dst); } catch (e) { /* ignore individual copy errors */ }
+          });
+          console.log('Copied dashboard assets to', dashboardAssetsDst);
+        }
+      } catch (e) { /* non-fatal */ }
+
       const r = runBuild(t);
       results.push(r);
       totalMs += r.durationMs;
