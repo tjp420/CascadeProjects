@@ -23,10 +23,22 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Create playwright-report placeholder
+        run: |
+          mkdir -p ai-platform/web/simplebeacon-dashboard/playwright-report
+          echo "ci started at $(date -u)" > ai-platform/web/simplebeacon-dashboard/playwright-report/ci-started.txt
+
+      - name: Upload early diagnostics placeholder
+        uses: actions/upload-artifact@v4
+        with:
+          name: early-playwright-report
+          path: ai-platform/web/simplebeacon-dashboard/playwright-report/ci-started.txt
+          retention-days: 7
+
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
@@ -57,14 +69,49 @@ jobs:
         run: npx playwright install-deps chromium
         working-directory: ai-platform/web/simplebeacon-dashboard
 
+      - name: Start lightweight mock API server (for CI)
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        run: |
+          cat > tmp-mock-api.js <<'NODE'
+          const http = require('http');
+          const port = 53900;
+          const server = http.createServer((req, res) => {
+            if (req.url === '/api/health') {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({ok:true,env:'mock'}));
+            }
+            if (req.url.startsWith('/api/config')) {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({pricing:[],features:{}}));
+            }
+            if (req.url.startsWith('/api/')) {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({mock:true,path:req.url}));
+            }
+            res.writeHead(404, {'Content-Type':'text/plain'});
+            res.end('not found');
+          });
+          server.listen(port, '127.0.0.1', () => console.log('Mock API listening on', port));
+          nohup node tmp-mock-api.js > mock-api.log 2>&1 &
+          echo $! > mock-api.pid
+
       - name: Run E2E Test Suite
-        run: npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
+        run: |
+          PORT=61455 npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
         working-directory: ai-platform/web/simplebeacon-dashboard
         env:
           NODE_ENV: test
-          CI: ""
+          CI: 'true'
           TOKEN_ACCOUNT_SIGNING_KEY: ${{ secrets.TOKEN_ACCOUNT_SIGNING_KEY || 'test-signing-key-placeholder-32-chars-long!' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-placeholder-value-32-chars!' }}
+
+      - name: Collect server logs for artifacts
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        run: |
+          mkdir -p playwright-report || true
+          if [ -f dev.log ]; then cp dev.log playwright-report/dev.log; fi
+          if [ -f mock-api.log ]; then cp mock-api.log playwright-report/mock-api.log; fi
+          echo "report placeholder" > playwright-report/README.txt
 
       - name: Archive Playwright Test Traces on Failure
         if: failure()
@@ -73,3 +120,11 @@ jobs:
           name: playwright-traces-report
           path: ai-platform/web/simplebeacon-dashboard/playwright-report/
           retention-days: 30
+
+      - name: Upload playwright-report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-always
+          path: ai-platform/web/simplebeacon-dashboard/playwright-report/
+          retention-days: 7
