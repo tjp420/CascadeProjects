@@ -668,7 +668,7 @@ function setupSimplebeaconBillingRoutes(app) {
     try {
       const session = await stripe.billingPortal.sessions.create({
         customer: record.stripeCustomerId,
-        return_url: `${getAppBaseUrl()}/simplebeacon-dashboard/index.html#/pricing`
+        return_url: `${getAppBaseUrl()}/#/settings`
       });
       res.json({ url: session.url });
     } catch (err) {

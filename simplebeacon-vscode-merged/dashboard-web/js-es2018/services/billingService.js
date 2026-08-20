@@ -30,6 +30,20 @@ const TOKEN_KEY = 'simplebeacon_billing_api_token';
 /**
  * Billing service.
  */
+function safeStripeRedirect(url) {
+        try {
+                const parsed = new URL(url);
+                if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
+                        window.open(parsed.href, '_self');
+                        return true;
+                }
+                return false;
+        } catch {
+                return false;
+        }
+}
+
+
 export class BillingService {
     constructor() {
         this.plan = COMMUNITY_PLAN;
@@ -147,7 +161,11 @@ export class BillingService {
             throw err;
         }
         if (data.url) {
-            window.location.href = data.url;
+            if (!safeStripeRedirect(data.url)) {
+                const err = new Error('Invalid redirect URL received from billing service');
+                err.code = 'invalid_redirect';
+                throw err;
+            }
             return data;
         }
         throw new Error('Stripe checkout URL missing — set STRIPE_PRICE_ID_STARTUP_MONTHLY on server');
@@ -191,8 +209,29 @@ export class BillingService {
     }
 
     async openPortal() {
-        const err = new Error('No billing portal — community CLI is open source.');
-        err.code = 'billing_unavailable';
+        const email = this.getEmail();
+        if (!email) {
+            const err = new Error('Email is required to open the billing portal.');
+            err.code = 'email_required';
+            throw err;
+        }
+        const response = await fetch('/api/simplebeacon/billing/portal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...this.getRequestHeaders() },
+            body: JSON.stringify({ email })
+        });
+        const data = await readJsonResponseBody(response, null);
+        if (response.ok && data?.url) {
+            if (!safeStripeRedirect(data.url)) {
+                const err = new Error('Invalid redirect URL received from billing service');
+                err.code = 'invalid_redirect';
+                throw err;
+            }
+            return data;
+        }
+        const err = new Error(data?.error || data?.message || `Billing portal unavailable (${response.status})`);
+        err.code = data?.error || 'billing_unavailable';
+        err.statusCode = response.status;
         throw err;
     }
 }
