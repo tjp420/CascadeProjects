@@ -43,6 +43,8 @@ The default output is
 `LLAMA_CPP_BIN`, the summary reports for example:
 
 ```text
+Active phase: Phase 2 — Code intelligence
+Next phase: Phase 3 — Optional GGUF
 semanticHints: enabled=false mode=filesystem-only hint count=0
 ```
 
@@ -51,6 +53,8 @@ With a configured executable it reports `enabled=true` and either
 number of advisory hints:
 
 ```text
+Active phase: Phase 2 — Code intelligence
+Next phase: Phase 3 — Optional GGUF
 semanticHints: enabled=true mode=llama-cpp-ready hint count=2
 ```
 

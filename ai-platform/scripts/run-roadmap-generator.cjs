@@ -55,8 +55,8 @@ function phaseLabel(phase) {
 }
 
 function printSummary(roadmap) {
-    const phases = Array.isArray(roadmap.developmentPhases) ? roadmap.developmentPhases : [];
-    const active = phases.find((phase) => phase.status === 'in-progress');
+    const phases = Array.isArray(roadmap.implementationPhases) ? roadmap.implementationPhases : [];
+    const active = phases.find((phase) => phase.status === 'active');
     const next = phases.find((phase) => phase.status === 'planned');
     const semanticHints = roadmap.codeAnalysis?.phase2?.semanticHints || {};
     const hints = Array.isArray(semanticHints.hints) ? semanticHints.hints : [];
