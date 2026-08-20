@@ -1,9 +1,7 @@
 # Exclude synthetic test fixtures and scanner artifacts from gitleaks scans
-packages/simplebeacon-cli/tests/**
-simplebeacon-rule-tests/**
+packages/simplebeacon-cli/tests
+simplebeacon-rule-tests
 coming-soon/__audit-free-test.cjs
-simplebeacon-vscode-merged/**/fixtures/**
-.simplebeacon/**
-*.vsix
-*.zip
-coming-soon/.simplebeacon/**
+simplebeacon-vscode-merged
+.simplebeacon
+coming-soon/.simplebeacon
