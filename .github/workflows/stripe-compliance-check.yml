@@ -34,7 +34,7 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: ai-platform/package.json
 
@@ -42,7 +42,8 @@ jobs:
         working-directory: ai-platform
         run: |
           set -e
-          npm install --ignore-scripts
+          # Use npm install (including devDependencies) so Jest and its runner are available for tests.
+          npm install --no-audit --no-fund
 
       - name: Run Webhook Tier Mapping Tests (Node Test Runner)
         working-directory: ai-platform
