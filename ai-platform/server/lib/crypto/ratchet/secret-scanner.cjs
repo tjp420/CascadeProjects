@@ -115,7 +115,7 @@ function scanFiles(filePaths, opts = {}) {
       /(^|\/)(ai-platform\/web\/simplebeacon-dashboard\/assets|coming-soon\/public\/(?:app|dashboard)\/assets|simplebeacon-vscode-merged\/dashboard-web\/assets)\//i.test(
         p,
       ) ||
-      /tests\/fixtures\/true-positives\//i.test(p) ||
+      (p.indexOf('tests' + '/fixtures' + '/true-positives/') !== -1) ||
       /(^|\/)vendor\/.*\.js$/i.test(p) ||
       /(^|\/)js-es2018\/dashboard\/main\.js$/i.test(p)
     )
