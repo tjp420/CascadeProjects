@@ -232,6 +232,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: CI diagnostics: Node & npm versions
+        run: |
+          echo "== Node & npm versions =="
+          node -v || true
+          npm -v || true
+
+      - name: CI diagnostics: node_modules and ajv check
+        run: |
+          echo "== node_modules top-level files =="
+          ls -la node_modules 2>/dev/null | head -n 100 || echo "(no node_modules folder)"
+          echo "== Check ajv package availability =="
+          node -e "try{const p=require.resolve('ajv'); const v=require('ajv/package.json').version; console.log('ajv found at',p,'version',v);}catch(e){console.error('ajv NOT found');}" || true
+
       - name: Run token registry schema test
         run: |
           node --test ai-platform/server/lib/__tests__/token-registry-schema.test.cjs
