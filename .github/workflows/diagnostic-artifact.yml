@@ -1,0 +1,25 @@
+name: Diagnostic: Upload artifact
+
+on:
+  push:
+    branches: [ fix/vscode-lint-fixes ]
+
+jobs:
+  upload-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create diagnostic file
+        run: |
+          mkdir -p tmp/diag
+          echo "diagnostic-run: $(date -u)" > tmp/diag/diagnostic.txt
+          echo "cwd: $(pwd)"
+
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-artifact
+          path: tmp/diag/diagnostic.txt
+          retention-days: 3
