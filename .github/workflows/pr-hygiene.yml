@@ -35,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
             BASE="main"
           fi
-          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | while read -r f; do if [ -n "${f}" ]; then git check-ignore -q "${f}" && echo "ignored ${f}" || git add "${f}" || true; fi; done
           echo "Staged files:"
           git diff --cached --name-only
 
@@ -94,7 +94,7 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
             BASE="main"
           fi
-          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | while read -r f; do if [ -n "$f" ]; then git check-ignore -q "$f" && echo "ignored $f" || git add "$f" || true; fi; done
 
       - name: Run Track113 secret scanner
         run: |
