@@ -57,6 +57,37 @@ jobs:
         run: npx playwright install-deps chromium
         working-directory: ai-platform/web/simplebeacon-dashboard
 
+      - name: Start lightweight mock API server (for CI)
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        run: |
+          cat > tmp-mock-api.js <<'NODE'
+          const http = require('http');
+          const port = 53900;
+          const server = http.createServer((req, res) => {
+            if (req.url === '/api/health') {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({ok:true,env:'mock'}));
+            }
+            // Minimal responses for expected config endpoints
+            if (req.url.startsWith('/api/config')) {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({pricing:[],features:{}}));
+            }
+            // Default 200 JSON for any /api/* path
+            if (req.url.startsWith('/api/')) {
+              res.writeHead(200, {'Content-Type':'application/json'});
+              return res.end(JSON.stringify({mock:true,path:req.url}));
+            }
+            // Fallback: 404
+            res.writeHead(404, {'Content-Type':'text/plain'});
+            res.end('not found');
+          });
+          server.listen(port, '127.0.0.1', () => console.log('Mock API listening on', port));
+          // Keep process alive
+NODE
+          nohup node tmp-mock-api.js > mock-api.log 2>&1 &
+          echo $! > mock-api.pid
+
       - name: Start dashboard server in background and wait for /api/health
         working-directory: ai-platform/web/simplebeacon-dashboard
         run: |
@@ -76,6 +107,7 @@ jobs:
           if ! curl -sS http://localhost:61455/api/health >/dev/null 2>&1; then
             echo "Timed out waiting for backend /api/health" >&2
             cat dev.log || true
+            cat mock-api.log || true
             exit 1
           fi
 
