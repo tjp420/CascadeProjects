@@ -23,6 +23,11 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Create playwright-report placeholder
+        run: |
+          mkdir -p ai-platform/web/simplebeacon-dashboard/playwright-report
+          echo "ci started at $(date -u)" > ai-platform/web/simplebeacon-dashboard/playwright-report/ci-started.txt
+
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
