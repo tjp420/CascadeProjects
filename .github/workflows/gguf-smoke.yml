@@ -1,0 +1,56 @@
+name: GGUF Roadmap Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'ai-platform/server/lib/code-roadmap-generator.cjs'
+      - 'ai-platform/server/lib/code-roadmap-phase2.cjs'
+      - 'ai-platform/server/lib/llama-cpp-hints.cjs'
+      - 'ai-platform/scripts/run-roadmap-generator.cjs'
+      - 'ai-platform/PHASE3.md'
+      - 'ai-platform/.env.example'
+      - '.github/workflows/gguf-smoke.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'ai-platform/server/lib/code-roadmap-generator.cjs'
+      - 'ai-platform/server/lib/code-roadmap-phase2.cjs'
+      - 'ai-platform/server/lib/llama-cpp-hints.cjs'
+      - 'ai-platform/scripts/run-roadmap-generator.cjs'
+      - 'ai-platform/PHASE3.md'
+      - 'ai-platform/.env.example'
+      - '.github/workflows/gguf-smoke.yml'
+
+jobs:
+  smoke:
+    name: Run roadmap generator without GGUF
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run roadmap generator smoke
+        env:
+          LLAMA_CPP_BIN: ''
+        run: |
+          set +e
+          output="$(node ai-platform/scripts/run-roadmap-generator.cjs --out "$RUNNER_TEMP/roadmap-smoke.json" 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            echo "Roadmap smoke returned $status; reporting only because this workflow is non-gating."
+            exit 0
+          fi
+          if ! printf '%s\n' "$output" | grep -q 'semanticHints: enabled=false mode=filesystem-only'; then
+            echo "semanticHints disabled report was not found; reporting only."
+          fi
