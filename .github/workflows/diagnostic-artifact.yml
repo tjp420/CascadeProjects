@@ -3,6 +3,7 @@ name: Diagnostic: Upload artifact
 on:
   push:
     branches: [ fix/vscode-lint-fixes ]
+  workflow_dispatch: {}
 
 jobs:
   upload-diagnostic:
