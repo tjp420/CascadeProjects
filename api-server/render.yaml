@@ -19,6 +19,8 @@ services:
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
+      - key: SIMPLEBEACON_JWT_SECRET
+        value: '<placeholder-jwt-secret>'
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: RESEND_API_KEY
@@ -29,3 +31,28 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: DB_POOL_MAX
+        value: '10'
+      - key: DB_IDLE_TIMEOUT_MS
+        value: '30000'
+      - key: DB_CONNECT_TIMEOUT_MS
+        value: '10000'
+      - key: STRIPE_PUBLISHABLE_KEY
+        value: '<stripe-pk-placeholder>'
+      - key: STRIPE_LINK_INSTANT
+        value: '<placeholder>'
+      - key: STRIPE_LINK_EXECUTIVE
+        value: '<placeholder>'
+      - key: STRIPE_LINK_EU_SPRINT
+        value: '<placeholder>'
+      - key: PUBLIC_URL
+        value: 'https://example.simplebeacon.ai'
+      - key: SIMPLEBEACON_UPGRADE_URL
+        value: 'https://example.simplebeacon.ai/upgrade'
+      - key: PROJECTED_INSTANCE_COUNT
+        value: '2'
+      - key: DB_SERVER_MAX_CONNECTIONS
+        value: '100'
+      - key: DB_SAFETY_FAIL_ON_EXCEED
+        value: 'true'
+    
