@@ -1891,6 +1891,14 @@ async function startServer() {
     logger.warn('[Checkout] Checkout routes not loaded:', e.message);
   }
 
+  // Tier pricing and proration routes used by authenticated dashboard billing flows.
+  try {
+    app.use('/api/billing', require('./server/routes/billing-routes.cjs'));
+    logger.info('[Billing] Tier and proration routes mounted');
+  } catch (e) {
+    logger.warn('[Billing] Tier and proration routes not loaded:', e.message);
+  }
+
   // License token validation — used by dashboard License Token signin
   try {
     const tokenValidateRoutes = require('../coming-soon/routes/token-validate.cjs');
