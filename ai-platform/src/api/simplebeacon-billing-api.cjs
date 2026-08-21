@@ -125,13 +125,21 @@ function setupSimplebeaconBillingWebhook(app) {
 
       // Reject oversized webhook payloads ( Stripe events are typically < 1 MB )
       const MAX_WEBHOOK_BYTES = 2 * 1024 * 1024;
-      if (Buffer.byteLength(req.body, 'utf8') > MAX_WEBHOOK_BYTES) {
+      if (req.body && Buffer.byteLength(req.body, 'utf8') > MAX_WEBHOOK_BYTES) {
         return res.status(413).json({ error: 'Webhook payload too large' });
       }
 
       let event = null;
       const sigHeader = req.headers['stripe-signature'];
       const rawBody = req.body;
+      if (!rawBody || !sigHeader) {
+        return res.status(400).json({
+          error: 'Invalid webhook signature',
+          message: !sigHeader
+            ? 'No stripe-signature header value was provided.'
+            : 'No webhook body was provided.'
+        });
+      }
       const secrets = [webhookSecretPrimary, webhookSecretSecondary].filter(Boolean);
       let lastErr = null;
       for (const s of secrets) {
