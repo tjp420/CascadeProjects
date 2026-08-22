@@ -708,17 +708,27 @@ export default {
       }
 
       // --- Step 3: KV cache check (GET/HEAD only) ---
+      // Validate cached value is valid JSON before serving. A prior cache
+      // poisoning bug allowed non-JSON bodies (e.g. "Upgrade Required") to be
+      // cached and served as application/json with status 200. This guard
+      // ensures poisoned entries are skipped and the proxy fetches fresh.
       if (cacheKey && env.API_CACHE) {
         try {
           const cachedVal = await env.API_CACHE.get(cacheKey, 'text');
           if (cachedVal !== null && cachedVal !== undefined) {
-            const respHeaders = new Headers({ 'Content-Type': 'application/json' });
-            if (corsOrigin) {
-              respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
-              respHeaders.set('Vary', 'Origin');
+            try {
+              JSON.parse(cachedVal);
+              const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+              if (corsOrigin) {
+                respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+                respHeaders.set('Vary', 'Origin');
+              }
+              respHeaders.set('X-Cache', 'HIT-FRESH');
+              return new Response(cachedVal, { status: 200, headers: respHeaders });
+            } catch (_) {
+              // Poisoned cache entry — delete it and fall through to proxy.
+              try { await env.API_CACHE.delete(cacheKey); } catch (_) {}
             }
-            respHeaders.set('X-Cache', 'HIT-FRESH');
-            return new Response(cachedVal, { status: 200, headers: respHeaders });
           }
         } catch (_) { /* Cache read failure — proceed to proxy */ }
       }
@@ -760,10 +770,18 @@ export default {
             responseHeaders.set('Vary', 'Origin');
           }
 
-          // KV cache: store successful GET responses (read body, cache, return)
-          if (cacheKey && env.API_CACHE && proxyResponse.status >= 200 && proxyResponse.status < 500) {
+          // KV cache: store only successful JSON GET responses.
+          // Guard against cache poisoning from non-JSON error bodies (e.g. the
+          // "Upgrade Required" 426 response Render emits during cold starts or
+          // protocol mismatches) by validating both the Content-Type header and
+          // that the body parses as JSON before writing to KV.
+          const contentType = proxyResponse.headers.get('Content-Type') || '';
+          if (cacheKey && env.API_CACHE && proxyResponse.status === 200 && contentType.includes('application/json')) {
             try {
               const respBody = await proxyResponse.text();
+              // Validate body is valid JSON before caching — prevents storing
+              // error pages, plain-text responses, or HTML 404s as "JSON".
+              JSON.parse(respBody);
               await env.API_CACHE.put(cacheKey, respBody, { expirationTtl: 300 });
               responseHeaders.set('X-Cache', 'MISS');
               return new Response(respBody, {
@@ -771,7 +789,7 @@ export default {
                 statusText: proxyResponse.statusText,
                 headers: responseHeaders
               });
-            } catch (_) { /* Cache write failure — fall through to raw response */ }
+            } catch (_) { /* Not JSON or cache write failure — fall through to raw response */ }
           }
 
           return new Response(proxyResponse.body, {
@@ -789,17 +807,24 @@ export default {
       }
 
       // --- Step 5: All retries exhausted — serve stale cache as fallback ---
+      // Validate stale cache is JSON before serving (same guard as Step 3).
       if (cacheKey && env.API_CACHE) {
         try {
           const staleVal = await env.API_CACHE.get(cacheKey, 'text');
           if (staleVal !== null && staleVal !== undefined) {
-            const respHeaders = new Headers({ 'Content-Type': 'application/json' });
-            respHeaders.set('X-Cache', 'HIT-STALE-FALLBACK');
-            if (corsOrigin) {
-              respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
-              respHeaders.set('Vary', 'Origin');
+            try {
+              JSON.parse(staleVal);
+              const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+              respHeaders.set('X-Cache', 'HIT-STALE-FALLBACK');
+              if (corsOrigin) {
+                respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
+                respHeaders.set('Vary', 'Origin');
+              }
+              return new Response(staleVal, { status: 200, headers: respHeaders });
+            } catch (_) {
+              // Poisoned stale entry — delete it.
+              try { await env.API_CACHE.delete(cacheKey); } catch (_) {}
             }
-            return new Response(staleVal, { status: 200, headers: respHeaders });
           }
         } catch (_) { /* Stale fallback read failure */ }
       }
