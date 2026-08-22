@@ -113,7 +113,7 @@ function createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, c
                     localOnly: true,
                     methodology: 'Deterministic regex + AST scan — no code uploaded',
                     tier: normalizedTier,
-                    ...(isFree ? { upsell: 'Upgrade to Pro ($9/mo) to unlock all 38 analyzer engines, exportable reports, and team tools — https://simplebeacon.ai/pricing' } : {})
+                    ...(isFree ? { upsell: 'Upgrade to Pro ($9/mo) to unlock all 48 analyzers, exportable reports, and team tools — https://simplebeacon.ai/pricing' } : {})
                 };
                 if (args.format === 'json') {
                     return formatToolResult(payload);

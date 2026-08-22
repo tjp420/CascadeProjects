@@ -90,8 +90,11 @@ async function main() {
   const transporter = nodemailer.createTransport({
     host,
     port,
-    secure,
-    auth: { user, pass }
+    secure: true,
+    auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
   });
 
   // Step 1: Verify connection

@@ -23,7 +23,7 @@ SimpleBeacon just shipped its biggest update yet — and it fundamentally change
    **We dare you to test it:** Load the dashboard, unplug your internet connection entirely, and run a scan. It works at full speed with zero network connectivity. Open DevTools → Network tab → drop your repo → watch zero requests fire during the scan.
 
 3. **New 3-tier pricing:**
-   - **Developer** — $49/mo: unlimited scans, CI gate, 38 analyzers
+   - **Developer** — $49/mo: unlimited scans, CI gate, 48 analyzers
    - **Team Pro** — $149/mo: EU AI Act + SOC 2 board-ready certs, 5 seats
    - **Enterprise** — Custom: air-gapped, SSO/SAML, dedicated analyst
 
@@ -87,7 +87,7 @@ The SimpleBeacon Team
     <div style="margin-bottom:28px;padding:20px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
       <h2 style="font-size:18px;font-weight:600;color:#fff;margin:0 0 12px;">New 3-tier pricing</h2>
       <ul style="font-size:14px;line-height:1.8;color:#9ca3af;margin:0;padding-left:20px;">
-        <li><strong style="color:#e5e7eb;">Developer</strong> — $49/mo: unlimited scans, CI gate, 38 analyzers</li>
+        <li><strong style="color:#e5e7eb;">Developer</strong> — $49/mo: unlimited scans, CI gate, 48 analyzers</li>
         <li><strong style="color:#e5e7eb;">Team Pro</strong> — $149/mo: EU AI Act + SOC 2 board-ready certs, 5 seats</li>
         <li><strong style="color:#e5e7eb;">Enterprise</strong> — Custom: air-gapped, SSO/SAML, dedicated analyst</li>
       </ul>

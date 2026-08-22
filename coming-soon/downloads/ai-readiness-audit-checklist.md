@@ -103,7 +103,7 @@
 
 **AI Slop Cop Pro ($12/dev/mo)** — Full 3-tier detection + CI gate integration + team dashboard
 
-**Executive Risk Certificate ($499)** — All 38 analyzers, auditor-ready PDF + JSON exports
+**Executive Risk Certificate ($499)** — All 48 analyzers, auditor-ready PDF + JSON exports
 
 **EU AI Act Sprint ($2,499)** — Board-ready compliance package with legal review artifacts
 

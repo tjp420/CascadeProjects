@@ -8,7 +8,9 @@ const {
   getSubscriptionByApiToken,
   consumeApiCall,
   publicSubscriptionStatus,
-  normalizeEmail
+  normalizeEmail,
+  checkTrialExpiry,
+  shouldSendTrialWarning
 } = require('../lib/simplebeacon-subscription-store.cjs');
 const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.cjs');
 
@@ -104,6 +106,23 @@ function upgradePayload(extra = {}) {
 }
 
 /**
+ * Send trial-ending warning email (non-blocking, fire-and-forget).
+ * Uses the existing renderTrialEnding template and sendEmail fallback chain.
+ * @param {Object} record Subscription record with trialEndsAt.
+ */
+async function sendTrialWarningEmail(record) {
+  if (!record?.email || !record?.trialEndsAt) return;
+  try {
+    const { renderTrialEnding } = require('../lib/billing-email-templates.cjs');
+    const { sendEmail } = require('../../../coming-soon/services/email.cjs');
+    const { subject, text, html } = renderTrialEnding({ trialEnd: record.trialEndsAt });
+    await sendEmail({ to: record.email, subject, text, html });
+  } catch {
+    // Non-blocking — trial warning is best-effort
+  }
+}
+
+/**
  * Create require subscription.
  * @param {Object} options
  * @returns {any}
@@ -136,30 +155,45 @@ function createRequireSubscription(options = {}) {
     if (token) {
       const byToken = await getSubscriptionByApiToken(token);
       if (byToken?.subscriptionActive) {
-        if (consumeQuota) {
-          const usage = await consumeApiCall(token);
-          if (!usage.allowed) {
-            return res.status(429).json(upgradePayload({
-              error: usage.reason === 'rate_limit' ? 'rate_limit_exceeded' : 'subscription_required',
-              message: usage.reason === 'rate_limit'
-                ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
-                : upgradePayload().message,
-              limit: usage.limit,
-              remaining: usage.remaining ?? 0
-            }));
+        // Check if trial has expired
+        const checked = await checkTrialExpiry(byToken);
+        if (checked?.subscriptionActive) {
+          // Send trial-ending warning if within 3 days of expiry (non-blocking)
+          if (shouldSendTrialWarning(checked)) {
+            sendTrialWarningEmail(checked).catch(() => {});
           }
-          req.simplebeaconUsage = usage;
+          if (consumeQuota) {
+            const usage = await consumeApiCall(token);
+            if (!usage.allowed) {
+              return res.status(429).json(upgradePayload({
+                error: usage.reason === 'rate_limit' ? 'rate_limit_exceeded' : 'subscription_required',
+                message: usage.reason === 'rate_limit'
+                  ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
+                  : upgradePayload().message,
+                limit: usage.limit,
+                remaining: usage.remaining ?? 0
+              }));
+            }
+            req.simplebeaconUsage = usage;
+          }
+          req.simplebeaconSubscription = publicSubscriptionStatus(checked);
+          return next();
         }
-        req.simplebeaconSubscription = publicSubscriptionStatus(byToken);
-        return next();
       }
     }
 
     if (email) {
       const byEmail = await getSubscriptionByEmail(email);
       if (byEmail?.subscriptionActive) {
-        req.simplebeaconSubscription = publicSubscriptionStatus(byEmail);
-        return next();
+        // Check if trial has expired
+        const checked = await checkTrialExpiry(byEmail);
+        if (checked?.subscriptionActive) {
+          if (shouldSendTrialWarning(checked)) {
+            sendTrialWarningEmail(checked).catch(() => {});
+          }
+          req.simplebeaconSubscription = publicSubscriptionStatus(checked);
+          return next();
+        }
       }
     }
 

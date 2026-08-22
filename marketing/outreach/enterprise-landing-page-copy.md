@@ -41,7 +41,7 @@ SimpleBeacon is a deterministic compliance scanner that runs **100% locally** in
 - Remediation Roadmap — with statutory fine risk mappings per finding
 - Quality Gate Report — for CI/CD pipeline integration
 
-**52+ scan engines** detect AI-specific anti-patterns:
+**48 analyzers + 25 scan engines** detect AI-specific anti-patterns:
 - Hallucinated npm packages and imports
 - Placeholder credentials in AI boilerplate
 - Copyleft license contamination from training data
@@ -119,7 +119,7 @@ Also maps to **ISO/IEC 42001:2023** (AI Management System) clauses A.2, A.3, A.5
 ### Headline
 **Quantify your AI-generated code risk. Before your regulator does.**
 ### Subheadline
-52 deterministic scan engines. Board-ready risk certificates. Zero source code exposure. Continuous compliance via Azure DevOps.
+48 analyzers + 25 scan engines. Board-ready risk certificates. Zero source code exposure. Continuous compliance via Azure DevOps.
 
 ### Hero CTA
 [Run Free Risk Assessment] [Download Risk Framework PDF]
@@ -193,7 +193,7 @@ Use SimpleBeacon evidence to demonstrate proactive AI risk management and negoti
 ### Social Proof
 
 - "Trusted by compliance teams at fintech, healthcare, and government contractors"
-- "52+ deterministic scan engines — no false positives from heuristic guessing"
+- "48 analyzers + 25 scan engines — no false positives from heuristic guessing"
 - "Board-ready Executive Risk Certificates generated in 47 seconds"
 
 ### Urgency Triggers

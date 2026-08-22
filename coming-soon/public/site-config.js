@@ -201,9 +201,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     { name: 'Files per scan', developer: '50', startup: '<strong>Unlimited</strong>', compliance: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
     { name: 'Pipeline scans (CI)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Developers / seats', developer: '1 dev', startup: '1 dev', compliance: '<strong>5 seats</strong>', enterprise: '<strong>Unlimited</strong>' },
-    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 24 rules', startup: '<span class="check">&#10003;</span> 38 rules', compliance: '<span class="check">&#10003;</span> 52+ rules', enterprise: '<span class="check">&#10003;</span> 52+ rules' },
-    { name: 'AI Slop Cop IDE rules', developer: '24 real-time rules', startup: '<strong>38 IDE rules</strong>', compliance: '<strong>52+ IDE rules</strong>', enterprise: '<strong>52+ IDE rules</strong>' },
-    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', compliance: '<span class="check">&#10003;</span> 60+ engines', enterprise: '<span class="check">&#10003;</span> 60+ engines' },
+    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 35 patterns', startup: '<span class="check">&#10003;</span> 35 patterns', compliance: '<span class="check">&#10003;</span> 35 patterns', enterprise: '<span class="check">&#10003;</span> 35 patterns' },
+    { name: 'AI Slop Cop IDE rules', developer: '35 real-time patterns', startup: '<strong>35 IDE patterns</strong>', compliance: '<strong>35 IDE patterns</strong>', enterprise: '<strong>35 IDE patterns</strong>' },
+    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', compliance: '<span class="check">&#10003;</span> 38 modules', enterprise: '<span class="check">&#10003;</span> 38 modules' },
     { name: 'Placeholder debris detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Markdown fence detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Fiction KPI detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
@@ -229,7 +229,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   faqs: [
     {
       q: 'What is AI Slop Cop and how does it work?',
-      a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 24 rules, or use the CLI for CI gate integration with 60+ analyzer engines.'
+      a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 35 patterns, or use the CLI for CI gate integration with 48 analyzer modules.'
     },
     {
       q: 'What do I get with the Free tier?',
@@ -270,6 +270,10 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     {
       q: 'What is your refund policy?',
       a: 'Self-service subscriptions include a 7-day money-back guarantee. The one-time Audit Certificate is non-refundable once generated. Enterprise Air-Gapped contracts include a 14-day review period with analyst support. See our <a href="refund.html">refund policy</a>.'
+    },
+    {
+      q: 'Do you offer a free trial?',
+      a: 'Yes. Every new account gets a 14-day free trial of the Developer tier — unlimited scans, CI gate, all 48 analyzer modules. No credit card required. At the end of the trial, your account reverts to the free tier unless you add a payment method.'
     },
     {
       q: 'What data does AI Slop Cop transmit?',

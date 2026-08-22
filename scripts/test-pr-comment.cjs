@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * Tests for PR comment formatting with 52 deterministic engines branding
+ * Tests for PR comment formatting with 48 analyzers \+ 25 scan engines branding
  *
  * Verifies:
- * 1. formatGithubComment includes "52 Deterministic Engines" branding
- * 2. formatGithubStepSummary includes "52 Deterministic Engines" branding
+ * 1. formatGithubComment includes "48 analyzers \+ 25 scan engines" branding
+ * 2. formatGithubStepSummary includes "48 analyzers \+ 25 scan engines" branding
  * 3. Gate pass/fail headlines are correct
  * 4. Footer uses aligned messaging
  * 5. Issue rows are formatted correctly
@@ -78,9 +78,9 @@ const mockReportFail = {
 
 describe('formatGithubComment branding', () => {
 
-    test('header includes "52 Deterministic Engines"', () => {
+    test('header includes "48 analyzers \+ 25 scan engines"', () => {
         const comment = formatGithubComment(mockReportPass, mockReportPass.gate);
-        assert.match(comment, /52 Deterministic Engines/);
+        assert.match(comment, /48 analyzers \+ 25 scan engines/);
     });
 
     test('header does not use old "AI Circuit Breaker" branding', () => {
@@ -160,9 +160,9 @@ describe('formatGithubComment issue formatting', () => {
 
 describe('formatGithubStepSummary branding', () => {
 
-    test('includes "52 Deterministic Engines" branding', () => {
+    test('includes "48 analyzers \+ 25 scan engines" branding', () => {
         const summary = formatGithubStepSummary(mockReportPass, mockReportPass.gate);
-        assert.match(summary, /52 Deterministic Engines/);
+        assert.match(summary, /48 analyzers \+ 25 scan engines/);
     });
 
     test('includes gate status', () => {
@@ -210,7 +210,7 @@ describe('simplebeacon.yml workflow', () => {
 
     test('updates existing comment instead of duplicating', () => {
         const wf = readFile('.github/workflows/simplebeacon.yml');
-        assert.match(wf, /52 Deterministic Engines/);
+        assert.match(wf, /48 analyzers \+ 25 scan engines/);
         assert.match(wf, /updateComment/);
     });
 
@@ -239,11 +239,11 @@ describe('syntax validation', () => {
 
 describe('cross-component messaging consistency', () => {
 
-    test('PR comment and CLI help both mention "52 deterministic engines"', () => {
+    test('PR comment and CLI help both mention "48 analyzers \+ 25 scan engines"', () => {
         const comment = formatGithubComment(mockReportPass, mockReportPass.gate);
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(comment, /52 Deterministic Engines/);
-        assert.match(cli, /52 deterministic engines/);
+        assert.match(comment, /48 analyzers \+ 25 scan engines/);
+        assert.match(cli, /48 analyzers \+ 25 scan engines/);
     });
 
     test('PR comment and homepage both use "traditional linting" framing', () => {

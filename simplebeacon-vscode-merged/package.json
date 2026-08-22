@@ -1,13 +1,13 @@
 {
   "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Offline AI code audit ?Çö 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
+  "description": "Offline AI code audit — 48 analyzers + 25 scan engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
+    "url": "https://github.com/tjp420/CascadeProjects.git"
   },
-  "version": "3.0.508",
+  "version": "3.0.517",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -63,297 +63,22 @@
   "contributes": {
     "commands": [
       {
+        "command": "simplebeacon.aiGuardrailFlow",
+        "title": "AI Guardrail Flow",
+        "category": "SimpleBeacon",
+        "icon": "$(shield)"
+      },
+      {
         "command": "simplebeacon.scanWorkspace",
         "title": "Scan Workspace",
         "category": "SimpleBeacon",
         "icon": "$(search)"
       },
       {
-        "command": "simplebeacon.setScanPath",
-        "title": "Set Default Scan Path",
+        "command": "simplebeacon.openAIChatbot",
+        "title": "Open AI Coding Agent",
         "category": "SimpleBeacon",
-        "icon": "$(folder-opened)"
-      },
-      {
-        "command": "simplebeacon.clearResults",
-        "title": "Clear Results",
-        "category": "SimpleBeacon",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "simplebeacon.resetScanQuota",
-        "title": "Reset Scan Quota",
-        "category": "SimpleBeacon",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "simplebeacon.restartDataServer",
-        "title": "Restart Data Server",
-        "category": "SimpleBeacon",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "simplebeacon.openSettings",
-        "title": "Open Settings Panel",
-        "category": "SimpleBeacon",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "simplebeacon.refreshRelayPort",
-        "title": "Refresh Relay Port",
-        "category": "SimpleBeacon",
-        "icon": "$(extensions-refresh)"
-      },
-      {
-        "command": "simplebeacon.showReport",
-        "title": "Show Report Dashboard",
-        "category": "SimpleBeacon",
-        "icon": "$(dashboard)"
-      },
-      {
-        "command": "simplebeacon.openReport",
-        "title": "Open Report",
-        "category": "SimpleBeacon",
-        "icon": "$(report)"
-      },
-      {
-        "command": "simplebeacon.generateCertificate",
-        "title": "Generate Certificate",
-        "category": "SimpleBeacon",
-        "icon": "$(verified)"
-      },
-      {
-        "command": "simplebeacon.exportReport",
-        "title": "Export Report (JSON)",
-        "category": "SimpleBeacon",
-        "icon": "$(save)"
-      },
-      {
-        "command": "simplebeacon.exportReportJson",
-        "title": "Export Analyzer Report (Structured JSON)",
-        "category": "SimpleBeacon",
-        "icon": "$(json)"
-      },
-      {
-        "command": "simplebeacon.exportAIReport",
-        "title": "Export AI Report (Markdown/JSON/XML)",
-        "category": "SimpleBeacon",
-        "icon": "$(export)"
-      },
-      {
-        "command": "simplebeacon.loadReport",
-        "title": "Load Report (JSON)",
-        "category": "SimpleBeacon",
-        "icon": "$(file-add)"
-      },
-      {
-        "command": "simplebeacon.enhancedAnalysis",
-        "title": "Enhanced AI Analysis",
-        "category": "SimpleBeacon",
-        "icon": "$(sparkle)"
-      },
-      {
-        "command": "simplebeacon.realtimeAnalysis",
-        "title": "Real-time Analysis",
-        "category": "SimpleBeacon",
-        "icon": "$(pulse)"
-      },
-      {
-        "command": "simplebeacon.patternDetection",
-        "title": "Pattern Detection",
-        "category": "SimpleBeacon",
-        "icon": "$(search)"
-      },
-      {
-        "command": "simplebeacon.modelHealth",
-        "title": "Model Health Status",
-        "category": "SimpleBeacon",
-        "icon": "$(heart)"
-      },
-      {
-        "command": "simplebeacon.showRemediationGuide",
-        "title": "Show Fix Guide",
-        "category": "SimpleBeacon",
-        "icon": "$(book)"
-      },
-      {
-        "command": "simplebeacon.remediateDiagnosticInPlace",
-        "title": "Fix with Local Ollama (In-Place)",
-        "category": "SimpleBeacon",
-        "icon": "$(wand)"
-      },
-      {
-        "command": "simplebeacon.openEnhancedDashboard20",
-        "title": "Open Enhanced Dashboard 2.0",
-        "category": "SimpleBeacon",
-        "icon": "$(dashboard)"
-      },
-      {
-        "command": "simplebeacon.runAdvancedAnalytics",
-        "title": "Run Advanced Analytics",
-        "category": "SimpleBeacon",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "simplebeacon.showTeamDashboard",
-        "title": "Show Team Dashboard",
-        "category": "SimpleBeacon",
-        "icon": "$(organization)"
-      },
-      {
-        "command": "simplebeacon.upgradeToPro",
-        "title": "Upgrade to Pro",
-        "category": "SimpleBeacon",
-        "icon": "$(arrow-up)"
-      },
-      {
-        "command": "simplebeacon.setApiToken",
-        "title": "Set API Token",
-        "category": "SimpleBeacon",
-        "icon": "$(key)"
-      },
-      {
-        "command": "simplebeacon.clearApiToken",
-        "title": "Clear API Token",
-        "category": "SimpleBeacon",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "simplebeacon.setServerUrl",
-        "title": "Set API Server URL",
-        "category": "SimpleBeacon",
-        "icon": "$(server)"
-      },
-      {
-        "command": "simplebeacon.viewAccountHistory",
-        "title": "View Account History",
-        "category": "SimpleBeacon",
-        "icon": "$(history)"
-      },
-      {
-        "command": "simplebeacon.exportAccountHistory",
-        "title": "Export Account History",
-        "category": "SimpleBeacon",
-        "icon": "$(file-code)"
-      },
-      {
-        "command": "simplebeacon.toggleRealtimeMonitoring",
-        "title": "Toggle AI Slop Real-time Monitoring",
-        "category": "SimpleBeacon",
-        "icon": "$(eye)"
-      },
-      {
-        "command": "simplebeacon.openBrowser",
-        "title": "Open Browser in IDE",
-        "category": "SimpleBeacon",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "simplebeacon.openGitHub",
-        "title": "Open GitHub Repository",
-        "category": "SimpleBeacon",
-        "icon": "$(github)"
-      },
-      {
-        "command": "simplebeacon.openDocs",
-        "title": "Open Documentation",
-        "category": "SimpleBeacon",
-        "icon": "$(book)"
-      },
-      {
-        "command": "simplebeacon.openInternalDashboard",
-        "title": "Open Dashboard in IDE",
-        "category": "SimpleBeacon",
-        "icon": "$(screen-full)"
-      },
-      {
-        "command": "simplebeacon.openDashboard40",
-        "title": "Open Dashboard 4.0",
-        "category": "SimpleBeacon",
-        "icon": "$(layout)"
-      },
-      {
-        "command": "simplebeacon.scanFolder",
-        "title": "Scan Folder...",
-        "category": "SimpleBeacon",
-        "icon": "$(folder-opened)"
-      },
-      {
-        "command": "simplebeacon.runScan",
-        "title": "Run Scan",
-        "category": "SimpleBeacon",
-        "icon": "$(search)"
-      },
-      {
-        "command": "simplebeacon.remediate",
-        "title": "Run Remediation",
-        "category": "SimpleBeacon",
-        "icon": "$(wrench)"
-      },
-      {
-        "command": "simplebeacon.uploadReport",
-        "title": "Upload & Validate Report",
-        "category": "SimpleBeacon",
-        "icon": "$(cloud-upload)"
-      },
-      {
-        "command": "simplebeacon.refreshResults",
-        "title": "Refresh Results",
-        "category": "SimpleBeacon",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "simplebeacon.installLocalAgent",
-        "title": "Install Local Agent",
-        "category": "SimpleBeacon",
-        "icon": "$(desktop-download)"
-      },
-      {
-        "command": "simplebeacon.startLocalAgent",
-        "title": "Start Local Agent",
-        "category": "SimpleBeacon",
-        "icon": "$(play)"
-      },
-      {
-        "command": "simplebeacon.openIssue",
-        "title": "Open Issue",
-        "category": "SimpleBeacon"
-      },
-      {
-        "command": "simplebeacon.openAnalyze",
-        "title": "Open Analyze Page",
-        "category": "SimpleBeacon",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "simplebeacon.openUpload",
-        "title": "Open Upload Page",
-        "category": "SimpleBeacon",
-        "icon": "$(cloud-upload)"
-      },
-      {
-        "command": "simplebeacon.openPreview",
-        "title": "Open Preview",
-        "category": "SimpleBeacon",
-        "icon": "$(browser)"
-      },
-      {
-        "command": "simplebeacon.openDashboardPreview",
-        "title": "Open Dashboard Preview",
-        "category": "SimpleBeacon",
-        "icon": "$(browser)"
-      },
-      {
-        "command": "simplebeacon.sendSelectionToSidebar",
-        "title": "Scan Selected Code",
-        "category": "SimpleBeacon",
-        "icon": "$(code)"
-      },
-      {
-        "command": "simplebeacon.openUrlInPreview",
-        "title": "Open URL in Preview",
-        "category": "SimpleBeacon",
-        "icon": "$(browser)"
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "simplebeacon.openAiContext",
@@ -366,70 +91,6 @@
         "title": "Send Scan to AI Agent",
         "category": "SimpleBeacon",
         "icon": "$(robot)"
-      },
-      {
-        "command": "simplebeacon.openAIChatbot",
-        "title": "Open AI Coding Agent",
-        "category": "SimpleBeacon",
-        "icon": "$(comment-discussion)"
-      },
-      {
-        "command": "simplebeacon.refreshDashboard",
-        "title": "Refresh Dashboard",
-        "category": "SimpleBeacon"
-      },
-      {
-        "command": "simplebeacon.setMonitorDirectory",
-        "title": "Set Real-time Monitor Directory",
-        "category": "SimpleBeacon",
-        "icon": "$(folder-opened)"
-      },
-      {
-        "command": "simplebeacon.diagnoseSidebar",
-        "title": "Diagnose Sidebar",
-        "category": "SimpleBeacon",
-        "icon": "$(tools)"
-      },
-      {
-        "command": "simplebeacon.shareCleanBadge",
-        "title": "SimpleBeacon: Copy 'AI Slop Cop Clean' Repository Badge",
-        "category": "SimpleBeacon",
-        "icon": "$(copy)"
-      },
-      {
-        "command": "simplebeacon.openStandaloneDebug",
-        "title": "Open Standalone Debug",
-        "category": "SimpleBeacon",
-        "icon": "$(debug)"
-      },
-      {
-        "command": "simplebeacon.showWelcome",
-        "title": "Show Welcome Dashboard",
-        "category": "SimpleBeacon",
-        "icon": "$(home)"
-      },
-      {
-        "command": "simplebeacon.importCodeMapGraph",
-        "title": "Import Code Map Graph",
-        "category": "SimpleBeacon",
-        "icon": "$(file-add)"
-      },
-      {
-        "command": "simplebeacon.highlightCodeMapNode",
-        "title": "Highlight Code Map Node",
-        "category": "SimpleBeacon"
-      },
-      {
-        "command": "simplebeacon.dryRunFix",
-        "title": "Preview Safe AI Code Fixes (Dry Run)",
-        "category": "SimpleBeacon",
-        "icon": "$(wrench)"
-      },
-      {
-        "command": "simplebeacon.applyFixes",
-        "title": "Apply Safe AI Code Fixes",
-        "category": "SimpleBeacon",
-        "icon": "$(check-all)"
       }
     ],
     "views": {
@@ -440,31 +101,6 @@
           "name": "SimpleBeacon",
           "icon": "$(shield)",
           "contextualTitle": "SimpleBeacon"
-        },
-        {
-          "type": "webview",
-          "id": "simplebeacon-codemap-tree",
-          "name": "Code Map Explorer",
-          "icon": "$(explorer)",
-          "contextualTitle": "Code Map Explorer",
-          "when": "false"
-        },
-        {
-          "type": "webview",
-          "id": "simplebeacon-compliance-sidebar",
-          "name": "Compliance Heatmap",
-          "icon": "$(grid)",
-          "contextualTitle": "Compliance"
-        }
-      ],
-      "explorer": [
-        {
-          "type": "webview",
-          "id": "simplebeacon-modern-explorer",
-          "name": "SimpleBeacon",
-          "icon": "$(shield)",
-          "contextualTitle": "SimpleBeacon",
-          "when": "true"
         }
       ]
     },
@@ -480,82 +116,42 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "simplebeacon.aiGuardrailFlow",
+          "when": "true"
+        },
+        {
           "command": "simplebeacon.scanWorkspace",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.clearResults",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.openSettings",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.showReport",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.setApiToken",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.clearApiToken",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.setServerUrl",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.viewAccountHistory",
-          "when": "true"
-        },
-        {
-          "command": "simplebeacon.exportAccountHistory",
           "when": "true"
         },
         {
           "command": "simplebeacon.openAIChatbot",
           "when": "true"
+        },
+        {
+          "command": "simplebeacon.openAiContext",
+          "when": "true"
         }
       ],
       "editor/context": [
         {
-          "command": "simplebeacon.sendSelectionToSidebar",
+          "command": "simplebeacon.sendToAi",
           "when": "editorHasSelection",
           "group": "simplebeacon@1"
         }
       ],
       "view/title": [
         {
-          "command": "simplebeacon.scanWorkspace",
+          "command": "simplebeacon.aiGuardrailFlow",
           "when": "view == simplebeacon-modern",
           "group": "navigation@1"
         },
         {
-          "command": "simplebeacon.clearResults",
+          "command": "simplebeacon.scanWorkspace",
           "when": "view == simplebeacon-modern",
           "group": "navigation@2"
-        },
-        {
-          "command": "simplebeacon.showReport",
-          "when": "view == simplebeacon-modern",
-          "group": "navigation@3"
-        },
-        {
-          "command": "simplebeacon.setApiToken",
-          "when": "view == simplebeacon-modern",
-          "group": "navigation@4"
         }
       ],
-      "explorer/context": [
-        {
-          "command": "simplebeacon.scanFolder",
-          "when": "explorerResourceIsFolder",
-          "group": "simplebeacon"
-        }
-      ]
+      "explorer/context": []
     },
     "configuration": {
       "title": "SimpleBeacon",
@@ -782,7 +378,7 @@
         "simplebeacon.useEngineApi": {
           "type": "boolean",
           "default": false,
-          "description": "Use the local SimpleBeacon engine API (localhost:3000) for real-time scanning. When enabled, the extension sends file content to the engine's full 38+ scanner suite. When disabled or engine unavailable, falls back to built-in 35-pattern local regex catalog. All communication is over localhost — no content leaves the machine."
+          "description": "Use the local SimpleBeacon engine API (localhost:3000) for real-time scanning. When enabled, the extension sends file content to the engine's full 48-analyzer suite. When disabled or engine unavailable, falls back to built-in local regex catalog. All communication is over localhost — no content leaves the machine."
         },
         "simplebeacon.engineUrl": {
           "type": "string",
@@ -796,7 +392,12 @@
         },
         "simplebeacon.contextGuardMode": {
           "type": "string",
-          "enum": ["off", "silent", "toast", "both"],
+          "enum": [
+            "off",
+            "silent",
+            "toast",
+            "both"
+          ],
           "default": "both",
           "enumDescriptions": [
             "No context guard — full content always sent to engine",
@@ -812,6 +413,21 @@
           "minimum": 500,
           "maximum": 100000,
           "description": "Maximum character count for engine API payloads. When content exceeds this limit, the Context Guard truncates or warns based on contextGuardMode. Default: 4000 (safe for small local models)."
+        },
+        "simplebeacon.agentDetectionMode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "heuristic",
+            "always"
+          ],
+          "default": "heuristic",
+          "enumDescriptions": [
+            "No save-time agent validation. AI session detection disabled.",
+            "Use RealtimeMonitor rapid-file-change detection to validate saves only during AI editing sessions (default).",
+            "Always validate source files on save, regardless of AI session state. Useful for agents that edit slowly."
+          ],
+          "description": "Controls when the Agent Guard validates files on save. 'heuristic' (default) uses the RealtimeMonitor's rapid-file-change detection to identify AI editing sessions and surfaces findings as VS Code diagnostics. The commit gate (pre-commit hook) remains the hard boundary regardless of this setting."
         },
         "simplebeacon.agentModel": {
           "type": "string",

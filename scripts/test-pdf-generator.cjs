@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * Tests for Executive PDF Generator with 52 deterministic engines branding
+ * Tests for Executive PDF Generator with 48 analyzers \+ 25 scan engines branding
  *
  * Verifies:
- * 1. buildExecutiveHtml includes "52 Deterministic Engines" branding
+ * 1. buildExecutiveHtml includes "48 analyzers \+ 25 scan engines" branding
  * 2. Quality score bar chart is rendered
  * 3. Gate status badge uses visual badge (not just text)
  * 4. Tier footer with upgrade link is present
- * 5. Disclaimer mentions "no LLM" and "52 deterministic engines"
+ * 5. Disclaimer mentions "no LLM" and "48 analyzers \+ 25 scan engines"
  * 6. Letterhead has two-column layout (title + branding)
  * 7. Cross-component messaging consistency
  *
@@ -82,14 +82,14 @@ const mockReportClean = {
 };
 
 // ═══════════════════════════════════════════════
-// 1. Branding — 52 Deterministic Engines
+// 1. Branding — 48 analyzers \+ 25 scan engines
 // ═══════════════════════════════════════════════
 
-describe('PDF branding — 52 deterministic engines', () => {
+describe('PDF branding — 48 analyzers \+ 25 scan engines', () => {
 
-    test('HTML includes "52 Deterministic Engines" badge', () => {
+    test('HTML includes "48 analyzers \+ 25 scan engines" badge', () => {
         const html = buildExecutiveHtml(mockReport, mockLicenseClaims);
-        assert.match(html, /52 Deterministic Engines/);
+        assert.match(html, /48 analyzers \+ 25 scan engines/);
     });
 
     test('HTML includes "catch AI code debt" tagline', () => {
@@ -178,12 +178,12 @@ describe('tier footer', () => {
         assert.match(html, /https:\/\/simplebeacon\.ai\/pricing/);
     });
 
-    test('tier footer mentions "52 deterministic engines"', () => {
+    test('tier footer mentions "48 analyzers \+ 25 scan engines"', () => {
         const html = buildExecutiveHtml(mockReport, mockLicenseClaims);
         // Find the actual tier-footer div (not the CSS class definition)
         const footerMatch = html.match(/<div class="tier-footer">([\s\S]*?)<\/div>/);
         assert.ok(footerMatch, 'tier-footer div should exist');
-        assert.match(footerMatch[1], /52 deterministic engines/);
+        assert.match(footerMatch[1], /48 analyzers \+ 25 scan engines/);
     });
 });
 
@@ -193,9 +193,9 @@ describe('tier footer', () => {
 
 describe('disclaimer content', () => {
 
-    test('disclaimer mentions "52 deterministic engines"', () => {
+    test('disclaimer mentions "48 analyzers \+ 25 scan engines"', () => {
         const html = buildExecutiveHtml(mockReport, mockLicenseClaims);
-        assert.match(html, /52 deterministic engines/);
+        assert.match(html, /48 analyzers \+ 25 scan engines/);
     });
 
     test('disclaimer mentions "no LLM"', () => {
@@ -269,11 +269,11 @@ describe('syntax validation', () => {
 
 describe('cross-component messaging consistency', () => {
 
-    test('PDF and CLI help both mention "52 deterministic engines"', () => {
+    test('PDF and CLI help both mention "48 analyzers \+ 25 scan engines"', () => {
         const html = buildExecutiveHtml(mockReport, mockLicenseClaims);
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(html, /52 Deterministic Engines/);
-        assert.match(cli, /52 deterministic engines/);
+        assert.match(html, /48 analyzers \+ 25 scan engines/);
+        assert.match(cli, /48 analyzers \+ 25 scan engines/);
     });
 
     test('PDF and homepage both use "traditional linting" framing', () => {
@@ -283,10 +283,10 @@ describe('cross-component messaging consistency', () => {
         assert.match(homepage, /traditional linting/i);
     });
 
-    test('PDF and PR comment both use "52 Deterministic Engines"', () => {
+    test('PDF and PR comment both use "48 analyzers \+ 25 scan engines"', () => {
         const html = buildExecutiveHtml(mockReport, mockLicenseClaims);
         const comment = readFile('packages/simplebeacon-cli/src/reporters/github-comment.js');
-        assert.match(html, /52 Deterministic Engines/);
-        assert.match(comment, /52 Deterministic Engines/);
+        assert.match(html, /48 analyzers \+ 25 scan engines/);
+        assert.match(comment, /48 analyzers \+ 25 scan engines/);
     });
 });

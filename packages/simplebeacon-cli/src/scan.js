@@ -1565,8 +1565,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         },
         scannerEntry('production-leak', 'productionLeakScan', scanProductionLeaks, (opts) => ({
             productionPaths: opts.productionPaths || config.productionPaths,
-            ignoreGlobs: opts.ignoreGlobs || config.ignore,
-            allowlistFiles: opts.allowlistFiles || [],
+            ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || config.rules?.['production-leak']?.ignoreGlobs || [])],
+            allowlistFiles: opts.allowlistFiles || config.rules?.['production-leak']?.allowlistFiles || [],
             scannerMetaFiles: [...(config.scannerMetaFiles || []), ...(opts.scannerMetaFiles || [])],
             severity: opts.severity || 'high',
             intentClassification: opts.intentClassification !== false,

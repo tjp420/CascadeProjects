@@ -186,7 +186,8 @@
       "enabled": true,
       "severity": "high",
       "ignoreGlobs": [
-        "ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js"
+        "ai-platform/web/simplebeacon-dashboard/js-es2018/utils/sample-report.js",
+        "**/secret-scanner.cjs"
       ]
     },
     "json-schema": {

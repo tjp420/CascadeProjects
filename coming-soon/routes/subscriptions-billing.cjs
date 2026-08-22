@@ -101,7 +101,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const tierConfig = {
             developer: {
                 name: 'SimpleBeacon Developer',
-                desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 38 analyzer modules',
+                desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 48 analyzer modules',
                 monthly: PRICE_DEVELOPER_MONTHLY,
                 annual: PRICE_DEVELOPER_ANNUAL
             },
@@ -113,7 +113,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             },
             pro: {
                 name: 'AI Slop Cop Pro',
-                desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 38 analyzer engines',
+                desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 48 analyzer engines',
                 monthly: PRICE_PRO_MONTHLY,
                 annual: PRICE_PRO_ANNUAL
             },

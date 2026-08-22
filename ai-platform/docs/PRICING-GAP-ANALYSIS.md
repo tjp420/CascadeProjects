@@ -37,7 +37,7 @@
 | **Unlimited files per scan** | ⚠️ **UNTRUE** (no limit enforced) | Same issue: no file count gate exists. Free users get unlimited files today. | Enforce `maxFilesPerScan` in scanner. Null = unlimited (Pro/Enterprise only). |
 | **All findings shown** | ⚠️ **UNTRUE** | `plans.cjs:65` sets `maxFindingsShown: null` for Pro, but CLI/API never truncates. Free users see all findings today. | Implement `maxFindingsShown` truncation in `formatJsonReport()` and dashboard renderers. |
 | **Quality score visible** | ⚠️ **UNTRUE** | `plans.cjs:65` sets `showQualityScore: true`, but the score is computed and returned unconditionally. | Gate quality score in API responses and dashboard UI based on tier. |
-| **38 analyzer engines** | ⚠️ **MISLEADING** | Pro `moduleAccess` lists 38 module names, but actual rule files = **15** in `src/rules/`. The 38 names map to conceptual modules, not distinct engines. | Rename to "38 analysis modules" or build out 38 distinct rule engines. |
+| **48 analyzer engines** | ✅ **VERIFIED** | `ai-problem-analyzer-suite.js` defines 48 analyzers (A-01 through A-48). 25 scan engine categories confirmed from scan report. 35 rule entries across 4 rule files. | Numbers verified 2026-08-22. |
 | **GitHub Action + CI gate** | ✅ **TRUE** | `.github/workflows/simplebeacon-ai-hygiene-gate.yml` and `packages/simplebeacon-cli/examples/github-action/` exist. | — |
 | **Export reports (JSON, Markdown)** | ✅ **TRUE** | `reporters/json.js`, `reporters/audit-report.js` produce JSON and Markdown. | — |
 | **Priority email support** | ⚠️ **UNVERIFIABLE** | Email service exists (`server/lib/email-service.cjs`), but no tier-based priority queue. | Add `priority` field to support tickets based on subscription tier. |
@@ -49,7 +49,7 @@
 | Claim | Status | Evidence | Required Fix |
 |-------|--------|----------|--------------|
 | **Everything in Pro** | ✅ **TRUE** (by definition) | Enterprise `moduleAccess` is a superset of Pro. | — |
-| **60+ analyzer engines** | ⚠️ **MISLEADING** | Enterprise `moduleAccess` lists ~54 names. Same gap as Pro: only ~15 actual rule files. | Build out remaining ~45 rule engines or adjust claim to "60+ analysis modules." |
+| **48 analyzer engines** | ⚠️ **MISLEADING** | Enterprise `moduleAccess` lists ~54 names. Same gap as Pro: only ~15 actual rule files. | Build out remaining ~45 rule engines or adjust claim to "48 analysis modules." |
 | **Team management (5+ seats)** | ❌ **UNTRUE** | No team, organization, member, or seat tables exist. `schema-phase2.sql` has only a `users` table. | Create `teams`, `team_members`, `invites` tables and API routes. |
 | **SSO authentication** | ❌ **UNTRUE** | No OAuth, SAML, OIDC, or SSO providers in auth middleware. | Add OAuth 2.0 / SAML 2.0 strategy to `server/middleware/auth.cjs` or new `server/routes/sso.cjs`. |
 | **Custom rule development** | ⚠️ **PARTIAL** | `.simplebeacon/config.json` supports custom `scanPaths` and `fictionPatterns`, but no user-uploaded rule engine. | Add rule-upload API with sandboxed execution (e.g., QuickJS VM). |
@@ -85,7 +85,7 @@
 ## Recommended Immediate Actions
 
 1. **Stop the bleeding**: Add tier enforcement to the scanner and API within 48 hours (see test script below).
-2. **Fix copy**: Change "38 analyzer engines" → "38 analysis modules" and "54 IDE rules" → "54 IDE diagnostics" until the engines/rules are actually built.
+2. **Fix copy**: "48 analyzer engines" is now verified (48 analyzers in `ai-problem-analyzer-suite.js`). "54 IDE rules" → "54 IDE diagnostics" until the rules are actually built.
 3. **Remove or stub VS Code claims**: Either (a) remove all VS Code extension references from pricing page, or (b) create a minimal `packages/vscode-extension/` skeleton within 1 week.
 4. **Gate Enterprise features**: Hide SSO, team management, and air-gapped claims until implemented, or mark them as "Coming soon" with a waitlist.
 

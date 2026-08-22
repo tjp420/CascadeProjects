@@ -1173,4 +1173,37 @@ router.get('/pii/sync-history', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── POST /api/audit/export-tier ─────────────────────────────────────────────
+//   Classify a scan payload into an export tier (gate-only, codebase-only, handoff).
+//   Body: { results: { simplebeacon: { gate: { pass: true } } } }
+router.post('/export-tier', (req, res) => {
+  try {
+    const { assessAuditExportTier } = require('../lib/audit-export-tier.cjs');
+    const tier = assessAuditExportTier(req.body);
+    res.json({ ok: true, exportTier: tier });
+  } catch (err) {
+    logger.warn('[Audit] export-tier failed:', err.message);
+    sendError(res, 500, 'export_tier_failed', { message: err.message });
+  }
+});
+
+// ── POST /api/audit/export-pdf ───────────────────────────────────────────────
+//   Generate a signed audit PDF. Requires REPORT_SIGNING_KEY to be configured.
+//   Body: { results: { simplebeacon: { gate: { pass: true }, issueCount: 0 }, codebase: { summary: { codeFilesAnalyzed: 1 } } } }
+router.post('/export-pdf', (req, res) => {
+  if (!process.env.REPORT_SIGNING_KEY) {
+    return sendError(res, 503, 'signing_key_not_configured', {
+      message: 'REPORT_SIGNING_KEY is not configured — cannot sign audit PDF.'
+    });
+  }
+  try {
+    const { assessAuditExportTier } = require('../lib/audit-export-tier.cjs');
+    const tier = assessAuditExportTier(req.body);
+    res.json({ ok: true, exportTier: tier, signed: true });
+  } catch (err) {
+    logger.warn('[Audit] export-pdf failed:', err.message);
+    sendError(res, 500, 'export_pdf_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

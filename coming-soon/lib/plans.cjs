@@ -44,7 +44,7 @@ const PLANS = {
       'Unlimited files per scan (Free: 50)',
       'All findings shown (Free: 5 only)',
       'Quality score visible (Free: hidden)',
-      '38 analyzer engines (AI Slop Cop full suite)',
+      '48 analyzer engines (AI Slop Cop full suite)',
       'GitHub Action + CI gate',
       'Export reports (JSON, Markdown)',
       'Priority email support'
@@ -79,7 +79,7 @@ const PLANS = {
     description: 'Board-ready compliance. EU AI Act, SOC 2 evidence packs, and analyst support.',
     features: [
       'Everything in Pro',
-      '60+ analyzer engines (full CLI + dashboard suite)',
+      '48 analyzer modules (full CLI + dashboard suite)',
       'Team management (5+ seats)',
       'SSO authentication',
       'Custom rule development',

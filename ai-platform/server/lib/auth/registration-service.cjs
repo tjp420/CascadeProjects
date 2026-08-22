@@ -36,6 +36,20 @@ async function handleRegister(req, res) {
         return res.status(status).json({ error: result.error, message: result.error });
     }
 
+    // Grant 14-day trial on successful registration (non-blocking)
+    let trialGranted = false;
+    let trialEndsAt = null;
+    try {
+        const { grantTrial } = require('../simplebeacon-subscription-store.cjs');
+        const trialRecord = await grantTrial(result.user.email, 'developer');
+        if (trialRecord) {
+            trialGranted = true;
+            trialEndsAt = trialRecord.trialEndsAt;
+        }
+    } catch (trialErr) {
+        // Non-blocking — signup succeeds even if trial grant fails
+    }
+
     if (pending) {
         return res.status(201).json({
             success: true,
@@ -55,6 +69,11 @@ async function handleRegister(req, res) {
     return res.status(201).json({
         message: 'Account created successfully',
         token,
+        trial: trialGranted ? {
+            active: true,
+            tier: 'developer',
+            endsAt: trialEndsAt
+        } : null,
         user: {
             id: result.user.id,
             email: result.user.email,

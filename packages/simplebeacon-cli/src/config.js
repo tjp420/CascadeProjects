@@ -480,6 +480,16 @@ function sanitizeConfigForTier(config, tier) {
                 if (userRule && userRule.enabled !== false && FREE_RULE_ENGINES.has(ruleName) && !profileRules[ruleName]) {
                     profileRules[ruleName] = userRule;
                 }
+                // Preserve user-set ignoreGlobs and allowlistFiles for rules that ARE
+                // in the profile (otherwise user false-positive suppressions are lost).
+                if (userRule && profileRules[ruleName]) {
+                    if (Array.isArray(userRule.ignoreGlobs) && userRule.ignoreGlobs.length) {
+                        profileRules[ruleName] = { ...profileRules[ruleName], ignoreGlobs: userRule.ignoreGlobs };
+                    }
+                    if (Array.isArray(userRule.allowlistFiles) && userRule.allowlistFiles.length) {
+                        profileRules[ruleName] = { ...profileRules[ruleName], allowlistFiles: userRule.allowlistFiles };
+                    }
+                }
             }
         }
         sanitized.rules = profileRules;

@@ -16,9 +16,9 @@ The codebase contains **two distinct pricing models** for two products:
 | Tier | Price | Scans | Engines | Support |
 |---|---|---|---|---|
 | Free | $0 | 10 local scans/month (24 real-time IDE rules) | VSCode extension + CLI | Community |
-| Pro | $9/mo or $90/yr (17% savings) | Unlimited (38 analyzer engines) | Batch CLI + CI/CD gate | Priority email |
-| Compliance Suite | $399/mo or $3,999/yr (~16% savings) | Unlimited (60+ analyzer engines) | EU AI Act + SOC 2 artifacts, 5 seats | Priority email + Slack |
-| Enterprise Air-Gapped | Custom | Unlimited (60+ analyzer engines) | On-premise/air-gapped, unlimited seats | Dedicated engineer + SLA |
+| Pro | $9/mo or $90/yr (17% savings) | Unlimited (48 analyzer engines) | Batch CLI + CI/CD gate | Priority email |
+| Compliance Suite | $399/mo or $3,999/yr (~16% savings) | Unlimited (48 analyzer engines) | EU AI Act + SOC 2 artifacts, 5 seats | Priority email + Slack |
+| Enterprise Air-Gapped | Custom | Unlimited (48 analyzer engines) | On-premise/air-gapped, unlimited seats | Dedicated engineer + SLA |
 | Audit Certificate | $149 one-time | 1 board-ready certificate | PDF + JSON + remediation roadmap | Email support |
 
 **Payment:** Stripe (card/PayPal). Pro and Compliance Suite have 7-day money-back guarantee. Audit Certificate is non-refundable once generated.

@@ -59,7 +59,7 @@
   <h2>2. Zero-Upload Warranty</h2>
   <p>SimpleBeacon warrants that:</p>
   <ul>
-    <li>The CLI scanner (<code>simplebeacon scan</code>) makes zero network requests during scanning unless the user explicitly passes <code>--upload</code> to generate a certificate.</li>
+    <li>The CLI scanner (<code>simplebeacon scan</code>) makes zero network requests during scanning. The optional <code>simplebeacon certify</code> command sends only a SHA-256 hash and aggregate counts (not source code) to sign a compliance certificate.</li>
     <li>The browser sandbox scanner executes entirely in the client browser's memory. No source code is transmitted to any server. The sandbox is wiped when the browser tab closes.</li>
     <li>The VS Code extension shells out to the local CLI. No cloud API is invoked for scanning.</li>
     <li>The Enterprise Air-Gapped deployment operates with zero internet connectivity after initial Docker image pull. License tokens are validated locally using HMAC-SHA256.</li>
@@ -156,7 +156,7 @@
     <a href="/blog/case-study-ai-slop-1-25m" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Blog</a> &middot;
     <a href="/roadmap" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Roadmap</a> &middot;
     <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;
-    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a> &middot;
+    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a> &middot; <a href="/cookie-policy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Cookies</a> &middot;
     <a href="/dpa" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">DPA</a> &middot;
     <a href="/refunds" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Refunds</a>
   </p>

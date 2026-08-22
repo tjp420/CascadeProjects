@@ -67,7 +67,7 @@ function formatTextReport(report, gateResult = null) {
 
     const lines = [];
     lines.push(paint('Simplebeacon', 'cyan'));
-    lines.push(paint('52 deterministic engines · catch AI code debt traditional linting misses', 'dim'));
+    lines.push(paint('48 analyzers + 25 scan engines · catch AI code debt traditional linting misses', 'dim'));
     lines.push('==================');
     lines.push(`Root: ${report.projectRoot || 'unknown'}`);
     if (report.repositoryFilesTotal != null) {
@@ -77,8 +77,16 @@ function formatTextReport(report, gateResult = null) {
     if (report.mockSampleFiles != null) {
         lines.push(`Mock/sample files: ${report.mockSampleFiles}`);
     }
-    // Show quality score for all users
-    lines.push(`Quality score: ${(report.qualityScore ?? 0)}/100`);
+    // Show quality score for paid users; hide for free tier
+    if (report.qualityScoreHidden) {
+        lines.push(`Quality score: (upgrade to view)`);
+    } else {
+        const qs = report.qualityScore ?? (report.qualityScorecard ? Math.round(
+            Object.values(report.qualityScorecard).reduce((a, b) => a + (Number(b) || 0), 0) /
+            Math.max(Object.keys(report.qualityScorecard).length, 1)
+        ) : 0);
+        lines.push(`Quality score: ${qs}/100`);
+    }
     lines.push('');
 
     // Remove free tier limitations
@@ -198,7 +206,7 @@ function formatActionPlanReport(report, gateResult = null) {
     lines.push(paint('Simplebeacon Action Plan', 'cyan'));
     lines.push('========================');
     lines.push(`Root: ${report.projectRoot || 'unknown'}`);
-    lines.push(`Quality score: ${(report.qualityScore ?? 0)}/100`);
+    lines.push(`Quality score: ${report.qualityScore ?? (report.qualityScorecard ? Math.round(Object.values(report.qualityScorecard).reduce((a, b) => a + (Number(b) || 0), 0) / Math.max(Object.keys(report.qualityScorecard).length, 1)) : 0)}/100`);
     lines.push('');
 
     if (gateResult) {

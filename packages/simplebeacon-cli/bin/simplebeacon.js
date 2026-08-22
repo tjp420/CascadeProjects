@@ -503,7 +503,7 @@ function formatCliError(error) {
 
 function printHelp() {
     writeStdoutLine(`Simplebeacon — catch AI code debt that traditional linting misses
-  52 deterministic engines · zero LLM dependency · no upload required
+  48 analyzers + 25 scan engines · zero LLM dependency · no upload required
   simplebeacon --version          Show version number
 
 Usage:
@@ -572,7 +572,7 @@ Scan options:
   --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
-  --complete          Run all 52 deterministic engines (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
+  --complete          Run all 48 analyzers + 25 scan engines (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
   --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
   --deep-scan         Deep Scan mode: bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)
   --include-deps      Include node_modules and .git in scan (slower, more noise)
@@ -648,7 +648,7 @@ AI Plan options:
   --path, -p <dir>    Project root (default: cwd)
   --config, -c <f>    Config path (default: .simplebeacon/config.json)
   --output, -o <file> Write AI plan to file
-  --complete          Run all 52 deterministic engines for comprehensive analysis
+  --complete          Run all 48 analyzers + 25 scan engines for comprehensive analysis
 
 Global options:
   --debug             Print full stack traces on errors and disable spinner
@@ -775,7 +775,7 @@ async function executeOneScan(options, networkGuard) {
     const config = loadSimplebeaconConfig(platformRoot, configPath);
     if (options.complete || options.fullDirectoryScan) {
         config.fullDirectoryScan = true;
-        if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all 52 deterministic engines');
+        if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all 48 analyzers + 25 scan engines');
     }
     if (options.failOn) {
         config.gate = { ...config.gate, failOn: options.failOn };
@@ -2515,7 +2515,7 @@ function generateAIIssueList(report) {
     plan += '4. **Re-run Scan** - Verify fixes and update quality score\n\n';
 
     plan += '## Additional Notes\n\n';
-    plan += '- Use the `simplebeacon scan --complete` flag to run all 52 deterministic engines\n';
+    plan += '- Use the `simplebeacon scan --complete` flag to run all 48 analyzers + 25 scan engines\n';
     plan += '- Consider integrating with CI/CD pipelines for automated checks\n';
     plan += '- Review and update SimpleBeacon configuration as needed\n';
 

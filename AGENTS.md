@@ -109,7 +109,7 @@ chmod +x .git/hooks/pre-commit
 ## Pricing & Billing Infrastructure
 
 ### Three-Tier Pricing Model (2026-08-06)
-- **Developer**: $49/mo or $490/yr (Save 17%) — unlimited scans, CI gate, 38 analyzers
+- **Developer**: $49/mo or $490/yr (Save 17%) — unlimited scans, CI gate, 48 analyzers
 - **Team Pro**: $149/mo or $1,490/yr (Save 17%) — EU AI Act, SOC 2, board-ready certs, 5 seats
 - **Enterprise**: Custom — air-gapped, SSO/SAML, dedicated analyst, Book Demo link
 - **Legacy Pro**: $9/mo — backward compatible, still functional for existing customers
@@ -828,3 +828,13 @@ Followers apply via `_applyRemoteKeyCommit()` and reply `KEY_COMMIT_ACK`, but th
 - True two-phase staging with quorum-ACK gate and staging timeout rollback.
 - Real mTLS + CA chain + per-node encrypted key wrapping (only if deployment crosses untrusted networks).
 - Edge-case simulation (quorum splits, simultaneous leader drops) — meaningful only after two-phase staging exists.
+
+## Known Accepted Vulnerabilities (2026-08-22)
+
+### pkg@5.8.1 — Local Privilege Escalation (GHSA-22r3-9w55-cj54)
+- **Severity**: Moderate
+- **Affected packages**: local-analyzer, local-agent (dev-only binary packaging)
+- **Status**: No fix available upstream
+- **Risk assessment**: Dev-only dependency used for building standalone binaries. Not in production runtime. Not exploitable in production — requires local filesystem access on the build machine.
+- **Action**: Accepted risk for launch. Replace pkg with sbuild + standalone bundling in v2.
+- **Dependabot**: .github/dependabot.yml is enabled and will notify when a fix is released.

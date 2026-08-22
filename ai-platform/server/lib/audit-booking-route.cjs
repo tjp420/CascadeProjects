@@ -197,12 +197,17 @@ function registerAuditBookingRoute(app, options = {}) {
       res.status(500).json({ error: 'request_failed', message: err.message });
     });
   });
-  app.get('/api/audit-bookings', (req, res) => {
+  const listHandler = (req, res) => {
     handleListAuditBookings(req, res, options).catch((err) => {
       logger.warn('[audit-booking] list failed:', err.message);
       res.status(500).json({ error: 'list_failed', message: err.message });
     });
-  });
+  };
+  if (typeof options.listMiddleware === 'function') {
+    app.get('/api/audit-bookings', options.listMiddleware, listHandler);
+  } else {
+    app.get('/api/audit-bookings', listHandler);
+  }
   registerOperatorInboxPage(app, options);
 }
 

@@ -202,7 +202,9 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
         return;
     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
     const normalizedPath = currentPath.replace(/\\/g, '/');
-    // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+    // Skip heavy directories during discovery to keep file counts manageable
+    if (entry.isDirectory && SKIP_DIRS.test(normalizedPath + '/'))
+        return;
     if (entry.isFile) {
         if (files.length >= MAX_DISCOVERED_FILES)
             return;
@@ -1312,7 +1314,9 @@ if (typeof bindPresetButtons === 'function')
     bindPresetButtons();
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
-    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal);
+    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal || (typeof ALL_MODULES !== 'undefined' ? ALL_MODULES : []));
+    if (!Array.isArray(allowed))
+        return;
     let firstEnabled = null;
     // Update hidden select
     if (browserScanProfile) {
@@ -2218,7 +2222,9 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
             return;
         const currentPath = parentPath ? parentPath + '/' + handle.name : handle.name;
         const normalizedPath = currentPath.replace(/\\/g, '/');
-        // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+        // Skip heavy directories during discovery to keep file counts manageable
+        if (handle.kind === 'directory' && SKIP_DIRS.test(normalizedPath + '/'))
+            return;
         if (handle.kind === 'file') {
             if (files.length >= MAX_DISCOVERED_FILES)
                 return;

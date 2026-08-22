@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor, Copy } from 'lucide-react';
+import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor, Copy, CreditCard, ExternalLink, AlertCircle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -219,10 +219,151 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="billing">
-          <ProrationPreview />
+          <div className="space-y-6">
+            <ManageSubscriptionCard userEmail={user?.email} />
+            <ProrationPreview />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
+  const [loading, setLoading] = useState(false);
+  const [billingStatus, setBillingStatus] = useState<{ tier: string; subscriptionActive: boolean } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  function safeStripeRedirect(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
+        window.open(parsed.href, '_self');
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  const loadBillingStatus = useCallback(async () => {
+    setStatusLoading(true);
+    if (!userEmail) {
+      setStatusLoading(false);
+      return;
+    }
+    try {
+      await waitForApiBase();
+      const resp = await fetch(apiUrl(`/simplebeacon/billing/status?email=${encodeURIComponent(userEmail)}`), {
+        headers: authHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setBillingStatus({ tier: data.tier || 'free', subscriptionActive: Boolean(data.subscriptionActive) });
+      }
+    } catch {
+      // Billing status unavailable — show the manage button anyway
+    } finally {
+      setStatusLoading(false);
+    }
+  }, [userEmail]);
+
+  useEffect(() => { void loadBillingStatus(); }, [loadBillingStatus]);
+
+  const handleManageSubscription = async () => {
+    if (!userEmail) {
+      toast.error('You must be signed in to manage your subscription');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await waitForApiBase();
+      const resp = await fetch(apiUrl('/simplebeacon/billing/portal'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.url) {
+        if (!safeStripeRedirect(data.url)) {
+          setError('Invalid redirect URL received from billing service');
+          return;
+        }
+      } else if (resp.status === 503) {
+        setError('Billing is not yet configured. Paid plans will be available soon.');
+      } else if (resp.status === 404) {
+        setError('No active subscription found. Visit the pricing page to subscribe.');
+      } else {
+        setError(data.error || data.message || `Failed to open billing portal (${resp.status})`);
+      }
+    } catch (e: any) {
+      setError(e.message || 'Failed to connect to billing service');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isPaid = billingStatus && billingStatus.subscriptionActive && billingStatus.tier !== 'free';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <CreditCard className="h-5 w-5" />
+          Subscription
+        </CardTitle>
+        <CardDescription>
+          Manage your plan, upgrade, downgrade, or cancel your subscription.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {statusLoading ? (
+          <div className="flex items-center gap-2 text-sm text-foreground-muted">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading subscription status…
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Current Plan</span>
+                <Badge variant={isPaid ? 'default' : 'secondary'} className="capitalize">
+                  {billingStatus?.tier || 'free'}
+                </Badge>
+              </div>
+              {!isPaid && (
+                <Button size="sm" variant="outline" onClick={() => window.open('/pricing.html', '_blank')}>
+                  <ExternalLink className="h-4 w-4 mr-1" /> View Plans
+                </Button>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleManageSubscription} disabled={loading || !userEmail}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                Manage Subscription
+              </Button>
+              <p className="text-xs text-foreground-muted">
+                {isPaid
+                  ? 'Upgrade, downgrade, update payment methods, or cancel via Stripe.'
+                  : 'Subscribe on the pricing page, then manage your plan here.'}
+              </p>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-foreground-muted">{error}</p>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
