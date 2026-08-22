@@ -414,6 +414,11 @@
           "reason": "Minified vendor bundle uses Math.random for non-crypto purposes in UI assets"
         },
         {
+          "type": "insecure-random",
+          "path": "coming-soon/public/dashboard/assets/localAgentService-*.js",
+          "reason": "Minified vendor bundle uses Math.random for non-crypto purposes in UI assets (mirror)"
+        },
+        {
           "type": "type-safety-gap",
           "path": "simplebeacon-vscode/src/codeMapProvider.ts",
           "reason": "Legacy backup extension — any types at API boundaries are standard"

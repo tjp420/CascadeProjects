@@ -71,7 +71,16 @@ try {
     fs.copyFileSync(src, dst);
   }
 
-  // Write a minimal config for the temp scan root
+  // Write a minimal config for the temp scan root, preserving allowlist entries
+  // from the real config so that false positives in build artifacts are suppressed
+  const realConfigPath = path.join(REPO_ROOT, '.simplebeacon', 'config.json');
+  let realAllowlist = [];
+  let realIgnore = [];
+  try {
+    const realConfig = JSON.parse(fs.readFileSync(realConfigPath, 'utf8'));
+    realAllowlist = realConfig.allowlist || [];
+    realIgnore = realConfig.ignore || [];
+  } catch (_e) { /* ignore — fall back to empty allowlist */ }
   const precommitConfig = {
     scanPaths: ['.'],
     productionPaths: ['.'],
@@ -81,6 +90,8 @@ try {
       failOn: ['high'],
       warnOn: ['medium', 'low'],
     },
+    allowlist: realAllowlist,
+    ignore: realIgnore,
   };
   fs.writeFileSync(tempConfig, JSON.stringify(precommitConfig, null, 2), 'utf8');
 } catch (e) {
