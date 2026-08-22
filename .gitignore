@@ -183,6 +183,8 @@ simplebeacon.sh
 test-output.txt
 test-output-root.txt
 test-results.txt
+test-results/
+.push-output.txt
 tmp-compile-out.txt
 server-start-log.txt
 server-startup-error.txt
@@ -212,6 +214,33 @@ _find_*.js
 tmp_find_*.js
 tmp_chatbot.html
 **/__create_token.js
+
+# Backup files (never track)
+*.bak
+*.bak.*
+
+# Stale vite hashed bundles — keep main.js and main-YYYYMMDD.js only
+# Vite outputs main-<8char-hash>.js; these accumulate across builds
+ai-platform/web/simplebeacon-dashboard/assets/main-2nhh048S.js
+ai-platform/web/simplebeacon-dashboard/assets/main-2nhh048S.js.map
+ai-platform/web/simplebeacon-dashboard/assets/main-B2FSQAAc.js
+ai-platform/web/simplebeacon-dashboard/assets/main-B2FSQAAc.js.map
+ai-platform/web/simplebeacon-dashboard/assets/main-BCoJkOZR.js
+ai-platform/web/simplebeacon-dashboard/assets/main-BCoJkOZR.js.map
+ai-platform/web/simplebeacon-dashboard/assets/main-C901HY1M.js
+ai-platform/web/simplebeacon-dashboard/assets/main-C901HY1M.js.map
+ai-platform/web/simplebeacon-dashboard/assets/main-CI05fGZa.js
+ai-platform/web/simplebeacon-dashboard/assets/main-CI05fGZa.js.map
+coming-soon/public/dashboard/assets/main-2nhh048S.js
+coming-soon/public/dashboard/assets/main-2nhh048S.js.map
+coming-soon/public/dashboard/assets/main-B2FSQAAc.js
+coming-soon/public/dashboard/assets/main-B2FSQAAc.js.map
+coming-soon/public/dashboard/assets/main-BCoJkOZR.js
+coming-soon/public/dashboard/assets/main-BCoJkOZR.js.map
+coming-soon/public/dashboard/assets/main-C901HY1M.js
+coming-soon/public/dashboard/assets/main-C901HY1M.js.map
+coming-soon/public/dashboard/assets/main-CI05fGZa.js
+coming-soon/public/dashboard/assets/main-CI05fGZa.js.map
 
 # Root generated reports
 ts-prune-report*.txt
