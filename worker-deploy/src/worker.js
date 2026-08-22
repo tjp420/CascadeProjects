@@ -719,6 +719,7 @@ export default {
             try {
               JSON.parse(cachedVal);
               const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+              respHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate');
               if (corsOrigin) {
                 respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
                 respHeaders.set('Vary', 'Origin');
@@ -765,6 +766,10 @@ export default {
 
           // Copy response with CORS headers added
           const responseHeaders = new Headers(proxyResponse.headers);
+          // Always set no-cache on API responses so the browser never caches
+          // stale or poisoned responses. The KV cache (server-side) handles
+          // caching valid JSON responses with its own TTL.
+          responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate');
           if (corsOrigin) {
             responseHeaders.set('Access-Control-Allow-Origin', corsOrigin);
             responseHeaders.set('Vary', 'Origin');
@@ -815,6 +820,7 @@ export default {
             try {
               JSON.parse(staleVal);
               const respHeaders = new Headers({ 'Content-Type': 'application/json' });
+              respHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate');
               respHeaders.set('X-Cache', 'HIT-STALE-FALLBACK');
               if (corsOrigin) {
                 respHeaders.set('Access-Control-Allow-Origin', corsOrigin);
