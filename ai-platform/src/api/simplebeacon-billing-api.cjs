@@ -448,6 +448,28 @@ function setupSimplebeaconBillingRoutes(app) {
     });
   });
 
+  // Fallback price amounts (cents) when Stripe Price IDs are not configured.
+  // Mirrors the constants in coming-soon/routes/subscriptions-billing.cjs.
+  const PRODUCT_PRICE_FALLBACK = {
+    developer_monthly:  { amount: 4900,   interval: 'month', name: 'SimpleBeacon Developer', desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 48 analyzer modules' },
+    developer_annual:   { amount: 49000,  interval: 'year',  name: 'SimpleBeacon Developer', desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 48 analyzer modules' },
+    team_pro_monthly:   { amount: 14900,  interval: 'month', name: 'SimpleBeacon Team Pro',  desc: 'SimpleBeacon Team Pro — EU AI Act, SOC 2, board-ready certificates, 5 seats' },
+    team_pro_annual:    { amount: 149000, interval: 'year',  name: 'SimpleBeacon Team Pro',  desc: 'SimpleBeacon Team Pro — EU AI Act, SOC 2, board-ready certificates, 5 seats' },
+    pro_monthly:        { amount: 900,    interval: 'month', name: 'AI Slop Cop Pro',        desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 48 analyzer engines' },
+    pro_annual:         { amount: 9000,   interval: 'year',  name: 'AI Slop Cop Pro',        desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 48 analyzer engines' },
+    team_monthly:       { amount: 9900,   interval: 'month', name: 'SimpleBeacon Agency Reputation Suite', desc: 'SimpleBeacon Agency Reputation Suite — unlimited repos, devs, and scans' },
+    team_annual:        { amount: 99000,  interval: 'year',  name: 'SimpleBeacon Agency Reputation Suite', desc: 'SimpleBeacon Agency Reputation Suite — unlimited repos, devs, and scans' },
+    compliance_monthly: { amount: 39900,  interval: 'month', name: 'Compliance Suite',       desc: 'SimpleBeacon Compliance Suite — EU AI Act, SOC 2, quarterly certs, analyst support' },
+    compliance_annual:  { amount: 399000, interval: 'year',  name: 'Compliance Suite',       desc: 'SimpleBeacon Compliance Suite — EU AI Act, SOC 2, quarterly certs, analyst support' },
+    enterprise_monthly: { amount: 49900,  interval: 'month', name: 'Compliance Suite Enterprise', desc: 'SimpleBeacon Enterprise — EU AI Act, quarterly certs, analyst support' },
+    enterprise_annual:  { amount: 499000, interval: 'year',  name: 'Compliance Suite Enterprise', desc: 'SimpleBeacon Enterprise — EU AI Act, quarterly certs, analyst support' },
+    one_time_certificate:    { amount: 14900,  interval: null,  name: 'Board-Ready Audit Certificate', desc: 'One-time board-ready audit certificate' },
+    executive_clearance:     { amount: 49900,  interval: null,  name: 'Executive Risk Certificate',    desc: 'Executive risk clearance certificate' },
+    eu_ai_act_sprint:        { amount: 249900, interval: null,  name: 'EU AI Act Sprint',              desc: 'EU AI Act compliance sprint — 30-day engagement' }
+  };
+  const PRICE_EXTRA_SEAT_MONTHLY = 1500;
+  const PRICE_EXTRA_SEAT_ANNUAL  = 15000;
+
   app.post('/api/simplebeacon/billing/checkout', billingRateLimit, async (req, res) => {
     if (!isMonetizationEnabled()) {
       return billingDisabledResponse(res);
@@ -456,7 +478,8 @@ function setupSimplebeaconBillingRoutes(app) {
     const stripe = getStripeClient();
     const product = String(req.body?.product || 'teams_monthly').trim();
     const priceId = resolvePriceId(product);
-    if (!stripe || !priceId) {
+    const fallback = PRODUCT_PRICE_FALLBACK[product];
+    if (!stripe || (!priceId && !fallback)) {
       return res.status(503).json({
         error: 'billing_unavailable',
         message: `Checkout not configured for product: ${product}`,
@@ -475,7 +498,8 @@ function setupSimplebeaconBillingRoutes(app) {
     const mode = checkoutModeForProduct(product);
     const teamCheckoutProducts = new Set([
       'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual',
-      'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual'
+      'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual',
+      'developer_monthly', 'developer_annual', 'team_pro_monthly', 'team_pro_annual'
     ]);
     const successPath = teamCheckoutProducts.has(product)
       ? '/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}'
@@ -485,13 +509,48 @@ function setupSimplebeaconBillingRoutes(app) {
       const projectName = String(req.body?.projectName || req.body?.certProjectName || '').trim();
     const certClientName = String(req.body?.certClientName || '').trim();
 
+    // Build line items — use Stripe Price ID when available, otherwise fall back to price_data
+    const lineItems = [];
+    if (priceId) {
+      lineItems.push({ price: priceId, quantity: 1 });
+    } else {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: fallback.name, description: fallback.desc },
+          unit_amount: fallback.amount,
+          ...(fallback.interval ? { recurring: { interval: fallback.interval } } : {})
+        },
+        quantity: 1
+      });
+    }
+
+    // Extra seat add-on for team_pro products
+    const extraSeats = (product.startsWith('team_pro') && req.body?.extraSeats)
+      ? Math.max(0, Math.min(50, parseInt(req.body.extraSeats, 10) || 0))
+      : 0;
+    if (extraSeats > 0) {
+      const isAnnual = product.endsWith('_annual');
+      const seatAmount = isAnnual ? PRICE_EXTRA_SEAT_ANNUAL : PRICE_EXTRA_SEAT_MONTHLY;
+      const seatInterval = isAnnual ? 'year' : 'month';
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: 'Extra Team Seat', description: 'Additional seat beyond the 5 included in Team Pro' },
+          unit_amount: seatAmount,
+          recurring: { interval: seatInterval }
+        },
+        quantity: extraSeats
+      });
+    }
+
     const sessionParams = {
         mode,
         customer_email: email,
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: lineItems,
         success_url: `${baseUrl}${successPath}`,
         cancel_url: `${baseUrl}/pricing?canceled=true`,
-        metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body) }
+        metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body), ...(extraSeats > 0 ? { extraSeats: String(extraSeats) } : {}) }
       };
 
       if (mode === 'subscription') {
@@ -709,7 +768,7 @@ function setupSimplebeaconBillingRoutes(app) {
       // at the final atomic commit point to avoid write races.
 
       // Diagnostic: dump report object before bundle build
-      try { console.error('[DIAG] /api/reports/upload reportJson before build:', JSON.stringify(reportJson)); } catch (e) {}
+      try { console.error('[DIAG] /api/reports/upload reportJson before build:', JSON.stringify(reportJson)); } catch (e) { /* best-effort */ }
 
       const bundle = await buildReportBundle(licenseToken, reportJson);
 
@@ -720,15 +779,15 @@ function setupSimplebeaconBillingRoutes(app) {
         const reportFile = path.join(REPORT_STORE_DIR, `${bundle.deliveryId}.json`);
         if (fs.existsSync(reportFile)) {
           const snap = fs.readFileSync(reportFile, 'utf8');
-          try { logger.info('[DIAG] post-bundle persisted file exists', { deliveryId: bundle.deliveryId, len: snap.length }); } catch (e) {}
-          try { console.error('[DIAG] post-bundle persisted snapshot (start)'); } catch (e) {}
-          try { console.error(snap.slice(0, 4000)); } catch (e) {}
-          try { console.error('[DIAG] post-bundle persisted snapshot (end)'); } catch (e) {}
+          try { logger.info('[DIAG] post-bundle persisted file exists', { deliveryId: bundle.deliveryId, len: snap.length }); } catch (e) { /* best-effort */ }
+          try { console.error('[DIAG] post-bundle persisted snapshot (start)'); } catch (e) { /* best-effort */ }
+          try { console.error(snap.slice(0, 4000)); } catch (e) { /* best-effort */ }
+          try { console.error('[DIAG] post-bundle persisted snapshot (end)'); } catch (e) { /* best-effort */ }
         } else {
-          try { logger.info('[DIAG] post-bundle persisted file missing', { deliveryId: bundle.deliveryId }); } catch (e) {}
+          try { logger.info('[DIAG] post-bundle persisted file missing', { deliveryId: bundle.deliveryId }); } catch (e) { /* best-effort */ }
         }
       } catch (e) {
-        try { console.error('[DIAG] post-bundle inspect failed:', e && e.message); } catch (e2) {}
+        try { console.error('[DIAG] post-bundle inspect failed:', e && e.message); } catch (e2) { /* best-effort */ }
       }
 
       // Email certificate with ZIP attachment
@@ -926,9 +985,7 @@ function setupSimplebeaconBillingRoutes(app) {
       if (decoded?.email) {
         return normalizeEmail(decoded.email);
       }
-    } catch {
-      // Bearer token is not a platform session JWT.
-    }
+    } catch  { /* best-effort */ }
     return null;
   }
 
