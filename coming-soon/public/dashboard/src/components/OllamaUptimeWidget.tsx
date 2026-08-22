@@ -13,7 +13,8 @@ import {
   HardDrive,
   Zap,
 } from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
+
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
 
 interface OllamaHealthData {
   ok: boolean;
@@ -51,6 +52,79 @@ function formatUptime(checkedAt: string): string {
   return `${Math.floor(diff / 3600000)}h ago`;
 }
 
+/**
+ * Probe Ollama directly from the browser. On the hosted dashboard, the server
+ * cannot reach the user's local Ollama (127.0.0.1:11434), so we check from
+ * the browser instead. This avoids the 404 on /api/ollama/health.
+ */
+async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<OllamaHealthData> {
+  const start = performance.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    clearTimeout(timer);
+    const latencyMs = Math.round(performance.now() - start);
+
+    if (res.ok) {
+      const data = await res.json();
+      const models: string[] = Array.isArray(data.models)
+        ? data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim())
+        : [];
+      return {
+        ok: true,
+        baseUrl,
+        endpoint: '/api/tags',
+        latencyMs,
+        models,
+        modelCount: models.length,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+    return {
+      ok: false,
+      baseUrl,
+      endpoint: null,
+      latencyMs,
+      models: [],
+      modelCount: 0,
+      checkedAt: new Date().toISOString(),
+      error: `Ollama returned HTTP ${res.status}`,
+    };
+  } catch (err: any) {
+    const latencyMs = Math.round(performance.now() - start);
+    if (err?.name === 'AbortError') {
+      return {
+        ok: false,
+        baseUrl,
+        endpoint: null,
+        latencyMs,
+        models: [],
+        modelCount: 0,
+        checkedAt: new Date().toISOString(),
+        error: 'Ollama not responding (timeout)',
+      };
+    }
+    // TypeError: Failed to fetch — could be CORS or not running
+    const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    return {
+      ok: false,
+      baseUrl,
+      endpoint: null,
+      latencyMs,
+      models: [],
+      modelCount: 0,
+      checkedAt: new Date().toISOString(),
+      error: isHosted
+        ? 'Cannot reach local Ollama. Ensure Ollama is running and OLLAMA_ORIGINS allows this site.'
+        : 'Cannot reach Ollama. Ensure `ollama serve` is running.',
+    };
+  }
+}
+
 export function OllamaUptimeWidget() {
   const [data, setData] = useState<OllamaHealthData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,22 +132,16 @@ export function OllamaUptimeWidget() {
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   const fetchHealth = useCallback(async () => {
-    try {
-      const resp = await fetch(apiUrl('/ollama/health'), {
-        headers: authHeaders(),
-      });
-      const json = await resp.json();
-      if (json.success) {
-        setData(json);
-        setError(null);
-      } else {
-        setError(json.error || 'Failed to check Ollama status');
-      }
-    } catch {
-      setError('Failed to connect to Ollama health API');
-    } finally {
-      setLoading(false);
+    // Probe Ollama directly from the browser — the hosted server cannot
+    // reach the user's local Ollama instance.
+    const result = await probeBrowserOllama(BROWSER_OLLAMA_URL);
+    setData(result);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setError(null);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -229,6 +297,11 @@ export function OllamaUptimeWidget() {
         {status === 'disconnected' && !error && (
           <p className="text-xs text-muted-foreground">
             Run <code className="font-mono">ollama serve</code> locally to enable AI-powered features.
+          </p>
+        )}
+        {status === 'disconnected' && error && (
+          <p className="text-xs text-muted-foreground">
+            {error}
           </p>
         )}
       </CardContent>
