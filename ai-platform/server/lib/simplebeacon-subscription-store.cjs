@@ -76,7 +76,15 @@ const SCAN_QUOTA_MAP = {
  * @property {string} certOrgId
  * @property {boolean} customConfigEnabled
  * @property {boolean} allowlistEnabled
+ * @property {string|null} trialEndsAt ISO date string when trial expires, or null if no trial
+ * @property {string|null} trialTier Tier granted during trial (e.g. 'developer'), or null
  */
+
+/** Trial duration in milliseconds (14 days). */
+const TRIAL_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** Trial warning window in milliseconds (3 days before expiry). */
+const TRIAL_WARNING_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * @typedef {Object} ConsumptionResult
@@ -264,6 +272,8 @@ function subscriptionRecord(email, overrides = {}) {
     allowlistEnabled: false,
     seatCount: 1,
     extraSeats: 0,
+    trialEndsAt: null,
+    trialTier: null,
     ...overrides
   };
 }
@@ -340,6 +350,82 @@ async function setSubscriptionActive(email, active, stripeFields = {}) {
     subscriptionActive: Boolean(active),
     ...stripeFields
   });
+}
+
+/**
+ * Grant a 14-day trial for a new user.
+ * Activates the subscription with the given tier and sets trialEndsAt.
+ * If the user already has an active subscription (paid or trial), do nothing.
+ * @param {string} email
+ * @param {string} [tier='developer'] Trial tier to grant.
+ * @param {number} [durationMs=TRIAL_DURATION_MS] Trial duration in milliseconds.
+ * @returns {Promise<SubscriptionRecord|null>} The updated record, or null if skipped.
+ */
+async function grantTrial(email, tier = 'developer', durationMs = TRIAL_DURATION_MS) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+
+  const store = await readStore();
+  const existing = store.subscriptions[normalized];
+
+  // Skip if user already has an active paid subscription (not a trial)
+  if (existing?.subscriptionActive && !existing.trialEndsAt) {
+    return null;
+  }
+
+  // Skip if user already has an active trial that hasn't expired
+  if (existing?.trialEndsAt && Date.parse(existing.trialEndsAt) > Date.now() && existing?.subscriptionActive) {
+    return existing;
+  }
+
+  const trialEndsAt = new Date(Date.now() + durationMs).toISOString();
+  const scanQuota = SCAN_QUOTA_MAP[tier] ?? SCAN_QUOTA_MAP.developer;
+
+  const record = await upsertSubscription(normalized, {
+    subscriptionActive: true,
+    tier,
+    scanQuota,
+    trialEndsAt,
+    trialTier: tier,
+    periodStart: new Date().toISOString(),
+    apiCallsThisPeriod: 0,
+    scansThisPeriod: 0
+  });
+
+  logger.info(`[Trial] Granted 14-day ${tier} trial for ${normalized}, expires ${trialEndsAt}`);
+  return record;
+}
+
+/**
+ * Check if a trial has expired and downgrade to free if so.
+ * @param {SubscriptionRecord} record
+ * @returns {Promise<SubscriptionRecord>} The record, possibly downgraded.
+ */
+async function checkTrialExpiry(record) {
+  if (!record?.trialEndsAt) return record;
+  if (Date.parse(record.trialEndsAt) > Date.now()) return record;
+
+  // Trial has expired — downgrade to free
+  logger.info(`[Trial] Trial expired for ${record.email}, downgrading to free tier`);
+  const downgraded = await upsertSubscription(record.email, {
+    subscriptionActive: false,
+    tier: 'free',
+    trialEndsAt: null,
+    trialTier: null
+  });
+  return downgraded;
+}
+
+/**
+ * Check if a trial is nearing expiry (within 3 days) and hasn't been notified.
+ * @param {SubscriptionRecord} record
+ * @returns {boolean} True if trial warning should be sent.
+ */
+function shouldSendTrialWarning(record) {
+  if (!record?.trialEndsAt || !record?.subscriptionActive) return false;
+  const endsAt = Date.parse(record.trialEndsAt);
+  const now = Date.now();
+  return endsAt - now <= TRIAL_WARNING_MS && endsAt > now;
 }
 
 /**
@@ -534,15 +620,20 @@ function publicSubscriptionStatus(record) {
   }
 
   const reset = resetPeriodIfNeeded(record);
+
+  // Check if trial has expired — if so, treat as free tier
+  const trialExpired = reset.trialEndsAt && Date.parse(reset.trialEndsAt) <= Date.now();
+  const effectiveActive = trialExpired ? false : Boolean(reset.subscriptionActive);
+
   const certLimit = reset.complianceCertLimit || 0;
   const scanQuota = Number.isFinite(reset.scanQuota)
     ? reset.scanQuota
     : (SCAN_QUOTA_MAP[reset.tier] || SCAN_QUOTA_MAP.developer);
   return {
-    tier: reset.subscriptionActive ? (reset.product || reset.tier || 'paid') : 'free',
+    tier: effectiveActive ? (reset.product || reset.tier || 'paid') : 'free',
     email: reset.email,
-    subscriptionActive: Boolean(reset.subscriptionActive),
-    apiToken: reset.subscriptionActive ? reset.apiToken : null,
+    subscriptionActive: effectiveActive,
+    apiToken: effectiveActive ? reset.apiToken : null,
     apiLimit: PAID_API_LIMIT,
     apiCallsThisPeriod: reset.apiCallsThisPeriod,
     apiRemaining: Math.max(0, PAID_API_LIMIT - reset.apiCallsThisPeriod),
@@ -560,7 +651,10 @@ function publicSubscriptionStatus(record) {
     certClientName: reset.certClientName || null,
     certProjectName: reset.certProjectName || null,
     certMilestone: reset.certMilestone || 'release',
-    certOrgId: reset.certOrgId || 'default'
+    certOrgId: reset.certOrgId || 'default',
+    trialEndsAt: trialExpired ? null : (reset.trialEndsAt || null),
+    trialTier: trialExpired ? null : (reset.trialTier || null),
+    trialActive: Boolean(reset.trialEndsAt) && !trialExpired && effectiveActive
   };
 }
 
@@ -569,6 +663,8 @@ module.exports = {
   PAID_API_LIMIT,
   PAID_PERIOD_MS,
   SCAN_QUOTA_MAP,
+  TRIAL_DURATION_MS,
+  TRIAL_WARNING_MS,
   isMonetizationEnabled,
   defaultStore,
   readStore,
@@ -578,6 +674,9 @@ module.exports = {
   getSubscriptionByApiToken,
   upsertSubscription,
   setSubscriptionActive,
+  grantTrial,
+  checkTrialExpiry,
+  shouldSendTrialWarning,
   consumeApiCall,
   consumeScan,
   consumeComplianceCert,

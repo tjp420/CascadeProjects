@@ -14,10 +14,18 @@ let RemediationEngine = null;
 let STRUCTURAL_RULES = null;
 try {
     ({ orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator'));
+} catch {
+    // PolicyOrchestrator not available — orchestratePolicyPipeline stays null
+}
+try {
     ({ TrustStore } = require('../src/policy/signature-verifier'));
+} catch {
+    // signature-verifier not available — TrustStore stays null
+}
+try {
     ({ RemediationEngine, STRUCTURAL_RULES } = require('../src/policy/RemediationEngine'));
 } catch {
-    // Policy module not available — functions will throw if called
+    // RemediationEngine not available — functions will throw if called
 }
 const {
     loadSimplebeaconConfig,
@@ -66,7 +74,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics', 'update-cve-db', 'agent', 'task', 'policy', 'gate-finalize', 'handoff', 'learn']);
 
 let _cliDebugMode = false;
 
@@ -495,7 +503,7 @@ function formatCliError(error) {
 
 function printHelp() {
     writeStdoutLine(`Simplebeacon — catch AI code debt that traditional linting misses
-  52 deterministic engines · zero LLM dependency · no upload required
+  48 analyzers + 25 scan engines · zero LLM dependency · no upload required
   simplebeacon --version          Show version number
 
 Usage:
@@ -564,7 +572,7 @@ Scan options:
   --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
-  --complete          Run all 52 deterministic engines (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
+  --complete          Run all 48 analyzers + 25 scan engines (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
   --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
   --deep-scan         Deep Scan mode: bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)
   --include-deps      Include node_modules and .git in scan (slower, more noise)
@@ -640,7 +648,7 @@ AI Plan options:
   --path, -p <dir>    Project root (default: cwd)
   --config, -c <f>    Config path (default: .simplebeacon/config.json)
   --output, -o <file> Write AI plan to file
-  --complete          Run all 52 deterministic engines for comprehensive analysis
+  --complete          Run all 48 analyzers + 25 scan engines for comprehensive analysis
 
 Global options:
   --debug             Print full stack traces on errors and disable spinner
@@ -767,7 +775,7 @@ async function executeOneScan(options, networkGuard) {
     const config = loadSimplebeaconConfig(platformRoot, configPath);
     if (options.complete || options.fullDirectoryScan) {
         config.fullDirectoryScan = true;
-        if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all 52 deterministic engines');
+        if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all 48 analyzers + 25 scan engines');
     }
     if (options.failOn) {
         config.gate = { ...config.gate, failOn: options.failOn };
@@ -835,7 +843,9 @@ async function executeOneScan(options, networkGuard) {
             networkEventCount: networkGuard.events.length
         }, paint);
 
-        const gateResult = evaluateGate(report, config.gate);
+        const gateResult = report.gate && typeof report.gate === 'object' && typeof report.gate.pass === 'boolean'
+            ? report.gate
+            : evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
         const airGapped = options.airGapped === true;
         spinner.stop();
@@ -1160,7 +1170,9 @@ async function runUploadCommand(options) {
                 slopCop: options.slopCop
             });
             networkGuard.assertOfflineClean();
-            const gateResult = evaluateGate(rawReport, config.gate);
+            const gateResult = rawReport.gate && typeof rawReport.gate === 'object' && typeof rawReport.gate.pass === 'boolean'
+                ? rawReport.gate
+                : evaluateGate(rawReport, config.gate);
             report = formatJsonReport(rawReport, gateResult);
         } finally {
             networkGuard.dispose();
@@ -1273,7 +1285,9 @@ async function loadOrRunReport(options) {
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
     const report = await runScan(scanRoot, { config, configPath: options.config });
-    const gateResult = evaluateGate(report, config.gate);
+    const gateResult = report.gate && typeof report.gate === 'object' && typeof report.gate.pass === 'boolean'
+        ? report.gate
+        : evaluateGate(report, config.gate);
     return formatJsonReport(report, gateResult);
 }
 
@@ -2225,11 +2239,72 @@ const COMMAND_REGISTRY = {
     doctor: runDoctorCommand,
     cache: runCacheCommand,
     'team-metrics': runTeamMetricsCommand,
-    'update-cve-db': runUpdateCveDbCommand
+    'update-cve-db': runUpdateCveDbCommand,
+    // PDA commands
+    agent: (opts) => {
+        const { runAgentCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runAgentCommand(opts);
+    },
+    task: (opts) => {
+        const { runTaskCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runTaskCommand(opts);
+    },
+    policy: (opts) => {
+        const { runPolicyCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runPolicyCommand(opts);
+    },
+    'gate-finalize': (opts) => {
+        const { runGateFinalizeCommand } = require('../src/cli-pda-commands');
+        return runGateFinalizeCommand(opts);
+    },
+    handoff: (opts) => {
+        const { runHandoffCommand } = require('../src/cli-pda-commands');
+        opts._subcommand = process.argv[3];
+        opts._args = process.argv.slice(3);
+        return runHandoffCommand(opts);
+    }
 };
 
 async function main() {
     const argvCommand = process.argv[2];
+
+    // PDA commands (agent, task, policy, gate-finalize, handoff) use their own
+    // arg parsing — intercept before the strict CLI parser rejects unknown flags.
+    const PDA_COMMANDS = new Set(['agent', 'task', 'policy', 'gate-finalize', 'handoff', 'learn']);
+    if (PDA_COMMANDS.has(argvCommand)) {
+        const pdaCmds = require('../src/cli-pda-commands');
+        const rawArgs = process.argv.slice(3);
+        const sub = rawArgs[0] || '';
+        const opts = { _subcommand: sub, _args: rawArgs, projectRoot: process.cwd() };
+        // Parse simple --flag value pairs from raw args
+        for (let i = 0; i < rawArgs.length; i++) {
+            if (rawArgs[i].startsWith('--')) {
+                const rawKey = rawArgs[i].slice(2);
+                // Convert hyphenated keys to camelCase (e.g. no-scan → noScan)
+                const key = rawKey.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+                const val = rawArgs[i + 1] && !rawArgs[i + 1].startsWith('--') ? rawArgs[i + 1] : true;
+                opts[key] = val;
+                if (val !== true) i++;
+            }
+        }
+        const handlers = {
+            agent: pdaCmds.runAgentCommand,
+            task: pdaCmds.runTaskCommand,
+            policy: pdaCmds.runPolicyCommand,
+            'gate-finalize': pdaCmds.runGateFinalizeCommand,
+            handoff: pdaCmds.runHandoffCommand,
+            learn: pdaCmds.runLearnCommand
+        };
+        const result = await handlers[argvCommand](opts);
+        return typeof result === 'number' ? result : 0;
+    }
+
     const skipPolicyGate = argvCommand === 'secrets-gate' || argvCommand === 'fix';
     const activeCompliancePolicy = skipPolicyGate ? null : runPolicyGate();
     if (activeCompliancePolicy) {
@@ -2440,7 +2515,7 @@ function generateAIIssueList(report) {
     plan += '4. **Re-run Scan** - Verify fixes and update quality score\n\n';
 
     plan += '## Additional Notes\n\n';
-    plan += '- Use the `simplebeacon scan --complete` flag to run all 52 deterministic engines\n';
+    plan += '- Use the `simplebeacon scan --complete` flag to run all 48 analyzers + 25 scan engines\n';
     plan += '- Consider integrating with CI/CD pipelines for automated checks\n';
     plan += '- Review and update SimpleBeacon configuration as needed\n';
 

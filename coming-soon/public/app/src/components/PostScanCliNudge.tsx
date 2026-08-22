@@ -2,12 +2,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, Terminal, Download, Zap, ShieldCheck, Eye, Wrench } from 'lucide-react';
+import { Copy, Check, Terminal, Download, Zap, ShieldCheck, Eye, Wrench, ShieldAlert, FileText, GitBranch } from 'lucide-react';
 
 const EXTENSION_VERSION = '3.0.490';
 const CLI_INSTALL_CMD = 'npx simplebeacon scan --gate --offline';
 const CLI_FULL_CMD = 'npx simplebeacon scan --full --gate --format json';
 const CLI_DRY_RUN_CMD = 'npx simplebeacon fix . --fix-dry-run';
+const CLI_UPDATE_CVE_CMD = 'npx simplebeacon update-cve-db';
+
+const CLI_ONLY_SCANNERS = [
+  { icon: ShieldAlert, name: 'CVE Dependency Scanner', description: 'Matches dependencies against NVD CVE database — finds known vulnerabilities with CVSS scores and fixed versions' },
+  { icon: FileText, name: 'SBOM Generator', description: 'Generates CycloneDX 1.5 Software Bill of Materials — required for SOC 2, EU AI Act, and EO 14028 compliance' },
+  { icon: GitBranch, name: 'Git History Secret Scanner', description: 'Scans git commit history for leaked secrets — catches credentials removed from working tree but still in git objects' },
+];
 
 function resolveVsixDownloadUrl(): string {
   if (typeof window !== 'undefined') {
@@ -133,6 +140,35 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
                   aria-label="Full scan command"
                 />
                 {copyButton(CLI_FULL_CMD, 'full')}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-md border border-indigo-500/30 bg-indigo-500/5 px-3 py-3">
+              <p className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5 mb-2">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                CLI-Only Scanners (3 enterprise-grade checks)
+              </p>
+              <div className="grid gap-2">
+                {CLI_ONLY_SCANNERS.map(({ icon: Icon, name, description }) => (
+                  <div key={name} className="flex items-start gap-2 text-xs text-foreground-muted">
+                    <Icon className="h-3.5 w-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold text-foreground">{name}</span>
+                      <span className="block mt-0.5 leading-relaxed">{description}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 bg-background/60 p-1.5 border border-border rounded-md mt-2.5">
+                <ShieldAlert className="h-3.5 w-3.5 text-indigo-400 shrink-0 ml-1.5" />
+                <input
+                  type="text"
+                  readOnly
+                  value={CLI_UPDATE_CVE_CMD}
+                  className="bg-transparent text-foreground-muted text-xs px-1 py-1 w-full font-mono outline-none truncate"
+                  aria-label="Update CVE database command"
+                />
+                {copyButton(CLI_UPDATE_CVE_CMD, 'cveupdate')}
               </div>
             </div>
 

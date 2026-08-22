@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It</title>
-    <meta name="description" content="SimpleBeacon runs repository scans locally with zero source-code upload. Paid team plans may send optional anonymized scan metrics for dashboards.">
+    <meta name="description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <link rel="canonical" href="https://simplebeacon.ai/">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
-    <meta property="og:description" content="SimpleBeacon runs repository scans locally with zero source-code upload. Paid team plans may send optional anonymized scan metrics for dashboards.">
+    <meta property="og:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
-    <meta name="twitter:description" content="SimpleBeacon runs repository scans locally with zero source-code upload. Paid team plans may send optional anonymized scan metrics for dashboards.">
+    <meta name="twitter:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
@@ -1160,43 +1173,172 @@
     </div>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
 
-    <!-- HERO — short, punchy, no technical fine print -->
+    <!-- HERO -->
     <section class="hero">
         <div class="hero-card">
-            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero Source-Code Upload · Edge-Speed · Board-Ready</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">AI Safety for AI-Coded Teams</span>
             <h1>Turn AI Code Debt Into Audit Evidence Before Regulators Find It.</h1>
-            <p style="font-size:18px;max-width:560px;margin-left:auto;margin-right:auto;">EU AI Act fines reach &euro;35M or 7% of global turnover. SimpleBeacon catches hallucinated APIs, leaked credentials, and compliance gaps locally &mdash; before they become liability. Now scans <strong style="color:var(--text-primary);">text and code</strong>. No upload. No vendor data custody.</p>
+            <p style="font-size:18px;max-width:620px;margin-left:auto;margin-right:auto;">SimpleBeacon catches the slop before it reaches production. It detects mock data in production, fake KPI logic, placeholder code, and unsafe sample paths in the editor, then blocks bad commits at the gate.</p>
 
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
-                <a href="/audit" id="link-audit" class="btn btn-primary">Run Free Local Scan &rarr;</a>
-                <a href="/terminal-walkthrough" class="btn btn-ghost">Explore CLI Deployment Spec &rarr;</a>
+                <a href="#demo" class="btn btn-primary">See the demo &rarr;</a>
+                <a href="/pricing" class="btn btn-success">Start 14-Day Free Trial &rarr;</a>
+                <a href="#cta" class="btn btn-ghost">Book a walkthrough &rarr;</a>
             </div>
-            <script>
-            (function() {
-                var params = new URLSearchParams(window.location.search);
-                var token = params.get('token');
-                if (token) {
-                    ['link-audit','link-audit-stepper'].forEach(function(id) {
-                        var a = document.getElementById(id);
-                        if (a) a.href += (a.href.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
-                    });
-                }
-            })();
-            </script>
-            <div class="pricing-tags">
-                <span class="pricing-tag">Free — 5 browser scans/mo</span>
-                <span class="pricing-tag">Team / Agency — $49–$99/mo</span>
-                <span class="pricing-tag">Enterprise Governance — $499+/mo</span>
-                <span class="pricing-tag">Enterprise Air-Gapped — Custom</span>
-            </div>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:0;margin-bottom:24px;">No credit card required &middot; Full Developer tier &middot; Cancel anytime</p>
 
-            <!-- Trust badges — PDA enforcement proof -->
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px;">
-                <span style="background:rgba(16,185,129,0.12);color:#34D399;border:1px solid rgba(16,185,129,0.25);padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">&#10003; 26/26 PDA tests passing</span>
-                <span style="background:rgba(16,185,129,0.12);color:#34D399;border:1px solid rgba(16,185,129,0.25);padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">&#10003; Dependency enforced</span>
-                <span style="background:rgba(16,185,129,0.12);color:#34D399;border:1px solid rgba(16,185,129,0.25);padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">&#10003; Policy enforced</span>
-                <span style="background:rgba(16,185,129,0.12);color:#34D399;border:1px solid rgba(16,185,129,0.25);padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">&#10003; Gate enforced</span>
-                <span style="background:rgba(6,182,212,0.12);color:#06B6D4;border:1px solid rgba(6,182,212,0.25);padding:6px 14px;border-radius:999px;font-size:0.78rem;font-weight:600;">v3.0.514 &middot; 17 MB</span>
+            <div class="pricing-tags">
+                <span class="pricing-tag">Editor diagnostics</span>
+                <span class="pricing-tag">Pre-commit enforcement</span>
+                <span class="pricing-tag">Local-first</span>
+                <span class="pricing-tag">Offline-safe</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="section" style="padding: 60px 24px;">
+        <div class="container">
+            <h2>The problem isn’t syntax. It’s AI-generated slop.</h2>
+            <p class="section-subtitle">Compilers catch broken syntax. They do not catch fake KPI logic, placeholder code, or sample files accidentally wired into production paths.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🧱</span>
+                    <h3>Mock data in production</h3>
+                    <p>AI-generated handlers read from fixtures and sample JSON files that look valid but were never meant for production use.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📈</span>
+                    <h3>Fake KPI logic</h3>
+                    <p>Analytics endpoints invent conversion numbers and business metrics that pass a glance review but should never be trusted.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🧩</span>
+                    <h3>Placeholder code</h3>
+                    <p>TODO and FIXME markers are left behind, creating hidden technical debt and broken logic paths that slip through review.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEMO: editor proof -->
+    <section id="demo" class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18); padding-top: 72px;">
+        <div class="container">
+            <h2>Catch the issue where the code is created.</h2>
+            <p class="section-subtitle">SimpleBeacon analyzes code in the editor the moment it is written, before it leaves the developer's machine.</p>
+            <div class="features-grid" style="margin-bottom: 24px;">
+                <div class="feature-card" style="min-height: 260px;">
+                    <span class="feature-icon">🧪</span>
+                    <h3>Broken code example</h3>
+                    <p>AI-generated dashboard code reads from mock sample paths and invents KPI values at runtime. It looks plausible, but it is structurally unsafe.</p>
+                    <div style="margin-top:18px; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:14px; font-family: monospace; font-size:12px; color:#c9d1d9; line-height:1.7;">
+                        const METRICS_DATA_PATH = './fixtures/sample-metrics.json';<br>
+                        const USER_ANALYTICS_PATH = './mock/user-analytics-sample.json';<br>
+                        const conversionRate = '75 %';
+                    </div>
+                </div>
+                <div class="feature-card" style="min-height: 260px;">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Editor diagnostics</h3>
+                    <p>SimpleBeacon lights up the Problems panel instantly and flags the risky patterns before a human review ever sees the file.</p>
+                    <div style="margin-top:18px; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:14px; font-family: monospace; font-size:12px; color:#c9d1d9; line-height:1.7;">
+                        <span style="color:#f85149;">SimpleBeacon AI Slop Cop</span><br>
+                        <span style="color:#f85149;">FAIL (5 block)</span><br>
+                        mock/sample path detected<br>
+                        fake KPI logic detected<br>
+                        placeholder TODO/FIXME found
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEMO: commit block -->
+    <section class="section" style="padding: 60px 24px;">
+        <div class="container">
+            <h2>The pre-commit gate blocks the bad commit.</h2>
+            <p class="section-subtitle">Even if the developer misses the editor warning, SimpleBeacon still catches it at the gate.</p>
+            <div class="terminal" style="margin-bottom: 18px;">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">terminal</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="prompt">$</span> <span class="cmd">git add src/dashboard-api.cjs</span></div>
+                    <div><span class="prompt">$</span> <span class="cmd">git commit -m "add dashboard"</span></div>
+                    <div class="error">[pre-commit-gate] Gate scan failed (exit 1). Commit blocked.</div>
+                    <div class="warn">SimpleBeacon detected mock data, fake KPI logic, and placeholder drift.</div>
+                    <span class="cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p style="text-align:center; font-size:14px; color:var(--text-muted);">Bad code does not reach the branch.</p>
+        </div>
+    </section>
+
+    <!-- DEMO: fix and pass -->
+    <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18); padding-top: 72px;">
+        <div class="container">
+            <h2>Fix it once. Keep the pipeline clean.</h2>
+            <p class="section-subtitle">Once the issue is addressed, the project re-runs the local gate and passes cleanly.</p>
+            <div class="terminal" style="margin-bottom: 18px;">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">terminal</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="prompt">$</span> <span class="cmd">node demo/swap-dashboard.cjs fixed</span></div>
+                    <div><span class="prompt">$</span> <span class="cmd">npx simplebeacon scan --gate --format json --offline</span></div>
+                    <div class="success">[PASS] SimpleBeacon gate passed.</div>
+                    <div class="success">No blocking issues detected. Safe code stays in flow.</div>
+                    <span class="cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p style="text-align:center; font-size:14px; color:var(--text-muted);">The fix is applied, the gate passes, and the branch remains clean.</p>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="section">
+        <div class="container">
+            <h2>What SimpleBeacon does for engineering teams</h2>
+            <p class="section-subtitle">A lightweight, local-first safety layer for AI-assisted development.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🧠</span>
+                    <h3>Editor diagnostics</h3>
+                    <p>Instant local analysis that catches risky AI-generated code before review.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🚫</span>
+                    <h3>Pre-commit enforcement</h3>
+                    <p>Blocks dirty commits before they pollute the branch or trigger expensive CI failures.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Local-first workflow</h3>
+                    <p>Runs in the workspace or browser sandbox, with no code upload required.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📋</span>
+                    <h3>Security and compliance guardrails</h3>
+                    <p>Supports review workflows for teams that need auditability and safer AI adoption.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="section" style="padding-bottom: 80px;">
+        <div class="container" style="text-align:center; max-width: 760px;">
+            <h2>Stop guessing what your AI assistants are committing.</h2>
+            <p class="section-subtitle" style="margin-bottom: 28px;">SimpleBeacon catches the issues before they become expensive.</p>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
+                <a href="/audit" class="btn btn-primary">Book a demo &rarr;</a>
+                <a href="https://simplebeacon.ai" class="btn btn-ghost">Start free &rarr;</a>
             </div>
         </div>
     </section>
@@ -1305,7 +1447,7 @@
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
                     <div style="font-size:36px;margin-bottom:12px;">&lt;/&gt;</div>
                     <h3 style="margin:0 0 8px;font-size:18px;">Software &amp; Tech Teams</h3>
-                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Eradicate AI code debt, placeholder debris, credential leaks, and structural slop locally &mdash; with board-ready compliance certificates.</p>
+                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Eradicate AI code debt, placeholder debris, credential leaks, and structural slop that traditional linting misses &mdash; with board-ready compliance certificates.</p>
                 </div>
             </div>
         </div>
@@ -1324,7 +1466,7 @@
                 </div>
                 <div id="text-scan-results" style="margin-top:20px;"></div>
             </div>
-            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same 52 heuristic engines from SimpleBeacon's code scanner, adapted for plain text. No text is sent to any server &mdash; scanning runs entirely in your browser.</p>
+            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same 48 analyzers and 25 scan engines from SimpleBeacon's code scanner, adapted for plain text. No text is sent to any server &mdash; scanning runs entirely in your browser.</p>
         </div>
     </section>
     <script>
@@ -1443,7 +1585,7 @@
                     <div class="terminal-body" id="termCodeBlock" style="padding:16px 20px;font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;line-height:1.7;color:#C9D1D9;min-height:auto;">
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">npm install -g simplebeacon</span></div>
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">simplebeacon scan . --gate --format json --output report.json</span></div>
-                        <div style="color:#8B949E;">→ 52 engines loaded · 14,000 files scanned in 38s</div>
+                        <div style="color:#8B949E;">→ 48 analyzers loaded · 25 scan engines · 6,000 files scanned in 90s</div>
                         <div style="color:#3fb950;">✓ Gate: PASS · Quality Score: 87/100 · Grade: B+</div>
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">simplebeacon fix --dry-run</span></div>
                         <div style="color:#8B949E;">→ 2 auto-fixes ready: credential quarantine, placeholder removal</div>
@@ -1517,136 +1659,6 @@
         </div>
     </section>
 
-    <!-- HOW IT WORKS — 5-step PDA enforcement flow -->
-    <section class="section" id="how-it-works" style="padding:60px 24px;">
-        <div class="container">
-            <h2>How It Works &mdash; The Engine, Not the UI</h2>
-            <p class="section-subtitle">The safety harness is in the engine. The sidebar is for humans to observe and intervene. The agent is subject to the rules, not the other way around.</p>
-
-            <div style="max-width:880px;margin:0 auto;">
-                <div style="display:grid;gap:16px;">
-                    <div style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
-                        <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(6,182,212,0.15);color:#06B6D4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">1</div>
-                        <div>
-                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text-main);">Agent starts</h3>
-                            <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">PDA auto-registers the agent (Cursor, Devin, Copilot, Windsurf). Loads workspace policies from <code style="font-size:0.8rem;color:#06B6D4;">.simplebeacon/policies.json</code>.</p>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
-                        <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(6,182,212,0.15);color:#06B6D4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">2</div>
-                        <div>
-                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text-main);">Agent works</h3>
-                            <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">Creates tasks in the PDA task store. Stores context in agent memory. Each action is checked against policies before executing.</p>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
-                        <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(239,68,68,0.15);color:#EF4444;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">3</div>
-                        <div>
-                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text-main);">Agent claims done</h3>
-                            <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">PDA runs the gate: scan + policy check. Critical/high issues &rarr; <strong style="color:#EF4444;">gate blocks</strong>. Policy violations &rarr; <strong style="color:#EF4444;">gate blocks</strong>. Parent tasks incomplete &rarr; <strong style="color:#EF4444;">child tasks can&rsquo;t complete</strong>.</p>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
-                        <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(16,185,129,0.15);color:#10B981;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">4</div>
-                        <div>
-                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text-main);">Human reviews</h3>
-                            <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">Sidebar shows: what the agent did, what it checked, what the gate found. Handoff brief summarizes completed tasks, pending work, files changed. Audit trail records every task, memory, policy check, gate result.</p>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;">
-                        <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(16,185,129,0.15);color:#10B981;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;">5</div>
-                        <div>
-                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--text-main);">Code ships</h3>
-                            <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">Gate passed &rarr; merge with confidence. Gate failed &rarr; blocked from merge, no bypass. Compliance report generated (EU AI Act, SOC 2).</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="text-align:center;margin-top:32px;padding:20px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);border-radius:12px;">
-                    <p style="font-size:1rem;color:var(--text-main);margin:0;">
-                        The value isn&rsquo;t that AI writes more code faster.<br>
-                        <strong style="color:#06B6D4;">It&rsquo;s that AI does less damage &mdash; and you can prove it.</strong>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- PROOF OF OPERATION — live PDA enforcement proof -->
-    <section class="section" id="proof-of-operation" style="padding:60px 24px;background:linear-gradient(180deg,#0a0e18,#0d1220);">
-        <div class="container">
-            <h2>Proof of Operation: The PDA Enforces Real Rules</h2>
-            <p class="section-subtitle">Verified live on 2026-08-19 against the actual PDA engine &mdash; not a mockup, not a screenshot, not a demo video.</p>
-
-            <div style="max-width:880px;margin:32px auto 0;background:#0B0F19;border:1px solid var(--border);border-radius:12px;overflow:hidden;font-family:'SF Mono','Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.7;">
-                <div style="background:#151D30;padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                    <span style="width:10px;height:10px;border-radius:50%;background:#EF4444;"></span>
-                    <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></span>
-                    <span style="width:10px;height:10px;border-radius:50%;background:#10B981;"></span>
-                    <span style="margin-left:12px;color:var(--text-muted);font-size:12px;">PDA Engine &mdash; Live Enforcement Proof</span>
-                </div>
-                <div style="padding:20px 24px;color:var(--text-main);overflow-x:auto;">
-                    <div style="color:#10B981;">&#10003; Agent registered &rarr; success, agent ID assigned</div>
-                    <div style="color:#10B981;">&#10003; Memory stored &rarr; "engine enforces rules"</div>
-                    <div style="color:#10B981;">&#10003; Memory recalled &rarr; full-text search found it</div>
-                    <div style="color:#10B981;">&#10003; Parent task created &rarr; "scan workspace"</div>
-                    <div style="color:#10B981;">&#10003; Child task created &rarr; linked to parent</div>
-                    <div style="color:#EF4444;">&#10007; Child completion attempted &rarr; <strong style="color:#EF4444;">BLOCKED: parent_incomplete</strong></div>
-                    <div style="color:#10B981;">&#10003; Parent task completed &rarr; success</div>
-                    <div style="color:#10B981;">&#10003; Child task completed &rarr; success (dependency satisfied)</div>
-                    <div style="color:#EF4444;">&#10007; Policy check: force-push &rarr; <strong style="color:#EF4444;">BLOCKED: default-no-force-push</strong></div>
-                    <div style="color:#EF4444;">&#10007; Gate finalize (no scan) &rarr; <strong style="color:#EF4444;">BLOCKED: default-must-scan</strong></div>
-                    <div style="color:#10B981;">&#10003; Gate scan run &rarr; PASSED, exit 0</div>
-                    <div style="color:#10B981;">&#10003; Gate finalize (post-scan) &rarr; canFinalize: true, 0 blocking</div>
-                    <div style="color:#10B981;">&#10003; Handoff written &rarr; brief + memory ID recorded</div>
-                    <div style="color:#10B981;">&#10003; Handoff read &rarr; all fields retrieved intact</div>
-                </div>
-            </div>
-
-            <div style="max-width:720px;margin:40px auto 0;text-align:center;">
-                <p style="font-size:18px;color:var(--text-main);line-height:1.6;">
-                    The agent is subject to the rules. The engine enforces them.<br>
-                    The sidebar is only observability and control for humans.
-                </p>
-                <p style="font-size:15px;color:var(--text-muted);margin-top:16px;">
-                    The safety harness works even when the sidebar is closed. The agent cannot claim completion without the gate passing. The agent cannot force-push. The agent cannot skip parent tasks. The engine enforces &mdash; the UI observes.
-                </p>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:880px;margin:32px auto 0;">
-                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
-                    <h3 style="font-size:15px;color:#10B981;margin-bottom:8px;">Dependency Enforcement</h3>
-                    <p style="font-size:13px;color:var(--text-muted);margin:0;">Child task blocked because parent wasn&rsquo;t complete. Agent could not bypass.</p>
-                </div>
-                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
-                    <h3 style="font-size:15px;color:#10B981;margin-bottom:8px;">Policy Enforcement</h3>
-                    <p style="font-size:13px;color:var(--text-muted);margin:0;">Force-push blocked because policy forbids it. Agent could not override.</p>
-                </div>
-                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
-                    <h3 style="font-size:15px;color:#10B981;margin-bottom:8px;">Gate Enforcement</h3>
-                    <p style="font-size:13px;color:var(--text-muted);margin:0;">Finalization blocked until gate scan passed. No bypass, no exception.</p>
-                </div>
-            </div>
-
-            <div style="text-align:center;margin-top:32px;">
-                <p style="font-size:17px;color:var(--text-main);">
-                    This is not &ldquo;AI writes more code faster.&rdquo;<br>
-                    This is <strong style="color:#06B6D4;">&ldquo;AI is constrained by state + policy + gate &mdash; and you can prove it.&rdquo;</strong>
-                </p>
-                <p style="font-size:14px;color:var(--text-muted);margin-top:12px;">
-                    26/26 PDA test suite tests pass. Live end-to-end proof recorded. The safety harness is real.
-                </p>
-                <p style="font-size:15px;color:var(--text-muted);margin-top:16px;font-style:italic;">
-                    The PDA doesn&rsquo;t replace judgment; it creates the evidence trail that makes better judgment possible.
-                </p>
-            </div>
-        </div>
-    </section>
-
     <!-- WHY TEAMS CHOOSE US — condensed 3-column grid with collapsible tech specs -->
     <section class="section">
         <div class="container">
@@ -1655,9 +1667,9 @@
             <div class="feature-grid-3">
                 <div class="feature-card-3">
                     <span class="feature-icon">&#128737;</span>
-                    <h3>Zero Source-Code Upload</h3>
-                    <p>Scanning runs locally in your browser or on your own server. Source code, paths, and secrets are not uploaded.</p>
-                    <details><summary>Technical Specs</summary><div class="tech-specs">Browser sandbox uses WebAssembly regex engines. CLI server runs on Node.js with optional npm audit integration. Paid CI plans can send aggregate, anonymized scan metrics for team dashboards; use <code>--offline</code> or <code>--air-gapped</code> to disable network activity.</div></details>
+                    <h3>Zero-Upload Architecture</h3>
+                    <p>All scanning runs locally in your browser or on your own server. Source code and secrets never leave your network.</p>
+                    <details><summary>Technical Specs</summary><div class="tech-specs">Browser sandbox uses WebAssembly regex engines. CLI server runs on Node.js with optional npm audit integration. No telemetry calls during scan.</div></details>
                 </div>
                 <div class="feature-card-3">
                     <span class="feature-icon">&#127942;</span>
@@ -1674,8 +1686,8 @@
                 <div class="feature-card-3">
                     <span class="feature-icon">&#9889;</span>
                     <h3>Edge Execution Speed</h3>
-                    <p>14,000 files scanned in under 40 seconds on local hardware. Compliance guardrails stay invisible to your team.</p>
-                    <details><summary>Technical Specs</summary><div class="tech-specs">No network round-trip. Files processed in-memory via streaming. Benchmark: 4.4M lines of code across 14k files in 38s on M2 Pro.</div></details>
+                    <p>6,000 files scanned in under 90 seconds on local hardware. Compliance guardrails stay invisible to your team.</p>
+                    <details><summary>Technical Specs</summary><div class="tech-specs">No network round-trip. Files processed in-memory via streaming. Benchmark: 6,000 tracked files across a full-stack monorepo in 89s on local hardware.</div></details>
                 </div>
                 <div class="feature-card-3">
                     <span class="feature-icon">&#128274;</span>
@@ -1704,8 +1716,8 @@
                 <div class="feature-card-3">
                     <span class="feature-icon">&#128268;</span>
                     <h3>Offline Isolation Guarantee</h3>
-                    <p>Browser scans run locally, and CLI scans support an explicit offline mode.</p>
-                    <details><summary>Technical Specs</summary><div class="tech-specs">Browser scans do not upload source code. CLI <code>--offline</code> and <code>--air-gapped</code> modes disable network activity. Paid CI telemetry, when enabled, contains aggregate counts and fingerprints only, never source code or file paths.</div></details>
+                    <p>Open DevTools Network tab, drop your repo, and watch zero requests fire during the scan.</p>
+                    <details><summary>Technical Specs</summary><div class="tech-specs">100% local heuristic execution. No cloud inference. No hidden API calls. No data leakage. Verified via network monitoring during scan.</div></details>
                 </div>
             </div>
         </div>
@@ -1779,6 +1791,43 @@
         </div>
     </section>
 
+    <!-- DOUBLE LIABILITY: The cloud auditor paradox -->
+    <section class="section" style="background: rgba(99,102,241,0.04); border-top: 1px solid rgba(99,102,241,0.15); border-bottom: 1px solid rgba(99,102,241,0.15);">
+        <div class="container">
+            <div style="max-width:780px;margin:0 auto;text-align:center;">
+                <span style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:13px;font-weight:600;letter-spacing:0.5px;margin-bottom:16px;">&nbsp;The Cloud Auditor Paradox&nbsp;</span>
+                <h2 style="margin:0 0 16px;">You shouldn't have to risk a breach to check for compliance.</h2>
+                <p style="color:var(--text-secondary);font-size:17px;line-height:1.7;margin:0 0 28px;">
+                    Cloud-based code analysis tools require you to upload your proprietary source code to a third-party server. That means you are <strong style="color:var(--text-primary);">paying a vendor to increase your attack surface</strong> &mdash; creating a new third-party data liability just to audit your existing one.
+                </p>
+                <p style="color:var(--text-secondary);font-size:17px;line-height:1.7;margin:0 0 32px;">
+                    SimpleBeacon runs entirely behind your firewall. No source code in transit. No vendor data custody. No new attack surface. You get enterprise-grade compliance auditing without adding a single new third-party risk.
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:32px;">
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128274;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">Zero Data Transit</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">Source code never leaves your local machine or secure VPC. No upload. No transit. No exposure.</p>
+                    </div>
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128737;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">Zero Vendor Custody</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">We cannot leak what we do not have. No source code is stored on our servers at any point.</p>
+                    </div>
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128196;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">On-Premise Audit Trail</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">SHA-256 integrity-sealed reports generated locally. Auditors get evidence without data leaving your network.</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                    <a href="/pricing" class="btn btn-primary">Start 14-Day Free Trial &rarr;</a>
+                    <a href="/security" class="btn btn-outline">Read the Security Whitepaper</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- OFFLINE DARE: Zero Data Custody -->
     <section class="section" style="background: linear-gradient(180deg, #0a0e18, #0d1220);">
         <div class="container">
@@ -1788,7 +1837,7 @@
                 <p style="color:var(--text-muted);font-size:17px;line-height:1.6;margin:0 0 28px;">
                     Load the SimpleBeacon dashboard, <strong style="color:#e5e7eb;">unplug your internet connection entirely</strong>,
                     and run a compliance scan. Your code never leaves your machine because our engine runs
-                    Browser scans run locally without source-code uploads. CLI team workflows may send aggregate metrics unless offline mode is enabled.
+                    100% locally in your browser sandbox. No cloud inference. No hidden API calls. No data leakage.
                 </p>
                 <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
                     <a href="/dashboard/#/analyze" class="btn btn-success">&#128268; Try It Now — Disconnect &amp; Scan</a>

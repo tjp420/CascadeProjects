@@ -495,8 +495,10 @@ async function generateSovereignCertificate(report, token, options = {}) {
     }
     // Include ALL per-module data regardless of tier so roadmaps have full detail
     for (const data of Object.values(perModuleData)) {
-        Object.entries(data).forEach(([k, v]) => { if (v != null)
-            assembledReport[k] = v; });
+        Object.entries(data).forEach(([k, v]) => {
+            if (v != null)
+                assembledReport[k] = v;
+        });
     }
     const filteredReport = assembledReport;
     const reportHash = await certComputeSha256(JSON.stringify(assembledReport));

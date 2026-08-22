@@ -1739,7 +1739,7 @@ export function UsageAnalyticsView() {
                     >
                       <Settings className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteReportSchedule(s.id)}>
+                    <Button variant="ghost" size="sm" aria-label="Delete report schedule" onClick={() => deleteReportSchedule(s.id)}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>

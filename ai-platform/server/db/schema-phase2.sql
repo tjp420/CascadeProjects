@@ -1,4 +1,10 @@
 -- Phase 2 dashboard snapshot storage
+--
+-- NOTE: The `users` table below is scoped to the ai-platform's Render PostgreSQL
+-- database (simplebeacon-db). The api-server service uses a separate database
+-- with its own `users` table (UUID primary key, RBAC columns). The two schemas
+-- are intentionally independent — see render.yaml and the deployment-readiness
+-- scanner's SB-DEP-003 rule for context.
 CREATE TABLE IF NOT EXISTS dashboard_snapshots (
     key TEXT PRIMARY KEY,
     payload JSONB NOT NULL,

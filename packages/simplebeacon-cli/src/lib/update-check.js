@@ -202,7 +202,7 @@ function printUpdateNotice(latest, installed) {
         `${yellow}┌─────────────────────────────────────────────────────────────┐${reset}`,
         `${yellow}│${reset}  ${cyan}SimpleBeacon ${latest}${reset} is available — you have ${installed}          ${yellow}│${reset}`,
         `${yellow}│${reset}  Update: ${cyan}npm install -g simplebeacon@latest${reset}                  ${yellow}│${reset}`,
-        `${yellow}│${reset}  52 deterministic engines · catch AI code debt             ${yellow}│${reset}`,
+        `${yellow}│${reset}  48 analyzers + 25 engines · catch AI code debt             ${yellow}│${reset}`,
         `${yellow}└─────────────────────────────────────────────────────────────┘${reset}`
     ];
     for (const line of lines) {

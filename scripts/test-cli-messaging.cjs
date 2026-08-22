@@ -5,7 +5,7 @@
  *
  * Verifies that the CLI help text, scan output banner, and flag descriptions
  * use the same language as the website homepage:
- *   - "52 deterministic engines" (not "11 analyzers")
+ *   - "48 analyzers \+ 25 scan engines" (not "11 analyzers")
  *   - "catch AI code debt that traditional linting misses" (not "detect mock data")
  *   - "Deep Scan" terminology (not just "bypass filters")
  *   - "no upload, no LLM, no false positives" framing
@@ -36,9 +36,9 @@ describe('CLI help text header alignment', () => {
         assert.doesNotMatch(cli, /detect mock data, fiction KPIs, and credential leaks/);
     });
 
-    test('help text mentions "52 deterministic engines"', () => {
+    test('help text mentions "48 analyzers \+ 25 scan engines"', () => {
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /52 deterministic engines/);
+        assert.match(cli, /48 analyzers \+ 25 scan engines/);
     });
 
     test('help text mentions "zero LLM dependency"', () => {
@@ -64,17 +64,17 @@ describe('--complete flag description alignment', () => {
         assert.doesNotMatch(cli, /11 analyzers/);
     });
 
-    test('references "52 deterministic engines"', () => {
+    test('references "48 analyzers \+ 25 scan engines"', () => {
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        // The --complete flag should mention 52 deterministic engines
-        const completeMatches = cli.match(/--complete[^]*?52 deterministic engines/g);
+        // The --complete flag should mention 48 analyzers \+ 25 scan engines
+        const completeMatches = cli.match(/--complete[^]*?48 analyzers \+ 25 scan engines/g);
         assert.ok(completeMatches && completeMatches.length > 0,
-            '--complete flag should reference "52 deterministic engines"');
+            '--complete flag should reference "48 analyzers \+ 25 scan engines"');
     });
 
-    test('verbose log uses "52 deterministic engines"', () => {
+    test('verbose log uses "48 analyzers \+ 25 scan engines"', () => {
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /--complete enabled.*52 deterministic engines/);
+        assert.match(cli, /--complete enabled.*48 analyzers \+ 25 scan engines/);
     });
 });
 
@@ -96,9 +96,9 @@ describe('--deep-scan flag description alignment', () => {
 
 describe('text reporter banner alignment', () => {
 
-    test('banner includes "52 deterministic engines"', () => {
+    test('banner includes "48 analyzers \+ 25 scan engines"', () => {
         const text = readFile('packages/simplebeacon-cli/src/reporters/text.js');
-        assert.match(text, /52 deterministic engines/);
+        assert.match(text, /48 analyzers \+ 25 scan engines/);
     });
 
     test('banner includes "AI code debt" framing', () => {
@@ -139,11 +139,11 @@ describe('syntax validation', () => {
 
 describe('cross-page messaging consistency', () => {
 
-    test('homepage and CLI both mention "52 deterministic engines"', () => {
+    test('homepage and CLI both mention "48 analyzers \+ 25 scan engines"', () => {
         const homepage = readFile('coming-soon/public/index.html');
         const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(homepage, /52 deterministic engines/i);
-        assert.match(cli, /52 deterministic engines/i);
+        assert.match(homepage, /48 analyzers \+ 25 scan engines/i);
+        assert.match(cli, /48 analyzers \+ 25 scan engines/i);
     });
 
     test('homepage and CLI both use "AI code debt" framing', () => {

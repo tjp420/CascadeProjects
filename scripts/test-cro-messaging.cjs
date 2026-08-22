@@ -160,9 +160,9 @@ describe('Homepage hero rewrite with case study language', () => {
         assert.match(html, /hardcoded metric/i);
     });
 
-    test('hero mentions 52 deterministic engines', () => {
+    test('hero mentions 48 analyzers \+ 25 scan engines', () => {
         const html = readFile('coming-soon/public/index.html');
-        assert.match(html, /52 deterministic/i);
+        assert.match(html, /48 analyzers \+ 25 scan engines/i);
     });
 
     test('hero mentions no LLM', () => {

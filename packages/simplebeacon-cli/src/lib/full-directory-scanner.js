@@ -320,6 +320,12 @@ async function analyzeFullDirectory(rootDir, options = {}) {
             continue;
         }
 
+        // Also check rule-specific ignoreGlobs (e.g., production-leak)
+        const prodLeakIgnore = config.rules?.['production-leak']?.ignoreGlobs || [];
+        if (prodLeakIgnore.length && isIgnoredRelativePath(file.relativePath, prodLeakIgnore)) {
+            continue;
+        }
+
         if (isExcludedPath(file.relativePath, { universal: isUniversal })) {
             continue;
         }
@@ -340,7 +346,8 @@ async function analyzeFullDirectory(rootDir, options = {}) {
                 productionPathsOnly: !isUniversal,
                 productionPaths: config.productionPaths || ['server/', 'src/', 'app/', 'lib/'],
                 productionLeakOptions: {
-                    allowlistFiles: leakOpts.allowlistFiles || [],
+                    ignoreGlobs: leakOpts.ignoreGlobs || config.rules?.['production-leak']?.ignoreGlobs || config.ignore || [],
+                    allowlistFiles: leakOpts.allowlistFiles || config.rules?.['production-leak']?.allowlistFiles || [],
                     scannerMetaFiles: leakOpts.scannerMetaFiles || [],
                     severity: leakOpts.severity || 'high',
                     intentClassification: leakOpts.intentClassification !== false,

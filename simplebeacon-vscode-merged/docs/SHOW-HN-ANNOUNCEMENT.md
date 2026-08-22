@@ -21,7 +21,7 @@ realized GitHub Advanced Security doesn't catch AI-specific anti-patterns.
 
 What I built:
 
-- 60+ analyzer engines that flag patterns unique to AI-generated code
+- 48 analyzer engines that flag patterns unique to AI-generated code
   (hallucinated imports, generic error swallowing, boilerplate bloat,
   copyleft code contamination, placeholder secrets)
 
@@ -60,7 +60,7 @@ I'd love feedback from anyone else drowning in AI-generated PRs.
 After our third incident from AI-generated code at work (hallucinated npm package
 this time), I realized existing static analyzers don't catch LLM-specific anti-patterns.
 
-So I built SimpleBeacon — a 100% local-first scanner with 60+ rules targeting:
+So I built SimpleBeacon — a 100% local-first scanner with 48 analyzers + 25 scan engines targeting:
 
 - Hallucinated imports (packages that don't exist in your dependencies)
 - Generic error swallowing (`catch(e){}` blocks)
@@ -89,7 +89,7 @@ Links:
 **Body:**
 
 ```
-Built with Node/TypeScript. Runs entirely offline. 60+ pattern rules.
+Built with Node/TypeScript. Runs entirely offline. 48 analyzer patterns + 25 scan engines.
 
 Key Node features:
 - CLI: `npx simplebeacon scan --gate --offline`
@@ -128,7 +128,7 @@ They don't catch AI-specific anti-patterns.
 So we built SimpleBeacon.
 
 What makes it different:
-1. AI-native detection — 60+ rules built specifically for LLM-generated code
+1. AI-native detection — 48 analyzers built specifically for LLM-generated code
 2. Local-first — your source code never leaves your machine
 3. Real-time IDE feedback — catch issues before commit, not at PR review
 4. EU AI Act ready — compliance indicators for regulated industries

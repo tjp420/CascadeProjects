@@ -1,5 +1,56 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.516] - 2026-08-21
+
+### Added
+- **AI Agent Context Interceptor** — Automatic detection and validation of AI-edited code via file diff analysis on save
+  - Triggered on rapid-fire file changes (heuristic mode detects 10+ saves within 5 seconds)
+  - `registerContextInterceptor()` wires validation into extension lifecycle
+  - Surfaces findings as VS Code diagnostics in the Problems panel
+- **Agent Session Coupling Analysis** — Automatically copies codebase coupling summary to clipboard when an AI editing session ends
+  - `buildCouplingSummary()` extracts high-risk module relationships from `codemap-analysis.json`
+  - Triggered after 5 seconds of no file changes following an active session
+  - Enables rapid team communication and risk review
+- **Enhanced Status Bar Blocking Issue Display** — Improved visibility of quality gate violations
+  - Status bar now shows `$(shield) SimpleBeacon: FAIL (N block)` instead of generic `FAIL`
+  - Tooltip displays the actual blocking issue with file, line number, and description
+  - Prioritizes user awareness of gate-blocking findings
+
+### Added Configuration
+- New setting `simplebeacon.agentDetectionMode` — Control when AI session detection runs
+  - `off` — Disable AI session detection
+  - `heuristic` (default) — Use file-change frequency and timing heuristics
+  - `always` — Treat every save as part of an active AI session
+  - Configurable via Settings → "SimpleBeacon: Agent Detection Mode"
+
+### Fixed
+- False positive in gate scan for `secret-scanner.cjs` — now properly allowlisted in `.simplebeacon/config.json`
+
+### Changed
+- `agentValidation.ts` — New module for AI session detection, context interception, and coupling analysis
+- `extension.ts` — Integrated interceptor registration and session lifecycle hooks
+- `dataServer.ts` — Added CORS headers for clipboard-based data exchange
+- Status bar layout optimized for readability with blocking issue count
+
+### Performance
+- Context validation runs only on file save events, not on every keystroke
+- Coupling analysis deferred until 5s of inactivity to avoid disruption during active editing
+- DiagnosticCollection cleared on session end to prevent stale findings in the Problems panel
+
+## [3.0.508] - 2026-08-18
+
+### Added
+- **Extension Webview Command Conduit** (Sprint N) - Live benchmark execution from the VS Code webview dashboard, enabling real-time performance measurements without leaving the IDE
+- **A/B remediation auto-tune triggers** (Sprint O) - Telemetry UI now surfaces A/B test results for remediation suggestions, allowing automatic tuning of fix recommendations based on acceptance rates
+- **Dashboard SPA bundle sync** - Synchronized dashboard SPA chunk hashes between the VS Code extension and the web dashboard to eliminate 404 errors on /dashboard/ routes
+
+### Fixed
+- Dashboard SPA 404 on chunked asset loads — chunk hashes now match between extension and web builds
+
+### Changed
+- `dataServer.ts` expanded with new proxy endpoints for the command conduit and telemetry streaming
+- `localAgent.ts` updated for command conduit integration
+
 ## [3.0.495] - 2026-08-07
 
 ### Added
@@ -81,7 +132,7 @@
 ## [3.0.437] - 2026-07-14
 
 ### Added
-- 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
+- 48 analyzers + 25 scan engines across 8 categories
 - SB-FICTION catalog for LLM placeholder and markdown fence detection
 - Dashboard 4.0 with compliance, repo health, and analytics panes
 - Real-time monitoring with AI session detection

@@ -202,7 +202,9 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
         return;
     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
     const normalizedPath = currentPath.replace(/\\/g, '/');
-    // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+    // Skip heavy directories during discovery to keep file counts manageable
+    if (entry.isDirectory && SKIP_DIRS.test(normalizedPath + '/'))
+        return;
     if (entry.isFile) {
         if (files.length >= MAX_DISCOVERED_FILES)
             return;
@@ -1308,7 +1310,8 @@ if (typeof bindPresetButtons === 'function')
     bindPresetButtons();
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
-    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal);
+    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal || (typeof ALL_MODULES !== 'undefined' ? ALL_MODULES : []));
+    if (!Array.isArray(allowed)) return;
     let firstEnabled = null;
     // Update hidden select
     if (browserScanProfile) {
@@ -2098,54 +2101,17 @@ if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
 // Using .then() instead of await preserves the gesture chain through the click event.
 // Drag-and-drop is the fallback for browsers without File System Access API.
 function triggerDirectoryPicker() {
-    var tokenJustGenerated = false;
     if (!hasValidToken()) {
-        // Auto-generate an anonymous sandbox token so the browser scan button works
-        // without requiring the user to click "Start Scanning" first.
-        if (typeof window.generateSandboxToken === 'function') {
-            var token = window.generateSandboxToken(null);
-            // Set the value directly — do NOT dispatch events or update UI here.
-            // showDirectoryPicker() requires a live user gesture; heavy synchronous work
-            // (event dispatch, DOM updates, localStorage) would consume the gesture and
-            // cause the picker to silently fail. Defer all UI work to a microtask below.
-            if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.value = token;
-            }
-            tokenJustGenerated = true;
-        } else {
-            showToast('Paste a license token to unlock scanning.', 'warning');
-            if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.focus();
-                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
+        showToast('Paste a license token to unlock scanning.', 'warning');
+        licenseInput.focus();
+        licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
     }
     if (isPickerActive) {
         console.log('[triggerDirectoryPicker] already running — skip');
         return;
     }
     isPickerActive = true;
-    // Defer token-related UI updates to a microtask so the user gesture stays
-    // alive for the showDirectoryPicker() call below. Microtasks run after the
-    // current synchronous block completes but before any async callbacks.
-    if (tokenJustGenerated) {
-        var _token = (typeof licenseInput !== 'undefined' && licenseInput) ? licenseInput.value : '';
-        Promise.resolve().then(function () {
-            try { localStorage.setItem('sb-token', _token); } catch (e) {}
-            try { localStorage.setItem('simplebeacon_token', _token); } catch (e) {}
-            try { localStorage.setItem('cascadeAuthToken', _token); } catch (e) {}
-            try { localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' })); } catch (e) {}
-            if (typeof licenseInput !== 'undefined' && licenseInput) {
-                licenseInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (typeof applyProductFromToken === 'function') applyProductFromToken(_token);
-            if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
-            if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
-            var gate = document.getElementById('audit-token-gate');
-            if (gate) gate.style.display = 'none';
-        });
-    }
     // _pickerTriggeredByButton is set by the caller (startLocalScan) when appropriate
     // Prefer File System Access API directory picker (Chrome/Edge)
     // Secure context required: HTTPS, localhost, or 127.0.0.1
@@ -2251,7 +2217,9 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
             return;
         const currentPath = parentPath ? parentPath + '/' + handle.name : handle.name;
         const normalizedPath = currentPath.replace(/\\/g, '/');
-        // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+        // Skip heavy directories during discovery to keep file counts manageable
+        if (handle.kind === 'directory' && SKIP_DIRS.test(normalizedPath + '/'))
+            return;
         if (handle.kind === 'file') {
             if (files.length >= MAX_DISCOVERED_FILES)
                 return;

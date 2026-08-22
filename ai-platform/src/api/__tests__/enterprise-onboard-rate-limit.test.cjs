@@ -17,8 +17,8 @@ if (!RUN_TEST) {
 RUN_TEST('onboard rate limit enforces 429', async () => {
   const tmpStore = path.join(os.tmpdir(), 'enterprise-store-test-' + Date.now() + '.json');
   process.env.ENTERPRISE_STORE_PATH = tmpStore;
-  process.env.ONBOARD_RATE_LIMIT_MAX = '5';
-  process.env.ONBOARD_RATE_WINDOW_MS = '1000';
+  process.env.ONBOARD_RATE_LIMIT_MAX = '3';
+  process.env.ONBOARD_RATE_WINDOW_MS = '60000';
 
   const app = express();
   app.use(express.json());
@@ -56,15 +56,16 @@ RUN_TEST('onboard rate limit enforces 429', async () => {
   }
 
   try {
-    const promises = [];
-    for (let i = 0; i < 8; i++) {
-      promises.push(sendOnboard(i));
+    // Send requests sequentially to avoid timing races under parallel test load.
+    // With max=3 and a 60s window, the 4th request must get 429 regardless of CPU contention.
+    const results = [];
+    for (let i = 0; i < 6; i++) {
+      results.push(await sendOnboard(i));
     }
-    const results = await Promise.all(promises);
 
     const statusCounts = results.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
 
-    assert.ok((statusCounts[201] || 0) >= 5, 'expected at least 5 successes');
+    assert.ok((statusCounts[201] || 0) >= 3, 'expected at least 3 successes');
     assert.ok((statusCounts[429] || 0) >= 1, 'expected some 429 responses');
   } finally {
     await new Promise((res) => server.close(res));

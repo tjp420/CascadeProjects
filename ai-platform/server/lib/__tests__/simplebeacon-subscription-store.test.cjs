@@ -444,3 +444,182 @@ describe('in-memory caching', () => {
     assert.strictEqual(r1, r2);
   });
 });
+
+describe('grantTrial', () => {
+  beforeEach(() => {
+    store.clearCache();
+    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+  });
+
+  afterEach(() => {
+    store.clearCache();
+    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+  });
+
+  it('grants a 14-day trial for a new user', async () => {
+    const record = await store.grantTrial('trial@example.com', 'developer');
+    assert.ok(record, 'should return a record');
+    assert.strictEqual(record.email, 'trial@example.com');
+    assert.strictEqual(record.subscriptionActive, true);
+    assert.strictEqual(record.tier, 'developer');
+    assert.ok(record.trialEndsAt, 'should have trialEndsAt');
+    assert.strictEqual(record.trialTier, 'developer');
+
+    // Trial end should be ~14 days from now
+    const endsAt = Date.parse(record.trialEndsAt);
+    const expectedEnd = Date.now() + store.TRIAL_DURATION_MS;
+    const diffMs = Math.abs(endsAt - expectedEnd);
+    assert.ok(diffMs < 5000, 'trial end should be ~14 days from now');
+  });
+
+  it('returns null for invalid email', async () => {
+    const record = await store.grantTrial('not-an-email');
+    assert.strictEqual(record, null);
+  });
+
+  it('skips if user already has an active paid subscription', async () => {
+    // Create a paid subscription first
+    await store.upsertSubscription('paid@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      trialEndsAt: null
+    });
+    const record = await store.grantTrial('paid@example.com');
+    assert.strictEqual(record, null, 'should not grant trial to paid user');
+  });
+
+  it('skips if user already has an active unexpired trial', async () => {
+    const existing = await store.grantTrial('existing@example.com', 'developer');
+    const record = await store.grantTrial('existing@example.com', 'developer');
+    assert.ok(record, 'should return existing record');
+    assert.strictEqual(record.trialEndsAt, existing.trialEndsAt, 'should not extend trial');
+  });
+
+  it('re-grants if previous trial has expired', async () => {
+    // Create an expired trial
+    await store.upsertSubscription('expired@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      trialEndsAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+      trialTier: 'developer'
+    });
+    const record = await store.grantTrial('expired@example.com', 'developer');
+    assert.ok(record, 'should re-grant expired trial');
+    const endsAt = Date.parse(record.trialEndsAt);
+    assert.ok(endsAt > Date.now(), 'new trial should be in the future');
+  });
+});
+
+describe('checkTrialExpiry', () => {
+  beforeEach(() => {
+    store.clearCache();
+    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+  });
+
+  afterEach(() => {
+    store.clearCache();
+    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+  });
+
+  it('downgrades to free when trial has expired', async () => {
+    await store.upsertSubscription('expired@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      trialEndsAt: new Date(Date.now() - 86400000).toISOString(),
+      trialTier: 'developer'
+    });
+    const record = await store.checkTrialExpiry(
+      await store.getSubscriptionByEmail('expired@example.com')
+    );
+    assert.strictEqual(record.subscriptionActive, false);
+    assert.strictEqual(record.tier, 'free');
+    assert.strictEqual(record.trialEndsAt, null);
+    assert.strictEqual(record.trialTier, null);
+  });
+
+  it('does nothing when trial is still active', async () => {
+    await store.grantTrial('active@example.com', 'developer');
+    const original = await store.getSubscriptionByEmail('active@example.com');
+    const record = await store.checkTrialExpiry(original);
+    assert.strictEqual(record.subscriptionActive, true);
+    assert.ok(record.trialEndsAt, 'trialEndsAt should still be set');
+  });
+
+  it('does nothing when there is no trial', async () => {
+    await store.upsertSubscription('notrial@example.com', {
+      subscriptionActive: true,
+      tier: 'developer',
+      trialEndsAt: null
+    });
+    const original = await store.getSubscriptionByEmail('notrial@example.com');
+    const record = await store.checkTrialExpiry(original);
+    assert.strictEqual(record.subscriptionActive, true);
+    assert.strictEqual(record.trialEndsAt, null);
+  });
+});
+
+describe('shouldSendTrialWarning', () => {
+  it('returns true when trial ends within 3 days', () => {
+    const record = store.subscriptionRecord('warn@example.com');
+    record.subscriptionActive = true;
+    record.trialEndsAt = new Date(Date.now() + 2 * 86400000).toISOString(); // 2 days
+    assert.strictEqual(store.shouldSendTrialWarning(record), true);
+  });
+
+  it('returns false when trial ends more than 3 days away', () => {
+    const record = store.subscriptionRecord('fut@example.com');
+    record.subscriptionActive = true;
+    record.trialEndsAt = new Date(Date.now() + 10 * 86400000).toISOString(); // 10 days
+    assert.strictEqual(store.shouldSendTrialWarning(record), false);
+  });
+
+  it('returns false when trial has already expired', () => {
+    const record = store.subscriptionRecord('past@example.com');
+    record.subscriptionActive = true;
+    record.trialEndsAt = new Date(Date.now() - 86400000).toISOString(); // 1 day ago
+    assert.strictEqual(store.shouldSendTrialWarning(record), false);
+  });
+
+  it('returns false when there is no trial', () => {
+    const record = store.subscriptionRecord('none@example.com');
+    record.subscriptionActive = true;
+    record.trialEndsAt = null;
+    assert.strictEqual(store.shouldSendTrialWarning(record), false);
+  });
+
+  it('returns false when subscription is inactive', () => {
+    const record = store.subscriptionRecord('inactive@example.com');
+    record.subscriptionActive = false;
+    record.trialEndsAt = new Date(Date.now() + 2 * 86400000).toISOString();
+    assert.strictEqual(store.shouldSendTrialWarning(record), false);
+  });
+});
+
+describe('publicSubscriptionStatus with trial', () => {
+  it('shows trial as active when within trial period', () => {
+    const record = store.subscriptionRecord('trial@example.com');
+    record.subscriptionActive = true;
+    record.tier = 'developer';
+    record.trialEndsAt = new Date(Date.now() + 7 * 86400000).toISOString();
+    record.trialTier = 'developer';
+    const s = store.publicSubscriptionStatus(record);
+    assert.strictEqual(s.tier, 'developer');
+    assert.strictEqual(s.subscriptionActive, true);
+    assert.strictEqual(s.trialActive, true);
+    assert.ok(s.trialEndsAt);
+  });
+
+  it('downgrades to free when trial has expired', () => {
+    const record = store.subscriptionRecord('expired@example.com');
+    record.subscriptionActive = true;
+    record.tier = 'developer';
+    record.trialEndsAt = new Date(Date.now() - 86400000).toISOString();
+    record.trialTier = 'developer';
+    const s = store.publicSubscriptionStatus(record);
+    assert.strictEqual(s.tier, 'free');
+    assert.strictEqual(s.subscriptionActive, false);
+    assert.strictEqual(s.trialActive, false);
+    assert.strictEqual(s.trialEndsAt, null);
+    assert.strictEqual(s.apiToken, null);
+  });
+});

@@ -46,6 +46,7 @@ import {
   DebugReporter,
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
+import { registerContextInterceptor } from './agentIntegration/agentValidation';
 import {
   startDataServer,
   stopDataServer,
@@ -410,14 +411,38 @@ function updateStatusBar(report?: unknown) {
     return;
   }
   const r = report as Record<string, unknown>;
-  const gate = r.gate as { pass?: boolean } | undefined;
+  const gate = r.gate as { pass?: boolean; blockingCount?: number } | undefined;
   if (gate) {
     const pass = gate.pass;
-    statusBarItem.text = `$(shield) SimpleBeacon: ${pass ? 'PASS' : 'FAIL'}`;
+    const blockingCount = gate.blockingCount ?? 0;
+    statusBarItem.text = pass
+      ? '$(shield) SimpleBeacon: PASS'
+      : `$(shield) SimpleBeacon: FAIL (${blockingCount} block)`;
     statusBarItem.backgroundColor = pass
       ? new vscode.ThemeColor('statusBarItem.prominentBackground')
       : new vscode.ThemeColor('statusBarItem.errorBackground');
-    statusBarItem.tooltip = `Quality score: ${(r.qualityScore as number | null | undefined) ?? '?'}/100 — Click to open dashboard`;
+
+    // Build tooltip with blocking issue details from the report
+    let tooltip = `Quality score: ${(r.qualityScore as number | null | undefined) ?? '?'}/100`;
+    if (!pass && blockingCount > 0) {
+      const topIssues = (r.topIssues || r.issues || []) as Array<{
+        severity?: string; type?: string; description?: string; filePath?: string; line?: number;
+      }>;
+      const blocking = topIssues
+        .filter((i) => i.severity === 'high' || i.severity === 'critical')
+        .slice(0, 3);
+      if (blocking.length > 0) {
+        tooltip += '\n\nBlocking issues:';
+        for (const issue of blocking) {
+          const file = issue.filePath ? issue.filePath.split(/[\\/]/).pop() || issue.filePath : 'unknown';
+          tooltip += `\n  • [${issue.type || 'unknown'}] ${file}:${issue.line ?? '?'} — ${issue.description || 'No description'}`;
+        }
+      }
+      tooltip += '\n\nClick to open dashboard — fix blocking issues before committing';
+    } else {
+      tooltip += ' — Click to open dashboard';
+    }
+    statusBarItem.tooltip = tooltip;
   } else {
     statusBarItem.text = '$(shield) SimpleBeacon';
     statusBarItem.backgroundColor = undefined;
@@ -1328,6 +1353,22 @@ export function activate(context: vscode.ExtensionContext) {
         safeUpdateUIs(report);
       }
     });
+
+    // Wire Context Interceptor — agent validation on save + coupling analysis on AI session end
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    if (workspaceRoot) {
+      registerContextInterceptor(
+        {
+          isAiSessionActive: () => realtimeMonitor.isAiSessionActive(),
+          getAiEditedFiles: () => realtimeMonitor.getAiEditedFiles(),
+          onAiSessionEnd: (cb) => realtimeMonitor.onAiSessionEnd(cb),
+          workspaceRoot,
+          outputChannel,
+        },
+        context
+      );
+      outputChannel.appendLine('[SimpleBeacon] Context Interceptor wired — agent validation on save + coupling analysis on AI session end');
+    }
 
     // Initialize Phase 2 components
     aiCodeAnalyzer = AICodeAnalyzer.getInstance();
@@ -2554,6 +2595,67 @@ export function activate(context: vscode.ExtensionContext) {
         WelcomeDashboard.createOrShow(context.extensionUri);
         showQuietMessage('Selected code sent to SimpleBeacon.');
       }),
+      registerCmd('simplebeacon.aiGuardrailFlow', async () => {
+        let data = currentReport as SidebarReport | null;
+        if (!data) {
+          const scanResult = await vscode.commands.executeCommand('simplebeacon.scanWorkspace');
+          data = (scanResult as SidebarReport | null) || (currentReport as SidebarReport | null);
+        }
+        if (!data) {
+          vscode.window.showWarningMessage('No scan data available. Run a scan before starting the AI guardrail flow.');
+          return;
+        }
+
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          vscode.window.showWarningMessage('No workspace folder open');
+          return;
+        }
+
+        const contextPath = vscode.Uri.joinPath(workspaceFolders[0].uri, '.simplebeacon', 'ai-context.md');
+        const sev = data.severityCounts || {};
+        const gate = data.gate || {};
+        const content = [
+          '## SimpleBeacon AI Guardrail Context',
+          '',
+          `**Project:** ${data.projectRoot || data.projectPath || workspaceFolders[0].uri.fsPath}`,
+          `**Quality Score:** ${data.qualityScore !== null && data.qualityScore !== undefined ? data.qualityScore + '/100' : 'N/A'}`,
+          `**Gate Status:** ${gate.pass ? '✅ PASS' : '❌ FAIL'}`,
+          `**Total Issues:** ${data.issueCount || 0}`,
+          '',
+          '**Severity Breakdown:**',
+          `- Critical: ${sev.critical || 0}`,
+          `- High: ${sev.high || 0}`,
+          `- Medium: ${sev.medium || 0}`,
+          `- Low: ${sev.low || 0}`,
+          '',
+          `**Files Analyzed:** ${data.ruleScopedFilesAnalyzed || data.filesAnalyzed || 0} / ${data.totalFiles || 0}`,
+          '',
+          data.detectedIssues && data.detectedIssues.length > 0
+            ? '**Top Findings:**\n' +
+              data.detectedIssues
+                .slice(0, 10)
+                .map((i: DetectedIssue) =>
+                  `- [${i.severity}] ${i.type}: ${i.description || i.message || ''}`.slice(0, 200)
+                )
+                .join('\n')
+            : '**Top Findings:**\n- No findings reported',
+          '',
+          '_Use this AI guardrail context to fix issues before finalizing code changes._',
+        ].join('\n');
+
+        try {
+          await vscode.workspace.fs.writeFile(contextPath, Buffer.from(content, 'utf8'));
+          await vscode.env.clipboard.writeText(content);
+          await vscode.commands.executeCommand('vscode.open', contextPath);
+          await vscode.commands.executeCommand('simplebeacon-ai-chatbot.focus');
+          showQuietMessage('AI guardrail context created, copied, and opened for the active agent.');
+        } catch (e) {
+          vscode.window.showWarningMessage(
+            'Failed to prepare AI guardrail context: ' + (e instanceof Error ? e.message : String(e))
+          );
+        }
+      }),
       registerCmd('simplebeacon.openAiContext', async () => {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -2609,8 +2711,68 @@ export function activate(context: vscode.ExtensionContext) {
       registerCmd('simplebeacon.sendToAi', async () => {
         const data = currentReport as SidebarReport | null;
         if (!data) {
-          vscode.window.showWarningMessage('No scan data available. Run a scan first.');
-          return;
+          const scanResult = await vscode.commands.executeCommand('simplebeacon.scanWorkspace');
+          const nextReport = (scanResult as SidebarReport | null) || (currentReport as SidebarReport | null);
+          if (!nextReport) {
+            vscode.window.showWarningMessage('No scan data available. Run a scan first.');
+            return;
+          }
+          const dataForContext = nextReport;
+          const sev = dataForContext.severityCounts || {};
+          const gate = dataForContext.gate || {};
+          const payload = {
+            projectPath: dataForContext.projectRoot || dataForContext.projectPath || '',
+            notes: '',
+            reportSummary: {
+              gatePass: gate.pass ?? 'N/A',
+              qualityScore: dataForContext.qualityScore ?? 'N/A',
+              totalIssues: dataForContext.issueCount || 0,
+              filesScanned: dataForContext.ruleScopedFilesAnalyzed || dataForContext.filesAnalyzed || dataForContext.totalFiles || 'N/A',
+              reportType: 'scan-summary',
+            },
+            issues: dataForContext.detectedIssues || [],
+          };
+          const dataPort = getDataServerPort();
+          try {
+            const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>((resolve, reject) => {
+              const body = JSON.stringify(payload);
+              const req = http.request(
+                {
+                  hostname: '127.0.0.1',
+                  port: dataPort,
+                  path: '/api/ai-context',
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+                },
+                (res) => {
+                  let respData = '';
+                  res.on('data', (chunk) => {
+                    respData += chunk;
+                  });
+                  res.on('end', () => {
+                    try {
+                      resolve(JSON.parse(respData));
+                    } catch {
+                      resolve({ success: false, error: 'Invalid JSON' });
+                    }
+                  });
+                }
+              );
+              req.on('error', reject);
+              req.write(body);
+              req.end();
+            });
+            if (postRes.success && postRes.content) {
+              await vscode.env.clipboard.writeText(postRes.content);
+              showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
+              return;
+            }
+            vscode.window.showWarningMessage('AI context saved but no content returned');
+            return;
+          } catch (err) {
+            vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
+            return;
+          }
         }
         const sev = data.severityCounts || {};
         const gate = data.gate || {};

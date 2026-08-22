@@ -61,7 +61,9 @@ const PROFILE_RULES = {
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'jest-baseline': { enabled: false, runTests: false },
         'cve-dependency': { enabled: true, includeDev: false },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     standard: {
         credentials: { enabled: true, scanProduction: true },
@@ -80,7 +82,9 @@ const PROFILE_RULES = {
         'file-reduction': { enabled: true, dryRun: true },
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -100,7 +104,9 @@ const PROFILE_RULES = {
         'file-reduction': { enabled: true, dryRun: true },
         'cve-dependency': { enabled: true, includeDev: true },
         'sbom-generator': { enabled: true, includeDev: true },
-        'git-history-secret': { enabled: true, maxCommits: 1000 }
+        'git-history-secret': { enabled: true, maxCommits: 1000 },
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
@@ -132,7 +138,9 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
+        'file-reduction': { enabled: true, dryRun: true },
+        'deployment-readiness': { enabled: true },
+        'custom-heuristic': { enabled: true }
     }
 };
 
@@ -442,7 +450,10 @@ const FREE_RULE_ENGINES = new Set([
     'dead-code',
     'security-patterns',
     'json-schema',
-    'sample-consistency'
+    'sample-consistency',
+    'deployment-readiness',
+    'custom-heuristic',
+    'gzdoom-integrity-patterns'
 ]);
 
 function sanitizeConfigForTier(config, tier) {
@@ -461,6 +472,23 @@ function sanitizeConfigForTier(config, tier) {
             for (const [ruleName, userRule] of Object.entries(config.rules)) {
                 if (userRule && userRule.enabled === false) {
                     profileRules[ruleName] = { ...profileRules[ruleName], enabled: false };
+                }
+                // Also preserve user-enabled free-tier rules that are not in the
+                // default profile (e.g. gzdoom-integrity-patterns for GZDoom mods).
+                // Without this, free-tier users lose custom rule configs even when
+                // the rule itself is free-tier-eligible.
+                if (userRule && userRule.enabled !== false && FREE_RULE_ENGINES.has(ruleName) && !profileRules[ruleName]) {
+                    profileRules[ruleName] = userRule;
+                }
+                // Preserve user-set ignoreGlobs and allowlistFiles for rules that ARE
+                // in the profile (otherwise user false-positive suppressions are lost).
+                if (userRule && profileRules[ruleName]) {
+                    if (Array.isArray(userRule.ignoreGlobs) && userRule.ignoreGlobs.length) {
+                        profileRules[ruleName] = { ...profileRules[ruleName], ignoreGlobs: userRule.ignoreGlobs };
+                    }
+                    if (Array.isArray(userRule.allowlistFiles) && userRule.allowlistFiles.length) {
+                        profileRules[ruleName] = { ...profileRules[ruleName], allowlistFiles: userRule.allowlistFiles };
+                    }
                 }
             }
         }

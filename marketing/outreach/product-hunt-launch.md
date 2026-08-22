@@ -25,7 +25,7 @@ Results appear in your terminal, as a JSON report, or inside the VS Code extensi
 
 ### Why developers choose it
 - **Privacy-first** — zero-upload by default; network activity is monitored and reported
-- **Fast** — scans 669 files/sec locally
+- **Fast** — scans ~67 files/sec locally
 - **Deterministic** — regex + AST analysis, not black-box LLM scoring
 - **Affordable** — free for individual developers; $49/mo for teams
 

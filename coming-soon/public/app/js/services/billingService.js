@@ -35,18 +35,17 @@ const TOKEN_KEY = 'simplebeacon_billing_api_token';
  * Billing service.
  */
 function safeStripeRedirect(url) {
-    try {
-        const parsed = new URL(url);
-        if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
-            window.open(parsed.href, '_self');
-            return true;
-        }
-        return false;
-    } catch {
-        return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
+      window.open(parsed.href, '_self');
+      return true;
     }
+    return false;
+  } catch {
+    return false;
+  }
 }
-
 
 export class BillingService {
   constructor() {
@@ -173,9 +172,9 @@ export class BillingService {
     const data = await readJsonResponseBody(resp, null);
     if (resp.ok && data?.url) {
       if (!safeStripeRedirect(data.url)) {
-          const err = new Error('Invalid redirect URL received from billing service');
-          err.code = 'invalid_redirect';
-          throw err;
+        const err = new Error('Invalid redirect URL received from billing service');
+        err.code = 'invalid_redirect';
+        throw err;
       }
       return data;
     }
@@ -205,9 +204,9 @@ export class BillingService {
     const data = await readJsonResponseBody(resp, null);
     if (resp.ok && data?.url) {
       if (!safeStripeRedirect(data.url)) {
-          const err = new Error('Invalid redirect URL received from billing service');
-          err.code = 'invalid_redirect';
-          throw err;
+        const err = new Error('Invalid redirect URL received from billing service');
+        err.code = 'invalid_redirect';
+        throw err;
       }
       return data;
     }

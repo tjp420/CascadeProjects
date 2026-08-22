@@ -155,7 +155,7 @@ function renderSubscriptionActivated(opts = {}) {
   const subject = `Welcome to SimpleBeacon ${tierName} — Your License Token Inside`;
   const monthlyPriceCents = getTierMonthlyPrice(tier);
   const monthlyPriceUsd = monthlyPriceCents > 0 ? `$${(monthlyPriceCents / 100).toFixed(0)}/month` : 'custom pricing';
-  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} (${monthlyPriceUsd}). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 38 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: ${PUBLIC_URL}/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: ${PUBLIC_URL}\n\nNeed help? Reply to this email or visit ${PUBLIC_URL}`;
+  const text = `Welcome to SimpleBeacon ${tierName}!\n\nThank you for subscribing to SimpleBeacon ${tierName} (${monthlyPriceUsd}). Your subscription is now active with unlimited scans.${seatInfo}\n\n--- Your License Token ---\n${licenseToken || '(no token generated yet — contact support)'}\n--------------------------\n\nQUICKSTART (3 steps):\n\n1. Install the CLI:\n   npm install -g simplebeacon\n\n2. Activate your license:\n   export SIMPLEBEACON_LICENSE_TOKEN="${licenseToken || '<your-token>'}"\n   # Or save to file:\n   mkdir -p ~/.simplebeacon\n   echo "${licenseToken || '<your-token>'}" > ~/.simplebeacon/license.jwt\n\n3. Run your first scan:\n   simplebeacon scan --gate\n\nThat's it! You now have unlimited scans, CI/CD gate integration, 48 analyzer modules, PDF reports, and all export formats.\n\nOTHER WAYS TO USE SIMPLEBEACON:\n- VS Code extension: Search "simplebeacon" in the Extensions marketplace\n- Dashboard: ${PUBLIC_URL}/dashboard\n- CI/CD: Add simplebeacon scan --gate to your pipeline\n\nYour token expires in 1 year (renewed automatically by your subscription).\nRetrieve it anytime: ${PUBLIC_URL}\n\nNeed help? Reply to this email or visit ${PUBLIC_URL}`;
 
   // ---- Build body (table-row based for email client compat) ----
   let body = '';
@@ -174,7 +174,7 @@ function renderSubscriptionActivated(opts = {}) {
     <tr>
       <td class="content">
         <p class="greeting">You're all set &mdash; let's scan.</p>
-        <p class="body-text">Your ${tierName} subscription is now active. You have <strong>unlimited scans</strong>, <strong>38 analyzer engines</strong>, and <strong>CI/CD gate integration</strong>. Here's everything you need to run your first scan in under a minute.</p>`;
+        <p class="body-text">Your ${tierName} subscription is now active. You have <strong>unlimited scans</strong>, <strong>48 analyzer engines</strong>, and <strong>CI/CD gate integration</strong>. Here's everything you need to run your first scan in under a minute.</p>`;
 
   if (extraSeats > 0) {
     body += `<p class="body-text">Your Team Pro subscription includes 5 base seats plus <strong>${extraSeats} extra seat${extraSeats === 1 ? '' : 's'}</strong> (${totalSeats} total).</p>`;
@@ -225,7 +225,7 @@ echo "&lt;your-token&gt;" &gt; ~/.simplebeacon/license.jwt</pre></div>
       <div class="code-block"><pre><span class="prompt">$</span> simplebeacon scan --gate
 
 SimpleBeacon v1.1.2
-52 deterministic engines
+48 analyzers + 25 scan engines
 Scanning 247 files...
 &#10003; Gate: PASS (0 critical, 0 high)
 &#10003; Report saved to .simplebeacon/report.json</pre></div>

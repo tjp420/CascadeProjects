@@ -2,21 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimpleBeacon — Release hygiene for AI-assisted code</title>
-    <meta name="description" content="SimpleBeacon: reduce EU AI Act compliance liability with browser-local scans for AI-generated code debt, credential leaks, and regulatory gaps. Generate board-ready evidence packs without uploading source code.">
-    <meta name="theme-color" content="#0d1117">
-    <meta name="robots" content="index, follow">
+    <title>SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It</title>
+    <meta name="description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <link rel="canonical" href="https://simplebeacon.ai/">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <meta property="og:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
-    <meta property="og:description" content="Browser-local scans for AI slop, token leaks, and compliance gaps. Generate board-ready hygiene certificates without uploading your source code.">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
+    <meta property="og:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
-    <meta property="og:image" content="favicon.svg">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
-    <meta name="twitter:description" content="Browser-local scans for AI slop, token leaks, and compliance gaps. Generate board-ready hygiene certificates without uploading your source code.">
+    <meta name="twitter:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
+    <meta name="twitter:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    
+    <meta name="theme-color" content="#0d1117">
+    
+    
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    
+    
+    
+    
+    
+    
+    
+    
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -1116,6 +1129,27 @@
     </style>
 </head>
 <body>
+<nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
+  <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
+  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
+    <div class="sb-nav-more-wrap">
+      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
+      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
+      <div class="sb-nav-more-menu">
+    <a href="/roadmap" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"/></svg>Roadmap</a>
+    <a href="/pricing" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Pricing</a>
+    <a href="/community" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"/></svg>Install</a>
+    <a href="/blog/case-study-ai-slop-1-25m" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>Blog</a>
+    <a href="/faq" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>FAQ</a>
+    <a href="/contact" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Contact</a>
+      </div>
+    </div>
+    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#6366f1;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
+    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
+  </div>
+</nav>
+<style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
+<script>(function(){var TOKEN_KEYS=['sb_token','cascadeAuthToken','access_token','token','authToken','simplebeacon_token','sb-token-vault'];var USER_KEYS=['sb_user','sb-user','cascadeAuthUser'];var FREE_TIERS=['free','community','sandbox',''];function getCookieVal(n){var m=document.cookie.match('(?:^|; )'+n.replace(/[-/\^$*+?.()|[]{}]/g,'\<body>')+'=([^;]*)');return m?decodeURIComponent(m[1]):'';}function isJwtExpired(t){try{var parts=t.split('.');if(parts.length!==3)return false;var p=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));return !!(p.exp&&p.exp*1000<Date.now());}catch(_){return false;}}function hasAnyToken(){try{for(var i=0;i<TOKEN_KEYS.length;i++){var k=TOKEN_KEYS[i];var v=localStorage.getItem(k)||getCookieVal(k);if(!v)continue;if(isJwtExpired(v)){try{localStorage.removeItem(k);}catch(_){}clearCookie(k);continue;}return true;}}catch(_){}return false;}function getUserTier(){try{var u=null;for(var i=0;i<USER_KEYS.length;i++){u=localStorage.getItem(USER_KEYS[i]);if(u)break;}if(!u)return '';var p=JSON.parse(u);var role=String(p.role||'').toLowerCase();if(role==='admin'||role==='superuser')return 'enterprise';return (p.tier||p.plan||'').toLowerCase();}catch(_){}return '';}function isPaidTier(){var t=getUserTier();return t&&FREE_TIERS.indexOf(t)===-1;}function clearCookie(k){document.cookie=k+'=;path=/;max-age=0;SameSite=Lax;';}function updateAuthNav(){var authed=hasAnyToken();var paid=isPaidTier();var signinBtn=document.getElementById('nav-signin-btn');var signoutBtn=document.getElementById('nav-signout-btn');if(signinBtn)signinBtn.style.display=authed?'none':'inline-block';if(signoutBtn)signoutBtn.style.display=authed?'inline-block':'none';var pricingLinks=document.querySelectorAll('.sb-nav-more-link[href="/pricing"]');for(var i=0;i<pricingLinks.length;i++){pricingLinks[i].style.display=paid?'none':'flex';}}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.sb-site-nav a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}function initSignout(){var signoutBtn=document.getElementById('nav-signout-btn');if(signoutBtn){signoutBtn.addEventListener('click',function(){for(var i=0;i<TOKEN_KEYS.length;i++){try{localStorage.removeItem(TOKEN_KEYS[i]);}catch(_){}clearCookie(TOKEN_KEYS[i]);}for(var i=0;i<USER_KEYS.length;i++){try{localStorage.removeItem(USER_KEYS[i]);}catch(_){}clearCookie(USER_KEYS[i]);}try{sessionStorage.clear();}catch(_){}window.location.reload();});}}function initDropdownClose(){document.addEventListener('click',function(e){var toggle=document.getElementById('sb-nav-more-toggle');if(!toggle||!toggle.checked)return;var wrap=toggle.parentNode;if(wrap&&!wrap.contains(e.target))toggle.checked=false;});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var toggle=document.getElementById('sb-nav-more-toggle');if(toggle)toggle.checked=false;}});}function initSignIn(){var signinBtn=document.getElementById('nav-signin-btn');if(!signinBtn)return;signinBtn.addEventListener('click',function(){var overlay=document.getElementById('auth-modal-overlay');if(overlay){overlay.style.display='flex';overlay.classList.add('active');return;}var signinOverlay=document.getElementById('signinOverlay');if(signinOverlay){signinOverlay.style.display='flex';return;}window.location.href='/app/#/signin';});}function initStorageSync(){window.addEventListener('storage',function(e){if(e.key===null||(TOKEN_KEYS.indexOf(e.key)!==-1&&!e.newValue)||(USER_KEYS.indexOf(e.key)!==-1&&!e.newValue)){updateAuthNav();}});}function init(){updateAuthNav();propagateTokenToLinks();initSignout();initSignIn();initDropdownClose();initStorageSync();}if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',init);}else{init();}})();</script>
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0F19;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;">
         <div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(6,182,212,.2);border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:20px;"></div>
         <div style="color:#9CA3AF;font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
@@ -1126,34 +1160,172 @@
     </div>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
 
-    <!-- HERO — short, punchy, no technical fine print -->
+    <!-- HERO -->
     <section class="hero">
         <div class="hero-card">
-            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero-Upload · Edge-Speed · Board-Ready</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">AI Safety for AI-Coded Teams</span>
             <h1>Turn AI Code Debt Into Audit Evidence Before Regulators Find It.</h1>
-            <p style="font-size:18px;max-width:560px;margin-left:auto;margin-right:auto;">EU AI Act fines reach &euro;35M or 7% of global turnover. SimpleBeacon catches hallucinated APIs, leaked credentials, and compliance gaps locally &mdash; before they become liability. Now scans <strong style="color:var(--text-primary);">text and code</strong>. No upload. No vendor data custody.</p>
+            <p style="font-size:18px;max-width:620px;margin-left:auto;margin-right:auto;">SimpleBeacon catches the slop before it reaches production. It detects mock data in production, fake KPI logic, placeholder code, and unsafe sample paths in the editor, then blocks bad commits at the gate.</p>
 
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
-                <a href="/audit" id="link-audit" class="btn btn-primary">Run Free Local Scan &rarr;</a>
-                <a href="/terminal-walkthrough" class="btn btn-ghost">Explore CLI Deployment Spec &rarr;</a>
+                <a href="#demo" class="btn btn-primary">See the demo &rarr;</a>
+                <a href="/pricing" class="btn btn-success">Start 14-Day Free Trial &rarr;</a>
+                <a href="#cta" class="btn btn-ghost">Book a walkthrough &rarr;</a>
             </div>
-            <script>
-            (function() {
-                var params = new URLSearchParams(window.location.search);
-                var token = params.get('token');
-                if (token) {
-                    ['link-audit','link-audit-stepper'].forEach(function(id) {
-                        var a = document.getElementById(id);
-                        if (a) a.href += (a.href.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
-                    });
-                }
-            })();
-            </script>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:0;margin-bottom:24px;">No credit card required &middot; Full Developer tier &middot; Cancel anytime</p>
+
             <div class="pricing-tags">
-                <span class="pricing-tag">Free — 5 browser scans/mo</span>
-                <span class="pricing-tag">Team / Agency — $49–$99/mo</span>
-                <span class="pricing-tag">Enterprise Governance — $499+/mo</span>
-                <span class="pricing-tag">Enterprise Air-Gapped — Custom</span>
+                <span class="pricing-tag">Editor diagnostics</span>
+                <span class="pricing-tag">Pre-commit enforcement</span>
+                <span class="pricing-tag">Local-first</span>
+                <span class="pricing-tag">Offline-safe</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="section" style="padding: 60px 24px;">
+        <div class="container">
+            <h2>The problem isn’t syntax. It’s AI-generated slop.</h2>
+            <p class="section-subtitle">Compilers catch broken syntax. They do not catch fake KPI logic, placeholder code, or sample files accidentally wired into production paths.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🧱</span>
+                    <h3>Mock data in production</h3>
+                    <p>AI-generated handlers read from fixtures and sample JSON files that look valid but were never meant for production use.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📈</span>
+                    <h3>Fake KPI logic</h3>
+                    <p>Analytics endpoints invent conversion numbers and business metrics that pass a glance review but should never be trusted.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🧩</span>
+                    <h3>Placeholder code</h3>
+                    <p>TODO and FIXME markers are left behind, creating hidden technical debt and broken logic paths that slip through review.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEMO: editor proof -->
+    <section id="demo" class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18); padding-top: 72px;">
+        <div class="container">
+            <h2>Catch the issue where the code is created.</h2>
+            <p class="section-subtitle">SimpleBeacon analyzes code in the editor the moment it is written, before it leaves the developer's machine.</p>
+            <div class="features-grid" style="margin-bottom: 24px;">
+                <div class="feature-card" style="min-height: 260px;">
+                    <span class="feature-icon">🧪</span>
+                    <h3>Broken code example</h3>
+                    <p>AI-generated dashboard code reads from mock sample paths and invents KPI values at runtime. It looks plausible, but it is structurally unsafe.</p>
+                    <div style="margin-top:18px; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:14px; font-family: monospace; font-size:12px; color:#c9d1d9; line-height:1.7;">
+                        const METRICS_DATA_PATH = './fixtures/sample-metrics.json';<br>
+                        const USER_ANALYTICS_PATH = './mock/user-analytics-sample.json';<br>
+                        const conversionRate = '75 %';
+                    </div>
+                </div>
+                <div class="feature-card" style="min-height: 260px;">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Editor diagnostics</h3>
+                    <p>SimpleBeacon lights up the Problems panel instantly and flags the risky patterns before a human review ever sees the file.</p>
+                    <div style="margin-top:18px; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:14px; font-family: monospace; font-size:12px; color:#c9d1d9; line-height:1.7;">
+                        <span style="color:#f85149;">SimpleBeacon AI Slop Cop</span><br>
+                        <span style="color:#f85149;">FAIL (5 block)</span><br>
+                        mock/sample path detected<br>
+                        fake KPI logic detected<br>
+                        placeholder TODO/FIXME found
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEMO: commit block -->
+    <section class="section" style="padding: 60px 24px;">
+        <div class="container">
+            <h2>The pre-commit gate blocks the bad commit.</h2>
+            <p class="section-subtitle">Even if the developer misses the editor warning, SimpleBeacon still catches it at the gate.</p>
+            <div class="terminal" style="margin-bottom: 18px;">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">terminal</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="prompt">$</span> <span class="cmd">git add src/dashboard-api.cjs</span></div>
+                    <div><span class="prompt">$</span> <span class="cmd">git commit -m "add dashboard"</span></div>
+                    <div class="error">[pre-commit-gate] Gate scan failed (exit 1). Commit blocked.</div>
+                    <div class="warn">SimpleBeacon detected mock data, fake KPI logic, and placeholder drift.</div>
+                    <span class="cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p style="text-align:center; font-size:14px; color:var(--text-muted);">Bad code does not reach the branch.</p>
+        </div>
+    </section>
+
+    <!-- DEMO: fix and pass -->
+    <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18); padding-top: 72px;">
+        <div class="container">
+            <h2>Fix it once. Keep the pipeline clean.</h2>
+            <p class="section-subtitle">Once the issue is addressed, the project re-runs the local gate and passes cleanly.</p>
+            <div class="terminal" style="margin-bottom: 18px;">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">terminal</span>
+                </div>
+                <div class="terminal-body">
+                    <div><span class="prompt">$</span> <span class="cmd">node demo/swap-dashboard.cjs fixed</span></div>
+                    <div><span class="prompt">$</span> <span class="cmd">npx simplebeacon scan --gate --format json --offline</span></div>
+                    <div class="success">[PASS] SimpleBeacon gate passed.</div>
+                    <div class="success">No blocking issues detected. Safe code stays in flow.</div>
+                    <span class="cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p style="text-align:center; font-size:14px; color:var(--text-muted);">The fix is applied, the gate passes, and the branch remains clean.</p>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="section">
+        <div class="container">
+            <h2>What SimpleBeacon does for engineering teams</h2>
+            <p class="section-subtitle">A lightweight, local-first safety layer for AI-assisted development.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🧠</span>
+                    <h3>Editor diagnostics</h3>
+                    <p>Instant local analysis that catches risky AI-generated code before review.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🚫</span>
+                    <h3>Pre-commit enforcement</h3>
+                    <p>Blocks dirty commits before they pollute the branch or trigger expensive CI failures.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Local-first workflow</h3>
+                    <p>Runs in the workspace or browser sandbox, with no code upload required.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📋</span>
+                    <h3>Security and compliance guardrails</h3>
+                    <p>Supports review workflows for teams that need auditability and safer AI adoption.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="section" style="padding-bottom: 80px;">
+        <div class="container" style="text-align:center; max-width: 760px;">
+            <h2>Stop guessing what your AI assistants are committing.</h2>
+            <p class="section-subtitle" style="margin-bottom: 28px;">SimpleBeacon catches the issues before they become expensive.</p>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
+                <a href="/audit" class="btn btn-primary">Book a demo &rarr;</a>
+                <a href="https://simplebeacon.ai" class="btn btn-ghost">Start free &rarr;</a>
             </div>
         </div>
     </section>
@@ -1262,7 +1434,7 @@
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;">
                     <div style="font-size:36px;margin-bottom:12px;">&lt;/&gt;</div>
                     <h3 style="margin:0 0 8px;font-size:18px;">Software &amp; Tech Teams</h3>
-                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Eradicate AI code debt, placeholder debris, credential leaks, and structural slop locally &mdash; with board-ready compliance certificates.</p>
+                    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">Eradicate AI code debt, placeholder debris, credential leaks, and structural slop that traditional linting misses &mdash; with board-ready compliance certificates.</p>
                 </div>
             </div>
         </div>
@@ -1281,7 +1453,7 @@
                 </div>
                 <div id="text-scan-results" style="margin-top:20px;"></div>
             </div>
-            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same 52 heuristic engines from SimpleBeacon's code scanner, adapted for plain text. No text is sent to any server &mdash; scanning runs entirely in your browser.</p>
+            <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:16px;">Uses the same 48 analyzers and 25 scan engines from SimpleBeacon's code scanner, adapted for plain text. No text is sent to any server &mdash; scanning runs entirely in your browser.</p>
         </div>
     </section>
     <script>
@@ -1400,7 +1572,7 @@
                     <div class="terminal-body" id="termCodeBlock" style="padding:16px 20px;font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;line-height:1.7;color:#C9D1D9;min-height:auto;">
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">npm install -g simplebeacon</span></div>
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">simplebeacon scan . --gate --format json --output report.json</span></div>
-                        <div style="color:#8B949E;">→ 52 engines loaded · 14,000 files scanned in 38s</div>
+                        <div style="color:#8B949E;">→ 48 analyzers loaded · 25 scan engines · 6,000 files scanned in 90s</div>
                         <div style="color:#3fb950;">✓ Gate: PASS · Quality Score: 87/100 · Grade: B+</div>
                         <div><span style="color:#3fb950;">$</span> <span style="color:#C9D1D9;">simplebeacon fix --dry-run</span></div>
                         <div style="color:#8B949E;">→ 2 auto-fixes ready: credential quarantine, placeholder removal</div>
@@ -1501,8 +1673,8 @@
                 <div class="feature-card-3">
                     <span class="feature-icon">&#9889;</span>
                     <h3>Edge Execution Speed</h3>
-                    <p>14,000 files scanned in under 40 seconds on local hardware. Compliance guardrails stay invisible to your team.</p>
-                    <details><summary>Technical Specs</summary><div class="tech-specs">No network round-trip. Files processed in-memory via streaming. Benchmark: 4.4M lines of code across 14k files in 38s on M2 Pro.</div></details>
+                    <p>6,000 files scanned in under 90 seconds on local hardware. Compliance guardrails stay invisible to your team.</p>
+                    <details><summary>Technical Specs</summary><div class="tech-specs">No network round-trip. Files processed in-memory via streaming. Benchmark: 6,000 tracked files across a full-stack monorepo in 89s on local hardware.</div></details>
                 </div>
                 <div class="feature-card-3">
                     <span class="feature-icon">&#128274;</span>
@@ -1602,6 +1774,43 @@
             </div>
             <div style="text-align:center;margin-top:28px;">
                 <a href="/dashboard/#/analyze" class="btn btn-success">&#128209; Run Live Scan</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- DOUBLE LIABILITY: The cloud auditor paradox -->
+    <section class="section" style="background: rgba(99,102,241,0.04); border-top: 1px solid rgba(99,102,241,0.15); border-bottom: 1px solid rgba(99,102,241,0.15);">
+        <div class="container">
+            <div style="max-width:780px;margin:0 auto;text-align:center;">
+                <span style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:13px;font-weight:600;letter-spacing:0.5px;margin-bottom:16px;">&nbsp;The Cloud Auditor Paradox&nbsp;</span>
+                <h2 style="margin:0 0 16px;">You shouldn't have to risk a breach to check for compliance.</h2>
+                <p style="color:var(--text-secondary);font-size:17px;line-height:1.7;margin:0 0 28px;">
+                    Cloud-based code analysis tools require you to upload your proprietary source code to a third-party server. That means you are <strong style="color:var(--text-primary);">paying a vendor to increase your attack surface</strong> &mdash; creating a new third-party data liability just to audit your existing one.
+                </p>
+                <p style="color:var(--text-secondary);font-size:17px;line-height:1.7;margin:0 0 32px;">
+                    SimpleBeacon runs entirely behind your firewall. No source code in transit. No vendor data custody. No new attack surface. You get enterprise-grade compliance auditing without adding a single new third-party risk.
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:32px;">
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128274;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">Zero Data Transit</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">Source code never leaves your local machine or secure VPC. No upload. No transit. No exposure.</p>
+                    </div>
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128737;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">Zero Vendor Custody</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">We cannot leak what we do not have. No source code is stored on our servers at any point.</p>
+                    </div>
+                    <div style="padding:20px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);text-align:left;">
+                        <div style="font-size:1.4rem;margin-bottom:8px;">&#128196;</div>
+                        <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;margin-bottom:6px;">On-Premise Audit Trail</div>
+                        <p style="color:var(--text-muted);font-size:0.82rem;line-height:1.5;margin:0;">SHA-256 integrity-sealed reports generated locally. Auditors get evidence without data leaving your network.</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                    <a href="/pricing" class="btn btn-primary">Start 14-Day Free Trial &rarr;</a>
+                    <a href="/security" class="btn btn-outline">Read the Security Whitepaper</a>
+                </div>
             </div>
         </div>
     </section>
@@ -1767,5 +1976,6 @@ jobs:
         </p>
     </footer>
 
+  <script src="/js-es2018/referral-capture.js" defer></script>
 </body>
 </html>

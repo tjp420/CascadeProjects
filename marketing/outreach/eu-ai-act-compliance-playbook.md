@@ -335,7 +335,7 @@ The operational risks:
   outages, SLA breaches, customer churn
 
 SimpleBeacon quantifies these risks:
-- 52+ deterministic scan engines targeting AI-specific anti-patterns
+- 48 analyzers + 25 scan engines targeting AI-specific anti-patterns
 - Risk Heatmap (3x3 matrix: severity x likelihood) for board reporting
 - Executive Risk Certificate with statutory fine risk mappings
 - Continuous compliance via Azure DevOps pipeline integration
@@ -483,7 +483,7 @@ One-time audit = point-in-time snapshot (expires)
 SimpleBeacon in Azure DevOps CI = continuous compliance evidence
 
 Every pull request triggers:
-- 52+ engine compliance scan
+- 48-analyzer + 25-engine compliance scan
 - Quality gate enforcement (--fail-on high)
 - Tamper-evident artifact generation
 - Executive Risk Certificate update
@@ -522,7 +522,7 @@ legal team briefings.
 | "We're waiting to see how enforcement plays out" | "The August 2026 deadline is statutory. Enforcement actions typically begin within 90 days of deadline. Early adopters have 12+ months of compliance evidence by then. Late starters have zero." |
 | "Our legal team handles compliance" | "SimpleBeacon generates the artifacts your legal team needs. We don't replace legal counsel — we give them the evidence to demonstrate compliance. Most legal teams can't produce AI code audit trails without engineering tooling." |
 | "We need a pilot first" | "30-day enterprise trial. Up to 10 seats. No contract. No procurement paperwork. Self-serve onboarding via PowerShell or dashboard. Full Azure DevOps pipeline template included." |
-| "We need custom rules for our internal policies" | "SimpleBeacon supports custom guardrail rules via .simplebeacon/rules/. Regex and AST-based rules. Your AppSec team can author policy-specific rules that integrate with our 52+ built-in engines." |
+| "We need custom rules for our internal policies" | "SimpleBeacon supports custom guardrail rules via .simplebeacon/rules/. Regex and AST-based rules. Your AppSec team can author policy-specific rules that integrate with our 48 built-in analyzers + 25 scan engines." |
 
 ---
 

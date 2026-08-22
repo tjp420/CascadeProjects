@@ -26,7 +26,7 @@ The bottleneck is not writing the code anymore; it is cleaning it up. When junio
 
 That debt sits silently in your repository until it hits manual code reviews or breaks a CI staging build. Your senior developers then spend high-value hours manually polishing syntax debris instead of shipping features.
 
-SimpleBeacon stops this loop on the edge. It reads code directly from the local NVMe drive, scanning 14,000 files in under 40 seconds. Running <code>simplebeacon fix</code> pre-commit automatically strips markdown artifacts and secures hardcoded tokens before code ever reaches a pull request.
+SimpleBeacon stops this loop on the edge. It reads code directly from the local NVMe drive, scanning 6,000 files in 89 seconds. Running <code>simplebeacon fix</code> pre-commit automatically strips markdown artifacts and secures hardcoded tokens before code ever reaches a pull request.
 
 It gives your team the velocity of AI development with the structural predictability of a senior engineer, with zero source code leaving the machine.
 
@@ -67,13 +67,13 @@ P.S. — We just finished one for a Series B HR tech company. They found 47 AI-g
 
 ## Touch 2 — The Follow-Up (3 days later, if no reply)
 
-**Subject**: 14,000 files processed in under 40 seconds (Zero network lag)
+**Subject**: 6,000 files processed in 89 seconds (Zero network lag)
 
 Hi {{FirstName}},
 
 The fastest way to get developers to bypass security tools is introducing pipeline friction. If a code check takes 60 seconds to push, engineers will turn it off.
 
-We benchmarked SimpleBeacon's local heuristic engine against a 14,000-file repository. Total processing time: under 40 seconds.
+We benchmarked SimpleBeacon's local heuristic engine against a 6,000-file repository. Total processing time: 89 seconds.
 
 Because it executes entirely inside the local browser context or terminal space, it reads straight from the local SSD into system memory. It completely eliminates network transit delays, proxy configurations, and cloud queue waiting times.
 

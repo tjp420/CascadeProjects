@@ -4,8 +4,8 @@
 > SimpleBeacon production deployment on Render. Use this document when
 > configuring the Render dashboard or migrating to a new hosting provider.
 >
-> **Last updated**: 2026-08-25
-> **Related**: `render.yaml` (infrastructure-as-code), `AGENTS.md` (dev notes)
+> **Last updated**: 2026-08-18
+> **Related**: `render.yaml` (infrastructure-as-code), `api-server/render.yaml` (api-server), `AGENTS.md` (dev notes)
 
 ---
 
@@ -15,19 +15,21 @@
 |----------|-------|--------|
 | [Runtime](#1-runtime) | 4 | All in render.yaml |
 | [Database](#2-database) | 4 | All in render.yaml |
-| [Security & Auth](#3-security--auth) | 8 | 5 in render.yaml, 3 missing |
-| [Stripe Billing](#4-stripe-billing) | 10 | 4 in render.yaml, 6 sync:false |
+| [Security & Auth](#3-security--auth) | 8 | All in render.yaml |
+| [Stripe Billing](#4-stripe-billing) | 10 | All in render.yaml (sync:false) |
 | [Email & Notifications](#5-email--notifications) | 12 | All in render.yaml |
-| [LLM / Ollama](#6-llm--ollama) | 7 | **0 in render.yaml — all missing** |
+| [LLM / Ollama](#6-llam--ollama) | 7 | 5 in render.yaml, 2 optional |
 | [Redis](#7-redis) | 4 | 0 in render.yaml (optional) |
-| [CORS & Origins](#8-cors--origins) | 5 | 2 in render.yaml, 3 missing |
-| [Feature Flags](#9-feature-flags) | 8 | 6 in render.yaml, 2 missing |
-| [Report Signing](#10-report-signing) | 2 | **0 in render.yaml — missing** |
+| [CORS & Origins](#8-cors--origins) | 5 | All in render.yaml |
+| [Feature Flags](#9-feature-flags) | 8 | All in render.yaml |
+| [Report Signing](#10-report-signing) | 2 | All in render.yaml |
 | [Admin & Support](#11-admin--support) | 1 | 1 in render.yaml |
-| [Stripe Checkout Links](#12-stripe-checkout-links) | 3 | **0 in render.yaml — missing** |
+| [Stripe Checkout Links](#12-stripe-checkout-links) | 3 | All in render.yaml |
 | [Analytics](#13-analytics) | 1 | 1 in render.yaml |
 
-**Total**: 69 environment variables (43 in render.yaml, 26 missing)
+**Total**: 69 environment variables (all in render.yaml; Redis optional)
+
+**api-server**: See `api-server/render.yaml` for the separate api-server env var spec (uses its own `simplebeacon-api-db` Postgres).
 
 ---
 

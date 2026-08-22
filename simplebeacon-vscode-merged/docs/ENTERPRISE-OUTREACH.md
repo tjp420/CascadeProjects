@@ -26,7 +26,7 @@ GitHub Advanced Security and Snyk catch traditional vulnerabilities.
 They don't catch AI-specific anti-patterns.
 
 I built SimpleBeacon to fill that gap:
-→ 60+ rules targeting LLM-generated code issues
+→ 48 analyzers + 25 scan engines targeting LLM-generated code issues
 → 100% local (no source code leaves your machine)
 → EU AI Act compliance indicators built-in
 
@@ -81,7 +81,7 @@ But does it catch:
 
 These are AI-specific anti-patterns that traditional scanners ignore.
 
-SimpleBeacon is a local-first scanner with 60+ AI-native rules.
+SimpleBeacon is a local-first scanner with 48 AI-native analyzers + 25 scan engines.
 Runs entirely offline. Integrates with your CI pipeline.
 
 Compliance note: generates EU AI Act artifacts + Executive Risk Certificates

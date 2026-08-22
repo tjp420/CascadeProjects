@@ -285,7 +285,7 @@ function buildExecutiveHtml(report, licenseClaims) {
         <p>Generated: ${generatedAt} &nbsp;|&nbsp; Licensed to: ${licenseClaims.sub || 'Unknown'} &nbsp;|&nbsp; Tier: ${licenseClaims.tier || 'standard'}</p>
     </div>
     <div class="letterhead-right">
-        <div class="engines-badge">52 Deterministic Engines</div>
+        <div class="engines-badge">48 analyzers + 25 scan engines</div>
         <div class="tagline">Catch AI code debt that traditional linting misses — no upload, no LLM, no false positives.</div>
     </div>
 </div>
@@ -326,12 +326,12 @@ ${liability.total > 0 ? `
 ${remediationSteps.length > 0 ? remediationSteps.join('') : '<p>No remediation required — codebase meets current compliance thresholds.</p>'}
 
 <div class="disclaimer">
-    <strong>Disclaimer:</strong> This is a static technical pattern review generated locally by SimpleBeacon CLI using 52 deterministic engines. No source code was transmitted to any external server. No LLM or AI narrative was used in the analysis. Estimates are illustrative and do not constitute legal advice or a formal conformity assessment. Consult legal counsel before any regulatory filing.
+    <strong>Disclaimer:</strong> This is a static technical pattern review generated locally by SimpleBeacon CLI using 48 analyzers + 25 scan engines. No source code was transmitted to any external server. No LLM or AI narrative was used in the analysis. Estimates are illustrative and do not constitute legal advice or a formal conformity assessment. Consult legal counsel before any regulatory filing.
     <br>License ID: ${licenseClaims.jti || 'N/A'} | Valid until: ${licenseClaims.exp ? new Date(licenseClaims.exp * 1000).toISOString() : 'N/A'}
 </div>
 
 <div class="tier-footer">
-    <strong>SimpleBeacon</strong> — 52 deterministic engines catch AI code debt that traditional linting misses. This certificate was generated on a ${licenseClaims.tier || 'standard'} tier license. <a href="https://simplebeacon.ai/pricing" style="color:#0d6efd;text-decoration:none">Upgrade for team-wide CI history, custom policy rules, and air-gapped enterprise deployment.</a>
+    <strong>SimpleBeacon</strong> — 48 analyzers + 25 scan engines catch AI code debt that traditional linting misses. This certificate was generated on a ${licenseClaims.tier || 'standard'} tier license. <a href="https://simplebeacon.ai/pricing" style="color:#0d6efd;text-decoration:none">Upgrade for team-wide CI history, custom policy rules, and air-gapped enterprise deployment.</a>
 </div>
 
 </body>

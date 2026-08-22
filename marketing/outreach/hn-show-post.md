@@ -14,9 +14,9 @@ The worst part: the existing "enterprise" scanning tools wanted me to upload the
 
 ## What it does
 
-- **Credential leak detection** — scans 669 files/sec for API keys, tokens, and env leaks
+- **Credential leak detection** — scans for hardcoded API keys, tokens, and env values that made it past review
 - **AI slop detection** — catches hallucinated imports, placeholder KPIs, and LLM filler comments
-- **EU AI Act / SOC 2 readiness** — maps findings to regulatory documentation gaps and generates a board-ready certificate
+- **EU AI Act / SOC 2 readiness** — maps findings to regulatory documentation gaps and generates a technical attestation certificate (not a legal certification)
 - **VS Code extension** — sidebar dashboard with remediation roadmap
 - **GitHub Action** — blocks PRs with blocking findings
 
@@ -24,27 +24,29 @@ The worst part: the existing "enterprise" scanning tools wanted me to upload the
 
 | | SimpleBeacon | SonarQube | Snyk |
 |---|---|---|---|
-| **Uploads source?** | Never (default) | Yes (cloud) | Yes (cloud) |
+| **Uploads source?** | Never (default) | Optional (cloud or on-prem) | Yes (cloud) |
 | **AI slop detection** | Yes | No | No |
 | **EU AI Act mapping** | Yes | No | No |
-| **Price** | Free / $9 Pro / $399 Compliance Suite | Enterprise $$$ | Enterprise $$$ |
+| **Price** | Free / $49 Developer / $399 Compliance Suite | Enterprise $$$ | Enterprise $$$ |
 | **Local LLM support** | Yes (Ollama) | No | No |
 
 ## Pricing
 
-- **Free:** 10 local scans/month, 24 IDE rules, CLI + VS Code extension
-- **Pro:** $9/month — unlimited scans, 38 analyzer engines, CI gate, exportable reports
-- **Compliance Suite:** $399/month — unlimited scans, 60+ engines, EU AI Act + SOC 2 artifacts, 5 seats, board-ready certificate ZIP
+- **Free:** unlimited local scans (50 files/scan, 5 findings shown), CLI + VS Code extension
+- **Developer:** $49/month or $490/year — unlimited scans, 48 analyzers, CI gate, exportable reports
+- **Legacy Pro:** $9/month — backward compat for existing customers, same features as Developer
+- **Compliance Suite:** $399/month — unlimited scans, 48 analyzers, EU AI Act + SOC 2 artifacts, 5 seats, certificate ZIP
 - **Audit Certificate:** $149 one-time — single cryptographic certificate for investors/auditors, valid 12 months
-- **Enterprise Air-Gapped:** Custom — on-premise, SSO, unlimited seats, dedicated SLA
+- **Enterprise:** Custom — air-gapped deployment, SSO/SAML (roadmap), dedicated analyst
 
 ## Technical details
 
-- Node.js 22+, single binary via `npm`
+- Node.js 18+, runs via `npx` or `npm install -g`
 - Deterministic regex + AST scanning (no LLM in the default path)
-- Offline RSA license verification
+- Offline HMAC-SHA256 license verification (JWT, no network needed after activation)
 - MCP server for Cursor/Claude Desktop integration
 - JSON/CSV/PDF export for compliance auditors
+- Optional local LLM remediation via Ollama (not in the default scan path)
 
 ## Try it
 
@@ -52,8 +54,8 @@ The worst part: the existing "enterprise" scanning tools wanted me to upload the
 npx simplebeacon scan --gate --offline
 ```
 
-Repo: https://github.com/tjp420/simplebeacon
-Docs: https://simplebeacon.ai/docs
+Repo: https://github.com/tjp420/CascadeProjects
+Docs: https://simplebeacon.ai
 VS Code: search "SimpleBeacon" in the marketplace
 
 Happy to answer questions. Especially curious if engineering managers are actually seeing this stuff in production now, or if my repo was just a bad case.

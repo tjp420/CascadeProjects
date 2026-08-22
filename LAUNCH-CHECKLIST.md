@@ -1,8 +1,44 @@
 # SimpleBeacon Public Launch Checklist
 
-**Target:** Bulletproof, production-ready developer tool for skeptical engineers and enterprise risk managers.  
-**Estimated readiness:** ~75–80% of the way to an initial public release.  
-**Last updated:** 2026-06-27
+**Target:** Bulletproof, production-ready developer tool for skeptical engineers and enterprise risk managers.
+**Estimated readiness:** ~75–80% of the way to an initial public release.
+**Last updated:** 2026-08-20
+
+## Launch gates by urgency
+
+### Do this today
+
+- [ ] Install the current VSIX on a clean VS Code instance and verify activation, scan flow, findings display, and report export
+- [ ] Confirm the live deployment is reachable over HTTPS and the health endpoint is green in production
+- [ ] Validate Stripe live-mode checkout and webhook processing end-to-end
+- [ ] Validate Resend live email delivery and sender-domain verification
+- [ ] Capture final marketplace screenshots using the current extension UI and the correct dimensions
+- [ ] Run a final compile/test pass in the extension workspace and verify no packaged artifacts expose secrets
+- [ ] Check the production domain, billing flow, and customer signup path together before any public messaging
+
+### Do this this week
+
+- [ ] Publish the VS Code Marketplace listing and confirm the install flow works from a fresh environment
+- [ ] Publish the CLI package to npm and validate installation from a clean machine
+- [ ] Review privacy, terms, and billing language against the actual live product flow
+- [ ] Turn on production monitoring and alerting for errors, billing events, and failed scans
+- [ ] Run a full customer journey test: install -> scan -> review findings -> export -> upgrade
+- [ ] Refresh README and setup docs so they match the shipped product and live workflow
+
+### Do this before public announcement
+
+- [ ] Final engineering, product, and ops signoff on go/no-go
+- [ ] Verify the live domain, billing, and email flows all work in production before launch
+- [ ] Confirm support and FAQ paths exist for installation, billing, and scan troubleshooting
+- [ ] Finalize launch messaging so pricing and claims match the actual product experience
+- [ ] Publish the marketplace listing, release notes, and launch assets
+- [ ] Announce publicly only after the customer funnel has been tested end-to-end
+
+### Evidence already verified
+
+- [x] The VSIX workspace compiles successfully: npm run compile exited with code 0
+- [x] The extension package exists in the project workspace
+- [x] The launch-readiness notes point to external production setup as the remaining release gate
 
 ---
 

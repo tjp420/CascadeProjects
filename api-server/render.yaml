@@ -1,3 +1,9 @@
+databases:
+  - name: simplebeacon-api-db
+    plan: free
+    databaseName: simplebeacon_api
+    user: simplebeacon_api_user
+
 services:
   - type: web
     name: simplebeacon-api
@@ -13,7 +19,11 @@ services:
         value: 10000
       - key: ALLOWED_ORIGIN
         value: https://simplebeacon.ai,https://simplebeacon.pages.dev,https://www.simplebeacon.ai
+      - key: PUBLIC_URL
+        value: "https://simplebeacon.ai"
       - key: SIMPLEBEACON_LICENSE_SECRET
+        sync: false
+      - key: SIMPLEBEACON_JWT_SECRET
         sync: false
       - key: JWT_SECRET
         sync: false
@@ -21,11 +31,48 @@ services:
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM
         value: certificates@simplebeacon.ai
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: simplebeacon-api-db
+          property: connectionString
+      - key: ENABLE_DB_AUTO_MIGRATE
+        value: "true"
       - key: REDIS_URL
         sync: false
+      # ── Stripe Checkout Links (self-service purchases) ──────────────────
+      - key: STRIPE_LINK_INSTANT
+        sync: false
+      - key: STRIPE_LINK_EXECUTIVE
+        sync: false
+      - key: STRIPE_LINK_EU_SPRINT
+        sync: false
+      # ── Upgrade URL (redirect for expired/free tier users) ───────────────
+      - key: SIMPLEBEACON_UPGRADE_URL
+        value: "https://simplebeacon.ai/pricing"
+      # ── CORS aliases (optional — ALLOWED_ORIGIN above is the primary) ────
+      - key: CORS_ORIGINS
+        value: ""
+      - key: CORS_ORIGIN
+        value: ""
+      - key: PUBLIC_APP_URL
+        value: ""
+      # ── Database pool tuning (optional — defaults in lib/db.cjs) ─────────
+      - key: DB_POOL_MAX
+        value: "15"
+      - key: DB_IDLE_TIMEOUT_MS
+        value: "45000"
+      - key: DB_CONNECT_TIMEOUT_MS
+        value: "5000"
+      # ── Database safety valve (optional — prevents connection exhaustion) ─
+      - key: PROJECTED_INSTANCE_COUNT
+        value: "1"
+      - key: DB_SERVER_MAX_CONNECTIONS
+        value: "0"
+      - key: DB_SAFETY_FAIL_ON_EXCEED
+        value: "false"

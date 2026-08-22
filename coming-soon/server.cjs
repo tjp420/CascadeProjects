@@ -161,38 +161,26 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS — allow any origin in dev; specific origins in production
+// CORS — uses shared cors-config.cjs (canonical implementation)
+// Reads CORS_ORIGINS > CORS_ORIGIN > ALLOWED_ORIGIN > PUBLIC_URL env vars.
+// Dev: mirrors any origin. Prod: explicit origins + pages.dev/onrender/netlify regex.
+const { isAllowedOrigin, resolveAllowedOrigins } = require('./lib/cors-config.cjs');
 app.use((req, res, next) => {
-    const isDev = process.env.NODE_ENV !== 'production';
     const origin = req.headers.origin || '';
-    if (isDev) {
-        // Reflect actual origin instead of wildcard to allow credentials in dev
-        res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    } else {
-        const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*')
-            .split(',').map(s => s.trim()).filter(Boolean);
-        const isAllowed = !origin || configuredOrigins.some(a => {
-            if (a === origin) return true;
-            if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(a)) {
-                return origin.startsWith(a.replace(':*', ':'));
-            }
-            return false;
-        }) || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin);
-        if (isAllowed) {
-            if (origin) {
-                res.setHeader('Access-Control-Allow-Origin', origin);
-            }
-        } else {
-            return res.status(403).json({ error: 'Origin not allowed' });
+    if (!origin || isAllowedOrigin(origin)) {
+        if (origin) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
         }
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        if (req.method === 'OPTIONS') {
+            return res.status(204).end();
+        }
+        next();
+    } else {
+        return res.status(403).json({ error: 'Origin not allowed' });
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-    next();
 });
 
 // Local-dev auth/platform stubs so the dashboard/audit page can load without the VS Code: data server

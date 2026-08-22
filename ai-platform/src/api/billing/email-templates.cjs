@@ -85,7 +85,7 @@ const TIER_EMAIL_CONFIG = {
     stepsTitle: 'Getting started',
     stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Unlock all 38 analyzer engines and exportable reports</li>
+      <li>Unlock all 48 analyzer engines and exportable reports</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
     privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
@@ -104,7 +104,7 @@ const TIER_EMAIL_CONFIG = {
     stepsTitle: 'Getting started',
     stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Unlock all 38 analyzer engines and exportable reports</li>
+      <li>Unlock all 48 analyzer engines and exportable reports</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
     privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',

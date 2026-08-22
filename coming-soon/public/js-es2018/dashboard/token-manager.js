@@ -160,7 +160,8 @@ function updateDropzoneGate() {
         overlay.style.display = locked ? 'flex' : 'none';
 }
 function filterScanProfiles(tier) {
-    const allowed = TIER_PROFILES[tier] || TIER_PROFILES.universal;
+    const allowed = TIER_PROFILES[tier] || TIER_PROFILES.universal || (typeof ALL_MODULES !== 'undefined' ? ALL_MODULES : []);
+    if (!Array.isArray(allowed)) return;
     let firstEnabled = null;
     if (browserScanProfile) {
         Array.from(browserScanProfile.options).forEach(opt => {

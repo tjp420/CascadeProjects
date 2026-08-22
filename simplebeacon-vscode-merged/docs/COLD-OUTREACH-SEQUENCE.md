@@ -90,7 +90,7 @@ The problem: GitHub Advanced Security and Snyk catch traditional vulnerabilities
 They don't catch AI-specific anti-patterns.
 
 We built SimpleBeacon to close that gap:
-- 60+ analyzer engines for LLM-generated code
+- 48 analyzer engines for LLM-generated code
 - Real-time IDE detection (before commit)
 - 100% local — source code never leaves your machine
 - EU AI Act compliance indicators built-in
@@ -203,7 +203,7 @@ Auditors will ask:
 
 SimpleBeacon answers all three:
 - Behavioral telemetry detects AI insertion patterns
-- 60+ rule engines validate code quality + security
+- 48 analyzers + 25 scan engines validate code quality + security
 - Tamper-evident JSON exports + Executive Risk Certificates
 
 One enterprise customer uses our certificates as evidence in their SOC 2 audits.

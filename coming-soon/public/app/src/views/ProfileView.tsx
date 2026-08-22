@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Shield, Crown, LogOut, Settings as SettingsIcon, Download, RefreshCw } from 'lucide-react';
+import { User, Mail, Shield, Crown, LogOut, Settings as SettingsIcon, Download, RefreshCw, Key } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 
@@ -254,6 +254,9 @@ export function ProfileView() {
         </CardContent>
       </Card>
 
+      {/* License Token Card */}
+      <LicenseTokenCard email={user?.email} />
+
       {/* Preferences Card */}
       <Card>
         <CardHeader>
@@ -315,5 +318,100 @@ export function ProfileView() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LicenseTokenCard({ email }: { email?: string }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [tier, setTier] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const lookupToken = useCallback(async () => {
+    if (!email) {
+      setError('Email is required');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${getApiBase()}/api/simplebeacon/billing/license?email=${encodeURIComponent(email)}`, {
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok && data.licenseToken) {
+        setToken(data.licenseToken);
+        setTier(data.tier || 'unknown');
+      } else {
+        setError(data.error || 'No license found for this email');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
+
+  const copyToken = useCallback(() => {
+    if (!token) return;
+    navigator.clipboard.writeText(token);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [token]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Key className="h-4 w-4" /> License Token
+        </CardTitle>
+        <CardDescription>
+          Your license token for CLI access and API authentication
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {error && (
+          <p className="text-sm text-danger">{error}</p>
+        )}
+        {token ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground-muted">Tier</span>
+              <Badge variant="default" className="capitalize">{tier}</Badge>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-foreground-muted">Token</span>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setShowToken(!showToken)}>
+                    {showToken ? 'Hide' : 'Show'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={copyToken}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+              </div>
+              <code className="block text-xs break-all font-mono">
+                {showToken ? token : '•'.repeat(60)}
+              </code>
+            </div>
+            <Button variant="outline" size="sm" onClick={lookupToken} disabled={loading}>
+              {loading ? <><RefreshCw className="h-4 w-4 animate-spin" /> Refreshing…</> : <><RefreshCw className="h-4 w-4" /> Refresh Token</>}
+            </Button>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-foreground-muted">
+              Paid for a subscription? Look up your license token here to use with the CLI or API.
+            </p>
+            <Button onClick={lookupToken} disabled={loading || !email}>
+              {loading ? <><RefreshCw className="h-4 w-4 animate-spin" /> Looking up…</> : <><Key className="h-4 w-4" /> Look Up My Token</>}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

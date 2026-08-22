@@ -23,7 +23,7 @@
   - All Free features
   - Unlimited scans
   - Unlimited files per scan
-  - Full scanning (38 analyzer engines)
+  - Full scanning (48 analyzer engines)
   - Batch CLI scanning
   - CI/CD gate integration
   - Export reports (JSON, Markdown)
@@ -36,7 +36,7 @@
 - **Features:**
   - All Pro features
   - Unlimited scans
-  - 60+ analyzer engines (full suite)
+  - 48 analyzer engines (full suite)
   - EU AI Act documentation
   - SOC 2 alignment artifacts
   - Board-ready PDF certificate ZIP

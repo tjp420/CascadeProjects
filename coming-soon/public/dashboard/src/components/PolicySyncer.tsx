@@ -53,13 +53,13 @@ export function PolicySyncer() {
     setLoading(true);
     setError(null);
     try {
-      const orgsResp = await fetch(apiUrl('/api/audit/pii/orgs'), { headers: authHeaders(), credentials: 'include' });
+      const orgsResp = await fetch(apiUrl('audit/pii/orgs'), { headers: authHeaders(), credentials: 'include' });
       if (!orgsResp.ok) throw new Error(`Orgs request failed: ${orgsResp.status}`);
       const orgsJson = await orgsResp.json();
       const org = (orgsJson.orgs || [])[0];
       const orgId = org?.orgId || 'org-source';
 
-      const polResp = await fetch(apiUrl(`/api/audit/pii/policies/${encodeURIComponent(orgId)}`), { headers: authHeaders(), credentials: 'include' });
+      const polResp = await fetch(apiUrl(`audit/pii/policies/${encodeURIComponent(orgId)}`), { headers: authHeaders(), credentials: 'include' });
       if (!polResp.ok) throw new Error(`Policy request failed: ${polResp.status}`);
       const polJson = await polResp.json();
       const policies: PiiPolicy[] = polJson.policies || [];
@@ -94,7 +94,7 @@ export function PolicySyncer() {
   const fetchBlockedCount = useCallback(async () => {
     try {
       const resp = await fetch(
-        apiUrl('/api/audit/log?action=compliance_policy_violation&limit=1&offset=0'),
+        apiUrl('audit/log?action=compliance_policy_violation&limit=1&offset=0'),
         { headers: authHeaders(), credentials: 'include' },
       );
       if (!resp.ok) return;

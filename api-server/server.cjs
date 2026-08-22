@@ -127,31 +127,20 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS — allow Cloudflare Pages origins + dev localhost
+// CORS — uses shared cors-config.cjs (canonical implementation)
+// Reads CORS_ORIGINS > CORS_ORIGIN > ALLOWED_ORIGIN > PUBLIC_URL env vars.
+// Dev: mirrors any origin. Prod: explicit origins + pages.dev/onrender/netlify regex.
+const { isAllowedOrigin } = require('./lib/cors-config.cjs');
+
 app.use((req, res, next) => {
     const origin = req.headers.origin || '';
-    const isDev = process.env.NODE_ENV !== 'production';
-    const defaultOrigins = [
-        'https://simplebeacon.ai',
-        'https://simplebeacon.pages.dev',
-        'https://www.simplebeacon.ai',
-    ];
-    const configuredOrigins = (process.env.ALLOWED_ORIGIN || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
-    const allOrigins = isDev
-        ? [...defaultOrigins, 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
-        : [...defaultOrigins, ...configuredOrigins];
-    const isAllowed = !origin
-        || allOrigins.includes(origin)
-        || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin)
-        || (isDev && /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(origin));
-    if (isAllowed) {
+    if (isAllowedOrigin(origin)) {
         if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
     } else {
         return res.status(403).json({ error: 'Origin not allowed' });
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Token-Password, X-SimpleBeacon-Bridge-Token');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') {
         return res.status(204).end();
@@ -1031,9 +1020,22 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     logger.info(`[API] SimpleBeacon API server running on port ${PORT}`);
     logger.info(`[API] Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Auto-run migrations on startup if enabled (matches ai-platform behavior)
+    if (process.env.ENABLE_DB_AUTO_MIGRATE === 'true' && process.env.DATABASE_URL) {
+        try {
+            const { runMigrations } = require('./migrations/run-migrations.cjs');
+            if (typeof runMigrations === 'function') {
+                await runMigrations();
+                logger.info('[API] Database migrations completed.');
+            }
+        } catch (migErr) {
+            logger.error('[API] Migration failed (non-fatal):', migErr.message);
+        }
+    }
 });
 
 function gracefulShutdown(signal) {

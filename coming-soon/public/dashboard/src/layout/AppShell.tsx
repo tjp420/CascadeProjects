@@ -22,6 +22,12 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded"
+      >
+        Skip to main content
+      </a>
       <Sidebar
         currentView={currentView}
         onNavigate={(v) => {
@@ -39,7 +45,7 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
           isFreeTier={isFreeTier}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
+        <main id="main-content" className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
           {children}
         </main>
       </div>

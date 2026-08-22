@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
+import { OllamaUptimeWidget } from '@/components/OllamaUptimeWidget';
 
 export function DashboardView() {
   const { isFreeTier } = useAuth();
@@ -100,7 +101,7 @@ export function DashboardView() {
         />
       </div>
 
-      {/* Quick Actions + Scan Status */}
+      {/* Quick Actions + Scan Status + Ollama Status */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -202,6 +203,8 @@ export function DashboardView() {
             )}
           </CardContent>
         </Card>
+
+        <OllamaUptimeWidget />
       </div>
 
       {/* Features Grid — only for free tier */}

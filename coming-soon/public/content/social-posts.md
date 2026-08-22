@@ -140,7 +140,7 @@ So I built AI Slop Cop: 53 deterministic rules that flag this stuff as you type.
 - 50 files per workspace scan
 - Works entirely offline
 
-**Team ($49/mo):** +24 rules for credential leaks, mock-path references, debug artifacts
+**Team ($49/mo):** +35 IDE patterns for credential leaks, mock-path references, debug artifacts
 
 **Enterprise ($499/mo):** +14 rules for AI SDK governance, a11y, i18n, missing tests
 

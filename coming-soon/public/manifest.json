@@ -1,7 +1,7 @@
 {
   "name": "SimpleBeacon",
   "short_name": "SimpleBeacon",
-  "description": "Catch AI code debt that traditional linting misses. 52 deterministic engines scan locally, in seconds, before CI.",
+  "description": "Catch AI code debt that traditional linting misses. 48 analyzers + 25 scan engines scan locally, in seconds, before CI.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0F19",

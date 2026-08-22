@@ -3,7 +3,7 @@
 ## Extension Description
 
 ### Short Description (128 characters max)
-Offline AI code audit — 38 analyzer engines, zero source-code upload, board-ready compliance reports.
+Offline AI code audit — 48 analyzer engines, zero source-code upload, board-ready compliance reports.
 
 ### Full Description
 
@@ -34,7 +34,7 @@ Offline AI code audit — 38 analyzer engines, zero source-code upload, board-re
 ### Tier System
 - **Free:** 10 local scans/month, 24 real-time IDE rules, CLI + VS Code extension
 - **Pro:** $9/month — unlimited scans, all 38 engines, CLI scanning, CI/CD integration, export reports
-- **Compliance Suite:** $399/month — unlimited scans, 60+ engines, EU AI Act + SOC 2 artifacts, 5 team seats, board-ready certificate ZIP
+- **Compliance Suite:** $399/month — unlimited scans, 48 analyzers, EU AI Act + SOC 2 artifacts, 5 team seats, board-ready certificate ZIP
 - **Audit Certificate:** $149 one-time — single cryptographic board-ready certificate for investors/auditors, valid 12 months
 - **Enterprise Air-Gapped:** Custom pricing — on-premise deployment, SSO, unlimited seats, dedicated SLA
 
@@ -122,7 +122,7 @@ Customize rule severity:
 
 - **Free:** 10 local scans/month (24 IDE rules)
 - **Pro:** $9/month or $90/year — unlimited scans, 38 engines, CI/CD integration
-- **Compliance Suite:** $399/month or $3,999/year — unlimited scans, 60+ engines, EU AI Act + SOC 2 artifacts, 5 seats, certificate ZIP
+- **Compliance Suite:** $399/month or $3,999/year — unlimited scans, 48 analyzers, EU AI Act + SOC 2 artifacts, 5 seats, certificate ZIP
 - **Audit Certificate:** $149 one-time — single board-ready certificate, valid 12 months
 - **Enterprise Air-Gapped:** Custom pricing — on-premise, SSO, unlimited seats, dedicated SLA
 
@@ -151,7 +151,7 @@ This extension is licensed under the MIT License. See LICENSE file for details.
 - Added credential-specific ignoreGlobs for test files with test secrets
 
 ### Version 3.0.437
-- 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
+- 48 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
 - Enhanced AI analysis with progressive multi-layer scanning
 - Real-time monitoring with AI session detection
 - WebSocket streaming analysis support

@@ -693,6 +693,12 @@ export class ChatbotView {
         this.applyConnectionState(resolved);
         this.updateOllamaSetupVisibility(resolved);
         this.updateOllamaModelGroupVisibility();
+        if (resolved.available.length === 0 && isHostedDashboard() && !isIdeDashboardSurface()) {
+            this.ensureHostedConnectUi();
+            const panel = document.getElementById('chatbot-ollama-setup') || document.getElementById('chatbot-bridge-connect-bar');
+            if (panel)
+                panel.style.display = 'block';
+        }
         if (resolved.available.some((provider) => provider.id === 'ollama') && !this.ollamaModels.length && !this.ollamaModelsLoading && !this._ollamaModelsLoadAttempted) {
             this._ollamaModelsLoadAttempted = true;
             void this.syncOllamaModelFromKeys().then(() => this.loadChatbotOllamaModels()).catch(() => {});

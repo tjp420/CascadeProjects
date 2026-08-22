@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "algorithm": "ECDSA-P256-SHA256",
+  "signature": "1c7672e1fd17b5267a7f97049fea45b34b023becf15c313553b98d6a53aebb6d498c23d2effc870aa6096cc83e1a37765a4e6e9683f5b131e913ac69f5a284cf",
+  "issuedAt": "2026-08-15T16:11:17.780Z",
+  "payload": {
+    "hash": "e9137e9f2590317e8a4f96a163fd4307dcd6d04eba0cd0e6df4aaaf891b19095",
+    "timestamp": 1786810277347,
+    "metadata": {
+      "criticalCount": 0,
+      "highCount": 0,
+      "mediumCount": 0,
+      "lowCount": 0,
+      "totalIssues": 0,
+      "gatePassed": true,
+      "gateBlockingIssues": 0,
+      "gateWarningIssues": 3,
+      "totalFiles": 50
+    }
+  },
+  "verification": {
+    "url": "https://simplebeacon.ai/api/v1/certify/public-key",
+    "keyId": "sb-edge-2f2d7994b5c6a835"
+  },
+  "reportFile": "report.json"
+}

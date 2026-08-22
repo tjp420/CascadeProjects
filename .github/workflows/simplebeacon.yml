@@ -89,7 +89,7 @@ jobs:
             });
             const existing = comments.data.find(c =>
               c.user.login === 'github-actions[bot]' &&
-              c.body.includes('52 Deterministic Engines')
+              c.body.includes('48 analyzers + 25 scan engines')
             );
             if (existing) {
               await github.rest.issues.updateComment({

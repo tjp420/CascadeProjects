@@ -294,6 +294,7 @@ export function AdminView() {
   }, [auditFilter, auditOrgFilter]);
 
   const enterpriseErrorRef = useRef(false);
+  const lastLocationRef = useRef<{ search: string; hash: string }>({ search: '', hash: '' });
 
   const fetchEnterpriseOrgs = useCallback(async () => {
     if (enterpriseErrorRef.current) return;
@@ -478,18 +479,20 @@ export function AdminView() {
         const search = window.location.search || '';
         const sParams = new URLSearchParams(search);
         const t1 = sParams.get('tab');
-        // debug: log detected search tab
-        // eslint-disable-next-line no-console
-        console.debug('AdminView: detected search tab=', t1, 'search=', search);
-        if (t1 && t1 !== adminTab) { setAdminTab(t1); return; }
         // Fallback to hash query
         const hash = window.location.hash.slice(1) || '';
         const parts = hash.split('?');
         const qs = parts[1] || '';
         const params = new URLSearchParams(qs);
         const t = params.get('tab');
-        // eslint-disable-next-line no-console
-        console.debug('AdminView: detected hash tab=', t, 'hash=', hash);
+
+        // Only log when the observed location actually changes to avoid noisy repeat logs
+        const prev = lastLocationRef.current;
+        if (search !== prev.search || hash !== prev.hash) {
+          lastLocationRef.current = { search, hash };
+        }
+
+        if (t1 && t1 !== adminTab) { setAdminTab(t1); return; }
         if (t && t !== adminTab) setAdminTab(t);
       } catch (e) { /* ignore */ }
     }
@@ -1036,6 +1039,7 @@ export function AdminView() {
                                           onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
                                           className="text-muted-foreground hover:text-destructive"
                                           title="Revoke seat"
+                                          aria-label="Revoke seat"
                                         >
                                           <X className="h-3 w-3" />
                                         </button>
@@ -1185,6 +1189,7 @@ export function AdminView() {
                                             onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
                                             className="text-muted-foreground hover:text-destructive"
                                             title="Revoke seat"
+                                            aria-label="Revoke seat"
                                           >
                                             <X className="h-3 w-3" />
                                           </button>
@@ -1729,7 +1734,7 @@ export function AdminView() {
                               <Button size="sm" variant="outline" onClick={() => editSsoConfig(config)}>
                                 <Key className="h-3.5 w-3.5" /> Edit
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => deleteSsoConfig(config.providerId)}>
+                              <Button size="sm" variant="outline" aria-label="Delete SSO config" onClick={() => deleteSsoConfig(config.providerId)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>

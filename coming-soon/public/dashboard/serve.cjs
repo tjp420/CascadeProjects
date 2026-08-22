@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
   // CORS headers for local dev
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SimpleBeacon-Bridge-Token');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);

@@ -1,11 +1,16 @@
 -- simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 -- Token Rotation & Blocklist Schema
 -- Phase 3 Enterprise: JWT refresh token rotation with reuse detection
+--
+-- NOTE: The ai-platform users table uses TEXT primary keys (app-generated IDs
+-- like 'user-<timestamp>-<random>'). The references below use TEXT to match.
+-- The api-server uses UUID primary keys in its own separate database.
+-- See the deployment-readiness scanner's SB-DEP-003 exception for context.
 
 -- Refresh tokens: cryptographically secure opaque tokens with family tracking
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL UNIQUE,
     token_family UUID NOT NULL,
     parent_token_id UUID REFERENCES refresh_tokens(id) ON DELETE SET NULL,
@@ -25,7 +30,7 @@ CREATE TABLE IF NOT EXISTS blacklisted_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     token_hash TEXT NOT NULL UNIQUE,
     token_jti TEXT,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL,
     blacklisted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     reason TEXT NOT NULL DEFAULT 'logout'

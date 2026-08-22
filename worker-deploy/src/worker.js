@@ -317,6 +317,7 @@ export default {
         }
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('Vary', '*');
         headers.set('X-Content-Type-Options', 'nosniff');
         headers.set('X-SB-Worker', 'assets');
         return new Response(assetResp.body, { status: assetResp.status, headers });
@@ -836,6 +837,7 @@ export default {
         headers.set('Content-Type', 'text/html; charset=utf-8');
         headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('Vary', '*');
         headers.set('X-SB-Worker', 'dashboard-html');
         return withSecurityHeaders(withHtmlInjections(new Response(body, { status: 200, headers }), env, url.pathname));
       }
@@ -880,6 +882,7 @@ export default {
       headers.set('X-SB-Worker', 'catchall-assets');
       headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('CDN-Cache-Control', 'no-store');
+      headers.set('Vary', '*');
 
       const isHtml = (headers.get('Content-Type') || '').includes('text/html') ||
                      url.pathname.endsWith('.html') ||

@@ -2,6 +2,12 @@
 ai-platform/.github-sync/simplebeacon/
 java-ai-vulnerable/
 
+# Local-only launch prep and outreach artifacts
+.outbound/
+.devin/
+.continue/
+.analysis/
+
 # Test repo for scanner stress-testing (contains intentional secrets/AI slop)
 simplebeacon-test-repo/
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+// simplebeacon-ignore: unvalidated-redirect — SSO redirect uses server-resolved providerId from /sso/resolve, not user-controlled URLs
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ type Mode = 'signin' | 'register' | 'license';
 export function SignInView() {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,40 @@ export function SignInView() {
       const errorMsg = params.get('sso_message') || ssoError;
       toast.error(`SSO login failed: ${errorMsg}`);
       window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Read mode + token + email from URL params.
+  // Checks both hash params (e.g. #/signin?mode=register&email=xxx)
+  // and search params (e.g. /dashboard/signin?mode=register&email=xxx).
+  // Search params are needed because many email clients strip # fragments.
+  useEffect(() => {
+    // Collect params from both hash and search string
+    const allParams = new URLSearchParams();
+    // From hash: #/signin?mode=register&email=xxx
+    const hash = window.location.hash.slice(1);
+    const hashQueryIndex = hash.indexOf('?');
+    if (hashQueryIndex !== -1) {
+      new URLSearchParams(hash.slice(hashQueryIndex + 1)).forEach((v, k) => allParams.set(k, v));
+    }
+    // From search: ?mode=register&email=xxx (used when email client strips # fragment)
+    new URLSearchParams(window.location.search).forEach((v, k) => allParams.set(k, v));
+
+    const urlMode = allParams.get('mode') as Mode | null;
+    const urlToken = allParams.get('token');
+    const urlEmail = allParams.get('email');
+    const urlName = allParams.get('name');
+    if (urlMode && (urlMode === 'signin' || urlMode === 'register' || urlMode === 'license')) {
+      setMode(urlMode);
+    }
+    if (urlToken && urlMode === 'license') {
+      setLicenseKey(urlToken);
+    }
+    if (urlEmail) {
+      setEmail(urlEmail);
+    }
+    if (urlName) {
+      setName(urlName);
     }
   }, []);
 
@@ -103,10 +139,12 @@ export function SignInView() {
     try {
       await waitForApiBase();
       const endpoint = mode === 'signin' ? '/auth/login' : '/auth/register';
+      const body: Record<string, string> = { email, password };
+      if (mode === 'register' && name) body.name = name;
       const resp = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
       });
       if (!resp.ok) {
         let friendlyMsg = `Authentication failed (${resp.status})`;
@@ -247,8 +285,24 @@ export function SignInView() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  {...(mode === 'register' && email ? { readOnly: true } : {})}
                 />
+                {mode === 'register' && email && (
+                  <p className="text-xs text-muted-foreground">From your purchase — you can change this if needed.</p>
+                )}
               </div>
+              {mode === 'register' && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name <span className="text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              )}
               {ssoProvider && ssoProvider.found && (
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium">

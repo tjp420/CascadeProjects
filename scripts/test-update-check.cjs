@@ -260,9 +260,9 @@ describe('syntax validation', () => {
 
 describe('update notice content', () => {
 
-    test('printUpdateNotice includes "52 deterministic engines" branding', () => {
+    test('printUpdateNotice includes "48 analyzers \+ 25 scan engines" branding', () => {
         const cli = readFile('packages/simplebeacon-cli/src/lib/update-check.js');
-        assert.match(cli, /52 deterministic engines/);
+        assert.match(cli, /48 analyzers \+ 25 scan engines/);
     });
 
     test('printUpdateNotice includes npm install command', () => {

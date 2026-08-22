@@ -202,7 +202,9 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
         return;
     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
     const normalizedPath = currentPath.replace(/\\/g, '/');
-    // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+    // Skip heavy directories during discovery to keep file counts manageable
+    if (entry.isDirectory && SKIP_DIRS.test(normalizedPath + '/'))
+        return;
     if (entry.isFile) {
         if (files.length >= MAX_DISCOVERED_FILES)
             return;
@@ -243,24 +245,28 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
                     break;
                 batch.push(child);
                 if (batch.length >= BATCH_SIZE) {
-                    await Promise.all(batch.map(async (c) => { try {
-                        await traverseFileSystemEntry(c, currentPath, files, state);
-                    }
-                    catch (err) {
-                        state.traverseErrors++;
-                    } }));
+                    await Promise.all(batch.map(async (c) => {
+                        try {
+                            await traverseFileSystemEntry(c, currentPath, files, state);
+                        }
+                        catch (err) {
+                            state.traverseErrors++;
+                        }
+                    }));
                     batch = [];
                     await new Promise(r => setTimeout(r, 0));
                 }
             }
         }
         if (batch.length > 0 && !state.traverseAbort && files.length < MAX_DISCOVERED_FILES) {
-            await Promise.all(batch.map(async (c) => { try {
-                await traverseFileSystemEntry(c, currentPath, files, state);
-            }
-            catch (err) {
-                state.traverseErrors++;
-            } }));
+            await Promise.all(batch.map(async (c) => {
+                try {
+                    await traverseFileSystemEntry(c, currentPath, files, state);
+                }
+                catch (err) {
+                    state.traverseErrors++;
+                }
+            }));
         }
     }
     const now = Date.now();
@@ -1308,7 +1314,9 @@ if (typeof bindPresetButtons === 'function')
     bindPresetButtons();
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
-    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal);
+    const allowed = isCustom ? features : (TIER_PROFILES[tier] || TIER_PROFILES.universal || (typeof ALL_MODULES !== 'undefined' ? ALL_MODULES : []));
+    if (!Array.isArray(allowed))
+        return;
     let firstEnabled = null;
     // Update hidden select
     if (browserScanProfile) {
@@ -2214,7 +2222,9 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
             return;
         const currentPath = parentPath ? parentPath + '/' + handle.name : handle.name;
         const normalizedPath = currentPath.replace(/\\/g, '/');
-        // Note: SKIP_DIRS removed from discovery — all files are counted for hygiene metrics
+        // Skip heavy directories during discovery to keep file counts manageable
+        if (handle.kind === 'directory' && SKIP_DIRS.test(normalizedPath + '/'))
+            return;
         if (handle.kind === 'file') {
             if (files.length >= MAX_DISCOVERED_FILES)
                 return;
@@ -3185,8 +3195,10 @@ const detailOverlay = document.createElement('div');
 detailOverlay.className = 'detail-overlay';
 detailOverlay.innerHTML = `<div class="detail-panel"><button type="button" class="close-btn">&times;</button><div id="detail-panel-content"></div></div>`;
 detailOverlay.querySelector('.close-btn').addEventListener('click', () => detailOverlay.classList.remove('active'));
-detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay)
-    detailOverlay.classList.remove('active'); });
+detailOverlay.addEventListener('click', e => {
+    if (e.target === detailOverlay)
+        detailOverlay.classList.remove('active');
+});
 document.body.appendChild(detailOverlay);
 function showDetailPanel(title, rows) {
     const content = document.getElementById('detail-panel-content');

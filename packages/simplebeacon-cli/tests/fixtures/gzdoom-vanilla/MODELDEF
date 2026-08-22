@@ -1,0 +1,11 @@
+Model BackPack
+{
+  Path "models/backpack.md3"
+  FrameIndex SPRITE BPKA A 0 0
+}
+
+Model CustomMissingActor
+{
+  Path "models/custom.md3"
+  FrameIndex SPRITE CUST A 0 0
+}

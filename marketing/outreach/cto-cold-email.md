@@ -10,7 +10,7 @@ Hi [FirstName],
 
 I keep talking to VPs of Engineering who are suddenly dealing with AI-generated code hitting their repos before review. The common thread: hardcoded API keys, placeholder KPIs, hallucinated npm dependencies, and unfinished AI placeholders slipping past normal linters.
 
-I built **SimpleBeacon** to run a 100% offline scan on the developer's machine — no source code ever leaves your infrastructure. It takes about 5 minutes to surface the kind of debris that becomes an investor or auditor problem later.
+I built **SimpleBeacon** to run a 100% offline scan on the developer's machine — no source code ever leaves your infrastructure. It takes about 5 minutes to surface the kind of debris that becomes an investor or auditor problem later. 48 analyzers and 25 scan engines target AI-specific patterns that traditional SAST tools miss.
 
 A few things it catches out of the box:
 

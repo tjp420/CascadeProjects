@@ -1,6 +1,12 @@
 -- SimpleBeacon Enterprise — RBAC, Audit Trails, and Team Workspaces
 -- Migration: 004
 -- PostgreSQL 15+
+--
+-- NOTE: This table is scoped to the api-server's dedicated Render PostgreSQL
+-- database (simplebeacon-api-db). The ai-platform service uses a separate
+-- database with its own `users` table (TEXT primary key, different columns).
+-- The two schemas are intentionally independent — see api-server/render.yaml
+-- and the deployment-readiness scanner's SB-DEP-003 rule for context.
 
 -- ── Users ──────────────────────────────────────────────────────────────────
 -- Core identity table. Authentication is handled via SSO (SAML/OIDC) or local JWT.

@@ -15,7 +15,7 @@ The operational risks:
   outages, SLA breaches, customer churn
 
 SimpleBeacon quantifies these risks:
-- 52+ deterministic scan engines targeting AI-specific anti-patterns
+- 48 analyzers + 25 scan engines targeting AI-specific anti-patterns
 - Risk Heatmap (3x3 matrix: severity x likelihood) for board reporting
 - Executive Risk Certificate with statutory fine risk mappings
 - Continuous compliance via Azure DevOps pipeline integration
