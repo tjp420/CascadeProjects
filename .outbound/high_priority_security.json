@@ -1,0 +1,337 @@
+[
+  {
+    "number": 760,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\DashboardView.js:380 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/760"
+  },
+  {
+    "number": 759,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\DashboardView.js:312 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/759"
+  },
+  {
+    "number": 758,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\DashboardView.js:265 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/758"
+  },
+  {
+    "number": 757,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\DashboardView.js:250 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/757"
+  },
+  {
+    "number": 756,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\DashboardView.js:226 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/756"
+  },
+  {
+    "number": 755,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:733 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/755"
+  },
+  {
+    "number": 754,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:584 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/754"
+  },
+  {
+    "number": 753,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:573 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/753"
+  },
+  {
+    "number": 752,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:561 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/752"
+  },
+  {
+    "number": 751,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:548 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/751"
+  },
+  {
+    "number": 750,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:527 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/750"
+  },
+  {
+    "number": 749,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:396 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/749"
+  },
+  {
+    "number": 748,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:377 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/748"
+  },
+  {
+    "number": 747,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:204 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/747"
+  },
+  {
+    "number": 746,
+    "title": "[TODO] web\\simplebeacon-dashboard\\js\\views\\ChatbotView.js.patch-fix:55 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/746"
+  },
+  {
+    "number": 737,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:415 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/737"
+  },
+  {
+    "number": 736,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:403 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/736"
+  },
+  {
+    "number": 735,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:397 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/735"
+  },
+  {
+    "number": 734,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:379 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/734"
+  },
+  {
+    "number": 733,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:373 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/733"
+  },
+  {
+    "number": 732,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:271 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/732"
+  },
+  {
+    "number": 731,
+    "title": "[TODO] web\\dashboard\\js\\views\\ToolsView.js:137 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/731"
+  },
+  {
+    "number": 730,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:1174 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/730"
+  },
+  {
+    "number": 729,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:1136 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/729"
+  },
+  {
+    "number": 728,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:309 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/728"
+  },
+  {
+    "number": 727,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:292 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/727"
+  },
+  {
+    "number": 726,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:280 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/726"
+  },
+  {
+    "number": 725,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js.patch-fix:190 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/725"
+  },
+  {
+    "number": 723,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:1172 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/723"
+  },
+  {
+    "number": 722,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:1134 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/722"
+  },
+  {
+    "number": 721,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:307 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/721"
+  },
+  {
+    "number": 720,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:290 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/720"
+  },
+  {
+    "number": 719,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:278 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/719"
+  },
+  {
+    "number": 718,
+    "title": "[TODO] web\\dashboard\\js\\views\\SettingsView.js:188 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/718"
+  },
+  {
+    "number": 717,
+    "title": "[TODO] web\\dashboard\\js\\views\\RemediationRoadmapView.js:979 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/717"
+  },
+  {
+    "number": 716,
+    "title": "[TODO] web\\dashboard\\js\\views\\RemediationRoadmapView.js:764 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/716"
+  },
+  {
+    "number": 715,
+    "title": "[TODO] web\\dashboard\\js\\views\\RemediationRoadmapView.js:585 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/715"
+  },
+  {
+    "number": 714,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:529 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/714"
+  },
+  {
+    "number": 713,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:380 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/713"
+  },
+  {
+    "number": 712,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:312 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/712"
+  },
+  {
+    "number": 711,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:265 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/711"
+  },
+  {
+    "number": 710,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:250 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/710"
+  },
+  {
+    "number": 709,
+    "title": "[TODO] web\\dashboard\\js\\views\\DashboardView.js:226 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/709"
+  },
+  {
+    "number": 708,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:696 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/708"
+  },
+  {
+    "number": 707,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:547 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/707"
+  },
+  {
+    "number": 706,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:536 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/706"
+  },
+  {
+    "number": 705,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:524 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/705"
+  },
+  {
+    "number": 704,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:511 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/704"
+  },
+  {
+    "number": 703,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:490 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/703"
+  },
+  {
+    "number": 702,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:359 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/702"
+  },
+  {
+    "number": 701,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:340 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/701"
+  },
+  {
+    "number": 700,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:167 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/700"
+  },
+  {
+    "number": 699,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js.patch-fix:38 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/699"
+  },
+  {
+    "number": 697,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:694 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/697"
+  },
+  {
+    "number": 696,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:545 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/696"
+  },
+  {
+    "number": 695,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:534 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/695"
+  },
+  {
+    "number": 694,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:522 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/694"
+  },
+  {
+    "number": 693,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:509 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/693"
+  },
+  {
+    "number": 692,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:488 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/692"
+  },
+  {
+    "number": 691,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:357 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/691"
+  },
+  {
+    "number": 690,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:338 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/690"
+  },
+  {
+    "number": 689,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:165 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/689"
+  },
+  {
+    "number": 688,
+    "title": "[TODO] web\\dashboard\\js\\views\\ChatbotView.js:36 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/688"
+  },
+  {
+    "number": 687,
+    "title": "[TODO] web\\dashboard\\js\\views\\AnalyzeView.js:9080 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/687"
+  },
+  {
+    "number": 686,
+    "title": "[TODO] web\\dashboard\\js\\views\\AnalyzeView.js:226 — (security): review innerHTML usage here and sanitize dynamic content where applicable",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/686"
+  },
+  {
+    "number": 677,
+    "title": "[TODO] server\\middleware\\__tests__\\upload-security.test.cjs:23 — cleanup mocks and test artifacts",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/677"
+  },
+  {
+    "number": 676,
+    "title": "[TODO] server\\middleware\\__tests__\\upload-security.test.cjs:19 — initialize mock storage",
+    "url": "https://github.com/tjp420/CascadeProjects/issues/676"
+  }
+]
