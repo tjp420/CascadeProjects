@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
         input: 'src/main.tsx',
         output: {
           entryFileNames: '[name]-[hash].js',
-          chunkFileNames: '[name]-[hash].js',
+          chunkFileNames: 'v2-[name]-[hash].js',
           assetFileNames: '[name]-[hash].[ext]',
           manualChunks: {
             // Split heavy third-party dependencies so no single chunk exceeds ~500 KB

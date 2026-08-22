@@ -307,22 +307,22 @@ export default {
       const assetUrl = new URL(url.pathname, url.origin);
       assetUrl.searchParams.set('_cb', Date.now().toString());
       const assetResp = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
-      if (assetResp.ok) {
-        const headers = new Headers(assetResp.headers);
-        // Force correct MIME type for JS modules (CDN may have cached text/plain 404s)
-        if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
-          headers.set('Content-Type', 'text/javascript; charset=utf-8');
-        } else if (url.pathname.endsWith('.css')) {
-          headers.set('Content-Type', 'text/css; charset=utf-8');
-        }
-        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        headers.set('CDN-Cache-Control', 'no-store');
-        headers.set('Vary', '*');
-        headers.set('X-Content-Type-Options', 'nosniff');
-        headers.set('X-SB-Worker', 'assets');
-        return new Response(assetResp.body, { status: assetResp.status, headers });
+      // Always set correct Content-Type for JS/CSS, even for error responses.
+      // Browsers cache 404s with empty MIME types and then refuse to load the
+      // module even after the file appears — setting the MIME type on every
+      // response (including errors) helps prevent this.
+      const headers = new Headers(assetResp.headers);
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+        headers.set('Content-Type', 'text/javascript; charset=utf-8');
+      } else if (url.pathname.endsWith('.css')) {
+        headers.set('Content-Type', 'text/css; charset=utf-8');
       }
-      return assetResp;
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      headers.set('CDN-Cache-Control', 'no-store');
+      headers.set('Vary', '*');
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-SB-Worker', 'assets');
+      return new Response(assetResp.body, { status: assetResp.status, headers });
     }
 
     // Vite lazy-loaded chunks (e.g. TeamMetricsView-CueXexY4.js) are requested
