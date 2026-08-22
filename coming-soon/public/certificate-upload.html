@@ -1623,7 +1623,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
                     xhr.upload.onprogress = (e) => {
                         if (!e.lengthComputable || totalBytes === 0) return;
-                        const overallPct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                        const overallPctRaw = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                        const overallPct = Number.isFinite(overallPctRaw) ? Math.max(0, Math.min(100, overallPctRaw)) : 0;
                         uploadProgress.style.width = `${overallPct * 0.4}%`; // upload fills 0-40%
 
                         // Determine which file is currently being uploaded
