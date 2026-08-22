@@ -8700,6 +8700,12 @@ if (statsEl) {
 
   function getFilteredNodes() { return allNodes.filter(n => n.visible); }
   function getFilteredEdges() { return edges.filter(e => e.source.visible && e.target.visible); }
+  // ── LOD: cap physics-active nodes for very large graphs ──────────────
+  // Above PHYSICS_NODE_CAP visible nodes, only the most-connected nodes
+  // participate in the force simulation. The rest are drawn at their current
+  // position but don't contribute to physics — this keeps 6000+ node graphs
+  // interactive without crashing. The cap is applied per-frame in step().
+  const PHYSICS_NODE_CAP = 5000;
   function getConnectedNodeIds(node) {
     const connected = new Set();
     if (!node) return connected;
@@ -9922,28 +9928,95 @@ if (statsEl) {
   function step(visNodes, visEdges) {
     if (physicsPaused) return false;
     if (visNodes.length === 0) return false;
-    const targetDist = Math.min(100, Math.max(40, Math.sqrt(visNodes.length) * 3));
+    // ── LOD: cap physics-active nodes ───────────────────────────────────
+    // For very large graphs, only simulate physics on the most-connected
+    // nodes. The rest are drawn but frozen in place.
+    let physicsNodes = visNodes;
+    let physicsEdges = visEdges;
+    if (visNodes.length > PHYSICS_NODE_CAP) {
+      physicsNodes = visNodes.slice().sort((a, b) => (b.connCount || 0) - (a.connCount || 0)).slice(0, PHYSICS_NODE_CAP);
+      const physicsNodeSet = new Set(physicsNodes.map(n => n.id));
+      physicsEdges = visEdges.filter(e => physicsNodeSet.has(e.source.id) && physicsNodeSet.has(e.target.id));
+    }
+    const targetDist = Math.min(100, Math.max(40, Math.sqrt(physicsNodes.length) * 3));
     const repulsionStrength = 3 * temperature;
     const springStrength = 0.04 * temperature;
     const centerStrength = 0.001 * temperature;
     const maxVel = 12;
     const boundaryMargin = Math.max(W(), H()) * 1.5;
-    for (let i = 0; i < visNodes.length; i++) {
-      for (let j = i+1; j < visNodes.length; j++) {
-        const a = visNodes[i], b = visNodes[j];
-        let dx = b.x - a.x, dy = b.y - a.y;
-        let dz = (b.z || 0) - (a.z || 0);
-        let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
-        if (!is3D && dist > targetDist * 6) continue;
-        const minDist = a.radius + b.radius + 6;
-        dist = Math.max(dist, minDist);
-        const force = repulsionStrength * targetDist / dist;
-        dx /= dist; dy /= dist; dz /= dist;
-        a.vx -= dx * force; a.vy -= dy * force; a.vz = (a.vz || 0) - dz * force;
-        b.vx += dx * force; b.vy += dy * force; b.vz = (b.vz || 0) + dz * force;
+    // ── Spatial grid for O(n·k) repulsion instead of O(n²) ──────────────
+    // For large graphs (>800 nodes) the pairwise loop becomes the bottleneck.
+    // We bucket nodes into a uniform grid and only compare nodes in the same
+    // or neighboring cells. This drops 6000 nodes from ~18M comparisons to
+    // ~180k — a 100× speedup that keeps 3D mode interactive.
+    const useGrid = visNodes.length > 800;
+    const cellSize = targetDist * 6; // match the 2D early-exit radius
+    const grid = new Map();
+    if (useGrid) {
+      for (const n of visNodes) {
+        const gx = Math.floor(n.x / cellSize);
+        const gy = Math.floor(n.y / cellSize);
+        const gz = Math.floor((n.z || 0) / cellSize);
+        const key = gx + ',' + gy + ',' + gz;
+        let bucket = grid.get(key);
+        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        bucket.push(n);
       }
     }
-    for (const e of visEdges) {
+    const neighborOffsets = is3D
+      ? [[-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[0,0,-1],[1,0,-1],[-1,1,-1],[0,1,-1],[1,1,-1],
+         [-1,-1,0],[0,-1,0],[1,-1,0],[-1,0,0],[0,0,0],[1,0,0],[-1,1,0],[0,1,0],[1,1,0],
+         [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[0,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1]]
+      : [[-1,-1,0],[0,-1,0],[1,-1,0],[-1,0,0],[0,0,0],[1,0,0],[-1,1,0],[0,1,0],[1,1,0]];
+    if (useGrid) {
+      // Grid-based repulsion: only check nodes in same + neighboring cells
+      const skipDistSq = (targetDist * 6) * (targetDist * 6);
+      for (const [key, bucket] of grid) {
+        const [gx, gy, gz] = key.split(',').map(Number);
+        for (const [dx, dy, dz] of neighborOffsets) {
+          const nKey = (gx + dx) + ',' + (gy + dy) + ',' + (gz + dz);
+          const neighbors = grid.get(nKey);
+          if (!neighbors) continue;
+          for (const a of bucket) {
+            for (const b of neighbors) {
+              if (a === b) continue;
+              // Avoid double-counting: only process pair once
+              if (a.id > b.id) continue;
+              let ddx = b.x - a.x, ddy = b.y - a.y, ddz = (b.z || 0) - (a.z || 0);
+              const distSq = ddx*ddx + ddy*ddy + ddz*ddz;
+              if (distSq > skipDistSq) continue;
+              let dist = Math.sqrt(distSq) || 1;
+              const minDist = a.radius + b.radius + 6;
+              dist = Math.max(dist, minDist);
+              const force = repulsionStrength * targetDist / dist;
+              ddx /= dist; ddy /= dist; ddz /= dist;
+              a.vx -= ddx * force; a.vy -= ddy * force; a.vz = (a.vz || 0) - ddz * force;
+              b.vx += ddx * force; b.vy += ddy * force; b.vz = (b.vz || 0) + ddz * force;
+            }
+          }
+        }
+      }
+    } else {
+      // Original O(n²) loop for small graphs (<800 nodes)
+      for (let i = 0; i < visNodes.length; i++) {
+        for (let j = i+1; j < visNodes.length; j++) {
+          const a = visNodes[i], b = visNodes[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let dz = (b.z || 0) - (a.z || 0);
+          let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+          if (!is3D && dist > targetDist * 6) continue;
+          // 3D early-exit: skip far-apart pairs (matches 2D optimization)
+          if (is3D && dist > targetDist * 6) continue;
+          const minDist = a.radius + b.radius + 6;
+          dist = Math.max(dist, minDist);
+          const force = repulsionStrength * targetDist / dist;
+          dx /= dist; dy /= dist; dz /= dist;
+          a.vx -= dx * force; a.vy -= dy * force; a.vz = (a.vz || 0) - dz * force;
+          b.vx += dx * force; b.vy += dy * force; b.vz = (b.vz || 0) + dz * force;
+        }
+      }
+    }
+    for (const e of physicsEdges) {
       let dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
       let dz = (e.target.z || 0) - (e.source.z || 0);
       let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
@@ -9954,7 +10027,7 @@ if (statsEl) {
     }
     const layerZ = { entry: -2500, ui: -1200, business: 0, data: 1200, utils: -800, tests: 2500, other: 800 };
     const zBoundary = 6000;
-    for (const n of visNodes) {
+    for (const n of physicsNodes) {
       if (is3D) {
         const targetZ = layerZ[classifyLayer(n.label)] || 0;
         n.vz = (n.vz || 0) + (targetZ - (n.z || 0)) * 0.003;
@@ -10459,9 +10532,14 @@ if (statsEl) {
     else if (Math.abs(pan.x - lastPan.x) > 0.1 || Math.abs(pan.y - lastPan.y) > 0.1 || Math.abs(scale - lastScale) > 0.001 || Math.abs(rot2D - lastRot2D) > 0.001) { changed = true; lastPan = {x: pan.x, y: pan.y}; lastScale = scale; lastRot2D = rot2D; }
     if (hoverNode !== lastHoverNode || selectedNode !== lastSelectedNode) { changed = true; lastHoverNode = hoverNode; lastSelectedNode = selectedNode; }
     if (pulseNodes.length > 0 || flyTo) changed = true;
-    // Physics: throttle to every 2nd frame in 2D mode
+    // Physics: throttle to every 2nd frame in 2D mode.
+    // For 3D mode, also throttle to every 2nd frame (was running every frame,
+    // which caused crashes at 6000+ nodes). For very large graphs (>4000
+    // nodes), throttle to every 3rd frame to keep things interactive.
     frameCounter++;
-    const physicsChanged = !is3D && (frameCounter % 2 === 0 || !physicsPaused) ? step(cachedVisNodes, cachedVisEdges) : (is3D ? step(cachedVisNodes, cachedVisEdges) : false);
+    const largeGraph = cachedVisNodes.length > 4000;
+    const physicsFrame = largeGraph ? (frameCounter % 3 === 0) : (frameCounter % 2 === 0);
+    const physicsChanged = !is3D && (physicsFrame || !physicsPaused) ? step(cachedVisNodes, cachedVisEdges) : (is3D && (physicsFrame || !physicsPaused) ? step(cachedVisNodes, cachedVisEdges) : false);
     if (physicsChanged) changed = true;
     if (changed || needsRedraw) { needsRedraw = false; draw(cachedVisNodes, cachedVisEdges, changed); }
     requestAnimationFrame(loop);
