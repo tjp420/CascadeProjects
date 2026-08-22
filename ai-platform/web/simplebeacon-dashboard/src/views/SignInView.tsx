@@ -204,7 +204,9 @@ export function SignInView() {
           email: data.email || '',
           tier: data.tier || 'developer',
           plan: data.tier || 'developer',
-          role: 'user',
+          // Use role from server response if available, otherwise default to 'user'.
+          // The useAuth hook will also decode the JWT as a fallback to get the correct role.
+          role: data.role || data.user?.role || 'user',
         };
         localStorage.setItem('sb_user', JSON.stringify(userData));
         try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
