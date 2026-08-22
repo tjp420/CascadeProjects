@@ -110,7 +110,7 @@ function isValidLicenseTier(tier) {
 }
 
 function checkoutModeForProduct(product) {
-  const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
+  const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint', 'one_time_certificate', 'custom_plan'];
   const subscriptionProducts = ['developer_tier', 'team_pro_tier', 'developer', 'developer_monthly', 'developer_annual', 'team_pro', 'team_pro_monthly', 'team_pro_annual', 'pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
   if (oneTimeProducts.includes(product)) return 'payment';
   if (subscriptionProducts.includes(product)) return 'subscription';
