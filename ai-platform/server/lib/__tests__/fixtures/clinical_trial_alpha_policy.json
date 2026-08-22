@@ -2,7 +2,7 @@
   "policyId": "clinical-trial-oncology-v1-alpha",
   "version": "v1.0.0",
   "description": "Cryptographic policy governing randomized clinical treatment allocation across multi-site oncology nodes. Employs a post-quantum 5-of-7 threshold configuration.",
-  "createdBy": "sec-ops@clinical-analytics.org",
+  "createdBy": "sec-ops@example.org",
   "createdAt": "2026-08-02T16:00:00Z",
   "latticeParams": {
     "scheme": "ModuleLWE",

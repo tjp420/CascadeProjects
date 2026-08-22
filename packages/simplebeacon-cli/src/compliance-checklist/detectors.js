@@ -6,10 +6,16 @@
 const fs = require('fs');
 const path = require('path');
 
+const _jsonCache = new Map();
+
 function readJsonSafe(filePath) {
+    if (_jsonCache.has(filePath)) return _jsonCache.get(filePath);
     try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        _jsonCache.set(filePath, data);
+        return data;
     } catch {
+        _jsonCache.set(filePath, null);
         return null;
     }
 }
