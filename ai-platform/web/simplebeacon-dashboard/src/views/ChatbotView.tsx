@@ -129,6 +129,18 @@ type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'techni
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_REFRESH_MIN_INTERVAL_MS = 15000;
+
+/**
+ * Check if a model name (without tag) matches any installed model.
+ * Ollama returns names like 'llama3.2:latest' but users/registry use 'llama3.2'.
+ */
+function modelIsInstalled(modelName: string, installedModels: string[]): boolean {
+  if (installedModels.includes(modelName)) return true;
+  // Check with :latest tag appended
+  if (installedModels.includes(modelName + ':latest')) return true;
+  // Check if any installed model starts with the name (e.g. 'llama3.2:3b' matches 'llama3.2')
+  return installedModels.some((m) => m === modelName || m.startsWith(modelName + ':'));
+}
 const OLLAMA_REGISTRY_MODELS: string[] = [
   'llama3.2', 'llama3.1', 'llama3', 'llama2',
   'mistral', 'mistral-nemo', 'mixtral',
@@ -670,14 +682,21 @@ export function ChatbotView() {
               // avoids clobbering the user's dropdown selection on re-probe.
               setSelectedProvider((prev) => prev === 'ollama' ? prev : 'ollama');
               const savedModel = modelPrefs['ollama'] || '';
-              const validModel = browserModels.includes(savedModel) ? savedModel : browserModels[0];
+              const validModel = modelIsInstalled(savedModel, browserModels) ? savedModel : browserModels[0];
+              // If the saved model is not installed, clear it and use the first installed model
               setModelPrefs((prev) => {
-                if (prev.ollama && browserModels.includes(prev.ollama)) return prev;
+                if (prev.ollama && modelIsInstalled(prev.ollama, browserModels)) return prev;
                 const next = { ...prev, ollama: validModel };
                 writeModelPrefs(next);
                 return next;
               });
-              setSelectedModel((prev) => browserModels.includes(prev) ? prev : validModel);
+              // Auto-correct: if the currently selected model is not in the installed
+              // list (e.g. user previously selected a registry model like dolphin-llama3),
+              // fall back to the first installed model.
+              setSelectedModel((prev) => {
+                if (prev && modelIsInstalled(prev, browserModels)) return prev;
+                return validModel;
+              });
               setConnectionStatus('online');
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
@@ -744,6 +763,7 @@ export function ChatbotView() {
   }, [apiBase]);
 
   const ORACLE_MODEL_ID = 'unbreakable-oracle';
+  const discoveredModels = selectedProvider ? (providerModels[selectedProvider] || []) : [];
   const modelOptions = selectedProvider
     ? (() => {
         const discovered = providerModels[selectedProvider] || [];
@@ -784,7 +804,14 @@ export function ChatbotView() {
     setModelPrefs(nextPrefs);
     writeModelPrefs(nextPrefs);
     setSelectedModel(nextModel);
-  }, [selectedProvider, modelPrefs]);
+    // Warn if the selected model is a registry model that isn't installed locally
+    const installed = providerModels[selectedProvider] || [];
+    if (selectedProvider === 'ollama' && installed.length > 0 && !modelIsInstalled(nextModel, installed)) {
+      setError(`Model '${nextModel}' is not installed locally. Run this command in your terminal to install it:\n\nollama pull ${nextModel}\n\nThen refresh this page.`);
+    } else {
+      setError(null);
+    }
+  }, [selectedProvider, modelPrefs, providerModels]);
 
   const handleCustomModelChange = useCallback((nextModel: string) => {
     setSelectedModel(nextModel);
@@ -1384,9 +1411,14 @@ export function ChatbotView() {
                   <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
                 )
               )}
-              {modelOptions.map((model) => (
-                <option key={model} value={model}>{model}</option>
-              ))}
+              {modelOptions.map((model) => {
+                const isInstalled = modelIsInstalled(model, discoveredModels);
+                return (
+                  <option key={model} value={model}>
+                    {model}{isInstalled ? '' : ' (not installed — run: ollama pull ' + model + ')'}
+                  </option>
+                );
+              })}
               {selectedProvider && <option value="__custom__">Custom model…</option>}
             </select>
             <input
