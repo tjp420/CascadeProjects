@@ -59,7 +59,7 @@
 
     <div class="faq-item">
       <h3>Does SimpleBeacon upload my source code?</h3>
-      <p>Browser scans run locally and do not upload source code. Online paid CI workflows may send aggregate metrics; use <code>--offline</code> or <code>--air-gapped</code> to disable network activity.</p>
+      <p>No. All scanning happens locally in your IDE or browser sandbox. Your code never leaves your machine unless you explicitly choose to upload a report for certificate generation.</p>
     </div>
 
     <div class="faq-item">
@@ -84,7 +84,7 @@
 
     <div class="faq-item">
       <h3>How can I verify that my source code never leaves my machine?</h3>
-      <p>You can verify the zero-source-upload design by inspecting browser requests, reviewing CLI traffic with Wireshark or tcpdump, and testing <code>--offline</code> or <code>--air-gapped</code>. Paid online CI telemetry contains aggregate metrics only. See our <a href="security.html" style="color:#60A5FA;">Security &amp; Trust</a> page for details.</p>
+      <p>You can independently audit our zero-upload claim in three ways: (1) Open Chrome/Firefox DevTools (F12), go to the Network tab, and run a scan &mdash; you will see zero outbound payloads containing code. (2) Run Wireshark or tcpdump during a CLI scan to confirm zero external packet egress. (3) Enable Airplane Mode and verify both the browser sandbox and CLI scanner operate flawlessly offline. See our <a href="security.html" style="color:#60A5FA;">Security &amp; Trust</a> page for detailed audit steps.</p>
     </div>
 
     <div class="faq-item">

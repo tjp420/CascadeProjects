@@ -20,6 +20,9 @@ import {
   Sparkles,
   RefreshCw,
   Download,
+  Volume2,
+  VolumeX,
+  Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
@@ -185,6 +188,93 @@ const PERSONALITY_PROMPTS: Record<Personality, string> = {
   creative: 'You are a creative, exploratory assistant for the SimpleBeacon platform. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly.',
   oracle: 'You are The Unbreakable Oracle, an omniscient assistant for the SimpleBeacon platform. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly.',
 };
+
+// ─── Voice Response (Web Speech API) ──────────────────────────────────────────
+// The browser's speechSynthesis API exposes all installed system voices.
+// On Chrome, Google voices are bundled and appear alongside OS voices.
+// On Firefox/Safari, only OS-installed voices are available.
+// Users can pick any voice from the dropdown; we filter for clarity.
+
+const VOICE_SETTINGS_STORAGE_KEY = 'simplebeacon_voice_settings';
+
+type VoiceSettings = {
+  enabled: boolean;
+  voiceURI: string; // SpeechSynthesisVoice.voiceURI — stable identifier
+  rate: number;     // 0.5–2.0, default 1.0
+  pitch: number;    // 0–2.0, default 1.0
+  volume: number;   // 0–1.0, default 1.0
+  autoSpeak: boolean; // automatically speak assistant responses
+};
+
+const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
+  enabled: false,
+  voiceURI: '',
+  rate: 1.0,
+  pitch: 1.0,
+  volume: 1.0,
+  autoSpeak: true,
+};
+
+function readVoiceSettings(): VoiceSettings {
+  if (typeof window === 'undefined') return DEFAULT_VOICE_SETTINGS;
+  try {
+    const raw = localStorage.getItem(VOICE_SETTINGS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return { ...DEFAULT_VOICE_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_VOICE_SETTINGS;
+  }
+}
+
+function writeVoiceSettings(settings: VoiceSettings) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(VOICE_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Strip markdown/code blocks from text so the TTS engine doesn't read
+ * raw syntax noise aloud. Keeps prose readable.
+ */
+function stripMarkdownForSpeech(text: string): string {
+  return text
+    // Remove code blocks entirely
+    .replace(/```[\s\S]*?```/g, ' [code block] ')
+    // Remove inline code
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove markdown headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove links, keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove list markers
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    // Remove blockquotes
+    .replace(/^>\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^---+$/gm, '')
+    // Remove the AI-Generated prefix tag
+    .replace(/^\[AI-Generated[^\]]*\]\s*/i, '')
+    // Collapse whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Load available speech synthesis voices. Chrome loads them asynchronously,
+ * so we use the onvoiceschanged callback. Returns a cleanup function.
+ */
+function loadVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return [];
+  return window.speechSynthesis.getVoices();
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -426,6 +516,12 @@ export function ChatbotView() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // Voice response state
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => readVoiceSettings());
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const providersFetchedAtRef = useRef(0);

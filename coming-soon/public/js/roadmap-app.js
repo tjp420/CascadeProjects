@@ -293,7 +293,9 @@
       const totalTasks=phase.tasks.length;
       const hasOverflow=totalTasks>TASK_OVERFLOW_LIMIT;
       const taskItemsHtml=(()=>{return phase.tasks.map((task,taskIdx)=>{const done=phase.status==='completed'?true:(task&&task.done?true:loadTaskState(projectKey,phase.id,taskIdx));if(phase.status==='completed')saveTaskState(projectKey,phase.id,taskIdx,true);if(typeof task==='object'&&task!=null)task.done=done;const timeSpent=loadTaskTime(projectKey,phase.id,taskIdx);const taskText=typeof task==='object'&&task.html?task.html:(typeof task==='object'&&task!=null&&task.description?buildStructuredTaskHtml(task):escapeHtml(task));const copyBtn='<span class="task-copy" data-phase="'+phase.id+'" data-task="'+taskIdx+'" title="Copy task">&#128203;</span>';const overflowClass=(hasOverflow&&taskIdx>=TASK_OVERFLOW_LIMIT)?' phase-task-overflow':'';return '<li tabindex="0" class="'+(done?'done ':'')+overflowClass+'" data-phase="'+phase.id+'" data-task="'+taskIdx+'"><span class="task-check'+(done?' checked':'')+'"></span><span class="task-text">'+taskText+'</span>'+copyBtn+'<span class="task-timer" data-phase="'+phase.id+'" data-task="'+taskIdx+'"><span class="timer-btn">\u25B6</span><span class="timer-display">'+formatTime(timeSpent)+'</span></span></li>';}).join('')+(hasOverflow?'<li class="phase-expand-li" style="list-style:none;padding-left:0;margin-left:-8px;border-bottom:none;"><button class="phase-action-btn phase-expand-btn" data-action="expand-tasks" data-phase="'+phase.id+'">Show '+(totalTasks-TASK_OVERFLOW_LIMIT)+' more tasks</button></li>':'');})();
-      return '<div class="timeline-phase '+statusClass+extraClass+depClass+'" data-status="'+phase.status+'" data-phase="'+phase.id+'"><div class="phase-card'+collapsed+'" aria-expanded="'+ariaExpanded+'" role="region" aria-labelledby="ph-title-'+phase.id+'">'+depBlock+'<div class="phase-header"><div class="phase-title" id="ph-title-'+phase.id+'">'+escapeHtml(phase.title)+completedMark+'</div><div class="phase-meta">'+statusBadgeHtml+'<span class="phase-badge badge-'+escapeHtml(phase.severity)+'">'+escapeHtml(phase.severity)+'</span><span class="phase-badge badge-effort">'+escapeHtml(phase.effort)+'</span><span class="phase-toggle" aria-hidden="true">▼</span></div></div><div class="phase-desc">'+escapeHtml(phase.description)+'</div>'+(phase.extraHtml||'')+taskTypeBar+'<ul class="phase-tasks">'+taskItemsHtml+'</ul><div class="phase-progress"><div class="phase-progress-label"><span>'+pt+'</span><span>'+phase.progress+'%</span></div><div class="phase-progress-bar"><div class="phase-progress-fill" style="width:'+phase.progress+'%;'+progressFillStyle+'"></div></div></div><div class="phase-actions">'+markAllBtn+'<button class="phase-action-btn" data-action="copy-phase" data-phase="'+phase.id+'" title="Copy all tasks as markdown">&#128203; Copy Phase</button><button class="phase-action-btn" data-action="download-json" data-phase="'+phase.id+'">Download JSON</button><button class="phase-action-btn" data-action="collapse" data-phase="'+phase.id+'" aria-label="Toggle phase details">Toggle Details</button></div></div></div>';
+      // Guard progress values to avoid injecting NaN into CSS styles
+      const safeProgress = Number.isFinite(phase.progress) ? Math.round(phase.progress) : 0;
+      return '<div class="timeline-phase '+statusClass+extraClass+depClass+'" data-status="'+phase.status+'" data-phase="'+phase.id+'"><div class="phase-card'+collapsed+'" aria-expanded="'+ariaExpanded+'" role="region" aria-labelledby="ph-title-'+phase.id+'">'+depBlock+'<div class="phase-header"><div class="phase-title" id="ph-title-'+phase.id+'">'+escapeHtml(phase.title)+completedMark+'</div><div class="phase-meta">'+statusBadgeHtml+'<span class="phase-badge badge-'+escapeHtml(phase.severity)+'">'+escapeHtml(phase.severity)+'</span><span class="phase-badge badge-effort">'+escapeHtml(phase.effort)+'</span><span class="phase-toggle" aria-hidden="true">▼</span></div></div><div class="phase-desc">'+escapeHtml(phase.description)+'</div>'+(phase.extraHtml||'')+taskTypeBar+'<ul class="phase-tasks">'+taskItemsHtml+'</ul><div class="phase-progress"><div class="phase-progress-label"><span>'+pt+'</span><span>'+safeProgress+'%</span></div><div class="phase-progress-bar"><div class="phase-progress-fill" style="width:'+safeProgress+'%;'+progressFillStyle+'"></div></div></div><div class="phase-actions">'+markAllBtn+'<button class="phase-action-btn" data-action="copy-phase" data-phase="'+phase.id+'" title="Copy all tasks as markdown">&#128203; Copy Phase</button><button class="phase-action-btn" data-action="download-json" data-phase="'+phase.id+'">Download JSON</button><button class="phase-action-btn" data-action="collapse" data-phase="'+phase.id+'" aria-label="Toggle phase details">Toggle Details</button></div></div></div>';
     }
     function buildPhaseTaskTypeBar(tasks){
       if(!Array.isArray(tasks)||tasks.length===0)return'';
@@ -1052,12 +1054,13 @@
       const completedCount=roadmap.phases.filter(phase=>phase.status==='completed').length;
       const blockedCount=roadmap.phases.filter(phase=>phase.status==='pending'&&phase.severity==='critical').length;
       const totalWeight=roadmap.phases.reduce((acc,phase)=>acc+(phase.status==='completed'?1:phase.status==='in-progress'?0.5:0),0);
-      const overallPct=roadmap.phases.length?Math.round((totalWeight/roadmap.phases.length)*100):0;
-      const ringColor=overallPct>=85?'#10B981':(overallPct>=60?'#F59E0B':'#EF4444');
+      const overallPctRaw = roadmap.phases.length ? Math.round((totalWeight / roadmap.phases.length) * 100) : 0;
+      const overallPct = Number.isFinite(overallPctRaw) ? Math.max(0, Math.min(100, overallPctRaw)) : 0;
+      const ringColor = overallPct >= 85 ? '#10B981' : (overallPct >= 60 ? '#F59E0B' : '#EF4444');
       const overallHealthEl=document.getElementById('overallHealth');
       if(overallHealthEl){
         const circumference=2*Math.PI*36;
-        const offset=circumference-(overallPct/100)*circumference;
+        const offset = circumference - (overallPct / 100) * circumference;
         overallHealthEl.textContent = "";
         const ohContainer=document.createElement('div');
         ohContainer.className='overall-health';
@@ -1078,8 +1081,8 @@
         ringWrap.appendChild(svg);
         const ringText=document.createElement('div');
         ringText.className='health-ring-text';
-        ringText.style.color=ringColor;
-        ringText.textContent=overallPct+'%';
+        ringText.style.color = ringColor;
+        ringText.textContent = overallPct + '%';
         ringWrap.appendChild(ringText);
         ohContainer.appendChild(ringWrap);
         const details=document.createElement('div');

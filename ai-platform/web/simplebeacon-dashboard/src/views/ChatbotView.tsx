@@ -20,6 +20,9 @@ import {
   Sparkles,
   RefreshCw,
   Download,
+  Volume2,
+  VolumeX,
+  Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
@@ -185,6 +188,93 @@ const PERSONALITY_PROMPTS: Record<Personality, string> = {
   creative: 'You are a creative, exploratory assistant for the SimpleBeacon platform. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly.',
   oracle: 'You are The Unbreakable Oracle, an omniscient assistant for the SimpleBeacon platform. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly.',
 };
+
+// ─── Voice Response (Web Speech API) ──────────────────────────────────────────
+// The browser's speechSynthesis API exposes all installed system voices.
+// On Chrome, Google voices are bundled and appear alongside OS voices.
+// On Firefox/Safari, only OS-installed voices are available.
+// Users can pick any voice from the dropdown; we filter for clarity.
+
+const VOICE_SETTINGS_STORAGE_KEY = 'simplebeacon_voice_settings';
+
+type VoiceSettings = {
+  enabled: boolean;
+  voiceURI: string; // SpeechSynthesisVoice.voiceURI — stable identifier
+  rate: number;     // 0.5–2.0, default 1.0
+  pitch: number;    // 0–2.0, default 1.0
+  volume: number;   // 0–1.0, default 1.0
+  autoSpeak: boolean; // automatically speak assistant responses
+};
+
+const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
+  enabled: false,
+  voiceURI: '',
+  rate: 1.0,
+  pitch: 1.0,
+  volume: 1.0,
+  autoSpeak: true,
+};
+
+function readVoiceSettings(): VoiceSettings {
+  if (typeof window === 'undefined') return DEFAULT_VOICE_SETTINGS;
+  try {
+    const raw = localStorage.getItem(VOICE_SETTINGS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return { ...DEFAULT_VOICE_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_VOICE_SETTINGS;
+  }
+}
+
+function writeVoiceSettings(settings: VoiceSettings) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(VOICE_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Strip markdown/code blocks from text so the TTS engine doesn't read
+ * raw syntax noise aloud. Keeps prose readable.
+ */
+function stripMarkdownForSpeech(text: string): string {
+  return text
+    // Remove code blocks entirely
+    .replace(/```[\s\S]*?```/g, ' [code block] ')
+    // Remove inline code
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove markdown headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove links, keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove list markers
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    // Remove blockquotes
+    .replace(/^>\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^---+$/gm, '')
+    // Remove the AI-Generated prefix tag
+    .replace(/^\[AI-Generated[^\]]*\]\s*/i, '')
+    // Collapse whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Load available speech synthesis voices. Chrome loads them asynchronously,
+ * so we use the onvoiceschanged callback. Returns a cleanup function.
+ */
+function loadVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return [];
+  return window.speechSynthesis.getVoices();
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -426,6 +516,12 @@ export function ChatbotView() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // Voice response state
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => readVoiceSettings());
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const providersFetchedAtRef = useRef(0);
@@ -939,6 +1035,119 @@ export function ChatbotView() {
     }
   }, []);
 
+  // ─── Voice Response handlers ──────────────────────────────────────────────
+  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  // Load voices (Chrome loads them async via onvoiceschanged)
+  // simplebeacon-ignore: framework-practices
+  useEffect(() => {
+    if (!speechSupported) return;
+    const updateVoices = () => {
+      const voices = loadVoices();
+      if (voices.length > 0) setAvailableVoices(voices);
+    };
+    updateVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
+    };
+  }, [speechSupported]);
+
+  // Stop speaking when component unmounts
+  // simplebeacon-ignore: framework-practices
+  useEffect(() => {
+    return () => {
+      if (speechSupported && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [speechSupported]);
+
+  const handleSpeak = useCallback((index: number, content: string) => {
+    if (!speechSupported) {
+      toast.error('Voice synthesis not supported in this browser');
+      return;
+    }
+    // If already speaking this message, stop
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const cleanText = stripMarkdownForSpeech(content);
+    if (!cleanText) {
+      toast.error('Nothing to speak — message is empty or code-only');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = voiceSettings.rate;
+    utterance.pitch = voiceSettings.pitch;
+    utterance.volume = voiceSettings.volume;
+
+    // Find the selected voice by URI
+    if (voiceSettings.voiceURI && availableVoices.length > 0) {
+      const voice = availableVoices.find((v) => v.voiceURI === voiceSettings.voiceURI);
+      if (voice) utterance.voice = voice;
+    } else if (availableVoices.length > 0) {
+      // Default to first en voice, or first voice
+      const enVoice = availableVoices.find((v) => v.lang.startsWith('en'));
+      utterance.voice = enVoice || availableVoices[0];
+    }
+
+    utterance.onstart = () => setSpeakingIndex(index);
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+
+    window.speechSynthesis.speak(utterance);
+  }, [speechSupported, speakingIndex, voiceSettings, availableVoices]);
+
+  const handleStopSpeaking = useCallback(() => {
+    if (speechSupported) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeakingIndex(null);
+  }, [speechSupported]);
+
+  const handleToggleVoice = useCallback(() => {
+    const next = { ...voiceSettings, enabled: !voiceSettings.enabled };
+    setVoiceSettings(next);
+    writeVoiceSettings(next);
+    if (!next.enabled && speechSupported) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+    }
+    toast.success(next.enabled ? 'Voice response enabled' : 'Voice response disabled');
+  }, [voiceSettings, speechSupported]);
+
+  const handleVoiceSettingChange = useCallback((patch: Partial<VoiceSettings>) => {
+    const next = { ...voiceSettings, ...patch };
+    setVoiceSettings(next);
+    writeVoiceSettings(next);
+  }, [voiceSettings]);
+
+  // Auto-speak the latest assistant response when voice is enabled
+  // simplebeacon-ignore: framework-practices
+  const lastSpokenRef = useRef<number>(-1);
+  useEffect(() => {
+    if (!voiceSettings.enabled || !voiceSettings.autoSpeak || !speechSupported) return;
+    if (messages.length === 0) return;
+    let lastAssistantIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].content) {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+    if (lastAssistantIdx < 0) return;
+    if (lastSpokenRef.current >= lastAssistantIdx) return;
+    lastSpokenRef.current = lastAssistantIdx;
+    handleSpeak(lastAssistantIdx, messages[lastAssistantIdx].content);
+  }, [messages, voiceSettings.enabled, voiceSettings.autoSpeak, speechSupported, handleSpeak]);
+
   const handleSavePrompt = useCallback(async () => {
     const userId = localStorage.getItem('simplebeacon_user_id') || 'anonymous';
     try {
@@ -1197,6 +1406,41 @@ export function ChatbotView() {
             <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
               <Settings2 className="h-4 w-4" />
             </Button>
+            {speechSupported && (
+              <>
+                <Button
+                  variant={voiceSettings.enabled ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={handleToggleVoice}
+                  title={voiceSettings.enabled ? 'Voice response ON — click to disable' : 'Voice response OFF — click to enable'}
+                  aria-label="Toggle voice response"
+                  className={voiceSettings.enabled ? 'text-primary-foreground' : ''}
+                >
+                  {voiceSettings.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+                  title="Voice settings"
+                  aria-label="Voice settings"
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                </Button>
+                {speakingIndex !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleStopSpeaking}
+                    title="Stop speaking"
+                    aria-label="Stop speaking"
+                    className="text-destructive"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </>
+            )}
             <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history" aria-label="Clear history">
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -1247,6 +1491,133 @@ export function ChatbotView() {
           </div>
         )}
 
+        {showVoiceSettings && speechSupported && (
+          <div className="border-b px-6 py-4 space-y-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Voice Response Settings</label>
+              <Button
+                variant={voiceSettings.enabled ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleToggleVoice}
+              >
+                {voiceSettings.enabled ? 'Voice ON' : 'Voice OFF'}
+              </Button>
+            </div>
+
+            {/* Voice selector — shows all system + Google voices */}
+            <div className="space-y-2">
+              <label className="text-xs text-foreground-muted">
+                Voice ({availableVoices.length} available — includes system and Google voices on Chrome)
+              </label>
+              <select
+                value={voiceSettings.voiceURI}
+                onChange={(e) => handleVoiceSettingChange({ voiceURI: e.target.value })}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Default voice</option>
+                {availableVoices
+                  .slice()
+                  .sort((a, b) => {
+                    // English voices first, then alphabetical
+                    const aEn = a.lang.startsWith('en') ? 0 : 1;
+                    const bEn = b.lang.startsWith('en') ? 0 : 1;
+                    if (aEn !== bEn) return aEn - bEn;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((voice) => (
+                    <option key={voice.voiceURI} value={voice.voiceURI}>
+                      {voice.name} ({voice.lang}){voice.localService ? '' : ' — network'}
+                    </option>
+                  ))}
+              </select>
+              {availableVoices.length === 0 && (
+                <p className="text-xs text-foreground-muted">
+                  No voices detected. Chrome loads voices asynchronously — try refreshing the page.
+                  On Firefox, install voices in your OS settings.
+                </p>
+              )}
+            </div>
+
+            {/* Rate slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Speed</label>
+                <span className="text-xs font-mono">{voiceSettings.rate.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={voiceSettings.rate}
+                onChange={(e) => handleVoiceSettingChange({ rate: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Pitch slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Pitch</label>
+                <span className="text-xs font-mono">{voiceSettings.pitch.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="2.0"
+                step="0.1"
+                value={voiceSettings.pitch}
+                onChange={(e) => handleVoiceSettingChange({ pitch: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Volume slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Volume</label>
+                <span className="text-xs font-mono">{Math.round(voiceSettings.volume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.1"
+                value={voiceSettings.volume}
+                onChange={(e) => handleVoiceSettingChange({ volume: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Auto-speak toggle */}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={voiceSettings.autoSpeak}
+                onChange={(e) => handleVoiceSettingChange({ autoSpeak: e.target.checked })}
+                className="h-4 w-4 rounded border-input"
+              />
+              <span>Auto-speak assistant responses</span>
+            </label>
+
+            {/* Test button */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleSpeak(-1, 'Hello! This is a test of the voice response feature. You can adjust the speed, pitch, and volume above.')}
+              >
+                Test voice
+              </Button>
+              {speakingIndex !== null && (
+                <Button size="sm" variant="ghost" onClick={handleStopSpeaking}>
+                  Stop
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <CardContent className="p-0">
           <div ref={messagesContainerRef} className="h-[400px] overflow-y-auto px-6 py-4 space-y-4">
             {messages.length === 0 ? (
@@ -1279,6 +1650,15 @@ export function ChatbotView() {
                           title="Copy response"
                         >
                           {copiedIndex === index ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      )}
+                      {msg.role === 'assistant' && msg.content && speechSupported && (
+                        <button
+                          onClick={() => handleSpeak(index, msg.content)}
+                          className="text-xs opacity-50 hover:opacity-100 transition-opacity"
+                          title={speakingIndex === index ? 'Stop speaking' : 'Speak response'}
+                        >
+                          {speakingIndex === index ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                         </button>
                       )}
                     </div>

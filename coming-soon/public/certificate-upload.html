@@ -236,9 +236,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     { name: 'Files per scan', developer: '50', startup: '<strong>Unlimited</strong>', compliance: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
     { name: 'Pipeline scans (CI)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Developers / seats', developer: '1 dev', startup: '1 dev', compliance: '<strong>5 seats</strong>', enterprise: '<strong>Unlimited</strong>' },
-    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 24 rules', startup: '<span class="check">&#10003;</span> 38 rules', compliance: '<span class="check">&#10003;</span> 52+ rules', enterprise: '<span class="check">&#10003;</span> 52+ rules' },
-    { name: 'AI Slop Cop IDE rules', developer: '24 real-time rules', startup: '<strong>38 IDE rules</strong>', compliance: '<strong>52+ IDE rules</strong>', enterprise: '<strong>52+ IDE rules</strong>' },
-    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', compliance: '<span class="check">&#10003;</span> 60+ engines', enterprise: '<span class="check">&#10003;</span> 60+ engines' },
+    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 35 patterns', startup: '<span class="check">&#10003;</span> 35 patterns', compliance: '<span class="check">&#10003;</span> 35 patterns', enterprise: '<span class="check">&#10003;</span> 35 patterns' },
+    { name: 'AI Slop Cop IDE rules', developer: '35 real-time patterns', startup: '<strong>35 IDE patterns</strong>', compliance: '<strong>35 IDE patterns</strong>', enterprise: '<strong>35 IDE patterns</strong>' },
+    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', compliance: '<span class="check">&#10003;</span> 38 modules', enterprise: '<span class="check">&#10003;</span> 38 modules' },
     { name: 'Placeholder debris detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Markdown fence detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
     { name: 'Fiction KPI detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', compliance: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
@@ -264,7 +264,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   faqs: [
     {
       q: 'What is AI Slop Cop and how does it work?',
-      a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 24 rules, or use the CLI for CI gate integration with 60+ analyzer engines.'
+      a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 35 patterns, or use the CLI for CI gate integration with 48 analyzer modules.'
     },
     {
       q: 'What do I get with the Free tier?',
@@ -316,7 +316,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     },
     {
       q: 'How can I verify that my source code never leaves my machine?',
-    a: 'You can verify that scans do not upload source code in three ways: (1) Open Chrome/Firefox DevTools and inspect requests during a browser scan. (2) Use Wireshark or tcpdump to inspect CLI traffic. (3) Enable Airplane Mode and verify browser and CLI offline modes. See our <a href="security.html">Security & Trust</a> page for details.'
+      a: 'You can independently audit our zero-upload claim in three ways: (1) Open Chrome/Firefox DevTools (F12), go to the Network tab, and run a scan — you will see zero outbound payloads containing code. (2) Run Wireshark or tcpdump during a CLI scan to confirm zero external packet egress. (3) Enable Airplane Mode and verify both the browser sandbox and CLI scanner operate flawlessly offline. See our <a href="security.html">Security & Trust</a> page for detailed audit steps.'
     },
     {
       q: 'Does SimpleBeacon use a Content Security Policy (CSP)?',
@@ -761,7 +761,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Upload Your Scan Report</h1>
-            <p id="pageSubtitle">MCP Mode: Scan runs locally via CLI tools. Use offline or air-gapped mode to disable network activity; source code is not uploaded.</p>
+            <p id="pageSubtitle">MCP Mode: Scan runs locally via CLI tools. Zero network activity. Your data never leaves this machine.</p>
         </header>
 
         <div class="local-note">
@@ -1623,8 +1623,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
                     xhr.upload.onprogress = (e) => {
                         if (!e.lengthComputable || totalBytes === 0) return;
-                        const overallPctRaw = Math.min(100, Math.round((e.loaded / e.total) * 100));
-                        const overallPct = Number.isFinite(overallPctRaw) ? Math.max(0, Math.min(100, overallPctRaw)) : 0;
+                        const overallPct = Math.min(100, Math.round((e.loaded / e.total) * 100));
                         uploadProgress.style.width = `${overallPct * 0.4}%`; // upload fills 0-40%
 
                         // Determine which file is currently being uploaded

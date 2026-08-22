@@ -60,7 +60,6 @@
     if (String(data.get('website') || '').trim()) return;
 
     var payload = {
-      email: String(data.get('contactEmail') || '').trim(),
       contactEmail: String(data.get('contactEmail') || '').trim(),
       name: String(data.get('name') || '').trim(),
       company: String(data.get('company') || '').trim(),

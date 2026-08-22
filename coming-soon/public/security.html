@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
     <title>SimpleBeacon Security &amp; Trust</title>
-    <meta name="description" content="SimpleBeacon zero-source-upload scanning, local browser analysis, cryptographic certificates, and enterprise data handling practices.">
+    <meta name="description" content="SimpleBeacon zero-upload architecture, local-only scans, cryptographic certificates, and enterprise data handling practices.">
     <link rel="canonical" href="https://simplebeacon.ai/security.html">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="SimpleBeacon Security &amp; Trust">
-    <meta property="og:description" content="SimpleBeacon zero-source-upload scanning, local browser analysis, cryptographic certificates, and enterprise data handling practices.">
+    <meta property="og:description" content="SimpleBeacon zero-upload architecture, local-only scans, cryptographic certificates, and enterprise data handling practices.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/security.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon Security &amp; Trust">
-    <meta name="twitter:description" content="SimpleBeacon zero-source-upload scanning, local browser analysis, cryptographic certificates, and enterprise data handling practices.">
+    <meta name="twitter:description" content="SimpleBeacon zero-upload architecture, local-only scans, cryptographic certificates, and enterprise data handling practices.">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -55,10 +55,10 @@
   <h1>Security &amp; Trust</h1>
   <p style="color:#9CA3AF;">Last updated: June 2026</p>
 
-  <h2>Zero Source-Code Upload</h2>
-  <p>SimpleBeacon is designed so that source code is not uploaded during scanning. Online paid CI workflows may send aggregate telemetry; offline and air-gapped modes disable network activity:</p>
+  <h2>Zero-Upload Architecture</h2>
+  <p>SimpleBeacon is designed so that your source code never leaves your infrastructure:</p>
   <ul>
-    <li><strong>CLI:</strong> Supports explicit <code>--offline</code> and <code>--air-gapped</code> modes. Paid online CI may send aggregate metrics.</li>
+    <li><strong>CLI:</strong> Runs entirely offline. No network calls unless you explicitly pass <code>--upload</code>.</li>
     <li><strong>Browser Sandbox:</strong> Executes in your browser's memory. Wiped when the tab closes.</li>
     <li><strong>IDE Extension:</strong> Shells out to local CLI. No cloud API involved.</li>
   </ul>
