@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SimpleBeacon Agent PDA Policies",
+  "description": "Policy definitions for AI agent guardrails. Loaded by the policy engine from .simplebeacon/policies.json",
+  "type": "object",
+  "required": ["policies"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Schema version (currently 1)",
+      "const": 1
+    },
+    "updatedAt": {
+      "type": "number",
+      "description": "Unix timestamp of last update"
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "action"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique policy identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["forbidden_action", "required_check", "approval_required"],
+            "description": "Policy type: forbidden_action blocks, required_check verifies, approval_required needs human approval"
+          },
+          "action": {
+            "type": "string",
+            "description": "The action this policy applies to (e.g. force-push, delete-files, finalize-changes). Supports wildcards: delete-*"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["block", "warn"],
+            "description": "block = prevents the action, warn = logs a warning"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this policy is active",
+            "default": true
+          },
+          "checkCommand": {
+            "type": "string",
+            "description": "For required_check: the command to run (e.g. npm test, npx simplebeacon scan --gate)"
+          },
+          "branch": {
+            "description": "Optional: restrict policy to specific branches",
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "policies": [
+        {
+          "id": "no-secrets",
+          "type": "forbidden_action",
+          "action": "commit-secrets",
+          "description": "Never commit secrets, API keys, or tokens",
+          "severity": "block",
+          "enabled": true
+        },
+        {
+          "id": "must-test",
+          "type": "required_check",
+          "action": "finalize-changes",
+          "description": "Run tests before claiming done",
+          "severity": "block",
+          "checkCommand": "npm test",
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}

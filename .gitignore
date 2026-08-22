@@ -527,3 +527,35 @@ simplebeacon-guardrails-public/
 
 # Lighthouse config (generated)
 simplebeacon-vscode-merged/dashboard-web/.lighthouserc.cjs
+
+# Generated SimpleBeacon runtime artifacts
+.simplebeacon/email-queue/
+.simplebeacon/filtered-audit-*
+.simplebeacon/filtered-org-*
+.simplebeacon/rep_meta_*.csv
+.simplebeacon/prod-main-disc*.js
+.simplebeacon/agent-pda/
+.simplebeacon/audit-context-check/
+.simplebeacon/rules/smtp-credential-safeguard.md
+*.sbcert
+report.sbcert
+latest_license.json
+
+# Wrangler local state (root-level)
+.wrangler/
+
+# Husky internal
+.husky/_/
+
+# Generated demo/build directories
+demo/
+go/
+artifacts/
+postlaunch/
+extract-envoy-compliance-ps.ps1
+
+# Test init artifacts
+test-init/
+
+# Coming-soon app2 (experimental build)
+coming-soon/public/app2/

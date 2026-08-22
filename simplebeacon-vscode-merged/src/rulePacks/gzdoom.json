@@ -1,0 +1,190 @@
+{
+  "name": "gzdoom",
+  "description": "GZDoom mod development rule pack — catches config precedence issues, stale asset references, debug logging in release paths, and dangerous render backend overrides.",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "GZ-RENDER-001",
+      "regex": "[+\\s]?r_drawvoxels\\s+1",
+      "severity": "warning",
+      "message": "r_drawvoxels 1 forces voxel rendering — may cause performance issues on integrated GPUs",
+      "suggestion": "Remove this override or make it opt-in via CVAR info with user consent",
+      "fileExtensions": [".cfg", ".ini", ".bat", ".zscript", ".zs"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-RENDER-002",
+      "regex": "set\\s+r_drawvoxels\\s+1",
+      "severity": "warning",
+      "message": "set r_drawvoxels 1 in console script forces voxel rendering at runtime",
+      "suggestion": "Use a CVAR with user_default instead of hard-setting it",
+      "fileExtensions": [".cfg", ".ini", ".bat", ".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-RENDER-003",
+      "regex": "vid_preferbackend\\s+1",
+      "severity": "warning",
+      "message": "vid_preferbackend 1 forces OpenGL — may break on systems that prefer Vulkan or Vulkan is the only option",
+      "suggestion": "Let the user choose their renderer, or use vid_preferbackend 0 (auto)",
+      "fileExtensions": [".cfg", ".ini", ".bat"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-RENDER-004",
+      "regex": "set\\s+vid_preferbackend",
+      "severity": "warning",
+      "message": "set vid_preferbackend in console script overrides user renderer preference at runtime",
+      "suggestion": "Remove this line — renderer choice should be user-controlled",
+      "fileExtensions": [".cfg", ".ini", ".bat", ".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-DEBUG-001",
+      "regex": "Console\\.Log\\(",
+      "severity": "warning",
+      "message": "Console.Log() call found — verify this is not in a release/hot path",
+      "suggestion": "Wrap in #ifdef DEBUG or use a CVAR-gated debug flag",
+      "fileExtensions": [".zs", ".zscript"],
+      "fileRoles": ["app"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-DEBUG-002",
+      "regex": "A_Log\\(",
+      "severity": "info",
+      "message": "A_Log() call — will print to console at runtime, verify this is intentional",
+      "suggestion": "Remove for release builds or gate behind a debug CVAR",
+      "fileExtensions": [".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-ASSET-001",
+      "regex": "[\"'][^\"']*\\.(wad|pk3|pk7|ipk3|p7z)[\"']",
+      "severity": "info",
+      "message": "Hardcoded WAD/PK3 asset reference — verify the file exists in the mod tree",
+      "suggestion": "Use relative paths and validate with the asset reference scanner",
+      "fileExtensions": [".zs", ".zscript", ".bat", ".cfg", ".ini", ".mapinfo"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-CONFIG-001",
+      "regex": "set\\s+\\w+\\s+\\d",
+      "severity": "info",
+      "message": "set <cvar> <value> in config file — this overrides user settings at load time",
+      "suggestion": "Use defaultvalue or user_default in CVARINFO instead of hard-setting in config",
+      "fileExtensions": [".cfg", ".ini", ".bat"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-CONFIG-002",
+      "regex": "defaultvalue\\s+\\d",
+      "severity": "info",
+      "message": "CVAR defaultvalue set — verify this doesn't conflict with other CVARINFO files",
+      "suggestion": "Check for duplicate CVAR definitions across all .cvarinfo files in the mod",
+      "fileExtensions": [".cvarinfo"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-CONFIG-003",
+      "regex": "^\\s*\\+\\w+\\s+",
+      "severity": "info",
+      "message": "Command-line flag in config file (+flag) — this is a launch argument, not a config setting",
+      "suggestion": "Move to launch script (.bat) or use 'set' syntax in config",
+      "fileExtensions": [".cfg", ".ini"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-LAUNCH-001",
+      "regex": "gzdoom\\.exe",
+      "severity": "info",
+      "message": "Hardcoded gzdoom.exe path in launch script — may not work on other systems",
+      "suggestion": "Use a variable or detect GZDoom install location",
+      "fileExtensions": [".bat"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-LAUNCH-002",
+      "regex": "-file\\s+[^\\s]+\\.wad",
+      "severity": "info",
+      "message": "-file flag references a .wad — verify load order and file existence",
+      "suggestion": "Use -file with .pk3/.ipk3 for modern mods, verify the file exists",
+      "fileExtensions": [".bat"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-LAUNCH-003",
+      "regex": "-config\\s+[^\\s]+",
+      "severity": "warning",
+      "message": "-config flag overrides the user's default config — verify this is intentional for release",
+      "suggestion": "Remove -config for release builds, or document why a custom config is required",
+      "fileExtensions": [".bat"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-MAPINFO-001",
+      "regex": "map\\s+\\w+\\s+lookup",
+      "severity": "info",
+      "message": "MAPINFO map entry with lookup — verify the lookup string exists in LANGUAGE",
+      "suggestion": "Check that the lookup key is defined in your LANGUAGE lump",
+      "fileExtensions": [".mapinfo"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-ZSCRIPT-001",
+      "regex": "class\\s+\\w+\\s*:\\s*Actor\\s*\\{",
+      "severity": "info",
+      "message": "ZScript class inheriting from Actor — verify this isn't a duplicate of an existing class",
+      "suggestion": "Check for class name collisions across all .zs/.zscript files in the mod",
+      "fileExtensions": [".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-ZSCRIPT-002",
+      "regex": "Default\\s*\\{",
+      "severity": "info",
+      "message": "ZScript Default block — verify flag values don't conflict with parent class defaults",
+      "suggestion": "Check parent class defaults for conflicting flags",
+      "fileExtensions": [".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-ZSCRIPT-003",
+      "regex": "States\\s*\\{",
+      "severity": "info",
+      "message": "ZScript States block — verify state labels don't conflict with parent class",
+      "suggestion": "Check parent class state labels for collisions",
+      "fileExtensions": [".zs", ".zscript"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-KEYCONF-001",
+      "regex": "addkeysection\\s+",
+      "severity": "info",
+      "message": "KEYCONF addkeysection — verify all referenced menu names exist",
+      "suggestion": "Check that all menu names referenced here are defined in MENUDEF",
+      "fileExtensions": [".keyconf"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-CVAR-001",
+      "regex": "user\\s+\\w+\\s+\\w+",
+      "severity": "info",
+      "message": "CVARINFO user CVAR definition — verify the CVAR name doesn't conflict with engine CVARs",
+      "suggestion": "Prefix custom CVARs with your mod name (e.g. MyMod_DebugMode)",
+      "fileExtensions": [".cvarinfo"],
+      "enabled": true
+    },
+    {
+      "id": "GZ-CVAR-002",
+      "regex": "server\\s+\\w+\\s+\\w+",
+      "severity": "warning",
+      "message": "CVARINFO server CVAR — this is networked, verify it's needed for multiplayer sync",
+      "suggestion": "Only use server CVARs if the value must be synchronized to all clients",
+      "fileExtensions": [".cvarinfo"],
+      "enabled": true
+    }
+  ],
+  "severityOverrides": [],
+  "allowlist": []
+}
