@@ -13,7 +13,7 @@ import {
   HardDrive,
   Zap,
 } from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
+// Browser-side Ollama probe — no server API needed (server can't reach user's localhost)
 
 interface OllamaHealthData {
   ok: boolean;
@@ -55,31 +55,16 @@ export function OllamaUptimeWidget() {
   const [data, setData] = useState<OllamaHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
-
   const fetchHealth = useCallback(async () => {
-    try {
-      const resp = await fetch(apiUrl('/ollama/health'), {
-        headers: authHeaders(),
-      });
-      const json = await resp.json();
-      if (json.success) {
-        setData(json);
-        setError(null);
-      } else {
-        setError(json.error || 'Failed to check Ollama status');
-      }
-    } catch {
-      setError('Failed to connect to Ollama health API');
-    } finally {
-      setLoading(false);
-    }
+    const result = await probeBrowserOllama(DEFAULT_OLLAMA_URL);
+    setData(result);
+    setError(result.ok ? null : (result.error || null));
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchHealth();
     const interval = setInterval(fetchHealth, 30000);
-    setPollInterval(interval);
     return () => {
       if (interval) clearInterval(interval);
     };
