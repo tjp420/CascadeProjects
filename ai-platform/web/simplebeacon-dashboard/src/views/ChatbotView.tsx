@@ -1371,15 +1371,15 @@ export function ChatbotView() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <CardTitle className="text-base">Conversation</CardTitle>
             <Badge variant="outline">{messages.length} messages</Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <select
               value={selectedProvider}
               onChange={(e) => handleProviderChange(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 max-w-[140px] rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
               {providers.length === 0 && <option value="" disabled>Loading providers…</option>}
@@ -1398,7 +1398,7 @@ export function ChatbotView() {
                 }
                 handleModelSelectChange(e.target.value);
               }}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Model"
               disabled={!selectedProvider}
               title="Select AI model"
@@ -1421,21 +1421,23 @@ export function ChatbotView() {
               })}
               {selectedProvider && <option value="__custom__">Custom model…</option>}
             </select>
-            <input
-              value={selectedModel}
-              onChange={(e) => handleCustomModelChange(e.target.value)}
-              className="h-8 w-44 rounded-md border border-input bg-background px-2 text-sm"
-              aria-label="Custom model name"
-              placeholder="Custom model"
-              disabled={!selectedProvider}
-            />
-            <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model" aria-label="Install Unbreakable Oracle model">
+            {isCustomModel && (
+              <input
+                value={selectedModel}
+                onChange={(e) => handleCustomModelChange(e.target.value)}
+                className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
+                aria-label="Custom model name"
+                placeholder="Custom model"
+                disabled={!selectedProvider}
+              />
+            )}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model" aria-label="Install Unbreakable Oracle model">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt" aria-label="Custom system prompt">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt" aria-label="Custom system prompt">
               <FileText className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
               <Settings2 className="h-4 w-4" />
             </Button>
             {speechSupported && (
@@ -1443,16 +1445,17 @@ export function ChatbotView() {
                 <Button
                   variant={voiceSettings.enabled ? 'default' : 'ghost'}
                   size="sm"
+                  className="h-8 w-8 p-0"
                   onClick={handleToggleVoice}
                   title={voiceSettings.enabled ? 'Voice response ON — click to disable' : 'Voice response OFF — click to enable'}
                   aria-label="Toggle voice response"
-                  className={voiceSettings.enabled ? 'text-primary-foreground' : ''}
                 >
                   {voiceSettings.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-8 w-8 p-0"
                   onClick={() => setShowVoiceSettings(!showVoiceSettings)}
                   title="Voice settings"
                   aria-label="Voice settings"
@@ -1463,17 +1466,17 @@ export function ChatbotView() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-8 w-8 p-0 text-destructive"
                     onClick={handleStopSpeaking}
                     title="Stop speaking"
                     aria-label="Stop speaking"
-                    className="text-destructive"
                   >
                     <Square className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </>
             )}
-            <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history" aria-label="Clear history">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleClear} title="Clear history" aria-label="Clear history">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
