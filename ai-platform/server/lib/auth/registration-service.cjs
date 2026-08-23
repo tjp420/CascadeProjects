@@ -1,5 +1,6 @@
 'use strict';
 
+const logger = require('../app-logger.cjs').child('registration-service');
 const { generateToken } = require('../../middleware/auth.cjs');
 const { registerUser } = require('../../services/user-service.cjs');
 const {
@@ -48,6 +49,7 @@ async function handleRegister(req, res) {
         }
     } catch (trialErr) {
         // Non-blocking — signup succeeds even if trial grant fails
+        logger.warn('Trial grant failed during registration', { error: trialErr.message });
     }
 
     if (pending) {
