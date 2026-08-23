@@ -702,7 +702,7 @@ function _validateIncomingEpoch(msg, peerKey) {
       siemSource: 'cluster-keyring-sync',
     });
     _state.epoch = peerEpoch;
-    try { keyRotationStore.setEpoch(peerEpoch); } catch (e) { /* best-effort */ }
+    try { keyRotationStore.setEpoch(peerEpoch); } catch (e) { _log('debug', 'setEpoch failed during epoch reconciliation', { error: e.message }); }
     _recordEvent(EVENT_TYPES.EPOCH_RECONCILED, NODE_ID, {
       newEpoch: peerEpoch,
       previousEpoch: localEpoch,
@@ -1361,10 +1361,10 @@ function init() {
 function shutdown() {
   _shuttingDown = true;
   _running = false;
-  try { stopStekRotation(); } catch (e) {}
-  try { _resetDkgSession(); } catch (e) {}
-  try { _resetEpochState(); } catch (e) {}
-  try { _resetEvents(); } catch (e) {}
+  try { stopStekRotation(); } catch (e) { _log('debug', 'stopStekRotation failed during shutdown', { error: e.message }); }
+  try { _resetDkgSession(); } catch (e) { _log('debug', '_resetDkgSession failed during shutdown', { error: e.message }); }
+  try { _resetEpochState(); } catch (e) { _log('debug', '_resetEpochState failed during shutdown', { error: e.message }); }
+  try { _resetEvents(); } catch (e) { _log('debug', '_resetEvents failed during shutdown', { error: e.message }); }
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
   if (_electionTimer) { clearInterval(_electionTimer); _electionTimer = null; }
   for (const [key, socket] of _sockets.entries()) {
@@ -1372,16 +1372,16 @@ function shutdown() {
       socket.removeAllListeners('data');
       socket.removeAllListeners('error');
       socket.removeAllListeners('close');
-    } catch (e) {}
-    try { socket.destroy(); } catch (e) {}
+    } catch (e) { _log('debug', 'socket removeAllListeners failed during shutdown', { error: e.message }); }
+    try { socket.destroy(); } catch (e) { _log('debug', 'socket destroy failed during shutdown', { error: e.message }); }
     _sockets.delete(key);
     _peerState.delete(key);
   }
   if (_server) {
-    try { _server.close(); } catch (e) {}
+    try { _server.close(); } catch (e) { _log('debug', 'server close failed during shutdown', { error: e.message }); }
     _server = null;
   }
-  try { sessionTokenReplicator.setBroadcast(() => {}); } catch (e) {}
+  try { sessionTokenReplicator.setBroadcast(() => {}); } catch (e) { _log('debug', 'setBroadcast reset failed during shutdown', { error: e.message }); }
   _log('info', 'Cluster keyring sync shutdown');
 }
 

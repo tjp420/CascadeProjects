@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const logger = require('./app-logger.cjs').child('audit-logger');
 
 // Lazy-load crypto-utils to avoid circular dependency at module init
 let _cryptoUtils = null;
@@ -67,9 +68,10 @@ function getLatestHash(store, orgId) {
 }
 
 function readStore() {
+  const storePath = process.env.AUDIT_LOG_PATH || STORE_PATH;
   try {
-    if (!fs.existsSync(STORE_PATH)) return { entries: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    if (!fs.existsSync(storePath)) return { entries: {} };
+    const raw = fs.readFileSync(storePath, 'utf8');
     return JSON.parse(raw);
   } catch {
     return { entries: {} };
@@ -77,9 +79,10 @@ function readStore() {
 }
 
 function writeStore(store) {
-  const dir = path.dirname(STORE_PATH);
+  const storePath = process.env.AUDIT_LOG_PATH || STORE_PATH;
+  const dir = path.dirname(storePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+  fs.writeFileSync(storePath, JSON.stringify(store, null, 2));
 }
 
 function makeKey(orgId, id) {
@@ -298,6 +301,7 @@ function log(params) {
     }
   } catch (e) {
     // don't let SIEM errors affect core logic
+    logger.debug('SIEM enqueue failed for audit event', { error: e.message, action: entry.action });
   }
   return entry;
 }
@@ -1292,9 +1296,10 @@ function getHealStats() {
  *
  * @param {string} callerOrgId — The org ID of the admin requesting the report
  * @param {string[]} [frameworks] — Target frameworks (default: SOC 2, GDPR, ISO 27001)
+ * @param {string} [traceId] — Optional request trace identifier for attribution
  * @returns {object} Compliance report object
  */
-function generateComplianceReport(callerOrgId, frameworks) {
+function generateComplianceReport(callerOrgId, frameworks, traceId) {
   const targetFrameworks = frameworks || ['SOC 2', 'GDPR', 'ISO 27001'];
   const generatedAt = new Date().toISOString();
   const reportId = `rep_${crypto.randomBytes(8).toString('hex')}`;
@@ -1368,6 +1373,8 @@ function generateComplianceReport(callerOrgId, frameworks) {
     frameworks: targetFrameworks,
     global,
     orgs,
+    // surface traceId for downstream attribution when provided
+    ...(traceId ? { traceId } : {}),
   };
 
   // 3. Log the report generation as an auditable action
@@ -1382,6 +1389,9 @@ function generateComplianceReport(callerOrgId, frameworks) {
       metadata: {
         frameworks: targetFrameworks,
         organizationsEvaluated: targetOrgs.length,
+        // include traceId in the audit metadata so the report generation
+        // can be correlated to an incoming request
+        ...(traceId ? { traceId } : {}),
       },
     });
   } catch {

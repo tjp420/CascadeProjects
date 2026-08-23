@@ -473,6 +473,33 @@ try {
     logger.warn('[API] Health routes not loaded:', err.message);
 }
 
+// Provider failover routes — LLM provider health, failover stats, circuit breaker
+try {
+    const providerFailoverRoutes = require('../ai-platform/server/routes/provider-failover-routes.cjs');
+    app.use('/api/provider-failover', providerFailoverRoutes);
+    logger.info('[API] Provider failover routes mounted');
+} catch (err) {
+    logger.warn('[API] Provider failover routes not loaded:', err.message);
+}
+
+// Identity federation routes — SAML/OIDC federation metadata and sync history
+try {
+    const identityFederationRoutes = require('../ai-platform/server/routes/identity-federation-routes.cjs');
+    app.use('/api/identity-federation', identityFederationRoutes);
+    logger.info('[API] Identity federation routes mounted');
+} catch (err) {
+    logger.warn('[API] Identity federation routes not loaded:', err.message);
+}
+
+// Tool schema validation routes — schema inference, violation tracking, config
+try {
+    const toolSchemaRoutes = require('../ai-platform/server/routes/tool-schema-validation-routes.cjs');
+    app.use('/api/tool-schemas', toolSchemaRoutes);
+    logger.info('[API] Tool schema routes mounted');
+} catch (err) {
+    logger.warn('[API] Tool schema routes not loaded:', err.message);
+}
+
 // Health check for Render + load balancers
 app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -943,6 +970,15 @@ app.use(checkoutRoutes);
 
 const freeTokenRoutes = require('./routes/free-token.cjs');
 app.use(freeTokenRoutes);
+
+// Funnel analytics tracking endpoint
+try {
+    const analyticsRoutes = require('./routes/analytics.cjs');
+    app.use(analyticsRoutes);
+    logger.info('[Analytics] Funnel tracking routes mounted');
+} catch (err) {
+    logger.warn('[Analytics] Funnel tracking routes not loaded:', err.message);
+}
 
 try {
     const referralRoutes = require('./routes/referral.cjs');

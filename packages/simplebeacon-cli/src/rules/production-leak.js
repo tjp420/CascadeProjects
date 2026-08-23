@@ -88,7 +88,17 @@ function globMatch(relativePath, pattern) {
     const p = pattern.split('\\').join('/');
 
     if (p.includes('node_modules')) {
-        return normalized.includes('node_modules/') || normalized.startsWith('node_modules/');
+        // Only apply the fast path when the pattern targets node_modules as a
+        // directory boundary. Patterns like **/node_modules_host/** or
+        // **/.container_node_modules/** contain "node_modules" as a substring
+        // but should fall through to the general glob matching below.
+        const nodeModulesDir = /(^|\/)node_modules(\/|$)/.test(p);
+        if (nodeModulesDir) {
+            // Match node_modules as a directory boundary in the path too,
+            // not just as a substring (e.g. .container_node_modules/ should
+            // NOT match here).
+            return /(^|\/)node_modules(\/|$)/.test(normalized);
+        }
     }
     if (p === 'tests/**' || p.endsWith('/tests/**')) {
         return normalized.startsWith('tests/') || normalized.includes('/tests/');

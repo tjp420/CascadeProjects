@@ -62,30 +62,30 @@ function readStore() {
 function writeStore(store) {
   const STORE_PATH = getStorePath();
   // Debug: log where we are attempting to write during tests
-  try { console.log('[ci-telemetry] writeStore ->', STORE_PATH); } catch (e) {}
+  console.log('[ci-telemetry] writeStore ->', STORE_PATH);
   fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
   try {
     console.error('[ci-telemetry] debug: storePath', STORE_PATH);
     console.error('[ci-telemetry] debug: storeDir listing ->', fs.readdirSync(path.dirname(STORE_PATH)));
   } catch (e) {
-    try { console.error('[ci-telemetry] debug: listing failed:', e && e.message); } catch (ee) {}
+    console.error('[ci-telemetry] debug: listing failed:', e && e.message);
   }
   const tmp = `${STORE_PATH}.tmp`;
   const content = `${JSON.stringify(store, null, 2)}\n`;
   fs.writeFileSync(tmp, content, 'utf8');
-  try { console.error('[ci-telemetry] debug: wrote tmp', tmp, 'tmpExists', fs.existsSync(tmp)); } catch (e) {}
+  console.error('[ci-telemetry] debug: wrote tmp', tmp, 'tmpExists', fs.existsSync(tmp));
   try {
     fs.renameSync(tmp, STORE_PATH);
-    try { console.error('[ci-telemetry] debug: renameSync ok, exists', fs.existsSync(STORE_PATH)); } catch (e) {}
+    console.error('[ci-telemetry] debug: renameSync ok, exists', fs.existsSync(STORE_PATH));
   } catch (e) {
-    try { console.error('[ci-telemetry] rename failed, falling back to direct write:', e && e.message); } catch (ee) {}
+    console.error('[ci-telemetry] rename failed, falling back to direct write:', e && e.message);
     // On some Windows environments rename can fail if the target is locked.
     // Fall back to a direct write to ensure tests relying on the file do not fail.
     try {
       fs.writeFileSync(STORE_PATH, content, 'utf8');
-      try { fs.unlinkSync(tmp); } catch (e2) {}
+      try { fs.unlinkSync(tmp); } catch (e2) { /* best-effort cleanup of tmp */ }
     } catch (e2) {
-      try { console.error('[ci-telemetry] fallback write failed:', e2 && e2.message); } catch (ee) {}
+      console.error('[ci-telemetry] fallback write failed:', e2 && e2.message);
       // If fallback also fails, rethrow the original error for visibility.
       throw e;
     }
@@ -111,11 +111,11 @@ function writeStore(store) {
         sleep(50);
         try {
           fs.writeFileSync(STORE_PATH, content, 'utf8');
-        } catch (e) {}
+        } catch (e) { /* best-effort retry within visibility loop */ }
       }
     }
   } catch (e) {
-    try { console.error('[ci-telemetry] post-write visibility check failed:', e && e.message); } catch (ee) {}
+    console.error('[ci-telemetry] post-write visibility check failed:', e && e.message);
   }
 }
 

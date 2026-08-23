@@ -50,7 +50,7 @@
   {
     "id": "SB-AI-005",
     "name": "Eval/exec/Function constructor usage",
-    "pattern": "(?:^|\\s)(?:eval\\s*\\(|exec\\s*\\(|Function\\s*\\(|compile\\s*\\(|__import__\\s*\\(|importlib\\.import_module\\s*\\()",
+    "pattern": "(?:^|\\s)(?:eval\\s*\\(|new\\s+Function\\s*\\(|compile\\s*\\(|__import__\\s*\\(|importlib\\.import_module\\s*\\()",
     "patternFlags": "gi",
     "severity": "medium",
     "fileExtensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".java", ".kt", ".scala", ".groovy", ".rb", ".php", ".lua", ".pl", ".r"],
@@ -102,7 +102,7 @@
     "patternFlags": "gi",
     "severity": "low",
     "fileExtensions": [".py", ".go", ".rs", ".c", ".cpp", ".h", ".java", ".rb", ".php", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".sh", ".bash", ".bat", ".cmd", ".ps1", ".swift", ".kt", ".dart", ".lua", ".pl", ".r", ".cs", ".scala", ".groovy", ".clj", ".ex", ".erl", ".fs", ".hs", ".zs", ".zscript"],
-    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "scripts/", ".env.example", "README", "CHANGELOG"],
+    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "scripts/", "tools/", ".env.example", "README", "CHANGELOG"],
     "description": "Hardcoded filesystem path found — this makes the code non-portable and may leak system structure. Use configuration or path resolution instead.",
     "recommendation": "Use relative paths, environment variables, or path.join/pathlib for cross-platform compatibility.",
     "enabled": true

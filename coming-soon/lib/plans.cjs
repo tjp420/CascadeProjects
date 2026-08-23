@@ -121,7 +121,7 @@ const PLANS = {
     price: 0,
     priceLabel: '$0',
     billing: 'trial',
-    description: 'Full Pro features for 14 days. No credit card required.',
+    description: 'Full Developer tier features for 14 days. No credit card required.',
     features: [
       'Unlimited files per scan',
       'All findings shown',
@@ -130,7 +130,7 @@ const PLANS = {
       'GitHub Action + CI gate',
       'Export reports (JSON, Markdown)'
     ],
-    footnote: 'No credit card required · Auto-downgrades to Starter after 14 days',
+    footnote: 'No credit card required · Reverts to the free tier after 14 days',
     cta: 'Start Free Trial',
     ctaAction: 'checkout',
     moduleAccess: [

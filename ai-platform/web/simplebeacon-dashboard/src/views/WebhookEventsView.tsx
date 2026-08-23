@@ -88,13 +88,24 @@ export function WebhookEventsView() {
         fetch(apiUrl('/webhook-events/stats'), { headers: authHeaders() }),
       ]);
 
-      const eventsData = await eventsResp.json();
-      const statsData = await statsResp.json();
+      // Handle non-OK responses (401/403/500) before parsing JSON
+      if (!eventsResp.ok && !statsResp.ok) {
+        if (eventsResp.status === 401 || eventsResp.status === 403) {
+          setError('Authentication required. Sign in to view webhook events.');
+        } else {
+          setError(`Server returned ${eventsResp.status} / ${statsResp.status}`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      const eventsData = eventsResp.ok ? await eventsResp.json() : { success: false };
+      const statsData = statsResp.ok ? await statsResp.json() : { success: false };
 
       if (eventsData.success) setEvents(eventsData.events || []);
       if (statsData.success) setStats(statsData.stats);
     } catch {
-      setError('Failed to load webhook events');
+      setError('Failed to load webhook events. Check your connection to the server.');
     } finally {
       setLoading(false);
     }

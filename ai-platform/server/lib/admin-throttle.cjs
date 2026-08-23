@@ -194,6 +194,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     lastKnown = await redisClient.hmget(bucketKey, 'tokens', 'lastUpdate');
   } catch (e) {
     // Could not reach Redis; ignore and let the eval attempt fail below.
+    logger.debug('Redis hmget snapshot failed; proceeding with scripted consume', { error: e.message });
   }
   const script = `
     local key = KEYS[1]
@@ -229,6 +230,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
       }
     } catch (err) {
       // fall through to fallback below
+      logger.debug('Redis tokenBucketConsume failed; trying legacy EVAL', { error: err.message });
     }
     // Fallback for older ioredis versions where defineCommand is unavailable
     // Use send_command to avoid literal eval token in source which can trigger scanners

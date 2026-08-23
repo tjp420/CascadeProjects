@@ -93,7 +93,7 @@ const DEPLOYMENT_EXCEPTIONS = {
 function findRenderYamlFiles(baseDir) {
     const results = [];
     const maxDepth = 3;
-    const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next']);
+    const skipDirs = new Set(['node_modules', 'node_modules_host', '.container_node_modules', '.git', 'dist', 'build', 'coverage', '.next']);
 
     function walk(dir, depth) {
         if (depth > maxDepth) return;
@@ -328,7 +328,7 @@ function findCreateTableStatements(baseDir, serviceDir) {
  */
 function findServiceDirectories(baseDir) {
     const services = [];
-    const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.simplebeacon', '.continue', '.devin']);
+    const skipDirs = new Set(['node_modules', 'node_modules_host', '.container_node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.simplebeacon', '.continue', '.devin']);
     const maxDepth = 2;
 
     function walk(dir, depth) {

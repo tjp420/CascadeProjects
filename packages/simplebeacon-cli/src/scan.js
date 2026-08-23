@@ -1315,6 +1315,14 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             }
         }
         let uniqueFiles = dedupeScannedFiles(files);
+        // Apply config.ignore patterns to filter out vendored directories
+        // (e.g. .container_node_modules, node_modules_host) that aren't caught
+        // by the node_modules walk skip. This prevents scanners that don't
+        // individually check ignoreGlobs (like the JSON syntax validator) from
+        // reporting false positives in vendored dependencies.
+        if (Array.isArray(config.ignore) && config.ignore.length > 0) {
+            uniqueFiles = uniqueFiles.filter((f) => !isIgnoredPath(f.relativePath || '', config.ignore));
+        }
         if (Array.isArray(options.exclude) && options.exclude.length > 0) {
             const excludePatterns = options.exclude.map((p) => p.replace(/\\/g, '/'));
             uniqueFiles = uniqueFiles.filter((f) => {

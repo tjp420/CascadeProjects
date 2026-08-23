@@ -13,7 +13,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
         '@services': path.resolve(__dirname, './js-es2018/services'),
-        '@views': path.resolve(__dirname, './js-es2018/views'),
         '@utils': path.resolve(__dirname, './js-es2018'),
       },
     },

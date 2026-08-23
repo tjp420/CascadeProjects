@@ -41,7 +41,7 @@ async function retryWithBackoff(fn, maxAttempts = WEBHOOK_RETRY_MAX_ATTEMPTS, ba
           status: 'retrying',
           error: err.message,
         });
-      } catch (e) {}
+      } catch (e) { logger.debug('webhook retry recordDelivery failed', { error: e.message }); }
       await delay(backoffMs);
     }
   }
@@ -109,7 +109,7 @@ function httpsPostJsonOnce(url, body, headers = {}, context = {}) {
     });
     // socket timeout handling
     req.setTimeout(timeoutMs, () => {
-      try { req.abort(); } catch (e) {}
+      try { req.abort(); } catch (e) { logger.debug('req.abort failed during timeout', { error: e.message }); }
       var latencyMs = Date.now() - startMs;
       try {
         signingStore.recordDelivery({
@@ -155,17 +155,17 @@ function httpsPostJson(url, body, headers = {}, context = {}) {
         res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => {
           var latencyMs = Date.now() - startMs;
-          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) {}
+          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) { logger.debug('signingStore.recordDelivery failed', { error: e.message }); }
           try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
           catch { resolve({ status: res.statusCode, data }); }
         });
       });
       req.on('error', (err) => {
         var latencyMs = Date.now() - startMs;
-        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) {}
+        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) { logger.debug('signingStore.recordDelivery failed on error', { error: e.message }); }
         reject(err);
       });
-      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) {} ; reject(new Error('Request timed out')); });
+      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) { logger.debug('req.abort failed during timeout', { error: e.message }); } ; reject(new Error('Request timed out')); });
       req.write(postData);
       req.end();
     });
@@ -194,17 +194,17 @@ function httpsPostJson(url, body, headers = {}, context = {}) {
         res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => {
           var latencyMs = Date.now() - startMs;
-          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) {}
+          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) { logger.debug('signingStore.recordDelivery failed', { error: e.message }); }
           try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
           catch { resolve({ status: res.statusCode, data }); }
         });
       });
       req.on('error', (err) => {
         var latencyMs = Date.now() - startMs;
-        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) {}
+        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) { logger.debug('signingStore.recordDelivery failed on error', { error: e.message }); }
         reject(err);
       });
-      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) {} ; reject(new Error('Request timed out')); });
+      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) { logger.debug('req.abort failed during timeout', { error: e.message }); } ; reject(new Error('Request timed out')); });
       req.end();
     });
   }
