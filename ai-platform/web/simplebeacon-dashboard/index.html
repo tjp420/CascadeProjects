@@ -72,7 +72,7 @@
       var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      if (devHost) l.href = '/dashboard/assets/main.css?v=20260812register'; else l.href = '/dashboard/assets/main.css?v=20260812register';
+      if (devHost) l.href = './assets/main.css'; else l.href = './assets/main.css';
       document.head.appendChild(l);
     })();
   </script>
@@ -412,7 +412,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   </script>
 
   <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-  <script type="module" src="/dashboard/assets/main.js"></script>
+  <script type="module" src="./assets/main.js"></script>
   <script>
     (function(){
       try{
