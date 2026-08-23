@@ -10,10 +10,11 @@ scrape_configs:
     scrape_interval: 15s
     metrics_path: '/api/agentic/metrics'
     # If your server requires TLS and a custom CA, configure `tls_config` here.
-    # Example bearer token usage — replace with an appropriately scoped secret.
-    # WARNING: storing long-lived tokens in plaintext is insecure; use a secrets
-    # manager or service account mechanism where possible.
-    bearer_token: 'YOUR_ADMIN_ROLE_BEARER_TOKEN'
+    # Example: avoid storing long-lived tokens in plaintext — use a secret manager
+    # or mount a token into a file and reference it via bearer_token_file.
+    # Recommended: provision PROMETHEUS_AGENTIC_BEARER_TOKEN in your secret manager
+    # and mount it at /var/run/secrets/prometheus/agentic_bearer_token.
+    bearer_token_file: /var/run/secrets/prometheus/agentic_bearer_token
 
     static_configs:
       - targets: ['localhost:3000']
