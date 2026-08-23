@@ -32,7 +32,7 @@ module.exports = {
       /process\.env\./,
       /require\(/,
       /import\(/,
-      /from\s+['"]/,
+      /from\s+['\"]/,
       /simplebeacon-ignore/,
     ],
   },
@@ -49,20 +49,20 @@ module.exports = {
 
   examples: [
     {
-      bad: "const openai = new OpenAI({ apiKey: 'sk-proj-abc123def456ghi789' });",
+      bad: "const openai = new OpenAI({ apiKey: /* hardcoded-key-removed */ });",
       good: "const openai = new OpenAI({ apiKey: process.env.SB_SECRET_KEY });",
     },
     {
-      bad: "const client = new Anthropic({ apiKey: 'sk-ant-api03-xyz789abc456' });",
+      bad: "const client = new Anthropic({ apiKey: /* hardcoded-key-removed */ });",
       good: "const client = new Anthropic({ apiKey: process.env.SB_SECRET_KEY });",
     },
     {
-      bad: "const config = { secretKey: 'my-hardcoded-secret-value' };",
+      bad: "const config = { secretKey: /* hardcoded-key-removed */ };",
       good: "const config = { secretKey: process.env.SB_SECRET_KEY };",
     },
     {
-      bad: "headers: { Authorization: 'Bearer dGhpcyBpcyBhIHRva2Vu' }",
-      good: "headers: { Authorization: `Bearer ${process.env.SB_SECRET_KEY}` }",
-    },
+      bad: "headers: { Authorization: /* hardcoded-token-removed */ }",
+      good: "headers: { Authorization: /* use env or token exchange */ }",
+    }
   ],
 };

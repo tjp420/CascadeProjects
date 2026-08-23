@@ -411,9 +411,9 @@ module.exports = {
     try {
       // Remove ioredis listeners to avoid logging after tests finish
       if (redisClient && typeof redisClient.removeAllListeners === 'function') {
-        try { redisClient.removeAllListeners('ready'); } catch (e) {}
-        try { redisClient.removeAllListeners('error'); } catch (e) {}
-        try { redisClient.removeAllListeners('close'); } catch (e) {}
+        try { redisClient.removeAllListeners('ready'); } catch (e) { logger.warn('admin-throttle: removeAllListeners ready failed', { error: e && e.message }); }
+        try { redisClient.removeAllListeners('error'); } catch (e) { logger.warn('admin-throttle: removeAllListeners error failed', { error: e && e.message }); }
+        try { redisClient.removeAllListeners('close'); } catch (e) { logger.warn('admin-throttle: removeAllListeners close failed', { error: e && e.message }); }
       }
       if (redisClient) {
         try {
@@ -425,8 +425,8 @@ module.exports = {
       }
     } finally {
       // Reset internal state so subsequent tests don't see stale handles
-      try { inMemoryBuckets.clear(); } catch (e) {}
-      try { redisClient = null; } catch (e) {}
+      try { inMemoryBuckets.clear(); } catch (e) { logger.warn('admin-throttle: inMemoryBuckets.clear failed during shutdown', { error: e && e.message }); }
+      try { redisClient = null; } catch (e) { logger.warn('admin-throttle: reset redisClient failed during shutdown', { error: e && e.message }); }
       usingRedis = false;
       _redisReady = false;
     }

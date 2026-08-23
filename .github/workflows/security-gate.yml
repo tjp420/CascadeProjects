@@ -232,12 +232,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug token registry environment (diagnostic)
+        run: |
+          echo "Node version:"; node -v || true
+          echo "PWD:"; pwd
+          echo "Listing ai-platform server lib tree:"; ls -la ai-platform/server || true
+          echo "Listing ai-platform server lib db dir:"; ls -la ai-platform/server/lib/db || true
+          echo "Schema path exists?"; node -e "const fs=require('fs'); console.log(fs.existsSync('ai-platform/server/lib/db/token-registry.schema.json'))" || true
+          echo "DB path exists? (default)"; node -e "const fs=require('fs'); console.log(fs.existsSync('ai-platform/server/lib/db/token-registry.json'))" || true
+          echo "--- cat schema (first 200 lines) ---"; sed -n '1,200p' ai-platform/server/lib/db/token-registry.schema.json || true
       - name: Run token registry schema test
         run: |
           node --test ai-platform/server/lib/__tests__/token-registry-schema.test.cjs
 
 
       - name: Run optimized builds
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           mkdir -p .simplebeacon || true
           npm run build:ci

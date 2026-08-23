@@ -54,8 +54,9 @@ function scanFileContent(content, filename, opts = {}) {
     const lenThreshold = opts.lenThreshold || 32;
     const perCharEntropyThreshold = opts.perCharEntropyThreshold || 4.5;
     if (s.length >= lenThreshold) {
-      // Skip file paths — they contain slashes and end with file extensions
-      if (/^\.?\.?\/.*\.(cjs|js|json|ts|mjs)$/i.test(s) || /^[a-z][-a-z0-9]*\/[a-z][-a-z0-9/]*\.(cjs|js|json|ts|mjs)$/i.test(s)) continue;
+      // Skip file paths — they contain slashes and end with file extensions.
+      // Add common static asset extensions (html, htm) to avoid flagging entry file names.
+      if (/^\.?\.?\/.*\.(cjs|js|json|ts|mjs|html|htm)$/i.test(s) || /^[a-z][-a-z0-9]*\/[a-z][-a-z0-9/]*\.(cjs|js|json|ts|mjs|html|htm)$/i.test(s)) continue;
       const ent = shannonEntropy(s);
       const perChar = ent; // entropy computed per-symbol already
       if (perChar >= perCharEntropyThreshold) {
