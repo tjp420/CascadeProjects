@@ -178,7 +178,15 @@
     ".container_node_modules/pkg/package.json",
     ".container_node_modules/pkg-fetch/package.json",
     "ai-platform-openapi-prism.yml",
-    "simplebeacon-vscode-merged/simplebeacon-report.json"
+    "simplebeacon-vscode-merged/simplebeacon-report.json",
+    "packages/simplebeacon-cli/src/agent-pda/cross-project-learner.js",
+    "ai-platform/docker-compose.prism.yml",
+    ".github/workflows/ai-platform-openapi-prism-dispatch.yml",
+    ".github/workflows/ai-platform-openapi-prism.yml",
+    "ai-platform/api/openapi.yaml",
+    "ai-platform/scripts/watch-restart-prism.js",
+    "ai-agent/consistency-score.cjs",
+    "ai-agent/orchestrator.cjs"
   ],
   "rules": {
     "credentials": {
