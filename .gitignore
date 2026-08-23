@@ -469,7 +469,6 @@ PR_BODY_TMP
 *.patch-fix
 
 # Untracked build artifacts (Vite output)
-ai-platform/web/simplebeacon-dashboard/assets/
 coming-soon/public/app/assets/
 coming-soon/public/dashboard/assets/
 simplebeacon-vscode-merged/dashboard-web/assets/
