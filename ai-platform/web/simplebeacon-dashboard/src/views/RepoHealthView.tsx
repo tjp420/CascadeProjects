@@ -68,10 +68,27 @@ export function RepoHealthView() {
     setError(null);
     try {
       await waitForApiBase();
+      // Allow the repository/project to be specified via query param (?project=) or repo= for flexibility.
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectFromQuery = urlParams.get('project') || urlParams.get('repo') || null;
+      // Fallback: look for a project= in the hash (e.g. #/repository-health?project=Foo)
+      let projectFromHash = null;
+      try {
+        const hash = window.location.hash || '';
+        const hashQueryIndex = hash.indexOf('?');
+        if (hashQueryIndex >= 0) {
+          const hashQuery = new URLSearchParams(hash.slice(hashQueryIndex + 1));
+          projectFromHash = hashQuery.get('project') || hashQuery.get('repo') || null;
+        }
+      } catch (e) {
+        projectFromHash = null;
+      }
+      const projectPath = projectFromQuery || projectFromHash || 'CascadeProjects';
+
       const resp = await fetch(apiUrl('/analyze/flexible'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ projectPath: 'CascadeProjects', analysisType: 'codebase' }),
+        body: JSON.stringify({ projectPath, analysisType: 'codebase' }),
       });
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const json = await resp.json();
@@ -202,6 +219,7 @@ export function RepoHealthView() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Repository Health</h1>
             <p className="text-foreground-muted">Repository structure, dependencies, and health metrics</p>
+            <div className="text-sm text-foreground-muted mt-1">Project: {data.projectRoot || 'CascadeProjects'}</div>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleExport}>
