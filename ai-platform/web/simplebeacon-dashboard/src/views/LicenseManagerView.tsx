@@ -76,14 +76,16 @@ export function LicenseManagerView() {
       }
       const data = await res.json();
       // Normalize — API may omit empty arrays or numeric fields
+      // Spread first so explicit defaults below override undefined/null from API
       setRoster({
+        ...data,
+        success: true,
         seats: data.seats || [],
         pendingInvites: data.pendingInvites || [],
         maxSeats: data.maxSeats ?? 0,
         seatsUsed: data.seatsUsed ?? 0,
         seatsRemaining: data.seatsRemaining ?? 0,
         tier: data.tier || 'free',
-        ...data,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to load seat roster');

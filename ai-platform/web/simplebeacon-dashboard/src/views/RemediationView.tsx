@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Map, RefreshCw, AlertCircle, CheckCircle2, Circle, Clock, AlertTriangle, ListTodo, TrendingUp, Zap, Download } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders } from '@/config';
 import { navigate } from '@/router/HashRouter';
 
 type Phase = {
@@ -97,7 +96,6 @@ export function RemediationView() {
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiBase = getApiBase();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -127,7 +125,7 @@ export function RemediationView() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   const [rescanning, setRescanning] = useState(false);
 
@@ -135,7 +133,15 @@ export function RemediationView() {
     setRescanning(true);
     try {
       const projectPath = localStorage.getItem('sb_current_project') || '.';
-      await axios.post(apiUrl('/scan/trigger'), { patternId: undefined, projectPath }, { headers: authHeaders() });
+      const resp = await fetch(apiUrl('/scan/trigger'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ patternId: undefined, projectPath }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `HTTP ${resp.status}`);
+      }
       toast.success('Local re-scan triggered successfully. Compliance matrix updating...');
       await fetchData();
     } catch (err: any) {
