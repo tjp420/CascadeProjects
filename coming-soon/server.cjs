@@ -944,6 +944,15 @@ app.use(checkoutRoutes);
 const freeTokenRoutes = require('./routes/free-token.cjs');
 app.use(freeTokenRoutes);
 
+// Funnel analytics tracking endpoint
+try {
+    const analyticsRoutes = require('./routes/analytics.cjs');
+    app.use(analyticsRoutes);
+    logger.info('[Analytics] Funnel tracking routes mounted');
+} catch (err) {
+    logger.warn('[Analytics] Funnel tracking routes not loaded:', err.message);
+}
+
 try {
     const referralRoutes = require('./routes/referral.cjs');
     app.use(referralRoutes);
