@@ -146,6 +146,10 @@ function shouldSkipCheckForPath(checkId, relativePath) {
     if (/docker-compose.*\.(yaml|yml)$/i.test(rel)) return true;
     // Spectral ruleset files define OpenAPI linting rules
     if (/\.spectral\.(yaml|yml|json)$/i.test(rel)) return true;
+    // Prism mock server config files reference openapi: as a spec path — infrastructure, not source
+    if (/openapi-prism\.(yaml|yml)$/i.test(rel)) return true;
+    // Scan report JSON files mention openapi in their findings output — generated artifacts, not source
+    if (/simplebeacon-report\.json$/i.test(rel)) return true;
   }
   return false;
 }
