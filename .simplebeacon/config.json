@@ -186,7 +186,8 @@
     "ai-platform/api/openapi.yaml",
     "ai-platform/scripts/watch-restart-prism.js",
     "ai-agent/consistency-score.cjs",
-    "ai-agent/orchestrator.cjs"
+    "ai-agent/orchestrator.cjs",
+    "coming-soon/public/index.html"
   ],
   "rules": {
     "credentials": {
