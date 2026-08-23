@@ -60,21 +60,6 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export function isTokenExpired(): boolean {
-  if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
-  if (!token) return true;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1]));
-    if (payload.exp && Date.now() >= payload.exp * 1000) return true;
-    return false;
-  } catch {
-    return true;
-  }
-}
-
 export function clearAuthAndRedirect(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('sb_token');
@@ -174,4 +159,8 @@ if (typeof window !== 'undefined') {
     _probeDone = true;
   }
 }
+
+
+
+
 

@@ -1717,7 +1717,9 @@ export function AnalyzeView() {
         { key: 'server', label: 'Server Path', icon: FolderSearch },
         { key: 'github', label: 'GitHub URL', icon: Github },
       ];
-
+ 
+  return (
+    <div className="mx-auto max-w-7xl p-6 space-y-6">
       {localNetworkDenied && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-yellow-400/30 bg-yellow-50/30 px-4 py-3 text-sm">
           <div className="flex items-center gap-2">
