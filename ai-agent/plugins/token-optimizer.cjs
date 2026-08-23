@@ -254,6 +254,7 @@ function collectSourceFiles(root, maxFiles) {
 /**
  * Simple hash-based embedding: creates a 128-dim vector from token frequencies.
  * No external deps — works offline. Good enough for cosine similarity retrieval.
+ * Uses SHA-256 (not MD5) for hashing — MD5 is flagged as weak crypto.
  */
 function hashEmbedding(text) {
     const dims = 128;
@@ -261,7 +262,7 @@ function hashEmbedding(text) {
     const tokens = text.toLowerCase().match(/[a-z_][a-z0-9_]{2,}/g) || [];
 
     for (const token of tokens) {
-        const hash = crypto.createHash('md5').update(token).digest();
+        const hash = crypto.createHash('sha256').update(token).digest();
         const idx = hash.readUInt32LE(0) % dims;
         vec[idx] += 1;
     }
