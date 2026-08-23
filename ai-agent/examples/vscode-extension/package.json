@@ -1,0 +1,35 @@
+{
+  "name": "simplebeacon-example-extension",
+  "displayName": "SimpleBeacon Example Extension",
+  "description": "Example VS Code extension that wires the SimpleBeacon plugin into Copilot Chat agent mode",
+  "version": "0.1.0",
+  "publisher": "simplebeacon",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onCommand:simplebeacon.runQuickScan",
+    "onCommand:simplebeacon.gateStatus"
+  ],
+  "main": "./activate.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "simplebeacon.runQuickScan",
+        "title": "SimpleBeacon: Run Quick Scan",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.gateStatus",
+        "title": "SimpleBeacon: Gate Status",
+        "category": "SimpleBeacon"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node -e \"const p=require('./activate.js'); console.log('activate exports:', Object.keys(p));\""
+  },
+  "devDependencies": {}
+}

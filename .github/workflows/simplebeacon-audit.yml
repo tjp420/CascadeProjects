@@ -20,15 +20,24 @@ jobs:
         node-version: '22'
         cache: 'npm'
 
-    - name: Install Analysis Dependencies
+    - name: Install Analysis Dependencies (with retries)
       run: |
-        npm install @swc/core minimatch@3.1.5 --force
+        set -e
+        RETRIES=3
+        count=0
+        until [ $count -ge $RETRIES ]
+        do
+          npm install --no-audit @swc/core minimatch@3.1.5 --force && break
+          count=$((count+1))
+          echo "npm install failed, retrying ($count/$RETRIES)..."
+          sleep 3
+        done
 
     - name: Execute SimpleBeacon Engine Core Gate
       id: run-audit
       run: |
         node -e "
-        import('./SimpleBeaconPoC.js').then(async (m) => {
+        import('./SimpleBeaconPoC.mjs').then(async (m) => {
           const report = await m.runSimpleBeaconAudit(process.cwd());
           console.log(JSON.stringify(report, null, 2));
           
