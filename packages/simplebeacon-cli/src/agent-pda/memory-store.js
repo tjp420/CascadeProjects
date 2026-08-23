@@ -14,7 +14,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { atomicWriteFileSync } = require('../lib/atomic-writer');
 
-const DEFAULT_DATA = { memories: [], version: 1 };
+const _DEFAULT_DATA = { memories: [], version: 1 };
 
 function getDbPath(projectRoot) {
     return path.join(projectRoot || process.cwd(), '.simplebeacon', 'agent-pda', 'memories.json');
