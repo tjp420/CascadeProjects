@@ -219,3 +219,247 @@ async function runLocalAgent(userGoal) {
 }
 
 module.exports = { runLocalAgent, callLocalModel, validateStep, executeReadFile, parsePlan, executePatchFile };
+
+// ─── Optimized Agent Loop (token-optimizer + sandbox + cache + escalation) ──
+
+const tokenOptimizer = require('./plugins/token-optimizer.cjs');
+const sandboxRunner = require('./plugins/sandbox-runner.cjs');
+const { tryCache, storeCache, buildEscalationPrompt, shouldEscalate, logEscalation } = require('./plugins/cache-escalation.cjs');
+
+/**
+ * Run the optimized agent loop with token-optimized context, sandboxed
+ * patch testing, response caching, and escalation management.
+ *
+ * Flow: summarize → build prompt → check cache → local model → sandbox test
+ *       → verify → (escalate if needed) → log tokens
+ *
+ * @param {string} userGoal — what the agent should accomplish
+ * @param {object} [opts] — { changedPaths, projectRoot, maxAttempts, index, maxTokens }
+ * @returns {Promise<object>}
+ */
+async function runOptimizedAgent(userGoal, opts = {}) {
+    const projectRoot = opts.projectRoot || process.cwd();
+    const changedPaths = opts.changedPaths || [];
+    const maxAttempts = opts.maxAttempts || 3;
+    const maxTokens = opts.maxTokens || 4000;
+
+    debugLog(`\n🤖 [Optimized Agent] Goal: "${userGoal}"`);
+    debugLog(`📁 [Context] ${changedPaths.length} changed file(s)`);
+
+    // Step 1: Build focused prompt with token-optimized context
+    const { prompt, estimatedTokens, breakdown } = await tokenOptimizer.preparePromptForEdit(
+        projectRoot,
+        changedPaths,
+        userGoal,
+        { index: opts.index, k: 5, maxTokens }
+    );
+
+    debugLog(`📝 [Prompt] ${estimatedTokens} tokens (budget: ${maxTokens})`);
+    debugLog(`   Summaries: ${breakdown.summaryTokens} tokens, Retrieval: ${breakdown.retrievalTokens} tokens`);
+
+    if (!breakdown.withinBudget) {
+        debugLog(`⚠️ [Warning] Prompt exceeds budget (${estimatedTokens} > ${maxTokens})`);
+    }
+
+    // Step 2: Check cache for a previous response to this prompt
+    const cacheResult = tryCache(changedPaths, prompt);
+    if (cacheResult.hit) {
+        debugLog(`💾 [Cache Hit] Reusing cached response`);
+        tokenOptimizer.logTokenUsage({
+            event: 'cached_response',
+            promptTokens: 0,
+            completionTokens: 0,
+            savedTokens: estimatedTokens,
+            task: userGoal,
+        });
+        return { success: true, cached: true, response: cacheResult.response, tokenBreakdown: breakdown };
+    }
+
+    // Step 3: Local model attempts
+    const attemptedPatches = [];
+    const reasoningTrace = [];
+    let lastTestOutput = '';
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        debugLog(`\n🔄 [Attempt ${attempt}/${maxAttempts}] Calling local model...`);
+
+        let modelResponse;
+        try {
+            const attemptPrompt = attempt === 1
+                ? prompt
+                : `${prompt}\n\n## Previous attempt failed\nError: ${lastError}\nTest output:\n${lastTestOutput.slice(-1000)}\n\nProvide a corrected patch.`;
+            modelResponse = await callLocalModel(attemptPrompt);
+            reasoningTrace.push(`Attempt ${attempt}: ${modelResponse.slice(0, 200)}`);
+        } catch (err) {
+            debugError(`❌ [Attempt ${attempt}] Local model error: ${err.message}`);
+            lastError = err.message;
+
+            // Check if we should escalate
+            if (shouldEscalate({ attempts: attempt, maxAttempts, lastError, taskComplexity: 'medium' })) {
+                return await escalateToRemote({
+                    intent: userGoal,
+                    summaryText: prompt,
+                    attemptedPatches,
+                    lastTestOutput,
+                    reasoningTrace: reasoningTrace.join('\n'),
+                    attempts: attempt,
+                    tokenBreakdown: breakdown,
+                });
+            }
+            continue;
+        }
+
+        attemptedPatches.push(modelResponse);
+
+        // Step 4: Try to parse and sandbox-test the patch
+        // The model response should contain a search/replace patch
+        const patch = parseModelPatch(modelResponse, changedPaths[0]);
+        if (!patch) {
+            debugLog(`⚠️ [Attempt ${attempt}] Could not parse patch from model response`);
+            lastError = 'Could not parse patch from model response';
+            continue;
+        }
+
+        // Step 5: Sandbox test
+        debugLog(`🧪 [Attempt ${attempt}] Testing patch in sandbox...`);
+        const sandboxResult = await sandboxRunner.sandboxPatchAndTest(
+            projectRoot,
+            changedPaths,
+            patch,
+            { testCommand: opts.testCommand, testArgs: opts.testArgs, timeoutMs: 30000 }
+        );
+
+        if (sandboxResult.testsPassed) {
+            debugLog(`✅ [Attempt ${attempt}] Patch passed tests in sandbox!`);
+
+            // Cache the successful response
+            storeCache(cacheResult.key, modelResponse);
+
+            // Log token usage
+            tokenOptimizer.logTokenUsage({
+                event: 'edit_success',
+                promptTokens: estimatedTokens,
+                completionTokens: tokenOptimizer.estimateTokens(modelResponse),
+                savedTokens: 50000 - estimatedTokens, // estimated savings vs whole-repo dump
+                task: userGoal,
+                model: getModelName(),
+            });
+
+            return {
+                success: true,
+                cached: false,
+                attempts: attempt,
+                patch,
+                diff: sandboxResult.diff,
+                response: modelResponse,
+                tokenBreakdown: breakdown,
+            };
+        }
+
+        lastTestOutput = sandboxResult.testOutput || '';
+        lastError = sandboxResult.error || 'Tests failed in sandbox';
+        debugLog(`❌ [Attempt ${attempt}] Sandbox test failed: ${lastError}`);
+
+        // Check escalation
+        if (shouldEscalate({ attempts: attempt, maxAttempts, lastError, taskComplexity: 'medium' })) {
+            return await escalateToRemote({
+                intent: userGoal,
+                summaryText: prompt,
+                attemptedPatches,
+                lastTestOutput,
+                reasoningTrace: reasoningTrace.join('\n'),
+                attempts: attempt,
+                tokenBreakdown: breakdown,
+            });
+        }
+    }
+
+    // All local attempts exhausted — escalate
+    return await escalateToRemote({
+        intent: userGoal,
+        summaryText: prompt,
+        attemptedPatches,
+        lastTestOutput,
+        reasoningTrace: reasoningTrace.join('\n'),
+        attempts: maxAttempts,
+        tokenBreakdown: breakdown,
+    });
+}
+
+/**
+ * Attempt to parse a search/replace patch from a model response.
+ * Expects the model to output something like:
+ *   SEARCH:
+ *   <original code>
+ *   REPLACE:
+ *   <new code>
+ *
+ * @param {string} response
+ * @param {string} defaultPath
+ * @returns {object|null} — { path, search, replace }
+ */
+function parseModelPatch(response, defaultPath) {
+    if (!response) return null;
+
+    // Try SEARCH:/REPLACE: format
+    const searchMatch = response.match(/SEARCH:\s*\n?([\s\S]*?)\n\s*REPLACE:\s*\n?([\s\S]*?)(?:\n\s*(?:##|---|\n$|$))/i);
+    if (searchMatch) {
+        return {
+            path: defaultPath,
+            search: searchMatch[1].trim(),
+            replace: searchMatch[2].trim(),
+        };
+    }
+
+    // Try diff format
+    const diffMatch = response.match(/```diff\n([\s\S]*?)```/);
+    if (diffMatch) {
+        const diff = diffMatch[1];
+        const removed = diff.split('\n').filter(l => l.startsWith('-') && !l.startsWith('---')).map(l => l.slice(1)).join('\n');
+        const added = diff.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++')).map(l => l.slice(1)).join('\n');
+        if (removed && added) {
+            return { path: defaultPath, search: removed, replace: added };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Escalate to a remote model with a focused prompt.
+ */
+async function escalateToRemote(params) {
+    const escalationPrompt = buildEscalationPrompt(params);
+    const escalationTokens = tokenOptimizer.estimateTokens(escalationPrompt);
+
+    debugLog(`\n🚀 [Escalation] Building focused prompt for remote model (${escalationTokens} tokens)`);
+
+    logEscalation({
+        intent: params.intent,
+        attempts: params.attempts,
+        tokensUsed: escalationTokens,
+    });
+
+    tokenOptimizer.logTokenUsage({
+        event: 'escalation',
+        promptTokens: escalationTokens,
+        completionTokens: 0,
+        savedTokens: 50000 - escalationTokens,
+        task: params.intent,
+        model: 'remote',
+    });
+
+    return {
+        success: false,
+        escalated: true,
+        escalationPrompt,
+        escalationTokens,
+        attempts: params.attempts,
+        tokenBreakdown: params.tokenBreakdown,
+        message: 'Local model could not resolve the task. Escalation prompt built for remote model.',
+    };
+}
+
+module.exports.runOptimizedAgent = runOptimizedAgent;
+module.exports.parseModelPatch = parseModelPatch;
