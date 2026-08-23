@@ -147,13 +147,14 @@ async function checkAndReserveActiveSlot(orgId) {
       const cnt = await rateLimiter.incrementActiveExecutions(orgId);
       if (cnt > QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG) {
         // undo the increment and signal quota exhausted
-        try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) {}
+        try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) { logger.debug('decrementActiveExecutions failed during quota check', { error: e.message, orgId }); }
         return { allowed: false, current: cnt };
       }
       return { allowed: true, current: cnt };
     }
   } catch (e) {
     // fallthrough to store-backed check
+    logger.debug('Redis-backed quota check failed; falling back to store-backed check', { error: e.message, orgId });
   }
 
   // Fallback: use agenticStore's active executions list (per-process)
@@ -162,7 +163,7 @@ async function checkAndReserveActiveSlot(orgId) {
     if (active.length >= QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG) return { allowed: false, current: active.length };
     // best-effort: mark reservation via agenticStore if supported (no-op otherwise)
     if (typeof agenticStore.reserveExecution === 'function') {
-      try { agenticStore.reserveExecution(orgId); } catch (e) {}
+      try { agenticStore.reserveExecution(orgId); } catch (e) { logger.debug('reserveExecution failed', { error: e.message, orgId }); }
     }
     return { allowed: true, current: active.length + 1 };
   } catch (err) {
@@ -252,19 +253,20 @@ router.post('/agents/:id/execute', authorize('admin:all'), replayDetectionMiddle
   var options = req.body.options || {};
   // Log canonical fingerprint for audit integrity
   if (req.canonicalFingerprint) {
-    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_EXECUTE_REQUEST', { orgId, agentId: req.params.id, fingerprint: req.canonicalFingerprint, user: req.user && req.user.id }); } catch (e) {}
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_EXECUTE_REQUEST', { orgId, agentId: req.params.id, fingerprint: req.canonicalFingerprint, user: req.user && req.user.id }); } catch (e) { logger.debug('audit log AGENTIC_EXECUTE_REQUEST failed', { error: e.message }); }
   }
   // Enforce active-execution quota per org using distributed reservation
   let reserved = false;
   try {
     const slot = await checkAndReserveActiveSlot(orgId);
     if (!slot.allowed) {
-      try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id }, getAuditContext(req))); } catch (e) {}
+      try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id }, getAuditContext(req))); } catch (e) { logger.debug('audit log AGENTIC_QUOTA_EXHAUSTED failed', { error: e.message }); }
       return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
     }
     reserved = true;
   } catch (e) {
     // on any error, fail-safe: allow execution to proceed
+    logger.debug('quota enforcement failed; failing safe to allow execution', { error: e.message, orgId });
   }
 
   // Enforce trigger rate limit per org (sliding window) using the pluggable limiter
@@ -272,7 +274,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), replayDetectionMiddle
   if (!rl.allowed) {
     const retrySecs = Math.ceil((rl.retryAfterMs || 0) / 1000);
     res.setHeader('Retry-After', String(retrySecs));
-    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_RATE_LIMIT_TRIPPED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id, retryAfter: retrySecs }, getAuditContext(req))); } catch (e) {}
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_RATE_LIMIT_TRIPPED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id, retryAfter: retrySecs }, getAuditContext(req))); } catch (e) { logger.debug('audit log AGENTIC_RATE_LIMIT_TRIPPED failed', { error: e.message }); }
     return sendError(res, 429, 'rate_limited', { message: 'rate_limit_exceeded', retryAfter: retrySecs });
   }
 
@@ -308,7 +310,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), replayDetectionMiddle
     res.json(result);
   } finally {
     if (reserved) {
-      try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) {}
+      try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) { logger.debug('decrementActiveExecutions failed in finally', { error: e.message, orgId }); }
     }
   }
 }));
