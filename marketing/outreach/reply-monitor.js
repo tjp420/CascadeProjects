@@ -16,7 +16,7 @@
  * Required env vars:
  *   IMAP_HOST=imap.zohocloud.ca
  *   IMAP_PORT=993
- *   IMAP_USER=admin@simplebeacon.ai
+ *   IMAP_USER=<your-zoho-mailbox>@simplebeacon.ai
  *   IMAP_PASS=<zoho-app-specific-password>
  *   WEBHOOK_URL=https://hooks.slack.com/services/...  (or Discord webhook)
  *
