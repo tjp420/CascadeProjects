@@ -14,7 +14,8 @@
 
 const crypto = require('crypto');
 
-const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret';
+// Use an environment-provided secret in production; fallback to a local test secret for developer convenience.
+const MOCK_SIGNING_SECRET = process.env.MOCK_TPM_SIGNING_SECRET || 'mock-tpm-attestation-secret';
 
 /**
  * Default expected PCR values for testing.
