@@ -247,6 +247,7 @@ jobs:
 
 
       - name: Run optimized builds
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           mkdir -p .simplebeacon || true
           npm run build:ci
