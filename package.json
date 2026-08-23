@@ -59,6 +59,7 @@
     "archiver": "^7.0.1",
     "dompurify": "^3.4.12",
     "esbuild": "^0.28.1",
+    "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "js-yaml": "^5.2.3",
     "nodemailer": "^9.0.3",
