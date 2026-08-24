@@ -90,7 +90,7 @@ export function getGitDiff(
       maxBuffer: 10 * 1024 * 1024, // 10MB
     });
     return result;
-  } catch (err) {
+  } catch {
     // git not available or no diff — return empty
     return '';
   }
