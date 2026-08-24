@@ -210,7 +210,6 @@ describe('Track 114-121 Performance Posture Review', () => {
     expect(elapsed).toBeLessThan(200);
     expect(avgPerOp).toBeLessThanOrEqual(0.4);
 
-    // eslint-disable-next-line no-console
     console.log(`PROF-PQC-04: ${elapsed.toFixed(2)}ms cumulative, ${avgPerOp.toFixed(4)}ms/op avg (SLA: <200ms, ≤0.4ms/op)`);
   });
 });

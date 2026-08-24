@@ -104,7 +104,6 @@ function loadAnalyticsModule(stubs) {
     return origLoad.apply(this, arguments);
   };
 
-  // eslint-disable-next-line global-require
   const router = require('../analytics-routes.cjs');
   Module._load = origLoad;
 
