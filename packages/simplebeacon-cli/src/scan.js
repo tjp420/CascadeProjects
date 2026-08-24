@@ -964,7 +964,7 @@ function buildScanReport(opts) {
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
         dependencyGraphScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan, deploymentReadinessScan,
-        customHeuristicScan, gzdoomIntegrityScan
+        customHeuristicScan, _gzdoomIntegrityScan
     } = resolved;
 
     const scanScope = {
@@ -1703,7 +1703,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             timeoutMs: opts.timeoutMs || 30000,
             paths: opts.paths || config.productionPaths || []
         })),
-        scannerEntry('deployment-readiness', 'deploymentReadinessScan', scanDeploymentReadiness, (opts) => ({
+        scannerEntry('deployment-readiness', 'deploymentReadinessScan', scanDeploymentReadiness, (_opts) => ({
             // Project-level scanner — no file options needed, reads render.yaml + package.json
         })),
         scannerEntry('custom-heuristic', 'customHeuristicScan', scanCustomHeuristicRules, (opts) => ({
@@ -1712,7 +1712,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         })),
         {
             key: 'gzdoom-integrity-patterns',
-            varName: 'gzdoomIntegrityScan',
+            varName: '_gzdoomIntegrityScan',
             enabled: (cfg) => isRuleEnabled(cfg, 'gzdoom-integrity-patterns'),
             run: () => {
                 const opts = getRuleOptions(config, 'gzdoom-integrity-patterns');
@@ -1834,7 +1834,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         memoryLeakScan, typeSafetyScan, hallucinatedImportScan, _astStructuralScan,
         dependencyGraphScan, comprehensiveScan,
         cveDependencyScan, sbomScan, gitHistorySecretScan, deploymentReadinessScan,
-        customHeuristicScan, gzdoomIntegrityScan
+        customHeuristicScan, _gzdoomIntegrityScan
     } = resolved;
 
     if (roadmapValidation.issues?.length) {
@@ -1871,7 +1871,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     normalizeScannerOutput(issues, gitHistorySecretScan, 'git-history-secret', 'SB-GITSEC-001', 'Secret found in git history');
     normalizeScannerOutput(issues, deploymentReadinessScan, 'deployment-readiness', 'SB-DEP-001', 'Deployment topology issue');
     normalizeScannerOutput(issues, customHeuristicScan, 'custom-heuristic', 'SB-CUSTOM', 'Custom rule finding');
-    normalizeScannerOutput(issues, gzdoomIntegrityScan, 'gzdoom-integrity', 'GZ-XREF', 'GZDoom mod reference integrity issue');
+    normalizeScannerOutput(issues, _gzdoomIntegrityScan, 'gzdoom-integrity', 'GZ-XREF', 'GZDoom mod reference integrity issue');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {
             issues.push({
