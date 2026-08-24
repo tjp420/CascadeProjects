@@ -64,7 +64,7 @@
     "js-yaml": "^5.2.3",
     "nodemailer": "^9.0.3",
     "puppeteer": "^25.8.0",
-    "stripe": "^22.3.2",
+    "stripe": "^22.5.0",
     "tmp": "^0.2.7"
   },
   "license": "MIT",
