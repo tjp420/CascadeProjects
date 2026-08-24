@@ -32,7 +32,7 @@ jest.mock(
       ExtensionContext: class {
         extensionPath = process.cwd();
         extension = { packageJSON: { version: '0.0.0' } };
-      subscriptions: unknown[] = [];
+        subscriptions: unknown[] = [];
         workspaceState = { get: () => undefined, update: async () => {} };
         globalState = { get: () => undefined, update: async () => {} };
         secrets = { get: async () => undefined, store: async () => {}, delete: async () => {} };
