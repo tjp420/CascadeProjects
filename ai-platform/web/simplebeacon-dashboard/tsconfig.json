@@ -19,7 +19,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"],
       "@services/*": ["./js-es2018/services/*"],
