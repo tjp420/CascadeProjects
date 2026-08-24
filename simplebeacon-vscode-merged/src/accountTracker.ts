@@ -41,6 +41,7 @@ export class AccountTracker {
     } else if (contextOrPath.globalStorageUri) {
       dir = contextOrPath.globalStorageUri.fsPath;
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       dir = path.join(require('os').tmpdir(), 'simplebeacon');
     }
     this.logPath = path.join(dir, LOG_FILE_NAME);

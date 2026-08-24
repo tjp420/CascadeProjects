@@ -20,6 +20,7 @@ JQIDAQAB
 -----END PUBLIC KEY-----`;
 
 // Shared SB-FICTION rule catalog — kept in sync with CLI packages/simplebeacon-cli/src/rules/llm-slop-catalog.json
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const slopCatalog = require('./rules/llm-slop-catalog.json') as Array<{
   id: string;
   regexSource: string;
@@ -34,8 +35,11 @@ const slopCatalog = require('./rules/llm-slop-catalog.json') as Array<{
 
 // Expanded rule catalogs — ported from CLI scanners for real-time IDE diagnostics
 // These cover security (secrets, PII, weak crypto), OWASP LLM Top 10, and EU AI Act compliance
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const securityCatalog = require('./rules/security-patterns.json') as typeof slopCatalog;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const owaspLlmCatalog = require('./rules/owasp-llm-patterns.json') as typeof slopCatalog;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const complianceCatalog = require('./rules/compliance-patterns.json') as typeof slopCatalog;
 
 // Engine API client — provides access to the full 38+ CLI scanner suite via localhost:3000

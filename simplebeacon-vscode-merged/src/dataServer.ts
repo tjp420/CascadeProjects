@@ -58,6 +58,7 @@ async function _sendSandboxEmail(
 </body>
 </html>`;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const https = require('https');
     const resendKey = process.env.RESEND_API_KEY || '';
     if (resendKey && resendKey.startsWith('re_')) {

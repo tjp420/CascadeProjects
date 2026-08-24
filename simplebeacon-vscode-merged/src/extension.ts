@@ -1033,6 +1033,7 @@ export function activate(context: vscode.ExtensionContext) {
                 provider: session.provider,
                 state,
               });
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
               const req = require('http').request(
                 {
                   hostname: '127.0.0.1',
