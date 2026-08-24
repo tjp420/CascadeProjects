@@ -458,6 +458,84 @@ function getSupportedPatterns() {
     return Object.keys(FIX_REGISTRY);
 }
 
+/**
+ * Suggest a safe non-destructive patch for sensitive data findings.
+ * Returns an object with diff and suggested env var mapping but does NOT apply changes.
+ */
+function suggestSensitiveDataPatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    // Heuristic: look for common secret patterns in the snippet
+    const secretRe = /(["'])(sk_live_[A-Za-z0-9-_]+|re_[A-Za-z0-9-_]+|AIza[0-9A-Za-z\-_]{35}|-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----|AKIA[0-9A-Z]{16}|[A-Za-z0-9-_]{32,})\1/;
+    const m = snippet.match(secretRe);
+    if (!m) return null;
+    const secretLiteral = m[0];
+    const placeholder = '"<REDACTED_SECRET>"';
+    const diff = makeDiff(secretLiteral, placeholder, path.basename(filePath));
+    // Suggest an env var name derived from nearby identifier if possible
+    const keyNameRe = /(const|let|var|export\s+const)?\s*([A-Z0-9_]+)\s*=\s*/i;
+    const keyMatch = snippet.match(keyNameRe);
+    const suggestedEnv = keyMatch ? `${keyMatch[2].toUpperCase()}_SECRET` : 'REDACTED_SECRET';
+
+    return {
+        filePath,
+        line,
+        snippet,
+        secretLiteral,
+        diff,
+        suggestion: {
+            replaceWith: placeholder,
+            envExample: `${suggestedEnv}=<new_secret_value>`,
+            instructions: [
+                'Rotate the exposed secret immediately on the provider.',
+                `Replace the committed secret with ${placeholder} and update your code to read from process.env.${suggestedEnv} or a secret manager.`,
+                `Add ${suggestedEnv} to your deployment environment and remove the secret from the git history (git filter-repo / BFG).`,
+            ],
+        },
+    };
+}
+
+/**
+ * Suggest replacement guidance for hardcoded confidence values and fiction KPI placeholders.
+ * These are non-destructive suggestions (do not auto-apply).
+ */
+function suggestHardcodedConfidencePatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    const confRe = /(confidence\s*[:=]\s*)(0?\.\d+|1(?:\.0+)?)\b/i;
+    const m = snippet.match(confRe);
+    if (!m) return null;
+    const search = m[0];
+    const replace = `${m[1]}parseFloat(process.env.CONFIDENCE_THRESHOLD || ${m[2]})`;
+    const diff = makeDiff(search, replace, path.basename(filePath));
+    return { filePath, line, snippet, diff, suggestion: { instructions: ['Replace hardcoded confidence with a configurable threshold (env var). Review behavior after change.'] } };
+}
+
+function suggestFictionKpiPatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    // Look for obvious fictional KPI placeholders like 'kpi: 1000' or 'kpi_goal = "X"'
+    const kpiRe = /(kpi\s*[:=]\s*)(["']?\w+["']?|\d+)/i;
+    const m = snippet.match(kpiRe);
+    if (!m) return null;
+    const search = m[0];
+    const replace = `${m[1]}/* review KPI: replace with runtime metric or remove placeholder */`;
+    const diff = makeDiff(search, replace, path.basename(filePath));
+    return { filePath, line, snippet, diff, suggestion: { instructions: ['Replace fictional KPI placeholders with real metrics or configuration.'] } };
+}
+
 module.exports = {
     remediateFinding,
     runDeterministicRemediation,
@@ -465,4 +543,8 @@ module.exports = {
     makeDiff,
     getSupportedPatterns,
     FIX_REGISTRY,
+    // Non-destructive suggestion APIs (not used by deterministic auto-apply)
+    suggestSensitiveDataPatch,
+    suggestHardcodedConfidencePatch,
+    suggestFictionKpiPatch,
 };
