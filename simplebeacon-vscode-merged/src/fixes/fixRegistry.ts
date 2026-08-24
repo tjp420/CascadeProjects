@@ -98,11 +98,11 @@ export const FIX_REGISTRY: Record<string, FixFunction> = {
     if (/Math\.random\s*\(\)/.test(snippet)) {
       // simplebeacon-ignore weak-crypto — scanner rule definition
       return {
-        // simplebeacon-ignore weak-crypto — remediation advice text, not actual usage
-        description: 'Replace Math.random() with crypto.randomBytes() or crypto.randomUUID()',
-        search: /Math\.random\s*\(\)/, // simplebeacon-ignore weak-crypto — scanner rule definition
-        replace: 'crypto.randomBytes(16).toString("hex")',
-        autoFixable: false,
+        // Replace Math.random() with a crypto-backed inline helper to avoid requiring top-level imports.
+        description: 'Replace Math.random() with a crypto-backed inline helper',
+        search: /Math\.random\s*\(\)/g, // simplebeacon-ignore weak-crypto — scanner rule definition
+        replace: '(function(){const c=require("crypto");return Number.parseInt(c.randomBytes(6).toString("hex"),16)/281474976710656;})()',
+        autoFixable: true,
       };
     }
     return null;

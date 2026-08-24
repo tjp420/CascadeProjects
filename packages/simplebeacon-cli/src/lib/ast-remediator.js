@@ -302,6 +302,18 @@ function fixPythonDuplicateBody(snippet, _finding) {
     return { search, replace };
 }
 
+/**
+ * SB-JS-INSECURE-RANDOM: Replace Math.random() uses with a crypto-backed IIFE.
+ * This produces a uniformly distributed fraction in [0,1) using 6 random bytes
+ * (48-bit precision) and is safe to inline without adding top-level imports.
+ */
+function fixInsecureRandom(snippet, _finding) {
+    if (!/Math\.random\s*\(\s*\)/.test(snippet)) return null;
+    const search = /Math\.random\s*\(\s*\)/g;
+    const replace = '(function(){const c=require("crypto");return Number.parseInt(c.randomBytes(6).toString("hex"),16)/281474976710656;})()';
+    return { search, replace };
+}
+
 // ---------------------------------------------------------------------------
 // Fix registry: pattern ID → fix function
 // ---------------------------------------------------------------------------
@@ -318,6 +330,7 @@ const FIX_REGISTRY = {
     'SB-GO-REDUNDANCY-001': fixGoDuplicateBody,
     'SB-GO-REDUNDANCY-002': fixGoRepeatedErrorHandlers,
     'SB-GO-REDUNDANCY-003': fixGoDeepNesting,
+    'insecureRandom': fixInsecureRandom,
     'SB-JS-SQL-001': fixSqlInjection,
     'SB-JS-SQL-002': fixJsSqlUnparameterized,
 };
