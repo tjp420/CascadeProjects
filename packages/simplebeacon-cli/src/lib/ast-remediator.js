@@ -314,6 +314,29 @@ function fixInsecureRandom(snippet, _finding) {
     return { search, replace };
 }
 
+/**
+ * SB-JS-DEBUG-001: Remove debugger statements and console.debug calls.
+ */
+function fixDebugArtifacts(snippet, _finding) {
+    if (!/(\bdebugger\b|console\.debug\s*\()/.test(snippet)) return null;
+    const search = /\bdebugger\b;?|console\.debug\s*\([^)]*\);?/g;
+    const replace = '';
+    return { search, replace };
+}
+
+/**
+ * SB-JS-INNERHTML-001: Safe auto-fix for innerHTML clearing only (innerHTML = '').
+ */
+function fixInnerHtmlXss(snippet, _finding) {
+    if (/\.innerHTML\s*=\s*['"]\s*['"]/.test(snippet)) {
+        const search = /\.innerHTML\s*=\s*['"]\s*['"]/g;
+        const replace = '.textContent = ""';
+        return { search, replace };
+    }
+    // Do not auto-fix other innerHTML assignments (unsafe)
+    return null;
+}
+
 // ---------------------------------------------------------------------------
 // Fix registry: pattern ID → fix function
 // ---------------------------------------------------------------------------
@@ -331,6 +354,8 @@ const FIX_REGISTRY = {
     'SB-GO-REDUNDANCY-002': fixGoRepeatedErrorHandlers,
     'SB-GO-REDUNDANCY-003': fixGoDeepNesting,
     'insecureRandom': fixInsecureRandom,
+    'debugArtifacts': fixDebugArtifacts,
+    'innerHtmlXss': fixInnerHtmlXss,
     'SB-JS-SQL-001': fixSqlInjection,
     'SB-JS-SQL-002': fixJsSqlUnparameterized,
 };
