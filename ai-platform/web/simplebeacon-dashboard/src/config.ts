@@ -54,13 +54,7 @@ export function getApiBase(): string {
  * Build a safe API URL for a given path segment.
  * Ensures the base has no trailing `/api` and the returned URL contains exactly one `/api` prefix.
  */
-export function authHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-export function clearAuthAndRedirect(): void {
+export function authHeaders(): Record<string, string> {\n  if (typeof window === 'undefined') return {};\n  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');\n  return token ? { Authorization: Bearer  } : {};\n}\n\nexport function clearAuthAndRedirect(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('sb_token');
   localStorage.removeItem('sb-token');
@@ -159,6 +153,7 @@ if (typeof window !== 'undefined') {
     _probeDone = true;
   }
 }
+
 
 
 
