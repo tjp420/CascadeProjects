@@ -503,6 +503,21 @@ export default {
       return json({ success: true, events: [], stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }, 200, corsOrigin);
     }
 
+    // Edge stubs for dashboard admin/ops endpoints not yet implemented on Render backend.
+    if (request.method === 'GET') {
+      if (url.pathname === '/api/provider-failover/stats') return json({ success: true, stats: { totalRequests: 0, failovers: 0, activeProvider: 'none', providers: [] } }, 200, corsOrigin);
+      if (url.pathname === '/api/provider-failover/providers') return json({ success: true, providers: [] }, 200, corsOrigin);
+      if (url.pathname === '/api/provider-failover/events') return json({ success: true, events: [] }, 200, corsOrigin);
+      if (url.pathname === '/api/provider-failover/config') return json({ success: true, config: { circuitBreaker: { failureThreshold: 5, recoveryTimeoutMs: 60000 }, latencyThresholdMs: 10000, failoverChain: [], latencyOpenThresholdMs: 15000, latencyOpenConsecutiveCount: 3, healthCheckJitterMs: 2000 } }, 200, corsOrigin);
+      if (url.pathname === '/api/identity-federation/stats') return json({ success: true, stats: { totalFederated: 0, activeSessions: 0, providers: [] } }, 200, corsOrigin);
+      if (url.pathname === '/api/identity-federation/config') return json({ success: true, config: { defaultRole: 'viewer', defaultTrustLevel: 'silver', deprovisionAfterDays: 90, providers: [] } }, 200, corsOrigin);
+      if (url.pathname === '/api/identity-federation/history') return json({ success: true, history: [] }, 200, corsOrigin);
+      if (url.pathname === '/api/tool-schemas/stats') return json({ success: true, stats: { totalSchemas: 0, totalViolations: 0, strictMode: false } }, 200, corsOrigin);
+      if (url.pathname === '/api/tool-schemas') return json({ success: true, schemas: [] }, 200, corsOrigin);
+      if (url.pathname === '/api/tool-schemas/violations/list') return json({ success: true, violations: [] }, 200, corsOrigin);
+      if (url.pathname === '/api/tool-schemas/config') return json({ success: true, config: { strictMode: false } }, 200, corsOrigin);
+    }
+
     // Dynamic Route 2: POST /api/stripe-webhook
     // Listens for checkout completion, forwards to Express for subscription
     // activation + email, then mints the signed JWT license key into KV.
