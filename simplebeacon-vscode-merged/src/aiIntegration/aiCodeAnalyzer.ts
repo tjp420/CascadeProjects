@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { designTokens } from '../designSystem';
+import { designTokens as _designTokens } from '../designSystem';
 
 export interface CodeIssue {
   file: string;

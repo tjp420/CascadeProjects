@@ -18,7 +18,6 @@
 import * as cp from 'child_process';
 import * as path from 'path';
 import { RealtimeIssue } from '../realtimeIssue';
-import { FileRole } from '../classifiers/fileRoleClassifier';
 
 export interface DiffFile {
   /** File path relative to repo root */

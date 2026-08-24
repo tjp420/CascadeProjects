@@ -10,7 +10,7 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
@@ -55,7 +55,7 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
                 content: data.content,
                 error: data.success ? undefined : data.error,
               });
-            } catch (e) {
+            } catch {
               this._view?.webview.postMessage({
                 command: 'setContext',
                 context: null,

@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { ScanResult, Finding, MatchEntry } from '../analyzers/workspaceAnalyzer';
+import { ScanResult, Finding } from '../analyzers/workspaceAnalyzer';
 import { getFixForFinding } from '../fixes/fixRegistry';
 
 export interface AIReportOptions {
