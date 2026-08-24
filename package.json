@@ -63,7 +63,7 @@
     "express-rate-limit": "^8.6.1",
     "js-yaml": "^5.2.3",
     "nodemailer": "^9.0.3",
-    "puppeteer": "^21.3.0",
+    "puppeteer": "^25.8.0",
     "stripe": "^22.3.2",
     "tmp": "^0.2.7"
   },
