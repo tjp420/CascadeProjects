@@ -23,7 +23,10 @@ const {
   getContextGuardMode,
   getContextGuardMaxChars,
   resetToastDebounce,
-} = require('../contextGuard');
+} = (
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('../contextGuard')
+);
 
 describe('ContextGuard', () => {
   beforeEach(() => {
