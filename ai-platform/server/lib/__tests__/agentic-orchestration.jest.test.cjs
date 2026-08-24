@@ -185,7 +185,6 @@ describe('agentic-orchestration routes (Jest mirror)', () => {
     // Attempt up to 5 times; expect to observe a 429 within that window
     let saw429 = false;
     for (let i = 0; i < 5; i++) {
-      // eslint-disable-next-line no-await-in-loop
       const res = await app.post('/api/agentic/agents/agent-a1/execute').set(hdr).send({ input: 'run' });
       if (res.status === 429) { saw429 = true; break; }
     }
