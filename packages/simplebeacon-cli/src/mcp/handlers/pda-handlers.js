@@ -156,7 +156,7 @@ function createPdaHandlers({ withGuard, resolveProjectRoot, formatToolResult, fo
         handoff_read: withGuard((args) => {
             const root = resolveProjectRoot(args.projectRoot);
             // Read latest handoff from any agent, or a specific agent
-            const agentId = args.agentId || null;
+            const _agentId = args.agentId || null;
             const agents = pda.listAgents(root);
             let latestHandoff = null;
 

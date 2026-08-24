@@ -418,7 +418,7 @@ function remediateFinding(finding, options = {}) {
             } else {
                 hasMatch = content.includes(String(fix.search));
             }
-        } catch (err) {
+        } catch {
             hasMatch = false;
         }
         if (!hasMatch) {

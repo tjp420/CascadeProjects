@@ -5,11 +5,11 @@
 const fs = require('fs');
 const path = require('path');
 const { globMatch } = require('../rules/production-leak');
-const { collectGzdoomFiles } = require('./gzdoom-symbol-graph');
+const { collectGzdoomFiles: _collectGzdoomFiles } = require('./gzdoom-symbol-graph');
 const { resolveReachableGzdoomFiles } = require('./gzdoom-include-resolver');
 
 const EVENTHANDLER_CLASS_RE = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?:StaticEventHandler|EventHandler)\b/g;
-const MAPINFO_HANDLERS_RE = /AddEventHandlers\s*=\s*"([^"]+)"(?:\s*,\s*"([^"]+)")*/gi;
+const _MAPINFO_HANDLERS_RE = /AddEventHandlers\s*=\s*"([^"]+)"(?:\s*,\s*"([^"]+)")*/gi;
 const QUOTED_NAME_RE = /"([A-Za-z_][A-Za-z0-9_]*)"/g;
 
 function normalizeRel(baseDir, filePath) {

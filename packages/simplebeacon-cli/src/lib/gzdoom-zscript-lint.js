@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { globMatch } = require('../rules/production-leak');
+const { globMatch: _globMatch } = require('../rules/production-leak');
 const { collectGzdoomFiles } = require('./gzdoom-symbol-graph');
 const { resolveReachableGzdoomFiles } = require('./gzdoom-include-resolver');
 

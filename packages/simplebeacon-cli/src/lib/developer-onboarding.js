@@ -97,14 +97,38 @@ function installCiWorkflow(projectRoot, options = {}) {
     return { ...result, platform, platformLabel: config.label };
 }
 
+function installVscodeCopilotInstructions(projectRoot, options = {}) {
+    const root = path.resolve(projectRoot);
+    const githubDir = path.join(root, '.github');
+    const targetPath = path.join(githubDir, 'copilot-instructions.md');
+    const force = Boolean(options.force);
+    const dryRun = Boolean(options.dryRun);
+    const content = `# SimpleBeacon Scan Workflow\n\nThis repository includes a SimpleBeacon Scan Workflow that integrates with the scan_snippet tool.\n\nUse scan_snippet to scan code samples before applying them.\n`;
+
+    if (fs.existsSync(targetPath) && !force) {
+        return { skipped: true, path: targetPath };
+    }
+
+    if (dryRun) {
+        return { dryRun: true, path: targetPath, wouldWrite: content };
+    }
+
+    fs.mkdirSync(githubDir, { recursive: true });
+    fs.writeFileSync(targetPath, content, 'utf8');
+    return { created: true, path: targetPath };
+}
+
 function installDeveloperStack(projectRoot, options = {}) {
     const results = {
         mcp: null,
         cursorRule: null,
-        ciWorkflow: null
+        ciWorkflow: null,
+        vscodeMcp: null,
+        vscodeCopilotInstructions: null
     };
 
-    if (options.withMcp !== false) {
+    // Only install .cursor/mcp.json when explicitly requested
+    if (options.withMcp) {
         results.mcp = installCursorMcpConfig(projectRoot, options);
     }
 
@@ -114,6 +138,15 @@ function installDeveloperStack(projectRoot, options = {}) {
 
     if (options.withCi) {
         results.ciWorkflow = installCiWorkflow(projectRoot, options);
+    }
+
+    if (options.withVscode) {
+        // Write .vscode/mcp.json and .github/copilot-instructions.md
+        // Use the existing install logic where possible
+        // installVscodeMcpConfig is provided by install-cursor-config as a backward-compatible wrapper
+        const { installVscodeMcpConfig: installVscode, buildVscodeMcpJson: _buildVscodeMcpJson } = require('../mcp/install-cursor-config');
+        results.vscodeMcp = installVscode(projectRoot, options);
+        results.vscodeCopilotInstructions = installVscodeCopilotInstructions(projectRoot, options);
     }
 
     return results;
@@ -126,5 +159,6 @@ module.exports = {
     detectCiPlatform,
     CI_PLATFORMS,
     CURSOR_RULE_TEMPLATE,
-    CI_WORKFLOW_TEMPLATE
+    CI_WORKFLOW_TEMPLATE,
+    installVscodeCopilotInstructions
 };

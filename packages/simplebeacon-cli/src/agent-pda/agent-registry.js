@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const { atomicWriteFileSync } = require('../lib/atomic-writer');
 const { getAgentIdentity } = require('./agent-detect');
 
-const DEFAULT_DATA = { agents: [], version: 1 };
+const _DEFAULT_DATA = { agents: [], version: 1 };
 
 function getDbPath(projectRoot) {
     return path.join(projectRoot || process.cwd(), '.simplebeacon', 'agent-pda', 'agents.json');

@@ -10,7 +10,7 @@ const { collectGzdoomFiles } = require('./gzdoom-symbol-graph');
 
 const DEFAULT_REQUIRED_LUMPS = ['ZSCRIPT', 'CVARINFO', 'MENUDEF', 'LOADACS'];
 const STALE_SUFFIX_RE = /(?:_(?:DUPLICATE|OLD|backup)|\.(?:corrupt|clean|bak|old|tmp))(?:\.(?:zs|zscript))?$/i;
-const STALE_DIR_RE = /(?:^|\/)(?:build_temp|Backup|archive)(?:\/|$)/i;
+const _STALE_DIR_RE = /(?:^|\/)(?:build_temp|Backup|archive)(?:\/|$)/i;
 
 function normalizeRel(baseDir, filePath) {
     return path.relative(baseDir, filePath).split(path.sep).join('/');

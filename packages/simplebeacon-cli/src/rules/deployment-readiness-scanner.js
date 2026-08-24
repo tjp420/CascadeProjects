@@ -410,7 +410,7 @@ function checkCorsApproach(baseDir, serviceDir) {
  * @param {Object} [options]
  * @returns {Promise<{scanned:number, findings:number, issues:Array, patterns:string[]}>}
  */
-async function scanDeploymentReadiness(baseDir, options = {}) {
+async function scanDeploymentReadiness(baseDir, _options = {}) {
     const issues = [];
     let scanned = 0;
 

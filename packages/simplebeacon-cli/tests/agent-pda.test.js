@@ -202,7 +202,7 @@ test('Task store: list sorted by status priority', () => {
     const dir = makeTmpDir();
     try {
         const agent = pda.registerAgent(dir, 'SortAgent', 'cursor');
-        const t1 = pda.createTask(dir, agent.id, 'pending1');
+        const _t1 = pda.createTask(dir, agent.id, 'pending1');
         const t2 = pda.createTask(dir, agent.id, 'inprogress1');
         pda.updateTask(dir, t2.id, { status: 'in_progress' });
         const t3 = pda.createTask(dir, agent.id, 'completed1');

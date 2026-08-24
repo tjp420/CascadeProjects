@@ -52,7 +52,7 @@ function _walkForSimpleBeacon(dir, depth, maxDepth, projects, includeWorktrees) 
     let entries;
     try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch (e) {
+    } catch {
         return;
     }
 
@@ -96,7 +96,7 @@ function _readProjectData(projectRoot, sbDir) {
         try {
             const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
             data.profile = config.profile || null;
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
     }
 
     // Read report
@@ -124,7 +124,7 @@ function _readProjectData(projectRoot, sbDir) {
                 const rule = f.rule || f.pattern || type;
                 data.rulesTriggered[rule] = (data.rulesTriggered[rule] || 0) + 1;
             }
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
     }
 
     // Read PDA state
@@ -137,7 +137,7 @@ function _readProjectData(projectRoot, sbDir) {
             try {
                 const agents = JSON.parse(fs.readFileSync(agentsFile, 'utf8'));
                 data.agentCount = Array.isArray(agents) ? agents.length : (agents.agents?.length || 0);
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
         }
 
         const tasksFile = path.join(pdaDir, 'tasks.json');
@@ -145,7 +145,7 @@ function _readProjectData(projectRoot, sbDir) {
             try {
                 const tasks = JSON.parse(fs.readFileSync(tasksFile, 'utf8'));
                 data.taskCount = Array.isArray(tasks) ? tasks.length : (tasks.tasks?.length || 0);
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
         }
 
         const memFile = path.join(pdaDir, 'memories.json');
@@ -153,7 +153,7 @@ function _readProjectData(projectRoot, sbDir) {
             try {
                 const mems = JSON.parse(fs.readFileSync(memFile, 'utf8'));
                 data.memoryCount = Array.isArray(mems) ? mems.length : (mems.memories?.length || 0);
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
         }
     }
 
@@ -163,7 +163,7 @@ function _readProjectData(projectRoot, sbDir) {
         try {
             const policies = JSON.parse(fs.readFileSync(policyFile, 'utf8'));
             data.policyCount = Array.isArray(policies) ? policies.length : (policies.policies?.length || 0);
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
     }
 
     return data;
@@ -352,7 +352,7 @@ function extractPatterns(projects) {
     return { patterns, metrics, recommendations };
 }
 
-function _generateRecommendations(patterns, metrics) {
+function _generateRecommendations(patterns, _metrics) {
     const recs = [];
 
     // Gate rule recommendations

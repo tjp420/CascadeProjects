@@ -11,7 +11,7 @@ const {
     validateGzdoomCrossReferences,
     correlateLogEntries,
     stripComments,
-    expandIncludes
+    expandIncludes: _expandIncludes
 } = require('../src/lib/gzdoom-symbol-graph');
 const { scanGzdoomIntegrity } = require('../src/rules/gzdoom-integrity-patterns');
 const { isVanillaActor } = require('../src/lib/gzdoom-vanilla-actors');
@@ -92,9 +92,9 @@ describe('gzdoom vanilla actor allowlist', () => {
 describe('gzdoom include reachability', () => {
     it('skips orphan .zs files not reachable from ZSCRIPT', async () => {
         const files = await require('../src/lib/gzdoom-symbol-graph').collectGzdoomFiles(INCLUDE_FIXTURE);
-        const { reachable, orphans } = resolveReachableGzdoomFiles(INCLUDE_FIXTURE, files);
+        const { reachable, orphans: _orphans } = resolveReachableGzdoomFiles(INCLUDE_FIXTURE, files);
         assert.ok(reachable.has('active.zs'));
-        assert.ok(orphans.includes('orphan-only.zs'));
+        assert.ok(_orphans.includes('orphan-only.zs'));
         const graph = await buildGzdoomSymbolGraph(INCLUDE_FIXTURE, { respectIncludes: true });
         assert.ok(!graph.actors.has('OrphanOnlyClass'));
         assert.ok(graph.actors.has('ActiveWeapon'));
@@ -243,10 +243,10 @@ describe('gzdoom ZSCRIPT.zs entry point detection', () => {
             'class OrphanClass : Actor {}\n', 'utf8');
 
         const files = await require('../src/lib/gzdoom-symbol-graph').collectGzdoomFiles(tmp);
-        const { reachable, orphans } = resolveReachableGzdoomFiles(tmp, files);
+        const { reachable, orphans: _orphans } = resolveReachableGzdoomFiles(tmp, files);
         assert.ok(reachable.has('ZSCRIPT.zs'), 'ZSCRIPT.zs should be detected as entry point');
         assert.ok(reachable.has('active.zs'), 'active.zs should be reachable from ZSCRIPT.zs');
-        assert.ok(orphans.includes('orphan.zs'), 'orphan.zs should be flagged as unreachable');
+        assert.ok(_orphans.includes('orphan.zs'), 'orphan.zs should be flagged as unreachable');
 
         const graph = await buildGzdoomSymbolGraph(tmp, { respectIncludes: true });
         assert.ok(graph.actors.has('EntryActive'), 'EntryActive should be discovered via ZSCRIPT.zs');
@@ -353,7 +353,7 @@ describe('gzdoom commented-out #include handling', () => {
             'class ActiveClass : Actor {}\n', 'utf8');
 
         const files = await require('../src/lib/gzdoom-symbol-graph').collectGzdoomFiles(tmp);
-        const { reachable, orphans } = resolveReachableGzdoomFiles(tmp, files);
+        const { reachable, orphans: _orphans } = resolveReachableGzdoomFiles(tmp, files);
         assert.ok(reachable.has('active.zs'), 'active.zs should be reachable');
         assert.ok(!reachable.has('archived_dup.zs'),
             'archived_dup.zs should NOT be reachable (commented-out include)');

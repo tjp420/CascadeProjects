@@ -105,7 +105,7 @@ class RemediationEngine {
         if (typeof input !== 'string') {
             throw new TypeError('processBuffer requires string input');
         }
-        const lineEnding = detectLineEnding(input);
+        const _lineEnding = detectLineEnding(input);
         let content = input;
         const rulesApplied = [];
         const matchCounts = {};
@@ -147,7 +147,7 @@ class RemediationEngine {
         };
     }
 
-    _applyTokenRule(content, rule, quarantine, fileName) {
+    _applyTokenRule(content, rule, quarantine, _fileName) {
         const keyType = rule.keyType;
         if (rule.assignment) {
             return content.replace(rule.pattern, (full, secretValue) => {

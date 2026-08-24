@@ -131,7 +131,7 @@ function isMenuDefFile(name, rel) {
     return lower.startsWith('menudef') || r.startsWith('menudef');
 }
 
-function isCvarInfoFile(name, rel) {
+function isCvarInfoFile(name, _rel) {
     const lower = String(name || '').toLowerCase();
     return lower === 'cvarinfo' || lower.endsWith('.cvarinfo');
 }
