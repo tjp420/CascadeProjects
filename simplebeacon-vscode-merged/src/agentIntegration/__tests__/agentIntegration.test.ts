@@ -507,7 +507,7 @@ describe('AgentValidation', () => {
   describe('registerContextInterceptor', () => {
     let tmpDir: string;
     let mockDeps: ContextInterceptorDeps;
-    let mockContext: any;
+    let mockContext: unknown;
     let aiSessionActive = false;
     let aiEditedFiles: string[] = [];
 
