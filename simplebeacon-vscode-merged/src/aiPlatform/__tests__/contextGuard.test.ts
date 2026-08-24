@@ -5,14 +5,14 @@
 
 // Mock vscode module — getSbConfig() calls vscode.workspace.getConfiguration('simplebeacon')
 const mockShowInformationMessage = jest.fn();
-const mockConfig: Record<string, any> = {};
+const mockConfig: Record<string, unknown> = {};
 jest.mock('vscode', () => ({
   window: {
     showInformationMessage: mockShowInformationMessage,
   },
   workspace: {
     getConfiguration: jest.fn(() => ({
-      get: jest.fn((key: string, defaultValue: any) => mockConfig[key] ?? defaultValue),
+      get: jest.fn((key: string, defaultValue: unknown) => mockConfig[key] ?? defaultValue),
     })),
   },
 }));
