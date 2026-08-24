@@ -559,3 +559,4 @@ test-init/
 
 # Coming-soon app2 (experimental build)
 coming-soon/public/app2/
+node_modules_host/
