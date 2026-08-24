@@ -44,10 +44,45 @@ try {
   // Engine not available — will fall back to CLI
 }
 
-interface Agent { id: string; name: string; type: string; createdAt: number; lastSeen: number; }
-interface Task { id: string; agentId: string; title: string; description: string; status: string; priority: string; approvalRequired: boolean; approvedBy: string | null; blockReason: string | null; createdAt: number; updatedAt: number; completedAt: number | null; }
-interface Memory { id: string; agentId: string; key: string; value: string; category: string; createdAt: number; updatedAt: number; }
-interface Policy { id: string; type: string; action: string; description: string; severity: string; enabled: boolean; checkCommand?: string; }
+interface Agent {
+  id: string;
+  name: string;
+  type: string;
+  createdAt: number;
+  lastSeen: number;
+}
+interface Task {
+  id: string;
+  agentId: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  approvalRequired: boolean;
+  approvedBy: string | null;
+  blockReason: string | null;
+  createdAt: number;
+  updatedAt: number;
+  completedAt: number | null;
+}
+interface Memory {
+  id: string;
+  agentId: string;
+  key: string;
+  value: string;
+  category: string;
+  createdAt: number;
+  updatedAt: number;
+}
+interface Policy {
+  id: string;
+  type: string;
+  action: string;
+  description: string;
+  severity: string;
+  enabled: boolean;
+  checkCommand?: string;
+}
 
 export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'simplebeacon-agent-pda';
@@ -85,7 +120,14 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
           await this.pushUpdate('tasks');
           break;
         case 'memoryAdd':
-          await this.callCli(['agent', 'remember', message.key, message.value, '--category', message.category || 'context']);
+          await this.callCli([
+            'agent',
+            'remember',
+            message.key,
+            message.value,
+            '--category',
+            message.category || 'context',
+          ]);
           await this.pushUpdate('memory');
           break;
         case 'memoryDelete':
@@ -101,7 +143,18 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
           await this.pushUpdate('policies');
           break;
         case 'policyAdd':
-          await this.callCli(['policy', 'add', '--type', message.type || 'forbidden_action', '--action', message.action || '', '--description', message.description || '', '--severity', message.severity || 'block']);
+          await this.callCli([
+            'policy',
+            'add',
+            '--type',
+            message.type || 'forbidden_action',
+            '--action',
+            message.action || '',
+            '--description',
+            message.description || '',
+            '--severity',
+            message.severity || 'block',
+          ]);
           await this.pushUpdate('policies');
           break;
         case 'policyRemove':
@@ -147,7 +200,7 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
     const cliPath = path.join(this.extensionUri.fsPath, 'node_modules', 'simplebeacon', 'bin', 'simplebeacon.js');
     const cli = fs.existsSync(cliPath) ? cliPath : 'simplebeacon';
     try {
-      const cmd = `node "${cli}" ${args.map(a => `"${a.replace(/"/g, '\\"')}"`).join(' ')}`;
+      const cmd = `node "${cli}" ${args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(' ')}`;
       const output = execSync(cmd, { cwd: root, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] });
       return JSON.parse(output);
     } catch (err: any) {
@@ -285,7 +338,7 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
             notes,
             filesChanged: [],
             writtenAt: Date.now(),
-            fromAgent: agentId
+            fromAgent: agentId,
           };
           const memory = pdaEngine.remember(root, agentId, 'handoff-brief', JSON.stringify(brief), 'handoff');
           return { success: true, brief, memoryId: memory.id };
@@ -296,7 +349,7 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
         const result = pdaEngine.canFinalize(root, agentId, {
           runScan: !getFlag('--no-scan'),
           useExistingReport: getFlag('--use-existing-report'),
-          action: 'finalize-changes'
+          action: 'finalize-changes',
         });
         // Return compact summary (not the full gate report)
         return {
@@ -306,13 +359,15 @@ export class AgentPDAPanelProvider implements vscode.WebviewViewProvider {
           violations: result.violations,
           warnings: result.warnings,
           approvalsNeeded: result.approvalsNeeded,
-          gateSummary: result.gateResult ? {
-            pass: result.gateResult.pass,
-            blockingCount: result.gateResult.blockingCount,
-            qualityScore: result.gateResult.qualityScore,
-            error: result.gateResult.error || undefined
-          } : null,
-          agentId: result.agentId
+          gateSummary: result.gateResult
+            ? {
+                pass: result.gateResult.pass,
+                blockingCount: result.gateResult.blockingCount,
+                qualityScore: result.gateResult.qualityScore,
+                error: result.gateResult.error || undefined,
+              }
+            : null,
+          agentId: result.agentId,
         };
       }
     }

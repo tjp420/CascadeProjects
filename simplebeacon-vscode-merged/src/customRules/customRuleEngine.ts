@@ -46,12 +46,7 @@ function matchGlob(pattern: string, filePath: string): boolean {
 /**
  * Check if a file path matches a rule's targeting criteria.
  */
-function matchesRuleTargeting(
-  rule: CustomRule,
-  filePath: string,
-  fileRole: FileRole,
-  fileExtension: string
-): boolean {
+function matchesRuleTargeting(rule: CustomRule, filePath: string, fileRole: FileRole, fileExtension: string): boolean {
   // Check fileGlob
   if (rule.fileGlob && !matchGlob(rule.fileGlob, filePath)) {
     return false;
@@ -201,10 +196,7 @@ export function applySeverityOverrides(
 /**
  * Check if a file path is in the custom allowlist.
  */
-export function isAllowlisted(
-  allowlist: string[],
-  filePath: string
-): boolean {
+export function isAllowlisted(allowlist: string[], filePath: string): boolean {
   if (!allowlist || allowlist.length === 0) return false;
   return allowlist.some((pattern) => matchGlob(pattern, filePath));
 }
@@ -228,7 +220,7 @@ export function getCustomRulesConfig(workspaceRoot?: string): {
   }
 
   // Lazy load to avoid circular dependency issues
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const loader: any = require('./customRuleLoader');
   cachedConfig = loader.loadCustomRules(workspaceRoot) as CustomRulesConfig;
   cachedOverrides = loader.loadSeverityOverridesFromConfig(workspaceRoot) as SeverityOverride[];

@@ -148,7 +148,7 @@ describe('Expanded rule catalogs', () => {
     });
 
     test('SB-SEC-006a detects weak hash algorithms', () => {
-      testMatch('SB-SEC-006a', 'createHash(\'md5\')');
+      testMatch('SB-SEC-006a', "createHash('md5')");
       testMatch('SB-SEC-006a', 'crypto.createHash("sha1")');
     });
 

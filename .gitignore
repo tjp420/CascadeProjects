@@ -26,6 +26,7 @@ backups/
 .simplebeacon/*.md
 .simplebeacon/*.bak
 .simplebeacon/*.simplebeacon-backup.*
+.simplebeacon/archive/
 !ai-platform/.simplebeacon/config.json
 !ai-platform/.simplebeacon/jest-result.json
 
@@ -134,6 +135,7 @@ ai-agent-report-for-dashboard.json
 
 # ESLint dry-run test artifacts
 eslint-dryrun.json
+eslint-*.json
 
 # Generated welcome HTML (build output)
 simplebeacon-vscode-merged/generated-welcome.html

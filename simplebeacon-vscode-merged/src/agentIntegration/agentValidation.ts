@@ -85,11 +85,17 @@ export function preflightScan(workspaceRoot: string): PreflightContext {
   // Analyze file role distribution
   const roleDist: Record<string, number> = {};
   try {
-    walkDir(workspaceRoot, (filePath) => {
-      const role = classifyFileRole(filePath).role;
-      roleDist[role] = (roleDist[role] || 0) + 1;
-    }, 3); // Limit depth for performance
-  } catch { /* ignore walk errors */ }
+    walkDir(
+      workspaceRoot,
+      (filePath) => {
+        const role = classifyFileRole(filePath).role;
+        roleDist[role] = (roleDist[role] || 0) + 1;
+      },
+      3
+    ); // Limit depth for performance
+  } catch {
+    /* ignore walk errors */
+  }
 
   // Infer conventions from custom rules
   const conventions: string[] = [];
@@ -98,9 +104,7 @@ export function preflightScan(workspaceRoot: string): PreflightContext {
   }
 
   // Identify high-risk rules (error severity)
-  const highRiskRules = config.rules
-    .filter((r) => r.severity === 'error')
-    .map((r) => r.id);
+  const highRiskRules = config.rules.filter((r) => r.severity === 'error').map((r) => r.id);
 
   // Add high-risk overrides
   for (const override of overrides) {
@@ -192,11 +196,7 @@ export function validateDiff(
  * The agent reads the rule metadata, understands the reason, and decides
  * whether to fix it or suppress it as a false positive.
  */
-export function explainFinding(
-  issue: RealtimeIssue,
-  lineText: string,
-  fileContent: string
-): ExplainResult {
+export function explainFinding(issue: RealtimeIssue, lineText: string, fileContent: string): ExplainResult {
   const fileRole = issue.fileRole || classifyFileRole(issue.file, fileContent.slice(0, 500)).role;
 
   // Check if this is a false positive
@@ -255,9 +255,7 @@ export function makeGateDecision(
   requireHumanReviewForWarnings: boolean = false
 ): GateDecision {
   const blocking = scanResult.blockingFindings;
-  const warnings = scanResult.newFindings.filter(
-    (f) => f.severity === 'warning' && !blocking.includes(f)
-  );
+  const warnings = scanResult.newFindings.filter((f) => f.severity === 'warning' && !blocking.includes(f));
 
   let recommendation: GateDecision['recommendation'] = 'proceed';
   let canFinalize = true;
@@ -323,7 +321,9 @@ export function recordSuppression(
     if (fs.existsSync(logPath)) {
       log = JSON.parse(fs.readFileSync(logPath, 'utf8'));
     }
-  } catch { /* start fresh */ }
+  } catch {
+    /* start fresh */
+  }
 
   log.push({
     ruleType,
@@ -456,11 +456,12 @@ export function registerContextInterceptor(
         const line = Math.max(0, f.line - 1);
         const col = Math.max(0, f.column - 1);
         const range = new vscode.Range(line, col, line, col + 1);
-        const severity = f.severity === 'error'
-          ? vscode.DiagnosticSeverity.Error
-          : f.severity === 'warning'
-            ? vscode.DiagnosticSeverity.Warning
-            : vscode.DiagnosticSeverity.Information;
+        const severity =
+          f.severity === 'error'
+            ? vscode.DiagnosticSeverity.Error
+            : f.severity === 'warning'
+              ? vscode.DiagnosticSeverity.Warning
+              : vscode.DiagnosticSeverity.Information;
         const diag = new vscode.Diagnostic(range, `[SimpleBeacon Agent Guard] ${f.message}`, severity);
         diag.source = 'SimpleBeacon';
         diag.code = f.type;
@@ -477,11 +478,11 @@ export function registerContextInterceptor(
       if (!decision.canFinalize && decision.recommendation === 'fix-required') {
         vscode.window.showWarningMessage(
           `[SimpleBeacon] Agent Guard: ${decision.blockingCount} blocking issue(s) in ${path.basename(filePath)}. ` +
-          `Fix before committing — the pre-commit gate will block this.`
+            `Fix before committing — the pre-commit gate will block this.`
         );
         deps.outputChannel.appendLine(
           `[Agent Guard] Save validation: ${decision.blockingCount} blocking, ` +
-          `${decision.warningCount} warnings in ${path.basename(filePath)}`
+            `${decision.warningCount} warnings in ${path.basename(filePath)}`
         );
       }
     } catch (e) {
@@ -543,15 +544,11 @@ export function buildCouplingSummary(editedFiles: string[], workspaceRoot: strin
     if (!issue.files || !Array.isArray(issue.files)) continue;
 
     // Find which edited files appear in this issue's file list
-    const matchedFiles = issue.files.filter((f) =>
-      editedBasenames.some((b) => f.includes(b))
-    );
+    const matchedFiles = issue.files.filter((f) => editedBasenames.some((b) => f.includes(b)));
     if (matchedFiles.length === 0) continue;
 
     // Find coupled files (files in the same issue that were NOT edited)
-    const coupledFiles = issue.files.filter((f) =>
-      !editedBasenames.some((b) => f.includes(b))
-    );
+    const coupledFiles = issue.files.filter((f) => !editedBasenames.some((b) => f.includes(b)));
 
     warnings.push(`[${issue.severity?.toUpperCase() || 'WARN'}] ${issue.title || 'Coupling Issue'}`);
     warnings.push(`  Edited files affected: ${matchedFiles.join(', ')}`);
@@ -582,7 +579,12 @@ export function buildCouplingSummary(editedFiles: string[], workspaceRoot: strin
 
 // ─── Helpers ───
 
-function walkDir(dir: string, callback: (filePath: string) => void, maxDepth: number = 5, currentDepth: number = 0): void {
+function walkDir(
+  dir: string,
+  callback: (filePath: string) => void,
+  maxDepth: number = 5,
+  currentDepth: number = 0
+): void {
   if (currentDepth >= maxDepth) return;
 
   let entries: fs.Dirent[];
@@ -593,7 +595,12 @@ function walkDir(dir: string, callback: (filePath: string) => void, maxDepth: nu
   }
 
   for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'build') {
+    if (
+      entry.name.startsWith('.') ||
+      entry.name === 'node_modules' ||
+      entry.name === 'dist' ||
+      entry.name === 'build'
+    ) {
       continue;
     }
     const fullPath = path.join(dir, entry.name);

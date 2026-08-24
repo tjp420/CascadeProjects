@@ -37,7 +37,14 @@ jest.mock('vscode', () => ({
   window: mockWindow,
   ViewColumn: { Active: 1 },
   TextEditorRevealType: { InCenter: 2 },
-  CodeAction: jest.fn((title: string, kind?: any) => ({ title, kind, diagnostics: [], command: undefined, edit: undefined, isPreferred: false })),
+  CodeAction: jest.fn((title: string, kind?: any) => ({
+    title,
+    kind,
+    diagnostics: [],
+    command: undefined,
+    edit: undefined,
+    isPreferred: false,
+  })),
   CodeActionKind: { QuickFix: 'quickfix', Refactor: 'refactor' },
 }));
 
@@ -107,7 +114,8 @@ describe('extractCodeFromResponse', () => {
   });
 
   test('handles response with explanation after code block', () => {
-    const response = '```js\nconst token = crypto.randomUUID();\n```\nThis uses a secure random UUID instead of Math.random().';
+    const response =
+      '```js\nconst token = crypto.randomUUID();\n```\nThis uses a secure random UUID instead of Math.random().';
     const result = extractCodeFromResponse(response);
     expect(result).toBe('const token = crypto.randomUUID();');
   });
@@ -211,13 +219,16 @@ describe('remediateDiagnosticInPlace', () => {
       json: async () => ({ response: 'const password = process.env.PASSWORD;' }),
     });
 
-    const result = await remediateDiagnosticInPlace({
-      uri: { fsPath: '/test.js', path: '/test.js' } as any,
-      range: { start: { line: 0, character: 0 }, end: { line: 0, character: 25 } } as any,
-      diagnosticCode: 'SB-SEC-007a',
-      diagnosticMessage: 'Hardcoded password',
-      snippet: 'const password = "secret"',
-    }, true); // autoApply = true
+    const result = await remediateDiagnosticInPlace(
+      {
+        uri: { fsPath: '/test.js', path: '/test.js' } as any,
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 25 } } as any,
+        diagnosticCode: 'SB-SEC-007a',
+        diagnosticMessage: 'Hardcoded password',
+        snippet: 'const password = "secret"',
+      },
+      true
+    ); // autoApply = true
 
     expect(result.success).toBe(true);
     expect(result.applied).toBe(true);
@@ -355,4 +366,3 @@ describe('LocalRemediationCodeActionProvider', () => {
     expect(actions.length).toBe(0);
   });
 });
-

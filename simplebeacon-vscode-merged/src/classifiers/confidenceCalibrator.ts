@@ -15,14 +15,14 @@ import { FileRole } from './fileRoleClassifier';
  * Negative values = require LESS confidence (catch more).
  */
 const CONFIDENCE_ADJUSTMENTS: Record<FileRole, number> = {
-  app: 0,        // No adjustment — base threshold applies
+  app: 0, // No adjustment — base threshold applies
   config: -0.05, // Slightly lower threshold — config issues are important
-  infra: -0.05,  // Slightly lower threshold — infra issues are important
-  test: 0.15,    // Higher threshold — test files have lots of expected "issues"
-  sample: 0.25,  // Even higher — samples/demos are expected to have patterns
-  docs: 0.30,    // Highest — docs mentioning code patterns are not issues
-  generated: 0.50, // Almost suppress — generated code can't be fixed here
-  vendor: 0.50,    // Almost suppress — vendor code is not ours to fix
+  infra: -0.05, // Slightly lower threshold — infra issues are important
+  test: 0.15, // Higher threshold — test files have lots of expected "issues"
+  sample: 0.25, // Even higher — samples/demos are expected to have patterns
+  docs: 0.3, // Highest — docs mentioning code patterns are not issues
+  generated: 0.5, // Almost suppress — generated code can't be fixed here
+  vendor: 0.5, // Almost suppress — vendor code is not ours to fix
 };
 
 /**

@@ -11,7 +11,15 @@
  */
 
 import * as vscode from 'vscode';
-import { SlopCopSettings, SlopCopSettingsManager, MonitoringMode, ScanScope, RuleTier, BlockingBehavior, PauseDuration } from './slopCopSettings';
+import {
+  SlopCopSettings,
+  SlopCopSettingsManager,
+  MonitoringMode,
+  ScanScope,
+  RuleTier,
+  BlockingBehavior,
+  PauseDuration,
+} from './slopCopSettings';
 
 export class SlopCopSettingsPanel {
   private static panel: vscode.WebviewPanel | null = null;
@@ -54,9 +62,13 @@ export class SlopCopSettingsPanel {
       }
     });
 
-    SlopCopSettingsPanel.panel.onDidDispose(() => {
-      SlopCopSettingsPanel.panel = null;
-    }, null, context.subscriptions);
+    SlopCopSettingsPanel.panel.onDidDispose(
+      () => {
+        SlopCopSettingsPanel.panel = null;
+      },
+      null,
+      context.subscriptions
+    );
   }
 
   private static async handleMessage(message: any, manager: SlopCopSettingsManager): Promise<void> {
@@ -108,7 +120,11 @@ export class SlopCopSettingsPanel {
       { value: 'advisory-none', label: 'Do not block on advisory' },
     ];
 
-    const radioGroup = (name: string, options: Array<{ value: string; label: string; desc?: string }>, current: string) =>
+    const radioGroup = (
+      name: string,
+      options: Array<{ value: string; label: string; desc?: string }>,
+      current: string
+    ) =>
       options
         .map(
           (opt) => `
@@ -132,14 +148,12 @@ export class SlopCopSettingsPanel {
     const statusBadge = settings.isPaused
       ? '<span class="status-badge paused">Paused</span>'
       : settings.monitoringMode === 'off'
-      ? '<span class="status-badge off">Off</span>'
-      : settings.monitoringMode === 'live'
-      ? '<span class="status-badge live">Live</span>'
-      : '<span class="status-badge diff">Diff only</span>';
+        ? '<span class="status-badge off">Off</span>'
+        : settings.monitoringMode === 'live'
+          ? '<span class="status-badge live">Live</span>'
+          : '<span class="status-badge diff">Diff only</span>';
 
-    const lastScan = settings.lastScanTime
-      ? new Date(settings.lastScanTime).toLocaleTimeString()
-      : 'Never';
+    const lastScan = settings.lastScanTime ? new Date(settings.lastScanTime).toLocaleTimeString() : 'Never';
 
     const pauseButtons = settings.isPaused
       ? `<button class="btn btn-resume" onclick="sendCommand('resume')">▶ Resume monitoring</button>
