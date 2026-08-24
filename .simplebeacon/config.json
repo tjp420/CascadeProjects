@@ -157,6 +157,7 @@
     "**/node_modules_host/**",
     "**/.container_node_modules/**",
     "**/packages/simplebeacon-cli/src/rules/**",
+    "**/packages/simplebeacon-cli/src/lib/ast-remediator.js",
     "ai-platform/src/api/dashboard-stub-api.cjs",
     "ai-platform/web/simplebeacon-dashboard/js-es2018/utils/quality-export.browser.js",
     "packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize.js",
