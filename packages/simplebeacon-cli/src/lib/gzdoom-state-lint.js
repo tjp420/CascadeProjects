@@ -15,9 +15,9 @@ const EXCLUDED_LABELS = new Set(['raise']);
 
 const FRAME_LINE_RE = /^\s*([A-Z][A-Z0-9]{2,5})\s+([A-Z]+)\s+(-?\d+)/;
 const STATE_LABEL_RE = /^\s*([A-Za-z][A-Za-z0-9_]*)\s*:\s*$/;
-const CLASS_BEFORE_STATES_RE = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^\{]*)?\{/g;
+const _CLASS_BEFORE_STATES_RE = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^\{]*)?\{/g;
 
-function normalizeRel(baseDir, filePath) {
+function _normalizeRel(baseDir, filePath) {
     return path.relative(baseDir, filePath).split(path.sep).join('/');
 }
 

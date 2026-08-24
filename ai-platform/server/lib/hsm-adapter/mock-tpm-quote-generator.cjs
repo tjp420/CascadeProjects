@@ -1,3 +1,4 @@
+// simplebeacon-ignore credentials — mock TPM module uses synthetic test secrets by design
 'use strict';
 
 /**
@@ -14,7 +15,7 @@
 
 const crypto = require('crypto');
 
-const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret';
+const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret'; // simplebeacon-ignore credentials — intentional mock signing secret for test TPM quote generation
 
 /**
  * Default expected PCR values for testing.

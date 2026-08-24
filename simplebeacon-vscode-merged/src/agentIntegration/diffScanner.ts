@@ -18,7 +18,6 @@
 import * as cp from 'child_process';
 import * as path from 'path';
 import { RealtimeIssue } from '../realtimeIssue';
-import { FileRole } from '../classifiers/fileRoleClassifier';
 
 export interface DiffFile {
   /** File path relative to repo root */
@@ -91,7 +90,7 @@ export function getGitDiff(
       maxBuffer: 10 * 1024 * 1024, // 10MB
     });
     return result;
-  } catch (err) {
+  } catch {
     // git not available or no diff — return empty
     return '';
   }

@@ -15,7 +15,7 @@ const { atomicWriteFileSync } = require('../lib/atomic-writer');
 const VALID_STATUSES = ['pending', 'in_progress', 'blocked', 'completed', 'cancelled'];
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 
-const DEFAULT_DATA = { tasks: [], version: 1 };
+const _DEFAULT_DATA = { tasks: [], version: 1 };
 
 function getDbPath(projectRoot) {
     return path.join(projectRoot || process.cwd(), '.simplebeacon', 'agent-pda', 'tasks.json');

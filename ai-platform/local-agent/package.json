@@ -13,7 +13,7 @@
     "build:portable": "node build-portable.cjs",
     "package": "npm run build && pkg package.json --out-path dist",
     "package:portable": "npm run build && npm run build:portable",
-    "build:setup": "pkg setup.cjs --targets node18-win-x64 --output dist/simplebeacon-local-agent-setup.exe",
+    "build:setup": "pkg setup.cjs --targets node22-win-x64 --output dist/simplebeacon-local-agent-setup.exe",
     "build:msi": "candle windows-installer.wxs -o dist/simplebeacon-local-agent.wixobj && light dist/simplebeacon-local-agent.wixobj -o dist/simplebeacon-local-agent.msi",
     "build:deb": "node build-deb.cjs",
     "build:all": "npm run build && npm run build:portable && npm run build:setup && npm run build:msi && npm run build:deb",
@@ -30,9 +30,9 @@
       "../../.simplebeacon/**/*"
     ],
     "targets": [
-      "node18-win-x64",
-      "node18-macos-x64",
-      "node18-linux-x64"
+      "node22-win-x64",
+      "node22-macos-x64",
+      "node22-linux-x64"
     ]
   },
   "engines": {
@@ -43,7 +43,7 @@
     "cors": "^2.8.5"
   },
   "devDependencies": {
-    "pkg": "^5.8.1"
+    "@yao-pkg/pkg": "^6.15.0"
   },
   "license": "MIT"
 }

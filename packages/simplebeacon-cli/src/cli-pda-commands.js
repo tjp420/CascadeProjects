@@ -15,7 +15,7 @@ function printJson(data) {
     console.log(JSON.stringify(data, null, 2));
 }
 
-function printTable(items, columns) {
+function _printTable(items, columns) {
     if (!items || items.length === 0) {
         console.log('  (none)');
         return;

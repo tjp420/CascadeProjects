@@ -93,9 +93,47 @@ function installCursorMcpConfig(projectRoot, options = {}) {
     };
 }
 
+// Backward-compatible wrappers for VS Code naming used in older tests / callers
+function buildVscodeMcpJson(options = {}) {
+    return buildCursorMcpJson(options);
+}
+
+function installVscodeMcpConfig(projectRoot, options = {}) {
+    const root = path.resolve(projectRoot);
+    const vscodeDir = path.join(root, '.vscode');
+    const configPath = path.join(vscodeDir, 'mcp.json');
+    const force = Boolean(options.force);
+    const dryRun = Boolean(options.dryRun);
+
+    if (fs.existsSync(configPath) && !force) {
+        return {
+            skipped: true,
+            configPath,
+            message: 'Existing .vscode/mcp.json — use --force to overwrite'
+        };
+    }
+
+    const payload = `${JSON.stringify(buildCursorMcpJson(options), null, 2)}\n`;
+
+    if (dryRun) {
+        return { dryRun: true, configPath, wouldWrite: payload };
+    }
+
+    fs.mkdirSync(vscodeDir, { recursive: true });
+    fs.writeFileSync(configPath, payload, 'utf8');
+
+    return {
+        created: true,
+        configPath,
+        mode: options.mode || 'npx-local'
+    };
+}
+
 module.exports = {
     buildCursorMcpJson,
     buildClaudeDesktopMcpJson,
+    buildVscodeMcpJson,
     installCursorMcpConfig,
+    installVscodeMcpConfig,
     resolveMcpCommand
 };

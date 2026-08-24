@@ -99,7 +99,6 @@ describe('siem-exporter (unit)', () => {
       while (Date.now() < timeoutAt) {
         const q = se._debug.getQueue();
         if (q.length <= 1000) break;
-        // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, 50));
       }
 

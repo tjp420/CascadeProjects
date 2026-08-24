@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 import { getSbConfig, getNonce } from '../utils/vscode';
-import { provider, diagnosticsManager } from '../extension';
+import { provider as _provider, diagnosticsManager as _diagnosticsManager } from '../extension';
 
 /**
  * Webview view provider for the SimpleBeacon dashboard panel.

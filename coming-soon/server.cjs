@@ -1442,6 +1442,12 @@ app.get('/api/merger-tool/reduction-scan', (_req, res) => res.json({
     estimatedSavings: 0
 }));
 
+// ── Dashboard stub endpoints (prevent 404 noise from OpsReportView, WebhookEventsView, LicenseManagerView) ──
+app.get('/api/webhook-events', (_req, res) => res.json({ success: true, events: [], stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }));
+app.get('/api/webhook-events/stats', (_req, res) => res.json({ success: true, stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }));
+app.get('/api/ops-report/status', (_req, res) => res.json({ success: true, status: 'idle', lastRun: null, nextRun: null }));
+app.get('/api/license/seats', (_req, res) => res.json({ success: true, seats: [], pendingInvites: [], maxSeats: 0, seatsUsed: 0, seatsRemaining: 0, tier: 'free' }));
+
 // Serve other frontend paths
 // Redirect old /coming-soon/ paths to root
 app.get('/coming-soon/*', (req, res) => {

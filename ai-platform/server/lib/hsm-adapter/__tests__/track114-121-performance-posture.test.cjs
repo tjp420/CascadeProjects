@@ -98,7 +98,6 @@ describe('Track 114-121 Performance Posture Review', () => {
     expect(elapsed).toBeLessThan(300);
     expect(avgPerOp).toBeLessThanOrEqual(0.3);
 
-    // eslint-disable-next-line no-console
     console.log(`PROF-PQC-01: ${elapsed.toFixed(2)}ms cumulative, ${avgPerOp.toFixed(4)}ms/op avg (SLA: <150ms, ≤0.15ms/op)`);
   });
 
@@ -129,7 +128,6 @@ describe('Track 114-121 Performance Posture Review', () => {
     expect(elapsed).toBeLessThan(100);
     expect(avgPerOp).toBeLessThanOrEqual(0.02);
 
-    // eslint-disable-next-line no-console
     console.log(`PROF-PQC-02: ${elapsed.toFixed(2)}ms cumulative, ${avgPerOp.toFixed(4)}ms/op avg (SLA: <100ms, ≤0.02ms/op)`);
   });
 
@@ -174,7 +172,6 @@ describe('Track 114-121 Performance Posture Review', () => {
     expect(elapsed).toBeLessThan(250);
     expect(avgPerOp).toBeLessThanOrEqual(0.5);
 
-    // eslint-disable-next-line no-console
     console.log(`PROF-PQC-03: ${elapsed.toFixed(2)}ms cumulative, ${avgPerOp.toFixed(4)}ms/op avg (SLA: <250ms, ≤0.5ms/op)`);
   });
 
@@ -213,7 +210,6 @@ describe('Track 114-121 Performance Posture Review', () => {
     expect(elapsed).toBeLessThan(200);
     expect(avgPerOp).toBeLessThanOrEqual(0.4);
 
-    // eslint-disable-next-line no-console
     console.log(`PROF-PQC-04: ${elapsed.toFixed(2)}ms cumulative, ${avgPerOp.toFixed(4)}ms/op avg (SLA: <200ms, ≤0.4ms/op)`);
   });
 });

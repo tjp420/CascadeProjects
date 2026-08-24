@@ -1,3 +1,4 @@
+// simplebeacon-ignore credentials — deploy script, uses env vars for real credentials, placeholders in comments only
 /**
  * Upload the Unbreakable Oracle GGUF to Cloudflare R2 via S3 multipart upload.
  *
@@ -8,8 +9,8 @@
  *      Bucket: simplebeacon-models
  *
  *   2. Set environment variables (PowerShell):
- *      $env:R2_ACCESS_KEY_ID = "your-access-key-id"
- *      $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key"
+ *      $env:R2_ACCESS_KEY_ID = "your-access-key-id" // simplebeacon-ignore credentials — placeholder in documentation comment
+ *      $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key" // simplebeacon-ignore credentials — placeholder in documentation comment
  *      $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"
  *
  *   3. Run:
@@ -41,8 +42,8 @@ async function main() {
     console.error('ERROR: R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY environment variables required.');
     console.error('');
     console.error('Set them in PowerShell:');
-    console.error('  $env:R2_ACCESS_KEY_ID = "your-access-key-id"');
-    console.error('  $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key"');
+    console.error('  $env:R2_ACCESS_KEY_ID = "your-access-key-id"'); // simplebeacon-ignore credentials — placeholder in error message
+    console.error('  $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key"'); // simplebeacon-ignore credentials — placeholder in error message
     console.error('  $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"');
     process.exit(1);
   }

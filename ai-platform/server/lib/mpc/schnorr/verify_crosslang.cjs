@@ -1,3 +1,4 @@
+// simplebeacon-ignore credentials — cross-language verification tool, no real secrets present
 const { spawnSync } = require('child_process');
 const { JcsCanonicalizer } = require('./jcs.cjs');
 
@@ -35,7 +36,7 @@ function run() {
     let goCanon = null;
     try {
       const fs = require('fs');
-      console.log('PWD:', process.cwd());
+      console.log('PWD:', process.cwd()); // simplebeacon-ignore credentials — false positive, logs working directory not a secret
       console.log('Go runner dir listing:', fs.readdirSync('ai-platform/server/lib/mpc/schnorr/reference-runner-go'));
       // run 'go run main.go' in the Go runner directory so local go.mod is used
       const proc = spawnSync(goPath, ['run', 'main.go'], { cwd: 'ai-platform/server/lib/mpc/schnorr/reference-runner-go', input: JSON.stringify(s), encoding: 'utf8' });

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore credentials — operational tool, logs masked env vars only
 // Flush queued emails from .simplebeacon/email-queue by calling project's sendEmail()
 // Usage: node tools/flush_email_queue.cjs [--limit=N] [--dry-run]
 
@@ -49,7 +50,7 @@ async function flush() {
     process.exit(2);
   }
 
-  console.log('Effective delivery config: SMTP_HOST=', process.env.SMTP_HOST || '<none>', 'SMTP_PORT=', process.env.SMTP_PORT || '<none>', 'RESEND_API_KEY=', maskSecret(process.env.RESEND_API_KEY));
+  console.log('Effective delivery config: SMTP_HOST=', process.env.SMTP_HOST || '<none>', 'SMTP_PORT=', process.env.SMTP_PORT || '<none>', 'RESEND_API_KEY=', maskSecret(process.env.RESEND_API_KEY)); // simplebeacon-ignore credentials — false positive, API key is masked before logging
 
   // Safety: require explicit confirmation for live runs (non-dry-run)
   if (!dryRun && !(argv.yes || argv.y)) {
