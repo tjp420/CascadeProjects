@@ -1,0 +1,80 @@
+From 60f4c46cf271508c14ed00704834f4e6905d43f7 Mon Sep 17 00:00:00 2001
+From: Dev Bot <devbot@local>
+Date: Mon, 24 Aug 2026 01:11:26 -0600
+Subject: [PATCH] client: record checkout path & send optional
+ telemetry\n\nRecord whether checkout was initiated via pricing modal or
+ direct redirect (sb_last_checkout_path localStorage) and send best-effort
+ navigator.sendBeacon to cfg.clientTelemetryEndpoint when
+ available.\n\nCo-authored-by: Copilot
+ <223556219+Copilot@users.noreply.github.com>
+
+---
+ coming-soon/app-links.js        | 21 +++++++++++++++++++++
+ coming-soon/public/app-links.js | 10 ++++++++++
+ 2 files changed, 31 insertions(+)
+
+diff --git a/coming-soon/app-links.js b/coming-soon/app-links.js
+index 88f381988..e926b5771 100644
+--- a/coming-soon/app-links.js
++++ b/coming-soon/app-links.js
+@@ -92,15 +92,36 @@
+         e.preventDefault();
+         try {
+           if (el.hasAttribute && (el.hasAttribute('data-price-id') || el.hasAttribute('data-annual-price-id'))) {
++            // Record that the modal was opened for debugging
++            try { localStorage.setItem('sb_last_checkout_path', 'modal:' + tierKey); } catch (_) {}
++            try { console.info('[pricing] open modal for tier', tierKey); } catch (_) {}
+             // Defer to the pricing page modal / client-side handler so the user's billing cadence is respected
+             if (typeof openCheckoutModal === 'function') {
+               openCheckoutModal(tierKey);
++              // Optionally send a lightweight beacon if configured
++              try {
++                if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
++                  var payload = JSON.stringify({ event: 'checkout_modal_open', tier: tierKey, ts: Date.now() });
++                  navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload);
++                }
++              } catch (_) {}
+               return;
+             }
+           }
+         } catch (_) {}
+ 
+         var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
++        // Record the redirect path for diagnostics
++        try { localStorage.setItem('sb_last_checkout_path', 'redirect:' + (url || tierKey)); } catch (_) {}
++        try { console.info('[pricing] redirect to', url || tierKey); } catch (_) {}
++        // Try to send a beacon to configured telemetry endpoint (best-effort)
++        try {
++          if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
++            var payload2 = JSON.stringify({ event: 'checkout_redirect', tier: tierKey, url: url || null, ts: Date.now() });
++            navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload2);
++          }
++        } catch (_) {}
++
+         // URL validated: only Stripe payment links or internal anchors allowed
+         if (isStripeUrl(url)) {
+           window.location.href = url;
+diff --git a/coming-soon/public/app-links.js b/coming-soon/public/app-links.js
+index b35cbfc7e..01c55e67b 100644
+--- a/coming-soon/public/app-links.js
++++ b/coming-soon/public/app-links.js
+@@ -91,6 +91,16 @@
+       el.addEventListener('click', function (e) {
+         e.preventDefault();
+         var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
++        // Record the redirect path for diagnostics
++        try { localStorage.setItem('sb_last_checkout_path', 'redirect:' + (url || tierKey)); } catch (_) {}
++        try { console.info('[pricing] redirect to', url || tierKey); } catch (_) {}
++        // Try to send a beacon to configured telemetry endpoint (best-effort)
++        try {
++          if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
++            var payload = JSON.stringify({ event: 'checkout_redirect', tier: tierKey, url: url || null, ts: Date.now() });
++            navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload);
++          }
++        } catch (_) {}
+         // URL validated: only Stripe payment links or internal anchors allowed
+         if (isStripeUrl(url)) {
+           window.location.href = url;
+-- 
+2.55.0.windows.3
+

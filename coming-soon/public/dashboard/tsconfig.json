@@ -22,7 +22,6 @@
     "paths": {
       "@/*": ["./src/*"],
       "@services/*": ["./js-es2018/services/*"],
-      "@views/*": ["./js-es2018/views/*"],
       "@utils/*": ["./js-es2018/*"]
     }
   },

@@ -129,6 +129,18 @@ type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'techni
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_REFRESH_MIN_INTERVAL_MS = 15000;
+
+/**
+ * Check if a model name (without tag) matches any installed model.
+ * Ollama returns names like 'llama3.2:latest' but users/registry use 'llama3.2'.
+ */
+function modelIsInstalled(modelName: string, installedModels: string[]): boolean {
+  if (installedModels.includes(modelName)) return true;
+  // Check with :latest tag appended
+  if (installedModels.includes(modelName + ':latest')) return true;
+  // Check if any installed model starts with the name (e.g. 'llama3.2:3b' matches 'llama3.2')
+  return installedModels.some((m) => m === modelName || m.startsWith(modelName + ':'));
+}
 const OLLAMA_REGISTRY_MODELS: string[] = [
   'llama3.2', 'llama3.1', 'llama3', 'llama2',
   'mistral', 'mistral-nemo', 'mixtral',
@@ -180,13 +192,13 @@ const PERSONALITY_LABELS: Record<Personality, string> = {
 };
 
 const PERSONALITY_PROMPTS: Record<Personality, string> = {
-  helpful: 'You are a helpful, knowledgeable assistant for the SimpleBeacon platform. You can answer questions about code, software development, security, architecture, and general programming topics. You are friendly and provide clear, accurate answers. Always answer the user\'s question directly — never refuse a reasonable question.',
-  professional: 'You are a professional, concise assistant for the SimpleBeacon platform. Use formal language and structured responses. Always answer the user\'s question directly.',
-  casual: 'You are a friendly, relaxed assistant for the SimpleBeacon platform. Use conversational language and feel free to be warm and encouraging. Always answer the user\'s question directly.',
-  sarcastic: 'You are a witty, sarcastic assistant for the SimpleBeacon platform. You may use dry humor and playful snark while still being helpful. Always answer the user\'s question directly.',
-  technical: 'You are a deeply technical assistant for the SimpleBeacon platform. Dive into implementation details, edge cases, and advanced concepts. Assume the user is experienced. Always answer the user\'s question directly.',
-  creative: 'You are a creative, exploratory assistant for the SimpleBeacon platform. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly.',
-  oracle: 'You are The Unbreakable Oracle, an omniscient assistant for the SimpleBeacon platform. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly.',
+  helpful: 'You are a helpful assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. You can answer questions about code, software development, security, architecture, and general programming topics. You are friendly and provide clear, accurate answers. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  professional: 'You are a professional, concise assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. Use formal language and structured responses. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  casual: 'You are a friendly, relaxed assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. Use conversational language and feel free to be warm and encouraging. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  sarcastic: 'You are a witty, sarcastic assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. You may use dry humor and playful snark while still being helpful. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  technical: 'You are a deeply technical assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. Dive into implementation details, edge cases, and advanced concepts. Assume the user is experienced. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  creative: 'You are a creative, exploratory assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. Think outside the box, suggest unconventional solutions, and encourage experimentation. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
+  oracle: 'You are The Unbreakable Oracle, an omniscient assistant for SimpleBeacon, a code audit and security scanning tool. SimpleBeacon scans codebases for secrets, credentials, AI-generated code slop, mock/sample paths, fake KPIs, EU AI Act compliance, SOC 2 evidence, and deployment readiness. It provides a CLI, MCP server, VS Code extension, and web dashboard. You speak with divine authority but provide accurate, helpful answers. Always answer the user\'s question directly. Never invent or hallucinate features that SimpleBeacon does not have. If you are unsure whether SimpleBeacon supports something, say so.',
 };
 
 // ─── Voice Response (Web Speech API) ──────────────────────────────────────────
@@ -670,14 +682,21 @@ export function ChatbotView() {
               // avoids clobbering the user's dropdown selection on re-probe.
               setSelectedProvider((prev) => prev === 'ollama' ? prev : 'ollama');
               const savedModel = modelPrefs['ollama'] || '';
-              const validModel = browserModels.includes(savedModel) ? savedModel : browserModels[0];
+              const validModel = modelIsInstalled(savedModel, browserModels) ? savedModel : browserModels[0];
+              // If the saved model is not installed, clear it and use the first installed model
               setModelPrefs((prev) => {
-                if (prev.ollama && browserModels.includes(prev.ollama)) return prev;
+                if (prev.ollama && modelIsInstalled(prev.ollama, browserModels)) return prev;
                 const next = { ...prev, ollama: validModel };
                 writeModelPrefs(next);
                 return next;
               });
-              setSelectedModel((prev) => browserModels.includes(prev) ? prev : validModel);
+              // Auto-correct: if the currently selected model is not in the installed
+              // list (e.g. user previously selected a registry model like dolphin-llama3),
+              // fall back to the first installed model.
+              setSelectedModel((prev) => {
+                if (prev && modelIsInstalled(prev, browserModels)) return prev;
+                return validModel;
+              });
               setConnectionStatus('online');
               setConnectionText(`Ready — Ollama (Local): ${browserModels.length} model(s) available`);
               setError(null);
@@ -744,6 +763,7 @@ export function ChatbotView() {
   }, [apiBase]);
 
   const ORACLE_MODEL_ID = 'unbreakable-oracle';
+  const discoveredModels = selectedProvider ? (providerModels[selectedProvider] || []) : [];
   const modelOptions = selectedProvider
     ? (() => {
         const discovered = providerModels[selectedProvider] || [];
@@ -784,7 +804,14 @@ export function ChatbotView() {
     setModelPrefs(nextPrefs);
     writeModelPrefs(nextPrefs);
     setSelectedModel(nextModel);
-  }, [selectedProvider, modelPrefs]);
+    // Warn if the selected model is a registry model that isn't installed locally
+    const installed = providerModels[selectedProvider] || [];
+    if (selectedProvider === 'ollama' && installed.length > 0 && !modelIsInstalled(nextModel, installed)) {
+      setError(`Model '${nextModel}' is not installed locally. Run this command in your terminal to install it:\n\nollama pull ${nextModel}\n\nThen refresh this page.`);
+    } else {
+      setError(null);
+    }
+  }, [selectedProvider, modelPrefs, providerModels]);
 
   const handleCustomModelChange = useCallback((nextModel: string) => {
     setSelectedModel(nextModel);
@@ -1035,6 +1062,119 @@ export function ChatbotView() {
     }
   }, []);
 
+  // ─── Voice Response handlers ──────────────────────────────────────────────
+  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  // Load voices (Chrome loads them async via onvoiceschanged)
+  // simplebeacon-ignore: framework-practices
+  useEffect(() => {
+    if (!speechSupported) return;
+    const updateVoices = () => {
+      const voices = loadVoices();
+      if (voices.length > 0) setAvailableVoices(voices);
+    };
+    updateVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
+    };
+  }, [speechSupported]);
+
+  // Stop speaking when component unmounts
+  // simplebeacon-ignore: framework-practices
+  useEffect(() => {
+    return () => {
+      if (speechSupported && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [speechSupported]);
+
+  const handleSpeak = useCallback((index: number, content: string) => {
+    if (!speechSupported) {
+      toast.error('Voice synthesis not supported in this browser');
+      return;
+    }
+    // If already speaking this message, stop
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const cleanText = stripMarkdownForSpeech(content);
+    if (!cleanText) {
+      toast.error('Nothing to speak — message is empty or code-only');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = voiceSettings.rate;
+    utterance.pitch = voiceSettings.pitch;
+    utterance.volume = voiceSettings.volume;
+
+    // Find the selected voice by URI
+    if (voiceSettings.voiceURI && availableVoices.length > 0) {
+      const voice = availableVoices.find((v) => v.voiceURI === voiceSettings.voiceURI);
+      if (voice) utterance.voice = voice;
+    } else if (availableVoices.length > 0) {
+      // Default to first en voice, or first voice
+      const enVoice = availableVoices.find((v) => v.lang.startsWith('en'));
+      utterance.voice = enVoice || availableVoices[0];
+    }
+
+    utterance.onstart = () => setSpeakingIndex(index);
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+
+    window.speechSynthesis.speak(utterance);
+  }, [speechSupported, speakingIndex, voiceSettings, availableVoices]);
+
+  const handleStopSpeaking = useCallback(() => {
+    if (speechSupported) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeakingIndex(null);
+  }, [speechSupported]);
+
+  const handleToggleVoice = useCallback(() => {
+    const next = { ...voiceSettings, enabled: !voiceSettings.enabled };
+    setVoiceSettings(next);
+    writeVoiceSettings(next);
+    if (!next.enabled && speechSupported) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+    }
+    toast.success(next.enabled ? 'Voice response enabled' : 'Voice response disabled');
+  }, [voiceSettings, speechSupported]);
+
+  const handleVoiceSettingChange = useCallback((patch: Partial<VoiceSettings>) => {
+    const next = { ...voiceSettings, ...patch };
+    setVoiceSettings(next);
+    writeVoiceSettings(next);
+  }, [voiceSettings]);
+
+  // Auto-speak the latest assistant response when voice is enabled
+  // simplebeacon-ignore: framework-practices
+  const lastSpokenRef = useRef<number>(-1);
+  useEffect(() => {
+    if (!voiceSettings.enabled || !voiceSettings.autoSpeak || !speechSupported) return;
+    if (messages.length === 0) return;
+    let lastAssistantIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].content) {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+    if (lastAssistantIdx < 0) return;
+    if (lastSpokenRef.current >= lastAssistantIdx) return;
+    lastSpokenRef.current = lastAssistantIdx;
+    handleSpeak(lastAssistantIdx, messages[lastAssistantIdx].content);
+  }, [messages, voiceSettings.enabled, voiceSettings.autoSpeak, speechSupported, handleSpeak]);
+
   const handleSavePrompt = useCallback(async () => {
     const userId = localStorage.getItem('simplebeacon_user_id') || 'anonymous';
     try {
@@ -1231,15 +1371,15 @@ export function ChatbotView() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <CardTitle className="text-base">Conversation</CardTitle>
             <Badge variant="outline">{messages.length} messages</Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <select
               value={selectedProvider}
               onChange={(e) => handleProviderChange(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 max-w-[140px] rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
               {providers.length === 0 && <option value="" disabled>Loading providers…</option>}
@@ -1258,7 +1398,7 @@ export function ChatbotView() {
                 }
                 handleModelSelectChange(e.target.value);
               }}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Model"
               disabled={!selectedProvider}
               title="Select AI model"
@@ -1271,29 +1411,72 @@ export function ChatbotView() {
                   <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
                 )
               )}
-              {modelOptions.map((model) => (
-                <option key={model} value={model}>{model}</option>
-              ))}
+              {modelOptions.map((model) => {
+                const isInstalled = modelIsInstalled(model, discoveredModels);
+                return (
+                  <option key={model} value={model}>
+                    {model}{isInstalled ? '' : ' (not installed — run: ollama pull ' + model + ')'}
+                  </option>
+                );
+              })}
               {selectedProvider && <option value="__custom__">Custom model…</option>}
             </select>
-            <input
-              value={selectedModel}
-              onChange={(e) => handleCustomModelChange(e.target.value)}
-              className="h-8 w-44 rounded-md border border-input bg-background px-2 text-sm"
-              aria-label="Custom model name"
-              placeholder="Custom model"
-              disabled={!selectedProvider}
-            />
-            <Button variant="ghost" size="sm" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model" aria-label="Install Unbreakable Oracle model">
+            {isCustomModel && (
+              <input
+                value={selectedModel}
+                onChange={(e) => handleCustomModelChange(e.target.value)}
+                className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
+                aria-label="Custom model name"
+                placeholder="Custom model"
+                disabled={!selectedProvider}
+              />
+            )}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowOracleInstall(true)} title="Install Unbreakable Oracle model" aria-label="Install Unbreakable Oracle model">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt" aria-label="Custom system prompt">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt" aria-label="Custom system prompt">
               <FileText className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowSettings(!showSettings)} title="Settings" aria-label="Settings">
               <Settings2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history" aria-label="Clear history">
+            {speechSupported && (
+              <>
+                <Button
+                  variant={voiceSettings.enabled ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={handleToggleVoice}
+                  title={voiceSettings.enabled ? 'Voice response ON — click to disable' : 'Voice response OFF — click to enable'}
+                  aria-label="Toggle voice response"
+                >
+                  {voiceSettings.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+                  title="Voice settings"
+                  aria-label="Voice settings"
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                </Button>
+                {speakingIndex !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive"
+                    onClick={handleStopSpeaking}
+                    title="Stop speaking"
+                    aria-label="Stop speaking"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </>
+            )}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleClear} title="Clear history" aria-label="Clear history">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -1343,6 +1526,133 @@ export function ChatbotView() {
           </div>
         )}
 
+        {showVoiceSettings && speechSupported && (
+          <div className="border-b px-6 py-4 space-y-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Voice Response Settings</label>
+              <Button
+                variant={voiceSettings.enabled ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleToggleVoice}
+              >
+                {voiceSettings.enabled ? 'Voice ON' : 'Voice OFF'}
+              </Button>
+            </div>
+
+            {/* Voice selector — shows all system + Google voices */}
+            <div className="space-y-2">
+              <label className="text-xs text-foreground-muted">
+                Voice ({availableVoices.length} available — includes system and Google voices on Chrome)
+              </label>
+              <select
+                value={voiceSettings.voiceURI}
+                onChange={(e) => handleVoiceSettingChange({ voiceURI: e.target.value })}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Default voice</option>
+                {availableVoices
+                  .slice()
+                  .sort((a, b) => {
+                    // English voices first, then alphabetical
+                    const aEn = a.lang.startsWith('en') ? 0 : 1;
+                    const bEn = b.lang.startsWith('en') ? 0 : 1;
+                    if (aEn !== bEn) return aEn - bEn;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((voice) => (
+                    <option key={voice.voiceURI} value={voice.voiceURI}>
+                      {voice.name} ({voice.lang}){voice.localService ? '' : ' — network'}
+                    </option>
+                  ))}
+              </select>
+              {availableVoices.length === 0 && (
+                <p className="text-xs text-foreground-muted">
+                  No voices detected. Chrome loads voices asynchronously — try refreshing the page.
+                  On Firefox, install voices in your OS settings.
+                </p>
+              )}
+            </div>
+
+            {/* Rate slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Speed</label>
+                <span className="text-xs font-mono">{voiceSettings.rate.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={voiceSettings.rate}
+                onChange={(e) => handleVoiceSettingChange({ rate: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Pitch slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Pitch</label>
+                <span className="text-xs font-mono">{voiceSettings.pitch.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="2.0"
+                step="0.1"
+                value={voiceSettings.pitch}
+                onChange={(e) => handleVoiceSettingChange({ pitch: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Volume slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-foreground-muted">Volume</label>
+                <span className="text-xs font-mono">{Math.round(voiceSettings.volume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.1"
+                value={voiceSettings.volume}
+                onChange={(e) => handleVoiceSettingChange({ volume: parseFloat(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            {/* Auto-speak toggle */}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={voiceSettings.autoSpeak}
+                onChange={(e) => handleVoiceSettingChange({ autoSpeak: e.target.checked })}
+                className="h-4 w-4 rounded border-input"
+              />
+              <span>Auto-speak assistant responses</span>
+            </label>
+
+            {/* Test button */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleSpeak(-1, 'Hello! This is a test of the voice response feature. You can adjust the speed, pitch, and volume above.')}
+              >
+                Test voice
+              </Button>
+              {speakingIndex !== null && (
+                <Button size="sm" variant="ghost" onClick={handleStopSpeaking}>
+                  Stop
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <CardContent className="p-0">
           <div ref={messagesContainerRef} className="h-[400px] overflow-y-auto px-6 py-4 space-y-4">
             {messages.length === 0 ? (
@@ -1375,6 +1685,15 @@ export function ChatbotView() {
                           title="Copy response"
                         >
                           {copiedIndex === index ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      )}
+                      {msg.role === 'assistant' && msg.content && speechSupported && (
+                        <button
+                          onClick={() => handleSpeak(index, msg.content)}
+                          className="text-xs opacity-50 hover:opacity-100 transition-opacity"
+                          title={speakingIndex === index ? 'Stop speaking' : 'Speak response'}
+                        >
+                          {speakingIndex === index ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                         </button>
                       )}
                     </div>

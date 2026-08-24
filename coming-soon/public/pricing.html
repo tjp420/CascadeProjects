@@ -974,7 +974,10 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     function setBilling(mode) {
       isAnnual = mode === 'annual';
       var toggleEl = document.getElementById('billingToggle');
-      if (toggleEl) toggleEl.classList.toggle('annual', isAnnual);
+      if (toggleEl) {
+        toggleEl.classList.toggle('annual', isAnnual);
+        try { toggleEl.setAttribute('aria-checked', isAnnual ? 'true' : 'false'); } catch(_) {}
+      }
       var monthlyLabelEl = document.getElementById('monthlyLabel');
       var annualLabelEl = document.getElementById('annualLabel');
       if (monthlyLabelEl) monthlyLabelEl.classList.toggle('active', !isAnnual);
@@ -992,6 +995,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       if (teamProNote) teamProNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
       updateSeatTotal();
+      try { localStorage.setItem('sb_billing', isAnnual ? 'annual' : 'monthly'); } catch(_) {}
     }
     function toggleBilling() { setBilling(isAnnual ? 'monthly' : 'annual'); }
     var billingToggleEl = document.getElementById('billingToggle');
@@ -1001,6 +1005,15 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleBilling(); }
       });
     }
+    var monthlyLabel = document.getElementById('monthlyLabel');
+    if (monthlyLabel) monthlyLabel.addEventListener('click', function() { setBilling('monthly'); });
+    var annualLabel = document.getElementById('annualLabel');
+    if (annualLabel) annualLabel.addEventListener('click', function() { setBilling('annual'); });
+    // initialize billing preference from localStorage (default monthly)
+    try {
+      var _savedBilling = localStorage.getItem('sb_billing');
+      if (_savedBilling === 'annual') setBilling('annual'); else setBilling('monthly');
+    } catch (_) { setBilling('monthly'); }
 
     // Sticky CTA
     var stickyCta = document.getElementById('stickyCta');
@@ -1794,6 +1807,5 @@ updateAuthNav();
 </footer>
   <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
   <script src="/js-es2018/referral-capture.js" defer></script>
-  <script src="/js/funnel-analytics.js"></script>
 </body>
 </html>

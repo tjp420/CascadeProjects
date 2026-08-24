@@ -5,6 +5,21 @@ All notable changes to the simplebeacon CLI package are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+- Deterministic auto-fix codemods for:
+  - insecureRandom — replace Math.random() with a crypto-backed inline helper (Node.js).
+  - debugArtifacts — remove debugger; and console.debug(...) calls.
+  - innerHtmlXss — safely convert innerHTML = '' to textContent = ''.
+- Non-destructive suggestion helpers for sensitiveData, hardcodedConfidence, and fictionKpi.
+- AUTOFIX.md documenting usage, safety notes, and suggestion APIs.
+
+### Notes
+- Run `npx simplebeacon fix . --fix-dry-run` to preview fix diffs before applying.
+- Sensitive-data suggestions are non-destructive and must be reviewed before applying and rotating secrets.
+
+
 ## [1.1.2] - 2026-08-07
 
 ### Patch release from 1.1.1

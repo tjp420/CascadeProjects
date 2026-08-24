@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound, Crown } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
 import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboard';
 import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
@@ -98,7 +98,6 @@ export function SecurityView() {
   const [npmAudit, setNpmAudit] = useState<NpmAuditData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiBase = getApiBase();
   const { user } = useAuth();
 
   // Enterprise dashboards (ProviderFailover, IdentityFederation, SemanticCache,
@@ -120,60 +119,69 @@ export function SecurityView() {
     } catch { /* ignore */ }
 
     // Fetch codebase analysis (contains categories with security findings) and npm-audit in parallel
-    {
-      try {
-        const [codebaseResp, npmResp] = await Promise.allSettled([
-          fetch(apiUrl('/analyze/flexible'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
-            body: JSON.stringify({
-              projectPath: scan?.projectPath || 'CascadeProjects',
-              analysisType: 'codebase',
-            }),
+    let codebaseOk = false;
+    let npmOk = false;
+    try {
+      const [codebaseResp, npmResp] = await Promise.allSettled([
+        fetch(apiUrl('/analyze/flexible'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
+            projectPath: scan?.projectPath || 'CascadeProjects',
+            analysisType: 'codebase',
           }),
-          fetch(apiUrl('/analyze/flexible'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
-            body: JSON.stringify({
-              projectPath: scan?.projectPath || 'CascadeProjects',
-              analysisType: 'npm-audit',
-            }),
+        }),
+        fetch(apiUrl('/analyze/flexible'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
+            projectPath: scan?.projectPath || 'CascadeProjects',
+            analysisType: 'npm-audit',
           }),
-        ]);
+        }),
+      ]);
 
-        // Parse codebase response for categories
-        if (codebaseResp.status === 'fulfilled' && codebaseResp.value.ok) {
-          const json = await codebaseResp.value.json();
-          const r = json.report || {};
-          scan = {
-            ...scan,
-            ...r,
-            projectPath: scan?.projectPath || r.projectPath || r.projectRoot || '',
-            categories: r.categories || [],
-            severityCounts: r.summary?.severityCounts || scan?.severityCounts || {},
-            gate: r.gate || scan?.gate || {},
-            totalFiles: r.summary?.repositoryFilesTotal || r.totalFiles || scan?.totalFiles,
-            issueCount: r.summary?.findingsTotal || r.issueCount || scan?.issueCount,
-            qualityScore: r.summary?.healthScore || r.qualityScore || scan?.qualityScore,
-            scanScope: r.scanScope || scan?.scanScope,
-            timestamp: r.generatedAt || new Date().toISOString(),
-          };
-        }
+      // Parse codebase response for categories
+      if (codebaseResp.status === 'fulfilled' && codebaseResp.value.ok) {
+        codebaseOk = true;
+        const json = await codebaseResp.value.json();
+        const r = json.report || {};
+        scan = {
+          ...scan,
+          ...r,
+          projectPath: scan?.projectPath || r.projectPath || r.projectRoot || '',
+          categories: r.categories || [],
+          severityCounts: r.summary?.severityCounts || scan?.severityCounts || {},
+          gate: r.gate || scan?.gate || {},
+          totalFiles: r.summary?.repositoryFilesTotal || r.totalFiles || scan?.totalFiles,
+          issueCount: r.summary?.findingsTotal || r.issueCount || scan?.issueCount,
+          qualityScore: r.summary?.healthScore || r.qualityScore || scan?.qualityScore,
+          scanScope: r.scanScope || scan?.scanScope,
+          timestamp: r.generatedAt || new Date().toISOString(),
+        };
+      }
 
-        // Parse npm audit response
-        if (npmResp.status === 'fulfilled' && npmResp.value.ok) {
-          const json = await npmResp.value.json();
-          const r = json.report || json;
-          setNpmAudit(r._npmAuditAnalysis || r.npmAudit || r);
-        }
-      } catch {
-        // API errors are non-fatal
+      // Parse npm audit response
+      if (npmResp.status === 'fulfilled' && npmResp.value.ok) {
+        npmOk = true;
+        const json = await npmResp.value.json();
+        const r = json.report || json;
+        setNpmAudit(r._npmAuditAnalysis || r.npmAudit || r);
+      }
+
+      // If both API calls failed and we have no cached scan, surface an error
+      if (!codebaseOk && !npmOk && !scan) {
+        setError('Security API unavailable. Ensure the ai-platform server is running.');
+      }
+    } catch {
+      if (!scan) {
+        setError('Failed to fetch security data. Check your connection to the local server.');
       }
     }
 
     setScanData(scan);
     setLoading(false);
-  }, [apiBase]);
+  }, []);
 
   // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);

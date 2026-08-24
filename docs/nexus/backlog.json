@@ -1,0 +1,234 @@
+{
+  "project": "Nexus of Resonance (prototype)",
+  "created_at": "2026-08-22",
+  "summary": "Prioritized backlog to prototype a safe, testable Nexus: lattice node control, simulation core, vessel anchor, entanglement channels, energy accounting, security/ledger, telemetry, and CI. MVP focuses on a limited, auditable demo (deterministic simulation + secure anchoring).",
+  "assumptions": [
+    "Prototype is software-first (simulated lattice + virtual crystals) — hardware/physical crystals are out of scope.",
+    "Resonance Units (RUs) are an abstract accounting model implemented as a quota system.",
+    "Team uses Agile sprints (2 weeks)."
+  ],
+  "must_haves": [
+    {
+      "id": "M1",
+      "title": "Lattice Control API & Node Model",
+      "description": "Implement core data model for crystalline nodes (stabilizer/tuner/amplifier/attenuator), node state machine, node metadata, and REST/gRPC control API.",
+      "effort_days": 30,
+      "complexity": "High",
+      "dependencies": [],
+      "risk": "High (state consistency, concurrent writes).",
+      "acceptance_criteria": "CRUD nodes; attach/detach links; run node state transitions; automated unit tests; API docs."
+    },
+    {
+      "id": "M2",
+      "title": "Deterministic Simulation Core + Checkpointing",
+      "description": "Deterministic simulation engine (replayable), checkpoint frames, delta compression, immutable storage and rollback API.",
+      "effort_days": 25,
+      "complexity": "High",
+      "dependencies": ["M1"],
+      "risk": "High (data model, storage costs).",
+      "acceptance_criteria": "Run deterministic simulation, create checkpoint, revert to checkpoint, validate reproducible replay."
+    },
+    {
+      "id": "M3",
+      "title": "Vessel Anchor + Command API",
+      "description": "Vessel model that can bind/unbind to nodes, provide telemetry, and accept signed RPC commands (bind, executeFrame, telemetry stream).",
+      "effort_days": 15,
+      "complexity": "Medium",
+      "dependencies": ["M1"],
+      "risk": "Medium (auth, safety).",
+      "acceptance_criteria": "Vessel can bind to a node, send/receive commands, and produce signed telemetry logs."
+    },
+    {
+      "id": "M4",
+      "title": "Entanglement Conduit Prototype (channel model)",
+      "description": "Implement logical conduits with metadata (latency, fidelity, coherence-window) and scheduler that maps simulations to conduits.",
+      "effort_days": 20,
+      "complexity": "High",
+      "dependencies": ["M1","M2"],
+      "risk": "High (scheduling, resource contention).",
+      "acceptance_criteria": "Create conduits, assign simulation jobs, measure fidelity/latency metrics in tests."
+    },
+    {
+      "id": "M5",
+      "title": "RU Energy Accounting + Adaptive Throttling",
+      "description": "Abstract RU model, per-task RU budgeting, throttling/attenuation controls and safety trip; integrate with scheduler.",
+      "effort_days": 10,
+      "complexity": "Medium",
+      "dependencies": ["M1","M4"],
+      "risk": "Medium.",
+      "acceptance_criteria": "RU usage tracked per simulation; throttling enforces limits; automated tests for over-budget behavior."
+    },
+    {
+      "id": "M6",
+      "title": "Security baseline: spectral identity, RBAC, audit ledger",
+      "description": "Implement identities (spectral fingerprints), RBAC, multi-signer operations for high-impact commands, and append-only signed ledger for audit.",
+      "effort_days": 20,
+      "complexity": "High",
+      "dependencies": ["M1","M3"],
+      "risk": "High (cryptography, key management).",
+      "acceptance_criteria": "All high-impact APIs require RBAC; ledger stores signed entries; tests for multi-signer operations."
+    },
+    {
+      "id": "M7",
+      "title": "Checkpointing, Rollback & Automated Recovery",
+      "description": "Automated rollback to stable checkpoint on anomaly; re-annealing job for nodes.",
+      "effort_days": 10,
+      "complexity": "Medium",
+      "dependencies": ["M2","M6"],
+      "risk": "Medium.",
+      "acceptance_criteria": "Simulated anomaly triggers safe rollback; nodes can be re-annealed."
+    },
+    {
+      "id": "M8",
+      "title": "Telemetry, Logging & Forensics Hooks (lossless for critical ops)",
+      "description": "Spectral telemetry schema, high-priority lossless channel, checkpoint provenance metadata for forensics.",
+      "effort_days": 8,
+      "complexity": "Low",
+      "dependencies": ["M3","M6"],
+      "risk": "Low.",
+      "acceptance_criteria": "Telemetry stream exists, critical events persisted to ledger and are queryable."
+    },
+    {
+      "id": "M9",
+      "title": "Test harness, CI, and smoke tests",
+      "description": "Unit/integration test harness, reproducible test scenarios, CI pipelines.",
+      "effort_days": 12,
+      "complexity": "Medium",
+      "dependencies": ["M1","M2","M4"],
+      "risk": "Medium.",
+      "acceptance_criteria": "CI passes for core integration tests; reproducible smoke scenario runs end-to-end."
+    }
+  ],
+  "should_haves": [
+    {
+      "id": "S1",
+      "title": "Policy Engine & Human-in-the-loop Controls",
+      "description": "Declarative policy rules for permitted experiments, approval flows, and human override UI endpoints.",
+      "effort_days": 15,
+      "complexity": "Medium",
+      "dependencies": ["M6"],
+      "risk": "Medium",
+      "acceptance_criteria": "Policy rules enforce constraints; high-risk operations require manual approval."
+    },
+    {
+      "id": "S2",
+      "title": "Probabilistic / Agent-based Simulation Fields",
+      "description": "Add stochastic simulation layer (Monte Carlo / agent-based) with data export and connection to deterministic core.",
+      "effort_days": 20,
+      "complexity": "High",
+      "dependencies": ["M2","M4","M5"],
+      "risk": "High",
+      "acceptance_criteria": "Run mixed deterministic/probabilistic experiments; checkpoint and analyze outputs."
+    },
+    {
+      "id": "S3",
+      "title": "Attenuator/Amplifier modules + auto-trip safety",
+      "description": "Dynamic amplifier and attenuator models with hardware/software trip thresholds and automatic cooldown policies.",
+      "effort_days": 10,
+      "complexity": "Medium",
+      "dependencies": ["M1","M5"],
+      "risk": "Medium",
+      "acceptance_criteria": "Amplifier trip triggers cooldown and ledgered event; unit tests for edge cases."
+    },
+    {
+      "id": "S4",
+      "title": "Operator Dashboard (basic)",
+      "description": "Web dashboard for node topology, simulation status, RU budgets, telemetry and approvals.",
+      "effort_days": 18,
+      "complexity": "Medium",
+      "dependencies": ["M1","M2","M8","S1"],
+      "risk": "Medium",
+      "acceptance_criteria": "Operators can view topology, start/stop simulations, and approve high-risk ops."
+    }
+  ],
+  "nice_to_haves": [
+    {
+      "id": "N1",
+      "title": "Vessel mobility & resonance-based propulsion model (visualized)",
+      "description": "Simulate vessel repositioning within Nexus, with visual trace and cooldown modeling.",
+      "effort_days": 12,
+      "complexity": "Medium",
+      "dependencies": ["M3","M1"],
+      "risk": "Low",
+      "acceptance_criteria": "Vessel reposition simulations run and produce telemetry; UI visualization available."
+    },
+    {
+      "id": "N2",
+      "title": "Automated node annealing & maintenance scheduler",
+      "description": "Background maintenance jobs to re-anneal noisy nodes and reclaim RU inefficiencies.",
+      "effort_days": 8,
+      "complexity": "Low",
+      "dependencies": ["M1","M7"],
+      "risk": "Low",
+      "acceptance_criteria": "Scheduled annealing reduces simulated noise metrics in tests."
+    },
+    {
+      "id": "N3",
+      "title": "Narrative/Worldbuilding content pack & art prompts",
+      "description": "Generate story documentation, concept art prompts, and exportable lore for marketing or game-design integration.",
+      "effort_days": 6,
+      "complexity": "Low",
+      "dependencies": [],
+      "risk": "Low",
+      "acceptance_criteria": "Content pack delivered with 10 narrative assets and image prompts."
+    }
+  ],
+  "technical_debt_and_refactor_areas": [
+    {
+      "area": "Distributed State Consistency",
+      "notes": "Use a CRDT or distributed-state machine pattern; ad-hoc locking will become costly as concurrency increases.",
+      "remediation_priority": "High"
+    },
+    {
+      "area": "Monolithic simulation engine",
+      "notes": "Separate deterministic core and probabilistic fields into modular services to avoid coupling and scale independently.",
+      "remediation_priority": "Medium"
+    },
+    {
+      "area": "Key management & ledger",
+      "notes": "Design key lifecycle and safe-storage early; avoid ad-hoc secrets in code/config.",
+      "remediation_priority": "High"
+    }
+  ],
+  "resources_estimate": {
+    "recommended_team": [
+      { "role": "Technical Lead / Architect", "count": 1 },
+      { "role": "Backend Engineers (distributed systems)", "count": 2 },
+      { "role": "Simulation/Research Engineer", "count": 1 },
+      { "role": "Security Engineer (cryptography/ops)", "count": 1 },
+      { "role": "Frontend Engineer (dashboard)", "count": 1 },
+      { "role": "QA / SRE", "count": 1 },
+      { "role": "Product/Policy Owner", "count": 1 }
+    ],
+    "person_days_must_haves_total": 150,
+    "person_days_should_haves_total": 63,
+    "person_days_nice_to_haves_total": 26,
+    "total_person_days": 239
+  },
+  "budget_estimate": {
+    "assumptions": "Blended fully-burdened rate = $12,000 per person-month (~21 working days). Adjust to your rate.",
+    "mvp_months_with_recommended_team": "~3 months for MVP (must_haves) with 5 core heads",
+    "mvp_cost_range": "$140k - $220k (approx, depends on rates and overhead)",
+    "full_project_range": "$300k - $700k (if including should+nice and continued ops)"
+  },
+  "timeline_and_milestones": {
+    "planning_phase": { "weeks": 2, "deliverables": ["detailed design", "API schemas", "CI skeleton"] },
+    "mvp_phase": { "weeks": 10, "deliverables": ["M1-M9 implemented", "basic operator dashboard", "CI & smoke tests", "pilot demo"] },
+    "v1_phase": { "weeks": 8, "deliverables": ["S1-S4 implemented", "policy engine", "improved simulation scale"] },
+    "polish_phase": { "weeks": 4, "deliverables": ["N1-N3", "ops hardening", "docs", "handoff"] },
+    "total_estimated_duration": "24 weeks (MVP 12 weeks recommended minimal; full scope 24 weeks)"
+  },
+  "milestones_examples": [
+    { "milestone": "Design review & security plan", "when_weeks": 2 },
+    { "milestone": "Core lattice + deterministic simulation (internal demo)", "when_weeks": 8 },
+    { "milestone": "Secure command + ledger + checkpointing (pilot)", "when_weeks": 12 },
+    { "milestone": "Operator dashboard + policy engine", "when_weeks": 20 },
+    { "milestone": "Public pilot / narrative demo", "when_weeks": 24 }
+  ],
+  "next_steps_recommendation": [
+    "Confirm scope for MVP (pick which must_haves to start — recommended: start with M1, M2, M6, M9).",
+    "Standup a 2-week discovery sprint to produce API contracts, data models, and initial CI skeleton.",
+    "Create tracker items (Jira/GitHub issues) from backlog IDs and assign owners.",
+    "Reserve security design session (2 days) to define spectral identity and ledger format before implementation."
+  ]
+}

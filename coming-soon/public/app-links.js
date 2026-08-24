@@ -91,6 +91,16 @@
       el.addEventListener('click', function (e) {
         e.preventDefault();
         var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
+        // Record the redirect path for diagnostics
+        try { localStorage.setItem('sb_last_checkout_path', 'redirect:' + (url || tierKey)); } catch (_) {}
+        try { console.info('[pricing] redirect to', url || tierKey); } catch (_) {}
+        // Try to send a beacon to configured telemetry endpoint (best-effort)
+        try {
+          if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
+            var payload = JSON.stringify({ event: 'checkout_redirect', tier: tierKey, url: url || null, ts: Date.now() });
+            navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload);
+          }
+        } catch (_) {}
         // URL validated: only Stripe payment links or internal anchors allowed
         if (isStripeUrl(url)) {
           window.location.href = url;

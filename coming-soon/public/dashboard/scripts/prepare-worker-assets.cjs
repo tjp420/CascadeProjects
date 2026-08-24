@@ -74,6 +74,18 @@ function main() {
     fs.copyFileSync(entryPath, mainJsPath);
     console.log(`[prepare-worker-assets] Copied ${entryMatch} → main.js`);
 
+    // Ensure sourceMappingURL in the unhashed main.js points to main.js.map
+    try {
+      const mainJsOriginal = fs.readFileSync(mainJsPath, 'utf8');
+      const mainJsFixed = mainJsOriginal.replace(/\/\/# sourceMappingURL=.*$/m, '//# sourceMappingURL=main.js.map');
+      if (mainJsOriginal !== mainJsFixed) {
+        fs.writeFileSync(mainJsPath, mainJsFixed, 'utf8');
+        console.log('[prepare-worker-assets] Rewrote sourceMappingURL in main.js to main.js.map');
+      }
+    } catch (e) {
+      console.warn('[prepare-worker-assets] Failed to rewrite sourceMappingURL in main.js:', e && e.message ? e.message : e);
+    }
+
     // Rewrite chunk imports: replace references to "main-[hash].js" with "main.js"
     // so chunks can resolve the unhashed entry at runtime.
     const chunkFiles = fs.readdirSync(DIST_ASSETS).filter(
@@ -106,6 +118,21 @@ function main() {
     console.log(`[prepare-worker-assets] Copied ${cssMatch} → main.css`);
   } else {
     console.warn('[prepare-worker-assets] No hashed main CSS found — skipping unhashed copy');
+  }
+
+  // If an unhashed main.js exists (or was created above), ensure its sourceMappingURL points to main.js.map
+  try {
+    const unhashedMainPath = path.join(DIST_ASSETS, 'main.js');
+    if (fs.existsSync(unhashedMainPath)) {
+      const mainJsOriginal2 = fs.readFileSync(unhashedMainPath, 'utf8');
+      const mainJsFixed2 = mainJsOriginal2.replace(/\/\/# sourceMappingURL=.*$/m, '//# sourceMappingURL=main.js.map');
+      if (mainJsOriginal2 !== mainJsFixed2) {
+        fs.writeFileSync(unhashedMainPath, mainJsFixed2, 'utf8');
+        console.log('[prepare-worker-assets] Rewrote sourceMappingURL in existing main.js to main.js.map');
+      }
+    }
+  } catch (e) {
+    console.warn('[prepare-worker-assets] Failed to rewrite sourceMappingURL in existing main.js:', e && e.message ? e.message : e);
   }
 
   console.log('[prepare-worker-assets] Copied worker dependencies into assets');

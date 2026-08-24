@@ -108,11 +108,11 @@ const navGroups: NavGroup[] = [
 ];
 
 // Views that require authentication — hidden from sidebar when signed out
+// Align with App.tsx AUTH_REQUIRED_VIEWS — only organization and workspace
+// truly require auth at the router level. Admin is handled separately below.
 const AUTH_REQUIRED_VIEWS = new Set([
-  'admin',
   'organization',
-  'profile',
-  'chatbot',
+  'workspace',
 ]);
 
 export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isAuthenticated }: SidebarProps) {

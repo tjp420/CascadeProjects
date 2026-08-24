@@ -1,0 +1,57 @@
+From b159a484524ba1dba66b9582c6d0780d810a774e Mon Sep 17 00:00:00 2001
+From: Dev Bot <devbot@local>
+Date: Mon, 24 Aug 2026 01:03:42 -0600
+Subject: [PATCH] Add billing session lineItems, validate priceId, prevent
+ direct button redirect, and fix remediator pre-check\n\n- Validate
+ resolvePriceId with isValidPriceId and log mapping\n- Defer checkout button
+ clicks to pricing modal when data-price-id/annual present\n- Support RegExp
+ searches in deterministic remediator pre-check\n
+
+---
+ .../src/api/simplebeacon-billing-api.cjs      | 23 ++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/ai-platform/src/api/simplebeacon-billing-api.cjs b/ai-platform/src/api/simplebeacon-billing-api.cjs
+index e0df3b9a5..5fd089381 100644
+--- a/ai-platform/src/api/simplebeacon-billing-api.cjs
++++ b/ai-platform/src/api/simplebeacon-billing-api.cjs
+@@ -644,6 +644,26 @@ function setupSimplebeaconBillingRoutes(app) {
+       }
+ 
+       const licenseToken = record?.licenseToken || null;
++
++      // Fetch Stripe line items (price IDs) to help verify the cadence (monthly vs annual).
++      let lineItemsInfo = null;
++      try {
++        if (stripe && session.id) {
++          const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 });
++          lineItemsInfo = lineItems.data.map(li => ({
++            priceId: li.price?.id || null,
++            product: li.price?.product || null,
++            unit_amount: li.price?.unit_amount || null,
++            recurring: li.price?.recurring || null,
++            quantity: li.quantity || 1
++          }));
++        }
++      } catch (err) {
++        // Non-fatal: if Stripe call fails, we still return the core session data
++        try { logger.warn('[billing/session] listLineItems failed: %s', err.message); } catch (_) {}
++        lineItemsInfo = null;
++      }
++
+       res.json({
+         email,
+         paymentStatus: session.payment_status,
+@@ -657,7 +677,8 @@ function setupSimplebeaconBillingRoutes(app) {
+           projectName: record?.certProjectName || null,
+           milestone: record?.certMilestone || 'release',
+           orgId: record?.certOrgId || 'default'
+-        }
++        },
++        lineItems: lineItemsInfo
+       });
+     } catch (err) {
+       res.status(500).json({ error: 'session_lookup_failed', message: err.message });
+-- 
+2.55.0.windows.3
+

@@ -117,6 +117,137 @@ function getRelevantKnowledge(message, entries = CHATBOT_KNOWLEDGE) {
   return '\n\n[Domain Knowledge]\n' + matches.join('\n\n').slice(0, 4000);
 }
 
+// ─── Intent Recognition (adapted from audiobook-creator IntelligentChatService) ───
+const INTENT_DEFINITIONS = [
+  { name: 'scan_project', keywords: ['scan', 'analyze', 'check', 'inspect', 'audit'], action: 'start_scan' },
+  { name: 'fix_finding', keywords: ['fix', 'resolve', 'remediate', 'repair', 'patch'], action: 'suggest_fix' },
+  { name: 'explain_finding', keywords: ['explain', 'what is', 'why', 'meaning', 'describe'], action: 'explain' },
+  { name: 'gate_status', keywords: ['gate', 'pass', 'fail', 'block', 'blocking', 'status'], action: 'gate_status' },
+  { name: 'get_help', keywords: ['help', 'how do', 'how to', 'guide', 'tutorial', 'docs'], action: 'help' },
+  { name: 'configure', keywords: ['settings', 'configure', 'setup', 'options', 'provider', 'ollama', 'openai', 'anthropic'], action: 'configure' },
+  { name: 'general_chat', keywords: ['hello', 'hi', 'hey', 'thanks', 'thank you', 'bye'], action: 'chat' },
+];
+
+const SUGGESTIONS_BY_INTENT = {
+  scan_project: ['Run a gate scan', 'Scan a specific file', 'Deep scan (bypass filters)'],
+  fix_finding: ['Show me the fix', 'Explain this finding first', 'Scan again after fix'],
+  explain_finding: ['How do I fix this?', 'Show all findings', 'Is this a false positive?'],
+  gate_status: ['Show blocking issues', 'Show all findings', 'How do I pass the gate?'],
+  get_help: ['Quick start guide', 'CLI usage', 'MCP tools reference'],
+  configure: ['Set up Ollama', 'Add OpenAI key', 'Add Anthropic key'],
+  general_chat: ['Scan my project', 'Check gate status', 'Explain a finding'],
+};
+
+/**
+ * Recognize user intent from a message using keyword confidence scoring.
+ * @param {string} message
+ * @returns {{intent:string,confidence:number,action:string,entities:Array}}
+ */
+function recognizeIntent(message) {
+  if (!message || typeof message !== 'string') {
+    return { intent: 'general_chat', confidence: 0.1, action: 'chat', entities: [] };
+  }
+  const lowered = message.toLowerCase();
+  let best = { intent: 'general_chat', confidence: 0.1, action: 'chat', entities: [] };
+  for (const def of INTENT_DEFINITIONS) {
+    const hits = def.keywords.filter((kw) => lowered.includes(kw)).length;
+    if (hits > 0) {
+      const confidence = Math.min(1, hits / def.keywords.length + 0.15);
+      if (confidence > best.confidence) {
+        best = { intent: def.name, confidence, action: def.action, entities: [] };
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Generate proactive suggestions based on recognized intent.
+ * @param {string} intent
+ * @returns {string[]}
+ */
+function getSuggestionsForIntent(intent) {
+  return SUGGESTIONS_BY_INTENT[intent] || SUGGESTIONS_BY_INTENT.general_chat;
+}
+
+// ─── Session Store (adapted from audiobook-creator ConversationContext) ───
+// In-memory session store for conversation context and metadata.
+// Sessions expire after 30 minutes of inactivity.
+const SESSION_TTL_MS = 30 * 60 * 1000;
+const MAX_SESSION_MESSAGES = 50;
+const sessionStore = new Map();
+
+/**
+ * Get or create a session by ID.
+ * @param {string} sessionId
+ * @param {string} [userEmail]
+ * @returns {object}
+ */
+function getOrCreateSession(sessionId, userEmail) {
+  const now = Date.now();
+  // Lazy cleanup of expired sessions (every 100th access)
+  if (sessionStore.size > 100 && sessionStore.size % 100 === 0) {
+    for (const [id, sess] of sessionStore) {
+      if (now - sess.lastInteraction > SESSION_TTL_MS) {
+        sessionStore.delete(id);
+      }
+    }
+  }
+  let session = sessionStore.get(sessionId);
+  if (!session || now - session.lastInteraction > SESSION_TTL_MS) {
+    session = {
+      sessionId,
+      userEmail: userEmail || null,
+      messages: [],
+      learnedPatterns: [],
+      sessionMetadata: {
+        startTime: now,
+        lastInteraction: now,
+        totalMessages: 0,
+        totalResponseTimeMs: 0,
+        averageResponseTimeMs: 0,
+        intentsDetected: {},
+      },
+    };
+    sessionStore.set(sessionId, session);
+  }
+  return session;
+}
+
+/**
+ * Record a message exchange in the session.
+ * @param {object} session
+ * @param {{role:string,content:string}} userMsg
+ * @param {{role:string,content:string}} assistantMsg
+ * @param {number} responseTimeMs
+ * @param {string} intent
+ */
+function recordExchange(session, userMsg, assistantMsg, responseTimeMs, intent) {
+  session.messages.push(userMsg, assistantMsg);
+  if (session.messages.length > MAX_SESSION_MESSAGES) {
+    session.messages = session.messages.slice(-MAX_SESSION_MESSAGES);
+  }
+  const meta = session.sessionMetadata;
+  meta.totalMessages += 1;
+  meta.lastInteraction = Date.now();
+  meta.totalResponseTimeMs += responseTimeMs;
+  meta.averageResponseTimeMs = Math.round(meta.totalResponseTimeMs / meta.totalMessages);
+  meta.intentsDetected[intent] = (meta.intentsDetected[intent] || 0) + 1;
+  // Learn simple patterns: track recurring intents
+  if (meta.intentsDetected[intent] >= 2 && !session.learnedPatterns.includes(intent)) {
+    session.learnedPatterns.push(intent);
+  }
+}
+
+/**
+ * Build server-side conversation context from session for injection.
+ * @param {object} session
+ * @returns {Array<{role:string,content:string}>}
+ */
+function getSessionHistory(session) {
+  return session.messages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+}
+
 /**
  * Reads the latest SimpleBeacon scan report for the project and returns a
  * concise context string suitable for injection into the AI conversation.
@@ -290,7 +421,8 @@ function setupChatbotAPI(app) {
         message: incomingMessage,
         conversationHistory = [],
         provider: incomingProvider = 'ollama',
-        projectPath
+        projectPath,
+        sessionId: incomingSessionId
       } = req.body;
       message = incomingMessage;
       provider = incomingProvider;
@@ -300,6 +432,13 @@ function setupChatbotAPI(app) {
       if (!message || typeof message !== 'string') {
         return sendError(res, 400, 'Message is required and must be a string');
       }
+
+      // ─── Intent recognition (from audiobook-creator pattern) ───
+      const intentResult = recognizeIntent(message);
+
+      // ─── Session context (from audiobook-creator ConversationContext) ───
+      const sessionId = String(incomingSessionId || requestId);
+      const session = getOrCreateSession(sessionId, await resolveChatbotUserEmail(req));
 
       const ALLOWED_PROVIDERS = ['openai', 'anthropic', 'ollama'];
       if (!ALLOWED_PROVIDERS.includes(provider)) {
@@ -338,15 +477,23 @@ function setupChatbotAPI(app) {
         return sendError(res, 400, 'Message content length exceeds safe processing limit');
       }
 
-      // Process and sanitize history using secure boundaries
-      const sanitizedHistory = sanitizeConversationHistory(conversationHistory);
+      // Process and sanitize client-provided history using secure boundaries
+      const clientHistory = sanitizeConversationHistory(conversationHistory);
+      // Merge with server-side session history (dedup by content similarity)
+      const sessionHistory = getSessionHistory(session);
+      const sanitizedHistory = sessionHistory.length >= clientHistory.length
+        ? sessionHistory
+        : clientHistory;
 
       logger.info('[Chatbot API] Request:', {
         requestId,
         provider,
         hasMessage: true,
         messageLength: message.length,
-        conversationHistoryLength: sanitizedHistory.length
+        conversationHistoryLength: sanitizedHistory.length,
+        intent: intentResult.intent,
+        intentConfidence: intentResult.confidence,
+        sessionId: session.sessionId
       });
 
       // Get user credentials for AI providers
@@ -413,6 +560,15 @@ function setupChatbotAPI(app) {
           }
         } catch { /* ignore package.json errors */ }
         contextSuffix = `\n\n[Project Context]\nPath: ${cleanPath}${pkgCtx}${scanCtx}`;
+      }
+
+      // ─── Intent-aware context injection ───
+      // Add intent hint to context so the model knows what the user wants
+      const intentHint = `\n\n[User Intent] ${intentResult.intent} (confidence: ${intentResult.confidence.toFixed(2)}, action: ${intentResult.action})`;
+      contextSuffix += intentHint;
+      // Add learned patterns from session if any
+      if (session.learnedPatterns.length > 0) {
+        contextSuffix += `\n[Session Patterns] User frequently asks about: ${session.learnedPatterns.join(', ')}`;
       }
 
       // Apply personality and filter settings from request
@@ -661,15 +817,40 @@ function setupChatbotAPI(app) {
         provider: response.provider || provider,
         inferenceDuration,
         responseLength: response.text?.length || 0,
-        hasTiming: !!response.timing
+        hasTiming: !!response.timing,
+        intent: intentResult.intent,
+        sessionId: session.sessionId
       });
+
+      // ─── Record exchange in session (from audiobook-creator pattern) ───
+      const finalResponseText = response.text || response.content || 'No response generated';
+      recordExchange(
+        session,
+        { role: 'user', content: String(message).substring(0, 8000) },
+        { role: 'assistant', content: String(finalResponseText).substring(0, 8000) },
+        inferenceDuration,
+        intentResult.intent
+      );
+
+      // ─── Proactive suggestions based on intent (from audiobook-creator) ───
+      const suggestions = getSuggestionsForIntent(intentResult.intent);
 
       res.json({
         success: true,
-        response: response.text || response.content || 'No response generated',
+        response: finalResponseText,
         provider: response.provider || provider,
         timing: response.timing || null,
-        requestId
+        requestId,
+        // New fields for enhanced chatbot experience
+        intent: intentResult.intent,
+        intentConfidence: Number(intentResult.confidence.toFixed(2)),
+        suggestions,
+        sessionId: session.sessionId,
+        sessionMetadata: {
+          totalMessages: session.sessionMetadata.totalMessages,
+          averageResponseTimeMs: session.sessionMetadata.averageResponseTimeMs,
+          learnedPatterns: session.learnedPatterns
+        }
       });
 
     } catch (error) {

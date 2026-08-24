@@ -302,6 +302,41 @@ function fixPythonDuplicateBody(snippet, _finding) {
     return { search, replace };
 }
 
+/**
+ * SB-JS-INSECURE-RANDOM: Replace Math.random() uses with a crypto-backed IIFE.
+ * This produces a uniformly distributed fraction in [0,1) using 6 random bytes
+ * (48-bit precision) and is safe to inline without adding top-level imports.
+ */
+function fixInsecureRandom(snippet, _finding) {
+    if (!/Math\.random\s*\(\s*\)/.test(snippet)) return null;
+    const search = /Math\.random\s*\(\s*\)/g;
+    const replace = '(function(){const c=require("crypto");return Number.parseInt(c.randomBytes(6).toString("hex"),16)/281474976710656;})()';
+    return { search, replace };
+}
+
+/**
+ * SB-JS-DEBUG-001: Remove debugger statements and console.debug calls.
+ */
+function fixDebugArtifacts(snippet, _finding) {
+    if (!/(\bdebugger\b|console\.debug\s*\()/.test(snippet)) return null;
+    const search = /\bdebugger\b;?|console\.debug\s*\([^)]*\);?/g;
+    const replace = '';
+    return { search, replace };
+}
+
+/**
+ * SB-JS-INNERHTML-001: Safe auto-fix for innerHTML clearing only (innerHTML = '').
+ */
+function fixInnerHtmlXss(snippet, _finding) {
+    if (/\.innerHTML\s*=\s*['"]\s*['"]/.test(snippet)) {
+        const search = /\.innerHTML\s*=\s*['"]\s*['"]/g;
+        const replace = '.textContent = ""';
+        return { search, replace };
+    }
+    // Do not auto-fix other innerHTML assignments (unsafe)
+    return null;
+}
+
 // ---------------------------------------------------------------------------
 // Fix registry: pattern ID → fix function
 // ---------------------------------------------------------------------------
@@ -318,6 +353,9 @@ const FIX_REGISTRY = {
     'SB-GO-REDUNDANCY-001': fixGoDuplicateBody,
     'SB-GO-REDUNDANCY-002': fixGoRepeatedErrorHandlers,
     'SB-GO-REDUNDANCY-003': fixGoDeepNesting,
+    'insecureRandom': fixInsecureRandom,
+    'debugArtifacts': fixDebugArtifacts,
+    'innerHtmlXss': fixInnerHtmlXss,
     'SB-JS-SQL-001': fixSqlInjection,
     'SB-JS-SQL-002': fixJsSqlUnparameterized,
 };
@@ -369,7 +407,21 @@ function remediateFinding(finding, options = {}) {
     // Apply the fix
     try {
         const content = fs.readFileSync(fullPath, 'utf8');
-        if (!content.includes(fix.search)) {
+        // Support both string and RegExp search values for pre-apply existence check.
+        let hasMatch = false;
+        try {
+            if (fix.search instanceof RegExp) {
+                // Create a non-global RegExp from the same source/flags to avoid lastIndex side-effects
+                const flags = (fix.search.flags || '').replace(/g/g, '');
+                const re = new RegExp(fix.search.source, flags);
+                hasMatch = re.test(content);
+            } else {
+                hasMatch = content.includes(String(fix.search));
+            }
+        } catch (err) {
+            hasMatch = false;
+        }
+        if (!hasMatch) {
             return { applied: false, diff, reason: 'Search text not found in file (whitespace mismatch?)', engine: 'deterministic' };
         }
         const updated = content.replace(fix.search, fix.replace);
@@ -420,6 +472,84 @@ function getSupportedPatterns() {
     return Object.keys(FIX_REGISTRY);
 }
 
+/**
+ * Suggest a safe non-destructive patch for sensitive data findings.
+ * Returns an object with diff and suggested env var mapping but does NOT apply changes.
+ */
+function suggestSensitiveDataPatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    // Heuristic: look for common secret patterns in the snippet
+    const secretRe = /(["'])(sk_live_[A-Za-z0-9-_]+|re_[A-Za-z0-9-_]+|AIza[0-9A-Za-z\-_]{35}|-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----|AKIA[0-9A-Z]{16}|[A-Za-z0-9-_]{32,})\1/;
+    const m = snippet.match(secretRe);
+    if (!m) return null;
+    const secretLiteral = m[0];
+    const placeholder = '"<REDACTED_SECRET>"';
+    const diff = makeDiff(secretLiteral, placeholder, path.basename(filePath));
+    // Suggest an env var name derived from nearby identifier if possible
+    const keyNameRe = /(const|let|var|export\s+const)?\s*([A-Z0-9_]+)\s*=\s*/i;
+    const keyMatch = snippet.match(keyNameRe);
+    const suggestedEnv = keyMatch ? `${keyMatch[2].toUpperCase()}_SECRET` : 'REDACTED_SECRET';
+
+    return {
+        filePath,
+        line,
+        snippet,
+        secretLiteral,
+        diff,
+        suggestion: {
+            replaceWith: placeholder,
+            envExample: `${suggestedEnv}=<new_secret_value>`,
+            instructions: [
+                'Rotate the exposed secret immediately on the provider.',
+                `Replace the committed secret with ${placeholder} and update your code to read from process.env.${suggestedEnv} or a secret manager.`,
+                `Add ${suggestedEnv} to your deployment environment and remove the secret from the git history (git filter-repo / BFG).`,
+            ],
+        },
+    };
+}
+
+/**
+ * Suggest replacement guidance for hardcoded confidence values and fiction KPI placeholders.
+ * These are non-destructive suggestions (do not auto-apply).
+ */
+function suggestHardcodedConfidencePatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    const confRe = /(confidence\s*[:=]\s*)(0?\.\d+|1(?:\.0+)?)\b/i;
+    const m = snippet.match(confRe);
+    if (!m) return null;
+    const search = m[0];
+    const replace = `${m[1]}parseFloat(process.env.CONFIDENCE_THRESHOLD || ${m[2]})`;
+    const diff = makeDiff(search, replace, path.basename(filePath));
+    return { filePath, line, snippet, diff, suggestion: { instructions: ['Replace hardcoded confidence with a configurable threshold (env var). Review behavior after change.'] } };
+}
+
+function suggestFictionKpiPatch(finding) {
+    if (!finding || !finding.filePath) return null;
+    const filePath = finding.filePath;
+    const line = finding.line || finding.metadata?.line || 1;
+    const snippet = extractSnippet(filePath, line, 3);
+    if (!snippet) return null;
+
+    // Look for obvious fictional KPI placeholders like 'kpi: 1000' or 'kpi_goal = "X"'
+    const kpiRe = /(kpi\s*[:=]\s*)(["']?\w+["']?|\d+)/i;
+    const m = snippet.match(kpiRe);
+    if (!m) return null;
+    const search = m[0];
+    const replace = `${m[1]}/* review KPI: replace with runtime metric or remove placeholder */`;
+    const diff = makeDiff(search, replace, path.basename(filePath));
+    return { filePath, line, snippet, diff, suggestion: { instructions: ['Replace fictional KPI placeholders with real metrics or configuration.'] } };
+}
+
 module.exports = {
     remediateFinding,
     runDeterministicRemediation,
@@ -427,4 +557,8 @@ module.exports = {
     makeDiff,
     getSupportedPatterns,
     FIX_REGISTRY,
+    // Non-destructive suggestion APIs (not used by deterministic auto-apply)
+    suggestSensitiveDataPatch,
+    suggestHardcodedConfidencePatch,
+    suggestFictionKpiPatch,
 };
