@@ -495,7 +495,7 @@ export default {
       url.pathname === '/api/ops-report/status'
     )) {
       if (url.pathname === '/api/webhook-events/stats') {
-        return json({ success: true, stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }, 200, corsOrigin);
+        return json({ success: true, stats: { total: 0, delivered: 0, failed: 0, pending: 0, byType: {}, byStatus: {} } }, 200, corsOrigin);
       }
       if (url.pathname === '/api/ops-report/status') {
         return json({ success: true, status: 'idle', lastRun: null, nextRun: null }, 200, corsOrigin);
