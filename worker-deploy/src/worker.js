@@ -487,6 +487,22 @@ export default {
       // Fall through to backend proxy (below) for cache miss
     }
 
+    // Edge stubs for dashboard endpoints not yet implemented on Render backend.
+    // Returns empty success payloads so the dashboard views render without 404 noise.
+    if (request.method === 'GET' && (
+      url.pathname === '/api/webhook-events' ||
+      url.pathname === '/api/webhook-events/stats' ||
+      url.pathname === '/api/ops-report/status'
+    )) {
+      if (url.pathname === '/api/webhook-events/stats') {
+        return json({ success: true, stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }, 200, corsOrigin);
+      }
+      if (url.pathname === '/api/ops-report/status') {
+        return json({ success: true, status: 'idle', lastRun: null, nextRun: null }, 200, corsOrigin);
+      }
+      return json({ success: true, events: [], stats: { total: 0, delivered: 0, failed: 0, pending: 0 } }, 200, corsOrigin);
+    }
+
     // Dynamic Route 2: POST /api/stripe-webhook
     // Listens for checkout completion, forwards to Express for subscription
     // activation + email, then mints the signed JWT license key into KV.
