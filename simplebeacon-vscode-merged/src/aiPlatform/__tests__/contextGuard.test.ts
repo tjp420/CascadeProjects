@@ -18,15 +18,9 @@ jest.mock('vscode', () => ({
 }));
 
 // Import once — mock state is reset in beforeEach, not the module
-const {
-  applyContextGuard,
-  getContextGuardMode,
-  getContextGuardMaxChars,
-  resetToastDebounce,
-} = (
+const { applyContextGuard, getContextGuardMode, getContextGuardMaxChars, resetToastDebounce } =
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('../contextGuard')
-);
+  require('../contextGuard');
 
 describe('ContextGuard', () => {
   beforeEach(() => {
