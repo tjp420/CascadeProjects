@@ -4,6 +4,7 @@
  *
  * These tests mock the http module to avoid requiring a running engine.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports
 
 import { EventEmitter } from 'events';
 
