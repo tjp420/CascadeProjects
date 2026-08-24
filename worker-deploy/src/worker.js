@@ -524,6 +524,7 @@ export default {
       if (url.pathname === '/api/platform/status') return json({ online: true, status: 'ok', version: '1.3.0' }, 200, corsOrigin);
       if (url.pathname === '/api/health') return json({ status: 'ok', service: 'simplebeacon' }, 200, corsOrigin);
       if (url.pathname === '/api/vault/consensus/status') return json({ success: true, status: 'ok', consensus: { nodes: 0, healthy: 0, leader: 'none' } }, 200, corsOrigin);
+      if (url.pathname === '/api/license/seats') return json({ success: true, seats: [], pendingInvites: [], maxSeats: 0, seatsUsed: 0, seatsRemaining: 0, tier: 'free' }, 200, corsOrigin);
     }
 
     // Dynamic Route 2: POST /api/stripe-webhook
