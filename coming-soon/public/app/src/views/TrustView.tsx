@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BadgeCheck, ShieldCheck, Activity, FileCheck, TrendingUp, RefreshCw, AlertCircle, Download } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders } from '@/config';
 
 type SeverityCounts = Record<string, number>;
 
@@ -81,7 +81,6 @@ export function TrustView() {
   const [history, setHistory] = useState<TrustHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiBase = getApiBase();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -107,7 +106,7 @@ export function TrustView() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);
@@ -255,7 +254,7 @@ export function TrustView() {
     );
   }
 
-  const headline = verification.headline;
+  const headline = verification.headline || { gatePass: false, qualityScore: null, issueCount: 0, lastScan: null, repositoryFilesTotal: null };
   const trend = history?.trend;
 
   return (

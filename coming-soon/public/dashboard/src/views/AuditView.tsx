@@ -1414,7 +1414,7 @@ export function AuditView() {
       severityCounts: report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
       gate: report.gate || { pass: false, blockingCount: 0, warningCount: 0 },
       qualityScore: report.qualityScore ?? null,
-      projectPath: report.projectPath || report.projectPath || '',
+      projectPath: report.projectPath || '',
       scanScope: {
         profile: report.scanScope?.profile || 'standard',
         resultsViewScope: report.scanScope?.resultsViewScope || 'browser-local',

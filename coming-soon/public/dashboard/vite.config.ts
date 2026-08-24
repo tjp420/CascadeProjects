@@ -13,7 +13,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
         '@services': path.resolve(__dirname, './js-es2018/services'),
-        '@views': path.resolve(__dirname, './js-es2018/views'),
         '@utils': path.resolve(__dirname, './js-es2018'),
       },
     },
@@ -24,7 +23,7 @@ export default defineConfig(({ mode }) => {
         input: 'src/main.tsx',
         output: {
           entryFileNames: '[name]-[hash].js',
-          chunkFileNames: '[name]-[hash].js',
+          chunkFileNames: 'v2-[name]-[hash].js',
           assetFileNames: '[name]-[hash].[ext]',
           manualChunks: {
             // Split heavy third-party dependencies so no single chunk exceeds ~500 KB

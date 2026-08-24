@@ -407,7 +407,7 @@ export function OutreachAnalyticsView() {
         </div>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-red-500">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={loadData}>
               <RefreshCw className="h-4 w-4" /> Retry
             </Button>

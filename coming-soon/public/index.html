@@ -1181,9 +1181,9 @@
             <p style="font-size:18px;max-width:620px;margin-left:auto;margin-right:auto;">SimpleBeacon catches the slop before it reaches production. It detects mock data in production, fake KPI logic, placeholder code, and unsafe sample paths in the editor, then blocks bad commits at the gate.</p>
 
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
-                <a href="/demo.html" class="btn btn-primary">Try the demo &rarr;</a>
+                <a href="#demo" class="btn btn-primary">See the demo &rarr;</a>
                 <a href="/pricing" class="btn btn-success">Start 14-Day Free Trial &rarr;</a>
-                <a href="/audit" class="btn btn-ghost">Book a walkthrough &rarr;</a>
+                <a href="#cta" class="btn btn-ghost">Book a walkthrough &rarr;</a>
             </div>
             <p style="font-size:13px;color:var(--text-muted);margin-top:0;margin-bottom:24px;">No credit card required &middot; Full Developer tier &middot; Cancel anytime</p>
 
@@ -1231,7 +1231,6 @@
                     <span class="feature-icon">🧪</span>
                     <h3>Broken code example</h3>
                     <p>AI-generated dashboard code reads from mock sample paths and invents KPI values at runtime. It looks plausible, but it is structurally unsafe.</p>
-                    <!-- simplebeacon-ignore: production-leak, mock-path-leak — intentional demo content showing what bad AI code looks like -->
                     <div style="margin-top:18px; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:14px; font-family: monospace; font-size:12px; color:#c9d1d9; line-height:1.7;">
                         const METRICS_DATA_PATH = './fixtures/sample-metrics.json';<br>
                         const USER_ANALYTICS_PATH = './mock/user-analytics-sample.json';<br>
@@ -1275,26 +1274,6 @@
                 </div>
             </div>
             <p style="text-align:center; font-size:14px; color:var(--text-muted);">Bad code does not reach the branch.</p>
-        </div>
-    </section>
-
-    <!-- VIDEO DEMO -->
-    <section class="section" style="padding: 60px 24px; background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
-        <div class="container">
-            <h2>See it in action.</h2>
-            <p class="section-subtitle">Watch SimpleBeacon catch real AI code debt in under 2 minutes.</p>
-            <div style="max-width:800px;margin:32px auto 0;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-                <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px 12px 0 0;">
-                    <iframe src="https://www.youtube.com/embed/t_YbhexyRpA" title="SimpleBeacon" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
-                </div>
-                <div style="padding:16px;">
-                    <h3 style="font-size:16px;margin:0 0 4px;">SimpleBeacon Demo</h3>
-                    <p style="font-size:13px;color:var(--text-muted);margin:0;">See how SimpleBeacon catches AI code debt — mock paths, fake KPIs, placeholder slop, and credential leaks.</p>
-                </div>
-            </div>
-            <div style="text-align:center;margin-top:28px;">
-                <a href="/demo.html" class="btn btn-primary">Try the interactive demo &rarr;</a>
-            </div>
         </div>
     </section>
 
@@ -1359,7 +1338,7 @@
             <p class="section-subtitle" style="margin-bottom: 28px;">SimpleBeacon catches the issues before they become expensive.</p>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
                 <a href="/audit" class="btn btn-primary">Book a demo &rarr;</a>
-                <a href="/pricing" class="btn btn-ghost">Start free &rarr;</a>
+                <a href="https://simplebeacon.ai" class="btn btn-ghost">Start free &rarr;</a>
             </div>
         </div>
     </section>
@@ -2011,6 +1990,5 @@ jobs:
     </footer>
 
   <script src="/js-es2018/referral-capture.js" defer></script>
-  <script src="/js/funnel-analytics.js"></script>
 </body>
 </html>

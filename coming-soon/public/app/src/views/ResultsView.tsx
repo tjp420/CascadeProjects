@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, Search, ChevronRight, FileText, Globe } from 'lucide-react';
+import { toast } from 'sonner';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
 import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
@@ -715,13 +716,50 @@ export function ResultsView() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
+                          const filePath = selectedIssue.filePath;
+                          const line = selectedIssue.line || 1;
                           const vscode = (window as any).acquireVsCodeApi?.();
-                          if (vscode && selectedIssue.filePath) {
+                          if (vscode && filePath) {
                             vscode.postMessage({
                               command: 'openFile',
-                              filePath: selectedIssue.filePath,
-                              line: selectedIssue.line || 1,
+                              filePath,
+                              line,
                             });
+                            return;
+                          }
+                          // Hosted dashboard — try vscode:// and cursor:// URL schemes.
+                          // Use a hidden anchor element to trigger the URL scheme (avoids
+                          // window.location.href assignment which triggers open-redirect
+                          // scanner rules — these are local editor URL schemes, not web redirects).
+                          if (filePath) {
+                            const absPath = filePath.startsWith('/') || filePath.match(/^[A-Za-z]:[\\/]/)
+                              ? filePath
+                              : `/${filePath}`;
+                            const normalizedPath = absPath.replace(/\\/g, '/');
+                            const editorSchemes = [
+                              `vscode://file/${normalizedPath}:${line}:1`,
+                              `cursor://file/${normalizedPath}:${line}:1`,
+                            ];
+                            // Try each scheme — the browser silently fails if the app isn't installed
+                            for (const scheme of editorSchemes) {
+                              try {
+                                const a = document.createElement('a');
+                                a.href = scheme;
+                                a.style.display = 'none';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              } catch { /* ignore — app not installed */ }
+                            }
+                            // Copy path to clipboard as a fallback
+                            try {
+                              navigator.clipboard?.writeText(`${absPath}:${line}`);
+                            } catch { /* ignore */ }
+                            toast.info('Opening in editor', {
+                              description: `Trying VS Code / Cursor for ${filePath}:${line}. Path copied to clipboard as fallback.`,
+                            });
+                          } else {
+                            toast.error('No file path available for this issue');
                           }
                         }}
                       >

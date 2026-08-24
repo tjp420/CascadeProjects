@@ -108,15 +108,26 @@ export function OpsReportView() {
         fetch(apiUrl('/ops-report/status'), { headers: authHeaders() }),
       ]);
 
-      const eventsData = await eventsResp.json();
-      const statsData = await statsResp.json();
-      const statusData = await statusResp.json();
+      // If all three endpoints fail, surface an error
+      if (!eventsResp.ok && !statsResp.ok && !statusResp.ok) {
+        if (eventsResp.status === 401 || eventsResp.status === 403) {
+          setError('Authentication required. Sign in to view operations data.');
+        } else {
+          setError(`Server returned ${eventsResp.status} / ${statsResp.status} / ${statusResp.status}`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      const eventsData = eventsResp.ok ? await eventsResp.json() : { success: false };
+      const statsData = statsResp.ok ? await statsResp.json() : { success: false };
+      const statusData = statusResp.ok ? await statusResp.json() : { success: false };
 
       if (eventsData.success) setEvents(eventsData.events || []);
       if (statsData.success) setStats(statsData.stats);
       if (statusData.success) setReportStatus(statusData);
     } catch {
-      setError('Failed to load operations data');
+      setError('Failed to load operations data. Check your connection to the server.');
     } finally {
       setLoading(false);
     }

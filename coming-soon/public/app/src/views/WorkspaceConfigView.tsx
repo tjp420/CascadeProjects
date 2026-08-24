@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { WorkspaceSandboxPanel } from '@/components/WorkspaceSandboxPanel';
 import { WorkspaceBudgetPanel } from '@/components/WorkspaceBudgetPanel';
-import { getApiBase } from '@/config';
+import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
 import { Briefcase } from 'lucide-react';
 
@@ -40,16 +40,6 @@ interface Budget {
   enabled: boolean;
   config: BudgetConfig;
   alerts: { type: string; crossedValue: number; pct: number; timestamp: string }[];
-}
-
-function apiUrl(path: string): string {
-  const base = getApiBase();
-  return `${base}/api${path}`;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function WorkspaceConfigView() {
