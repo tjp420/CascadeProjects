@@ -34,6 +34,15 @@ Limitations and safety
 - The crypto-backed replacement uses Node's `require('crypto')` inline IIFE and is therefore safe for Node-based projects but may not be appropriate for browser-only code. The CLI will only apply the fixes when the pattern matches; review diffs in dry-run mode.
 - Sensitive-data remediation is intentionally not auto-applied by deterministic codemods due to the risk of incorrectly removing secrets. The CLI provides guidance and can generate suggested patches that must be approved by a human.
 
+Suggestion APIs
+
+- The CLI exposes suggestion helpers that generate non-destructive diffs and remediation instructions for high-risk patterns that should not be auto-applied:
+  - Sensitive data (committed secrets): generates a redaction diff and an env var + rotation guidance.
+  - Hardcoded confidence values: suggests replacing numeric literals with a configurable threshold (env var).
+  - Fictional KPI placeholders: suggests removing or converting placeholders to runtime metrics.
+
+These suggestion APIs are used by the UI and by structured dry-run flows to present safe, human-reviewed remediation actions without automatically changing source control history.
+
 Extending the framework
 
 - Add a new fix function in `packages/simplebeacon-cli/src/lib/ast-remediator.js` and register it in the `FIX_REGISTRY` with the corresponding pattern ID.
