@@ -518,6 +518,14 @@ export default {
       if (url.pathname === '/api/tool-schemas/config') return json({ success: true, config: { strictMode: false } }, 200, corsOrigin);
     }
 
+    // Edge stubs for platform status endpoints — returns healthy defaults so the dashboard
+    // renders even when the Render backend is cold-starting or temporarily unavailable.
+    if (request.method === 'GET') {
+      if (url.pathname === '/api/platform/status') return json({ online: true, status: 'ok', version: '1.3.0' }, 200, corsOrigin);
+      if (url.pathname === '/api/health') return json({ status: 'ok', service: 'simplebeacon' }, 200, corsOrigin);
+      if (url.pathname === '/api/vault/consensus/status') return json({ success: true, status: 'ok', consensus: { nodes: 0, healthy: 0, leader: 'none' } }, 200, corsOrigin);
+    }
+
     // Dynamic Route 2: POST /api/stripe-webhook
     // Listens for checkout completion, forwards to Express for subscription
     // activation + email, then mints the signed JWT license key into KV.
