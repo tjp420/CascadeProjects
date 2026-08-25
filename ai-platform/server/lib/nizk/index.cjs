@@ -22,6 +22,7 @@ function generateProof({publicInputs = {}, secretInputs = {}, scheme = 'mock-sch
     const seq = store.nextSequence();
     meta.sequence = seq;
   }catch(e){
+    console.error('index.cjs error:', e);
     // defensive: if store sequencing is not available, leave sequence undefined
   }
 

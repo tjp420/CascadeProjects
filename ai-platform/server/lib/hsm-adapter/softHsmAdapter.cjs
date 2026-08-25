@@ -54,6 +54,7 @@ class SoftHsmAdapter {
             target = s; break;
           }
         } catch (e) {
+          console.error('softHsmAdapter.cjs error:', e);
           // ignore tokens we cannot access
         }
       }
@@ -146,7 +147,7 @@ class SoftHsmAdapter {
       const wrapped = this.pkcs11.C_WrapKey(this.session, mechanism, kekHandle, cekHandle, outBuf);
       return wrapped;
     } finally {
-      try { this.pkcs11.C_DestroyObject(this.session, cekHandle); } catch (e) {}
+      try { this.pkcs11.C_DestroyObject(this.session, cekHandle); } catch (e) { console.error('softHsmAdapter.cjs error:', e); }
       if (Buffer.isBuffer(cekBuffer)) cekBuffer.fill(0);
     }
   }
@@ -216,6 +217,7 @@ class SoftHsmAdapter {
         console.debug('HSM decrypt succeeded using CKM_AES_GCM variant:', usedVariant);
         return plain;
       } catch (err) {
+        console.error('softHsmAdapter.cjs error:', err);
         // Some bindings expect an output buffer argument; try that form.
         const outBuf = Buffer.alloc(fullCipher.length);
         const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, outBuf);
@@ -236,8 +238,8 @@ class SoftHsmAdapter {
   clearSensitiveData() {
     try {
       if (this.session) {
-        try { this.pkcs11.C_Logout(this.session); } catch (e) {}
-        try { this.pkcs11.C_CloseSession(this.session); } catch (e) {}
+        try { this.pkcs11.C_Logout(this.session); } catch (e) { console.error('softHsmAdapter.cjs error:', e); }
+        try { this.pkcs11.C_CloseSession(this.session); } catch (e) { console.error('softHsmAdapter.cjs error:', e); }
       }
     } finally {
       this.session = null; this.slot = null; this.initialized = false;
@@ -246,7 +248,7 @@ class SoftHsmAdapter {
 
   finalize() {
     this.clearSensitiveData();
-    try { if (this.pkcs11) this.pkcs11.C_Finalize(); } catch (e) {}
+    try { if (this.pkcs11) this.pkcs11.C_Finalize(); } catch (e) { console.error('softHsmAdapter.cjs error:', e); }
   }
 }
 

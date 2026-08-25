@@ -216,6 +216,7 @@ export function SecurityView() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
+      console.error('SecurityView.tsx error:', err);
       // ignore
     }
   }, [scanData, npmAudit, securityFindings, securitySeverityCounts]);

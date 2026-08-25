@@ -39,6 +39,7 @@ class ProofTamperAlert {
         this._map.set(k, (obj[k] || []).map((t) => Number(t)).filter(Boolean));
       }
     } catch (e) {
+      console.error('proof-tamper-alert.cjs error:', e);
       // ignore
     }
   }
@@ -50,6 +51,7 @@ class ProofTamperAlert {
       await fs.promises.mkdir(path.dirname(this._persistPath), { recursive: true });
       await fs.promises.writeFile(this._persistPath, JSON.stringify(out), { encoding: 'utf8' });
     } catch (e) {
+      console.error('proof-tamper-alert.cjs error:', e);
       // swallow
     }
   }
@@ -94,8 +96,8 @@ class ProofTamperAlert {
           severity,
           timestamp: new Date(now).toISOString(),
         };
-        try { auditLogger.log({ action: 'PROOF_TAMPER_ALERT', entity: 'partial_share_proof', entityId: payloadHash, metadata: { reason, count, window_hours: WINDOW_HOURS, severity } }); } catch (e) {}
-        try { siem.enqueue(event); } catch (e) {}
+        try { auditLogger.log({ action: 'PROOF_TAMPER_ALERT', entity: 'partial_share_proof', entityId: payloadHash, metadata: { reason, count, window_hours: WINDOW_HOURS, severity } }); } catch (e) { console.error('proof-tamper-alert.cjs error:', e); }
+        try { siem.enqueue(event); } catch (e) { console.error('proof-tamper-alert.cjs error:', e); }
         return { alerted: true, event, allowAudit };
       }
       // No alert emitted; indicate whether a PROOF_VERIFY_FAILED audit log is allowed

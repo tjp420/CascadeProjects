@@ -90,6 +90,7 @@ async function buildReportBundle(licenseToken, reportJson) {
         try {
             cloned = JSON.parse(JSON.stringify(srcReport));
         } catch (e) {
+            console.error('report-bundle-builder.cjs error:', e);
             // Fallback to safeStringify if JSON.stringify fails for any reason
             try { cloned = JSON.parse(safeStringify(srcReport, 2)); } catch (e2) { cloned = srcReport; }
         }

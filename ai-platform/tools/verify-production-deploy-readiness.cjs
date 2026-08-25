@@ -340,6 +340,7 @@ class ProductionDeployVerifier {
         this.results.passed.push('Tests passing');
       }
     } catch (error) {
+      console.error('verify-production-deploy-readiness.cjs error:', error);
       // Jest exits non-zero when any test fails, but the suite is still executable.
       // Verify infrastructure exists rather than requiring 100% pass rate here.
       const output = String(error.stdout || error.message || '');

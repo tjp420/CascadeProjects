@@ -94,6 +94,7 @@ function withHsmTimeout(promise, details) {
         clusterSync._recordEvent(clusterSync.EVENT_TYPES && clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR ? clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR : 'hsm_operation_error', null, { ...(details || {}), error: err.message });
       }
     } catch (e) {
+      console.error('hsm-vault.cjs error:', e);
       // best-effort
     }
     throw err;

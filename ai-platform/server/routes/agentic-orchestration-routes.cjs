@@ -153,6 +153,7 @@ async function checkAndReserveActiveSlot(orgId) {
       return { allowed: true, current: cnt };
     }
   } catch (e) {
+    console.error('agentic-orchestration-routes.cjs error:', e);
     // fallthrough to store-backed check
     logger.debug('Redis-backed quota check failed; falling back to store-backed check', { error: e.message, orgId });
   }
@@ -265,6 +266,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), replayDetectionMiddle
     }
     reserved = true;
   } catch (e) {
+    console.error('agentic-orchestration-routes.cjs error:', e);
     // on any error, fail-safe: allow execution to proceed
     logger.debug('quota enforcement failed; failing safe to allow execution', { error: e.message, orgId });
   }

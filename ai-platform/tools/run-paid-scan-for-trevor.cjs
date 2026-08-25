@@ -107,6 +107,7 @@ async function main() {
         { cwd: PLATFORM_ROOT, stdio: 'pipe', timeout: 300000 }
       );
     } catch (execErr) {
+      console.error('run-paid-scan-for-trevor.cjs error:', execErr);
       // Full scan may exit non-zero if issues found — check report exists
       if (!fs.existsSync(reportPath)) {
         throw execErr;

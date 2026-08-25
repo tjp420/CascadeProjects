@@ -220,6 +220,7 @@ function _postNotify(entry) {
             }
         }
         catch (err) {
+        console.error('notify.js error:', err);
         }
     })();
 }

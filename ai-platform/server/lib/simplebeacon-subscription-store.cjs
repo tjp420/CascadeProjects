@@ -190,6 +190,7 @@ async function _doWrite(store) {
     await fs.promises.writeFile(tmpPath, json, 'utf8');
     await fs.promises.rename(tmpPath, STORE_PATH);
   } catch (err) {
+    console.error('simplebeacon-subscription-store.cjs error:', err);
     // On Windows the target may be locked; fall back to direct overwrite
     if (err.code === 'EPERM') {
       await fs.promises.writeFile(STORE_PATH, json, 'utf8');

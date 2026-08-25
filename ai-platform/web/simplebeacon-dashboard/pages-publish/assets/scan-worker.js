@@ -337,6 +337,7 @@ async function scanFiles(files, deepScan, state = null) {
                     chunkAnalyzed += 1;
                 }
                 catch (err) {
+                    console.error('scan-worker.js error:', err);
                     // chunk analyzer failed or timed out - skip to avoid OOM
                     heavyVendor += 1;
                     processed++;

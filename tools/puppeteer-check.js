@@ -20,7 +20,7 @@ const puppeteer = require('puppeteer');
         try { const text = await res.text(); bodySnippet = text.slice(0,200); } catch (e) { bodySnippet = '<read-failed>'; }
       }
       out.responses.push({ url, status, headers: res.headers(), bodySnippet });
-    } catch (e) { }
+    } catch (e) { console.error('puppeteer-check.js error:', e); }
   });
 
   let navError = null;

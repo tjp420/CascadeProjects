@@ -96,6 +96,7 @@ class RedisStore {
       const resetTimeMs = Number(result[1]) || (now + windowMs);
       return { counter, resetTime: new Date(resetTimeMs) };
     } catch (err) {
+      console.error('redis-rate-limit-store.cjs error:', err);
       // Fail open — allow the request during Redis outage
       logger.warn('[RedisStore] increment failed, failing open:', err.message);
       return { counter: 0, resetTime: new Date(now + windowMs) };

@@ -118,6 +118,7 @@ async function finalizeRehydration(stagingDir, liveDir, manifest, metrics) {
         // cleanup backup
         fs.rmSync(backup, { recursive: true, force: true });
       } catch (err) {
+        console.error('reassembler.cjs error:', err);
         // attempt rollback
         if (!fs.existsSync(liveDir) && fs.existsSync(backup)) fs.renameSync(backup, liveDir);
         throw err;
@@ -128,10 +129,11 @@ async function finalizeRehydration(stagingDir, liveDir, manifest, metrics) {
 
     return { success: true };
   } catch (err) {
+    console.error('reassembler.cjs error:', err);
     // cleanup staging on failure where safe
     try {
       if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true, force: true });
-    } catch (e) {}
+    } catch (e) { console.error('reassembler.cjs error:', e); }
     if (metrics && typeof metrics.inc === 'function') {
       metrics.inc('hsm_shard_reassembly_attempts_total', 1, Object.assign({}, manifest && manifest.labels ? manifest.labels : {}, { outcome: 'failed' }));
     }

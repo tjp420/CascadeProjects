@@ -100,6 +100,7 @@ export function StreamInterdictionDashboard() {
       setStatus(data);
       fetchErrorRef.current = false;
     } catch (err) {
+      console.error('StreamInterdictionDashboard.tsx error:', err);
       // Non-fatal — dashboard degrades gracefully
       console.warn('[StreamInterdiction] fetch failed:', err);
       // Stop polling after first failure to avoid console spam on missing endpoints

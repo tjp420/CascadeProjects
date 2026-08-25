@@ -47,6 +47,7 @@ function unwrapLayer(buf, nodeKey) {
     // For PoC assume server placed tag separately; simpler: use AEAD with cipher.setAuthTag
     // Re-implement correct parsing: last 16 bytes of ct are tag
   } catch (e) {
+    console.error('crypto.cjs error:', e);
     // fallback: try explicit tag handling
   }
 
@@ -77,6 +78,7 @@ function unwrapLayer(buf, nodeKey) {
     dummyWork();
     return { ok: true, next: nextBuf.toString('utf8'), payload: pt };
   } catch (err) {
+    console.error('crypto.cjs error:', err);
     // on failure still run dummy work to keep timing similar
     dummyWork();
     return { ok: false };

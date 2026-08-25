@@ -639,7 +639,7 @@ export function freezeNamespace(obj, _seen = new WeakSet()) {
         try {
             Object.freeze(frozenMap);
         }
-        catch ( /* some engines can't freeze Maps */_a) { /* some engines can't freeze Maps */ }
+        catch ( /* some engines can't freeze Maps */_a) { console.error('utils.js error:', _a); /* some engines can't freeze Maps */ }
         return frozenMap;
     }
     if (ctor === Set) {
@@ -649,7 +649,7 @@ export function freezeNamespace(obj, _seen = new WeakSet()) {
         try {
             Object.freeze(frozenSet);
         }
-        catch ( /* some engines can't freeze Sets */_b) { /* some engines can't freeze Sets */ }
+        catch ( /* some engines can't freeze Sets */_b) { console.error('utils.js error:', _b); /* some engines can't freeze Sets */ }
         return frozenSet;
     }
     if (Array.isArray(obj)) {
@@ -660,7 +660,7 @@ export function freezeNamespace(obj, _seen = new WeakSet()) {
         try {
             Object.freeze(frozenArr);
         }
-        catch ( /* arrays are freezeable in standard engines */_c) { /* arrays are freezeable in standard engines */ }
+        catch ( /* arrays are freezeable in standard engines */_c) { console.error('utils.js error:', _c); /* arrays are freezeable in standard engines */ }
         return frozenArr;
     }
     const frozenObj = Object.create(Object.getPrototypeOf(obj) || Object.prototype);

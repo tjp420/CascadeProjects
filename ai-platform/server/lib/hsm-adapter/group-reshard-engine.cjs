@@ -22,6 +22,7 @@ try {
   _reshardCounter = new client.Counter({ name: 'hsm_reshard_ops_total', help: 'Total reshard operations' });
   _reshardLatency = new client.Histogram({ name: 'hsm_reshard_latency_seconds', help: 'Reshard latency seconds', buckets: [0.001, 0.01, 0.1, 1, 5] });
 } catch (e) {
+  console.error('group-reshard-engine.cjs error:', e);
   // prom-client not available; skip metrics
 }
 
@@ -88,6 +89,7 @@ class GroupReshardEngine {
         const rat = this._ratchet.evolveShare(token, epochId);
         s.value = rat.value;
       } catch (e) {
+        console.error('group-reshard-engine.cjs error:', e);
         // if ratcheting fails, emit audit and continue with unhashed share
         if (this._audit) this._audit('RESHARD_RATCHET_FAILED', { err: String(e) });
       }
@@ -95,7 +97,7 @@ class GroupReshardEngine {
     // Drop ratchet reference to release closure captures and allow GC
     try {
       this._ratchet = null;
-    } catch (e) {}
+    } catch (e) { console.error('group-reshard-engine.cjs error:', e); }
     if (_reshardCounter) _reshardCounter.inc(newShares.length);
     if (_reshardLatency && start) {
       const diff = process.hrtime(start);
@@ -264,7 +266,7 @@ function _computeLagrangeCoefficients(nodes, total) {
     // Overwrite intermediates to reduce heap residency window
     try {
       num = 0n; den = 0n; xi = 0n;
-    } catch (e) {}
+    } catch (e) { console.error('group-reshard-engine.cjs error:', e); }
   }
   return coeffs;
 }

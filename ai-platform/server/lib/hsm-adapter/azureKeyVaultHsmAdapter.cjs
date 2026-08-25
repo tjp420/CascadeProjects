@@ -335,6 +335,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         () => this._keyClient.rotateKey(oldKeyName)
       );
     } catch (err) {
+      console.error('azureKeyVaultHsmAdapter.cjs error:', err);
       // Rotation failure is non-fatal — the new KEK is already created
       this._log('warn', 'Old KEK rotation failed (non-fatal)', { oldKekId, error: err.message });
     }
@@ -398,6 +399,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       try {
         await this._keyClient.purgeDeletedKey(keyName);
       } catch (err) {
+        console.error('azureKeyVaultHsmAdapter.cjs error:', err);
         // Purge may fail if soft-delete is not configured; non-fatal
         this._log('warn', 'Purge of deleted key failed (non-fatal)', { kekId, error: err.message });
       }

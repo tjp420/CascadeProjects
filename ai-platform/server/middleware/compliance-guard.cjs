@@ -35,6 +35,7 @@ function enforceCompliancePolicy() {
                   metadata: { policyId: activePolicy.policyId, ruleId: rule.ruleId, remediation: rule.remediation }
                 });
               } catch (e) {
+                console.error('compliance-guard.cjs error:', e);
                 // swallow logging errors to avoid affecting request flow
                 console.warn('[policy-guard] auditLogger.log failed', e && e.message);
               }

@@ -62,6 +62,7 @@ try {
     // register as a named command: tokenBucketConsume(key, capacity, leak, now, consume, reserve)
     redisClient.defineCommand('tokenBucketConsume', { numberOfKeys: 1, lua: tokenBucketLua });
   } catch (err) {
+    console.error('admin-throttle.cjs error:', err);
     // best-effort: if defineCommand fails (older ioredis), we'll fall back to legacy EVAL usage at call-site
     logger.warn('Could not define named Redis command tokenBucketConsume; falling back to legacy EVAL usage', { error: err.message });
   }
@@ -193,6 +194,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
   try {
     lastKnown = await redisClient.hmget(bucketKey, 'tokens', 'lastUpdate');
   } catch (e) {
+    console.error('admin-throttle.cjs error:', e);
     // Could not reach Redis; ignore and let the eval attempt fail below.
     logger.debug('Redis hmget snapshot failed; proceeding with scripted consume', { error: e.message });
   }
@@ -229,6 +231,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
         return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
       }
     } catch (err) {
+      console.error('admin-throttle.cjs error:', err);
       // fall through to fallback below
       logger.debug('Redis tokenBucketConsume failed; trying legacy EVAL', { error: err.message });
     }
@@ -237,6 +240,7 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     const res = await redisClient.send_command('EVAL', [script, '1', bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens]);
     return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
     } catch (e) {
+    console.error('admin-throttle.cjs error:', e);
     // Temporarily disable Redis — the 'ready' event handler will
     // re-enable usingRedis when ioredis reconnects. This avoids a
     // permanent downgrade to in-memory from a single transient blip.
@@ -269,6 +273,7 @@ async function _drainFromRedis(bucketKey) {
     await redisClient.hmset(bucketKey, 'tokens', 0, 'lastUpdate', now);
     await redisClient.pexpire(bucketKey, KEY_TTL_MS);
   } catch (e) {
+    console.error('admin-throttle.cjs error:', e);
     // Temporary disable — 'ready' event will re-enable on reconnect.
     usingRedis = false;
     if (!_shuttingDown) logger.warn('Redis drain failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
@@ -422,6 +427,7 @@ module.exports = {
           if (typeof redisClient.quit === 'function') await redisClient.quit();
           else if (typeof redisClient.disconnect === 'function') await redisClient.disconnect();
         } catch (e) {
+          console.error('admin-throttle.cjs error:', e);
           // best-effort, ignore errors during shutdown
         }
       }

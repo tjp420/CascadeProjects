@@ -108,6 +108,7 @@ class VolatileEvictionEngine {
     try {
       await entry.zeroizeCallback(entry.kekId, reason);
     } catch (err) {
+      console.error('volatile-eviction-engine.cjs error:', err);
       // Eviction failures are logged by the adapter; do not stop the timer.
     }
   }

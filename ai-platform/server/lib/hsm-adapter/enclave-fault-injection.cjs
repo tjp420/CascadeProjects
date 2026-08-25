@@ -304,6 +304,7 @@ class EnclaveFaultInjection {
           });
           injected.push(result);
         } catch (e) {
+          console.error('enclave-fault-injection.cjs error:', e);
           // Skip if max concurrent reached
         }
       }

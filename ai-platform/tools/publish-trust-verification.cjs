@@ -51,6 +51,7 @@ function main() {
         // simplebeacon-ignore console-log — CLI tool output
         console.log(`[trust:publish] history ${result.history.historyPath} (${result.history.count} entries)`);
     } catch (error) {
+        console.error('publish-trust-verification.cjs error:', error);
         // simplebeacon-ignore console-log — CLI tool error output
         console.error('[trust:publish] Failed:', error.message);
         process.exit(1);

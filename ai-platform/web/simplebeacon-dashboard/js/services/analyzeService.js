@@ -47,6 +47,7 @@ function extractJsonFromHtml(html) {
     try {
       return JSON.parse(scriptMatch[1]);
     } catch (e) {
+      console.error('analyzeService.js error:', e);
       // fall through to other heuristics
     }
   }
@@ -57,6 +58,7 @@ function extractJsonFromHtml(html) {
     try {
       return JSON.parse(assignMatch[1]);
     } catch (e) {
+      console.error('analyzeService.js error:', e);
       // ignore
     }
   }
@@ -67,6 +69,7 @@ function extractJsonFromHtml(html) {
     try {
       return JSON.parse(looseMatch[1]);
     } catch (e) {
+      console.error('analyzeService.js error:', e);
       // give up
     }
   }
@@ -102,6 +105,7 @@ export function loadReportFromText(text) {
     const parsed = JSON.parse(text);
     return normalizeIncomingReport(parsed);
   } catch (e) {
+    console.error('analyzeService.js error:', e);
     // Try HTML extraction
     const extracted = extractJsonFromHtml(text);
     if (extracted) return normalizeIncomingReport(extracted);
@@ -1058,7 +1062,7 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
       const url = URL.createObjectURL(blob);
       previewWindow.location.href = url;
       previewWindow.addEventListener('load', () => {
-        try { URL.revokeObjectURL(url); } catch (e) { }
+        try { URL.revokeObjectURL(url); } catch (e) { console.error('analyzeService.js error:', e); }
       }, { once: true });
       previewWindow.focus();
       return { mode: 'html-download', filename: savedAs, preview: true };

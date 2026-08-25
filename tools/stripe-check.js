@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const page = await context.newPage();
 
   page.on('console', msg => {
-    try { out.console.push({ type: msg.type(), text: msg.text() }); } catch (e) { }
+    try { out.console.push({ type: msg.type(), text: msg.text() }); } catch (e) { console.error('stripe-check.js error:', e); }
   });
   page.on('requestfailed', req => {
     const f = req.failure ? req.failure() : null;
@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
       try { if (ct && ct.indexOf('application/json') >= 0) { body = await res.text(); if (body && body.length>10000) body = body.slice(0,10000)+'...'; } }
       catch (e) { body = '<body-read-failed>'; }
       out.responses.push({ url: res.url(), status, headers, bodySnippet: typeof body === 'string' ? body.slice(0,200) : '' });
-    } catch (e) { }
+    } catch (e) { console.error('stripe-check.js error:', e); }
   });
 
   // Navigate and wait for network to be idle or 30s timeout

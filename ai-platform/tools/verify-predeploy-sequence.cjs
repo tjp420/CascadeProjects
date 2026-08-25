@@ -77,6 +77,7 @@ class PreDeployGate {
       this.log('npm audit passed (no high/critical vulnerabilities)', 'success');
       this.results.passed.push('npm audit clean');
     } catch (error) {
+      console.error('verify-predeploy-sequence.cjs error:', error);
       // npm audit exits non-zero when vulnerabilities found
       this.log('npm audit found high/critical vulnerabilities', 'error');
       this.results.failed.push('npm audit: vulnerabilities found');

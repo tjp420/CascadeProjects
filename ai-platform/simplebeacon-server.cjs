@@ -183,6 +183,7 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Max-Age', '86400');
     }
   } catch (e) {
+    console.error('simplebeacon-server.cjs error:', e);
     // ignore
   }
   return res.status(204).end();
@@ -202,6 +203,7 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Headers', toSet);
     }
   } catch (e) {
+    console.error('simplebeacon-server.cjs error:', e);
     // ignore header-setting errors
   }
   next();
@@ -554,6 +556,7 @@ async function redirectPublicToLanding(req, res) {
   try {
     await new Promise((resolve) => optionalAuthenticate(req, res, resolve));
   } catch (e) {
+    console.error('simplebeacon-server.cjs error:', e);
     // ignore optional auth failures; req.user will be unset
   }
 
@@ -1027,7 +1030,7 @@ app.use((req, res, next) => {
       if (typeof body === 'string' && /text\/(html|xhtml)/i.test(ct)) {
         body = stripBeaconSRI(body);
       }
-    } catch (e) { /* fallthrough to original send */ }
+    } catch (e) { console.error('simplebeacon-server.cjs error:', e); /* fallthrough to original send */ }
     return origSend(body);
   };
 
@@ -1050,6 +1053,7 @@ app.use((req, res, next) => {
         return;
       }
     } catch (e) {
+      console.error('simplebeacon-server.cjs error:', e);
       // ignore and fall through to original
     }
     return origSendFile(filePath, options, callback);
@@ -1149,6 +1153,7 @@ app.use(async (req, res, next) => {
   try {
     await new Promise((resolve) => optionalAuthenticate(req, res, resolve));
   } catch (e) {
+    console.error('simplebeacon-server.cjs error:', e);
     // ignore optional auth failures; req.user will be unset
   }
 

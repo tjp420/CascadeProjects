@@ -15,5 +15,5 @@
             body: JSON.stringify({ ref: ref, channel: 'web' })
         }).catch(function () { });
     }
-    catch (_) { }
+    catch (_) { console.error('referral-capture.js error:', _); }
 })();

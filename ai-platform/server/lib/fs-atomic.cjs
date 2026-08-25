@@ -30,8 +30,9 @@ function writeAtomicSync(finalPath, data, options = {}) {
   try {
     fs.renameSync(tmp, finalPath);
   } catch (err) {
+    console.error('fs-atomic.cjs error:', err);
     // If rename fails, attempt to cleanup temp and rethrow
-    try { fs.unlinkSync(tmp); } catch (e) {}
+    try { fs.unlinkSync(tmp); } catch (e) { console.error('fs-atomic.cjs error:', e); }
     throw err;
   }
 }

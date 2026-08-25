@@ -158,6 +158,7 @@ describe('stripe-webhook-routes', () => {
       try {
         router(req, res, next);
       } catch (e) {
+        console.error('stripe-webhook-routes.test.cjs error:', e);
         // Express may throw if middleware setup fails
         resolve();
       }

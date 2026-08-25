@@ -94,6 +94,7 @@ class EnclaveStateManager {
         }
         fs.closeSync(fd);
       } catch (e) {
+        console.error('enclave-state-manager.cjs error:', e);
         // best-effort
       }
       fs.unlinkSync(p);
@@ -113,12 +114,13 @@ class EnclaveStateManager {
       const entryId = f; // filename as unique entry id
 
       // WAL append prior to modifications (pending)
-      try { this.wal.append({ id: entryId, path: p, status: 'pending' }); } catch (e) { /* best-effort */ }
+      try { this.wal.append({ id: entryId, path: p, status: 'pending' }); } catch (e) { console.error('enclave-state-manager.cjs error:', e); /* best-effort */ }
 
       try {
         await this._reencryptStateFileByPath(p, newWrapFn);
-        try { this.wal.markApplied(entryId); } catch (e) { /* best-effort */ }
+        try { this.wal.markApplied(entryId); } catch (e) { console.error('enclave-state-manager.cjs error:', e); /* best-effort */ }
       } catch (err) {
+        console.error('enclave-state-manager.cjs error:', err);
         // leave WAL entry as pending so recovery can resume
         console.error(`[MIGRATION ERROR] Failed on chunk ${entryId}:`, err && err.message ? err.message : err);
         throw err;
@@ -126,7 +128,7 @@ class EnclaveStateManager {
     }
 
     // compact WAL after successful rotation
-    try { this.wal.checkpoint(); } catch (e) { /* best-effort */ }
+    try { this.wal.checkpoint(); } catch (e) { console.error('enclave-state-manager.cjs error:', e); /* best-effort */ }
     return { rotated: true };
   }
 
@@ -150,7 +152,7 @@ class EnclaveStateManager {
     fs.renameSync(tmp, p);
 
     // zeroize plaintext dataKey
-    try { dataKey.fill(0); } catch (e) {}
+    try { dataKey.fill(0); } catch (e) { console.error('enclave-state-manager.cjs error:', e); }
   }
 
   /**
@@ -172,7 +174,7 @@ class EnclaveStateManager {
       }
     }
 
-    try { this.wal.checkpoint(); } catch (e) {}
+    try { this.wal.checkpoint(); } catch (e) { console.error('enclave-state-manager.cjs error:', e); }
   }
 
 }

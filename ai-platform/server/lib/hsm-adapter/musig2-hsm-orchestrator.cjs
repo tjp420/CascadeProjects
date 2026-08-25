@@ -620,6 +620,7 @@ class Musig2HsmOrchestrator {
       try {
         this._audit(event, info);
       } catch (e) {
+        console.error('musig2-hsm-orchestrator.cjs error:', e);
         // Audit callback failures must not disrupt the orchestrator
       }
     }

@@ -228,7 +228,7 @@ export async function runSimpleBeaconAudit(targetWorkspace) {
                                     try {
                                         const resolvedImportPath = path.resolve(path.dirname(fullPath), relativeImport);
                                         engine.registerDependency(fullPath, resolvedImportPath);
-                                    } catch (e) {}
+                                    } catch (e) { console.error('SimpleBeaconPoC.mjs error:', e); }
                                 }
                             });
                         }
@@ -237,6 +237,7 @@ export async function runSimpleBeaconAudit(targetWorkspace) {
                         complianceEvaluator.evaluateFileAST(fullPath, ast, content);
 
                     } catch (err) {
+                        console.error('SimpleBeaconPoC.mjs error:', err);
                         // Structural or parsing error containment
                     }
                 }
@@ -266,7 +267,7 @@ export async function runSimpleBeaconAudit(targetWorkspace) {
             const patchPath = `${finding.filePath}.patch-fix`;
             try {
                 fs.writeFileSync(patchPath, finding.suggestedPatchFileContent);
-            } catch (e) {}
+            } catch (e) { console.error('SimpleBeaconPoC.mjs error:', e); }
         }
     });
 

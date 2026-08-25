@@ -44,6 +44,7 @@ router.post('/register', async (req, res) => {
       const { processReferralSignup } = require('../../../coming-soon/lib/referral-webhook.cjs');
       processReferralSignup(req, result.user.email);
     } catch (referralErr) {
+      console.error('auth.cjs error:', referralErr);
       // Non-blocking — signup succeeds even if referral cookie is absent
     }
     const token = tokenServiceGenerateToken(result.user);

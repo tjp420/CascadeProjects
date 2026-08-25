@@ -186,6 +186,7 @@ const writeToFile = async (entry) => {
         await rotateLogFile();
       }
     } catch (error) {
+      console.error('audit.cjs error:', error);
       // File doesn't exist, will be created
     }
     
@@ -211,6 +212,7 @@ const rotateLogFile = async () => {
       try {
         await fs.rename(oldFile, newFile);
       } catch (error) {
+        console.error('audit.cjs error:', error);
         // File doesn't exist, continue
       }
     }

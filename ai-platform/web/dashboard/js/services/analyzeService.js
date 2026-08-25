@@ -951,7 +951,7 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
       const url = URL.createObjectURL(blob);
       previewWindow.location.href = url;
       previewWindow.addEventListener('load', () => {
-        try { URL.revokeObjectURL(url); } catch (e) { }
+        try { URL.revokeObjectURL(url); } catch (e) { console.error('analyzeService.js error:', e); }
       }, { once: true });
       previewWindow.focus();
       return { mode: 'html-download', filename: savedAs, preview: true };

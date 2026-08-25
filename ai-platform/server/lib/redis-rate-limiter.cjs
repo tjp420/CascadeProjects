@@ -75,9 +75,11 @@ try {
       `;
       redisClient.defineCommand('agenticRateLimit', { numberOfKeys: 1, lua });
     } catch (err) {
+      console.error('redis-rate-limiter.cjs error:', err);
       // best-effort
     }
 } catch (e) {
+  console.error('redis-rate-limiter.cjs error:', e);
   // ioredis not installed or connection failed; fall back
   usingRedis = false;
 }
@@ -220,6 +222,7 @@ module.exports = {
         try { await redisClient.quit(); } catch (e) { try { redisClient.disconnect(); } catch (__) {} }
       }
     } catch (e) {
+      console.error('redis-rate-limiter.cjs error:', e);
       // ignore
     }
     inMemoryWindows.clear();

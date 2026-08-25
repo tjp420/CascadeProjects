@@ -92,7 +92,7 @@ class SessionStore {
     const rec = this._store.get(sessionId);
     if (rec) {
       const p = recordPath(rec.tenantId || 'default', sessionId);
-      try { fs.unlinkSync(p); } catch (e) {}
+      try { fs.unlinkSync(p); } catch (e) { console.error('session-store.cjs error:', e); }
     }
     return this._store.delete(sessionId);
   }
@@ -141,6 +141,7 @@ class SessionStore {
       out.updatedAt = out.updatedAt || Date.now();
       fs.writeFileSync(p, JSON.stringify(out, null, 2), { mode: 0o600 });
     } catch (e) {
+      console.error('session-store.cjs error:', e);
       // ignore write failures for now
     }
   }
@@ -163,6 +164,7 @@ class SessionStore {
         rec.remotePublicKeyDer = rpub;
       }
     } catch (e) {
+      console.error('session-store.cjs error:', e);
       // corrupted reconstruction — return raw stored
     }
     return rec;

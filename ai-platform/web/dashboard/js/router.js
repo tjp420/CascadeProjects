@@ -147,7 +147,7 @@ export class Router {
       if (window.parent && window.parent !== window) {
         try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
       }
-    } catch (e) { /* webview may restrict this */ }
+    } catch (e) { console.error('router.js error:', e); /* webview may restrict this */ }
   }
 
   navigate(view, params = {}) {

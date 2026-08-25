@@ -99,7 +99,7 @@ class EphemeralShareRatchet {
       else if (Buffer.isBuffer(shareToken.value)) shareToken.value.fill(0);
       else if (typeof shareToken.value === 'number') shareToken.value = 0;
       else shareToken.value = null;
-    } catch (e) {}
+    } catch (e) { console.error('ephemeral-share-ratchet.cjs error:', e); }
 
     // zeroize temporary buffers immediately
     try {
@@ -108,7 +108,7 @@ class EphemeralShareRatchet {
       if (Buffer.isBuffer(info)) info.fill(0);
       // overwrite maskBig local binding
       maskBig = 0n;
-    } catch (e) {}
+    } catch (e) { console.error('ephemeral-share-ratchet.cjs error:', e); }
 
     return { nodeIndex: shareToken.nodeIndex, sequence: shareToken.sequence + 1, value: newValue, ratchet: { derivedAt: Date.now(), epoch: destinationEpochId } };
   }

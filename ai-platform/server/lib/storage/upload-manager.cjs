@@ -83,7 +83,7 @@ class UploadManager {
   _writeMeta(dir, meta) {
     try {
       fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify(meta));
-    } catch (e) {}
+    } catch (e) { console.error('upload-manager.cjs error:', e); }
   }
 
   async writeChunkFromStream(sessionId, offset, stream) {
@@ -202,6 +202,7 @@ class UploadManager {
       const newMeta = Object.assign({}, meta, { committed: true, committedAt: Date.now(), root: rootHex });
       fs.writeFileSync(path.join(dest, 'meta.json'), JSON.stringify(newMeta));
     } catch (e) {
+      console.error('upload-manager.cjs error:', e);
       // fallback: mark committed in place
       meta.committed = true;
       meta.committedAt = Date.now();

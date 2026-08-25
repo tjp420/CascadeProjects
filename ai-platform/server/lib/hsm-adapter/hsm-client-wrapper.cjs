@@ -20,6 +20,7 @@ try {
     labelNames: ['operation']
   });
 } catch (e) {
+  console.error('hsm-client-wrapper.cjs error:', e);
   // best-effort: prom-client may not be present in lightweight test runs
 }
 
@@ -54,6 +55,7 @@ class HsmClientWrapper {
         module.exports.__registerInstance(this);
       }
     } catch (e) {
+      console.error('hsm-client-wrapper.cjs error:', e);
       // ignore
     }
 
@@ -65,7 +67,7 @@ class HsmClientWrapper {
     this._evaluateStateTransition();
 
     if (this.state === 'OPEN') {
-      if (failureCounter) try { failureCounter.labels(operation).inc(); } catch (e) {}
+      if (failureCounter) try { failureCounter.labels(operation).inc(); } catch (e) { console.error('hsm-client-wrapper.cjs error:', e); }
       throw new HsmCircuitBreakerError('Hardware communication is isolated due to preceding failures.');
     }
 
@@ -92,7 +94,7 @@ class HsmClientWrapper {
   }
 
   _onSuccess(operation) {
-    if (successCounter) try { successCounter.labels(operation).inc(); } catch (e) {}
+    if (successCounter) try { successCounter.labels(operation).inc(); } catch (e) { console.error('hsm-client-wrapper.cjs error:', e); }
     if (this.state === 'HALF-OPEN') {
       this.state = 'CLOSED';
       this.failureCount = 0;
@@ -107,7 +109,7 @@ class HsmClientWrapper {
   }
 
   _onFailure(operation, err) {
-    if (failureCounter) try { failureCounter.labels(operation).inc(); } catch (e) {}
+    if (failureCounter) try { failureCounter.labels(operation).inc(); } catch (e) { console.error('hsm-client-wrapper.cjs error:', e); }
     this.failureCount++;
 
     const shouldOpen = this.state === 'HALF-OPEN' || this.failureCount >= this.threshold;
@@ -126,7 +128,7 @@ class HsmClientWrapper {
   }
 
   _updateMetricsGauge(value) {
-    if (clientGauge) try { clientGauge.labels(this.componentName).set(value); } catch (e) {}
+    if (clientGauge) try { clientGauge.labels(this.componentName).set(value); } catch (e) { console.error('hsm-client-wrapper.cjs error:', e); }
   }
 
   // Operator manual overrides

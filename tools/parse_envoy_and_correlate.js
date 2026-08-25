@@ -109,6 +109,7 @@ function tryExtractField(obj, candidates) {
     try {
       obj = JSON.parse(tline);
     } catch (err) {
+      console.error('parse_envoy_and_correlate.js error:', err);
       // skip non-json
       continue;
     }

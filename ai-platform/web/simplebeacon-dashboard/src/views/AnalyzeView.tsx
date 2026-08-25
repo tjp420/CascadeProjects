@@ -316,6 +316,7 @@ export function AnalyzeView() {
             try {
               await setLargeItem('sb_last_scan_report', report);
             } catch (e) {
+              console.error('AnalyzeView.tsx error:', e);
               // best-effort write — fall through
             }
             try { localStorage.setItem('sb_last_scan_report_storage', 'indexeddb'); } catch (_e) { /* ignore */ }
@@ -760,6 +761,7 @@ export function AnalyzeView() {
         } catch (_e) { /* ignore */ }
       }
     } catch (e) {
+      console.error('AnalyzeView.tsx error:', e);
       // Swallow errors — logging best-effort only
       console.debug('[SimpleBeacon] Failed to POST browser error', e);
       try {

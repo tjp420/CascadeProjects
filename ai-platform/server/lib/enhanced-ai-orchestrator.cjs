@@ -243,6 +243,7 @@ async function performAIAnalysis(content, context, model, options) {
             totalInputTokens += result.tokens?.input || 0;
             totalOutputTokens += result.tokens?.output || 0;
         } catch (error) {
+            console.error('enhanced-ai-orchestrator.cjs error:', error);
             // If a chunk fails, record the error but continue with remaining chunks
             logger.warn(`[Enhanced Orchestrator] Chunk ${i + 1}/${totalChunks} failed: ${error.message}`);
             chunkResults.push({

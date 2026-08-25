@@ -43,6 +43,7 @@ try {
     mo.observe(document.documentElement || document.body, { childList: true, subtree: true, attributes: true });
   }
 } catch (e) {
+  console.error('main.tsx error:', e);
   // best-effort only
 }
 
@@ -65,6 +66,7 @@ if (rootEl) {
             clearAuthAndRedirect();
           }
         } catch (e) {
+          console.error('main.tsx error:', e);
           // ignore
         }
         return resp;

@@ -61,6 +61,7 @@ async function handlePhase2Login(req, res, next) {
             const demoUsers = loadDemoUsers();
             demoUserFound = demoUsers.some(u => u.email && u.email.toLowerCase() === String(email).toLowerCase());
         } catch (e) {
+            console.error('phase2-auth-handlers.cjs error:', e);
             // ignore demo file read errors
         }
         logger.warn(`[Phase2Login] failed for ${email} - demoUserFound: ${demoUserFound}`);

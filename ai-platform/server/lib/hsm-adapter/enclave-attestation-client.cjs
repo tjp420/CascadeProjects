@@ -91,10 +91,10 @@ class EnclaveAttestationClient {
   clearCache() {
     this._cache.clear();
     // Also clear transient verified state so a cache-clear truly resets verification
-    try { this._verifiedMrenclaves = new Set(); } catch (e) {}
-    try { this._verifiedIds = new Set(); } catch (e) {}
-    try { this._issuedTokens = new Map(); } catch (e) {}
-    try { this._seenNonces = new Map(); } catch (e) {}
+    try { this._verifiedMrenclaves = new Set(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
+    try { this._verifiedIds = new Set(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
+    try { this._issuedTokens = new Map(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
+    try { this._seenNonces = new Map(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
   }
 
   _verifySignature(attestation) {

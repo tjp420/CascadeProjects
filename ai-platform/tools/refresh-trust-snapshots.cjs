@@ -37,6 +37,7 @@ function main() {
         // simplebeacon-ignore console-log — CLI tool output
         process.stdout.write(['[trust:refresh] Trust snapshots refreshed'].join(" ") + "\n");
     } catch (error) {
+        console.error('refresh-trust-snapshots.cjs error:', error);
         // simplebeacon-ignore console-log — CLI tool error output
         process.stderr.write(['[trust:refresh] Failed:', error.message].join(" ") + "\n");
         process.exit(1);

@@ -25,6 +25,7 @@ function collectSampleFilePaths(rootDir, limit = 5000) {
         }
       }
     } catch (e) {
+      console.error('experimental-pool.js error:', e);
       // ignore permission errors
     }
   }

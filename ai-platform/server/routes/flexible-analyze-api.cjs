@@ -2277,7 +2277,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                                 drives.push({ name: `${letter}:\\`, path: drive });
                             }
                         }
-                        catch (e) { /* skip inaccessible drives */ }
+                        catch (e) { console.error('flexible-analyze-api.cjs error:', e); /* skip inaccessible drives */ }
                     }
                     if (drives.length > 0) {
                         return res.json({ success: true, current: '', parent: null, directories: drives });
@@ -2298,6 +2298,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 targetPath = assertSafeProjectPath(candidate, allowedRoots, 'path');
             } catch (e) {
+                console.error('flexible-analyze-api.cjs error:', e);
                 // Directory browsers may walk above allowed roots; allow listing ancestors
                 // so the user can still navigate down into an allowed project directory.
                 if (!isPathAncestorOfRoots(candidate, allowedRoots)) {

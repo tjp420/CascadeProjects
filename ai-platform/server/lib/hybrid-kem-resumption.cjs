@@ -235,6 +235,7 @@ async function createRedisBloomFilter(redis) {
       },
     };
   } catch (err) {
+    console.error('hybrid-kem-resumption.cjs error:', err);
     // Fallback to plain Redis Set semantics
     return {
       type: 'set',
@@ -253,6 +254,7 @@ async function createRedisBloomFilter(redis) {
           const res = await sendCmd(['SISMEMBER', key, member]);
           return res === 1 || res === true;
         } catch (e) {
+          console.error('hybrid-kem-resumption.cjs error:', e);
           // fall through to raw RESP fallback below
         }
         // Fallback: attempt a raw TCP RESP call to local Redis instance
@@ -274,6 +276,7 @@ async function createRedisBloomFilter(redis) {
           try {
             await sendCmd(['SADD', key, member]);
           } catch (e) {
+            console.error('hybrid-kem-resumption.cjs error:', e);
             // Fallback to raw TCP RESP SADD
             try {
               await rawRedisIntegerCommand('127.0.0.1', 6379, ['SADD', key, member]);
@@ -288,7 +291,7 @@ async function createRedisBloomFilter(redis) {
           } else if (typeof redis.pexpire === 'function') {
             await redis.pexpire(key, ttlMs);
           } else {
-            try { await sendCmd(['PEXPIRE', key, String(ttlMs)]); } catch (e) { /* best-effort */ }
+            try { await sendCmd(['PEXPIRE', key, String(ttlMs)]); } catch (e) { console.error('hybrid-kem-resumption.cjs error:', e); /* best-effort */ }
           }
         }
       },

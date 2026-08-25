@@ -45,7 +45,7 @@ async function retryWithTimeout(operation, options = {}) {
       const sleepTime = Math.max(0, rawDelay + jitterOffset);
 
       // best-effort log
-      try { console.warn(`[RETRY SYSTEM] Attempt ${attempt} failed: ${error && error.message}. Retrying in ${Math.round(sleepTime)}ms...`); } catch (e) {}
+      try { console.warn(`[RETRY SYSTEM] Attempt ${attempt} failed: ${error && error.message}. Retrying in ${Math.round(sleepTime)}ms...`); } catch (e) { console.error('retry-with-timeout.cjs error:', e); }
       await new Promise(resolve => setTimeout(resolve, sleepTime));
     }
   }

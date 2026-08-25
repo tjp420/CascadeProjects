@@ -72,6 +72,7 @@ if (typeof window !== 'undefined') {
 				}
 			})();
 		} catch (e) {
+			console.error('config.js error:', e);
 			// ignore
 		}
 	})();

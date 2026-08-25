@@ -27,6 +27,7 @@ function runOptimizedBenchmark(filePaths) {
           process.stdout.write(`⏳ Scan Progression: ${currentProgress} / ${filePaths.length} files parsed...\r`);
         }
       } catch (e) {
+        console.error('optimized-pool.js error:', e);
         // ignore sampling errors
       }
     }, 100);
@@ -100,10 +101,12 @@ function walkSync(dir, fileList = []) {
           fileList.push(filePath);
         }
       } catch (e) {
+        console.error('optimized-pool.js error:', e);
         // skip unreadable entries
       }
     }
   } catch (e) {
+    console.error('optimized-pool.js error:', e);
     // directory may not exist or be unreadable
   }
   return fileList;

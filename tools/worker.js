@@ -6,6 +6,7 @@ function safeReadFileSync(p) {
   try {
     return fs.readFileSync(p, 'utf8');
   } catch (err) {
+    console.error('worker.js error:', err);
     // Return null on read errors (permission, EMFILE, etc.)
     return null;
   }

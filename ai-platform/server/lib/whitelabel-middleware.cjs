@@ -107,6 +107,7 @@ function whitelabelMiddleware(req, res, next) {
       req.brand = wlStore.DEFAULT_BRAND;
     }
   } catch (err) {
+    console.error('whitelabel-middleware.cjs error:', err);
     // Never block the request due to whitelabel resolution failure
     logger.error('[Whitelabel] Middleware error:', err.message);
     req.whitelabelPartner = null;

@@ -624,6 +624,7 @@ async function analyzeFile(filePath, _user) {
             content = await readTextFileWithLimit(filePath, 256 * 1024); // 256 KB limit
             content = redactTextSecrets(content);
         } catch (err) {
+            console.error('upload.cjs error:', err);
             // fall back to safe empty content on read error
             content = '';
         }

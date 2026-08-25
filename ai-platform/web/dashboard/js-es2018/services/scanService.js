@@ -376,6 +376,7 @@ export class ScanService {
             return data;
         }
         catch (err) {
+            console.error('scanService.js error:', err);
             // If the network layer signalled an auth requirement, return a predictable
             // object so the UI can render a helpful action card instead of failing.
             if (err && typeof err === 'object' && err.code === 'auth_required') {

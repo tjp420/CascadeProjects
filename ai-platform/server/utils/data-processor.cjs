@@ -53,6 +53,7 @@ function wipeDirectorySync(dirPath) {
             fs.rmSync(dirPath, { recursive: true, force: true });
         }
     } catch (syncErr) {
+        console.error('data-processor.cjs error:', syncErr);
         // Best-effort async fallback
         fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {});
     }

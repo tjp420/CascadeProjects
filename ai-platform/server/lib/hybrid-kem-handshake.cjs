@@ -600,6 +600,7 @@ class HybridSession {
     try {
       this.socket.destroy();
     } catch (e) {
+      console.error('hybrid-kem-handshake.cjs error:', e);
       // ignore
     }
   }
@@ -661,6 +662,7 @@ async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
       nodeId: result.nodeId,
     };
   } catch (err) {
+    console.error('hybrid-kem-handshake.cjs error:', err);
     // Bloom-filter / Redis failure: fail closed and force a full handshake
     _sendMessage(socket, { type: 'RESUME_REJECT', reason: 'BLOOM_FILTER_ERROR' });
     return { resumed: false, reason: 'BLOOM_FILTER_ERROR' };

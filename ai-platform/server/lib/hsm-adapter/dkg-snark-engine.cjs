@@ -366,6 +366,7 @@ class DkgSnarkEngine {
     try {
       this.validateContributionForPersistence(contribution);
     } catch (e) {
+      console.error('dkg-snark-engine.cjs error:', e);
       // If audit hook configured, emit a DKG_PERSISTENCE_REJECT entry
       if (this._auditOnReject && this._auditHook) {
         try {

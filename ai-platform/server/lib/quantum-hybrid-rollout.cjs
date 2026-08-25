@@ -195,6 +195,7 @@ function checkRollback(metrics, config) {
         _clusterSync.tripCanaryCircuit(hard);
       }
     } catch (e) {
+      console.error('quantum-hybrid-rollout.cjs error:', e);
       // swallow telemetry errors — rollback decision must not fail
     }
   }

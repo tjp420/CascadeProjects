@@ -291,6 +291,7 @@ class EnclaveKeyRotationEngine {
           const result = this.rotateKey(enclaveId);
           rotations.push(result);
         } catch (e) {
+          console.error('enclave-key-rotation-heartbeat.cjs error:', e);
           // Skip if rotation fails (e.g. quarantined)
           if (typeof this._audit === 'function') {
             this._audit('ROTATION_SKIPPED', { enclaveId, reason: e.message });

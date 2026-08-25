@@ -407,6 +407,7 @@ class DLPDashboard {
                 ));
                 renderViolations(data);
             } catch (err) {
+                console.error('dlp-dashboard.cjs error:', err);
                 // refresh errors are intentionally silent in the UI
             }
         }

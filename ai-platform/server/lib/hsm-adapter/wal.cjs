@@ -10,7 +10,7 @@ class MigrationWAL {
   constructor(walPath) {
     this.walPath = String(walPath || path.join(process.cwd(), '.enclave-wal'));
     // ensure directory exists
-    try { fs.mkdirSync(path.dirname(this.walPath), { recursive: true }); } catch (e) {}
+    try { fs.mkdirSync(path.dirname(this.walPath), { recursive: true }); } catch (e) { console.error('wal.cjs error:', e); }
     // ensure file exists
     if (!fs.existsSync(this.walPath)) fs.writeFileSync(this.walPath, '', 'utf8');
   }

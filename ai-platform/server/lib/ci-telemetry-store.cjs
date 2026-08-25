@@ -83,7 +83,7 @@ function writeStore(store) {
     // Fall back to a direct write to ensure tests relying on the file do not fail.
     try {
       fs.writeFileSync(STORE_PATH, content, 'utf8');
-      try { fs.unlinkSync(tmp); } catch (e2) { /* best-effort cleanup of tmp */ }
+      try { fs.unlinkSync(tmp); } catch (e2) { console.error('ci-telemetry-store.cjs error:', e2); /* best-effort cleanup of tmp */ }
     } catch (e2) {
       console.error('[ci-telemetry] fallback write failed:', e2 && e2.message);
       // If fallback also fails, rethrow the original error for visibility.
@@ -111,7 +111,7 @@ function writeStore(store) {
         sleep(50);
         try {
           fs.writeFileSync(STORE_PATH, content, 'utf8');
-        } catch (e) { /* best-effort retry within visibility loop */ }
+        } catch (e) { console.error('ci-telemetry-store.cjs error:', e); /* best-effort retry within visibility loop */ }
       }
     }
   } catch (e) {

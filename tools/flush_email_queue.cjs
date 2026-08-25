@@ -79,6 +79,7 @@ async function flush() {
       try {
         await fs.rename(filePath, sendingPath);
       } catch (renameErr) {
+        console.error('flush_email_queue.cjs error:', renameErr);
         // If rename fails because file was removed, skip
         console.warn('Warning: failed to rename queued file, skipping:', filePath, String(renameErr));
         continue;
@@ -104,6 +105,7 @@ async function flush() {
             try { await fs.unlink(sendingPath); } catch (e) { /* ignore */ console.warn('[flush_email_queue] swallowed error:', e); }
             console.log('Rewrote original queued file after provider queued it:', filePath);
           } catch (writeErr) {
+            console.error('flush_email_queue.cjs error:', writeErr);
             // Attempt to recover: move sendingPath back to original
             try { await fs.rename(sendingPath, filePath); } catch (e) { /* ignore */ console.warn('[flush_email_queue] swallowed error:', e); }
             console.error('Failed to write back queued file, restored original:', String(writeErr));
@@ -114,6 +116,7 @@ async function flush() {
           console.log('Not sent:', res && res.error ? res.error : JSON.stringify(res));
         }
       } catch (err) {
+        console.error('flush_email_queue.cjs error:', err);
         // On error calling sendEmail, restore original queue file so it isn't lost
         try { await fs.rename(sendingPath, filePath); } catch (e) { /* ignore */ console.warn('[flush_email_queue] swallowed error:', e); }
         console.error('Failed sending queued email:', err && err.message ? err.message : String(err));

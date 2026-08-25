@@ -82,6 +82,7 @@ function writeStore(store) {
   try {
     fs.writeFileSync(SETTINGS_PATH, JSON.stringify(store, null, 2), 'utf8');
   } catch (e) {
+    console.error('security-monitor-settings-store.cjs error:', e);
     // Fallback: write to temp then rename (atomic write pattern)
     const tmp = SETTINGS_PATH + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');

@@ -102,7 +102,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/simplebeacon/report' || pathname === '/api/report') {
     let p = FALLBACK_REPORT;
     if (fs.existsSync(p)) {
-      try { const txt = fs.readFileSync(p, 'utf8'); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(txt); return; } catch (e) { /* fallthrough */ }
+      try { const txt = fs.readFileSync(p, 'utf8'); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(txt); return; } catch (e) { console.error('local_dashboard_server.js error:', e); /* fallthrough */ }
     }
     serveJson(res, { success: true, message: 'no report available' });
     return;
@@ -111,7 +111,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/trust/verification') {
     const p = path.join(DASH_DIR, 'trust-verification.json');
     if (fs.existsSync(p)) {
-      try { const txt = fs.readFileSync(p, 'utf8'); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(txt); return; } catch (e) { /* fallthrough */ }
+      try { const txt = fs.readFileSync(p, 'utf8'); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(txt); return; } catch (e) { console.error('local_dashboard_server.js error:', e); /* fallthrough */ }
     }
     serveJson(res, { success: true, live: null, staticHost: true, message: 'no trust verification available' });
     return;

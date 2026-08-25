@@ -212,6 +212,7 @@ class MerkleReassembler {
     try {
       writeAtomicSync(statePath, Buffer.from(JSON.stringify(this.getState())));
     } catch (e) {
+      console.error('merkle-reassembler.cjs error:', e);
       // Persistence failure is non-fatal — tree state is still in memory
     }
   }
@@ -230,6 +231,7 @@ class MerkleReassembler {
         this.loadState(state);
       }
     } catch (e) {
+      console.error('merkle-reassembler.cjs error:', e);
       // Corrupt or unreadable state — start fresh
     }
   }

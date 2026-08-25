@@ -134,6 +134,7 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     try {
       return aesKwUnwrap(info.kek, wrapped);
     } catch (err) {
+      console.error('software-adapter.cjs error:', err);
       // Map AES-KW integrity failures to HsmAdapterError
       throw new HsmAdapterError('UNWRAP_FAILED', err.message);
     }

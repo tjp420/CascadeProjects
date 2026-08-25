@@ -100,6 +100,7 @@ try {
         );
     }
 } catch (e) {
+    console.error('database.cjs error:', e);
     // Non-fatal — do not disrupt startup
 }
 

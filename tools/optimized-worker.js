@@ -20,6 +20,7 @@ parentPort.on('message', (msg) => {
         linesCounted += content.split('\n').length;
       }
     } catch (err) {
+      console.error('optimized-worker.js error:', err);
       // Track unreadable files in slot 2 if shared buffer is present
       if (sharedIntArray) Atomics.add(sharedIntArray, 2, 1);
     }

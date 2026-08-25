@@ -25,6 +25,7 @@ async function ensureDataDir() {
   try {
     await fs.promises.mkdir(dir, { recursive: true });
   } catch (e) {
+    console.error('prompt-service.cjs error:', e);
     // Directory may already exist
   }
 }

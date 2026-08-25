@@ -104,6 +104,7 @@ class Purger {
             lastTouch = meta.updatedAt || meta.createdAt || meta.lastTouch || mtime;
             if (meta.sessionId) sessionId = meta.sessionId;
           } catch (e) {
+            console.error('purger.cjs error:', e);
             // malformed/unreadable JSON falls back to mtime and filename
           }
 
@@ -145,15 +146,16 @@ module.exports.purgeExpiredSessions = function(baseDir, ttlHours = 24) {
           const updated = parsed.updatedAt ? Number(parsed.updatedAt) : fs.statSync(p).mtimeMs;
           const cutoff = Date.now() - (ttlHours * 3600 * 1000);
           if (updated <= cutoff) {
-            try { fs.unlinkSync(p); } catch (e) {}
+            try { fs.unlinkSync(p); } catch (e) { console.error('purger.cjs error:', e); }
             removed.push({ tenant, sessionId: parsed.sessionId });
-            try { events.recordSparseEvent('upload_purged', { tenant, sessionId: parsed.sessionId, reason: 'expired', ttlHours }); } catch (e) {}
+            try { events.recordSparseEvent('upload_purged', { tenant, sessionId: parsed.sessionId, reason: 'expired', ttlHours }); } catch (e) { console.error('purger.cjs error:', e); }
           }
         } catch (e) {
+          console.error('purger.cjs error:', e);
           // ignore
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { console.error('purger.cjs error:', e); }
   return removed;
 };

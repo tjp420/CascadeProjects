@@ -1027,6 +1027,7 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
             return { mode: 'html-download', filename: savedAs, preview: true };
         }
         catch (e) {
+            console.error('analyzeService.js error:', e);
             // Fallback: navigate the preview window to a data URL as a safer alternative
             try {
                 const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);

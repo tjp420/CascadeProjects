@@ -31,7 +31,7 @@ function signReport(reportJson, key, keyId) {
   if (!key) return null;
   // Canonicalize full report JSON for signing by removing any existing cryptoValidation
   const payload = canonicalizeForSigning(reportJson);
-  try { console.error('[DIAG] signReport invoked, payloadLen=', payload ? payload.length : 0); } catch (e) {}
+  try { console.error('[DIAG] signReport invoked, payloadLen=', payload ? payload.length : 0); } catch (e) { console.error('report-signer.cjs error:', e); }
   const h = crypto.createHmac('sha256', String(key));
   h.update(payload, 'utf8');
   const signature = h.digest('base64');
@@ -54,7 +54,7 @@ function verifyReportSignature(reportJson, key) {
     const envelope = reportJson.cryptoValidation;
     if (!envelope || !envelope.signature) return false;
     const payload = canonicalizeForSigning(reportJson);
-    try { console.error('[DIAG] verifyReportSignature invoked, payloadLen=', payload ? payload.length : 0); } catch (e) {}
+    try { console.error('[DIAG] verifyReportSignature invoked, payloadLen=', payload ? payload.length : 0); } catch (e) { console.error('report-signer.cjs error:', e); }
     const h = crypto.createHmac('sha256', String(key));
     h.update(payload, 'utf8');
     const expected = h.digest('base64');

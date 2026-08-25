@@ -19,10 +19,12 @@ try {
   try {
     require('ajv-formats')(ajv);
   } catch (e) {
+    console.error('proofs.cjs error:', e);
     // if ajv-formats is unavailable, continue without format checks
   }
   validateProof = ajv.compile(schema);
 } catch (e) {
+  console.error('proofs.cjs error:', e);
   // If schema/ajv is not available, leave validateProof null and rely on JCS-level checks
   validateProof = null;
 }
@@ -99,6 +101,7 @@ class PartialShareProofManager {
         try {
           auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'schema', message: 'schema validation failed', errors: details } });
         } catch (e) {
+          console.error('proofs.cjs error:', e);
           // non-fatal
         }
         return { ok: false, reason: 'schema', message: 'schema validation failed', details };
@@ -106,11 +109,11 @@ class PartialShareProofManager {
     } else {
       // Fallback structural checks
       if (!proof.proof_material || !proof.proof_material.detached_signature || !proof.proof_material.evidence_id) {
-        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing proof_material or required fields' } }); } catch (e) {}
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing proof_material or required fields' } }); } catch (e) { console.error('proofs.cjs error:', e); }
         return { ok: false, reason: 'structural', message: 'missing proof_material or required fields' };
       }
       if (!proof.envelope || typeof proof.envelope !== 'object') {
-        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing or invalid envelope' } }); } catch (e) {}
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing or invalid envelope' } }); } catch (e) { console.error('proofs.cjs error:', e); }
         return { ok: false, reason: 'structural', message: 'missing or invalid envelope' };
       }
     }
@@ -122,7 +125,7 @@ class PartialShareProofManager {
       canonicalStr = this.canonicalize(envelope);
     } catch (e) {
       const msg = e && e.message ? e.message : String(e);
-      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'canonicalization', message: msg } }); } catch (er) {}
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'canonicalization', message: msg } }); } catch (er) { console.error('proofs.cjs error:', er); }
       // Canonicalization failed (e.g., refused marker) — return structured error
       return { ok: false, reason: 'canonicalization', message: msg };
     }
@@ -130,7 +133,7 @@ class PartialShareProofManager {
     const expectedId = crypto.createHash('sha256').update(canonicalStr).digest('hex');
     const payloadHash = crypto.createHash('sha256').update(canonicalStr).digest('hex');
     if (proof_material.evidence_id !== expectedId) {
-      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope', expected: expectedId, provided: proof_material.evidence_id, payloadHash } }); } catch (e) {}
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope', expected: expectedId, provided: proof_material.evidence_id, payloadHash } }); } catch (e) { console.error('proofs.cjs error:', e); }
       return { ok: false, reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope' };
     }
 
@@ -140,13 +143,13 @@ class PartialShareProofManager {
     try {
       const valid = verifier.verify(publicKey, proof_material.detached_signature, 'base64');
       if (!valid) {
-        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_invalid', message: 'detached signature did not verify', payloadHash } }); } catch (e) {}
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_invalid', message: 'detached signature did not verify', payloadHash } }); } catch (e) { console.error('proofs.cjs error:', e); }
         return { ok: false, reason: 'signature_invalid', message: 'detached signature did not verify' };
       }
       return { ok: true };
     } catch (err) {
       const msg = err && err.message ? err.message : String(err);
-      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_error', message: msg, payloadHash } }); } catch (e) {}
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_error', message: msg, payloadHash } }); } catch (e) { console.error('proofs.cjs error:', e); }
       return { ok: false, reason: 'signature_error', message: msg };
     }
   }

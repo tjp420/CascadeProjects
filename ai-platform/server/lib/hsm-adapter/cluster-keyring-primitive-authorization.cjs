@@ -157,7 +157,7 @@ class ClusterKeyringPrimitiveAuthorization {
         this._keyringSync.recordTelemetry('primitive_pool_authorized', record.nodeId || 'unknown', {
           authorizationId, trackType, poolId, tenantId: record.tenantId,
         });
-      } catch (e) { /* best-effort telemetry */ }
+      } catch (e) { console.error('cluster-keyring-primitive-authorization.cjs error:', e); /* best-effort telemetry */ }
     }
     if (this._audit) {
       this._audit('PRIMITIVE_POOL_AUTHORIZED', { ...record });
@@ -201,7 +201,7 @@ class ClusterKeyringPrimitiveAuthorization {
         this._keyringSync.recordTelemetry('primitive_authorization_revoked', rec.nodeId || 'unknown', {
           authorizationId: rec.authorizationId, poolId, reason,
         });
-      } catch (e) { /* best-effort */ }
+      } catch (e) { console.error('cluster-keyring-primitive-authorization.cjs error:', e); /* best-effort */ }
     }
     if (this._audit) {
       this._audit('PRIMITIVE_AUTHORIZATION_REVOKED', { ...rec });
@@ -238,7 +238,7 @@ class ClusterKeyringPrimitiveAuthorization {
         this._keyringSync.recordTelemetry('primitive_pool_synced', rec.nodeId || 'unknown', {
           authorizationId: rec.authorizationId, poolId, targetEnclaveId,
         });
-      } catch (e) { /* best-effort */ }
+      } catch (e) { console.error('cluster-keyring-primitive-authorization.cjs error:', e); /* best-effort */ }
     }
     const result = {
       poolId,

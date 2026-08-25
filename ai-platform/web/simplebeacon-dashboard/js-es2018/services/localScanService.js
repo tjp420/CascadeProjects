@@ -710,6 +710,7 @@ export async function runLocalScan(options = {}) {
             // Try normal worker construction first
             worker = new Worker(workerUrlForCreation, { type: 'module' });
         } catch (ctorErr) {
+            console.error('localScanService.js error:', ctorErr);
             // If construction fails (CORS, Firefox module query issues, or other), attempt a fetch+blob fallback
             try {
                 console.warn('[localScan] Worker construction failed, attempting fetch+blob fallback:', ctorErr?.message || ctorErr);

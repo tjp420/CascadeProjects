@@ -283,6 +283,7 @@ export class ScanService {
       }
       return data;
     } catch (err) {
+      console.error('scanService.js error:', err);
       // If the hosted audit API is unreachable (CORS / network), return
       // a harmless demo audit payload so the UI can render sample data.
       // This helps debugging and gives users an interactive preview.

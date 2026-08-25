@@ -768,7 +768,7 @@ function setupSimplebeaconBillingRoutes(app) {
       // at the final atomic commit point to avoid write races.
 
       // Diagnostic: dump report object before bundle build
-      try { console.error('[DIAG] /api/reports/upload reportJson before build:', JSON.stringify(reportJson)); } catch (e) { /* best-effort */ }
+      try { console.error('[DIAG] /api/reports/upload reportJson before build:', JSON.stringify(reportJson)); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
 
       const bundle = await buildReportBundle(licenseToken, reportJson);
 
@@ -779,15 +779,15 @@ function setupSimplebeaconBillingRoutes(app) {
         const reportFile = path.join(REPORT_STORE_DIR, `${bundle.deliveryId}.json`);
         if (fs.existsSync(reportFile)) {
           const snap = fs.readFileSync(reportFile, 'utf8');
-          try { logger.info('[DIAG] post-bundle persisted file exists', { deliveryId: bundle.deliveryId, len: snap.length }); } catch (e) { /* best-effort */ }
-          try { console.error('[DIAG] post-bundle persisted snapshot (start)'); } catch (e) { /* best-effort */ }
-          try { console.error(snap.slice(0, 4000)); } catch (e) { /* best-effort */ }
-          try { console.error('[DIAG] post-bundle persisted snapshot (end)'); } catch (e) { /* best-effort */ }
+          try { logger.info('[DIAG] post-bundle persisted file exists', { deliveryId: bundle.deliveryId, len: snap.length }); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
+          try { console.error('[DIAG] post-bundle persisted snapshot (start)'); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
+          try { console.error(snap.slice(0, 4000)); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
+          try { console.error('[DIAG] post-bundle persisted snapshot (end)'); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
         } else {
-          try { logger.info('[DIAG] post-bundle persisted file missing', { deliveryId: bundle.deliveryId }); } catch (e) { /* best-effort */ }
+          try { logger.info('[DIAG] post-bundle persisted file missing', { deliveryId: bundle.deliveryId }); } catch (e) { console.error('simplebeacon-billing-api.cjs error:', e); /* best-effort */ }
         }
       } catch (e) {
-        try { console.error('[DIAG] post-bundle inspect failed:', e && e.message); } catch (e2) { /* best-effort */ }
+        try { console.error('[DIAG] post-bundle inspect failed:', e && e.message); } catch (e2) { console.error('simplebeacon-billing-api.cjs error:', e2); /* best-effort */ }
       }
 
       // Email certificate with ZIP attachment

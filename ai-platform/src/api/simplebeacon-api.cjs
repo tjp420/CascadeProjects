@@ -645,6 +645,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         try {
           projectPath = resolveSafeAnalyzePath(rawProjectPath);
         } catch (err) {
+          console.error('simplebeacon-api.cjs error:', err);
           // Path outside allowed roots — fall back to default platform report
           logger.info('[simplebeacon-api] report path outside allowed roots:', rawProjectPath, '- falling back to default');
           projectPath = null;
@@ -835,6 +836,7 @@ function setupSimplebeaconAPI(app, options = {}) {
       }
       res.json(enriched);
     } catch (err) {
+      console.error('simplebeacon-api.cjs error:', err);
       // Return a default empty baseline so the dashboard can render before the first scan
       res.json({
         summary: {},

@@ -68,12 +68,13 @@ test.describe('Analytics Days Dropdown', () => {
       await page.getByRole('tab', { name: /Analytics/i }).first().click({ timeout: 5000 });
       await page.waitForTimeout(500);
     } catch (e) {
+      console.error('analytics-dropdown.spec.ts error:', e);
       // Fallback: click any button with text 'Analytics'
       await page.evaluate(() => {
         try {
           const el = Array.from(document.querySelectorAll('button')).find(b => /analytics/i.test((b.textContent || '').trim()));
           if (el) (el as HTMLElement).click();
-        } catch (e) {}
+        } catch (e) { console.error('analytics-dropdown.spec.ts error:', e); }
       });
       await page.waitForTimeout(500);
     }
@@ -95,11 +96,11 @@ test.describe('Analytics Days Dropdown', () => {
             const o = document.createElement('option'); o.value = String(v); o.text = `${v} days`; sel.appendChild(o);
           });
           sel.addEventListener('change', () => {
-            try { fetch(`/api/enterprise/analytics?days=${sel.value}`); } catch (e) {}
+            try { fetch(`/api/enterprise/analytics?days=${sel.value}`); } catch (e) { console.error('analytics-dropdown.spec.ts error:', e); }
           });
           document.body.appendChild(sel);
         }
-      } catch (e) {}
+      } catch (e) { console.error('analytics-dropdown.spec.ts error:', e); }
     });
 
     // wait for the days dropdown to appear (direct indicator analytics panel or injected select)

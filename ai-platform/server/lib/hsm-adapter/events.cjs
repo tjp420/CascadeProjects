@@ -24,6 +24,7 @@ function ensureLogDir() {
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
     } catch (e) {
+      console.error('events.cjs error:', e);
       // ignore if unable to create
     }
   }
@@ -39,6 +40,7 @@ function recordSparseEvent(type, info = {}) {
     };
     fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', { mode: 0o600 });
   } catch (e) {
+    console.error('events.cjs error:', e);
     // Forensic logging must never crash the runtime
   }
 }

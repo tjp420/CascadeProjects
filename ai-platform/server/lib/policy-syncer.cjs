@@ -36,6 +36,7 @@ async function reconcilePolicy(orgId, externalPolicySource = null) {
       policyCache.set(orgId, parsed);
       return parsed;
     } catch (err) {
+      console.error('policy-syncer.cjs error:', err);
       // Graceful error isolation: return a secure fallback pattern on parse exceptions
       return getPermissiveFallback(orgId);
     }

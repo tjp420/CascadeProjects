@@ -179,16 +179,19 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
                             const parsed = JSON.parse(stdout);
                             findings = parsed.findings || parsed.rawIssues || [];
                         } catch (e) {
+                            console.error('realtime-analysis-api.cjs error:', e);
                             // No JSON output — return empty findings
                         }
                     }
                 } catch (cliErr) {
+                    console.error('realtime-analysis-api.cjs error:', cliErr);
                     // CLI may exit non-zero on gate failure — still try to read the report
                     if (fs.existsSync(reportOut)) {
                         try {
                             const report = JSON.parse(fs.readFileSync(reportOut, 'utf8'));
                             findings = report.findings || report.rawIssues || [];
                         } catch (e) {
+                            console.error('realtime-analysis-api.cjs error:', e);
                             // Report not readable
                         }
                     } else {
@@ -242,6 +245,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
                 try {
                     fs.rmSync(tempDir, { recursive: true, force: true });
                 } catch (e) {
+                    console.error('realtime-analysis-api.cjs error:', e);
                     // Best-effort cleanup
                 }
             }

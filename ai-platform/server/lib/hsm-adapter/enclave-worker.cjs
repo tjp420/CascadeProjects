@@ -27,6 +27,7 @@ class EnclaveWorker {
           await this.manager.flushPendingReplications();
         }
       } catch (e) {
+        console.error('enclave-worker.cjs error:', e);
         // transient errors are swallowed; manager retains pending state
       }
     }, flushMs);
@@ -40,6 +41,7 @@ class EnclaveWorker {
           await this.manager.rotateKek(newWrapFn);
         }
       } catch (e) {
+        console.error('enclave-worker.cjs error:', e);
         // rotation failures are logged by manager; continue
       }
     }, rotateMs);

@@ -119,6 +119,7 @@ class SiemSecurityBroker extends EventEmitter {
       this._dispatch(standardizedEvent, isHighPriority);
       return true;
     } catch (err) {
+      console.error('siem-broker.cjs error:', err);
       // Fail-silent: never throw to the caller
       try {
         this.emit('broker_error', { error: err.message, timestamp: Date.now() });

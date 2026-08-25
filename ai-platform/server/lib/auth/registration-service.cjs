@@ -48,6 +48,7 @@ async function handleRegister(req, res) {
             trialEndsAt = trialRecord.trialEndsAt;
         }
     } catch (trialErr) {
+        console.error('registration-service.cjs error:', trialErr);
         // Non-blocking — signup succeeds even if trial grant fails
         logger.warn('Trial grant failed during registration', { error: trialErr.message });
     }

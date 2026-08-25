@@ -174,6 +174,7 @@ class MixNode {
       // res contains { next, payload }
       return { error: false, next: res.next, payload: res.payload };
     } catch (err) {
+      console.error('mixnode.cjs error:', err);
       // unwrapLayer already performs dummy work on error paths; maintain contract.
       return { error: true, reason: 'parse_error' };
     }

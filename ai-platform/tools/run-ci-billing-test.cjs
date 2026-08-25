@@ -122,7 +122,7 @@ async function run() {
           try {
             const fs = require('fs');
             if (fs.existsSync(fp)) return resolve(true);
-          } catch (e) {}
+          } catch (e) { console.error('run-ci-billing-test.cjs error:', e); }
           if (Date.now() - start > timeoutMs) return reject(new Error('file wait timeout'));
           setTimeout(poll, 300);
         })();

@@ -400,7 +400,7 @@ function setupChatbotAPI(app) {
     max: 30,
     keyGenerator: (r) => (r.user && r.user.email) ? String(r.user.email).toLowerCase() : r.ip,
     handler: (r, res) => {
-      try { logSecurityEvent('chatbot_message_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) {}
+      try { logSecurityEvent('chatbot_message_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) { console.error('chatbot-api.cjs error:', e); }
       return sendError(res, 429, 'rate_limited', { message: 'Too many chatbot messages, try later' });
     }
   });
@@ -590,7 +590,7 @@ function setupChatbotAPI(app) {
         max: 6, // allow up to 6 attempts per minute per key
         keyGenerator: (r) => (r.user && r.user.email) ? String(r.user.email).toLowerCase() : r.ip,
         handler: (r, res) => {
-          try { logSecurityEvent('remove_filters_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) {}
+          try { logSecurityEvent('remove_filters_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) { console.error('chatbot-api.cjs error:', e); }
           return sendError(res, 429, 'rate_limited', { message: 'Too many filter removal attempts, try later' });
         }
       });
@@ -621,6 +621,7 @@ function setupChatbotAPI(app) {
             });
           });
         } catch (err) {
+          console.error('chatbot-api.cjs error:', err);
           // rate limiter already sent response
           return;
         }

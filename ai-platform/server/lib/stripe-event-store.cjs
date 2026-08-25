@@ -70,6 +70,7 @@ function createEventStore(options = {}) {
       try {
         await fs.promises.rename(tmpPath, STORE);
       } catch (err) {
+        console.error('stripe-event-store.cjs error:', err);
         // On failure (Windows EPERM etc.) fall back to sync write
           fs.writeFileSync(STORE, payload + '\n', 'utf8');
         try { await fs.promises.unlink(tmpPath).catch(() => {}); } catch (_) {}

@@ -92,6 +92,7 @@ function scanFiles(filePaths, opts = {}) {
       const f = scanFileContent(content, p, opts);
       if (f && f.length) allFindings.push(...f);
     } catch (e) {
+      console.error('secret-scanner.cjs error:', e);
       // ignore unreadable
     }
   }

@@ -38,6 +38,7 @@ router.use((req, res, next) => {
       console.log(`[track112] ${req.method} ${req.path} ${res.statusCode} ${dur}ms traceId=${tid}`);
     });
   } catch (e) {
+    console.error('track112-upload-routes.cjs error:', e);
     // non-fatal, continue without tracking
   }
   next();

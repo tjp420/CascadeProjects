@@ -25,6 +25,7 @@ try {
     }
   }
 } catch (e) {
+  console.error('run-jitter-harness.js error:', e);
   // best-effort cleanup; continue
 }
 
@@ -47,8 +48,8 @@ const viteProcess = spawn('npm', ['run', 'dev'], {
 // Safeguard child lifetimes by cleaning up processes when the host terminal drops
 const cleanExit = () => {
   console.log('\n🛑 Shutting down network jitter harness threads...');
-  try { proxyProcess.kill(); } catch (e) { }
-  try { viteProcess.kill(); } catch (e) { }
+  try { proxyProcess.kill(); } catch (e) { console.error('run-jitter-harness.js error:', e); }
+  try { viteProcess.kill(); } catch (e) { console.error('run-jitter-harness.js error:', e); }
   process.exit();
 };
 
@@ -62,6 +63,6 @@ proxyProcess.on('exit', (code) => {
 viteProcess.on('exit', (code) => {
   console.log(`vite process exited with ${code}`);
   // if vite stops, also stop proxy
-  try { proxyProcess.kill(); } catch (e) { }
+  try { proxyProcess.kill(); } catch (e) { console.error('run-jitter-harness.js error:', e); }
   process.exit(code || 0);
 });

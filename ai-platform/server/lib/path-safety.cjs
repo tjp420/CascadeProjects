@@ -179,7 +179,7 @@ function listLocalDriveRoots() {
                 drives.push(drive);
             }
         }
-        catch (e) { /* skip inaccessible drives */ }
+        catch (e) { console.error('path-safety.cjs error:', e); /* skip inaccessible drives */ }
     }
     return drives;
 }

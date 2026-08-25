@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const storageBase = path.join(process.cwd(), '.data', 'ratchet');
 
-function ensureDir(p){ try { fs.mkdirSync(p, { recursive: true }); } catch(e){} }
+function ensureDir(p){ try { fs.mkdirSync(p, { recursive: true }); } catch(e){ console.error('index.cjs error:', e); } }
 
 module.exports = {
   bootstrapSession: function(opts = {}){

@@ -147,6 +147,7 @@ let _shuttingDown = false;
       });
     } catch {}
   } catch (err) {
+    console.error('siem-exporter.cjs error:', err);
     // Cert files exist but can't be read — fall back gracefully
     try {
       logger.warn('[SIEM Exporter] mTLS cert read failed, falling back to standard egress', {
@@ -183,6 +184,7 @@ function enqueue(event) {
     _metrics.siem_queue_depth_current = queue.length;
     if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
+    console.error('siem-exporter.cjs error:', e);
     // swallow
   }
 }
@@ -240,7 +242,7 @@ async function sendBatch(batch, attempt = 0) {
     if (_shuttingDown) return false;
     if (attempt < RETRY_MAX_ATTEMPTS) {
       // record a retry attempt for observability
-      try { _metrics.siem_delivery_retries_total += 1; } catch (mErr) {}
+      try { _metrics.siem_delivery_retries_total += 1; } catch (mErr) { console.error('siem-exporter.cjs error:', mErr); }
       const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * Math.pow(2, attempt));
       try {
         logger.warn('[SIEM Exporter] sendBatch failed, scheduling retry', { attempt, delay, error: e && e.message });
@@ -248,6 +250,7 @@ async function sendBatch(batch, attempt = 0) {
           if (!_shuttingDown) sendBatch(batch, attempt + 1).catch(() => {});
         }, delay);
       } catch (s) {
+        console.error('siem-exporter.cjs error:', s);
         // ignore scheduling failure
       }
     } else {
@@ -258,7 +261,7 @@ async function sendBatch(batch, attempt = 0) {
         for (const e of batch) queue.push(e);
         const dropped = queue.dropped - droppedBefore;
         if (dropped > 0) {
-          try { _metrics.siem_delivery_dropped_total += dropped; } catch (mErr) {}
+          try { _metrics.siem_delivery_dropped_total += dropped; } catch (mErr) { console.error('siem-exporter.cjs error:', mErr); }
         }
       } catch (err) {
         logger.error('[SIEM Exporter] failed to re-enqueue batch after retries exhausted', { error: err && err.message });

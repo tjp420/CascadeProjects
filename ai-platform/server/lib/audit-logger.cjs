@@ -300,6 +300,7 @@ function log(params) {
       siem.enqueue(siemEvent);
     }
   } catch (e) {
+    console.error('audit-logger.cjs error:', e);
     // don't let SIEM errors affect core logic
     logger.debug('SIEM enqueue failed for audit event', { error: e.message, action: entry.action });
   }
@@ -967,6 +968,7 @@ function healAllOrgs() {
           results.push({ orgId, ...result });
         }
       } catch (err) {
+        console.error('audit-logger.cjs error:', err);
         // Continue healing other orgs even if one fails
         results.push({ orgId, error: err.message, healed: false });
       }
@@ -1181,11 +1183,13 @@ async function runAutonomousLifecyclePurge() {
               },
             }));
           } catch (logErr) {
+            console.error('audit-logger.cjs error:', logErr);
             // Logging failure should not block the sweep
             errors.push({ orgId, error: `audit-log write failed: ${logErr.message}` });
           }
         }
       } catch (err) {
+        console.error('audit-logger.cjs error:', err);
         // Continue purging other orgs even if one fails
         errors.push({ orgId, error: err.message });
       }

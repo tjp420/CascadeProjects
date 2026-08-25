@@ -181,6 +181,7 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Max-Age', '86400');
     }
   } catch (e) {
+    console.error('index.cjs error:', e);
     // ignore header-setting errors
   }
   next();
@@ -196,6 +197,7 @@ app.options(/.*/, (req, res) => {
       res.setHeader('Access-Control-Max-Age', '86400');
     }
   } catch (e) {
+    console.error('index.cjs error:', e);
     // ignore
   }
 
@@ -242,6 +244,7 @@ app.use((req, res, next) => {
       res.setHeader('Content-Security-Policy', newCsp);
     }
   } catch (e) {
+    console.error('index.cjs error:', e);
     // Don't break request flow for header setting errors
   }
   return next();
