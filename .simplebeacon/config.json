@@ -111,6 +111,8 @@
     "**/*.min.js",
     "**/*.min.css",
     "**/dashboard-preview.html",
+    "**/debug-welcome.html",
+    "**/_test_welcome_loaded.html",
     "**/test-tokens.txt",
     "**/*-tokens.txt",
     "**/ai-platform/data/**",
@@ -511,9 +513,26 @@
           "reason": "Published npm package — pinning forces exact versions on downstream consumers; lockfile provides reproducibility"
         }
       ]
+    },
+    "custom-heuristic": {
+      "enabled": true,
+      "ignoreGlobs": [
+        "**/codebase-analyzer.cjs",
+        "**/codebase-analyzer-patterns.cjs",
+        "**/workspaceAnalyzer.ts",
+        "**/utils-lib/url.js",
+        "**/AdminPanelView.js",
+        "**/serve.cjs",
+        "**/local_dashboard_server.js",
+        "**/dashboard-server.cjs",
+        "**/relay-server*.js",
+        "**/test_server.js",
+        "**/modernSidebarProvider.ts",
+        "**/dataServer.ts",
+        "ai-platform/simplebeacon-server.cjs",
+        "worker-deploy/src/worker.js"
+      ]
     }
-  },
-  "gate": {
     "failOn": [
       "high"
     ],

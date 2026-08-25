@@ -683,6 +683,7 @@ export default {
       headers.set('Content-Length', object.size.toString());
       headers.set('Content-Disposition', `attachment; filename="${key.split('/').pop()}"`);
       headers.set('Cache-Control', 'public, max-age=86400');
+      // simplebeacon-ignore cors-wildcard — public model file downloads (GGUF/Modelfiles) with Content-Disposition: attachment; wildcard CORS allows any tool (Ollama, LM Studio) to download
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Accept-Ranges', 'bytes');
       // For HEAD requests, return headers only (no body)
