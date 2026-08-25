@@ -36,6 +36,10 @@ export function buildDashboardHtml(options: DashboardHtmlOptions): string {
   --vscode-descriptionForeground:#94a3b8;--vscode-panel-border:#1e293b;--vscode-input-background:#111827;
   --vscode-list-hoverBackground:#1e293b;--vscode-button-background:#818cf8;--vscode-button-hoverBackground:#a5b4fc;
   --vscode-button-foreground:#0b1120;--vscode-focusBorder:#818cf8;
+ /* welcome dashboard specific variables (language palette and trust colors) */
+ --wd-lang-1:#89d185;--wd-lang-2:#38bdf8;--wd-lang-3:#a78bfa;--wd-lang-4:#f48771;
+ --wd-lang-5:#d7a24c;--wd-lang-6:#007acc;--wd-lang-7:#ec4899;--wd-lang-8:#10b981;
+ --wd-trust-good:#89d185;--wd-trust-med:#d7a24c;--wd-trust-low:#c75450;
 }
 body.vscode-light,body.vscode-high-contrast-light{
   --primary:#6366f1;--primary-hover:#4f46e5;--primary-subtle:#eef2ff;--accent:#06b6d4;
@@ -113,7 +117,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .profile-pref-label{flex:1}
 .profile-pref-toggle{width:36px;height:20px;border-radius:10px;background:var(--vscode-panel-border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
 .profile-pref-toggle.on{background:var(--vscode-button-background)}
-.profile-pref-knob{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
+.profile-pref-knob{width:16px;height:16px;border-radius:50%;background:var(--vscode-button-foreground);position:absolute;top:2px;left:2px;transition:left .2s}
 .profile-pref-toggle.on .profile-pref-knob{left:18px}
 .profile-activity{padding:14px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border)}
 .profile-activity-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--vscode-foreground)}
@@ -188,8 +192,8 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .db-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .db-header h2{font-size:18px;font-weight:600}
 .db-gate-badge{padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}
-.db-gate-pass{background:#2d7d46;color:#fff}
-.db-gate-fail{background:#c75450;color:#fff}
+.db-gate-pass{background:var(--sb-success);color:var(--vscode-button-foreground)}
+.db-gate-fail{background:var(--sb-danger);color:var(--vscode-button-foreground)}
 .db-gate-pending{background:#d7a24c;color:#1e1e1e}
 .db-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .db-kpi-card{padding:20px 16px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);text-align:center;position:relative;overflow:hidden}
@@ -202,7 +206,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .db-severity{margin-bottom:20px}
 .db-severity-title{font-size:12px;font-weight:600;margin-bottom:10px;color:var(--vscode-foreground)}
 .db-severity-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border)}
-.db-sev-segment{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;min-width:30px;transition:width .3s}
+.db-sev-segment{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--vscode-button-foreground);min-width:30px;transition:width .3s}
 .db-sev-critical{background:#c75450}
 .db-sev-high{background:#d7a24c}
 .db-sev-medium{background:#007acc}
@@ -399,9 +403,9 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .cert-req-list{display:flex;flex-direction:column;gap:6px}
 .cert-req-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);font-size:12px}
 .cert-req-check{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
-.cert-req-check.pass{background:#2d7d46;color:#fff}
-.cert-req-check.fail{background:#c75450;color:#fff}
-.cert-req-check.pending{background:#d7a24c;color:#1e1e1e}
+.cert-req-check.pass{background:var(--sb-success);color:var(--vscode-button-foreground)}
+.cert-req-check.fail{background:var(--sb-danger);color:var(--vscode-button-foreground)}
+.cert-req-check.pending{background:var(--sb-warning);color:var(--vscode-editor-background)}
 .cert-req-text{flex:1}
 .cert-req-status{font-size:11px;color:var(--vscode-descriptionForeground);flex-shrink:0}
 .cert-preview{padding:16px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);text-align:center}
@@ -1101,7 +1105,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .st-row-desc{font-size:11px;color:var(--vscode-descriptionForeground)}
 .st-toggle{width:36px;height:20px;border-radius:10px;background:var(--vscode-panel-border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
 .st-toggle.on{background:var(--vscode-button-background)}
-.st-toggle-knob{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
+.st-toggle-knob{width:16px;height:16px;border-radius:50%;background:var(--vscode-button-foreground);position:absolute;top:2px;left:2px;transition:left .2s}
 .st-toggle.on .st-toggle-knob{left:18px}
 .st-input{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-input-background);color:var(--vscode-input-foreground);font-size:12px;margin-top:6px;outline:none}
 .st-input:focus{border-color:var(--vscode-focusBorder)}
@@ -1189,7 +1193,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="db-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="statIssues" style="color:#f48771">0</div>
+        <div class="db-kpi-value" id="statIssues" style="color:var(--vscode-errorForeground)">0</div>
         <div class="db-kpi-label">Total Issues</div>
         <div class="db-kpi-trend" id="trendIssues">Waiting...</div>
       </div>
@@ -1327,7 +1331,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       <div class="analyze-metrics" id="analyzeMetrics">
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricScore" style="color:#89d185">--</div><div class="analyze-metric-label">Quality Score</div></div>
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricGate">--</div><div class="analyze-metric-label">Gate Status</div></div>
-        <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricIssues" style="color:#f48771">0</div><div class="analyze-metric-label">Issues Found</div></div>
+        <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricIssues" style="color:var(--vscode-errorForeground)">0</div><div class="analyze-metric-label">Issues Found</div></div>
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricFiles">0</div><div class="analyze-metric-label">Files Scanned</div></div>
       </div>
       <div class="db-severity">
@@ -1375,7 +1379,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="report-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="reportIssues" style="color:#f48771">0</div>
+        <div class="db-kpi-value" id="reportIssues" style="color:var(--vscode-errorForeground)">0</div>
         <div class="db-kpi-label">Total Issues</div>
       </div>
       <div class="db-kpi-card">
@@ -1792,7 +1796,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="road-kpi-icon">&#128315;</div>
-        <div class="db-kpi-value" id="roadOpen" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="roadOpen" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Open Vulnerabilities</div>
       </div>
       <div class="db-kpi-card">
@@ -1922,7 +1926,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="ai-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="aiIssues" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="aiIssues" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">AI Issues</div>
       </div>
       <div class="db-kpi-card">
@@ -2046,7 +2050,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="up-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="upErrors" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="upErrors" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Errors</div>
       </div>
       <div class="db-kpi-card">
@@ -2109,7 +2113,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="aud-kpi-icon">&#128274;</div>
-        <div class="db-kpi-value" id="audVulns" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="audVulns" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Vulnerabilities</div>
       </div>
       <div class="db-kpi-card">
@@ -2240,7 +2244,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="sec-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="secCritical" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="secCritical" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Critical</div>
       </div>
       <div class="db-kpi-card">
@@ -2567,7 +2571,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="asst-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="asstPending" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="asstPending" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Pending</div>
       </div>
       <div class="db-kpi-card">
@@ -2958,7 +2962,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="comp-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="compFailed" style="color:#f48771">--</div>
+        <div class="db-kpi-value" id="compFailed" style="color:var(--vscode-errorForeground)">--</div>
         <div class="db-kpi-label">Failed</div>
       </div>
       <div class="db-kpi-card">
@@ -4019,6 +4023,10 @@ function updateAnalyzeSeverityBar(sev) {
 function renderCodeMapGraph(canvas, graph, style = 'force') {
   if (!canvas || !graph || !graph.nodes || graph.nodes.length === 0) return;
   const ctx = canvas.getContext('2d');
+  const __cssStyles = getComputedStyle(document.documentElement);
+  const __css_fg = (__cssStyles.getPropertyValue('--vscode-button-foreground') || __cssStyles.getPropertyValue('--vscode-foreground') || '#fff').trim();
+  const __css_panel = (__cssStyles.getPropertyValue('--vscode-panel-border') || '#e2e8f0').trim();
+  const __css_desc = (__cssStyles.getPropertyValue('--vscode-descriptionForeground') || '#94a3b8').trim();
   if (!ctx) return;
   const wrap = canvas.parentElement;
   let lastW = 0, lastH = 0;
@@ -4404,7 +4412,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
         ctx.fill();
       }
       if (n === hoverNode || n === dragging) {
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = __css_fg;
         ctx.lineWidth = 2.5;
         ctx.stroke();
       }
@@ -4424,7 +4432,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
         ctx.beginPath();
         ctx.roundRect(tx - 2, ty - 9, tw + 6, 13, 3);
         ctx.fill();
-        ctx.fillStyle = n === hoverNode ? '#fff' : '#e2e8f0';
+        ctx.fillStyle = n === hoverNode ? __css_fg : __css_panel;
         ctx.fillText(text, tx, ty);
       }
     }
@@ -4441,10 +4449,10 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
       ctx.roundRect(tx - 6, ty - 6, maxTw + 14, lines.length * 14 + 8, 6);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#e2e8f0';
+      ctx.fillStyle = __css_panel;
       ctx.font = 'bold 11px sans-serif';
       ctx.fillText(lines[0], tx, ty + 10);
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = __css_desc;
       ctx.font = '10px sans-serif';
       if (lines[1]) ctx.fillText(lines[1], tx, ty + 24);
     }
@@ -5851,7 +5859,7 @@ window.addEventListener('message', (event) => {
         const max = Math.max(...entries.map(e => e[1]));
         langGrid.textContent = '';
         if (langCount) langCount.textContent = String(entries.length);
-        const colors = ['#89d185','#38bdf8','#a78bfa','#f48771','#d7a24c','#007acc','#ec4899','#10b981'];
+        const colors = ['var(--wd-lang-1,#89d185)','var(--wd-lang-2,#38bdf8)','var(--wd-lang-3,#a78bfa)','var(--wd-lang-4,#f48771)','var(--wd-lang-5,#d7a24c)','var(--wd-lang-6,#007acc)','var(--wd-lang-7,#ec4899)','var(--wd-lang-8,#10b981)'];
         entries.forEach(([ext, count], idx) => {
           const row = document.createElement('div');
           row.className = 'map-lang-row';
@@ -5992,7 +6000,7 @@ window.addEventListener('message', (event) => {
     const ring = document.getElementById('trustRing');
     const trustScoreNum = (msg.trustScore && msg.trustScore !== '--') ? parseInt(msg.trustScore, 10) : null;
     if (ring && trustScoreNum != null && !isNaN(trustScoreNum)) {
-      ring.style.borderColor = trustScoreNum >= 80 ? '#89d185' : trustScoreNum >= 50 ? '#f59e0b' : '#f48771';
+      ring.style.borderColor = trustScoreNum >= 80 ? 'var(--sb-success)' : trustScoreNum >= 50 ? 'var(--sb-warning)' : 'var(--vscode-errorForeground)';
     }
     const quality = (msg.quality && msg.quality !== '--') ? parseInt(msg.quality, 10) : null;
     const security = (msg.security && msg.security !== '--') ? parseInt(msg.security, 10) : null;
@@ -6321,7 +6329,7 @@ window.addEventListener('message', (event) => {
     const ring = document.getElementById('trustRing');
     if (ring && msg.trustScore) {
       const scoreVal = parseInt(msg.trustScore, 10) || 0;
-      const color = scoreVal >= 80 ? '#89d185' : scoreVal >= 50 ? '#d7a24c' : '#c75450';
+      const color = scoreVal >= 80 ? 'var(--wd-trust-good,#89d185)' : scoreVal >= 50 ? 'var(--wd-trust-med,#d7a24c)' : 'var(--wd-trust-low,#c75450)';
       ring.style.borderColor = color;
     }
     const bdQuality = document.getElementById('trustBdQuality');
@@ -6391,7 +6399,7 @@ window.addEventListener('message', (event) => {
     if (scoreFg) {
       const pct = isNaN(scoreNum) ? 0 : Math.min(100, Math.max(0, scoreNum));
       scoreFg.setAttribute('stroke-dasharray', pct + ', 100');
-      scoreFg.style.stroke = pct >= 80 ? '#89d185' : pct >= 50 ? '#f59e0b' : '#f48771';
+      scoreFg.style.stroke = pct >= 80 ? 'var(--sb-success)' : pct >= 50 ? 'var(--sb-warning)' : 'var(--vscode-errorForeground)';
     }
     const i = document.getElementById('qIssues');
     const c = document.getElementById('qCoverage');
@@ -6419,7 +6427,7 @@ window.addEventListener('message', (event) => {
       if (fill) {
         const num = parseInt(m.value, 10) || 0;
         fill.style.width = num + '%';
-        fill.style.background = num >= 80 ? '#89d185' : num >= 50 ? '#f59e0b' : '#f48771';
+        fill.style.background = num >= 80 ? 'var(--sb-success)' : num >= 50 ? 'var(--sb-warning)' : 'var(--vscode-errorForeground)';
       }
     }
     const summary = document.querySelector('.q-summary');
@@ -6754,7 +6762,7 @@ window.addEventListener('message', (event) => {
     const status = document.getElementById('stApiStatus');
     if (status) {
       status.textContent = msg.ok ? 'Connected' : 'Connection failed';
-      status.style.color = msg.ok ? '#89d185' : '#f48771';
+      status.style.color = msg.ok ? 'var(--sb-success)' : 'var(--vscode-errorForeground)';
     }
   }
   if (msg.command === 'setAnalyzePath') {
