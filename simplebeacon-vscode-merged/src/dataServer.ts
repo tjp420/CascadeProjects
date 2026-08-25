@@ -245,13 +245,13 @@ const SESSION_REGISTRATION_SCRIPT = `<script>
     try {
       TOKEN_KEYS.forEach(function(k) { localStorage.removeItem(k); });
       TOKEN_KEYS.forEach(function(k) { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
-    } catch (e) {}
+    } catch (e) { console.error('Failed to clear session storage:', e); }
     try {
       const bc = new BroadcastChannel('simplebeacon-auth');
       bc.postMessage({ type: 'signed-out' });
       bc.close();
-    } catch (e) {}
-    try { if (window.SbAuth && window.SbAuth.signOut) window.SbAuth.signOut(); } catch (e) {}
+    } catch (e) { console.error('Failed to broadcast sign-out:', e); }
+    try { if (window.SbAuth && window.SbAuth.signOut) window.SbAuth.signOut(); } catch (e) { console.error('Failed to call SbAuth.signOut:', e); }
   }
   function register() {
     try {
@@ -262,7 +262,7 @@ const SESSION_REGISTRATION_SCRIPT = `<script>
           .then(function(data) { if (data && data.clearSession) { clearSessionFromServer(); } })
           .catch(() => {});
       }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to register auth session:', e); }
   }
   register();
   setInterval(register, 5000);
@@ -316,7 +316,7 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 })();
 </script>`;
 
-const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;if(typeof document!=='undefined'&&document.visibilityState==='hidden')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){}}}).catch(()=>{});}p();setInterval(p,30000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){}})();</script>`;
+const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;if(typeof document!=='undefined'&&document.visibilityState==='hidden')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){console.error('Failed to broadcast theme change:',e);}}}).catch(()=>{});}p();setInterval(p,30000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){console.error('Failed to listen for theme changes:',e);}})();</script>`;
 
 const HIDE_PRICING_SCRIPT = `<script>
 (function() {
@@ -350,7 +350,7 @@ const SIGNIN_MODAL_SCRIPT = `<script>
       const payload = {command:'setAuthState',signedIn,tier:tier||'',token:token||'',isAdmin:!!isAdmin};
       if (vscode) { vscode.postMessage(payload); }
       else if (window.parent && window.parent !== window) { window.parent.postMessage(payload,'*'); }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to post auth state:', e); }
   }
   function apiUrl(path) {
     if (typeof location === 'undefined') return path;
@@ -364,7 +364,7 @@ const SIGNIN_MODAL_SCRIPT = `<script>
       if (!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
         return 'https://simplebeacon.ai' + path;
       }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to resolve API URL:', e); }
     return path;
   }
   function buildDashboardAuthUrl(route) {
@@ -386,7 +386,7 @@ const SIGNIN_MODAL_SCRIPT = `<script>
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({ command: 'dashboardRouteChanged', url: url }, '*');
       }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to notify parent of route change:', e); }
     location.href = url;
   }
   const CSS = \`<style id="sb-signin-modal-style">
@@ -466,7 +466,7 @@ const SIGNIN_MODAL_SCRIPT = `<script>
               navigateToRegisterPage();
               return;
             }
-          } catch (e) {}
+          } catch (e) { console.error('Failed to check website mode params:', e); }
         }
         tabs.forEach(function(t) { t.classList.remove('active'); });
         panels.forEach(function(p) { p.classList.remove('active'); });
@@ -537,24 +537,24 @@ const SIGNIN_MODAL_SCRIPT = `<script>
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
   // Always broadcast current auth state to parent on load so sidebar buttons sync after reload
-  try { postAuthState(hasAnyToken(), '', '', false); } catch(e) {}
+  try { postAuthState(hasAnyToken(), '', '', false); } catch(e) { console.error('Failed to broadcast initial auth state:', e); }
   // Listen for parent auth-state queries (sidebar/webview asking iframe for current state)
   window.addEventListener('message', function(ev) {
     if (ev.data && ev.data.command === 'getAuthState') {
-      try { postAuthState(hasAnyToken(), '', '', false); } catch(e) {}
+      try { postAuthState(hasAnyToken(), '', '', false); } catch(e) { console.error('Failed to respond to auth state query:', e); }
     }
     if (ev.data && ev.data.command === 'setAuthState') {
       if (ev.data.signedIn === true && ev.data.token) {
         setToken(ev.data.token);
-        try { postAuthState(true, ev.data.tier || '', ev.data.token, !!ev.data.isAdmin); } catch(e) {}
+        try { postAuthState(true, ev.data.tier || '', ev.data.token, !!ev.data.isAdmin); } catch(e) { console.error('Failed to broadcast sign-in auth state:', e); }
       } else if (ev.data.signedIn === false) {
         clearToken();
-        try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) {}
+        try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) { console.error('Failed to broadcast sign-out auth state:', e); }
       }
     }
     if (ev.data && ev.data.command === 'signOut') {
       clearToken();
-      try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) {}
+      try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) { console.error('Failed to broadcast sign-out auth state:', e); }
     }
   });
 })();
@@ -917,7 +917,7 @@ function saveTokenPasswords(passwords: Record<string, string>): void {
   try {
     fs.writeFileSync(getTokenPasswordsPath(), JSON.stringify(passwords, null, 2), 'utf8');
   } catch {
-    /* best-effort */
+    console.error('Failed to save token passwords:');
   }
 }
 
@@ -931,7 +931,7 @@ async function _getOrGeneratePepper(): Promise<string> {
         return _tokenPepper;
       }
     } catch {
-      /* ignore — fall through to generation */
+      console.error('Failed to retrieve token pepper from secrets:');
     }
   }
   _tokenPepper = crypto.randomBytes(32).toString('hex');
@@ -939,7 +939,7 @@ async function _getOrGeneratePepper(): Promise<string> {
     try {
       await extensionContext.secrets.store('sb:token-pepper', _tokenPepper);
     } catch {
-      /* ignore */
+      console.error('Failed to store token pepper in secrets:');
     }
   }
   return _tokenPepper;
@@ -1059,7 +1059,7 @@ function saveLocalUsers(users: LocalUser[]): void {
   try {
     fs.writeFileSync(getLocalUsersPath(), JSON.stringify(users, null, 2), 'utf8');
   } catch {
-    /* best-effort */
+    console.error('Failed to save local users:');
   }
 }
 
@@ -1199,11 +1199,11 @@ async function findDirectoryByName(
                 next.push(full);
               }
             } catch {
-              /* skip inaccessible */
+              console.error('Failed to access file during search:');
             }
           }
         } catch {
-          /* skip permission denied */
+          console.error('Failed to read directory during search:');
         }
       })
     );
@@ -1272,7 +1272,7 @@ function getDirectoryMetrics(scanPath: string): {
       try {
         totalSize += fs.statSync(fp).size;
       } catch {
-        /* skip inaccessible files */
+        console.error('Failed to stat file during size calculation:');
       }
     }
   }
@@ -1339,7 +1339,7 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
         }
       }
     } catch {
-      // ignore unreadable directories
+      console.error('Failed to read directory:');
     }
     return null;
   }
@@ -1698,7 +1698,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           res.end();
         } catch {
-          /* ignore */
+          console.error('Failed to end SSE response on close:');
         }
       });
       req.on('error', () => {
@@ -1709,7 +1709,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           res.end();
         } catch {
-          /* ignore */
+          console.error('Failed to end SSE response on error:');
         }
       });
       return;
@@ -1915,7 +1915,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
         }
       } catch {
-        /* use serverState fallback */
+        console.error('Failed to read progress file, using serverState fallback:');
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, progress, steps: [] }));
@@ -2344,7 +2344,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               totalSizeBytes = modelDetails.reduce((s: number, m: any) => s + (m.sizeBytes || 0), 0);
             }
           } catch {
-            /* tags may fail on older Ollama */
+            console.error('Failed to fetch Ollama model tags:');
           }
 
           try {
@@ -2362,7 +2362,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               totalVRAMBytes = runningModels.reduce((s: number, m: any) => s + (m.sizeVRAMBytes || 0), 0);
             }
           } catch {
-            /* /api/ps not available on older Ollama */
+            console.error('Failed to fetch Ollama running models:');
           }
         }
 
@@ -3243,7 +3243,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               }
             }
           } catch {
-            /* return partial results */
+            console.error('Failed to complete file search, returning partial results:');
           }
           const sorted = allResults
             .map((p) => ({
@@ -3319,7 +3319,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 entries.push({ name, type: 'directory', path: full });
               }
             } catch {
-              /* skip inaccessible */
+              console.error('Failed to stat directory entry:');
             }
           }
           entries.sort((a, b) => a.name.localeCompare(b.name));
@@ -3475,7 +3475,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 aiContextCallback(payload);
               }
             } catch {
-              /* ignore callback errors */
+              console.error('Failed to invoke AI context callback:');
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, content: markdown }));
@@ -3663,7 +3663,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               }
             }
           } catch {
-            /* ignore */
+            console.error('Failed to read workspace subdirectories:');
           }
           for (const basePath of searchPaths) {
             const configJsonPath = path.join(basePath, '.simplebeacon', 'config.json');
@@ -3759,7 +3759,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           payload = body ? JSON.parse(body) : {};
         } catch {
-          /* ignore */
+          console.error('Failed to parse request body as JSON:');
         }
         const isRoadmap = payload.analysisType === 'roadmap';
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3879,7 +3879,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             lastBrowserSessionTime = Date.now();
             recordTokenInRegistry(token, {}, 'unknown');
           }
-        } catch {}
+        } catch { console.error('Failed to record browser session token:'); }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ signedIn: !!lastBrowserSessionToken }));
       });
@@ -4207,7 +4207,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             purpose = String(data.purpose);
           }
         } catch {
-          /* ignore */
+          console.error('Failed to parse WebAuthn request body:');
         }
         const challenge = crypto.randomBytes(32).toString('base64url');
         const challengeId = crypto.randomBytes(16).toString('hex');
@@ -4364,7 +4364,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           token = await extensionContext.secrets.get('simplebeacon.apiToken');
         } catch {
-          /* ignore */
+          console.error('Failed to retrieve API token from secret storage:');
         }
       }
       if (!token) {
@@ -4409,7 +4409,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           token = await extensionContext.secrets.get('simplebeacon.apiToken');
         } catch {
-          /* ignore */
+          console.error('Failed to retrieve API token from secret storage:');
         }
       }
       const valid = token && validateLicenseLocally(token, PUBLIC_KEY_PEM);
@@ -4692,7 +4692,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             name = userData.name || userData.displayName || name;
           }
         } catch {
-          /* ignore userinfo failure */
+          console.error('Failed to fetch user info from OAuth provider:');
         }
         // Create or update local user and issue JWT
         let user = loadLocalUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
@@ -4798,7 +4798,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             try {
               notifyCallback(entry);
             } catch {
-              /* ignore */
+              console.error('Failed to invoke notification callback:');
             }
           }
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4832,7 +4832,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           try {
             notifyCallback(entry);
           } catch {
-            /* ignore */
+            console.error('Failed to invoke notification callback:');
           }
         }
         res.writeHead(200, { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store, must-revalidate' });
@@ -5826,7 +5826,7 @@ ${
       try {
         dataServer?.close();
       } catch {
-        /* ignore */
+        console.error('Failed to close data server on restart:');
       }
       dataServer = null;
       dataServerPort = 0;
@@ -5860,7 +5860,7 @@ ${
       try {
         dataServer?.close();
       } catch {
-        /* ignore */
+        console.error('Failed to close data server on error:');
       }
       dataServer = null;
       dataServerPort = 0;
@@ -5934,7 +5934,7 @@ export function stopDataServer(): void {
     try {
       (dataServer as any).closeAllConnections?.();
     } catch {
-      /* ignore */
+      console.error('Failed to close all connections:');
     }
     dataServer.close();
     dataServer = null;

@@ -94,15 +94,15 @@ async function buildReportBundle(licenseToken, reportJson) {
             try { cloned = JSON.parse(safeStringify(srcReport, 2)); } catch (e2) { cloned = srcReport; }
         }
         if (!signingKey) {
-            try { console.error('[DIAG] REPORT_SIGNING_KEY not configured — building unsigned snapshot'); } catch (e) {}
+            try { console.error('[DIAG] REPORT_SIGNING_KEY not configured — building unsigned snapshot'); } catch (e) { console.error('Failed to log diagnostic info:', e); }
             return cloned;
         }
         try {
-            try { console.error('[DIAG] buildSignedPayload signingKey present, keyId=', signingKeyId || null); } catch (e) {}
+            try { console.error('[DIAG] buildSignedPayload signingKey present, keyId=', signingKeyId || null); } catch (e) { console.error('Failed to log diagnostic info:', e); }
             const envelope = signReport(cloned, signingKey, signingKeyId || null);
             if (envelope) {
                 cloned.cryptoValidation = envelope;
-                try { console.error('[DIAG] buildSignedPayload attached signature length=', (envelope.signature || '').length); } catch (e) {}
+                try { console.error('[DIAG] buildSignedPayload attached signature length=', (envelope.signature || '').length); } catch (e) { console.error('Failed to log diagnostic info:', e); }
             }
         } catch (signErr) {
             logger.warn('[Reports] buildSignedPayload signing failed, continuing without signature:', signErr && signErr.message);
@@ -113,27 +113,27 @@ async function buildReportBundle(licenseToken, reportJson) {
     // Atomic write with fsync: write the signed payload to temp, fsync, close, then rename.
     const tmpPath = reportPath + '.tmp';
     try {
-        try { logger.info('[Reports] about to build signed payload and write file', { deliveryId, reportPath }); } catch (e) {}
-        try { console.error('[DIAG] about to build signed payload for deliveryId=', deliveryId, 'reportPath=', reportPath); } catch (e) {}
+        try { logger.info('[Reports] about to build signed payload and write file', { deliveryId, reportPath }); } catch (e) { console.error('Failed to log report write info:', e); }
+        try { console.error('[DIAG] about to build signed payload for deliveryId=', deliveryId, 'reportPath=', reportPath); } catch (e) { console.error('Failed to log diagnostic info:', e); }
         const signedPayload = buildSignedPayload(reportJson);
         const toWrite = JSON.stringify(signedPayload, null, 2);
-        try { logger.info('[Reports] pre-write signed hasCryptoValidation=' + (!!signedPayload.cryptoValidation), { deliveryId }); } catch (e) {}
-        try { console.error('[DIAG] pre-write signed hasCryptoValidation=', !!signedPayload.cryptoValidation, 'toWriteLen=', toWrite.length); } catch (e) {}
+        try { logger.info('[Reports] pre-write signed hasCryptoValidation=' + (!!signedPayload.cryptoValidation), { deliveryId }); } catch (e) { console.error('Failed to log pre-write info:', e); }
+        try { console.error('[DIAG] pre-write signed hasCryptoValidation=', !!signedPayload.cryptoValidation, 'toWriteLen=', toWrite.length); } catch (e) { console.error('Failed to log diagnostic info:', e); }
         const fd = fs.openSync(tmpPath, 'w', 0o600);
         try {
             fs.writeSync(fd, toWrite, null, 'utf8');
-            try { fs.fsyncSync(fd); } catch (e) { /* best-effort flush */ }
+            try { fs.fsyncSync(fd); } catch (e) { console.error('Failed to fsync file descriptor:', e); }
         } finally {
-            try { fs.closeSync(fd); } catch (e) { /* ignore */ }
+            try { fs.closeSync(fd); } catch (e) { console.error('Failed to close file descriptor:', e); }
         }
         fs.renameSync(tmpPath, reportPath);
         try {
             const after = fs.readFileSync(reportPath, 'utf8');
-            try { console.error('[DIAG] post-rename file snapshot (start)'); } catch (e) {}
-            try { console.error(after.slice(0, 4000)); } catch (e) {}
-            try { console.error('[DIAG] post-rename file snapshot (end)'); } catch (e) {}
+            try { console.error('[DIAG] post-rename file snapshot (start)'); } catch (e) { console.error('Failed to log diagnostic info:', e); }
+            try { console.error(after.slice(0, 4000)); } catch (e) { console.error('Failed to log file snapshot:', e); }
+            try { console.error('[DIAG] post-rename file snapshot (end)'); } catch (e) { console.error('Failed to log diagnostic info:', e); }
         } catch (e) {
-            try { console.error('[DIAG] post-rename read failed:', e && e.message); } catch (e2) {}
+            try { console.error('[DIAG] post-rename read failed:', e && e.message); } catch (e2) { console.error('Failed to log post-rename read failure:', e2); }
         }
 
         // Short-lived watcher: detect any quick subsequent modifications to this file
@@ -142,21 +142,21 @@ async function buildReportBundle(licenseToken, reportJson) {
                 try {
                     const now = fs.readFileSync(reportPath, 'utf8');
                     logger.info('[Reports] watcher detected modification', { deliveryId, eventType });
-                    try { console.error('[DIAG] watcher snapshot (start)'); } catch (e) {}
-                    try { console.error(now.slice(0, 4000)); } catch (e) {}
-                    try { console.error('[DIAG] watcher snapshot (end)'); } catch (e) {}
+                    try { console.error('[DIAG] watcher snapshot (start)'); } catch (e) { console.error('Failed to log diagnostic info:', e); }
+                    try { console.error(now.slice(0, 4000)); } catch (e) { console.error('Failed to log watcher snapshot:', e); }
+                    try { console.error('[DIAG] watcher snapshot (end)'); } catch (e) { console.error('Failed to log diagnostic info:', e); }
                 } catch (e) {
-                    try { console.error('[DIAG] watcher read failed:', e && e.message); } catch (e2) {}
+                    try { console.error('[DIAG] watcher read failed:', e && e.message); } catch (e2) { console.error('Failed to log watcher read failure:', e2); }
                 }
             });
             setTimeout(() => {
-                try { watcher.close(); } catch (e) {}
+                try { watcher.close(); } catch (e) { console.error('Failed to close file watcher:', e); }
             }, 2000);
         } catch (e) {
-            try { console.error('[DIAG] watcher install failed:', e && e.message); } catch (e2) {}
+            try { console.error('[DIAG] watcher install failed:', e && e.message); } catch (e2) { console.error('Failed to log watcher install failure:', e2); }
         }
     } catch (writeErr) {
-        try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) {}
+        try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { console.error('Failed to clean up temp file:', _); }
         throw writeErr;
     }
 

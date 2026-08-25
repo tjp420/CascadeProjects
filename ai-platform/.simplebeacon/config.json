@@ -330,7 +330,11 @@
         "ai-platform/auto-processor.js",
         "C:/Users/user/CascadeProjects/ai-platform/auto-processor.js",
         "ai-agent/plugins/token-optimizer.cjs",
-        "C:/Users/user/CascadeProjects/ai-agent/plugins/token-optimizer.cjs"
+        "C:/Users/user/CascadeProjects/ai-agent/plugins/token-optimizer.cjs",
+        "packages/simplebeacon-cli/src/rules/**",
+        "C:/Users/user/CascadeProjects/packages/simplebeacon-cli/src/rules/**",
+        "**/universal-ai-rules.json",
+        "**/agency-handoff-patterns.js"
       ]
     }
   },

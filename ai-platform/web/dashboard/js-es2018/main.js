@@ -51,7 +51,7 @@ import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefau
                 // Determine if this is an IDE surface, but still apply the embed shim
                 // so host chrome doesn't clip the page. Some IDE hosts do not hide
                 // chrome consistently, so ensure a safe padding is present.
-                try { typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface(); } catch (e) { /* ignore */ }
+                try { typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface(); } catch (e) { console.error('Failed to check IDE dashboard surface:', e); }
                 const cssVar = getComputedStyle(root).getPropertyValue('--embed-top-shim') || '';
                 const shimPx = parseInt(cssVar) || 48;
                 const appMain = document.querySelector('#app-main') || document.querySelector('.app-main');
@@ -69,7 +69,7 @@ import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefau
         };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
     }
-    catch (e) { /* no-op */ }
+    catch (e) { console.error('Failed to apply embed shim:', e); }
 })();
 /**
  * Vault unlock url.
@@ -308,7 +308,7 @@ class SimplebeaconDashboard {
             try {
                 let _params = new URLSearchParams(window.location.search || '');
                 _websiteMode = _params.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
-            } catch (_) { /* ignore */ }
+            } catch (_) { console.error('Failed to detect website mode from URL params:', _); }
             if (_websiteMode) {
                 document.documentElement.setAttribute('data-embed-full-nav', '1');
             } else {
@@ -324,7 +324,7 @@ class SimplebeaconDashboard {
             try {
                 let _params2 = new URLSearchParams(window.location.search || '');
                 _websiteMode2 = _params2.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
-            } catch (_) { /* ignore */ }
+            } catch (_) { console.error('Failed to detect website mode from URL params:', _); }
             if (_websiteMode2) {
                 document.documentElement.setAttribute('data-embed-full-nav', '1');
             } else {
@@ -373,7 +373,7 @@ class SimplebeaconDashboard {
                 container.style.overflowY = container.style.overflowY || 'auto';
             }
         }
-        catch (_b) { /* ignore */ }
+        catch (_b) { console.error('Failed to set container overflow style:', _b); }
         try {
             if (typeof container.scrollTo === 'function') {
                 container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -383,24 +383,24 @@ class SimplebeaconDashboard {
             }
         }
         catch (_c) {
-            try { container.scrollTop = 0; } catch (_d) { /* swallow */ }
+            try { container.scrollTop = 0; } catch (_d) { console.error('Failed to set container scrollTop:', _d); }
         }
         // Some embed hosts or subsequent layout changes may nudge the root scroll.
         // Ensure we clear any residual document scroll after the frame settles.
         try {
             requestAnimationFrame(() => {
                 try { requestAnimationFrame(() => {
-                    try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
-                    try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { }
-                }); } catch (_) { }
+                    try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { console.error('Failed to reset scrollingElement scrollTop:', _); }
+                    try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { console.error('Failed to reset window scroll:', _); }
+                }); } catch (_) { console.error('Failed to reset scroll in requestAnimationFrame:', _); }
             });
         }
-        catch (_e) { /* ignore */ }
+        catch (_e) { console.error('Failed to clear residual document scroll:', _e); }
         try {
             if (typeof window.scrollTo === 'function')
                 window.scrollTo(0, 0);
         }
-        catch (_d) { /* ignore */ }
+        catch (_d) { console.error('Failed to scroll window to top:', _d); }
         try {
             if (typeof document !== 'undefined') {
                 if (document.documentElement)
@@ -409,7 +409,7 @@ class SimplebeaconDashboard {
                     document.body.scrollTop = 0;
             }
         }
-        catch (_e) { /* ignore */ }
+        catch (_e) { console.error('Failed to reset document scroll position:', _e); }
     }
     _setupIdeScrollBridge() {
         if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
@@ -442,9 +442,9 @@ class SimplebeaconDashboard {
         const main = document.getElementById('app-main');
         if (main) {
             try { main.scrollTo({ top: 0, behavior: 'smooth' }); }
-            catch (_) { try { main.scrollTop = 0; } catch (_) { /* ignore */ } }
+            catch (_) { try { main.scrollTop = 0; } catch (_) { console.error('Failed to set main scrollTop:', _); } }
         }
-        try { window.scrollTo(0, 0); } catch (_) { /* ignore */ }
+        try { window.scrollTo(0, 0); } catch (_) { console.error('Failed to scroll window to top:', _); }
     }
     _setupScrollToTopButton() {
         if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
@@ -516,7 +516,7 @@ class SimplebeaconDashboard {
                 await discoverAndApplyExtensionBridge();
             }
         }
-        catch (_bridgeInit) { /* non-fatal */ }
+        catch (_bridgeInit) { console.error('Failed to initialize extension bridge:', _bridgeInit); }
         themeService.init();
         this.setupShell();
         this.setupEmbedQuickNav();
@@ -606,7 +606,7 @@ class SimplebeaconDashboard {
             if (sessionStorage.getItem('sb_bridge_notice_dismissed') === '1')
                 return;
         }
-        catch (_a) { /* ignore */ }
+        catch (_a) { console.error('Failed to check bridge notice dismissed state:', _a); }
         const bar = document.createElement('div');
         bar.id = 'bridge-notice-banner';
         bar.className = 'bridge-notice-banner';
@@ -621,7 +621,7 @@ class SimplebeaconDashboard {
             try {
                 sessionStorage.setItem('sb_bridge_notice_dismissed', '1');
             }
-            catch (_b) { /* ignore */ }
+            catch (_b) { console.error('Failed to persist bridge notice dismissed state:', _b); }
         });
         bar.appendChild(span);
         bar.appendChild(close);
@@ -636,7 +636,7 @@ class SimplebeaconDashboard {
                     return true;
             }
         }
-        catch (_a) { /* ignore */ }
+        catch (_a) { console.error('Failed to check extension bridge context:', _a); }
         return false;
     }
     showDemoBanner() {
@@ -1112,7 +1112,7 @@ class SimplebeaconDashboard {
                     return true;
             }
         }
-        catch (_sync) { /* non-fatal */ }
+        catch (_sync) { console.error('Failed to sync auth from extension bridge:', _sync); }
         return new Promise((resolve) => {
             let settled = false;
             const finish = (value) => {
@@ -1147,7 +1147,7 @@ class SimplebeaconDashboard {
                 try {
                     window.parent.postMessage({ command: 'getAuthState' }, '*');
                 }
-                catch (_a) { /* ignore */ }
+                catch (_a) { console.error('Failed to post auth state request to parent:', _a); }
             };
             ping();
             let pings = 0;
@@ -1635,7 +1635,7 @@ class SimplebeaconDashboard {
                 data = await this.scanService.fetchAll();
             }
             catch (_f) {
-                // Silent fallback — try local saved scan below
+                console.error('Failed to fetch default platform report:', _f);
             }
         }
         // No saved scan fallback — stale /data/ files removed
@@ -1648,7 +1648,7 @@ class SimplebeaconDashboard {
             }
         }
         catch (_g) {
-            // No re-attestation metadata available
+            console.error('Failed to load re-attestation metadata:', _g);
         }
         Object.assign(this.state, {
             report: (() => {
@@ -1682,7 +1682,7 @@ class SimplebeaconDashboard {
                         }
                     }
                 }
-            } catch { /* ignore — non-critical fallback */ }
+            } catch { console.error('Failed to fetch workspace info from extension bridge'); }
         }
         if (!this.state.lastProjectPath && !this.state.defaultProjectPath) {
             const reportRoot = data.report && data.report.projectRoot;
@@ -1705,7 +1705,7 @@ class SimplebeaconDashboard {
             }
         }
         catch (_a) {
-            /* optional — Analyze page loads this too */
+            console.error('Failed to fetch analyze providers:', _a);
         }
     }
     async loadPlatformData() {
@@ -1832,12 +1832,12 @@ class SimplebeaconDashboard {
                             if (typeof document !== 'undefined' && document.scrollingElement)
                                 document.scrollingElement.scrollTop = 0;
                         }
-                        catch (_a) { }
-                        try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_b) { }
+                        catch (_a) { console.error('Failed to reset scrollingElement scrollTop:', _a); }
+                        try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_b) { console.error('Failed to reset window scroll:', _b); }
                     });
                 });
             }
-            catch (_err) { /* ignore */ }
+            catch (_err) { console.error('Failed to clear residual scroll after view mount:', _err); }
         }
         if (view === 'dashboard') {
             this.startBackgroundScanWatcher();
@@ -2035,7 +2035,7 @@ class SimplebeaconDashboard {
                 }
             }
             catch (_a) {
-                // Silently ignore transient fetch errors
+                console.error('Failed to poll for new scan results:', _a);
             }
             finally {
                 this._bgScanPollInProgress = false;

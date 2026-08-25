@@ -66,7 +66,7 @@ function isIdeEmbedDownloadBridge() {
         if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base'))
             return true;
     }
-    catch (_a) { /* ignore */ }
+    catch (_a) { console.error('Failed to check IDE embed bridge params:', _a); }
     try {
         return window.self !== window.top;
     }
@@ -86,7 +86,7 @@ function wouldBeMixedOrLocalBridge(baseUrl) {
             /^(localhost|127\.0\.0\.1)$/i.test(base.hostname))
             return true;
     }
-    catch (_b) { /* ignore */ }
+    catch (_b) { console.error('Failed to check mixed or local bridge URL:', _b); }
     return false;
 }
 function getExtensionBridgeNotifyUrl() {
@@ -104,7 +104,7 @@ function getExtensionBridgeNotifyUrl() {
                 return `${clean}/api/download/notify`;
         }
     }
-    catch (_a) { /* ignore */ }
+    catch (_a) { console.error('Failed to resolve extension bridge notify URL:', _a); }
     return '/api/download/notify';
 }
 function notifyExtensionDownload(blob, filename) {
@@ -126,7 +126,7 @@ function notifyExtensionDownload(blob, filename) {
                 }, '*');
             }
         }
-        catch (_a) { /* ignore */ }
+        catch (_a) { console.error('Failed to post download message to parent:', _a); }
         try {
             fetch(getExtensionBridgeNotifyUrl(), {
                 method: 'POST',
@@ -134,7 +134,7 @@ function notifyExtensionDownload(blob, filename) {
                 body: JSON.stringify({ name: safeName, content: base64 })
             }).catch(() => { });
         }
-        catch (_b) { /* ignore */ }
+        catch (_b) { console.error('Failed to fetch extension bridge notify URL:', _b); }
     };
     reader.readAsDataURL(blob);
 }
@@ -202,13 +202,13 @@ export function downloadBlob(blob, filename) {
                 try {
                     normalDownload(blob, filename);
                 }
-                catch ( /* both methods failed */_a) { /* both methods failed */ }
+                catch ( /* both methods failed */_a) { console.error('Failed to download file with both methods:', _a); }
             };
             reader.readAsDataURL(blob);
             return;
         }
         catch (_a) {
-            // fall through to normal download
+            console.error('Failed to download via VS Code API:', _a);
         }
     }
     normalDownload(blob, filename);
@@ -527,7 +527,7 @@ export async function copyToClipboard(text) {
             return await navigator.clipboard.writeText(str);
         }
         catch (_a) {
-            // Non-secure context or permission denied — fall through to execCommand
+            console.error('Failed to write to clipboard:', _a);
         }
     }
     if (typeof document === 'undefined' || !document.body) {
@@ -617,12 +617,12 @@ export function isIdeDashboardSurface() {
         if (document.documentElement.hasAttribute('data-ide-embed'))
             return true;
     }
-    catch (_a) { /* ignore */ }
+    catch (_a) { console.error('Failed to check IDE embed attribute:', _a); }
     // Also consider VS Code / Cursor webviews where `acquireVsCodeApi` is exposed.
     try {
         if (typeof window.acquireVsCodeApi === 'function') return true;
     }
-    catch (_b) { /* ignore */ }
+    catch (_b) { console.error('Failed to check acquireVsCodeApi:', _b); }
     return window.self !== window.top;
 }
 
@@ -639,7 +639,7 @@ export function isExtensionHostedTab() {
         if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode'))
             return true;
     }
-    catch (_b) { /* ignore */ }
+    catch (_b) { console.error('Failed to check extension hosted tab params:', _b); }
     try {
         if (typeof sessionStorage !== 'undefined') {
             if (sessionStorage.getItem('sb_parent_urlbar') === '1')
@@ -648,7 +648,7 @@ export function isExtensionHostedTab() {
                 return true;
         }
     }
-    catch (_c) { /* ignore */ }
+    catch (_c) { console.error('Failed to check sessionStorage for extension params:', _c); }
     return false;
 }
 
@@ -732,7 +732,7 @@ export function setSafeHTML(el, html) {
                     }
                 }
             }
-            catch (_b) { /* ignore */ }
+            catch (_b) { console.error('Failed to load DOMPurify module:', _b); }
         }
 
         if (purifier && typeof purifier.sanitize === 'function') {
@@ -742,14 +742,14 @@ export function setSafeHTML(el, html) {
         }
     }
     catch (_a) {
-        // fall through to parser fallback
+        console.error('Failed to sanitize HTML with DOMPurify:', _a);
     }
     // Fallback: parse and replace children (no innerHTML used).
     setHtml(el, html);
 }
 
 if (typeof window !== 'undefined') {
-    try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
+    try { window.setSafeHTML = setSafeHTML; } catch (e) { console.error('Failed to set window.setSafeHTML:', e); }
 }
 
 let _vsCodeApiCache = null;
@@ -765,14 +765,14 @@ export function getVsCodeApi() {
             return _vsCodeApiCache;
         }
         catch (_a) {
-            /* fall through to iframe proxy */
+            console.error('Failed to acquire VS Code API:', _a);
         }
     }
     if (window.parent && window.parent !== window && !_vsCodeProxyCache) {
         _vsCodeProxyCache = {
             postMessage(msg) {
                 try { window.parent.postMessage(msg, '*'); }
-                catch (_b) { /* ignore */ }
+                catch (_b) { console.error('Failed to post message to parent for VS Code proxy:', _b); }
             }
         };
     }

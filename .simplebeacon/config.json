@@ -108,6 +108,8 @@
     "ai-platform/web/simplebeacon-dashboard/js/**/utils-lib/package.json",
     "ai-platform/web/simplebeacon-dashboard/js-es2018/**/utils-lib/package.json",
     "**/*.md",
+    "**/*.min.js",
+    "**/*.min.css",
     "**/dashboard-preview.html",
     "**/test-tokens.txt",
     "**/*-tokens.txt",
@@ -681,6 +683,8 @@
     ".codeium",
     "node_modules_host",
     ".container_node_modules",
-    "packages/simplebeacon-cli/src/rules"
+    "packages/simplebeacon-cli/src/rules",
+    "vsix-staging",
+    "simplebeacon-vscode-merged/vsix-staging"
   ]
 }

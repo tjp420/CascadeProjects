@@ -7,10 +7,10 @@
   if (vscode) window.vscode = vscode;
   // Report uncaught errors to the extension so they appear in the output channel instead of the hidden webview console
   window.addEventListener('error', function(e) {
-    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack ? e.error.stack : '' }); } catch(_) {} }
+    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack ? e.error.stack : '' }); } catch(_) { console.error('Failed to report sidebar error to extension:', _); } }
   });
   window.addEventListener('unhandledrejection', function(e) {
-    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: String(e.reason), file: '', line: 0, col: 0, stack: e.reason && e.reason.stack ? e.reason.stack : '' }); } catch(_) {} }
+    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: String(e.reason), file: '', line: 0, col: 0, stack: e.reason && e.reason.stack ? e.reason.stack : '' }); } catch(_) { console.error('Failed to report unhandled rejection to extension:', _); } }
   });
   // Direct server sign-out fallback: clears the browser session even if the extension message is dropped
   function _callServerSignout() {
@@ -18,7 +18,7 @@
       const base = window.__SB_DATA_SERVER_URL__ || '';
       if (!base) return;
       fetch(base + '/api/auth/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(function() {});
-    } catch (e) {}
+    } catch (e) { console.error('Failed to initiate server sign-out:', e); }
   }
   // Immediate local sign-out: clears the webview's stored tokens and updates the button so the UI responds right away
   function _clearSidebarAuthLocally() {
@@ -27,8 +27,8 @@
         localStorage.removeItem(k);
       });
       sessionStorage.removeItem('sb_sidebar_auth_ts');
-    } catch (e) {}
-    try { _updateSidebarAuthState(false); } catch (e) {}
+    } catch (e) { console.error('Failed to clear sidebar auth locally:', e); }
+    try { _updateSidebarAuthState(false); } catch (e) { console.error('Failed to update sidebar auth state:', e); }
   }
   function _bindViewReportBtn(id, command) {
     const el = document.getElementById(id);
@@ -42,7 +42,7 @@
     const displayPath = filePath || (actionPath.startsWith('browser://') ? '' : actionPath);
     const dlList = document.getElementById('dlList');
     if (!dlList) {
-      if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: 'Downloads list (#dlList) missing from sidebar DOM' }); } catch(_) {} }
+      if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: 'Downloads list (#dlList) missing from sidebar DOM' }); } catch(_) { console.error('Failed to report missing DOM element to extension:', _); } }
       return;
     }
     const dlEmpty = dlList.querySelector('.dl-empty');
@@ -502,7 +502,7 @@
   let _browserDropdownHeader=document.getElementById('browserDropdownHeader');if(_browserDropdownHeader){_browserDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
   let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode){window.vscode.postMessage({command:cmd});} if(cmd==='signOut'){_clearSidebarAuthLocally();_callServerSignout();}});}}
-  function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
+  function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){console.error('Failed to post openSigninPanel message:',e);}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
   _tdBind('tdOpenSiteSidebar','openTeamDashboard');
   _tdBind2('tdThemeToggleSidebar','toggleTheme');
   // Website / localhost mode toggle
@@ -514,13 +514,13 @@
     const activeMode = mode === 'localhost' ? 'localhost' : 'website';
     if (nameSpan) { nameSpan.textContent = activeMode === 'website' ? 'Website' : 'Local host'; }
     if (iconSpan) { iconSpan.textContent = activeMode === 'website' ? '\u{1F310}' : '\u{1F3E0}'; }
-    try { localStorage.setItem('sb_dashboard_mode', activeMode); } catch (e) {}
+    try { localStorage.setItem('sb_dashboard_mode', activeMode); } catch (e) { console.error('Failed to persist dashboard mode:', e); }
   }
   function _setDashboardMode(mode) {
     const activeMode = mode === 'localhost' ? 'localhost' : 'website';
     _applyDashboardMode(activeMode);
     if (window.vscode) {
-      try { window.vscode.postMessage({ command: 'setDashboardMode', mode: activeMode }); } catch (e) {}
+      try { window.vscode.postMessage({ command: 'setDashboardMode', mode: activeMode }); } catch (e) { console.error('Failed to post setDashboardMode message:', e); }
     }
   }
   function _toggleDashboardMode() {
@@ -1813,7 +1813,7 @@
       if (sbNavSignOutBtn) sbNavSignOutBtn.style.display = signedIn ? 'flex' : 'none';
       // Website/Localhost buttons are toggled above based on signed-in state.
     } catch (e) {
-      if (window.vscode) { try { window.vscode.postMessage({ command: 'sidebarError', message: String(e && e.message || e), stack: e && e.stack ? e.stack : '' }); } catch(_) {} }
+      if (window.vscode) { try { window.vscode.postMessage({ command: 'sidebarError', message: String(e && e.message || e), stack: e && e.stack ? e.stack : '' }); } catch(_) { console.error('Failed to report sidebar auth state error to extension:', _); } }
     }
   }
   window.addEventListener('message', function(e) {
@@ -1839,12 +1839,12 @@
             localStorage.removeItem(k);
           });
           sessionStorage.removeItem('sb_sidebar_auth_ts');
-        } catch(e) {}
+        } catch(e) { console.error('Failed to clear auth tokens from localStorage:', e); }
       } else if (msg.token) {
-        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) {}
+        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) { console.error('Failed to store auth token in localStorage:', e); }
       }
       if (msg.signedIn) {
-        try { sessionStorage.setItem('sb_sidebar_auth_ts', String(Date.now())); } catch(e) {}
+        try { sessionStorage.setItem('sb_sidebar_auth_ts', String(Date.now())); } catch(e) { console.error('Failed to store sidebar auth timestamp:', e); }
       }
       if (typeof msg.isAdmin === 'boolean') { _serverIsAdmin = msg.isAdmin; }
       _updateSidebarAuthState(msg.signedIn, msg.tier);
@@ -1855,11 +1855,11 @@
           const tokenCheck = localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
           debugLog.textContent = 'setAuthState: signedIn=' + msg.signedIn + ' tier=' + msg.tier + ' hasToken=' + (tokenCheck ? 'yes(' + tokenCheck.length + ')' : 'no') + ' at ' + new Date().toLocaleTimeString();
         }
-      } catch(e) {}
+      } catch(e) { console.error('Failed to log auth state debug info:', e); }
     }
     if (msg.command === 'rehydrateCachedSession') {
       if (msg.token) {
-        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) {}
+        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) { console.error('Failed to store rehydrated session token:', e); }
       }
       _updateSidebarAuthState(true);
     }
@@ -1892,7 +1892,7 @@
       _applySbTheme(msg.theme);
     }
     if (msg.command === 'getAuthState') {
-      if (vscode) { try { vscode.postMessage({ command: 'getAuthState' }); } catch (e) {} }
+      if (vscode) { try { vscode.postMessage({ command: 'getAuthState' }); } catch (e) { console.error('Failed to request auth state from extension:', e); } }
     }
   });
   _applySbTheme(document.documentElement.getAttribute('data-theme') || 'dark');
