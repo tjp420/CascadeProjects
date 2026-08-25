@@ -42,9 +42,9 @@ async function main() {
     console.error('ERROR: R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY environment variables required.');
     console.error('');
     console.error('Set them in PowerShell:');
-    console.error('  $env:R2_ACCESS_KEY_ID = "<R2_ACCESS_KEY_ID>"'); // placeholder guidance, do not commit real keys
-    console.error('  $env:R2_SECRET_ACCESS_KEY = "<R2_SECRET_ACCESS_KEY>"'); // placeholder guidance, do not commit real keys
-    console.error('  $env:R2_ACCOUNT_ID = "<R2_ACCOUNT_ID>"');
+    console.error('  $env:R2_ACCESS_KEY_ID = "<your-access-key-id>"'); // placeholder guidance, do not commit real keys
+    console.error('  $env:R2_SECRET_ACCESS_KEY = "<your-secret-access-key>"'); // placeholder guidance, do not commit real keys
+    console.error('  $env:R2_ACCOUNT_ID = "<your-account-id>"');
     process.exit(1);
   }
 

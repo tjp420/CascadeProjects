@@ -572,7 +572,7 @@ async function main() {
 
   if (!process.env.APOLLO_API_KEY) {
     console.error('[apollo] ERROR: APOLLO_API_KEY environment variable is required.');
-    console.error('[apollo] Set it via: export APOLLO_API_KEY=xxx  (Unix)  or  set APOLLO_API_KEY=xxx  (Windows)');
+    console.error('[apollo] Set it in your environment (Unix: export, Windows: set)');
     process.exit(1);
   }
 
