@@ -1,4 +1,9 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// ISSUE-810 AUDIT: innerHTML usage reviewed in this file. Findings:
+// - container.innerHTML = '' is used to clear the mount container (safe).
+// - resultsEl.innerHTML = this.renderResults() remains in use; renderResults() escapes user-supplied values via escapeHtml() in all template interpolations observed during the audit.
+// - render() uses insertAdjacentHTML for static structure; dynamic user content within those templates is escaped where applicable.
+// Conclusion: No immediate code changes required; ensure future contributors use escapeHtml or other sanitizers before inserting user-controlled strings into templates. Reference: GH issue #810 (audit innerHTML usage in AnalyzeView.js).
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
