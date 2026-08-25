@@ -1,0 +1,52 @@
+name: Publish VSIX to Marketplace
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install utilities
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Download VSIX asset from Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          REPO="${{ github.repository }}"
+          TAG="${{ github.event.release.tag_name }}"
+          API_URL="https://api.github.com/repos/$REPO/releases/tags/$TAG"
+          echo "Querying release: $API_URL"
+          ASSET_API_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$API_URL" | jq -r '.assets[] | select(.name | endswith(".vsix")) | .url')
+          if [ -z "$ASSET_API_URL" ] || [ "$ASSET_API_URL" = "null" ]; then
+            echo "No .vsix asset found on the release." >&2
+            exit 1
+          fi
+          echo "Found asset API url: $ASSET_API_URL"
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" "$ASSET_API_URL" -o extension.vsix
+          ls -lah extension.vsix
+
+      - name: Publish VSIX to Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "VSCE_PAT secret is not set. Add it to the repository secrets as described in the README." >&2
+            exit 1
+          fi
+          # Install vsce and publish the .vsix using the PAT
+          npm install -g vsce
+          npx vsce publish --packagePath ./extension.vsix --pat "$VSCE_PAT"
