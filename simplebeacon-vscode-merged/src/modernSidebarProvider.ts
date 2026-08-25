@@ -55,35 +55,73 @@ function getIdeThemeKind(): 'dark' | 'light' {
   return kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast ? 'dark' : 'light';
 }
 
-/** CSS variable overrides so the sidebar matches IDE dark/light (not stale webview tokens). */
+/** CSS variable overrides so the sidebar matches the dashboard app (/app/) look. */
 function buildSidebarThemeStyles(theme: 'dark' | 'light'): string {
+  // Palette mirrors coming-soon/public/app/css/variables.css so the IDE sidebar
+  // matches the hosted dashboard app's design system.
   const dark = {
-    '--vscode-editor-background': '#252526',
-    '--vscode-sideBar-background': '#252526',
-    '--vscode-sideBar-foreground': '#cccccc',
-    '--vscode-foreground': '#cccccc',
-    '--vscode-descriptionForeground': '#858585',
-    '--vscode-panel-border': '#3c3c3c',
-    '--vscode-input-background': '#3c3c3c',
-    '--vscode-list-hoverBackground': '#2a2d2e',
-    '--vscode-button-secondaryBackground': '#3c3c3c',
-    '--vscode-button-background': '#0e639c',
-    '--vscode-button-foreground': '#ffffff',
-    '--vscode-focusBorder': '#007acc',
+    '--vscode-editor-background': '#0b1120',
+    '--vscode-sideBar-background': '#0b1120',
+    '--vscode-sideBar-foreground': '#f1f5f9',
+    '--vscode-foreground': '#f1f5f9',
+    '--vscode-descriptionForeground': '#94a3b8',
+    '--vscode-panel-border': '#1e293b',
+    '--vscode-input-background': '#111827',
+    '--vscode-list-hoverBackground': '#1e293b',
+    '--vscode-button-secondaryBackground': '#1e293b',
+    '--vscode-button-background': '#818cf8',
+    '--vscode-button-hoverBackground': '#a5b4fc',
+    '--vscode-button-foreground': '#0b1120',
+    '--vscode-focusBorder': '#818cf8',
+    '--sb-surface': '#111827',
+    '--sb-surface-elevated': '#1e293b',
+    '--sb-surface-hover': '#1e293b',
+    '--sb-border': '#1e293b',
+    '--sb-border-subtle': '#172033',
+    '--sb-text-primary': '#f1f5f9',
+    '--sb-text-secondary': '#94a3b8',
+    '--sb-text-muted': '#94a3b8',
+    '--sb-primary': '#818cf8',
+    '--sb-primary-hover': '#a5b4fc',
+    '--sb-primary-subtle': 'rgba(129,140,248,0.12)',
+    '--sb-accent': '#22d3ee',
+    '--sb-success': '#10b981',
+    '--sb-warning': '#f59e0b',
+    '--sb-danger': '#ef4444',
+    '--sb-info': '#3b82f6',
+    '--sb-text-inverse': '#0b1120',
   };
   const light = {
-    '--vscode-editor-background': '#f3f3f3',
-    '--vscode-sideBar-background': '#f3f3f3',
-    '--vscode-sideBar-foreground': '#333333',
-    '--vscode-foreground': '#333333',
-    '--vscode-descriptionForeground': '#6c6c6c',
-    '--vscode-panel-border': '#e0e0e0',
+    '--vscode-editor-background': '#f8fafc',
+    '--vscode-sideBar-background': '#f8fafc',
+    '--vscode-sideBar-foreground': '#0f172a',
+    '--vscode-foreground': '#0f172a',
+    '--vscode-descriptionForeground': '#475569',
+    '--vscode-panel-border': '#e2e8f0',
     '--vscode-input-background': '#ffffff',
-    '--vscode-list-hoverBackground': '#e8e8e8',
-    '--vscode-button-secondaryBackground': '#e8e8e8',
-    '--vscode-button-background': '#0078d4',
+    '--vscode-list-hoverBackground': '#f1f5f9',
+    '--vscode-button-secondaryBackground': '#f1f5f9',
+    '--vscode-button-background': '#6366f1',
+    '--vscode-button-hoverBackground': '#4f46e5',
     '--vscode-button-foreground': '#ffffff',
-    '--vscode-focusBorder': '#007acc',
+    '--vscode-focusBorder': '#6366f1',
+    '--sb-surface': '#ffffff',
+    '--sb-surface-elevated': '#ffffff',
+    '--sb-surface-hover': '#f1f5f9',
+    '--sb-border': '#e2e8f0',
+    '--sb-border-subtle': '#f1f5f9',
+    '--sb-text-primary': '#0f172a',
+    '--sb-text-secondary': '#475569',
+    '--sb-text-muted': '#475569',
+    '--sb-primary': '#6366f1',
+    '--sb-primary-hover': '#4f46e5',
+    '--sb-primary-subtle': '#eef2ff',
+    '--sb-accent': '#06b6d4',
+    '--sb-success': '#10b981',
+    '--sb-warning': '#f59e0b',
+    '--sb-danger': '#ef4444',
+    '--sb-info': '#3b82f6',
+    '--sb-text-inverse': '#ffffff',
   };
   const palette = theme === 'dark' ? dark : light;
   const vars = Object.entries(palette)
@@ -94,18 +132,31 @@ html[data-theme="${theme}"] { color-scheme: ${theme}; ${vars}; }
 html[data-theme="${theme}"], html[data-theme="${theme}"] body {
   background: var(--vscode-sideBar-background);
   color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+html[data-theme="${theme}"] .tc-list-item,
+html[data-theme="${theme}"] .card,
+html[data-theme="${theme}"] .db-score-card,
+html[data-theme="${theme}"] .analyze-card,
+html[data-theme="${theme}"] .report-card {
+  background: var(--sb-surface);
+  border-color: var(--sb-border);
+}
+html[data-theme="${theme}"] .tc-list-item:hover,
+html[data-theme="${theme}"] .card:hover {
+  background: var(--sb-surface-hover);
 }
 html[data-theme="light"] .tc-list-item,
 html[data-theme="light"] .card,
 html[data-theme="light"] .db-score-card,
 html[data-theme="light"] .analyze-card,
 html[data-theme="light"] .report-card {
-  background: var(--vscode-input-background);
-  border-color: var(--vscode-panel-border);
+  background: var(--sb-surface);
+  border-color: var(--sb-border);
 }
 html[data-theme="light"] .tc-list-item:hover,
 html[data-theme="light"] .card:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--sb-surface-hover);
 }
 `;
 }
@@ -670,23 +721,25 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 <title>Token Registration</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e1e;color:#ccc;display:flex;align-items:center;justify-content:center}
+html,body{height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b1120;color:#f1f5f9;display:flex;align-items:center;justify-content:center}
 .container{width:100%;max-width:420px;padding:24px}
-.card{background:#252526;border:1px solid #3c3c3c;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
-h2{font-size:1.25rem;color:#fff;margin-bottom:6px}
-p.sub{color:#858585;font-size:0.85rem;margin-bottom:20px}
+.card{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+h2{font-size:1.25rem;color:#f1f5f9;margin-bottom:6px}
+p.sub{color:#94a3b8;font-size:0.85rem;margin-bottom:20px}
 .field{margin-bottom:16px}
-label{display:block;font-size:0.8rem;color:#858585;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
-input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #3c3c3c;background:#1e1e1e;color:#ccc;font-size:0.9rem;outline:none}
-input:focus{border-color:#007acc}
+label{display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #1e293b;background:#0b1120;color:#f1f5f9;font-size:0.9rem;outline:none}
+input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.12)}
 input[readonly]{opacity:0.6;cursor:not-allowed}
 .actions{display:flex;gap:10px;margin-top:24px}
-button{flex:1;padding:10px;border-radius:6px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
-button.primary{background:#0e639c;color:#fff}
-button.secondary{background:#2d2d30;color:#ccc;border:1px solid #3c3c3c}
+button{flex:1;padding:10px;border-radius:8px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+button.primary{background:#818cf8;color:#0b1120}
+button.primary:hover{background:#a5b4fc}
+button.secondary{background:#1e293b;color:#f1f5f9;border:1px solid #1e293b}
+button.secondary:hover{background:#334155}
 button:hover{opacity:0.9}
-.status{margin-top:16px;font-size:0.85rem;color:#89d185;min-height:1.2em}
-.status.error{color:#f48771}
+.status{margin-top:16px;font-size:0.85rem;color:#10b981;min-height:1.2em}
+.status.error{color:#ef4444}
 </style>
 </head>
 <body>
@@ -822,23 +875,25 @@ $('saveUsbBtn').addEventListener('click', () => {
 <title>Replace Token</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e1e;color:#ccc;display:flex;align-items:center;justify-content:center}
+html,body{height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b1120;color:#f1f5f9;display:flex;align-items:center;justify-content:center}
 .container{width:100%;max-width:420px;padding:24px}
-.card{background:#252526;border:1px solid #3c3c3c;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
-h2{font-size:1.25rem;color:#fff;margin-bottom:6px}
-p.sub{color:#858585;font-size:0.85rem;margin-bottom:20px}
+.card{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+h2{font-size:1.25rem;color:#f1f5f9;margin-bottom:6px}
+p.sub{color:#94a3b8;font-size:0.85rem;margin-bottom:20px}
 .field{margin-bottom:16px}
-label{display:block;font-size:0.8rem;color:#858585;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
-input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #3c3c3c;background:#1e1e1e;color:#ccc;font-size:0.9rem;outline:none}
-input:focus{border-color:#007acc}
+label{display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #1e293b;background:#0b1120;color:#f1f5f9;font-size:0.9rem;outline:none}
+input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.12)}
 input[readonly]{opacity:0.6;cursor:not-allowed}
 .actions{display:flex;gap:10px;margin-top:24px}
-button{flex:1;padding:10px;border-radius:6px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
-button.primary{background:#0e639c;color:#fff}
-button.secondary{background:#2d2d30;color:#ccc;border:1px solid #3c3c3c}
+button{flex:1;padding:10px;border-radius:8px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+button.primary{background:#818cf8;color:#0b1120}
+button.primary:hover{background:#a5b4fc}
+button.secondary{background:#1e293b;color:#f1f5f9;border:1px solid #1e293b}
+button.secondary:hover{background:#334155}
 button:hover{opacity:0.9}
-.status{margin-top:16px;font-size:0.85rem;color:#89d185;min-height:1.2em}
-.status.error{color:#f48771}
+.status{margin-top:16px;font-size:0.85rem;color:#10b981;min-height:1.2em}
+.status.error{color:#ef4444}
 </style>
 </head>
 <body>
@@ -2363,17 +2418,18 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
   gap: 10px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));
-  background: var(--vscode-sideBar-background, linear-gradient(135deg, #1e1e1e 0%, #252526 100%));
+  background: var(--vscode-sideBar-background, linear-gradient(135deg, #0b1120 0%, #111827 100%));
   flex-shrink: 0;
 }
 .header-icon {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #818cf8) 0%, var(--sb-primary-hover, #a5b4fc) 100%);
   display: flex; align-items: center; justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(239,68,68,0.3);
+  box-shadow: 0 2px 8px rgba(129,140,248,0.3);
+  color: var(--sb-text-inverse, #0b1120);
 }
 .header-text { display: flex; flex-direction: column; }
 .header-title { font-size: 15px; font-weight: 700; color: var(--vscode-foreground, #fff); letter-spacing: 0.2px; }
@@ -2566,12 +2622,19 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 /* Tab section headers */
 .tab-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--vscode-descriptionForeground,#858585);margin:14px 12px 8px;}
 .tab-section:first-child{margin-top:8px;}
-/* Website-sync grouped nav sections */
-.sb-nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--vscode-descriptionForeground,#858585);margin:16px 12px 8px;}
+/* Website-sync grouped nav sections — mirrors /app/ sidebar nav-link styling */
+.sb-nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--sb-text-muted,#94a3b8);margin:14px 12px 6px;padding:0 4px;}
 .sb-nav-section:first-child{margin-top:8px;}
-.sb-nav-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;margin:0 12px 6px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .15s;box-sizing:border-box;}
-.sb-nav-item:hover{background:rgba(255,255,255,0.06);}
-.sb-nav-item svg{flex-shrink:0;color:var(--vscode-foreground,#ccc);}
+.sb-nav-items{display:flex;flex-direction:column;gap:1px;padding:0 4px;}
+.sb-nav-item{position:relative;display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;margin:0;border-radius:8px;background:transparent;border:none;color:var(--sb-text-secondary,#94a3b8);font-size:12px;font-weight:500;cursor:pointer;transition:background .18s,color .18s;box-sizing:border-box;text-align:left;font-family:inherit;}
+.sb-nav-item:hover{background:var(--sb-surface-hover,#1e293b);color:var(--sb-text-primary,#f1f5f9);}
+.sb-nav-item:active{transform:scale(0.99);}
+.sb-nav-item.sb-nav-item--accent{color:var(--sb-primary,#818cf8);}
+.sb-nav-item.sb-nav-item--accent:hover{background:var(--sb-primary-subtle,rgba(129,140,248,0.12));color:var(--sb-primary,#818cf8);}
+.sb-nav-item svg{flex-shrink:0;color:currentColor;opacity:0.85;}
+.sb-nav-item .sb-nav-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-nav-item .sb-nav-external{opacity:0.5;font-size:10px;margin-left:auto;}
+.sb-nav-divider{height:1px;background:var(--sb-border,#1e293b);margin:10px 12px;border:none;}
 /* Quick links */
 .quick-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px;}
 .ql-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .2s;}
@@ -5298,6 +5361,64 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="card-label">Token Management</div>
       <div class="card-value" id="tokenManagementTier">No token — Sign In</div>
     </div>
+  </div>
+</div>
+<div id="sbWebsiteNav" class="sb-website-nav">
+  <hr class="sb-nav-divider" />
+  <div class="sb-nav-section">App</div>
+  <div class="sb-nav-items">
+    <button type="button" class="sb-nav-item sb-nav-item--accent" data-command="openDashboard" title="Open the dashboard app in the IDE">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span class="sb-nav-label">Dashboard</span>
+    </button>
+    <button type="button" class="sb-nav-item sb-nav-item--accent" data-command="openAudit" title="Open the audit report in the IDE">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span class="sb-nav-label">Audit</span>
+    </button>
+  </div>
+  <div class="sb-nav-section">Website</div>
+  <div class="sb-nav-items">
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/roadmap" title="Open Roadmap in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"/></svg>
+      <span class="sb-nav-label">Roadmap</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/pricing" title="Open Pricing in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <span class="sb-nav-label">Pricing</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/community" title="Open Install / Community in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"/></svg>
+      <span class="sb-nav-label">Install</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/blog/case-study-ai-slop-1-25m" title="Open Blog in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+      <span class="sb-nav-label">Blog</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/faq" title="Open FAQ in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="sb-nav-label">FAQ</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="openExternalUrl" data-url="https://simplebeacon.ai/contact" title="Open Contact in your browser">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      <span class="sb-nav-label">Contact</span>
+      <span class="sb-nav-external">&#x2197;</span>
+    </button>
+  </div>
+  <div class="sb-nav-section">Account</div>
+  <div class="sb-nav-items">
+    <button type="button" class="sb-nav-item sb-nav-item--accent" data-command="signIn" id="sbNavSignInBtn" title="Sign in to SimpleBeacon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      <span class="sb-nav-label">Sign In</span>
+    </button>
+    <button type="button" class="sb-nav-item" data-command="signOut" id="sbNavSignOutBtn" style="display:none;" title="Sign out of SimpleBeacon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span class="sb-nav-label">Sign Out</span>
+    </button>
   </div>
 </div>
 <script nonce="${nonce}">

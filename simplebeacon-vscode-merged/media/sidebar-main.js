@@ -151,13 +151,22 @@
     document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
     document.body.classList.add('detail-panel-open');
   }, true);
-  // Website-sync grouped nav items: post data-command directly to the extension
+  // Website-sync grouped nav items: post data-command directly to the extension.
+  // Also forwards data-url / data-path so a single command (e.g. openExternalUrl,
+  // openBrowserPath) can be reused for many website nav buttons.
   document.addEventListener('click', function(e) {
     let item = e.target.closest('.sb-nav-item');
     if (!item) return;
     let cmd = item.getAttribute('data-command');
     if (!cmd) return;
-    if (window.vscode) { window.vscode.postMessage({ command: cmd }); }
+    if (window.vscode) {
+      let payload = { command: cmd };
+      let url = item.getAttribute('data-url');
+      let p = item.getAttribute('data-path');
+      if (url) payload.url = url;
+      if (p) payload.path = p;
+      window.vscode.postMessage(payload);
+    }
   }, true);
   function _closeDetailPanels(){
     document.body.classList.remove('detail-panel-open');
@@ -536,6 +545,8 @@
   let _sidebarSignOutLink=document.getElementById('sidebarSignOutLink');if(_sidebarSignOutLink){_sidebarSignOutLink.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
   let _headerSignInBtn=document.getElementById('headerSignInBtn');if(_headerSignInBtn){_headerSignInBtn.addEventListener('click',function(){_openSigninWithClear();});}
   let _headerSignOutBtn=document.getElementById('headerSignOutBtn');if(_headerSignOutBtn){_headerSignOutBtn.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
+  let _sbNavSignInBtn=document.getElementById('sbNavSignInBtn');if(_sbNavSignInBtn){_sbNavSignInBtn.addEventListener('click',function(e){e.stopPropagation();_openSigninWithClear();});}
+  let _sbNavSignOutBtn=document.getElementById('sbNavSignOutBtn');if(_sbNavSignOutBtn){_sbNavSignOutBtn.addEventListener('click',function(e){e.stopPropagation();_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
   let _tdSignOutSidebarEl=document.getElementById('tdSignOutSidebar');if(_tdSignOutSidebarEl){_tdSignOutSidebarEl.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
   _tdBind2('tdGitHubSidebar','openGitHub');
   let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
@@ -1795,6 +1806,11 @@
       if (headerSignInBtn) headerSignInBtn.style.display = signedIn ? 'none' : 'inline-flex';
       let headerSignOutBtn = document.getElementById('headerSignOutBtn');
       if (headerSignOutBtn) headerSignOutBtn.style.display = signedIn ? 'inline-flex' : 'none';
+      // Website nav account buttons (sbNavSignInBtn / sbNavSignOutBtn)
+      let sbNavSignInBtn = document.getElementById('sbNavSignInBtn');
+      if (sbNavSignInBtn) sbNavSignInBtn.style.display = signedIn ? 'none' : 'flex';
+      let sbNavSignOutBtn = document.getElementById('sbNavSignOutBtn');
+      if (sbNavSignOutBtn) sbNavSignOutBtn.style.display = signedIn ? 'flex' : 'none';
       // Website/Localhost buttons are toggled above based on signed-in state.
     } catch (e) {
       if (window.vscode) { try { window.vscode.postMessage({ command: 'sidebarError', message: String(e && e.message || e), stack: e && e.stack ? e.stack : '' }); } catch(_) {} }

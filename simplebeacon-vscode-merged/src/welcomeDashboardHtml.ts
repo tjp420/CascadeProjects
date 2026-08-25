@@ -26,6 +26,26 @@ export function buildDashboardHtml(options: DashboardHtmlOptions): string {
 <title>SimpleBeacon Dashboard</title>
 <script nonce="${nonce}">(function(){try{if(typeof acquireVsCodeApi==='function'||/vscode/i.test(navigator.userAgent)){document.documentElement.setAttribute('data-ide-embed','true');document.documentElement.setAttribute('data-ide-preview','true');}}catch(e){} })();</script>
 <style>
+/* Dashboard app (/app/) design-system palette — mirrors coming-soon/public/app/css/variables.css */
+:root{
+  --primary:#818cf8;--primary-hover:#a5b4fc;--primary-subtle:rgba(129,140,248,0.12);--accent:#22d3ee;
+  --sb-surface:#111827;--sb-surface-elevated:#1e293b;--sb-surface-hover:#1e293b;--sb-border:#1e293b;
+  --sb-text-primary:#f1f5f9;--sb-text-secondary:#94a3b8;--sb-text-muted:#94a3b8;
+  --sb-success:#10b981;--sb-warning:#f59e0b;--sb-danger:#ef4444;--sb-info:#3b82f6;
+  --vscode-editor-background:#0b1120;--vscode-sideBar-background:#0b1120;--vscode-foreground:#f1f5f9;
+  --vscode-descriptionForeground:#94a3b8;--vscode-panel-border:#1e293b;--vscode-input-background:#111827;
+  --vscode-list-hoverBackground:#1e293b;--vscode-button-background:#818cf8;--vscode-button-hoverBackground:#a5b4fc;
+  --vscode-button-foreground:#0b1120;--vscode-focusBorder:#818cf8;
+}
+body.vscode-light,body.vscode-high-contrast-light{
+  --primary:#6366f1;--primary-hover:#4f46e5;--primary-subtle:#eef2ff;--accent:#06b6d4;
+  --sb-surface:#ffffff;--sb-surface-elevated:#ffffff;--sb-surface-hover:#f1f5f9;--sb-border:#e2e8f0;
+  --sb-text-primary:#0f172a;--sb-text-secondary:#475569;--sb-text-muted:#475569;
+  --vscode-editor-background:#f8fafc;--vscode-sideBar-background:#f8fafc;--vscode-foreground:#0f172a;
+  --vscode-descriptionForeground:#475569;--vscode-panel-border:#e2e8f0;--vscode-input-background:#ffffff;
+  --vscode-list-hoverBackground:#f1f5f9;--vscode-button-background:#6366f1;--vscode-button-hoverBackground:#4f46e5;
+  --vscode-button-foreground:#ffffff;--vscode-focusBorder:#6366f1;
+}
 /* Embed overrides: force full-height and enable scrolling inside IDE webviews */
 [data-ide-embed], [data-ide-preview], html[data-ide-embed], body[data-ide-embed], html[data-ide-preview], body[data-ide-preview] {
   height:100% !important;
