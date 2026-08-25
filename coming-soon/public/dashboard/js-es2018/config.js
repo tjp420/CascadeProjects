@@ -21,7 +21,7 @@ export const COMING_SOON_URL = env.COMING_SOON_URL || '/';
 export const VSIX_DOWNLOAD_URL =
     env.VSIX_DOWNLOAD_URL ||
     (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.vsixDownloadUrl) ||
-    'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix';
+    'https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode';
 /** Portable local scan agent (~70 MiB) — hosted on GitHub releases, not Cloudflare Pages. */
 export const LOCAL_AGENT_DOWNLOAD_URL =
     env.LOCAL_AGENT_DOWNLOAD_URL ||

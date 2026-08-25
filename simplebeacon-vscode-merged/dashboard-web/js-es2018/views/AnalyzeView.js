@@ -1,4 +1,9 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// ISSUE-810 AUDIT: innerHTML usage reviewed in this file. Findings:
+// - resultsEl.innerHTML = this.renderResults() — renderResults() escapes user-supplied values via escapeHtml() in all template interpolations.
+// - panel.innerHTML on line ~13582 uses ${totalFiles} (a number, not user input) — safe.
+// - container.innerHTML = '' is used to clear the mount container (safe).
+// Conclusion: No unescaped user-controlled data reaches innerHTML. Future contributors must use escapeHtml() for any new dynamic content. Reference: GH issue #810.
 import {
   escapeHtml,
   showToast,

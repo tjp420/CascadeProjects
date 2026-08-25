@@ -113,8 +113,8 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
                     if html is None:
                         self.send_error(404, 'index.html not found')
                         return
-                except Exception:
-                    pass
+                except Exception as e:
+                    logging.error("spa_fallback index.html reload failed: %s", e)
             if sb_parent or sb_website:
                 # Inject attributes into <html ...> tag while preserving existing attributes
                 try:
@@ -125,10 +125,10 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
                     inject_runtime_flag = '<script>try{document.documentElement.setAttribute("data-parent-urlbar","1");document.documentElement.setAttribute("data-ide-embed","1");window.__SB_PARENT_URL_BAR__=true;window.__SB_IDE_EMBED__=true;}catch(e){};</script>'
                     # Place runtime flag script after opening <head>
                     html = re.sub(r'(<head[^>]*>)', r"\1" + inject_runtime_flag, html, count=1)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as e:
+                    logging.error("spa_fallback HTML attribute injection failed: %s", e)
+        except Exception as e:
+            logging.error("spa_fallback HTML transform failed: %s", e)
         data = html.encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -242,8 +242,8 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
                     demo = _load_demo_json()
                     if demo is not None:
                         return self._json_response(200, demo)
-            except Exception:
-                pass
+            except Exception as e:
+                logging.error("spa_fallback demo JSON load failed: %s", e)
             self._json_response(200, {"ok": False, "message": "API server unavailable"})
 
     def do_POST(self):

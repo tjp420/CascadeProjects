@@ -504,6 +504,11 @@ function scanFileAgainstRule(content, relPath, rule) {
     const line = lines[lineIndex] || "";
     const trimmedLine = line.trim();
 
+    // Skip shebang lines (e.g. #!/usr/bin/env node) — standard Unix interpreter directive, not a hardcoded path
+    if (lineIndex === 0 && /^#!/.test(trimmedLine)) {
+      continue;
+    }
+
     // Skip comment-only lines for code patterns (unless rule says otherwise)
     if (/^(\/\/|#|\*|\/\*)/.test(trimmedLine)) {
       // Still flag if the pattern itself targets comments

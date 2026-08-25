@@ -372,7 +372,7 @@ if (fs.existsSync(dashboardSrc)) {
         // these defaults after it loads.
         dashHtml = dashHtml.replace(
             /<\/head>/i,
-            '  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>\n  <script src="/site-config.js"></script>\n  <script src="/js-es2018/referral-capture.js" defer></script>\n</head>'
+            '  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode",pricing:{plans:[]}};</script>\n  <script src="/site-config.js"></script>\n  <script src="/js-es2018/referral-capture.js" defer></script>\n</head>'
         );
         if (!/<title>/i.test(dashHtml)) {
             dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
@@ -478,7 +478,7 @@ try {
                 fs.copyFileSync(latest, path.join(vsixDir, versionedName));
                 process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/${versionedName}\n`);
             }
-            process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/simplebeacon.vsix\n`);
+            process.stdout.write(`Copied VSIX ${vsixFiles[0]} → publichttps://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode\n`);
         }
     }
 } catch (e) {

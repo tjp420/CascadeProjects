@@ -10037,7 +10037,7 @@ jn.COMING_SOON_URL;
 const RS =
         jn.VSIX_DOWNLOAD_URL ||
         (typeof window < 'u' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.vsixDownloadUrl) ||
-        'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix',
+        'https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode',
     PS =
         jn.LOCAL_AGENT_DOWNLOAD_URL ||
         (typeof window < 'u' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.localAgentDownloadUrl) ||
@@ -15838,7 +15838,7 @@ function iv() {
         const t = window.SIMPLEBEACON_SITE_CONFIG;
         if (t != null && t.vsixDownloadUrl) return t.vsixDownloadUrl;
     }
-    return 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix';
+    return 'https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode';
 }
 function ov({ scanGatePass: t }) {
     const [s, a] = c.useState(null),

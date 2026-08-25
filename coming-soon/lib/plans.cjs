@@ -23,7 +23,7 @@ const PLANS = {
         ],
         footnote: 'No credit card required',
         cta: 'Install Free',
-        ctaLink: '/downloads/simplebeacon.vsix',
+        ctaLink: 'https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode',
         moduleAccess: ['gate', 'llm-slop'],
         limits: { maxFilesPerScan: 50, maxFindingsShown: 5, showQualityScore: false },
         defaultTtlDays: 365,
