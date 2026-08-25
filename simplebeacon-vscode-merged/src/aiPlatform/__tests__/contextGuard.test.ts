@@ -5,25 +5,22 @@
 
 // Mock vscode module — getSbConfig() calls vscode.workspace.getConfiguration('simplebeacon')
 const mockShowInformationMessage = jest.fn();
-const mockConfig: Record<string, any> = {};
+const mockConfig: Record<string, unknown> = {};
 jest.mock('vscode', () => ({
   window: {
     showInformationMessage: mockShowInformationMessage,
   },
   workspace: {
     getConfiguration: jest.fn(() => ({
-      get: jest.fn((key: string, defaultValue: any) => mockConfig[key] ?? defaultValue),
+      get: jest.fn((key: string, defaultValue: unknown) => mockConfig[key] ?? defaultValue),
     })),
   },
 }));
 
 // Import once — mock state is reset in beforeEach, not the module
-const {
-  applyContextGuard,
-  getContextGuardMode,
-  getContextGuardMaxChars,
-  resetToastDebounce,
-} = require('../contextGuard');
+const { applyContextGuard, getContextGuardMode, getContextGuardMaxChars, resetToastDebounce } =
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('../contextGuard');
 
 describe('ContextGuard', () => {
   beforeEach(() => {
@@ -157,12 +154,8 @@ describe('ContextGuard', () => {
       mockConfig.contextGuardMaxChars = 600;
       const content = 'x'.repeat(2500);
       applyContextGuard(content, 'bigfile.js');
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('bigfile.js'),
-      );
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('truncated'),
-      );
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('bigfile.js'));
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('truncated'));
     });
 
     test('toast message mentions the threshold', () => {
@@ -170,9 +163,7 @@ describe('ContextGuard', () => {
       mockConfig.contextGuardMaxChars = 4000;
       const content = 'x'.repeat(5000);
       applyContextGuard(content, 'test.js');
-      expect(mockShowInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('4,000'),
-      );
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(expect.stringContaining('4,000'));
     });
   });
 

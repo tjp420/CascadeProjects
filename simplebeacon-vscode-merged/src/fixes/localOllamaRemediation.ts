@@ -98,8 +98,8 @@ export function extractCodeFromResponse(response: string): string {
   // and doesn't start with common prose markers, treat it as code
   const lines = trimmed.split(/\r?\n/);
   const firstLine = lines[0].trim();
-  const looksLikeProse = /^(Here|This|The|I |You |To fix|Fix:|Solution:|Note:)/i.test(firstLine)
-    || /[.!?]$/.test(firstLine);
+  const looksLikeProse =
+    /^(Here|This|The|I |You |To fix|Fix:|Solution:|Note:)/i.test(firstLine) || /[.!?]$/.test(firstLine);
 
   if (looksLikeProse && lines.length > 1) {
     // Try to find the first line that looks like code (starts with common code patterns)

@@ -58,11 +58,7 @@ const CVARINFO_DEFAULT_REGEX = /^(\w+)\s+(\w+)\s+(\w+)\s+defaultvalue\s+(.+)$/gi
 /**
  * Scan a single file for asset references and check if they exist.
  */
-function scanFileForAssetRefs(
-  filePath: string,
-  content: string,
-  modRoot: string
-): GzAssetReference[] {
+function scanFileForAssetRefs(filePath: string, content: string, modRoot: string): GzAssetReference[] {
   const refs: GzAssetReference[] = [];
   const lines = content.split('\n');
 
@@ -192,21 +188,27 @@ export function scanGzdoomMod(modRoot: string): GzScanResult {
             const content = fs.readFileSync(fullPath, 'utf8');
             const refs = scanFileForAssetRefs(fullPath, content, modRoot);
             assetRefs.push(...refs);
-          } catch { /* skip unreadable files */ }
+          } catch {
+            /* skip unreadable files */
+          }
         }
 
         if (CONFIG_EXTENSIONS.includes(ext)) {
           try {
             const content = fs.readFileSync(fullPath, 'utf8');
             configFiles.push({ file: fullPath, content });
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
 
         if (ext === '.cvarinfo') {
           try {
             const content = fs.readFileSync(fullPath, 'utf8');
             cvarinfoFiles.push({ file: fullPath, content });
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
     }
@@ -276,7 +278,17 @@ export function scanGzdoomMod(modRoot: string): GzScanResult {
 export function isGzdoomFile(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
   return [
-    '.zs', '.zscript', '.cvarinfo', '.keyconf', '.mapinfo',
-    '.bat', '.cfg', '.ini', '.wad', '.pk3', '.pk7', '.ipk3',
+    '.zs',
+    '.zscript',
+    '.cvarinfo',
+    '.keyconf',
+    '.mapinfo',
+    '.bat',
+    '.cfg',
+    '.ini',
+    '.wad',
+    '.pk3',
+    '.pk7',
+    '.ipk3',
   ].includes(ext);
 }

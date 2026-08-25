@@ -4,6 +4,7 @@
  *
  * These tests mock the http module to avoid requiring a running engine.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports
 
 import { EventEmitter } from 'events';
 
@@ -126,26 +127,33 @@ describe('EngineApiClient', () => {
         } else {
           expect(opts.path).toBe('/api/realtime/scan-content');
           expect(opts.method).toBe('POST');
-          cb(createMockRes(200, JSON.stringify({
-            success: true,
-            filename: 'test.js',
-            language: 'js',
-            engineUsed: 'cli-38-engines',
-            findingCount: 1,
-            findings: [{
-              id: 'SB-SEC-007a',
-              severity: 'high',
-              type: 'secret-password',
-              filePath: 'test.js',
-              line: 1,
-              column: 1,
-              description: 'Hardcoded password detected',
-              recommendedAction: 'Use process.env.PASSWORD',
-              pattern: 'password',
-              engine: 'cli',
-            }],
-            scannedAt: '2026-08-13T12:00:00.000Z',
-          })));
+          cb(
+            createMockRes(
+              200,
+              JSON.stringify({
+                success: true,
+                filename: 'test.js',
+                language: 'js',
+                engineUsed: 'cli-38-engines',
+                findingCount: 1,
+                findings: [
+                  {
+                    id: 'SB-SEC-007a',
+                    severity: 'high',
+                    type: 'secret-password',
+                    filePath: 'test.js',
+                    line: 1,
+                    column: 1,
+                    description: 'Hardcoded password detected',
+                    recommendedAction: 'Use process.env.PASSWORD',
+                    pattern: 'password',
+                    engine: 'cli',
+                  },
+                ],
+                scannedAt: '2026-08-13T12:00:00.000Z',
+              })
+            )
+          );
         }
         return createMockReq();
       });

@@ -26,7 +26,10 @@ const DISMISSAL_THRESHOLD = 0.3; // 30% dismissal rate triggers a suggestion
 const MIN_SAMPLES = 5; // Need at least 5 findings before suggesting
 
 export class DismissalTracker {
-  private stats = new Map<string, { findings: number; dismissed: number; lastDismissed: Date | null; lastSeen: Date | null }>();
+  private stats = new Map<
+    string,
+    { findings: number; dismissed: number; lastDismissed: Date | null; lastSeen: Date | null }
+  >();
   private dismissedSignatures = new Set<string>();
 
   /**

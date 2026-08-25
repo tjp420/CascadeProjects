@@ -190,7 +190,8 @@ function buildLineOffsets(lines: string[]): number[] {
  * Binary search to find line number from a character offset using line offsets array.
  */
 function lineFromOffset(lineOffsets: number[], charOffset: number): number {
-  let lo = 0, hi = lineOffsets.length - 1;
+  let lo = 0,
+    hi = lineOffsets.length - 1;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
     if (lineOffsets[mid] <= charOffset) lo = mid;
@@ -537,9 +538,7 @@ export class RealtimeMonitor {
 
       // File-size guard: skip heavy pattern analysis on very large files
       const MAX_ANALYZE_SIZE = 500000; // 500KB
-      const analyzeContent = content.length > MAX_ANALYZE_SIZE
-        ? content.slice(0, MAX_ANALYZE_SIZE)
-        : content;
+      const analyzeContent = content.length > MAX_ANALYZE_SIZE ? content.slice(0, MAX_ANALYZE_SIZE) : content;
 
       const config = getSbConfig();
       const preset = config.get<string>('preset', 'default');
@@ -678,7 +677,12 @@ export class RealtimeMonitor {
     return false;
   }
 
-  private async detectIssues(filePath: string, content: string, fileExtension: string, lines: string[]): Promise<RealtimeIssue[]> {
+  private async detectIssues(
+    filePath: string,
+    content: string,
+    fileExtension: string,
+    lines: string[]
+  ): Promise<RealtimeIssue[]> {
     const issues: RealtimeIssue[] = [];
     const patterns = getPatternsForFileType(fileExtension);
     const fileHeader = lines[0] || '';
@@ -703,7 +707,10 @@ export class RealtimeMonitor {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
           // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
-          if (this.isSuppressed(line, prevLine, pattern.type) || this.hasFileLevelSuppression(fileHeader, pattern.type)) {
+          if (
+            this.isSuppressed(line, prevLine, pattern.type) ||
+            this.hasFileLevelSuppression(fileHeader, pattern.type)
+          ) {
             continue;
           }
           const column = match.index ? match.index + 1 : 1;
@@ -935,7 +942,12 @@ export class RealtimeMonitor {
     return issues;
   }
 
-  private detectASTPatterns(filePath: string, content: string, fileExtension: string, lines: string[]): RealtimeIssue[] {
+  private detectASTPatterns(
+    filePath: string,
+    content: string,
+    fileExtension: string,
+    lines: string[]
+  ): RealtimeIssue[] {
     const issues: RealtimeIssue[] = [];
     if (!['js', 'ts', 'jsx', 'tsx', 'cjs', 'mjs'].includes(fileExtension)) return issues;
 

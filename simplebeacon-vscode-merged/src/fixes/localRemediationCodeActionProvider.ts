@@ -31,10 +31,7 @@ export class LocalRemediationCodeActionProvider implements vscode.CodeActionProv
       }
 
       // In-place Ollama fix — applies the generated fix directly to the editor buffer
-      const inPlaceAction = new vscode.CodeAction(
-        'Fix with local Ollama (in-place)',
-        vscode.CodeActionKind.QuickFix
-      );
+      const inPlaceAction = new vscode.CodeAction('Fix with local Ollama (in-place)', vscode.CodeActionKind.QuickFix);
       inPlaceAction.diagnostics = [diagnostic];
       inPlaceAction.command = {
         title: 'Fix with local Ollama (in-place)',

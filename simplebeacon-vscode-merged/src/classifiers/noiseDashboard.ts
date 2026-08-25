@@ -37,9 +37,13 @@ export class NoiseDashboard {
 
     NoiseDashboard.panel.webview.html = NoiseDashboard.getHtml(data);
 
-    NoiseDashboard.panel.onDidDispose(() => {
-      NoiseDashboard.panel = null;
-    }, null, context.subscriptions);
+    NoiseDashboard.panel.onDidDispose(
+      () => {
+        NoiseDashboard.panel = null;
+      },
+      null,
+      context.subscriptions
+    );
   }
 
   private static getHtml(data: {
@@ -53,8 +57,10 @@ export class NoiseDashboard {
   }): string {
     // Build the HTML content
     const overallRate = (data.overallDismissalRate * 100).toFixed(1);
-    const healthColor = data.overallDismissalRate < 0.1 ? '#22c55e' : data.overallDismissalRate < 0.3 ? '#f59e0b' : '#ef4444';
-    const healthLabel = data.overallDismissalRate < 0.1 ? 'Healthy' : data.overallDismissalRate < 0.3 ? 'Needs Tuning' : 'Noisy';
+    const healthColor =
+      data.overallDismissalRate < 0.1 ? '#22c55e' : data.overallDismissalRate < 0.3 ? '#f59e0b' : '#ef4444';
+    const healthLabel =
+      data.overallDismissalRate < 0.1 ? 'Healthy' : data.overallDismissalRate < 0.3 ? 'Needs Tuning' : 'Noisy';
 
     const noisiestRows = data.noisiest
       .map((r) => {
@@ -80,9 +86,10 @@ export class NoiseDashboard {
       })
       .join('');
 
-    const dormantList = data.dormant.length > 0
-      ? data.dormant.map((r) => `<code style="margin-right:8px">${r}</code>`).join('')
-      : '<em>None — all rules have produced findings</em>';
+    const dormantList =
+      data.dormant.length > 0
+        ? data.dormant.map((r) => `<code style="margin-right:8px">${r}</code>`).join('')
+        : '<em>None — all rules have produced findings</em>';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -144,18 +151,26 @@ export class NoiseDashboard {
   </div>
 
   <h2>Top 10 Noisiest Rules</h2>
-  ${noisiestRows ? `<table>
+  ${
+    noisiestRows
+      ? `<table>
     <thead><tr><th>Rule Type</th><th style="text-align:right">Findings</th><th style="text-align:right">Dismissed</th><th style="text-align:right">Dismissal %</th></tr></thead>
     <tbody>${noisiestRows}</tbody>
-  </table>` : '<div class="empty">No findings recorded yet this session.</div>'}
+  </table>`
+      : '<div class="empty">No findings recorded yet this session.</div>'
+  }
 
-  ${data.suggestions.length > 0 ? `
+  ${
+    data.suggestions.length > 0
+      ? `
   <h2>⚠️ Suggested Allowlist Entries</h2>
   <p style="opacity:0.7">These rules have dismissal rates above 30% — consider allowlisting or adjusting their confidence threshold.</p>
   <table>
     <thead><tr><th>Rule Type</th><th style="text-align:right">Dismissal %</th><th>Suggestion</th></tr></thead>
     <tbody>${suggestionRows}</tbody>
-  </table>` : ''}
+  </table>`
+      : ''
+  }
 
   <h2>Dormant Rules (Zero Findings)</h2>
   <p style="opacity:0.7">Rules that have not produced any findings this session — candidates for removal or re-tuning.</p>

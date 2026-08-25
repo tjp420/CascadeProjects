@@ -52,10 +52,19 @@ jest.mock('vscode', () => ({
       writeText: mockClipboardWriteText,
     },
   },
-  Range: jest.fn((startLine: number, startCol: number, endLine: number, endCol: number) => ({ startLine, startCol, endLine, endCol })),
+  Range: jest.fn((startLine: number, startCol: number, endLine: number, endCol: number) => ({
+    startLine,
+    startCol,
+    endLine,
+    endCol,
+  })),
   Diagnostic: jest.fn((range: unknown, message: string, severity: number) => ({ range, message, severity })),
   DiagnosticSeverity: { Error: 0, Warning: 1, Information: 2, Hint: 3 },
-  Disposable: { from: jest.fn((...disposables: Array<{ dispose: () => void }>) => ({ dispose: () => disposables.forEach((d) => d.dispose()) })) },
+  Disposable: {
+    from: jest.fn((...disposables: Array<{ dispose: () => void }>) => ({
+      dispose: () => disposables.forEach((d) => d.dispose()),
+    })),
+  },
   ExtensionContext: jest.fn(() => ({ subscriptions: [] })),
 }));
 
@@ -134,11 +143,38 @@ describe('DiffScanner', () => {
   describe('filterToChangedLines', () => {
     it('filters findings to only changed lines', () => {
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 3, column: 1, severity: 'warning', type: 'test', message: 'msg', timestamp: new Date() },
-        { file: 'app.ts', line: 7, column: 1, severity: 'warning', type: 'test', message: 'msg', timestamp: new Date() },
-        { file: 'app.ts', line: 15, column: 1, severity: 'warning', type: 'test', message: 'msg', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 3,
+          column: 1,
+          severity: 'warning',
+          type: 'test',
+          message: 'msg',
+          timestamp: new Date(),
+        },
+        {
+          file: 'app.ts',
+          line: 7,
+          column: 1,
+          severity: 'warning',
+          type: 'test',
+          message: 'msg',
+          timestamp: new Date(),
+        },
+        {
+          file: 'app.ts',
+          line: 15,
+          column: 1,
+          severity: 'warning',
+          type: 'test',
+          message: 'msg',
+          timestamp: new Date(),
+        },
       ];
-      const changedLines = [{ start: 5, end: 10 }, { start: 13, end: 20 }];
+      const changedLines = [
+        { start: 5, end: 10 },
+        { start: 13, end: 20 },
+      ];
 
       const filtered = filterToChangedLines(findings, changedLines);
       expect(filtered.length).toBe(2);
@@ -148,7 +184,15 @@ describe('DiffScanner', () => {
 
     it('returns empty for no changed lines', () => {
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 1, column: 1, severity: 'warning', type: 'test', message: 'msg', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'test',
+          message: 'msg',
+          timestamp: new Date(),
+        },
       ];
       expect(filterToChangedLines(findings, [])).toEqual([]);
     });
@@ -158,7 +202,15 @@ describe('DiffScanner', () => {
     it('builds a passing result when no blocking findings', () => {
       const files = [{ filePath: 'app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 2, column: 1, severity: 'info', type: 'todo', message: 'TODO found', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 2,
+          column: 1,
+          severity: 'info',
+          type: 'todo',
+          message: 'TODO found',
+          timestamp: new Date(),
+        },
       ];
 
       const result = buildDiffScanResult(files, findings, [], 'error');
@@ -170,7 +222,15 @@ describe('DiffScanner', () => {
     it('builds a failing result when error findings exist', () => {
       const files = [{ filePath: 'app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 2, column: 1, severity: 'error', type: 'hardcoded-password', message: 'Password found', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 2,
+          column: 1,
+          severity: 'error',
+          type: 'hardcoded-password',
+          message: 'Password found',
+          timestamp: new Date(),
+        },
       ];
 
       const result = buildDiffScanResult(files, findings, [], 'error');
@@ -182,7 +242,15 @@ describe('DiffScanner', () => {
     it('blocks on warnings when configured', () => {
       const files = [{ filePath: 'app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 2, column: 1, severity: 'warning', type: 'console-log', message: 'console.log', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 2,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'console.log',
+          timestamp: new Date(),
+        },
       ];
 
       const result = buildDiffScanResult(files, findings, [], 'warning');
@@ -195,7 +263,16 @@ describe('DiffScanner', () => {
     it('generates a readable report', () => {
       const files = [{ filePath: 'src/app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 2, column: 1, severity: 'error', type: 'hardcoded-password', message: 'Password leaked', suggestion: 'Use env var', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 2,
+          column: 1,
+          severity: 'error',
+          type: 'hardcoded-password',
+          message: 'Password leaked',
+          suggestion: 'Use env var',
+          timestamp: new Date(),
+        },
       ];
 
       const result = buildDiffScanResult(files, findings, [], 'error');
@@ -266,7 +343,15 @@ describe('AgentValidation', () => {
     it('blocks finalization when gate fails', () => {
       const files = [{ filePath: 'app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 2, column: 1, severity: 'error', type: 'secret', message: 'Secret!', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 2,
+          column: 1,
+          severity: 'error',
+          type: 'secret',
+          message: 'Secret!',
+          timestamp: new Date(),
+        },
       ];
       const scanResult = buildDiffScanResult(files, findings, [], 'error');
 
@@ -279,7 +364,15 @@ describe('AgentValidation', () => {
     it('recommends human review for warnings when configured', () => {
       const files = [{ filePath: 'app.ts', status: 'modified' as const, changedLines: [{ start: 1, end: 5 }] }];
       const findings: RealtimeIssue[] = [
-        { file: 'app.ts', line: 2, column: 1, severity: 'warning', type: 'console-log', message: 'console.log', timestamp: new Date() },
+        {
+          file: 'app.ts',
+          line: 2,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'console.log',
+          timestamp: new Date(),
+        },
       ];
       const scanResult = buildDiffScanResult(files, findings, [], 'error');
 
@@ -389,10 +482,7 @@ describe('AgentValidation', () => {
       };
       fs.writeFileSync(path.join(tmpDir, '.simplebeacon', 'codemap-analysis.json'), JSON.stringify(codemap));
 
-      const result = buildCouplingSummary(
-        ['ai-platform/server/lib/cluster-keyring-sync.cjs'],
-        tmpDir
-      );
+      const result = buildCouplingSummary(['ai-platform/server/lib/cluster-keyring-sync.cjs'], tmpDir);
       expect(result).not.toBeNull();
       expect(result).toContain('Coupling Summary');
       expect(result).toContain('High Coupling');
@@ -417,7 +507,7 @@ describe('AgentValidation', () => {
   describe('registerContextInterceptor', () => {
     let tmpDir: string;
     let mockDeps: ContextInterceptorDeps;
-    let mockContext: any;
+    let mockContext: unknown;
     let aiSessionActive = false;
     let aiEditedFiles: string[] = [];
 
@@ -440,7 +530,9 @@ describe('AgentValidation', () => {
       mockDeps = {
         isAiSessionActive: () => aiSessionActive,
         getAiEditedFiles: () => aiEditedFiles,
-        onAiSessionEnd: (cb) => { capturedSessionEndCallback = cb; },
+        onAiSessionEnd: (cb) => {
+          capturedSessionEndCallback = cb;
+        },
         workspaceRoot: tmpDir,
         outputChannel: { appendLine: jest.fn() },
       };

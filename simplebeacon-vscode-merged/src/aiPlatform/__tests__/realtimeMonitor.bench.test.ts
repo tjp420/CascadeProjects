@@ -29,7 +29,8 @@ function buildLineOffsets(lines: string[]): number[] {
 }
 
 function lineFromOffset(lineOffsets: number[], charOffset: number): number {
-  let lo = 0, hi = lineOffsets.length - 1;
+  let lo = 0,
+    hi = lineOffsets.length - 1;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
     if (lineOffsets[mid] <= charOffset) lo = mid;
@@ -65,11 +66,11 @@ function generateSampleFile(lineCount: number): string {
     '                return data.filter(x => x.active);',
     '            };',
     '        };',
-    'import { Component } from \'react\';',
-    'import { useState } from \'react\';',
-    'import { useEffect } from \'react\';',
-    'import { useCallback } from \'react\';',
-    'import { useRef } from \'react\';',
+    "import { Component } from 'react';",
+    "import { useState } from 'react';",
+    "import { useEffect } from 'react';",
+    "import { useCallback } from 'react';",
+    "import { useRef } from 'react';",
     'debugger;',
     'try { riskyOperation(); } catch (e) { console.log(e); }',
     'try { anotherRiskyOp(); } catch (e) { console.log(e); }',
@@ -142,7 +143,6 @@ describe('realtimeMonitor line-lookup performance', () => {
 
     const speedup = linearMs / binaryMs;
 
-    // eslint-disable-next-line no-console
     console.log(`
 ┌──────────────────────────────────────────────────────────┐
 │  RealtimeMonitor Line-Lookup Benchmark (10K lines)      │
@@ -171,11 +171,11 @@ describe('realtimeMonitor line-lookup performance', () => {
     const testLines = ['abc', 'def', 'ghi'];
     const offsets = buildLineOffsets(testLines);
 
-    expect(lineFromOffset(offsets, 0)).toBe(1);  // start of line 1
-    expect(lineFromOffset(offsets, 3)).toBe(1);  // end of line 1 (before \n)
-    expect(lineFromOffset(offsets, 4)).toBe(2);  // start of line 2
-    expect(lineFromOffset(offsets, 7)).toBe(2);  // end of line 2
-    expect(lineFromOffset(offsets, 8)).toBe(3);  // start of line 3
+    expect(lineFromOffset(offsets, 0)).toBe(1); // start of line 1
+    expect(lineFromOffset(offsets, 3)).toBe(1); // end of line 1 (before \n)
+    expect(lineFromOffset(offsets, 4)).toBe(2); // start of line 2
+    expect(lineFromOffset(offsets, 7)).toBe(2); // end of line 2
+    expect(lineFromOffset(offsets, 8)).toBe(3); // start of line 3
     expect(lineFromOffset(offsets, 11)).toBe(3); // end of line 3
   });
 

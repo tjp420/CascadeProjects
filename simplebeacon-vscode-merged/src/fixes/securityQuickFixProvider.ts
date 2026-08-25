@@ -93,9 +93,7 @@ function fixDbAntiPattern(
   matchedText: string
 ): vscode.WorkspaceEdit | null {
   // Match patterns like: .query("SELECT ... " + variable)
-  const concatMatch = matchedText.match(
-    /(\w+(?:\.\w+)*)\s*\(\s*(['"`])([\s\S]*?)\2\s*\+\s*(\w+)\s*\)/
-  );
+  const concatMatch = matchedText.match(/(\w+(?:\.\w+)*)\s*\(\s*(['"`])([\s\S]*?)\2\s*\+\s*(\w+)\s*\)/);
   if (!concatMatch) return null;
 
   const [, queryFn, quote, sqlBody, variable] = concatMatch;
@@ -164,9 +162,7 @@ function fixPrototypePollution(
   range: vscode.Range,
   matchedText: string
 ): vscode.WorkspaceEdit | null {
-  const protoMatch = matchedText.match(
-    /(const|let|var)\s+(\w+)\s*=\s*\{\s*__proto__\s*:/ 
-  );
+  const protoMatch = matchedText.match(/(const|let|var)\s+(\w+)\s*=\s*\{\s*__proto__\s*:/);
   if (!protoMatch) return null;
 
   const [, keyword, varName] = protoMatch;
@@ -180,11 +176,7 @@ function fixPrototypePollution(
 interface FixRecipe {
   patternId: string;
   title: string;
-  buildEdit: (
-    document: vscode.TextDocument,
-    range: vscode.Range,
-    matchedText: string
-  ) => vscode.WorkspaceEdit | null;
+  buildEdit: (document: vscode.TextDocument, range: vscode.Range, matchedText: string) => vscode.WorkspaceEdit | null;
 }
 
 const FIX_RECIPES: FixRecipe[] = [
@@ -193,7 +185,11 @@ const FIX_RECIPES: FixRecipe[] = [
   { patternId: 'dbAntiPattern', title: 'Convert to parameterized query', buildEdit: fixDbAntiPattern },
   { patternId: 'credentials', title: 'Replace with process.env reference', buildEdit: fixCredentials },
   { patternId: 'loggingSecrets', title: 'Comment out secret logging', buildEdit: fixLoggingSecrets },
-  { patternId: 'prototypePollution', title: 'Replace __proto__ with Object.create(null)', buildEdit: fixPrototypePollution },
+  {
+    patternId: 'prototypePollution',
+    title: 'Replace __proto__ with Object.create(null)',
+    buildEdit: fixPrototypePollution,
+  },
 ];
 
 export class SecurityQuickFixProvider implements vscode.CodeActionProvider {
@@ -217,10 +213,7 @@ export class SecurityQuickFixProvider implements vscode.CodeActionProvider {
         const edit = recipe.buildEdit(document, diagnostic.range, matchedText);
         if (!edit) continue;
 
-        const action = new vscode.CodeAction(
-          `SimpleBeacon: ${recipe.title}`,
-          vscode.CodeActionKind.QuickFix
-        );
+        const action = new vscode.CodeAction(`SimpleBeacon: ${recipe.title}`, vscode.CodeActionKind.QuickFix);
         action.edit = edit;
         action.diagnostics = [diagnostic];
         action.isPreferred = true;
@@ -228,10 +221,7 @@ export class SecurityQuickFixProvider implements vscode.CodeActionProvider {
       }
 
       // Always add a "show remediation guide" action for security diagnostics
-      const guideAction = new vscode.CodeAction(
-        'SimpleBeacon: Show remediation guide',
-        vscode.CodeActionKind.QuickFix
-      );
+      const guideAction = new vscode.CodeAction('SimpleBeacon: Show remediation guide', vscode.CodeActionKind.QuickFix);
       guideAction.diagnostics = [diagnostic];
       guideAction.command = {
         title: 'Show remediation guide',

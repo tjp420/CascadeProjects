@@ -1,4 +1,12 @@
-import { DEFAULT_SETTINGS, SlopCopSettings, MonitoringMode, ScanScope, RuleTier, BlockingBehavior, PauseDuration } from '../slopCopSettings';
+import {
+  DEFAULT_SETTINGS,
+  SlopCopSettings,
+  MonitoringMode,
+  ScanScope,
+  RuleTier,
+  BlockingBehavior,
+  PauseDuration,
+} from '../slopCopSettings';
 
 // We test the pure logic functions without the VS Code dependency
 // by importing the settings model types and testing defaults + logic

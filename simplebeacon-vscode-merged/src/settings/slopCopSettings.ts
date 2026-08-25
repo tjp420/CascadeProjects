@@ -170,7 +170,9 @@ export class SlopCopSettingsManager {
   /**
    * Update status fields (runtime, not persisted).
    */
-  updateStatus(status: Partial<Pick<SlopCopSettings, 'lastScanTime' | 'activeBlockedFindings' | 'suppressedFalsePositives'>>): void {
+  updateStatus(
+    status: Partial<Pick<SlopCopSettings, 'lastScanTime' | 'activeBlockedFindings' | 'suppressedFalsePositives'>>
+  ): void {
     this.settings = { ...this.settings, ...status };
     this.notifyListeners();
   }
@@ -209,9 +211,12 @@ export class SlopCopSettingsManager {
    */
   getBlockOnSeverity(): 'error' | 'warning' | 'info' | 'none' {
     switch (this.settings.blockingBehavior) {
-      case 'high-only': return 'error';
-      case 'medium-plus': return 'warning';
-      case 'advisory-none': return 'none';
+      case 'high-only':
+        return 'error';
+      case 'medium-plus':
+        return 'warning';
+      case 'advisory-none':
+        return 'none';
     }
   }
 
@@ -220,10 +225,14 @@ export class SlopCopSettingsManager {
    */
   getRuleTierFilter(): 'security' | 'security-plus-repo' | 'all' | 'minimal' {
     switch (this.settings.ruleTier) {
-      case 'security-only': return 'security';
-      case 'security-plus-repo': return 'security-plus-repo';
-      case 'all-rules': return 'all';
-      case 'minimal-advisory': return 'minimal';
+      case 'security-only':
+        return 'security';
+      case 'security-plus-repo':
+        return 'security-plus-repo';
+      case 'all-rules':
+        return 'all';
+      case 'minimal-advisory':
+        return 'minimal';
     }
   }
 

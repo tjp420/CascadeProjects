@@ -101,7 +101,8 @@ export const FIX_REGISTRY: Record<string, FixFunction> = {
         // Replace Math.random() with a crypto-backed inline helper to avoid requiring top-level imports.
         description: 'Replace Math.random() with a crypto-backed inline helper',
         search: /Math\.random\s*\(\)/g, // simplebeacon-ignore weak-crypto — scanner rule definition
-        replace: '(function(){const c=require("crypto");return Number.parseInt(c.randomBytes(6).toString("hex"),16)/281474976710656;})()',
+        replace:
+          '(function(){const c=require("crypto");return Number.parseInt(c.randomBytes(6).toString("hex"),16)/281474976710656;})()',
         autoFixable: true,
       };
     }

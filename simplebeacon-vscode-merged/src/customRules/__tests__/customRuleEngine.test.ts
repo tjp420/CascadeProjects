@@ -160,11 +160,17 @@ describe('CustomRuleEngine', () => {
   describe('applySeverityOverrides', () => {
     it('overrides severity for matching rule type', () => {
       const issues: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
-      const overrides: SeverityOverride[] = [
-        { ruleType: 'console-log', severity: 'error', reason: 'Override' },
-      ];
+      const overrides: SeverityOverride[] = [{ ruleType: 'console-log', severity: 'error', reason: 'Override' }];
 
       const result = applySeverityOverrides(overrides, issues, 'src/app.ts', 'app');
       expect(result.length).toBe(1);
@@ -174,11 +180,17 @@ describe('CustomRuleEngine', () => {
 
     it('suppresses findings when override severity is suppressed', () => {
       const issues: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
-      const overrides: SeverityOverride[] = [
-        { ruleType: 'console-log', severity: 'suppressed', reason: 'Disabled' },
-      ];
+      const overrides: SeverityOverride[] = [{ ruleType: 'console-log', severity: 'suppressed', reason: 'Disabled' }];
 
       const result = applySeverityOverrides(overrides, issues, 'src/app.ts', 'app');
       expect(result.length).toBe(0);
@@ -192,7 +204,15 @@ describe('CustomRuleEngine', () => {
 
       // Issue in src/api/ — should be overridden
       const apiIssues: RealtimeIssue[] = [
-        { file: 'src/api/handler.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/api/handler.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
       const apiResult = applySeverityOverrides(overrides, apiIssues, 'src/api/handler.ts', 'app');
       expect(apiResult.length).toBe(1);
@@ -200,7 +220,15 @@ describe('CustomRuleEngine', () => {
 
       // Issue in src/utils/ — should NOT be overridden
       const utilIssues: RealtimeIssue[] = [
-        { file: 'src/utils/helper.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/utils/helper.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
       const utilResult = applySeverityOverrides(overrides, utilIssues, 'src/utils/helper.ts', 'app');
       expect(utilResult.length).toBe(1);
@@ -209,7 +237,15 @@ describe('CustomRuleEngine', () => {
 
     it('respects fileRoles targeting in overrides', () => {
       const issues: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
       const overrides: SeverityOverride[] = [
         { ruleType: 'console-log', severity: 'error', fileRoles: ['test'], reason: 'Test only override' },
@@ -222,11 +258,17 @@ describe('CustomRuleEngine', () => {
 
     it('does not affect unmatched rule types', () => {
       const issues: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 1, column: 1, severity: 'warning', type: 'todo-comment', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'todo-comment',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
-      const overrides: SeverityOverride[] = [
-        { ruleType: 'console-log', severity: 'error', reason: 'Override' },
-      ];
+      const overrides: SeverityOverride[] = [{ ruleType: 'console-log', severity: 'error', reason: 'Override' }];
 
       const result = applySeverityOverrides(overrides, issues, 'src/app.ts', 'app');
       expect(result.length).toBe(1);
@@ -235,12 +277,26 @@ describe('CustomRuleEngine', () => {
 
     it('wildcard ruleType matches all', () => {
       const issues: RealtimeIssue[] = [
-        { file: 'src/app.ts', line: 1, column: 1, severity: 'warning', type: 'console-log', message: 'test', timestamp: new Date() },
-        { file: 'src/app.ts', line: 2, column: 1, severity: 'info', type: 'todo-comment', message: 'test', timestamp: new Date() },
+        {
+          file: 'src/app.ts',
+          line: 1,
+          column: 1,
+          severity: 'warning',
+          type: 'console-log',
+          message: 'test',
+          timestamp: new Date(),
+        },
+        {
+          file: 'src/app.ts',
+          line: 2,
+          column: 1,
+          severity: 'info',
+          type: 'todo-comment',
+          message: 'test',
+          timestamp: new Date(),
+        },
       ];
-      const overrides: SeverityOverride[] = [
-        { ruleType: '*', severity: 'error', reason: 'Override all' },
-      ];
+      const overrides: SeverityOverride[] = [{ ruleType: '*', severity: 'error', reason: 'Override all' }];
 
       const result = applySeverityOverrides(overrides, issues, 'src/app.ts', 'app');
       expect(result.length).toBe(2);
