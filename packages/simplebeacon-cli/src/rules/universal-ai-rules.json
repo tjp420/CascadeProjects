@@ -14,7 +14,7 @@
   {
     "id": "SB-AI-002",
     "name": "TODO/FIXME/HACK marker left in code",
-    "pattern": "(?:TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\\b",
+    "pattern": "(?:\\/\\/\\s*(?:TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\\b|\\/\\*\\s*(?:TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\\b|#\\s*(?:TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\\b|<!--\\s*(?:TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\\b)",
     "patternFlags": "gi",
     "severity": "low",
     "fileExtensions": [".py", ".go", ".rs", ".c", ".cpp", ".h", ".hpp", ".java", ".rb", ".php", ".sh", ".bash", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".vue", ".svelte", ".swift", ".kt", ".dart", ".lua", ".pl", ".r", ".jl", ".cs", ".scala", ".groovy", ".clj", ".ex", ".erl", ".fs", ".hs", ".ml", ".nim", ".pas", ".tcl", ".v", ".zig", ".zs", ".zscript", ".sql", ".graphql", ".html", ".css", ".scss"],
