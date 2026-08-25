@@ -323,6 +323,13 @@
     },
     "python-ast-patterns": {
       "enabled": true
+    },
+    "custom-heuristic": {
+      "enabled": true,
+      "ignoreGlobs": [
+        "ai-platform/auto-processor.js",
+        "C:/Users/user/CascadeProjects/ai-platform/auto-processor.js"
+      ]
     }
   },
   "gate": {
