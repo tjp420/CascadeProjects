@@ -31,7 +31,7 @@ const FILE_PATH = path.join(
   'sha256-9293878fb6938c7051a7c5f7a609e41e185be8926b6b7c9dd355d95cdac817ad'
 );
 const PART_SIZE = 100 * 1024 * 1024; // 100MB per part (well under 5GB limit)
-const ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '8815946f6d5847844ea60cf05e43f871';
+const ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '<R2_ACCOUNT_ID>'; // require env override for real deploys; placeholder kept to avoid accidental leakage
 const ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
 async function main() {
