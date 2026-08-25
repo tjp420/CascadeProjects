@@ -16,7 +16,7 @@
     "fetch-grammars": "node scripts/fetch-grammars.js"
   },
   "optionalDependencies": {
-    "web-tree-sitter": "^0.24.7"
+    "web-tree-sitter": "^0.26.12"
   },
   "engines": {
     "node": ">=16.0.0"
