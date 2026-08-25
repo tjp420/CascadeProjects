@@ -89,7 +89,7 @@
     "pattern": "(?:except\\s*:|except\\s+Exception\\s*:|except\\s+BaseException\\s*:|except\\s+Throwable\\s*:|catch\\s*\\(\\s*(?:Exception|Throwable|Error|Object)\\s+\\w+\\s*\\)|catch\\s*\\(\\s*(?:Exception|Throwable|Error)\\s*\\)|catch\\s+\\(\\s*\\)|catch\\s+\\{)",
     "patternFlags": "gi",
     "severity": "low",
-    "fileExtensions": [".py", ".java", ".kt", ".scala", ".groovy", ".cs", ".cpp", ".c", ".go", ".rs", ".swift", ".dart", ".rb", ".php", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs"],
+    "fileExtensions": [".py", ".java", ".kt", ".scala", ".groovy", ".cs", ".cpp", ".c", ".go", ".rs", ".swift", ".dart", ".rb", ".php"],
     "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "middleware/", "handler/", "error/"],
     "description": "Broad exception catch — catching all exceptions can hide specific errors and make debugging difficult. Catch specific exception types instead.",
     "recommendation": "Catch specific exception types (e.g. ValueError, ConnectionError) rather than bare except or Exception.",
