@@ -23,14 +23,14 @@
 // === IndexedDB helpers ===
 const DB_NAME = 'simplebeacon-audit-cache';
 const DB_VERSION = 1;
-const STORE_HASHES = 'file-hashes';     // {path, hash, size, lastScanned}
-const STORE_FINDINGS = 'scan-findings';  // {scanId, path, rule, severity, line, snippet, ...}
+const STORE_HASHES = 'file-hashes'; // {path, hash, size, lastScanned}
+const STORE_FINDINGS = 'scan-findings'; // {scanId, path, rule, severity, line, snippet, ...}
 const STORE_CHECKPOINTS = 'scan-checkpoints'; // {scanId, processedCount, fileIndex, timestamp}
 
 function openDB() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (e) => {
+        req.onupgradeneeded = e => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_HASHES)) {
                 db.createObjectStore(STORE_HASHES, { keyPath: 'path' });
@@ -116,8 +116,12 @@ function globToRegex(pattern) {
         const c = pattern[i];
         if (c === '*' && pattern[i + 1] === '*') {
             i++;
-            if (pattern[i + 1] === '/') { regex += '(?:.*/)?'; i++; }
-            else { regex += '.*'; }
+            if (pattern[i + 1] === '/') {
+                regex += '(?:.*/)?';
+                i++;
+            } else {
+                regex += '.*';
+            }
         } else if (c === '*') {
             regex += '[^/]*';
         } else if (c === '?') {
@@ -127,7 +131,11 @@ function globToRegex(pattern) {
         }
     }
     regex += '$';
-    try { return new RegExp(regex); } catch { return /(?!)/; }
+    try {
+        return new RegExp(regex);
+    } catch {
+        return /(?!)/;
+    }
 }
 
 function cachedGlobToRegex(pattern) {
@@ -171,7 +179,8 @@ function isIgnoredVirtualPath(virtualPath, scanRootName, ignorePatterns) {
 
 function parseSimplebeaconIgnoreText(text) {
     if (!text || typeof text !== 'string') return [];
-    return text.split(/\r?\n/)
+    return text
+        .split(/\r?\n/)
         .map(l => l.trim())
         .filter(l => l && !l.startsWith('#'));
 }
@@ -200,21 +209,28 @@ function createIgnoreContext(patterns, scanRootName, source) {
 
 // Load .simplebeaconignore from a File list (looking for .simplebeaconignore file)
 function extractIgnorePatternsFromFiles(files) {
-    const ignoreFile = files.find(f =>
-        (f.webkitRelativePath || f.name || '').endsWith('.simplebeaconignore') ||
-        (f.name || '') === '.simplebeaconignore'
+    const ignoreFile = files.find(
+        f =>
+            (f.webkitRelativePath || f.name || '').endsWith('.simplebeaconignore') ||
+            (f.name || '') === '.simplebeaconignore'
     );
     if (!ignoreFile) {
         return { patterns: getBuiltinIgnorePatterns(), source: 'builtin', isSimplebeaconMonorepo: false };
     }
     // We can't read the file synchronously — caller should use extractIgnorePatternsFromFilesAsync instead
-    return { patterns: getBuiltinIgnorePatterns(), source: 'builtin-pending', isSimplebeaconMonorepo: false, ignoreFile };
+    return {
+        patterns: getBuiltinIgnorePatterns(),
+        source: 'builtin-pending',
+        isSimplebeaconMonorepo: false,
+        ignoreFile
+    };
 }
 
 async function extractIgnorePatternsFromFilesAsync(files) {
-    const ignoreFile = files.find(f =>
-        (f.webkitRelativePath || f.name || '').endsWith('.simplebeaconignore') ||
-        (f.name || '') === '.simplebeaconignore'
+    const ignoreFile = files.find(
+        f =>
+            (f.webkitRelativePath || f.name || '').endsWith('.simplebeaconignore') ||
+            (f.name || '') === '.simplebeaconignore'
     );
     if (!ignoreFile) {
         return { patterns: getBuiltinIgnorePatterns(), source: 'builtin', isSimplebeaconMonorepo: false };
@@ -330,12 +346,16 @@ window.AuditScanService = class AuditScanService {
         const db = await this._ensureDB();
         if (!db) return;
         try {
-            await dbPut(STORE_CHECKPOINTS, {
-                scanId,
-                processedCount,
-                fileIndex,
-                timestamp: Date.now()
-            }, db);
+            await dbPut(
+                STORE_CHECKPOINTS,
+                {
+                    scanId,
+                    processedCount,
+                    fileIndex,
+                    timestamp: Date.now()
+                },
+                db
+            );
         } catch (err) {
             console.warn('[AuditScanService] Failed to write checkpoint:', err);
         }
@@ -407,14 +427,18 @@ window.AuditScanService = class AuditScanService {
         const onFindings = options.onFindings || (() => {});
         const onLog = options.onLog || (() => {});
 
-        this.scanId = options.resumeScanId || ('scan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
+        this.scanId = options.resumeScanId || 'scan-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
         this.aborted = false;
 
         if (signal) {
-            signal.addEventListener('abort', () => {
-                this.aborted = true;
-                this._terminateAll();
-            }, { once: true });
+            signal.addEventListener(
+                'abort',
+                () => {
+                    this.aborted = true;
+                    this._terminateAll();
+                },
+                { once: true }
+            );
         }
 
         if (!files.length) {
@@ -449,7 +473,10 @@ window.AuditScanService = class AuditScanService {
             const checkpoint = await this._getCheckpoint(options.resumeScanId);
             if (checkpoint) {
                 resumeIndex = checkpoint.fileIndex || 0;
-                onLog(`Resuming from checkpoint: ${checkpoint.processedCount} files processed, starting at index ${resumeIndex}`, 'info');
+                onLog(
+                    `Resuming from checkpoint: ${checkpoint.processedCount} files processed, starting at index ${resumeIndex}`,
+                    'info'
+                );
             }
         } else {
             // Clear old findings for this scan
@@ -513,7 +540,7 @@ window.AuditScanService = class AuditScanService {
                         workersTotal: workerCount
                     });
                 },
-                onBatchFindings: (findings) => {
+                onBatchFindings: findings => {
                     // Stream findings to IndexedDB and accumulate
                     allFindings.push(...findings);
                     onFindings(findings);
@@ -528,23 +555,28 @@ window.AuditScanService = class AuditScanService {
                     totalTextErrors++;
                 },
                 signal
-            }).then(result => {
-                totalProcessed += result.processed || 0;
-                totalTextErrors += result.textErrors || 0;
-                totalBinarySkipped += result.binarySkipped || 0;
-                totalIgnoredDir += result.ignoredDir || 0;
-                totalHeavyVendor += result.heavyVendor || 0;
-                totalIgnoredByPattern += result.ignoredByPattern || 0;
-                if (result.issuesTruncated) issuesTruncated = true;
-            }).catch(err => {
-                if (!this.aborted) {
-                    onLog(`Worker ${workerIndex} error: ${err.message}`, 'error');
-                }
-            }).finally(() => {
-                const idx = this.workers.indexOf(worker);
-                if (idx >= 0) this.workers.splice(idx, 1);
-                try { worker.terminate(); } catch (_) {}
-            });
+            })
+                .then(result => {
+                    totalProcessed += result.processed || 0;
+                    totalTextErrors += result.textErrors || 0;
+                    totalBinarySkipped += result.binarySkipped || 0;
+                    totalIgnoredDir += result.ignoredDir || 0;
+                    totalHeavyVendor += result.heavyVendor || 0;
+                    totalIgnoredByPattern += result.ignoredByPattern || 0;
+                    if (result.issuesTruncated) issuesTruncated = true;
+                })
+                .catch(err => {
+                    if (!this.aborted) {
+                        onLog(`Worker ${workerIndex} error: ${err.message}`, 'error');
+                    }
+                })
+                .finally(() => {
+                    const idx = this.workers.indexOf(worker);
+                    if (idx >= 0) this.workers.splice(idx, 1);
+                    try {
+                        worker.terminate();
+                    } catch (_) {}
+                });
 
             workerPromises.push(promise);
         }
@@ -595,7 +627,10 @@ window.AuditScanService = class AuditScanService {
             resumed: resumeIndex > 0
         };
 
-        onLog(`Scan complete: ${result.processed}/${result.totalFiles} files, ${result.issueCount} findings`, 'success');
+        onLog(
+            `Scan complete: ${result.processed}/${result.totalFiles} files, ${result.issueCount} findings`,
+            'success'
+        );
         return result;
     }
 
@@ -630,14 +665,22 @@ window.AuditScanService = class AuditScanService {
                 settled = true;
                 cleanup();
                 resolve({
-                    processed, totalFiles, issues: allIssues, findings: allIssues,
-                    issueCount: allIssues.length, textErrors, binarySkipped,
-                    ignoredDir, heavyVendor, ignoredByPattern, issuesTruncated,
+                    processed,
+                    totalFiles,
+                    issues: allIssues,
+                    findings: allIssues,
+                    issueCount: allIssues.length,
+                    textErrors,
+                    binarySkipped,
+                    ignoredDir,
+                    heavyVendor,
+                    ignoredByPattern,
+                    issuesTruncated,
                     fileHashes: allHashes
                 });
             };
 
-            worker.onerror = (err) => {
+            worker.onerror = err => {
                 if (settled) return;
                 settled = true;
                 cleanup();
@@ -645,7 +688,7 @@ window.AuditScanService = class AuditScanService {
                 reject(new Error(`Worker error: ${detail}`));
             };
 
-            worker.onmessage = async (e) => {
+            worker.onmessage = async e => {
                 const msg = e.data;
                 if (!msg || typeof msg !== 'object') return;
 
@@ -656,7 +699,10 @@ window.AuditScanService = class AuditScanService {
                         // Start sending batches
                         try {
                             for (let offset = 0; offset < files.length; offset += BATCH_SIZE) {
-                                if (this.aborted) { finish(); return; }
+                                if (this.aborted) {
+                                    finish();
+                                    return;
+                                }
                                 const batch = files.slice(offset, Math.min(offset + BATCH_SIZE, files.length));
                                 worker.postMessage({
                                     type: 'scan-batch',
@@ -669,7 +715,11 @@ window.AuditScanService = class AuditScanService {
                             // Send finish signal after all batches
                             worker.postMessage({ type: 'scan-finish', scanId });
                         } catch (err) {
-                            if (!settled) { settled = true; cleanup(); reject(err); }
+                            if (!settled) {
+                                settled = true;
+                                cleanup();
+                                reject(err);
+                            }
                         }
                         break;
 
@@ -736,7 +786,11 @@ window.AuditScanService = class AuditScanService {
                         break;
 
                     case 'error':
-                        if (!settled) { settled = true; cleanup(); reject(new Error(msg.error || 'Worker scan failed')); }
+                        if (!settled) {
+                            settled = true;
+                            cleanup();
+                            reject(new Error(msg.error || 'Worker scan failed'));
+                        }
                         break;
 
                     case 'warn':
@@ -751,10 +805,12 @@ window.AuditScanService = class AuditScanService {
                 scanId,
                 totalFiles,
                 deepScan,
-                ignoreCtx: ignoreCtx ? {
-                    scanRootName: ignoreCtx.scanRootName,
-                    patterns: ignoreCtx.patterns
-                } : null
+                ignoreCtx: ignoreCtx
+                    ? {
+                          scanRootName: ignoreCtx.scanRootName,
+                          patterns: ignoreCtx.patterns
+                      }
+                    : null
             });
 
             // Timeout: if worker doesn't start in 15s, abort
@@ -770,7 +826,9 @@ window.AuditScanService = class AuditScanService {
 
     _terminateAll() {
         for (const w of this.workers) {
-            try { w.terminate(); } catch (_) {}
+            try {
+                w.terminate();
+            } catch (_) {}
         }
         this.workers = [];
     }
@@ -779,4 +837,4 @@ window.AuditScanService = class AuditScanService {
         this.aborted = true;
         this._terminateAll();
     }
-}
+};

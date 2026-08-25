@@ -11,11 +11,11 @@
 const jwt = require('jsonwebtoken');
 const { getPlan } = require('./plans.cjs');
 const {
-  createAccount,
-  getAccount,
-  createTimeToken,
-  registerTimeTokenHash,
-  validateTimeToken
+    createAccount,
+    getAccount,
+    createTimeToken,
+    registerTimeTokenHash,
+    validateTimeToken
 } = require('./account-store.cjs');
 
 const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || '';
@@ -33,56 +33,56 @@ const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || '';
  * @returns {Object} { token, accountId, timeTokenId, meta }
  */
 function generateTimeToken(accountType, options = {}) {
-  if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET env var not set.');
+    if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET env var not set.');
 
-  const plan = getPlan(accountType);
-  if (!plan) throw new Error(`Unknown account type: ${accountType}`);
+    const plan = getPlan(accountType);
+    if (!plan) throw new Error(`Unknown account type: ${accountType}`);
 
-  const ttlDays = options.customTtlDays || plan.defaultTtlDays || 30;
+    const ttlDays = options.customTtlDays || plan.defaultTtlDays || 30;
 
-  // Step 1: Reuse existing account or create new root-controlled account
-  let accountId = options.accountId;
-  if (!accountId) {
-    const account = createAccount({
-      email: options.email || '',
-      tier: accountType
-    });
-    accountId = account.accountId;
-  }
-
-  // Step 2: Create time token entry bound to account
-  const tt = createTimeToken(accountId, options.period || 'default', ttlDays);
-  if (!tt.success) throw new Error(tt.error);
-
-  // Step 3: Sign minimal JWT — only account_id, no embedded features/limits
-  const payload = {
-    sub: tt.timeTokenId,
-    account_id: accountId,
-    tier: accountType,
-    period: options.period || 'default',
-    email: options.email || ''
-  };
-
-  const expiresIn = ttlDays * 24 * 60 * 60;
-  const token = jwt.sign(payload, secret, { expiresIn });
-
-  // Step 4: Register hash so validateTimeToken can look it up
-  registerTimeTokenHash(tt.timeTokenId, token);
-
-  return {
-    token,
-    accountId,
-    timeTokenId: tt.timeTokenId,
-    meta: {
-      accountType,
-      tag: plan.tag,
-      tier: accountType,
-      period: options.period || 'default',
-      ttlDays,
-      issuedAt: new Date().toISOString(),
-      expiresAt: tt.expiresAt
+    // Step 1: Reuse existing account or create new root-controlled account
+    let accountId = options.accountId;
+    if (!accountId) {
+        const account = createAccount({
+            email: options.email || '',
+            tier: accountType
+        });
+        accountId = account.accountId;
     }
-  };
+
+    // Step 2: Create time token entry bound to account
+    const tt = createTimeToken(accountId, options.period || 'default', ttlDays);
+    if (!tt.success) throw new Error(tt.error);
+
+    // Step 3: Sign minimal JWT — only account_id, no embedded features/limits
+    const payload = {
+        sub: tt.timeTokenId,
+        account_id: accountId,
+        tier: accountType,
+        period: options.period || 'default',
+        email: options.email || ''
+    };
+
+    const expiresIn = ttlDays * 24 * 60 * 60;
+    const token = jwt.sign(payload, secret, { expiresIn });
+
+    // Step 4: Register hash so validateTimeToken can look it up
+    registerTimeTokenHash(tt.timeTokenId, token);
+
+    return {
+        token,
+        accountId,
+        timeTokenId: tt.timeTokenId,
+        meta: {
+            accountType,
+            tag: plan.tag,
+            tier: accountType,
+            period: options.period || 'default',
+            ttlDays,
+            issuedAt: new Date().toISOString(),
+            expiresAt: tt.expiresAt
+        }
+    };
 }
 
 /**
@@ -94,25 +94,31 @@ function generateTimeToken(accountType, options = {}) {
  * @returns {Object} { valid, account, timeToken, error, stalePurged }
  */
 function decodeTimeToken(token, context = {}) {
-  try {
-    jwt.verify(token, secret);
-  } catch (err) {
-    return { valid: false, account: null, timeToken: null, error: err.message, stalePurged: 0 };
-  }
+    try {
+        jwt.verify(token, secret);
+    } catch (err) {
+        return { valid: false, account: null, timeToken: null, error: err.message, stalePurged: 0 };
+    }
 
-  // validateTimeToken checks live account state, purges stale tokens, enforces single-session
-  const result = validateTimeToken(token, context);
-  if (!result.valid) {
-    return { valid: false, account: null, timeToken: null, error: result.error, stalePurged: result.stalePurged || 0 };
-  }
+    // validateTimeToken checks live account state, purges stale tokens, enforces single-session
+    const result = validateTimeToken(token, context);
+    if (!result.valid) {
+        return {
+            valid: false,
+            account: null,
+            timeToken: null,
+            error: result.error,
+            stalePurged: result.stalePurged || 0
+        };
+    }
 
-  return {
-    valid: true,
-    account: result.account,
-    timeToken: result.timeToken,
-    error: null,
-    stalePurged: result.stalePurged || 0
-  };
+    return {
+        valid: true,
+        account: result.account,
+        timeToken: result.timeToken,
+        error: null,
+        stalePurged: result.stalePurged || 0
+    };
 }
 
 /**
@@ -121,12 +127,12 @@ function decodeTimeToken(token, context = {}) {
  * @returns {Object} { active, expired, error }
  */
 function getTokenStatus(token) {
-  try {
-    const decoded = jwt.verify(token, secret);
-    return { active: true, expired: false, decoded, error: null };
-  } catch (err) {
-    return { active: false, expired: true, decoded: null, error: err.message };
-  }
+    try {
+        const decoded = jwt.verify(token, secret);
+        return { active: true, expired: false, decoded, error: null };
+    } catch (err) {
+        return { active: false, expired: true, decoded: null, error: err.message };
+    }
 }
 
 module.exports = { generateTimeToken, decodeTimeToken, getTokenStatus };

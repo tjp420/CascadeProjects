@@ -16,6 +16,7 @@ node marketing/outreach/pre-launch-verify.js
 **Expected:** `ALL CLEAR — ready to launch` with 0 critical failures and 0 warnings.
 
 If any failure occurs:
+
 - **GitHub repo not public:** `gh repo edit tjp420/CascadeProjects --visibility public`
 - **npm package not found:** Republish with `npm publish --workspace=simplebeacon-cli`
 - **Website pages not 200:** Check Cloudflare Worker status in dashboard
@@ -106,14 +107,14 @@ curl -s https://simplebeacon.ai/api/health/email | node -e "process.stdin.on('da
 
 ### What to watch for
 
-| Signal | Severity | Action |
-|--------|----------|--------|
-| Webhook returns 502 or 503 | Critical | Check Cloudflare dashboard for Worker errors |
-| Email health returns `ok: false` | High | Check Resend API key and Zoho SMTP credentials in Cloudflare dashboard |
-| Checkout returns 503 "Stripe not configured" | Critical | Verify `STRIPE_SECRET_KEY` is set in Cloudflare Worker environment |
-| User reports "no email received" | Medium | Check spam folder, then verify email queue in Cloudflare logs |
-| User reports "checkout page won't load" | Medium | Verify Stripe account is active, not in review |
-| Rate limit hits (429) | Low | Expected — 3 checkout attempts per IP per hour |
+| Signal                                       | Severity | Action                                                                 |
+| -------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| Webhook returns 502 or 503                   | Critical | Check Cloudflare dashboard for Worker errors                           |
+| Email health returns `ok: false`             | High     | Check Resend API key and Zoho SMTP credentials in Cloudflare dashboard |
+| Checkout returns 503 "Stripe not configured" | Critical | Verify `STRIPE_SECRET_KEY` is set in Cloudflare Worker environment     |
+| User reports "no email received"             | Medium   | Check spam folder, then verify email queue in Cloudflare logs          |
+| User reports "checkout page won't load"      | Medium   | Verify Stripe account is active, not in review                         |
+| Rate limit hits (429)                        | Low      | Expected — 3 checkout attempts per IP per hour                         |
 
 ---
 
@@ -194,15 +195,15 @@ curl -s https://simplebeacon.ai/api/health/email | node -e "process.stdin.on('da
 
 ## Quick Reference
 
-| Resource | URL |
-|----------|-----|
-| Stripe dashboard | https://dashboard.stripe.com |
-| Cloudflare dashboard | https://dash.cloudflare.com |
-| Resend dashboard | https://resend.com/emails |
-| Zoho Mail | https://mail.zoho.com |
-| GitHub repo | https://github.com/tjp420/CascadeProjects |
-| npm package | https://www.npmjs.com/package/simplebeacon |
-| Pre-launch verifier | `node marketing/outreach/pre-launch-verify.js` |
-| Reply monitor | `node marketing/outreach/reply-monitor.js --watch` |
-| Gate scan | `npx simplebeacon scan --gate --offline` |
-| Redeploy website | `cd coming-soon && npm run build && cd ../worker-deploy && npx wrangler deploy` |
+| Resource             | URL                                                                             |
+| -------------------- | ------------------------------------------------------------------------------- |
+| Stripe dashboard     | https://dashboard.stripe.com                                                    |
+| Cloudflare dashboard | https://dash.cloudflare.com                                                     |
+| Resend dashboard     | https://resend.com/emails                                                       |
+| Zoho Mail            | https://mail.zoho.com                                                           |
+| GitHub repo          | https://github.com/tjp420/CascadeProjects                                       |
+| npm package          | https://www.npmjs.com/package/simplebeacon                                      |
+| Pre-launch verifier  | `node marketing/outreach/pre-launch-verify.js`                                  |
+| Reply monitor        | `node marketing/outreach/reply-monitor.js --watch`                              |
+| Gate scan            | `npx simplebeacon scan --gate --offline`                                        |
+| Redeploy website     | `cd coming-soon && npm run build && cd ../worker-deploy && npx wrangler deploy` |

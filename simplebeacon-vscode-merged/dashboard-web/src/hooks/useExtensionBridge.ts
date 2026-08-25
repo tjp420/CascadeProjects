@@ -132,9 +132,7 @@ export function useExtensionBridge() {
     if (isHostedHttpsDashboard() && !userInitiated && !canUseParentBridgeFetch()) {
       if (storedBase) {
         setBridgeBase(storedBase);
-        setBridgeToken(
-          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null,
-        );
+        setBridgeToken(typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null);
         setStatus('connected');
         return { ok: true as const, base: storedBase, unverified: true as const };
       }

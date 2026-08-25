@@ -46,18 +46,14 @@ export function buildTelemetrySummary(telemetry) {
       totalEvicted: scrubber.totalEvicted || 0,
       totalExpired: scrubber.totalExpired || 0,
       ttlMs: scrubber.ttlMs || 0,
-      utilization: scrubber.maxScrubbers > 0
-        ? Math.round((scrubber.activeScrubbers / scrubber.maxScrubbers) * 100)
-        : 0,
+      utilization: scrubber.maxScrubbers > 0 ? Math.round((scrubber.activeScrubbers / scrubber.maxScrubbers) * 100) : 0,
     },
     replay: {
       totalChecked: replay.totalChecked || 0,
       totalReplays: replay.totalReplays || 0,
       orgCount: replay.orgCount || 0,
       totalFingerprints: replay.totalFingerprints || 0,
-      replayRate: replay.totalChecked > 0
-        ? Math.round((replay.totalReplays / replay.totalChecked) * 10000) / 100
-        : 0,
+      replayRate: replay.totalChecked > 0 ? Math.round((replay.totalReplays / replay.totalChecked) * 10000) / 100 : 0,
     },
     audit: {
       chainValid: audit.chainValid !== undefined ? audit.chainValid : true,

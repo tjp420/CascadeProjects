@@ -4,8 +4,8 @@
  * @returns {Promise<void>}
  */
 export function sleep(ms) {
-  const delay = Number.isFinite(ms) && ms > 0 ? ms : 0;
-  return new Promise(resolve => setTimeout(resolve, delay));
+    const delay = Number.isFinite(ms) && ms > 0 ? ms : 0;
+    return new Promise(resolve => setTimeout(resolve, delay));
 }
 
 /**
@@ -14,7 +14,7 @@ export function sleep(ms) {
  * @returns {Promise<void>}
  */
 export function delay(ms) {
-  return sleep(ms);
+    return sleep(ms);
 }
 
 /**
@@ -29,33 +29,33 @@ export function delay(ms) {
  * @returns {Promise<T>}
  */
 export async function retry(fn, retries = 3, delayMs = 200, backoff = 2, maxDelayMs = 30000, shouldRetry) {
-  if (typeof fn !== 'function') {
-    throw new TypeError('retry expects a function');
-  }
-  const maxAttempts = Math.max(0, Number.isFinite(retries) ? Math.floor(retries) : 0);
-  let lastErr;
-  let wait = Number.isFinite(delayMs) && delayMs > 0 ? delayMs : 0;
-  const mult = Number.isFinite(backoff) && backoff > 0 ? backoff : 1;
-  const cap = Number.isFinite(maxDelayMs) && maxDelayMs > 0 ? maxDelayMs : 30000;
-  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (attempt < maxAttempts) {
-        const retryable = typeof shouldRetry === 'function' ? shouldRetry(err) : shouldRetry !== false;
-        if (retryable) {
-          await sleep(wait);
-          wait = Math.min(wait * mult, cap);
-        } else {
-          break;
-        }
-      } else {
-        break;
-      }
+    if (typeof fn !== 'function') {
+        throw new TypeError('retry expects a function');
     }
-  }
-  throw lastErr;
+    const maxAttempts = Math.max(0, Number.isFinite(retries) ? Math.floor(retries) : 0);
+    let lastErr;
+    let wait = Number.isFinite(delayMs) && delayMs > 0 ? delayMs : 0;
+    const mult = Number.isFinite(backoff) && backoff > 0 ? backoff : 1;
+    const cap = Number.isFinite(maxDelayMs) && maxDelayMs > 0 ? maxDelayMs : 30000;
+    for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastErr = err;
+            if (attempt < maxAttempts) {
+                const retryable = typeof shouldRetry === 'function' ? shouldRetry(err) : shouldRetry !== false;
+                if (retryable) {
+                    await sleep(wait);
+                    wait = Math.min(wait * mult, cap);
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+    }
+    throw lastErr;
 }
 
 /**
@@ -65,40 +65,43 @@ export async function retry(fn, retries = 3, delayMs = 200, backoff = 2, maxDela
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}}
  */
 export function debounce(fn, wait = 300) {
-  if (typeof fn !== 'function') throw new TypeError('debounce requires a function');
-  const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
-  let timeout = null;
-  let lastArgs = null;
-  let lastThis = null;
-  const debounced = function (...args) {
-    lastArgs = args;
-    lastThis = this;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      timeout = null;
-      const argsToUse = lastArgs;
-      const self = lastThis;
-      lastArgs = lastThis = null;
-      if (argsToUse) {
-        fn.apply(self, argsToUse);
-      }
-    }, delay);
-  };
-  debounced.cancel = () => { clearTimeout(timeout); timeout = lastArgs = lastThis = null; };
-  debounced.flush = () => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-      const argsToUse = lastArgs;
-      const self = lastThis;
-      lastArgs = lastThis = null;
-      if (argsToUse) {
-        fn.apply(self, argsToUse);
-      }
-    }
-  };
-  debounced.pending = () => timeout !== null;
-  return debounced;
+    if (typeof fn !== 'function') throw new TypeError('debounce requires a function');
+    const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
+    let timeout = null;
+    let lastArgs = null;
+    let lastThis = null;
+    const debounced = function (...args) {
+        lastArgs = args;
+        lastThis = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            timeout = null;
+            const argsToUse = lastArgs;
+            const self = lastThis;
+            lastArgs = lastThis = null;
+            if (argsToUse) {
+                fn.apply(self, argsToUse);
+            }
+        }, delay);
+    };
+    debounced.cancel = () => {
+        clearTimeout(timeout);
+        timeout = lastArgs = lastThis = null;
+    };
+    debounced.flush = () => {
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+            const argsToUse = lastArgs;
+            const self = lastThis;
+            lastArgs = lastThis = null;
+            if (argsToUse) {
+                fn.apply(self, argsToUse);
+            }
+        }
+    };
+    debounced.pending = () => timeout !== null;
+    return debounced;
 }
 
 /**
@@ -109,84 +112,84 @@ export function debounce(fn, wait = 300) {
  * @returns {((...args: any[]) => Promise<any>) & {cancel:()=>void,flush:()=>Promise<any>,pending:()=>boolean}}
  */
 export function debounceAsync(fn, wait = 300) {
-  if (typeof fn !== 'function') throw new TypeError('debounceAsync requires a function');
-  const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
-  let timeout = null;
-  let lastArgs = null;
-  let lastThis = null;
-  let pendingPromise = null;
-  let resolvePending = null;
-  let rejectPending = null;
+    if (typeof fn !== 'function') throw new TypeError('debounceAsync requires a function');
+    const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
+    let timeout = null;
+    let lastArgs = null;
+    let lastThis = null;
+    let pendingPromise = null;
+    let resolvePending = null;
+    let rejectPending = null;
 
-  const debounced = function (...args) {
-    lastArgs = args;
-    lastThis = this;
-    if (timeout !== null) clearTimeout(timeout);
+    const debounced = function (...args) {
+        lastArgs = args;
+        lastThis = this;
+        if (timeout !== null) clearTimeout(timeout);
 
-    if (!pendingPromise) {
-      pendingPromise = new Promise((resolve, reject) => {
-        resolvePending = resolve;
-        rejectPending = reject;
-      });
-    }
+        if (!pendingPromise) {
+            pendingPromise = new Promise((resolve, reject) => {
+                resolvePending = resolve;
+                rejectPending = reject;
+            });
+        }
 
-    timeout = setTimeout(async () => {
-      timeout = null;
-      const argsToUse = lastArgs;
-      const thisToUse = lastThis;
-      lastArgs = lastThis = null;
-      if (!argsToUse) return;
-      try {
-        const result = await fn.apply(thisToUse, argsToUse);
-        resolvePending?.(result);
-      } catch (err) {
-        rejectPending?.(err);
-      } finally {
-        pendingPromise = null;
-        resolvePending = null;
-        rejectPending = null;
-      }
-    }, delay);
+        timeout = setTimeout(async () => {
+            timeout = null;
+            const argsToUse = lastArgs;
+            const thisToUse = lastThis;
+            lastArgs = lastThis = null;
+            if (!argsToUse) return;
+            try {
+                const result = await fn.apply(thisToUse, argsToUse);
+                resolvePending?.(result);
+            } catch (err) {
+                rejectPending?.(err);
+            } finally {
+                pendingPromise = null;
+                resolvePending = null;
+                rejectPending = null;
+            }
+        }, delay);
 
-    return pendingPromise;
-  };
+        return pendingPromise;
+    };
 
-  debounced.cancel = () => {
-    if (timeout !== null) clearTimeout(timeout);
-    timeout = lastArgs = lastThis = null;
-    if (rejectPending) {
-      rejectPending(new Error('Debounced call was cancelled'));
-      pendingPromise = null;
-      resolvePending = null;
-      rejectPending = null;
-    }
-  };
+    debounced.cancel = () => {
+        if (timeout !== null) clearTimeout(timeout);
+        timeout = lastArgs = lastThis = null;
+        if (rejectPending) {
+            rejectPending(new Error('Debounced call was cancelled'));
+            pendingPromise = null;
+            resolvePending = null;
+            rejectPending = null;
+        }
+    };
 
-  debounced.flush = async () => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-      const argsToUse = lastArgs;
-      const thisToUse = lastThis;
-      lastArgs = lastThis = null;
-      try {
-        const result = await fn.apply(thisToUse, argsToUse);
-        resolvePending?.(result);
-        return result;
-      } catch (err) {
-        rejectPending?.(err);
-        throw err;
-      } finally {
-        pendingPromise = null;
-        resolvePending = null;
-        rejectPending = null;
-      }
-    }
-    return pendingPromise ?? undefined;
-  };
+    debounced.flush = async () => {
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+            const argsToUse = lastArgs;
+            const thisToUse = lastThis;
+            lastArgs = lastThis = null;
+            try {
+                const result = await fn.apply(thisToUse, argsToUse);
+                resolvePending?.(result);
+                return result;
+            } catch (err) {
+                rejectPending?.(err);
+                throw err;
+            } finally {
+                pendingPromise = null;
+                resolvePending = null;
+                rejectPending = null;
+            }
+        }
+        return pendingPromise ?? undefined;
+    };
 
-  debounced.pending = () => timeout !== null;
-  return debounced;
+    debounced.pending = () => timeout !== null;
+    return debounced;
 }
 
 /**
@@ -197,37 +200,43 @@ export function debounceAsync(fn, wait = 300) {
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}} Debounced function with `.cancel()` method.
  */
 export function debounceLeading(fn, wait = 300) {
-  if (typeof fn !== 'function') throw new TypeError('debounceLeading requires a function');
-  const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
-  let timeout = null;
-  let lastArgs = null;
-  let lastThis = null;
-  const debounced = function (...args) {
-    lastArgs = args;
-    lastThis = this;
-    if (timeout === null) {
-      fn.apply(this, args);
-    } else {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(() => { timeout = null; lastArgs = lastThis = null; }, delay);
-  };
-  debounced.cancel = () => {
-    if (timeout !== null) { clearTimeout(timeout); timeout = null; }
-    lastArgs = lastThis = null;
-  };
-  debounced.flush = () => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-      const argsToUse = lastArgs;
-      const self = lastThis;
-      lastArgs = lastThis = null;
-      if (argsToUse) fn.apply(self, argsToUse);
-    }
-  };
-  debounced.pending = () => timeout !== null;
-  return debounced;
+    if (typeof fn !== 'function') throw new TypeError('debounceLeading requires a function');
+    const delay = Number.isFinite(wait) && wait > 0 ? wait : 0;
+    let timeout = null;
+    let lastArgs = null;
+    let lastThis = null;
+    const debounced = function (...args) {
+        lastArgs = args;
+        lastThis = this;
+        if (timeout === null) {
+            fn.apply(this, args);
+        } else {
+            clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => {
+            timeout = null;
+            lastArgs = lastThis = null;
+        }, delay);
+    };
+    debounced.cancel = () => {
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+        }
+        lastArgs = lastThis = null;
+    };
+    debounced.flush = () => {
+        if (timeout !== null) {
+            clearTimeout(timeout);
+            timeout = null;
+            const argsToUse = lastArgs;
+            const self = lastThis;
+            lastArgs = lastThis = null;
+            if (argsToUse) fn.apply(self, argsToUse);
+        }
+    };
+    debounced.pending = () => timeout !== null;
+    return debounced;
 }
 
 /**
@@ -237,67 +246,82 @@ export function debounceLeading(fn, wait = 300) {
  * @returns {((...args: any[]) => void) & {cancel:()=>void,flush:()=>void,pending:()=>boolean}}
  */
 export function throttle(fn, limit = 300) {
-  if (typeof fn !== 'function') throw new TypeError('throttle requires a function');
-  const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
-  let inThrottle = false;
-  let pendingArgs = null;
-  let pendingThis = null;
-  let timer = null;
-  const invoke = () => {
-    const args2 = pendingArgs;
-    const self = pendingThis;
-    pendingArgs = pendingThis = null;
-    if (!args2) return;
-    inThrottle = true;
-    try {
-      fn.apply(self, args2);
-    } catch (err) {
-      inThrottle = false;
-      if (timer) { clearTimeout(timer); timer = null; }
-      throw err;
-    }
-  };
-  const throttled = function (...args) {
-    if (!inThrottle) {
-      pendingArgs = args;
-      pendingThis = this;
-      invoke();
-      timer = setTimeout(() => {
-        inThrottle = false;
-        timer = null;
-        if (pendingArgs !== null) {
-          throttled.apply(pendingThis, pendingArgs);
+    if (typeof fn !== 'function') throw new TypeError('throttle requires a function');
+    const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
+    let inThrottle = false;
+    let pendingArgs = null;
+    let pendingThis = null;
+    let timer = null;
+    const invoke = () => {
+        const args2 = pendingArgs;
+        const self = pendingThis;
+        pendingArgs = pendingThis = null;
+        if (!args2) return;
+        inThrottle = true;
+        try {
+            fn.apply(self, args2);
+        } catch (err) {
+            inThrottle = false;
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            throw err;
         }
-      }, cooldown);
-    } else {
-      pendingArgs = args;
-      pendingThis = this;
-    }
-  };
-  throttled.cancel = () => {
-    inThrottle = false;
-    if (timer) { clearTimeout(timer); timer = null; }
-    pendingArgs = pendingThis = null;
-  };
-  throttled.flush = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-    if (pendingArgs !== null) {
-      inThrottle = true;
-      const args2 = pendingArgs;
-      const self = pendingThis;
-      pendingArgs = pendingThis = null;
-      try {
-        fn.apply(self, args2);
-      } catch (err) {
+    };
+    const throttled = function (...args) {
+        if (!inThrottle) {
+            pendingArgs = args;
+            pendingThis = this;
+            invoke();
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+                if (pendingArgs !== null) {
+                    throttled.apply(pendingThis, pendingArgs);
+                }
+            }, cooldown);
+        } else {
+            pendingArgs = args;
+            pendingThis = this;
+        }
+    };
+    throttled.cancel = () => {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
-        throw err;
-      }
-      timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
-    }
-  };
-  throttled.pending = () => pendingArgs !== null;
-  return throttled;
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        pendingArgs = pendingThis = null;
+    };
+    throttled.flush = () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        if (pendingArgs !== null) {
+            inThrottle = true;
+            const args2 = pendingArgs;
+            const self = pendingThis;
+            pendingArgs = pendingThis = null;
+            try {
+                fn.apply(self, args2);
+            } catch (err) {
+                inThrottle = false;
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                throw err;
+            }
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+            }, cooldown);
+        }
+    };
+    throttled.pending = () => pendingArgs !== null;
+    return throttled;
 }
 
 /**
@@ -307,61 +331,76 @@ export function throttle(fn, limit = 300) {
  * @returns {((...args: any[]) => Promise<any>) & {cancel:()=>void,flush:()=>Promise<any>,pending:()=>boolean}} Throttled function.
  */
 export function throttleAsync(fn, limit = 300) {
-  if (typeof fn !== 'function') throw new TypeError('throttleAsync requires a function');
-  const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
-  let inThrottle = false;
-  let pendingArgs = null;
-  let pendingThis = null;
-  let timer = null;
-  const throttled = async function (...args) {
-    if (!inThrottle) {
-      inThrottle = true;
-      try {
-        await fn.apply(this, args);
-      } catch (err) {
-        inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
-        throw err;
-      }
-      timer = setTimeout(() => {
-        inThrottle = false;
-        timer = null;
-        if (pendingArgs !== null) {
-          const args2 = pendingArgs;
-          const self = pendingThis;
-          pendingArgs = pendingThis = null;
-          throttled.apply(self, args2);
+    if (typeof fn !== 'function') throw new TypeError('throttleAsync requires a function');
+    const cooldown = Number.isFinite(limit) && limit > 0 ? limit : 0;
+    let inThrottle = false;
+    let pendingArgs = null;
+    let pendingThis = null;
+    let timer = null;
+    const throttled = async function (...args) {
+        if (!inThrottle) {
+            inThrottle = true;
+            try {
+                await fn.apply(this, args);
+            } catch (err) {
+                inThrottle = false;
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                throw err;
+            }
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+                if (pendingArgs !== null) {
+                    const args2 = pendingArgs;
+                    const self = pendingThis;
+                    pendingArgs = pendingThis = null;
+                    throttled.apply(self, args2);
+                }
+            }, cooldown);
+        } else {
+            pendingArgs = args;
+            pendingThis = this;
         }
-      }, cooldown);
-    } else {
-      pendingArgs = args;
-      pendingThis = this;
-    }
-  };
-  throttled.cancel = () => {
-    inThrottle = false;
-    if (timer) { clearTimeout(timer); timer = null; }
-    pendingArgs = pendingThis = null;
-  };
-  throttled.flush = async () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-    if (pendingArgs !== null) {
-      inThrottle = true;
-      const args2 = pendingArgs;
-      const self = pendingThis;
-      pendingArgs = pendingThis = null;
-      try {
-        await fn.apply(self, args2);
-      } catch (err) {
+    };
+    throttled.cancel = () => {
         inThrottle = false;
-        if (timer) { clearTimeout(timer); timer = null; }
-        throw err;
-      }
-      timer = setTimeout(() => { inThrottle = false; timer = null; }, cooldown);
-    }
-  };
-  throttled.pending = () => pendingArgs !== null;
-  return throttled;
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        pendingArgs = pendingThis = null;
+    };
+    throttled.flush = async () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        if (pendingArgs !== null) {
+            inThrottle = true;
+            const args2 = pendingArgs;
+            const self = pendingThis;
+            pendingArgs = pendingThis = null;
+            try {
+                await fn.apply(self, args2);
+            } catch (err) {
+                inThrottle = false;
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                throw err;
+            }
+            timer = setTimeout(() => {
+                inThrottle = false;
+                timer = null;
+            }, cooldown);
+        }
+    };
+    throttled.pending = () => pendingArgs !== null;
+    return throttled;
 }
 
 /**
@@ -370,24 +409,24 @@ export function throttleAsync(fn, limit = 300) {
  * @returns {(...args: any[]) => any}
  */
 export function once(fn) {
-  if (typeof fn !== 'function') throw new TypeError('once requires a function');
-  let called = false;
-  let result;
-  let error;
-  return function (...args) {
-    if (called) {
-      if (error) throw error;
-      return result;
-    }
-    called = true;
-    try {
-      result = fn.apply(this, args);
-      return result;
-    } catch (err) {
-      error = err;
-      throw err;
-    }
-  };
+    if (typeof fn !== 'function') throw new TypeError('once requires a function');
+    let called = false;
+    let result;
+    let error;
+    return function (...args) {
+        if (called) {
+            if (error) throw error;
+            return result;
+        }
+        called = true;
+        try {
+            result = fn.apply(this, args);
+            return result;
+        } catch (err) {
+            error = err;
+            throw err;
+        }
+    };
 }
 
 /**
@@ -397,41 +436,41 @@ export function once(fn) {
  * @returns {((...args: any[]) => any) & {clear:()=>void}}
  */
 export function memoize(fn, maxSize = 1000) {
-  if (typeof fn !== 'function') throw new TypeError('memoize requires a function');
-  const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 1000;
-  const cache = new Map();
-  const memoized = function (...args) {
-    let key;
-    try {
-      key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-    } catch {
-      return fn.apply(this, args);
-    }
-    if (cache.has(key)) {
-      const value = cache.get(key);
-      cache.delete(key);
-      cache.set(key, value);
-      return value;
-    }
-    const result = fn.apply(this, args);
-    if (cache.size >= limit) {
-      const oldest = cache.keys().next().value;
-      if (oldest) cache.delete(oldest);
-    }
-    cache.set(key, result);
-    return result;
-  };
-  memoized.clear = () => cache.clear();
-  Object.defineProperty(memoized, 'size', { get: () => cache.size });
-  memoized.has = (...args) => {
-    try {
-      const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-      return cache.has(key);
-    } catch {
-      return false;
-    }
-  };
-  return memoized;
+    if (typeof fn !== 'function') throw new TypeError('memoize requires a function');
+    const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 1000;
+    const cache = new Map();
+    const memoized = function (...args) {
+        let key;
+        try {
+            key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
+        } catch {
+            return fn.apply(this, args);
+        }
+        if (cache.has(key)) {
+            const value = cache.get(key);
+            cache.delete(key);
+            cache.set(key, value);
+            return value;
+        }
+        const result = fn.apply(this, args);
+        if (cache.size >= limit) {
+            const oldest = cache.keys().next().value;
+            if (oldest) cache.delete(oldest);
+        }
+        cache.set(key, result);
+        return result;
+    };
+    memoized.clear = () => cache.clear();
+    Object.defineProperty(memoized, 'size', { get: () => cache.size });
+    memoized.has = (...args) => {
+        try {
+            const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
+            return cache.has(key);
+        } catch {
+            return false;
+        }
+    };
+    return memoized;
 }
 
 /**
@@ -442,41 +481,41 @@ export function memoize(fn, maxSize = 1000) {
  * @returns {((...args: any[]) => Promise<any>) & {clear: ()=>void; size: number; has: (...args: any[])=>boolean}} Memoized async function.
  */
 export function memoizeAsync(fn, maxSize = 100) {
-  if (typeof fn !== 'function') throw new TypeError('memoizeAsync requires a function');
-  const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 100;
-  const cache = new Map();
-  const memoized = async function (...args) {
-    let key;
-    try {
-      key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-    } catch {
-      return await fn.apply(this, args);
-    }
-    if (cache.has(key)) {
-      const value = cache.get(key);
-      cache.delete(key);
-      cache.set(key, value);
-      return value;
-    }
-    const result = fn.apply(this, args);
-    cache.set(key, result);
-    if (cache.size > limit) {
-      const oldest = cache.keys().next().value;
-      if (oldest) cache.delete(oldest);
-    }
-    return result;
-  };
-  memoized.clear = () => cache.clear();
-  Object.defineProperty(memoized, 'size', { get: () => cache.size });
-  memoized.has = (...args) => {
-    try {
-      const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
-      return cache.has(key);
-    } catch {
-      return false;
-    }
-  };
-  return memoized;
+    if (typeof fn !== 'function') throw new TypeError('memoizeAsync requires a function');
+    const limit = Number.isFinite(maxSize) && maxSize > 0 ? Math.floor(maxSize) : 100;
+    const cache = new Map();
+    const memoized = async function (...args) {
+        let key;
+        try {
+            key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
+        } catch {
+            return await fn.apply(this, args);
+        }
+        if (cache.has(key)) {
+            const value = cache.get(key);
+            cache.delete(key);
+            cache.set(key, value);
+            return value;
+        }
+        const result = fn.apply(this, args);
+        cache.set(key, result);
+        if (cache.size > limit) {
+            const oldest = cache.keys().next().value;
+            if (oldest) cache.delete(oldest);
+        }
+        return result;
+    };
+    memoized.clear = () => cache.clear();
+    Object.defineProperty(memoized, 'size', { get: () => cache.size });
+    memoized.has = (...args) => {
+        try {
+            const key = JSON.stringify(args, (_k, v) => (v === undefined ? '__memo_undefined__' : v));
+            return cache.has(key);
+        } catch {
+            return false;
+        }
+    };
+    return memoized;
 }
 
 /**
@@ -488,20 +527,28 @@ export function memoizeAsync(fn, maxSize = 100) {
  * @returns {Promise<T>}
  */
 export function withTimeout(promise, ms, message = 'Operation timed out') {
-  if (!promise || typeof promise.then !== 'function') {
-    return Promise.reject(new TypeError('withTimeout requires a valid Promise'));
-  }
-  const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 0;
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (!settled) reject(new Error(message));
-    }, timeoutMs);
-    promise.then(
-      (value) => { settled = true; clearTimeout(timer); resolve(value); },
-      (err) => { settled = true; clearTimeout(timer); reject(err); }
-    );
-  });
+    if (!promise || typeof promise.then !== 'function') {
+        return Promise.reject(new TypeError('withTimeout requires a valid Promise'));
+    }
+    const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 0;
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+            if (!settled) reject(new Error(message));
+        }, timeoutMs);
+        promise.then(
+            value => {
+                settled = true;
+                clearTimeout(timer);
+                resolve(value);
+            },
+            err => {
+                settled = true;
+                clearTimeout(timer);
+                reject(err);
+            }
+        );
+    });
 }
 
 /**
@@ -513,15 +560,15 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
  * @returns {Promise<T | undefined>} The truthy result, or `undefined` on timeout.
  */
 export async function poll(fn, intervalMs = 500, timeoutMs = 10000) {
-  if (typeof fn !== 'function') return undefined;
-  const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 500;
-  const deadline = Date.now() + (Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10000);
-  while (Date.now() < deadline) {
-    const result = await fn();
-    if (result) return result;
-    await sleep(interval);
-  }
-  return undefined;
+    if (typeof fn !== 'function') return undefined;
+    const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 500;
+    const deadline = Date.now() + (Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 10000);
+    while (Date.now() < deadline) {
+        const result = await fn();
+        if (result) return result;
+        await sleep(interval);
+    }
+    return undefined;
 }
 
 /**
@@ -532,16 +579,21 @@ export async function poll(fn, intervalMs = 500, timeoutMs = 10000) {
  * @param {string} [message='Timeout waiting for condition'] Error message on timeout.
  * @returns {Promise<void>}
  */
-export async function waitForAsync(predicate, intervalMs = 100, timeoutMs = 5000, message = 'Timeout waiting for condition') {
-  if (typeof predicate !== 'function') throw new TypeError('waitForAsync expects a predicate function');
-  const start = Date.now();
-  const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 100;
-  const limit = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 5000;
-  while (Date.now() - start < limit) {
-    if (await predicate()) return;
-    await sleep(interval);
-  }
-  throw new Error(message);
+export async function waitForAsync(
+    predicate,
+    intervalMs = 100,
+    timeoutMs = 5000,
+    message = 'Timeout waiting for condition'
+) {
+    if (typeof predicate !== 'function') throw new TypeError('waitForAsync expects a predicate function');
+    const start = Date.now();
+    const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 100;
+    const limit = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 5000;
+    while (Date.now() - start < limit) {
+        if (await predicate()) return;
+        await sleep(interval);
+    }
+    throw new Error(message);
 }
 
 /**
@@ -553,25 +605,25 @@ export async function waitForAsync(predicate, intervalMs = 100, timeoutMs = 5000
  * @returns {Promise<R[]>}
  */
 export async function pMap(arr, fn, concurrency = 5) {
-  if (!Array.isArray(arr)) return [];
-  if (typeof fn !== 'function') return [];
-  const limit = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : 5;
-  if (limit === 1) {
-    const results = [];
-    for (let i = 0; i < arr.length; i++) results.push(await fn(arr[i], i));
-    return results;
-  }
-  const results = new Array(arr.length);
-  let index = 0;
-  async function worker() {
-    while (index < arr.length) {
-      const i = index++;
-      results[i] = await fn(arr[i], i);
+    if (!Array.isArray(arr)) return [];
+    if (typeof fn !== 'function') return [];
+    const limit = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : 5;
+    if (limit === 1) {
+        const results = [];
+        for (let i = 0; i < arr.length; i++) results.push(await fn(arr[i], i));
+        return results;
     }
-  }
-  const workers = Array.from({ length: Math.min(limit, arr.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
+    const results = new Array(arr.length);
+    let index = 0;
+    async function worker() {
+        while (index < arr.length) {
+            const i = index++;
+            results[i] = await fn(arr[i], i);
+        }
+    }
+    const workers = Array.from({ length: Math.min(limit, arr.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
 }
 
 /**
@@ -581,11 +633,11 @@ export async function pMap(arr, fn, concurrency = 5) {
  * @returns {{ ok: true; value: any } | { ok: false; error: Error }}
  */
 export function tryFn(fn, ...args) {
-  try {
-    return { ok: true, value: fn(...args) };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err : new Error(String(err)) };
-  }
+    try {
+        return { ok: true, value: fn(...args) };
+    } catch (err) {
+        return { ok: false, error: err instanceof Error ? err : new Error(String(err)) };
+    }
 }
 
 /**
@@ -594,7 +646,7 @@ export function tryFn(fn, ...args) {
  * @returns {(...args: any[]) => any}
  */
 export function seq(...fns) {
-  return (value) => fns.reduce((v, fn) => fn(v), value);
+    return value => fns.reduce((v, fn) => fn(v), value);
 }
 
 /**
@@ -603,7 +655,7 @@ export function seq(...fns) {
  * @returns {(...args: any[]) => any}
  */
 export function flow(...fns) {
-  return (value) => fns.reduceRight((v, fn) => fn(v), value);
+    return value => fns.reduceRight((v, fn) => fn(v), value);
 }
 
 /**
@@ -612,8 +664,8 @@ export function flow(...fns) {
  * @returns {(...args: any[]) => boolean}
  */
 export function negate(predicate) {
-  if (typeof predicate !== 'function') throw new TypeError('negate requires a function');
-  return function (...args) {
-    return !predicate(...args);
-  };
+    if (typeof predicate !== 'function') throw new TypeError('negate requires a function');
+    return function (...args) {
+        return !predicate(...args);
+    };
 }

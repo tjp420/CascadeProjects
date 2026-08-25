@@ -2,8 +2,12 @@
  * DevSecOps compliance payload — gate + repository health unified scoring.
  */
 
-const { buildTrustVerificationPayload } = require('./trust-verification-payload.cjs');
-const { buildRepositoryHealthPayload } = require('./repository-health-payload.cjs');
+const {
+  buildTrustVerificationPayload,
+} = require("./trust-verification-payload.cjs");
+const {
+  buildRepositoryHealthPayload,
+} = require("./repository-health-payload.cjs");
 
 /**
  * Optimization compliance label.
@@ -11,11 +15,11 @@ const { buildRepositoryHealthPayload } = require('./repository-health-payload.cj
  * @returns {any}
  */
 function optimizationComplianceLabel(healthHeadline) {
-    if (!healthHeadline) return 'unknown';
-    const score = healthHeadline.repositoryHealthScore ?? 0;
-    if (score >= 85) return 'good';
-    if (score >= 70) return 'partial';
-    return 'needs_attention';
+  if (!healthHeadline) return "unknown";
+  const score = healthHeadline.repositoryHealthScore ?? 0;
+  if (score >= 85) return "good";
+  if (score >= 70) return "partial";
+  return "needs_attention";
 }
 
 /**
@@ -24,36 +28,38 @@ function optimizationComplianceLabel(healthHeadline) {
  * @returns {any}
  */
 function buildDevSecOpsCompliancePayload(options = {}) {
-    const trust = buildTrustVerificationPayload(options);
-    const health = trust.repositoryHealth || buildRepositoryHealthPayload(options);
-    const gate = trust.headline || {};
-    const repo = health.headline || {};
+  const trust = buildTrustVerificationPayload(options);
+  const health =
+    trust.repositoryHealth || buildRepositoryHealthPayload(options);
+  const gate = trust.headline || {};
+  const repo = health.headline || {};
 
-    const securityScore = gate.qualityScore ?? null;
-    const repositoryHealthScore = repo.repositoryHealthScore ?? null;
-    const optimizationCompliance = optimizationComplianceLabel(repo);
+  const securityScore = gate.qualityScore ?? null;
+  const repositoryHealthScore = repo.repositoryHealthScore ?? null;
+  const optimizationCompliance = optimizationComplianceLabel(repo);
 
-    return {
-        type: 'simplebeacon-devsecops-compliance',
-        generatedAt: new Date().toISOString(),
-        verificationId: trust.verificationId,
-        headlineSource: trust.headlineSource || null,
-        headlineReason: trust.headlineReason || null,
-        securityScore,
-        repositoryHealthScore,
-        optimizationCompliance,
-        gatePass: gate.gatePass ?? null,
-        securityIssues: gate.issueCount ?? null,
-        technicalDebtItems: repo.reductionOpportunities ?? null,
-        duplicateGroups: repo.duplicateGroups ?? null,
-        optimizationPotential: repo.optimizationPotential ?? null,
-        remediationAvailable: Boolean((repo.mergeCandidates ?? 0) > 0),
-        mergePreviewAvailable: true,
-        mergeAutoDeleteEnabled: false,
-        complianceNote: 'Repository optimization uses preview + confirmation — no auto-delete.',
-        trust,
-        repositoryHealth: health
-    };
+  return {
+    type: "simplebeacon-devsecops-compliance",
+    generatedAt: new Date().toISOString(),
+    verificationId: trust.verificationId,
+    headlineSource: trust.headlineSource || null,
+    headlineReason: trust.headlineReason || null,
+    securityScore,
+    repositoryHealthScore,
+    optimizationCompliance,
+    gatePass: gate.gatePass ?? null,
+    securityIssues: gate.issueCount ?? null,
+    technicalDebtItems: repo.reductionOpportunities ?? null,
+    duplicateGroups: repo.duplicateGroups ?? null,
+    optimizationPotential: repo.optimizationPotential ?? null,
+    remediationAvailable: Boolean((repo.mergeCandidates ?? 0) > 0),
+    mergePreviewAvailable: true,
+    mergeAutoDeleteEnabled: false,
+    complianceNote:
+      "Repository optimization uses preview + confirmation — no auto-delete.",
+    trust,
+    repositoryHealth: health,
+  };
 }
 
 /**
@@ -62,11 +68,11 @@ function buildDevSecOpsCompliancePayload(options = {}) {
  * @returns {any}
  */
 function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**
@@ -75,9 +81,9 @@ function esc(value) {
  * @returns {any}
  */
 function complianceStatusClass(label) {
-    if (label === 'good') return 'pass';
-    if (label === 'partial') return 'warn';
-    return 'review';
+  if (label === "good") return "pass";
+  if (label === "partial") return "warn";
+  return "review";
 }
 
 /**
@@ -86,16 +92,16 @@ function complianceStatusClass(label) {
  * @returns {any}
  */
 function buildComplianceHtml(payload) {
-    const gate = payload.gatePass ? 'pass' : 'review';
-    const gateLabel = payload.gatePass ? 'GATE PASS' : 'GATE REVIEW';
-    const optClass = complianceStatusClass(payload.optimizationCompliance);
-    const trust = payload.trust || {};
-    const disclaimers = [
-        ...(trust.disclaimers || []),
-        payload.complianceNote
-    ].filter(Boolean);
+  const gate = payload.gatePass ? "pass" : "review";
+  const gateLabel = payload.gatePass ? "GATE PASS" : "GATE REVIEW";
+  const optClass = complianceStatusClass(payload.optimizationCompliance);
+  const trust = payload.trust || {};
+  const disclaimers = [
+    ...(trust.disclaimers || []),
+    payload.complianceNote,
+  ].filter(Boolean);
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -130,8 +136,8 @@ function buildComplianceHtml(payload) {
       <h1>DevSecOps compliance snapshot</h1>
       <span class="pill ${gate}">${gateLabel}</span>
     </div>
-    <p class="muted">Verification ID <code>${esc(payload.verificationId)}</code> · Generated ${esc((payload.generatedAt || '').replace('T', ' ').slice(0, 19))} UTC</p>
-    <p class="muted">Headline source: <code>${esc(payload.headlineSource || 'n/a')}</code> · ${esc(payload.headlineReason || '')}</p>
+    <p class="muted">Verification ID <code>${esc(payload.verificationId)}</code> · Generated ${esc((payload.generatedAt || "").replace("T", " ").slice(0, 19))} UTC</p>
+    <p class="muted">Headline source: <code>${esc(payload.headlineSource || "n/a")}</code> · ${esc(payload.headlineReason || "")}</p>
 
     <section class="card">
       <h2>Unified scores</h2>
@@ -143,23 +149,23 @@ function buildComplianceHtml(payload) {
         <div><dt>Savings potential</dt><dd>${esc(payload.optimizationPotential)}</dd></div>
         <div><dt>Duplicate groups</dt><dd>${esc(payload.duplicateGroups)}</dd></div>
         <div><dt>Reduction ops</dt><dd>${esc(payload.technicalDebtItems)}</dd></div>
-        <div><dt>Merge preview</dt><dd>${payload.mergePreviewAvailable ? 'available' : '—'}</dd></div>
+        <div><dt>Merge preview</dt><dd>${payload.mergePreviewAvailable ? "available" : "—"}</dd></div>
       </dl>
     </section>
 
     <section class="card">
       <h2>Platform gate (sample paths)</h2>
-      <p class="muted">${esc(trust.platform?.scopeNote || '—')}</p>
+      <p class="muted">${esc(trust.platform?.scopeNote || "—")}</p>
       <dl class="metrics">
         <div><dt>Quality</dt><dd>${esc(trust.platform?.qualityScore)}%</dd></div>
         <div><dt>Issues</dt><dd>${esc(trust.platform?.issueCount)}</dd></div>
-        <div><dt>Gate</dt><dd>${trust.platform?.gatePass ? 'PASS' : 'REVIEW'}</dd></div>
+        <div><dt>Gate</dt><dd>${trust.platform?.gatePass ? "PASS" : "REVIEW"}</dd></div>
       </dl>
     </section>
 
     <section class="card">
       <h2>Monorepo (full-tree fiction sweep)</h2>
-      <p class="muted">${esc(trust.monorepo?.scopeNote || '—')}</p>
+      <p class="muted">${esc(trust.monorepo?.scopeNote || "—")}</p>
       <dl class="metrics">
         <div><dt>Quality</dt><dd>${esc(trust.monorepo?.qualityScore)}%</dd></div>
         <div><dt>Issues</dt><dd>${esc(trust.monorepo?.issueCount)}</dd></div>
@@ -170,7 +176,7 @@ function buildComplianceHtml(payload) {
 
     <section class="card">
       <h2>Scope &amp; disclaimers</h2>
-      <ul>${disclaimers.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>
+      <ul>${disclaimers.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
     </section>
 
     <div class="links">
@@ -185,7 +191,7 @@ function buildComplianceHtml(payload) {
 }
 
 module.exports = {
-    buildDevSecOpsCompliancePayload,
-    buildComplianceHtml,
-    optimizationComplianceLabel
+  buildDevSecOpsCompliancePayload,
+  buildComplianceHtml,
+  optimizationComplianceLabel,
 };

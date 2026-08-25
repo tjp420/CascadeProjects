@@ -3879,7 +3879,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             lastBrowserSessionTime = Date.now();
             recordTokenInRegistry(token, {}, 'unknown');
           }
-        } catch { console.error('Failed to record browser session token:'); }
+        } catch {
+          console.error('Failed to record browser session token:');
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ signedIn: !!lastBrowserSessionToken }));
       });

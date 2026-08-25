@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Filesystem storage adapter for BackupCoordinator.
@@ -11,8 +11,8 @@
  * @module backup-storage-filesystem
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Create a filesystem-backed storage adapter.
@@ -23,7 +23,9 @@ const path = require('path');
  */
 function createFilesystemStorage(opts) {
   if (!opts || !opts.directory) {
-    throw new Error('INVALID_CONFIG: backup-storage-filesystem: directory is required');
+    throw new Error(
+      "INVALID_CONFIG: backup-storage-filesystem: directory is required",
+    );
   }
   const dir = path.resolve(opts.directory);
   fs.mkdirSync(dir, { recursive: true });
@@ -38,7 +40,7 @@ function createFilesystemStorage(opts) {
 
   function parseArchiveId(archiveId) {
     // Format: bkp-{timestamp}-{hex}
-    const parts = archiveId.split('-');
+    const parts = archiveId.split("-");
     const timestamp = parts.length >= 2 ? parseInt(parts[1], 10) : 0;
     return { timestamp, valid: parts.length >= 3 };
   }
@@ -50,7 +52,7 @@ function createFilesystemStorage(opts) {
         archiveId,
         timestamp,
         size: buffer.length,
-        checksum: '',
+        checksum: "",
         createdAt: Date.now(),
       };
       fs.writeFileSync(archivePath(archiveId), buffer);
@@ -64,24 +66,36 @@ function createFilesystemStorage(opts) {
     },
 
     async delete(archiveId) {
-      try { fs.unlinkSync(archivePath(archiveId)); } catch { /* ignore */ }
-      try { fs.unlinkSync(metaPath(archiveId)); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(archivePath(archiveId));
+      } catch {
+        /* ignore */
+      }
+      try {
+        fs.unlinkSync(metaPath(archiveId));
+      } catch {
+        /* ignore */
+      }
     },
 
     async list() {
       const files = fs.readdirSync(dir);
       const archives = [];
       for (const name of files) {
-        if (!name.endsWith('.meta.json')) continue;
+        if (!name.endsWith(".meta.json")) continue;
         try {
-          const meta = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+          const meta = JSON.parse(
+            fs.readFileSync(path.join(dir, name), "utf8"),
+          );
           archives.push({
             archiveId: meta.archiveId,
             timestamp: meta.timestamp,
             size: meta.size,
-            checksum: meta.checksum || '',
+            checksum: meta.checksum || "",
           });
-        } catch { /* skip corrupt meta */ }
+        } catch {
+          /* skip corrupt meta */
+        }
       }
       return archives.sort((a, b) => a.timestamp - b.timestamp);
     },

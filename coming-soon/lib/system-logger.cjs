@@ -114,7 +114,7 @@ function getLogs(options = {}) {
 }
 
 function getErrorCount(sinceHours = 24) {
-    const since = Date.now() - (sinceHours * 60 * 60 * 1000);
+    const since = Date.now() - sinceHours * 60 * 60 * 1000;
     const logs = getLogs({ type: 'error', limit: 1000 });
     return logs.filter(l => new Date(l.timestamp).getTime() >= since).length;
 }

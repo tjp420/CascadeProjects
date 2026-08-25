@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiUrl } from '@/config';
+import { useCallback, useEffect, useState } from "react";
+import { apiUrl } from "@/config";
 
 export interface ReferralLedgerEntry {
   id: string;
@@ -33,7 +33,9 @@ interface UseReferralStatsResult {
   refresh: () => void;
 }
 
-function normalizeResponse(raw: Record<string, unknown>): ReferralStatsResponse {
+function normalizeResponse(
+  raw: Record<string, unknown>,
+): ReferralStatsResponse {
   const nested = raw.stats as ReferralStatsPayload | undefined;
   const stats: ReferralStatsPayload = nested || {
     clicks: Number(raw.clicks) || 0,
@@ -44,11 +46,20 @@ function normalizeResponse(raw: Record<string, unknown>): ReferralStatsResponse 
     partnerCode: (raw.partnerCode as string) || null,
     shareUrl: (raw.shareUrl as string) || null,
   };
-  const ledger = Array.isArray(raw.ledger) ? (raw.ledger as ReferralLedgerEntry[]) : [];
-  return { success: raw.success === true, stats, ledger, error: raw.error as string | undefined };
+  const ledger = Array.isArray(raw.ledger)
+    ? (raw.ledger as ReferralLedgerEntry[])
+    : [];
+  return {
+    success: raw.success === true,
+    stats,
+    ledger,
+    error: raw.error as string | undefined,
+  };
 }
 
-export function useReferralStats(email?: string | null): UseReferralStatsResult {
+export function useReferralStats(
+  email?: string | null,
+): UseReferralStatsResult {
   const [data, setData] = useState<ReferralStatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +68,9 @@ export function useReferralStats(email?: string | null): UseReferralStatsResult 
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes("@")) {
       setData(null);
-      setError('Sign in with an email address to view referral stats.');
+      setError("Sign in with an email address to view referral stats.");
       setLoading(false);
       return;
     }
@@ -68,11 +79,13 @@ export function useReferralStats(email?: string | null): UseReferralStatsResult 
     setLoading(true);
     setError(null);
 
-    fetch(`${apiUrl('referral/stats')}?email=${encodeURIComponent(email)}`)
+    fetch(`${apiUrl("referral/stats")}?email=${encodeURIComponent(email)}`)
       .then(async (res) => {
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(String(json?.error || `Request failed (${res.status})`));
+          throw new Error(
+            String(json?.error || `Request failed (${res.status})`),
+          );
         }
         return normalizeResponse(json);
       })
@@ -80,14 +93,14 @@ export function useReferralStats(email?: string | null): UseReferralStatsResult 
         if (!cancelled) {
           setData(payload);
           if (!payload.success) {
-            setError(payload.error || 'Unable to load referral stats.');
+            setError(payload.error || "Unable to load referral stats.");
           }
         }
       })
       .catch((err: Error) => {
         if (!cancelled) {
           setData(null);
-          setError(err.message || 'Unable to load referral stats.');
+          setError(err.message || "Unable to load referral stats.");
         }
       })
       .finally(() => {

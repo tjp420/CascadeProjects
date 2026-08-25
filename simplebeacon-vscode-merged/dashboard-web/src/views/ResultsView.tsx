@@ -44,7 +44,8 @@ function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): v
   const qualityScore = reportData?.qualityScore ?? reportData?.gate?.score ?? 0;
   const payload = {
     totalFiles: reportData?.repositoryFilesTotal || reportData?.totalFiles || reportData?.summary?.totalFiles || 0,
-    ruleScopedFilesAnalyzed: reportData?.ruleScopedFilesAnalyzed || reportData?.filesAnalyzed || reportData?.summary?.codeFilesAnalyzed || 0,
+    ruleScopedFilesAnalyzed:
+      reportData?.ruleScopedFilesAnalyzed || reportData?.filesAnalyzed || reportData?.summary?.codeFilesAnalyzed || 0,
     issueCount: issues.length,
     qualityScore,
     gate: reportData?.gate || { pass: false },
@@ -120,7 +121,7 @@ export function ResultsView() {
       medium: { high: 0, medium: 0, low: 0 },
       low: { high: 0, medium: 0, low: 0 },
     };
-    allIssues.forEach(i => {
+    allIssues.forEach((i) => {
       const sev = (i.severity || 'low').toLowerCase();
       const impact = sev === 'critical' || sev === 'high' ? 'high' : sev === 'medium' ? 'medium' : 'low';
       const count = Number(i.count) || 1;
@@ -152,7 +153,7 @@ export function ResultsView() {
   }
 
   const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
-  const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
+  const activeSeverities = severities.filter((s) => result.severityCounts[s] > 0);
   const currentScanGrade = resolveScanLetterGrade(result.qualityScore, fullReport);
 
   return (
@@ -183,7 +184,11 @@ export function ResultsView() {
             <MetricCard icon={FileCode} label="Files Scanned" value={result.totalFiles} />
             <MetricCard icon={AlertTriangle} label="Issues Found" value={result.issueCount} />
             <MetricCard icon={Shield} label="Rules Checked" value={result.scanScope.codeFilesAnalyzed || 0} />
-            <MetricCard icon={CheckCircle2} label="Quality Score" value={result.qualityScore !== null ? `${result.qualityScore}%` : '—'} />
+            <MetricCard
+              icon={CheckCircle2}
+              label="Quality Score"
+              value={result.qualityScore !== null ? `${result.qualityScore}%` : '—'}
+            />
           </div>
 
           <Separator />
@@ -193,10 +198,15 @@ export function ResultsView() {
               <Badge
                 key={sev}
                 variant={
-                  sev === 'critical' ? 'danger' :
-                  sev === 'high' ? 'warning' :
-                  sev === 'medium' ? 'info' :
-                  sev === 'low' ? 'secondary' : 'outline'
+                  sev === 'critical'
+                    ? 'danger'
+                    : sev === 'high'
+                      ? 'warning'
+                      : sev === 'medium'
+                        ? 'info'
+                        : sev === 'low'
+                          ? 'secondary'
+                          : 'outline'
                 }
                 className="capitalize gap-1.5"
               >
@@ -207,10 +217,7 @@ export function ResultsView() {
         </CardContent>
       </Card>
 
-      <ResultsReferralBanner
-        userEmail={user?.email}
-        currentScanGrade={currentScanGrade}
-      />
+      <ResultsReferralBanner userEmail={user?.email} currentScanGrade={currentScanGrade} />
 
       {/* Risk Heatmap Card */}
       <Card>
@@ -227,14 +234,21 @@ export function ResultsView() {
             <div className="text-xs text-center text-foreground-muted font-medium">Low Lk</div>
             <div className="text-xs text-center text-foreground-muted font-medium">Med Lk</div>
             <div className="text-xs text-center text-foreground-muted font-medium">High Lk</div>
-            {(['high', 'medium', 'low'] as const).map(imp => (
+            {(['high', 'medium', 'low'] as const).map((imp) => (
               <div key={imp} className="contents">
-                <div className="text-xs text-right text-foreground-muted font-medium self-center pr-1 capitalize">{imp} Imp</div>
-                {(['low', 'medium', 'high'] as const).map(lk => {
+                <div className="text-xs text-right text-foreground-muted font-medium self-center pr-1 capitalize">
+                  {imp} Imp
+                </div>
+                {(['low', 'medium', 'high'] as const).map((lk) => {
                   const count = heatmapGrid[imp][lk];
                   const score: Record<string, number> = { low: 1, medium: 2, high: 3 };
                   const total = score[imp] * score[lk];
-                  const cellClass = total >= 6 ? 'bg-red-500/15 text-red-500 border-red-500/30' : total >= 3 ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-green-500/15 text-green-500 border-green-500/30';
+                  const cellClass =
+                    total >= 6
+                      ? 'bg-red-500/15 text-red-500 border-red-500/30'
+                      : total >= 3
+                        ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+                        : 'bg-green-500/15 text-green-500 border-green-500/30';
                   const isSelected = selectedCell?.impact === imp && selectedCell?.likelihood === lk;
                   return (
                     <div
@@ -253,7 +267,9 @@ export function ResultsView() {
                       className={`rounded-md border p-3 text-center cursor-pointer transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring ${cellClass} ${isSelected ? 'ring-2 ring-ring' : ''}`}
                     >
                       <div className="text-lg font-bold">{count}</div>
-                      <div className="text-[10px] opacity-60">{total >= 6 ? 'Red' : total >= 3 ? 'Amber' : 'Green'}</div>
+                      <div className="text-[10px] opacity-60">
+                        {total >= 6 ? 'Red' : total >= 3 ? 'Amber' : 'Green'}
+                      </div>
                     </div>
                   );
                 })}
@@ -315,17 +331,25 @@ export function ResultsView() {
               ) : (
                 <div className="space-y-2">
                   {severities
-                    .filter(s => filter === 'all' || s === filter)
-                    .filter(s => result.severityCounts[s] > 0)
+                    .filter((s) => filter === 'all' || s === filter)
+                    .filter((s) => result.severityCounts[s] > 0)
                     .map((sev) => (
-                      <div key={sev} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+                      <div
+                        key={sev}
+                        className="flex items-center justify-between rounded-md border border-border px-4 py-3"
+                      >
                         <div className="flex items-center gap-3">
                           <Badge
                             variant={
-                              sev === 'critical' ? 'danger' :
-                              sev === 'high' ? 'warning' :
-                              sev === 'medium' ? 'info' :
-                              sev === 'low' ? 'secondary' : 'outline'
+                              sev === 'critical'
+                                ? 'danger'
+                                : sev === 'high'
+                                  ? 'warning'
+                                  : sev === 'medium'
+                                    ? 'info'
+                                    : sev === 'low'
+                                      ? 'secondary'
+                                      : 'outline'
                             }
                             className="capitalize"
                           >
@@ -353,11 +377,22 @@ export function ResultsView() {
               <div className="flex items-start gap-3">
                 <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
                 <div className="text-sm space-y-1">
-                  <p>Repository inventory: <strong>{result.totalFiles} files</strong> indexed</p>
-                  <p>Code files analyzed: <strong>{result.scanScope.codeFilesAnalyzed || 0} files</strong></p>
-                  <p>Profile: <strong>{result.scanScope.profile}</strong></p>
-                  <p>Scope: <strong>{result.scanScope.resultsViewScope}</strong></p>
-                  <p>Deterministic gate scan — pattern matching on configured production paths. Source files are not semantically reviewed.</p>
+                  <p>
+                    Repository inventory: <strong>{result.totalFiles} files</strong> indexed
+                  </p>
+                  <p>
+                    Code files analyzed: <strong>{result.scanScope.codeFilesAnalyzed || 0} files</strong>
+                  </p>
+                  <p>
+                    Profile: <strong>{result.scanScope.profile}</strong>
+                  </p>
+                  <p>
+                    Scope: <strong>{result.scanScope.resultsViewScope}</strong>
+                  </p>
+                  <p>
+                    Deterministic gate scan — pattern matching on configured production paths. Source files are not
+                    semantically reviewed.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -371,39 +406,54 @@ export function ResultsView() {
               <CardDescription>Download scan report in various formats</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
-              <Button variant="outline" size="sm" onClick={() => {
-                if (!result) return;
-                const exportData = fullReport || result;
-                syncReportToVscodeSidebar(exportData, result.projectPath);
-                const json = JSON.stringify(exportData, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const filename = `simplebeacon-report-${Date.now()}.json`;
-                const params = new URLSearchParams(window.location.search);
-                const inIde = typeof window !== 'undefined' && (
-                  typeof (window as any).acquireVsCodeApi === 'function' ||
-                  params.get('sb_parent_urlbar') ||
-                  params.get('sb_notify_base') ||
-                  params.get('sb_api_base')
-                );
-                if (inIde) {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const base64 = String(reader.result || '').split(',')[1];
-                    const vscode = (window as any).acquireVsCodeApi?.();
-                    const msg = { command: 'downloadFile', filename, mimeType: blob.type, base64 };
-                    if (vscode) { try { vscode.postMessage(msg); } catch { /* ignore */ } }
-                    else if (window.parent && window.parent !== window) { try { window.parent.postMessage(msg, '*'); } catch { /* ignore */ } }
-                  };
-                  reader.readAsDataURL(blob);
-                  return;
-                }
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result) return;
+                  const exportData = fullReport || result;
+                  syncReportToVscodeSidebar(exportData, result.projectPath);
+                  const json = JSON.stringify(exportData, null, 2);
+                  const blob = new Blob([json], { type: 'application/json' });
+                  const filename = `simplebeacon-report-${Date.now()}.json`;
+                  const params = new URLSearchParams(window.location.search);
+                  const inIde =
+                    typeof window !== 'undefined' &&
+                    (typeof (window as any).acquireVsCodeApi === 'function' ||
+                      params.get('sb_parent_urlbar') ||
+                      params.get('sb_notify_base') ||
+                      params.get('sb_api_base'));
+                  if (inIde) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const base64 = String(reader.result || '').split(',')[1];
+                      const vscode = (window as any).acquireVsCodeApi?.();
+                      const msg = { command: 'downloadFile', filename, mimeType: blob.type, base64 };
+                      if (vscode) {
+                        try {
+                          vscode.postMessage(msg);
+                        } catch {
+                          /* ignore */
+                        }
+                      } else if (window.parent && window.parent !== window) {
+                        try {
+                          window.parent.postMessage(msg, '*');
+                        } catch {
+                          /* ignore */
+                        }
+                      }
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                  }
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
                 <Download className="h-4 w-4" /> JSON Report
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate('audit')}>
@@ -421,7 +471,15 @@ export function ResultsView() {
 }
 
 // simplebeacon-ignore: mega-params — only 3 params, false positive
-function MetricCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number | string }) {
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number | string;
+}) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">

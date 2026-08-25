@@ -1,17 +1,17 @@
 {
-  "compilerOptions": {
-    "target": "ES2018",
-    "module": "ES2015",
-    "moduleResolution": "bundler",
-    "allowJs": true,
-    "checkJs": false,
-    "outDir": "./js-es2018",
-    "rootDir": "./js",
-    "declaration": false,
-    "sourceMap": false,
-    "skipLibCheck": true,
-    "esModuleInterop": true
-  },
-  "include": ["js/**/*"],
-  "exclude": ["node_modules"]
+    "compilerOptions": {
+        "target": "ES2018",
+        "module": "ES2015",
+        "moduleResolution": "bundler",
+        "allowJs": true,
+        "checkJs": false,
+        "outDir": "./js-es2018",
+        "rootDir": "./js",
+        "declaration": false,
+        "sourceMap": false,
+        "skipLibCheck": true,
+        "esModuleInterop": true
+    },
+    "include": ["js/**/*"],
+    "exclude": ["node_modules"]
 }

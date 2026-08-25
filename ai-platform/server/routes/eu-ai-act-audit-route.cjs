@@ -2,15 +2,18 @@
  * POST /api/analyze/eu-ai-act-audit-report — EU compliance PDF HTML from sprint artifacts.
  */
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
-const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('../lib/path-safety.cjs');
-const { toClientError } = require('../../shared-utils/index.cjs');
-const logger = require('../lib/app-logger.cjs');
-const { resolvePlatformRoot } = require('../lib/simplebeacon-proxy.cjs');
-const { optionalAuthenticate } = require('../middleware/auth.cjs');
-const { sendError } = require('../lib/response-helpers.cjs');
+const {
+  assertSafeProjectPath,
+  resolveDefaultAllowedRoots,
+} = require("../lib/path-safety.cjs");
+const { toClientError } = require("../../shared-utils/index.cjs");
+const logger = require("../lib/app-logger.cjs");
+const { resolvePlatformRoot } = require("../lib/simplebeacon-proxy.cjs");
+const { optionalAuthenticate } = require("../middleware/auth.cjs");
+const { sendError } = require("../lib/response-helpers.cjs");
 
 /**
  * Resolve project path.
@@ -19,7 +22,7 @@ const { sendError } = require('../lib/response-helpers.cjs');
  * @returns {any}
  */
 function resolveProjectPath(baseDir, rawPath) {
-  const value = String(rawPath || '').trim();
+  const value = String(rawPath || "").trim();
   if (!value) return null;
   if (path.isAbsolute(value)) return path.normalize(value);
   return path.normalize(path.join(baseDir, value));
@@ -33,15 +36,15 @@ function resolveProjectPath(baseDir, rawPath) {
  */
 function resolveEuAiActProjectPath(rawPath, options = {}) {
   const { baseDir, monorepoRoot, allowedRoots } = options;
-  const value = String(rawPath || '').trim();
+  const value = String(rawPath || "").trim();
   if (!value) return path.resolve(baseDir);
 
   const candidates = [];
-/**
- * Push.
- * @param {string} candidate
- * @returns {any}
- */
+  /**
+   * Push.
+   * @param {string} candidate
+   * @returns {any}
+   */
   const push = (candidate) => {
     if (!candidate) return;
     const resolved = path.resolve(candidate);
@@ -55,12 +58,12 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
     push(value);
   } else {
     push(path.join(monorepoRoot, value));
-    push(path.join(baseDir, '..', value));
+    push(path.join(baseDir, "..", value));
     const monorepoLabel = path.basename(monorepoRoot);
     if (monorepoLabel && value.toLowerCase() === monorepoLabel.toLowerCase()) {
       push(monorepoRoot);
     }
-    if (value.toLowerCase() === 'cascadeprojects') {
+    if (value.toLowerCase() === "cascadeprojects") {
       push(monorepoRoot);
     }
   }
@@ -68,9 +71,9 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
   try {
     const seed = path.isAbsolute(value)
       ? value
-      : (fs.existsSync(path.join(monorepoRoot, value))
+      : fs.existsSync(path.join(monorepoRoot, value))
         ? path.join(monorepoRoot, value)
-        : monorepoRoot);
+        : monorepoRoot;
     const { platformRoot, scanRoot } = resolvePlatformRoot(seed);
     push(platformRoot);
     push(scanRoot);
@@ -80,7 +83,11 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
 
   for (const candidate of candidates) {
     if (!fs.existsSync(candidate)) continue;
-    const artifactPath = path.join(candidate, '.simplebeacon', 'eu-ai-act-report.json');
+    const artifactPath = path.join(
+      candidate,
+      ".simplebeacon",
+      "eu-ai-act-report.json",
+    );
     if (fs.existsSync(artifactPath)) {
       return assertSafeProjectPath(candidate, allowedRoots);
     }
@@ -105,31 +112,33 @@ function registerEuAiActAuditRoute(app, options = {}) {
   if (app.__euAiActAuditRouteRegistered) return;
   app.__euAiActAuditRouteRegistered = true;
 
-  const baseDir = options.baseDir || path.join(__dirname, '..', '..');
-  const monorepoRoot = options.monorepoRoot || path.resolve(path.join(baseDir, '..'));
+  const baseDir = options.baseDir || path.join(__dirname, "..", "..");
+  const monorepoRoot =
+    options.monorepoRoot || path.resolve(path.join(baseDir, ".."));
   const publicGateEnabled = options.publicGateEnabled === true;
-  const auditCheckoutUrl = options.auditCheckoutUrl
-    || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
-    || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+  const auditCheckoutUrl =
+    options.auditCheckoutUrl ||
+    process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL ||
+    "mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report";
 
-/**
- * Get allowed roots.
- * @returns {any}
- */
+  /**
+   * Get allowed roots.
+   * @returns {any}
+   */
   function getAllowedRoots() {
     return resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
   }
 
-/**
- * Resolve safe project path.
- * @param {string} rawPath
- * @returns {any}
- */
+  /**
+   * Resolve safe project path.
+   * @param {string} rawPath
+   * @returns {any}
+   */
   function resolveSafeProjectPath(rawPath) {
     return resolveEuAiActProjectPath(rawPath, {
       baseDir,
       monorepoRoot,
-      allowedRoots: getAllowedRoots()
+      allowedRoots: getAllowedRoots(),
     });
   }
 
@@ -140,11 +149,13 @@ function registerEuAiActAuditRoute(app, options = {}) {
    */
   function canAccessAuditReport(user) {
     if (!user) return false;
-    if (user.role === 'admin' || user.role === 'superadmin') return true;
+    if (user.role === "admin" || user.role === "superadmin") return true;
     const permissions = Array.isArray(user.permissions) ? user.permissions : [];
-    return permissions.includes('admin:basic')
-      || permissions.includes('admin:full')
-      || permissions.includes('analyze:private');
+    return (
+      permissions.includes("admin:basic") ||
+      permissions.includes("admin:full") ||
+      permissions.includes("analyze:private")
+    );
   }
 
   /**
@@ -159,17 +170,21 @@ function registerEuAiActAuditRoute(app, options = {}) {
       return res.status(402).json({
         success: false,
         publicGateLocked: true,
-        error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
+        error:
+          "Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.",
         checkoutUrl: auditCheckoutUrl,
-        auditPriceLabel: '$499'
+        auditPriceLabel: "$499",
       });
     }
 
-    const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
-    if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') {
+    const reportModulePath =
+      require.resolve("../lib/eu-ai-act-audit-report.cjs");
+    if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === "true") {
       delete require.cache[reportModulePath];
     }
-    const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+    const {
+      buildEuAiActAuditReport,
+    } = require("../lib/eu-ai-act-audit-report.cjs");
 
     const projectPath = params.projectPath
       ? resolveSafeProjectPath(params.projectPath)
@@ -177,51 +192,73 @@ function registerEuAiActAuditRoute(app, options = {}) {
     const report = await buildEuAiActAuditReport({
       projectPath,
       clientName: params.client || params.company || undefined,
-      deliverableSku: params.deliverableSku || params.productSku || 'euai2499',
+      deliverableSku: params.deliverableSku || params.productSku || "euai2499",
       artifacts: params.sprintArtifacts || undefined,
-      credentials: params.credentials
+      credentials: params.credentials,
     });
-    res.set('Cache-Control', 'no-store');
+    res.set("Cache-Control", "no-store");
     return res.json({
       success: true,
       html: report.html,
       filename: report.filename,
       reportId: report.reportId,
       tier: report.exportTier,
-      exportTierLabel: report.exportTierLabel
+      exportTierLabel: report.exportTierLabel,
     });
   }
 
-  app.post('/api/analyze/eu-ai-act-audit-report', optionalAuthenticate, async (req, res) => {
-    try {
-      await buildAuditReport(req, res, req.body || {});
-    } catch (error) {
-      if (error.code === 'eu_ai_act_artifacts_missing') {
-        return sendError(res, 422, error.message);
+  app.post(
+    "/api/analyze/eu-ai-act-audit-report",
+    optionalAuthenticate,
+    async (req, res) => {
+      try {
+        await buildAuditReport(req, res, req.body || {});
+      } catch (error) {
+        if (error.code === "eu_ai_act_artifacts_missing") {
+          return sendError(res, 422, error.message);
+        }
+        logger.warn("[eu-ai-act-audit-report] generation failed", {
+          error: error.message,
+        });
+        return sendError(
+          res,
+          400,
+          toClientError(error, "EU AI Act audit report generation failed"),
+        );
       }
-      logger.warn('[eu-ai-act-audit-report] generation failed', { error: error.message });
-      return sendError(res, 400, toClientError(error, 'EU AI Act audit report generation failed'));
-    }
-  });
+    },
+  );
 
-  app.get('/api/analyze/eu-ai-act-audit-report', optionalAuthenticate, async (req, res) => {
-    try {
-      await buildAuditReport(req, res, req.query || {});
-    } catch (error) {
-      if (error.code === 'eu_ai_act_artifacts_missing') {
-        return sendError(res, 422, error.message);
+  app.get(
+    "/api/analyze/eu-ai-act-audit-report",
+    optionalAuthenticate,
+    async (req, res) => {
+      try {
+        await buildAuditReport(req, res, req.query || {});
+      } catch (error) {
+        if (error.code === "eu_ai_act_artifacts_missing") {
+          return sendError(res, 422, error.message);
+        }
+        logger.warn("[eu-ai-act-audit-report] generation failed", {
+          error: error.message,
+        });
+        return sendError(
+          res,
+          400,
+          toClientError(error, "EU AI Act audit report generation failed"),
+        );
       }
-      logger.warn('[eu-ai-act-audit-report] generation failed', { error: error.message });
-      return sendError(res, 400, toClientError(error, 'EU AI Act audit report generation failed'));
-    }
-  });
+    },
+  );
 
-  if (process.env.NODE_ENV !== 'test') {
-    logger.info('[Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report');
+  if (process.env.NODE_ENV !== "test") {
+    logger.info(
+      "[Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report",
+    );
   }
 }
 
 module.exports = {
   registerEuAiActAuditRoute,
-  resolveEuAiActProjectPath
+  resolveEuAiActProjectPath,
 };

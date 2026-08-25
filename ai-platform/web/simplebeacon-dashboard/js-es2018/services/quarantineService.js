@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Dashboard code — quarantine evidence inspector service
-import { apiBase } from './authService.js?v=20260722bridgefix1';
+import { apiBase } from "./authService.js?v=20260722bridgefix1";
 
 /**
  * Fetch quarantined audit entries from the backend.
@@ -7,14 +7,17 @@ import { apiBase } from './authService.js?v=20260722bridgefix1';
  * @param {object} [authHeaders] - Auth headers from authService.getAuthHeaders()
  * @returns {Promise<object>} Result with entries array, totalEntries, metadata
  */
-export async function fetchQuarantineEntries(allOrgs = false, authHeaders = {}) {
-  const base = apiBase() || '';
-  const url = `${base}/api/audit/quarantine${allOrgs ? '?allOrgs=true' : ''}`;
+export async function fetchQuarantineEntries(
+  allOrgs = false,
+  authHeaders = {},
+) {
+  const base = apiBase() || "";
+  const url = `${base}/api/audit/quarantine${allOrgs ? "?allOrgs=true" : ""}`;
   try {
     const resp = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: { ...authHeaders },
-      credentials: 'include',
+      credentials: "include",
     });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -35,15 +38,15 @@ export async function fetchQuarantineEntries(allOrgs = false, authHeaders = {}) 
  * @returns {Promise<object>} Verification result with hashMatches, expectedHash, actualHash, etc.
  */
 export async function verifyQuarantineEntry(entryId, orgId, authHeaders = {}) {
-  const base = apiBase() || '';
+  const base = apiBase() || "";
   const url = `${base}/api/audit/quarantine/verify-entry`;
   const body = { entryId };
   if (orgId) body.orgId = orgId;
   try {
     const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      credentials: "include",
       body: JSON.stringify(body),
     });
     if (!resp.ok) {

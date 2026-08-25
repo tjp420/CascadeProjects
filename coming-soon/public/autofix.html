@@ -1,27 +1,66 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SimpleBeacon Auto-Fix</title>
-  <style>body{font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif;max-width:900px;margin:40px auto;color:#0f172a;padding:20px}h1{color:#111827}pre{background:#f3f4f6;padding:12px;border-radius:6px;overflow:auto}</style>
-</head>
-<body>
-  <h1>SimpleBeacon Auto-Fix (Preview)</h1>
-  <p>This release introduces a conservative deterministic auto-fix framework for common issues detected by the SimpleBeacon scanner.</p>
-  <h2>What it fixes automatically</h2>
-  <ul>
-    <li>insecureRandom: replaces <code>Math.random()</code> with a crypto-backed inline helper (Node.js projects)</li>
-    <li>debugArtifacts: removes <code>debugger;</code> and <code>console.debug(...)</code> calls</li>
-    <li>innerHtmlXss: converts safe <code>innerHTML = ''</code> assignments to <code>textContent = ''</code></li>
-  </ul>
-  <h2>What it suggests (non-destructive)</h2>
-  <ul>
-    <li>sensitiveData: generates redaction diffs and environment-variable guidance; secrets are never removed automatically</li>
-    <li>hardcoded confidence and LLM KPI placeholders: suggests replacing hardcoded values with configurable thresholds or real metrics</li>
-  </ul>
-  <p>Run the CLI in dry-run mode to review diffs before applying fixes:</p>
-  <pre>npx simplebeacon fix . --fix-dry-run</pre>
-  <p>Documentation: see <a href="/packages/simplebeacon-cli/AUTOFIX.md">AUTOFIX.md</a> in the repository for full details and safety notes.</p>
-</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>SimpleBeacon Auto-Fix</title>
+        <style>
+            body {
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    sans-serif;
+                max-width: 900px;
+                margin: 40px auto;
+                color: #0f172a;
+                padding: 20px;
+            }
+            h1 {
+                color: #111827;
+            }
+            pre {
+                background: #f3f4f6;
+                padding: 12px;
+                border-radius: 6px;
+                overflow: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>SimpleBeacon Auto-Fix (Preview)</h1>
+        <p>
+            This release introduces a conservative deterministic auto-fix framework for common issues detected by the
+            SimpleBeacon scanner.
+        </p>
+        <h2>What it fixes automatically</h2>
+        <ul>
+            <li>
+                insecureRandom: replaces <code>Math.random()</code> with a crypto-backed inline helper (Node.js
+                projects)
+            </li>
+            <li>debugArtifacts: removes <code>debugger;</code> and <code>console.debug(...)</code> calls</li>
+            <li>
+                innerHtmlXss: converts safe <code>innerHTML = ''</code> assignments to <code>textContent = ''</code>
+            </li>
+        </ul>
+        <h2>What it suggests (non-destructive)</h2>
+        <ul>
+            <li>
+                sensitiveData: generates redaction diffs and environment-variable guidance; secrets are never removed
+                automatically
+            </li>
+            <li>
+                hardcoded confidence and LLM KPI placeholders: suggests replacing hardcoded values with configurable
+                thresholds or real metrics
+            </li>
+        </ul>
+        <p>Run the CLI in dry-run mode to review diffs before applying fixes:</p>
+        <pre>npx simplebeacon fix . --fix-dry-run</pre>
+        <p>
+            Documentation: see <a href="/packages/simplebeacon-cli/AUTOFIX.md">AUTOFIX.md</a> in the repository for full
+            details and safety notes.
+        </p>
+    </body>
 </html>

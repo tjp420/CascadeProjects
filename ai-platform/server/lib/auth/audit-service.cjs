@@ -1,9 +1,9 @@
-'use strict';
+"use strict";
 
-const logger = require('../app-logger.cjs');
+const logger = require("../app-logger.cjs");
 
 function isAuthDebugEnabled() {
-  return process.env.LOG_AUTH === 'true' || process.env.AUTH_DEBUG === 'true';
+  return process.env.LOG_AUTH === "true" || process.env.AUTH_DEBUG === "true";
 }
 
 function authLog(message) {
@@ -19,12 +19,12 @@ function authWarn(message) {
 }
 
 function shouldWriteAuditEvents() {
-  return process.env.AUDIT_AUTH_LOGS !== 'false';
+  return process.env.AUDIT_AUTH_LOGS !== "false";
 }
 
 // Audit logging for authentication events
 function auditAuth(action, user, req = null) {
-  if (typeof action !== 'string') return;
+  if (typeof action !== "string") return;
   const auditEntry = {
     timestamp: new Date().toISOString(),
     action,
@@ -32,8 +32,8 @@ function auditAuth(action, user, req = null) {
     email: user?.email,
     trustLevel: user?.trustLevel,
     ip: req?.ip,
-    userAgent: req?.headers?.['user-agent'],
-    requestId: req?.requestId
+    userAgent: req?.headers?.["user-agent"],
+    requestId: req?.requestId,
   };
 
   if (shouldWriteAuditEvents()) {
@@ -41,4 +41,10 @@ function auditAuth(action, user, req = null) {
   }
 }
 
-module.exports = { isAuthDebugEnabled, authLog, authWarn, shouldWriteAuditEvents, auditAuth };
+module.exports = {
+  isAuthDebugEnabled,
+  authLog,
+  authWarn,
+  shouldWriteAuditEvents,
+  auditAuth,
+};

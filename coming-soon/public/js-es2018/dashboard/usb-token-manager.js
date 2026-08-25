@@ -12,9 +12,9 @@
      */
     class UsbTokenManager {
         constructor(options = {}) {
-            this.onTokenLoaded = options.onTokenLoaded || (() => { });
-            this.onStatusChange = options.onStatusChange || (() => { });
-            this.onError = options.onError || (() => { });
+            this.onTokenLoaded = options.onTokenLoaded || (() => {});
+            this.onStatusChange = options.onStatusChange || (() => {});
+            this.onError = options.onError || (() => {});
             this.usbDevice = null;
             this.isMonitoring = false;
         }
@@ -22,10 +22,12 @@
          * Start monitoring for USB connections (WebUSB)
          */
         async startMonitoring() {
-            if (this.isMonitoring)
-                return;
+            if (this.isMonitoring) return;
             if (!this.isWebUSBSupported()) {
-                this.onStatusChange({ type: 'info', message: 'WebUSB not supported — use file picker or drag-and-drop' });
+                this.onStatusChange({
+                    type: 'info',
+                    message: 'WebUSB not supported — use file picker or drag-and-drop'
+                });
                 return;
             }
             try {
@@ -33,14 +35,17 @@
                 const devices = await navigator.usb.getDevices();
                 if (devices.length > 0) {
                     this.usbDevice = devices[0];
-                    this.onStatusChange({ type: 'connected', message: 'USB device remembered', device: this.usbDevice });
+                    this.onStatusChange({
+                        type: 'connected',
+                        message: 'USB device remembered',
+                        device: this.usbDevice
+                    });
                 }
-                navigator.usb.addEventListener('connect', (e) => this._handleUSBConnect(e));
-                navigator.usb.addEventListener('disconnect', (e) => this._handleUSBDisconnect(e));
+                navigator.usb.addEventListener('connect', e => this._handleUSBConnect(e));
+                navigator.usb.addEventListener('disconnect', e => this._handleUSBDisconnect(e));
                 this.isMonitoring = true;
                 this.onStatusChange({ type: 'monitoring', message: 'USB monitoring active' });
-            }
-            catch (err) {
+            } catch (err) {
                 this.onError('Failed to start USB monitoring: ' + err.message);
             }
         }
@@ -62,10 +67,13 @@
             try {
                 const device = await navigator.usb.requestDevice({ filters: [] });
                 this.usbDevice = device;
-                this.onStatusChange({ type: 'connected', message: `USB: ${device.productName || 'Unknown device'}`, device });
+                this.onStatusChange({
+                    type: 'connected',
+                    message: `USB: ${device.productName || 'Unknown device'}`,
+                    device
+                });
                 return device;
-            }
-            catch (err) {
+            } catch (err) {
                 if (err.name !== 'NotFoundError') {
                     this.onError('USB access denied: ' + err.message);
                 }
@@ -78,10 +86,12 @@
         async browseForTokenKey() {
             try {
                 const options = {
-                    types: [{
+                    types: [
+                        {
                             description: 'Token Key Files',
                             accept: { 'application/json': [TOKENKEY_EXTENSION] }
-                        }],
+                        }
+                    ],
                     excludeAcceptAllOption: false
                 };
                 let fileHandle;
@@ -89,13 +99,11 @@
                     [fileHandle] = await window.showOpenFilePicker(options);
                     const file = await fileHandle.getFile();
                     return await this._readAndValidateTokenFile(file);
-                }
-                else {
+                } else {
                     // Fallback to traditional file input
                     return await this._legacyFilePicker();
                 }
-            }
-            catch (err) {
+            } catch (err) {
                 if (err.name !== 'AbortError') {
                     this.onError('File picker failed: ' + err.message);
                 }
@@ -113,8 +121,7 @@
                         entries.push(entry);
                     }
                 }
-            }
-            catch (err) {
+            } catch (err) {
                 this.onError('Directory scan failed: ' + err.message);
             }
             return entries;
@@ -152,8 +159,7 @@
                     fileName: file.name
                 });
                 return data;
-            }
-            catch (err) {
+            } catch (err) {
                 this.onError('Failed to read tokenkey: ' + err.message);
                 return null;
             }
@@ -162,21 +168,20 @@
          * Legacy file picker fallback
          */
         _legacyFilePicker() {
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = '.tokenkey,application/json';
                 input.style.display = 'none';
                 document.body.appendChild(input);
-                input.addEventListener('change', async (e) => {
+                input.addEventListener('change', async e => {
                     var _a;
                     const file = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0];
                     document.body.removeChild(input);
                     if (file) {
                         const result = await this._readAndValidateTokenFile(file);
                         resolve(result);
-                    }
-                    else {
+                    } else {
                         resolve(null);
                     }
                 });
@@ -235,23 +240,24 @@
      */
     function setupUsbTokenUI(containerId, options = {}) {
         const container = document.getElementById(containerId);
-        if (!container)
-            return;
+        if (!container) return;
         const manager = new UsbTokenManager(options);
         // Create UI
         const panel = document.createElement('div');
         panel.className = 'usb-token-panel';
-        panel.style.cssText = 'padding:16px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:16px;';
+        panel.style.cssText =
+            'padding:16px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:16px;';
         const headerRow = document.createElement('div');
         headerRow.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:12px;';
         const statusIndicator = document.createElement('div');
         statusIndicator.className = 'usb-status-indicator';
         statusIndicator.id = 'usb-status-indicator';
-        statusIndicator.style.cssText = 'width:12px;height:12px;border-radius:50%;background:var(--text-muted);transition:background 0.3s;';
+        statusIndicator.style.cssText =
+            'width:12px;height:12px;border-radius:50%;background:var(--text-muted);transition:background 0.3s;';
         const statusText = document.createElement('span');
         statusText.id = 'usb-status-text';
         statusText.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);';
-        statusText.textContent = "USB Token Drive";
+        statusText.textContent = 'USB Token Drive';
         headerRow.appendChild(statusIndicator);
         headerRow.appendChild(statusText);
         const btnRow = document.createElement('div');
@@ -273,7 +279,8 @@
         btnRow.appendChild(makeBtn('usb-save-btn', '\uD83D\uDCE5', 'Save to USB'));
         const infoBox = document.createElement('div');
         infoBox.id = 'usb-token-info';
-        infoBox.style.cssText = 'margin-top:12px;padding:8px;background:var(--background);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-muted);display:none;';
+        infoBox.style.cssText =
+            'margin-top:12px;padding:8px;background:var(--background);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-muted);display:none;';
         panel.appendChild(headerRow);
         panel.appendChild(btnRow);
         panel.appendChild(infoBox);
@@ -304,33 +311,37 @@
         }
         // Override status handler
         const originalOnStatus = manager.onStatusChange;
-        manager.onStatusChange = (status) => {
+        manager.onStatusChange = status => {
             updateStatus(status);
             originalOnStatus(status);
         };
-        browseBtn === null || browseBtn === void 0 ? void 0 : browseBtn.addEventListener('click', () => manager.browseForTokenKey());
-        monitorBtn === null || monitorBtn === void 0 ? void 0 : monitorBtn.addEventListener('click', () => {
-            if (manager.isMonitoring) {
-                manager.stopMonitoring();
-                monitorBtn.textContent = "\u{1F50C} Monitor USB";
-            }
-            else {
-                manager.startMonitoring();
-                monitorBtn.textContent = "\u{23F9} Stop Monitoring";
-            }
-        });
-        saveBtn === null || saveBtn === void 0 ? void 0 : saveBtn.addEventListener('click', () => {
-            if (options.onSaveRequest)
-                options.onSaveRequest();
-        });
+        browseBtn === null || browseBtn === void 0
+            ? void 0
+            : browseBtn.addEventListener('click', () => manager.browseForTokenKey());
+        monitorBtn === null || monitorBtn === void 0
+            ? void 0
+            : monitorBtn.addEventListener('click', () => {
+                  if (manager.isMonitoring) {
+                      manager.stopMonitoring();
+                      monitorBtn.textContent = '\u{1F50C} Monitor USB';
+                  } else {
+                      manager.startMonitoring();
+                      monitorBtn.textContent = '\u{23F9} Stop Monitoring';
+                  }
+              });
+        saveBtn === null || saveBtn === void 0
+            ? void 0
+            : saveBtn.addEventListener('click', () => {
+                  if (options.onSaveRequest) options.onSaveRequest();
+              });
         // Override token loaded to show info
         const originalOnToken = manager.onTokenLoaded;
-        manager.onTokenLoaded = (data) => {
+        manager.onTokenLoaded = data => {
             elInfoBox.style.display = 'block';
-            elInfoBox.textContent = "";
+            elInfoBox.textContent = '';
             const strong = document.createElement('strong');
             strong.style.color = 'var(--success)';
-            strong.textContent = "Token Loaded";
+            strong.textContent = 'Token Loaded';
             elInfoBox.appendChild(strong);
             elInfoBox.appendChild(document.createElement('br'));
             if (data.label) {
@@ -342,24 +353,26 @@
             elInfoBox.appendChild(document.createTextNode('File: ' + (data.fileName || 'Unknown')));
             elInfoBox.appendChild(document.createElement('br'));
             if (data.expiresAt) {
-                elInfoBox.appendChild(document.createTextNode('Expires: ' + new Date(data.expiresAt).toLocaleDateString()));
+                elInfoBox.appendChild(
+                    document.createTextNode('Expires: ' + new Date(data.expiresAt).toLocaleDateString())
+                );
                 elInfoBox.appendChild(document.createElement('br'));
             }
             const span = document.createElement('span');
             span.style.fontSize = '0.7rem';
             span.style.color = 'var(--text-muted)';
-            span.textContent = "Token ready for authentication";
+            span.textContent = 'Token ready for authentication';
             elInfoBox.appendChild(span);
             originalOnToken(data);
         };
         // Override error to show in info box
         const originalOnError = manager.onError;
-        manager.onError = (msg) => {
+        manager.onError = msg => {
             elInfoBox.style.display = 'block';
-            elInfoBox.textContent = "";
+            elInfoBox.textContent = '';
             const errSpan = document.createElement('span');
             errSpan.style.color = 'var(--danger)';
-            errSpan.textContent = "Error: " + msg;
+            errSpan.textContent = 'Error: ' + msg;
             elInfoBox.appendChild(errSpan);
             originalOnError(msg);
         };

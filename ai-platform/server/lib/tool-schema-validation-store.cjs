@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Tool Schema Validation Store — JSON schema enforcement for agent tool outputs
@@ -14,193 +14,206 @@
  * @module tool-schema-validation-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'tool-schemas.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "tool-schemas.json",
+);
 const MAX_VIOLATIONS = 500;
 
 // ── Builtin tool schemas ─────────────────────────────────────────────────────
 
 const BUILTIN_SCHEMAS = {
-  'code_search': {
+  code_search: {
     request: {
-      type: 'object',
-      required: ['query'],
+      type: "object",
+      required: ["query"],
       properties: {
-        query: { type: 'string', minLength: 1 },
-        maxResults: { type: 'number', minimum: 1, maximum: 100 },
+        query: { type: "string", minLength: 1 },
+        maxResults: { type: "number", minimum: 1, maximum: 100 },
       },
     },
     response: {
-      type: 'object',
-      required: ['results'],
+      type: "object",
+      required: ["results"],
       properties: {
         results: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
-            required: ['filePath'],
+            type: "object",
+            required: ["filePath"],
             properties: {
-              filePath: { type: 'string' },
-              lineStart: { type: 'number' },
-              lineEnd: { type: 'number' },
-              snippet: { type: 'string' },
-              score: { type: 'number' },
+              filePath: { type: "string" },
+              lineStart: { type: "number" },
+              lineEnd: { type: "number" },
+              snippet: { type: "string" },
+              score: { type: "number" },
             },
           },
         },
-        totalFound: { type: 'number' },
-        query: { type: 'string' },
+        totalFound: { type: "number" },
+        query: { type: "string" },
       },
     },
   },
-  'file_read': {
+  file_read: {
     request: {
-      type: 'object',
-      required: ['filePath'],
+      type: "object",
+      required: ["filePath"],
       properties: {
-        filePath: { type: 'string', minLength: 1 },
+        filePath: { type: "string", minLength: 1 },
       },
     },
     response: {
-      type: 'object',
-      required: ['content'],
+      type: "object",
+      required: ["content"],
       properties: {
-        content: { type: 'string' },
-        filePath: { type: 'string' },
-        size: { type: 'number' },
-        encoding: { type: 'string' },
+        content: { type: "string" },
+        filePath: { type: "string" },
+        size: { type: "number" },
+        encoding: { type: "string" },
       },
     },
   },
-  'web_search': {
+  web_search: {
     request: {
-      type: 'object',
-      required: ['query'],
+      type: "object",
+      required: ["query"],
       properties: {
-        query: { type: 'string', minLength: 1 },
-        maxResults: { type: 'number', minimum: 1, maximum: 50 },
+        query: { type: "string", minLength: 1 },
+        maxResults: { type: "number", minimum: 1, maximum: 50 },
       },
     },
     response: {
-      type: 'object',
-      required: ['results'],
+      type: "object",
+      required: ["results"],
       properties: {
         results: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
-            required: ['title', 'url'],
+            type: "object",
+            required: ["title", "url"],
             properties: {
-              title: { type: 'string' },
-              url: { type: 'string' },
-              snippet: { type: 'string' },
+              title: { type: "string" },
+              url: { type: "string" },
+              snippet: { type: "string" },
             },
           },
         },
-        totalFound: { type: 'number' },
+        totalFound: { type: "number" },
       },
     },
   },
-  'code_execution': {
+  code_execution: {
     request: {
-      type: 'object',
-      required: ['language', 'code'],
+      type: "object",
+      required: ["language", "code"],
       properties: {
-        language: { type: 'string', enum: ['javascript', 'python', 'bash', 'sql'] },
-        code: { type: 'string', minLength: 1 },
+        language: {
+          type: "string",
+          enum: ["javascript", "python", "bash", "sql"],
+        },
+        code: { type: "string", minLength: 1 },
       },
     },
     response: {
-      type: 'object',
-      required: ['stdout'],
+      type: "object",
+      required: ["stdout"],
       properties: {
-        stdout: { type: 'string' },
-        stderr: { type: 'string' },
-        exitCode: { type: 'number' },
-        executionTimeMs: { type: 'number' },
+        stdout: { type: "string" },
+        stderr: { type: "string" },
+        exitCode: { type: "number" },
+        executionTimeMs: { type: "number" },
       },
     },
   },
-  'data_analysis': {
+  data_analysis: {
     request: {
-      type: 'object',
-      required: ['data', 'operation'],
+      type: "object",
+      required: ["data", "operation"],
       properties: {
-        data: { type: 'string' },
-        operation: { type: 'string', enum: ['summarize', 'correlate', 'aggregate', 'filter', 'sort'] },
+        data: { type: "string" },
+        operation: {
+          type: "string",
+          enum: ["summarize", "correlate", "aggregate", "filter", "sort"],
+        },
       },
     },
     response: {
-      type: 'object',
-      required: ['result'],
+      type: "object",
+      required: ["result"],
       properties: {
-        result: { type: 'string' },
-        metrics: { type: 'object' },
-        rowCount: { type: 'number' },
+        result: { type: "string" },
+        metrics: { type: "object" },
+        rowCount: { type: "number" },
       },
     },
   },
-  'api_call': {
+  api_call: {
     request: {
-      type: 'object',
-      required: ['url', 'method'],
+      type: "object",
+      required: ["url", "method"],
       properties: {
-        url: { type: 'string', minLength: 1 },
-        method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] },
-        body: { type: 'string' },
-        headers: { type: 'object' },
+        url: { type: "string", minLength: 1 },
+        method: {
+          type: "string",
+          enum: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        },
+        body: { type: "string" },
+        headers: { type: "object" },
       },
     },
     response: {
-      type: 'object',
-      required: ['statusCode'],
+      type: "object",
+      required: ["statusCode"],
       properties: {
-        statusCode: { type: 'number', minimum: 100, maximum: 599 },
-        body: { type: 'string' },
-        headers: { type: 'object' },
-        latencyMs: { type: 'number' },
+        statusCode: { type: "number", minimum: 100, maximum: 599 },
+        body: { type: "string" },
+        headers: { type: "object" },
+        latencyMs: { type: "number" },
       },
     },
   },
-  'summarize': {
+  summarize: {
     request: {
-      type: 'object',
-      required: ['text'],
+      type: "object",
+      required: ["text"],
       properties: {
-        text: { type: 'string', minLength: 1 },
-        maxLength: { type: 'number', minimum: 10 },
+        text: { type: "string", minLength: 1 },
+        maxLength: { type: "number", minimum: 10 },
       },
     },
     response: {
-      type: 'object',
-      required: ['summary'],
+      type: "object",
+      required: ["summary"],
       properties: {
-        summary: { type: 'string' },
-        originalLength: { type: 'number' },
-        summaryLength: { type: 'number' },
+        summary: { type: "string" },
+        originalLength: { type: "number" },
+        summaryLength: { type: "number" },
       },
     },
   },
-  'translate': {
+  translate: {
     request: {
-      type: 'object',
-      required: ['text', 'to'],
+      type: "object",
+      required: ["text", "to"],
       properties: {
-        text: { type: 'string', minLength: 1 },
-        from: { type: 'string' },
-        to: { type: 'string' },
+        text: { type: "string", minLength: 1 },
+        from: { type: "string" },
+        to: { type: "string" },
       },
     },
     response: {
-      type: 'object',
-      required: ['translation'],
+      type: "object",
+      required: ["translation"],
       properties: {
-        translation: { type: 'string' },
-        from: { type: 'string' },
-        to: { type: 'string' },
+        translation: { type: "string" },
+        from: { type: "string" },
+        to: { type: "string" },
       },
     },
   },
@@ -214,8 +227,9 @@ const violations = [];
 
 function readStore() {
   try {
-    if (!fs.existsSync(STORE_PATH)) return { schemas: {}, config: { strictMode: false } };
-    return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+    if (!fs.existsSync(STORE_PATH))
+      return { schemas: {}, config: { strictMode: false } };
+    return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
   } catch {
     return { schemas: {}, config: { strictMode: false } };
   }
@@ -224,13 +238,13 @@ function readStore() {
 function writeStore(store) {
   var dir = path.dirname(STORE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  var tmp = STORE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  var tmp = STORE_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmp, STORE_PATH);
 }
 
 function makeKey(orgId, toolId) {
-  return orgId ? orgId + '::' + toolId : toolId;
+  return orgId ? orgId + "::" + toolId : toolId;
 }
 
 // ── Schema CRUD ──────────────────────────────────────────────────────────────
@@ -266,17 +280,20 @@ function registerSchema(toolId, schema, orgId) {
     updatedAt: new Date().toISOString(),
   };
   writeStore(store);
-  logger.info('[ToolSchemaValidation] Schema registered for tool: ' + toolId);
+  logger.info("[ToolSchemaValidation] Schema registered for tool: " + toolId);
   return { success: true, schema: store.schemas[key] };
 }
 
 function updateSchema(toolId, updates, orgId) {
   var store = readStore();
   var key = makeKey(orgId, toolId);
-  if (!store.schemas[key]) return { success: false, error: 'Schema not found' };
-  if (updates.request !== undefined) store.schemas[key].request = updates.request;
-  if (updates.response !== undefined) store.schemas[key].response = updates.response;
-  if (updates.strictMode !== undefined) store.schemas[key].strictMode = updates.strictMode;
+  if (!store.schemas[key]) return { success: false, error: "Schema not found" };
+  if (updates.request !== undefined)
+    store.schemas[key].request = updates.request;
+  if (updates.response !== undefined)
+    store.schemas[key].response = updates.response;
+  if (updates.strictMode !== undefined)
+    store.schemas[key].strictMode = updates.strictMode;
   store.schemas[key].updatedAt = new Date().toISOString();
   writeStore(store);
   return { success: true, schema: store.schemas[key] };
@@ -285,7 +302,7 @@ function updateSchema(toolId, updates, orgId) {
 function deleteSchema(toolId, orgId) {
   var store = readStore();
   var key = makeKey(orgId, toolId);
-  if (!store.schemas[key]) return { success: false, error: 'Schema not found' };
+  if (!store.schemas[key]) return { success: false, error: "Schema not found" };
   delete store.schemas[key];
   writeStore(store);
   return { success: true };
@@ -299,7 +316,8 @@ function getConfig() {
 function updateConfig(updates) {
   var store = readStore();
   if (!store.config) store.config = { strictMode: false };
-  if (updates.strictMode !== undefined) store.config.strictMode = updates.strictMode;
+  if (updates.strictMode !== undefined)
+    store.config.strictMode = updates.strictMode;
   writeStore(store);
   return { success: true, config: store.config };
 }
@@ -317,57 +335,99 @@ function updateConfig(updates) {
  * @returns {{ valid: boolean, errors: Array<{path: string, message: string}> }}
  */
 function validateValue(value, schema, path) {
-  path = path || '$';
+  path = path || "$";
   var errors = [];
 
   if (!schema) return { valid: true, errors: [] };
 
   // Type check
   if (schema.type) {
-    var actualType = Array.isArray(value) ? 'array' : (value === null ? 'null' : typeof value);
-    if (schema.type === 'integer' && typeof value === 'number' && Number.isInteger(value)) {
+    var actualType = Array.isArray(value)
+      ? "array"
+      : value === null
+        ? "null"
+        : typeof value;
+    if (
+      schema.type === "integer" &&
+      typeof value === "number" &&
+      Number.isInteger(value)
+    ) {
       // ok
-    } else if (schema.type === 'number' && typeof value === 'number') {
+    } else if (schema.type === "number" && typeof value === "number") {
       // ok
     } else if (actualType !== schema.type) {
-      errors.push({ path: path, message: 'Expected type ' + schema.type + ' but got ' + actualType });
+      errors.push({
+        path: path,
+        message: "Expected type " + schema.type + " but got " + actualType,
+      });
       return { valid: false, errors: errors };
     }
   }
 
   // Enum check
   if (schema.enum && schema.enum.indexOf(value) === -1) {
-    errors.push({ path: path, message: 'Value not in enum: [' + schema.enum.join(', ') + ']' });
+    errors.push({
+      path: path,
+      message: "Value not in enum: [" + schema.enum.join(", ") + "]",
+    });
   }
 
   // String constraints
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     if (schema.minLength !== undefined && value.length < schema.minLength) {
-      errors.push({ path: path, message: 'String length ' + value.length + ' is less than minLength ' + schema.minLength });
+      errors.push({
+        path: path,
+        message:
+          "String length " +
+          value.length +
+          " is less than minLength " +
+          schema.minLength,
+      });
     }
     if (schema.maxLength !== undefined && value.length > schema.maxLength) {
-      errors.push({ path: path, message: 'String length ' + value.length + ' exceeds maxLength ' + schema.maxLength });
+      errors.push({
+        path: path,
+        message:
+          "String length " +
+          value.length +
+          " exceeds maxLength " +
+          schema.maxLength,
+      });
     }
   }
 
   // Number constraints
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     if (schema.minimum !== undefined && value < schema.minimum) {
-      errors.push({ path: path, message: 'Value ' + value + ' is less than minimum ' + schema.minimum });
+      errors.push({
+        path: path,
+        message: "Value " + value + " is less than minimum " + schema.minimum,
+      });
     }
     if (schema.maximum !== undefined && value > schema.maximum) {
-      errors.push({ path: path, message: 'Value ' + value + ' exceeds maximum ' + schema.maximum });
+      errors.push({
+        path: path,
+        message: "Value " + value + " exceeds maximum " + schema.maximum,
+      });
     }
   }
 
   // Object validation
-  if (schema.type === 'object' && typeof value === 'object' && !Array.isArray(value) && value !== null) {
+  if (
+    schema.type === "object" &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    value !== null
+  ) {
     // Required properties
     if (schema.required) {
       for (var i = 0; i < schema.required.length; i++) {
         var reqProp = schema.required[i];
         if (value[reqProp] === undefined) {
-          errors.push({ path: path + '.' + reqProp, message: 'Required property missing' });
+          errors.push({
+            path: path + "." + reqProp,
+            message: "Required property missing",
+          });
         }
       }
     }
@@ -375,7 +435,11 @@ function validateValue(value, schema, path) {
     if (schema.properties) {
       for (var prop in schema.properties) {
         if (value[prop] !== undefined) {
-          var propResult = validateValue(value[prop], schema.properties[prop], path + '.' + prop);
+          var propResult = validateValue(
+            value[prop],
+            schema.properties[prop],
+            path + "." + prop,
+          );
           errors = errors.concat(propResult.errors);
         }
       }
@@ -384,23 +448,44 @@ function validateValue(value, schema, path) {
     if (schema.additionalProperties === false && schema.properties) {
       for (var key in value) {
         if (!schema.properties[key]) {
-          errors.push({ path: path + '.' + key, message: 'Additional property not allowed' });
+          errors.push({
+            path: path + "." + key,
+            message: "Additional property not allowed",
+          });
         }
       }
     }
   }
 
   // Array validation
-  if (schema.type === 'array' && Array.isArray(value)) {
+  if (schema.type === "array" && Array.isArray(value)) {
     if (schema.minItems !== undefined && value.length < schema.minItems) {
-      errors.push({ path: path, message: 'Array length ' + value.length + ' is less than minItems ' + schema.minItems });
+      errors.push({
+        path: path,
+        message:
+          "Array length " +
+          value.length +
+          " is less than minItems " +
+          schema.minItems,
+      });
     }
     if (schema.maxItems !== undefined && value.length > schema.maxItems) {
-      errors.push({ path: path, message: 'Array length ' + value.length + ' exceeds maxItems ' + schema.maxItems });
+      errors.push({
+        path: path,
+        message:
+          "Array length " +
+          value.length +
+          " exceeds maxItems " +
+          schema.maxItems,
+      });
     }
     if (schema.items) {
       for (var j = 0; j < value.length; j++) {
-        var itemResult = validateValue(value[j], schema.items, path + '[' + j + ']');
+        var itemResult = validateValue(
+          value[j],
+          schema.items,
+          path + "[" + j + "]",
+        );
         errors = errors.concat(itemResult.errors);
       }
     }
@@ -414,9 +499,10 @@ function validateValue(value, schema, path) {
  */
 function validateRequest(toolId, request, orgId) {
   var schema = getSchema(toolId, orgId);
-  if (!schema || !schema.request) return { valid: true, errors: [], skipped: true };
-  var result = validateValue(request, schema.request, '$request');
-  if (!result.valid) recordViolation(toolId, orgId, 'request', result.errors);
+  if (!schema || !schema.request)
+    return { valid: true, errors: [], skipped: true };
+  var result = validateValue(request, schema.request, "$request");
+  if (!result.valid) recordViolation(toolId, orgId, "request", result.errors);
   return result;
 }
 
@@ -425,9 +511,10 @@ function validateRequest(toolId, request, orgId) {
  */
 function validateResponse(toolId, response, orgId) {
   var schema = getSchema(toolId, orgId);
-  if (!schema || !schema.response) return { valid: true, errors: [], skipped: true };
-  var result = validateValue(response, schema.response, '$response');
-  if (!result.valid) recordViolation(toolId, orgId, 'response', result.errors);
+  if (!schema || !schema.response)
+    return { valid: true, errors: [], skipped: true };
+  var result = validateValue(response, schema.response, "$response");
+  if (!result.valid) recordViolation(toolId, orgId, "response", result.errors);
   return result;
 }
 
@@ -435,7 +522,7 @@ function validateResponse(toolId, response, orgId) {
 
 function recordViolation(toolId, orgId, direction, errors) {
   var entry = {
-    id: 'viol-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+    id: "viol-" + Date.now() + "-" + Math.random().toString(36).substr(2, 6),
     timestamp: new Date().toISOString(),
     toolId: toolId,
     orgId: orgId,
@@ -445,7 +532,15 @@ function recordViolation(toolId, orgId, direction, errors) {
   };
   violations.push(entry);
   if (violations.length > MAX_VIOLATIONS) violations.shift();
-  logger.warn('[ToolSchemaValidation] ' + direction + ' violation for tool ' + toolId + ': ' + errors.length + ' errors');
+  logger.warn(
+    "[ToolSchemaValidation] " +
+      direction +
+      " violation for tool " +
+      toolId +
+      ": " +
+      errors.length +
+      " errors",
+  );
   return entry;
 }
 
@@ -485,24 +580,25 @@ function getViolationStats() {
  * Useful for auto-generating schemas from example tool outputs.
  */
 function inferSchema(value, path) {
-  path = path || '';
-  if (value === null) return { type: 'null' };
+  path = path || "";
+  if (value === null) return { type: "null" };
   if (Array.isArray(value)) {
     var itemSchema = value.length > 0 ? inferSchema(value[0]) : {};
-    return { type: 'array', items: itemSchema, minItems: 1 };
+    return { type: "array", items: itemSchema, minItems: 1 };
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     var properties = {};
     var required = [];
     for (var key in value) {
       properties[key] = inferSchema(value[key]);
       required.push(key);
     }
-    return { type: 'object', required: required, properties: properties };
+    return { type: "object", required: required, properties: properties };
   }
-  if (typeof value === 'string') return { type: 'string' };
-  if (typeof value === 'number') return Number.isInteger(value) ? { type: 'integer' } : { type: 'number' };
-  if (typeof value === 'boolean') return { type: 'boolean' };
+  if (typeof value === "string") return { type: "string" };
+  if (typeof value === "number")
+    return Number.isInteger(value) ? { type: "integer" } : { type: "number" };
+  if (typeof value === "boolean") return { type: "boolean" };
   return {};
 }
 

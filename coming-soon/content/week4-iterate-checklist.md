@@ -1,6 +1,7 @@
 # Week 4: Iterate — Metrics & Onboarding Friction Checklist
 
 ## Goal
+
 Review conversion data, fix onboarding friction, and optimize pricing before the next outreach batch.
 
 ---
@@ -14,10 +15,10 @@ Run these queries against your data at the end of Week 3 (or whenever you have ~
 ```javascript
 // From Stripe dashboard or your checkout DB
 const conversions = {
-  totalInstalls: 0,        // VS Code Marketplace installs (weekly report)
-  activeFreeUsers: 0,      // Users who ran at least 1 scan (telemetry)
-  teamPurchases: 0,        // Stripe checkout: product = 'team'
-  enterprisePurchases: 0,  // Stripe checkout: product = 'enterprise'
+    totalInstalls: 0, // VS Code Marketplace installs (weekly report)
+    activeFreeUsers: 0, // Users who ran at least 1 scan (telemetry)
+    teamPurchases: 0, // Stripe checkout: product = 'team'
+    enterprisePurchases: 0 // Stripe checkout: product = 'enterprise'
 };
 
 const freeToTeamRate = conversions.teamPurchases / conversions.activeFreeUsers;
@@ -28,20 +29,22 @@ console.log(`Free → Enterprise: ${(freeToEnterpriseRate * 100).toFixed(2)}%`);
 ```
 
 **Benchmarks:**
+
 - Free → Team: 3–8% is healthy for developer tools
 - Free → Enterprise: 0.5–2% is healthy
 - If both are <1%, you have a pricing or onboarding problem
 
 ### 1.2 Revenue Mix
 
-| Tier | Price | Units | MRR |
-|------|-------|-------|-----|
-| Team | $49/mo | _ | _ |
-| Enterprise | $499/mo | _ | _ |
-| One-time (Clearance) | $499 | _ | N/A |
-| One-time (EU Sprint) | $2,499 | _ | N/A |
+| Tier                 | Price   | Units | MRR |
+| -------------------- | ------- | ----- | --- |
+| Team                 | $49/mo  | _     | _   |
+| Enterprise           | $499/mo | _     | _   |
+| One-time (Clearance) | $499    | _     | N/A |
+| One-time (EU Sprint) | $2,499  | _     | N/A |
 
 **Questions:**
+
 - Is MRR growing week-over-week?
 - Are one-time purchases cannibalizing subscriptions?
 - Should you push subscriptions harder or keep one-time as a gateway?
@@ -67,6 +70,7 @@ Complete Payment (~1% — any payment failures?)
 ```
 
 **How to track:**
+
 - Extension: Use VS Code's built-in telemetry (opt-in) or log to your own endpoint
 - Website: Google Analytics 4 events on pricing page + Stripe checkout funnel
 
@@ -79,13 +83,15 @@ Complete Payment (~1% — any payment failures?)
 **Hypothesis:** Users don't know where to paste their license token.
 
 **Test:**
+
 - [ ] Ask 3 friends to install the extension and "upgrade to Pro"
 - [ ] Watch them. Do they:
-  - [ ] Find the "Set License Token" command within 30 seconds?
-  - [ ] Understand that the token goes in VS Code settings, not the website?
-  - [ ] Know they need to restart anything? (they shouldn't — but do they think they do?)
+    - [ ] Find the "Set License Token" command within 30 seconds?
+    - [ ] Understand that the token goes in VS Code settings, not the website?
+    - [ ] Know they need to restart anything? (they shouldn't — but do they think they do?)
 
 **Fixes if friction is high:**
+
 - Add a "Paste Your License Token" button directly in the sidebar webview (next to the upgrade banner)
 - Auto-detect if a token is in clipboard on upgrade and prompt to paste
 - Add a 10-second onboarding tooltip the first time the sidebar opens
@@ -95,10 +101,12 @@ Complete Payment (~1% — any payment failures?)
 **Hypothesis:** Users install, see no issues, and uninstall because they think it's broken.
 
 **Test:**
+
 - [ ] Check uninstall rate within 24 hours of install (Marketplace dashboard)
 - [ ] If >30%, you have a value-perception problem
 
 **Fixes:**
+
 - On first install, scan the active file automatically and show a "clean" badge if nothing found
 - If the file IS clean, show a celebratory message: "No slop detected! Your code looks clean."
 - Add a "Test with sample file" button that injects a deliberate placeholder so users see the extension work
@@ -108,11 +116,13 @@ Complete Payment (~1% — any payment failures?)
 **Hypothesis:** Users don't understand the difference between CLI scans and the VS Code extension.
 
 **Test:**
+
 - [ ] Hotjar or Microsoft Clarity session recordings on `pricing.html`
 - [ ] Do users scroll past the extension section to the CLI section?
 - [ ] Do they click "Install Free" expecting a download instead of Marketplace redirect?
 
 **Fixes:**
+
 - Add a visual diagram at the top of pricing: "IDE Extension (real-time) → CLI (deep scan) → Dashboard (certificate)"
 - Make the extension cards visually distinct from the CLI/cert cards
 - Add a "Which one do I need?" FAQ item
@@ -122,9 +132,11 @@ Complete Payment (~1% — any payment failures?)
 **Hypothesis:** Users start checkout but don't complete because they expected instant access without email.
 
 **Test:**
+
 - [ ] Stripe checkout funnel: what's the abandonment rate at "enter email"?
 
 **Fixes:**
+
 - Pre-fill email if they're logged in (requires auth — maybe overkill)
 - Add trust badges: "Token delivered in 30 seconds", "14-day refund guarantee"
 - Offer a "test token" for $0 that lasts 1 hour so they can verify it works before buying
@@ -148,6 +160,7 @@ Complete Payment (~1% — any payment failures?)
 **Current:** No free trial. Free tier is the trial.
 
 **Test:** Offer 7-day Team trial (no credit card)
+
 - At day 3: email with "You're using 12/39 rules — here's what you're missing"
 - At day 6: email with "Trial ends tomorrow — 40% off first month if you upgrade now"
 
@@ -181,6 +194,7 @@ Send a 1-question survey to active free users:
 ### 4.2 Rule Accuracy Review
 
 Every week, review false positives:
+
 - [ ] Check GitHub issues / Discord / email for "This rule flagged my legitimate code"
 - [ ] Adjust rule regexes or add exclusions
 - [ ] Publish a "changelog" of rule improvements to build trust
@@ -251,4 +265,4 @@ Fill this out at the end of Month 1:
 
 ---
 
-*Review this checklist every Friday. Ship one improvement per week minimum.*
+_Review this checklist every Friday. Ship one improvement per week minimum._

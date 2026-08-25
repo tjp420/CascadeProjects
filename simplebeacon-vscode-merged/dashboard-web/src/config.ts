@@ -86,7 +86,9 @@ export function clearAuthAndRedirect(): void {
 
 export function apiUrl(path: string): string {
   const base = getApiBase() || '';
-  const normalized = String(base).replace(/\/+$/, '').replace(/\/api$/i, '');
+  const normalized = String(base)
+    .replace(/\/+$/, '')
+    .replace(/\/api$/i, '');
   const segment = String(path || '').replace(/^\/+/, '');
   if (!segment) return normalized || '/';
   if (normalized) return `${normalized}/api/${segment}`;
@@ -145,7 +147,10 @@ if (typeof window !== 'undefined') {
           // requests will fail with preflight errors.
           const allowHeaders = res.headers.get('Access-Control-Allow-Headers') || '';
           if (allowHeaders && allowHeaders !== '*') {
-            const allowed = allowHeaders.toLowerCase().split(',').map(h => h.trim());
+            const allowed = allowHeaders
+              .toLowerCase()
+              .split(',')
+              .map((h) => h.trim());
             if (!allowed.includes('authorization')) {
               return false;
             }
@@ -155,7 +160,7 @@ if (typeof window !== 'undefined') {
           return false;
         }
       }
-      const results = await Promise.allSettled(ports.map(p => probePort(p)));
+      const results = await Promise.allSettled(ports.map((p) => probePort(p)));
       _probeDone = true;
       for (let i = 0; i < ports.length; i++) {
         const r = results[i];

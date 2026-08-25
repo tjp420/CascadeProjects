@@ -13,18 +13,18 @@
  *   AI_ANALYST_PROVIDER (openai | anthropic | ollama)
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Load scan data
-const REPORT_PATH = path.join(__dirname, '..', '.simplebeacon', 'report.json');
-const rawScan = JSON.parse(fs.readFileSync(REPORT_PATH, 'utf8'));
+const REPORT_PATH = path.join(__dirname, "..", ".simplebeacon", "report.json");
+const rawScan = JSON.parse(fs.readFileSync(REPORT_PATH, "utf8"));
 
 // Normalize to the shape ai-analyst.cjs expects
 const scanData = normalizeScanForAiAnalyst(rawScan);
 
 // Load the AI Analyst module
-const { generateAutomatedVerdict } = require('../server/lib/ai-analyst.cjs');
+const { generateAutomatedVerdict } = require("../server/lib/ai-analyst.cjs");
 
 function normalizeScanForAiAnalyst(raw) {
   const gate = raw.gate || {};
@@ -35,47 +35,60 @@ function normalizeScanForAiAnalyst(raw) {
     ...raw,
     gatePass: gate.pass === true,
     analysisOverview: {
-      issuesDetected: overview.issuesDetected ?? gate.allIssues?.length ?? raw.issueCount ?? 0,
-      repositoryFilesTotal: raw.repositoryFilesTotal ?? raw.repositoryInventory?.totalFiles ?? '—',
-      codeFilesAnalyzed: raw.filesAnalyzed ?? raw.codeFilesAnalyzed ?? '—',
-      dataQualityScore: raw.qualityScore ?? '—'
+      issuesDetected:
+        overview.issuesDetected ??
+        gate.allIssues?.length ??
+        raw.issueCount ??
+        0,
+      repositoryFilesTotal:
+        raw.repositoryFilesTotal ?? raw.repositoryInventory?.totalFiles ?? "—",
+      codeFilesAnalyzed: raw.filesAnalyzed ?? raw.codeFilesAnalyzed ?? "—",
+      dataQualityScore: raw.qualityScore ?? "—",
     },
     aggregation: {
       bySeverity: {
         critical: sev.critical ?? 0,
         high: sev.high ?? 0,
         medium: sev.medium ?? 0,
-        low: sev.low ?? 0
-      }
+        low: sev.low ?? 0,
+      },
     },
-    detectedIssues: raw.detectedIssues || raw.gate?.allIssues || []
+    detectedIssues: raw.detectedIssues || raw.gate?.allIssues || [],
   };
 }
 
 // Output directory
-const OUT_DIR = path.join(__dirname, '..', 'reports');
+const OUT_DIR = path.join(__dirname, "..", "reports");
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 /**
  * Generate all AI-powered reports.
  */
 async function main() {
-  process.stdout.write(['[AI Analyst] Starting report generation...'].join(" ") + "\n");
-  process.stdout.write([`[AI Analyst] Scan date: ${scanData.generatedAt}`].join(" ") + "\n");
   process.stdout.write(
-    [`[AI Analyst] Project: ${scanData.projectRoot || 'ai-platform'}`].join(" ") + "\n"
+    ["[AI Analyst] Starting report generation..."].join(" ") + "\n",
   );
-  process.stdout.write([
-    `[AI Analyst] Gate: ${scanData.gate?.pass ? 'PASS' : 'FAIL'} | Quality Score: ${scanData.qualityScore}`
-  ].join(" ") + "\n");
+  process.stdout.write(
+    [`[AI Analyst] Scan date: ${scanData.generatedAt}`].join(" ") + "\n",
+  );
+  process.stdout.write(
+    [`[AI Analyst] Project: ${scanData.projectRoot || "ai-platform"}`].join(
+      " ",
+    ) + "\n",
+  );
+  process.stdout.write(
+    [
+      `[AI Analyst] Gate: ${scanData.gate?.pass ? "PASS" : "FAIL"} | Quality Score: ${scanData.qualityScore}`,
+    ].join(" ") + "\n",
+  );
 
   // 1. Core Compliance Verdict (via AI Analyst engine)
   const verdict = await generateAutomatedVerdict(scanData, {
-    projectPath: 'ai-platform',
-    provider: process.env.AI_ANALYST_PROVIDER || 'openai'
+    projectPath: "ai-platform",
+    provider: process.env.AI_ANALYST_PROVIDER || "openai",
   });
   process.stdout.write(
-    [`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`].join(" ") + "\n"
+    [`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`].join(" ") + "\n",
   );
 
   // 2. Build enriched report payloads for each document type
@@ -86,15 +99,29 @@ async function main() {
   const qaPayload = buildQaPayload(scanData, verdict);
 
   // 3. Generate documents
-  writeReport('01-executive-board-summary-ai.md', renderExecutive(executivePayload));
-  writeReport('02-technical-architecture-security-ai.md', renderTechnical(technicalPayload));
-  writeReport('03-compliance-governance-ai.md', renderCompliance(compliancePayload));
-  writeReport('04-product-capabilities-market-ai.md', renderProduct(productPayload));
-  writeReport('05-quality-assurance-testing-ai.md', renderQa(qaPayload));
-  writeReport('ai-verdict.json', JSON.stringify(verdict, null, 2));
+  writeReport(
+    "01-executive-board-summary-ai.md",
+    renderExecutive(executivePayload),
+  );
+  writeReport(
+    "02-technical-architecture-security-ai.md",
+    renderTechnical(technicalPayload),
+  );
+  writeReport(
+    "03-compliance-governance-ai.md",
+    renderCompliance(compliancePayload),
+  );
+  writeReport(
+    "04-product-capabilities-market-ai.md",
+    renderProduct(productPayload),
+  );
+  writeReport("05-quality-assurance-testing-ai.md", renderQa(qaPayload));
+  writeReport("ai-verdict.json", JSON.stringify(verdict, null, 2));
 
-  process.stdout.write([`[AI Analyst] 6 files written to ${OUT_DIR}`].join(" ") + "\n");
-  process.stdout.write(['[AI Analyst] Done.'].join(" ") + "\n");
+  process.stdout.write(
+    [`[AI Analyst] 6 files written to ${OUT_DIR}`].join(" ") + "\n",
+  );
+  process.stdout.write(["[AI Analyst] Done."].join(" ") + "\n");
 }
 
 // ─── Payload Builders ───
@@ -117,14 +144,16 @@ function buildExecutivePayload(scan, verdict) {
     dependencyVulnerabilities: scan.dependencyAudit?.vulnerabilityCount ?? 0,
     euAiActHighRisk: scan.euAiAct?.highRiskIndicators ?? 0,
     buildReadinessScore: scan.buildReadiness?.readinessScore ?? 0,
-    buildReadinessStatus: scan.buildReadiness?.readinessStatus ?? '—',
+    buildReadinessStatus: scan.buildReadiness?.readinessStatus ?? "—",
     jestPassed: scan.jestBaselinePassed,
-    jestChecked: scan.jestBaselineChecked
+    jestChecked: scan.jestBaselineChecked,
   };
 }
 
 function buildTechnicalPayload(scan, verdict) {
-  const issues = (scan.detectedIssues || []).filter(i => i.severity !== 'low');
+  const issues = (scan.detectedIssues || []).filter(
+    (i) => i.severity !== "low",
+  );
   return {
     verdict,
     qualityScore: scan.qualityScore,
@@ -135,9 +164,9 @@ function buildTechnicalPayload(scan, verdict) {
     euAiActFindings: scan.euAiActFindings,
     schemaCompliance: scan.schemaCompliance,
     consistencyScore: scan.consistencyScore,
-    mediumIssues: issues.filter(i => i.severity === 'medium'),
-    highIssues: issues.filter(i => i.severity === 'high'),
-    criticalIssues: issues.filter(i => i.severity === 'critical')
+    mediumIssues: issues.filter((i) => i.severity === "medium"),
+    highIssues: issues.filter((i) => i.severity === "high"),
+    criticalIssues: issues.filter((i) => i.severity === "critical"),
   };
 }
 
@@ -151,7 +180,7 @@ function buildCompliancePayload(scan, verdict) {
     governanceScore: scan.compliance?.governanceScore ?? 0,
     licenseCount: scan.compliance?.licenseCount ?? 0,
     securityCount: scan.compliance?.securityCount ?? 0,
-    remediationPhases: scan.remediationPhases || []
+    remediationPhases: scan.remediationPhases || [],
   };
 }
 
@@ -167,7 +196,7 @@ function buildProductPayload(scan, verdict) {
     languagePlugins: scan.scanScope?.dedicatedLanguagePlugins || [],
     universalLanguageCount: scan.scanScope?.universalLanguageCount ?? 0,
     pageSpecCatalogSize: scan.scanScope?.pageSpecCatalogSize ?? 0,
-    rulesEnabled: scan.scanScope?.rulesEnabled || []
+    rulesEnabled: scan.scanScope?.rulesEnabled || [],
   };
 }
 
@@ -187,7 +216,7 @@ function buildQaPayload(scan, verdict) {
     gateWarningCount: gate.warningCount,
     dataQuality: scan.dataQuality || {},
     cleanup: scan.cleanup || {},
-    fileReduction: scan.fileReduction || {}
+    fileReduction: scan.fileReduction || {},
   };
 }
 
@@ -205,7 +234,7 @@ function renderExecutive(p) {
 |--------|-------|
 | **AI Analyst Grade** | **${p.verdict.complianceGrade}** |
 | **Estimated Liability** | ${p.verdict.estimatedLiability} |
-| **Gate Status** | ${p.gatePass ? 'PASS' : 'FAIL'} |
+| **Gate Status** | ${p.gatePass ? "PASS" : "FAIL"} |
 | **Blocking Issues** | ${p.blockingCount} |
 | **Quality Score** | ${p.qualityScore} / 100 |
 
@@ -226,21 +255,23 @@ ${p.verdict.verdictSummary}
 | **Dependency Vulnerabilities** | ${p.dependencyVulnerabilities} |
 | **EU AI Act High-Risk Indicators** | ${p.euAiActHighRisk} |
 | **Build Readiness** | ${p.buildReadinessScore}/100 (${p.buildReadinessStatus}) |
-| **Jest Baseline** | ${p.jestPassed ? 'Passed' : 'Not checked'} |
+| **Jest Baseline** | ${p.jestPassed ? "Passed" : "Not checked"} |
 
 ---
 
 ## Remediation Steps (AI-Generated)
 
-${p.verdict.remediationSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+${p.verdict.remediationSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 
 ---
 
 ## Recommendation
 
-${p.gatePass && p.blockingCount === 0
-    ? '**Proceed with confidence.** The codebase is clean, tested, and compliant. The re-attestation package is complete and ready for warranty/agency review.'
-    : '**Action required.** Review blocking issues before proceeding with production deployment or vendor handoff.'}
+${
+  p.gatePass && p.blockingCount === 0
+    ? "**Proceed with confidence.** The codebase is clean, tested, and compliant. The re-attestation package is complete and ready for warranty/agency review."
+    : "**Action required.** Review blocking issues before proceeding with production deployment or vendor handoff."
+}
 
 ---
 
@@ -273,8 +304,12 @@ function renderTechnical(p) {
 - **High**: ${p.highIssues.length}
 - **Medium**: ${p.mediumIssues.length}
 
-${p.mediumIssues.length > 0 ? `### Medium-Severity Findings
-${p.mediumIssues.map(i => `- **${i.type}** — ${i.description} (${i.file})`).join('\n')}` : 'No medium-severity findings detected.'}
+${
+  p.mediumIssues.length > 0
+    ? `### Medium-Severity Findings
+${p.mediumIssues.map((i) => `- **${i.type}** — ${i.description} (${i.file})`).join("\n")}`
+    : "No medium-severity findings detected."
+}
 
 ---
 
@@ -298,20 +333,24 @@ function renderCompliance(p) {
 
 | Framework | Status | Details |
 |-----------|--------|---------|
-| **EU AI Act** | ${p.euAiAct.highRiskIndicators === 0 ? 'Compliant' : 'Review Required'} | High-risk: ${p.euAiAct.highRiskIndicators}, Transparency gaps: ${p.euAiAct.transparencyGaps} |
-| **Dependency Security** | ${p.dependencyAudit.vulnerabilityCount === 0 ? 'Clean' : 'Issues Found'} | ${p.dependencyAudit.vulnerabilityCount} vulnerabilities |
-| **Governance** | ${p.governanceScore >= 2 ? 'Adequate' : 'Needs Work'} | ${p.licenseCount} license file(s), ${p.securityCount} security file(s) |
-| **Build Readiness** | ${p.buildReadiness.readinessStatus || '—'} | ${p.buildReadiness.passedChecks || 0}/${p.buildReadiness.totalChecks || 0} checks passed |
+| **EU AI Act** | ${p.euAiAct.highRiskIndicators === 0 ? "Compliant" : "Review Required"} | High-risk: ${p.euAiAct.highRiskIndicators}, Transparency gaps: ${p.euAiAct.transparencyGaps} |
+| **Dependency Security** | ${p.dependencyAudit.vulnerabilityCount === 0 ? "Clean" : "Issues Found"} | ${p.dependencyAudit.vulnerabilityCount} vulnerabilities |
+| **Governance** | ${p.governanceScore >= 2 ? "Adequate" : "Needs Work"} | ${p.licenseCount} license file(s), ${p.securityCount} security file(s) |
+| **Build Readiness** | ${p.buildReadiness.readinessStatus || "—"} | ${p.buildReadiness.passedChecks || 0}/${p.buildReadiness.totalChecks || 0} checks passed |
 
 ---
 
 ## Remediation Phases
 
-${p.remediationPhases.map(phase => `### ${phase.title}
+${p.remediationPhases
+  .map(
+    (phase) => `### ${phase.title}
 - **Status**: ${phase.status}
 - **Progress**: ${phase.progress}%
 - **Description**: ${phase.description}
-`).join('\n')}
+`,
+  )
+  .join("\n")}
 
 ---
 
@@ -343,14 +382,14 @@ function renderProduct(p) {
 | **Repository Size** | ${p.totalSizeLabel} |
 | **Mock/Fixture Files** | ${p.mockSampleFiles} |
 | **Universal Languages** | ${p.universalLanguageCount} |
-| **Dedicated Language Plugins** | ${p.languagePlugins.join(', ')} |
+| **Dedicated Language Plugins** | ${p.languagePlugins.join(", ")} |
 | **Page Spec Catalog** | ${p.pageSpecCatalogSize} |
 
 ---
 
 ## Active Rule Engines
 
-${p.rulesEnabled.map(r => `- ${r}`).join('\n')}
+${p.rulesEnabled.map((r) => `- ${r}`).join("\n")}
 
 ---
 
@@ -374,8 +413,8 @@ function renderQa(p) {
 
 | Metric | Value |
 |--------|-------|
-| **Jest Baseline Passed** | ${p.jestBaselinePassed ? 'Yes' : 'No'} |
-| **Jest Baseline Checked** | ${p.jestBaselineChecked ? 'Yes' : 'No'} |
+| **Jest Baseline Passed** | ${p.jestBaselinePassed ? "Yes" : "No"} |
+| **Jest Baseline Checked** | ${p.jestBaselineChecked ? "Yes" : "No"} |
 | **Quality Score** | ${p.qualityScore} / 100 |
 | **Schema Compliance** | ${p.schemaCompliance}% |
 | **Consistency Score** | ${p.consistencyScore}% |
@@ -408,12 +447,14 @@ ${p.verdict.verdictSummary}
 
 function writeReport(filename, content) {
   const outPath = path.join(OUT_DIR, filename);
-  fs.writeFileSync(outPath, content, 'utf8');
+  fs.writeFileSync(outPath, content, "utf8");
   process.stdout.write([`  → ${filename}`].join(" ") + "\n");
 }
 
 // Run
-main().catch(err => {
-  process.stderr.write(['[AI Analyst] Fatal error:', err.message].join(" ") + "\n");
+main().catch((err) => {
+  process.stderr.write(
+    ["[AI Analyst] Fatal error:", err.message].join(" ") + "\n",
+  );
   process.exit(1);
 });

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 27: PQC Threshold Signatures.
@@ -22,14 +22,24 @@
  * @module hsm-adapter/pqc-threshold-signature-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { DkgSnarkEngine, PRIME, FIELD_PRIME, GROUP_PRIME, GENERATOR } = require('./dkg-snark-engine.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  DkgSnarkEngine,
+  PRIME,
+  FIELD_PRIME,
+  GROUP_PRIME,
+  GENERATOR,
+} = require("./dkg-snark-engine.cjs");
 
-const SUPPORTED_SIG_ALGORITHMS = new Set(['ml-dsa-44', 'ml-dsa-65', 'ml-dsa-87']);
+const SUPPORTED_SIG_ALGORITHMS = new Set([
+  "ml-dsa-44",
+  "ml-dsa-65",
+  "ml-dsa-87",
+]);
 
 function _hashToField(message) {
-  const hash = crypto.createHash('sha256').update(message).digest();
+  const hash = crypto.createHash("sha256").update(message).digest();
   let value = 0n;
   for (const b of hash) {
     value = (value << 8n) | BigInt(b);
@@ -75,12 +85,15 @@ class PartialSignature {
 class PqcThresholdSignatureEngine {
   constructor(options = {}) {
     if (!options.dkgEngine || !(options.dkgEngine instanceof DkgSnarkEngine)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'dkgEngine must be a DkgSnarkEngine instance');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "dkgEngine must be a DkgSnarkEngine instance",
+      );
     }
     if (!SUPPORTED_SIG_ALGORITHMS.has(options.sigAlgorithm)) {
       throw new HsmAdapterError(
-        'PQC_NOT_SUPPORTED',
-        `sigAlgorithm ${options.sigAlgorithm} is not supported (allowed: ${[...SUPPORTED_SIG_ALGORITHMS].join(', ')})`,
+        "PQC_NOT_SUPPORTED",
+        `sigAlgorithm ${options.sigAlgorithm} is not supported (allowed: ${[...SUPPORTED_SIG_ALGORITHMS].join(", ")})`,
       );
     }
     this._dkg = options.dkgEngine;
@@ -97,18 +110,27 @@ class PqcThresholdSignatureEngine {
 
   signPartial(nodeId, message) {
     if (!Buffer.isBuffer(message)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'message must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "message must be a Buffer");
     }
     if (this._masterPublicKey === null) {
-      throw new HsmAdapterError('INVALID_INPUT', 'engine not initialized — call initialize() first');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "engine not initialized — call initialize() first",
+      );
     }
     const qualifiedNodes = this._dkg.qualifiedNodes;
     if (qualifiedNodes.length === 0) {
       if (!this._dkg.nodeIds.includes(nodeId)) {
-        throw new HsmAdapterError('UNKNOWN_NODE', `node ${nodeId} is not a participant`);
+        throw new HsmAdapterError(
+          "UNKNOWN_NODE",
+          `node ${nodeId} is not a participant`,
+        );
       }
     } else if (!qualifiedNodes.includes(nodeId)) {
-      throw new HsmAdapterError('NODE_DISQUALIFIED', `node ${nodeId} is not a qualified signer`);
+      throw new HsmAdapterError(
+        "NODE_DISQUALIFIED",
+        `node ${nodeId} is not a qualified signer`,
+      );
     }
     const share = this._dkg.getAggregatedShare(nodeId);
     const h = _hashToField(message);
@@ -119,31 +141,38 @@ class PqcThresholdSignatureEngine {
   }
 
   verifyPartial(partial, message) {
-    if (!partial || typeof partial.sigma !== 'bigint') {
-      throw new HsmAdapterError('INVALID_INPUT', 'invalid partial signature');
+    if (!partial || typeof partial.sigma !== "bigint") {
+      throw new HsmAdapterError("INVALID_INPUT", "invalid partial signature");
     }
     if (!Buffer.isBuffer(message)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'message must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "message must be a Buffer");
     }
     const h = _hashToField(message);
     const lhs = _modPow(GENERATOR, partial.sigma, GROUP_PRIME);
-    const rhs = _modPow(GENERATOR, (h * partial.share) % FIELD_PRIME, GROUP_PRIME);
+    const rhs = _modPow(
+      GENERATOR,
+      (h * partial.share) % FIELD_PRIME,
+      GROUP_PRIME,
+    );
     return lhs === rhs;
   }
 
   aggregate(partials, message) {
     if (!Array.isArray(partials) || partials.length < this._dkg.threshold) {
       throw new HsmAdapterError(
-        'DKG_QUORUM_STARVATION',
+        "DKG_QUORUM_STARVATION",
         `need at least ${this._dkg.threshold} partial signatures, got ${partials ? partials.length : 0}`,
       );
     }
     if (!Buffer.isBuffer(message)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'message must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "message must be a Buffer");
     }
     for (const partial of partials.slice(0, this._dkg.threshold)) {
       if (!this.verifyPartial(partial, message)) {
-        throw new HsmAdapterError('PQC_SIGNATURE_INVALID', `partial signature from ${partial.nodeId} failed verification`);
+        throw new HsmAdapterError(
+          "PQC_SIGNATURE_INVALID",
+          `partial signature from ${partial.nodeId} failed verification`,
+        );
       }
     }
     const threshold = this._dkg.threshold;
@@ -163,7 +192,8 @@ class PqcThresholdSignatureEngine {
         const diffMod = diff < 0n ? diff + FIELD_PRIME : diff;
         denominator = (denominator * diffMod) % FIELD_PRIME;
       }
-      const lagrange = (numerator * _modInv(denominator, FIELD_PRIME)) % FIELD_PRIME;
+      const lagrange =
+        (numerator * _modInv(denominator, FIELD_PRIME)) % FIELD_PRIME;
       signature = (signature + sigmaI * lagrange) % FIELD_PRIME;
     }
     if (signature < 0n) signature += FIELD_PRIME;
@@ -171,14 +201,17 @@ class PqcThresholdSignatureEngine {
   }
 
   verify(signature, message) {
-    if (typeof signature !== 'bigint') {
-      throw new HsmAdapterError('INVALID_INPUT', 'signature must be a bigint');
+    if (typeof signature !== "bigint") {
+      throw new HsmAdapterError("INVALID_INPUT", "signature must be a bigint");
     }
     if (!Buffer.isBuffer(message)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'message must be a Buffer');
+      throw new HsmAdapterError("INVALID_INPUT", "message must be a Buffer");
     }
     if (this._masterPublicKey === null) {
-      throw new HsmAdapterError('INVALID_INPUT', 'engine not initialized — call initialize() first');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "engine not initialized — call initialize() first",
+      );
     }
     const h = _hashToField(message);
     const lhs = _modPow(GENERATOR, signature, GROUP_PRIME);
@@ -196,7 +229,9 @@ class PqcThresholdSignatureEngine {
   getState() {
     return {
       sigAlgorithm: this._sigAlgorithm,
-      masterPublicKey: this._masterPublicKey ? this._masterPublicKey.toString(16) : null,
+      masterPublicKey: this._masterPublicKey
+        ? this._masterPublicKey.toString(16)
+        : null,
       threshold: this._dkg.threshold,
       totalNodes: this._dkg.totalNodes,
       qualifiedNodes: this._dkg.qualifiedNodes.length,
@@ -205,9 +240,15 @@ class PqcThresholdSignatureEngine {
     };
   }
 
-  get dkgEngine() { return this._dkg; }
-  get sigAlgorithm() { return this._sigAlgorithm; }
-  get masterPublicKey() { return this._masterPublicKey; }
+  get dkgEngine() {
+    return this._dkg;
+  }
+  get sigAlgorithm() {
+    return this._sigAlgorithm;
+  }
+  get masterPublicKey() {
+    return this._masterPublicKey;
+  }
 }
 
 module.exports = {

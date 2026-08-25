@@ -9,31 +9,31 @@
  * @returns {any}
  */
 export async function fetchPathHealthMetrics() {
-  try {
-    const response = await fetch('/api/metrics/path-health');
+    try {
+        const response = await fetch('/api/metrics/path-health');
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return { status: 'unavailable', summary: {}, directories: [], engine: {} };
-      }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return { status: 'unavailable', summary: {}, directories: [], engine: {} };
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+            throw new Error(data.message || 'Failed to retrieve path health metrics');
+        }
+
+        return data;
+    } catch (error) {
+        const msg = error?.message || String(error);
+        if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
+            return { status: 'unavailable', summary: {}, directories: [], engine: {} };
+        }
+        window['console']['error']('[pathHealthService] Error fetching metrics:', msg);
+        throw error;
     }
-
-    const data = await response.json();
-
-    if (data.status !== 'success') {
-      throw new Error(data.message || 'Failed to retrieve path health metrics');
-    }
-
-    return data;
-  } catch (error) {
-    const msg = error?.message || String(error);
-    if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
-      return { status: 'unavailable', summary: {}, directories: [], engine: {} };
-    }
-    window["console"]["error"]('[pathHealthService] Error fetching metrics:', msg);
-    throw error;
-  }
 }
 
 /**
@@ -41,8 +41,8 @@ export async function fetchPathHealthMetrics() {
  * @returns {any}
  */
 export async function getPathHealthSummary() {
-  const data = await fetchPathHealthMetrics();
-  return data.summary;
+    const data = await fetchPathHealthMetrics();
+    return data.summary;
 }
 
 /**
@@ -50,8 +50,8 @@ export async function getPathHealthSummary() {
  * @returns {any}
  */
 export async function getDirectoryHealth() {
-  const data = await fetchPathHealthMetrics();
-  return data.directories;
+    const data = await fetchPathHealthMetrics();
+    return data.directories;
 }
 
 /**
@@ -59,6 +59,6 @@ export async function getDirectoryHealth() {
  * @returns {any}
  */
 export async function getEngineMetadata() {
-  const data = await fetchPathHealthMetrics();
-  return data.engine;
+    const data = await fetchPathHealthMetrics();
+    return data.engine;
 }

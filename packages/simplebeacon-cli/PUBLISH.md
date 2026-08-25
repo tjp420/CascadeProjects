@@ -11,16 +11,16 @@ Path: `packages/simplebeacon-cli`
 
 Create at: https://www.npmjs.com/settings/tjp88/tokens → **Generate New Token** → **Granular Access Token**
 
-| Field | Value |
-|-------|--------|
-| **Token name** | `simplebeacon-publish` |
-| **Description** | `Publish simplebeacon CLI updates to npm` |
-| **Bypass 2FA** | ✅ **Checked** (required for non-interactive publish) |
-| **Allowed IP ranges** | Leave empty |
-| **Packages and scopes → Permissions** | **Read and write** |
-| **Packages and scopes → Packages** | **All packages** |
-| **Organizations → Permissions** | **No access** |
-| **Expiration** | **30 days** (or 90 days if you publish often) |
+| Field                                 | Value                                                 |
+| ------------------------------------- | ----------------------------------------------------- |
+| **Token name**                        | `simplebeacon-publish`                                |
+| **Description**                       | `Publish simplebeacon CLI updates to npm`             |
+| **Bypass 2FA**                        | ✅ **Checked** (required for non-interactive publish) |
+| **Allowed IP ranges**                 | Leave empty                                           |
+| **Packages and scopes → Permissions** | **Read and write**                                    |
+| **Packages and scopes → Packages**    | **All packages**                                      |
+| **Organizations → Permissions**       | **No access**                                         |
+| **Expiration**                        | **30 days** (or 90 days if you publish often)         |
 
 Before clicking **Generate**, confirm the summary says:
 
@@ -93,12 +93,12 @@ If authenticator OTP fails, try a **recovery code** from npm 2FA setup with `--o
 
 ## Troubleshooting
 
-| Error | Fix |
-|-------|-----|
-| `ENOWORKSPACES` on `npm config set` | Edit `C:\Users\Trevor\.npmrc` manually |
-| `E403` + bypass 2FA message | Wrong token in `.npmrc`, or Bypass 2FA not checked when token was created |
-| `E403` with `--otp=654321` | Use a real code from your app (codes expire every ~30s) |
-| Token summary shows “no access to packages” | Set **Read and write** under Packages and scopes |
+| Error                                       | Fix                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| `ENOWORKSPACES` on `npm config set`         | Edit `C:\Users\Trevor\.npmrc` manually                                    |
+| `E403` + bypass 2FA message                 | Wrong token in `.npmrc`, or Bypass 2FA not checked when token was created |
+| `E403` with `--otp=654321`                  | Use a real code from your app (codes expire every ~30s)                   |
+| Token summary shows “no access to packages” | Set **Read and write** under Packages and scopes                          |
 
 ---
 

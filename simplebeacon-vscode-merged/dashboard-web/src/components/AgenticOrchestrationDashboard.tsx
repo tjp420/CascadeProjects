@@ -198,21 +198,24 @@ export function AgenticOrchestrationDashboard() {
           guardrailStrictMode: agentStrict,
         },
       };
-      const url = editingAgent
-        ? apiUrl(`/agentic/agents/${editingAgent.id}`)
-        : apiUrl('/agentic/agents');
+      const url = editingAgent ? apiUrl(`/agentic/agents/${editingAgent.id}`) : apiUrl('/agentic/agents');
       const resp = await fetch(url, {
         method: editingAgent ? 'PUT' : 'POST',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error(data.error?.message || 'Failed to save agent'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error(data.error?.message || 'Failed to save agent');
+        return;
+      }
       toast.success(editingAgent ? 'Agent updated' : 'Agent created');
       setShowBuilder(false);
       resetBuilder();
       fetchAll();
-    } catch { toast.error('Failed to save agent'); }
+    } catch {
+      toast.error('Failed to save agent');
+    }
   };
 
   const resetBuilder = () => {
@@ -244,13 +247,24 @@ export function AgenticOrchestrationDashboard() {
     try {
       const resp = await fetch(apiUrl(`/agentic/agents/${id}`), { method: 'DELETE', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Agent deleted'); fetchAll(); }
-    } catch { toast.error('Failed to delete agent'); }
+      if (data.success) {
+        toast.success('Agent deleted');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to delete agent');
+    }
   };
 
   const executeAgent = async () => {
-    if (!selectedAgentId) { toast.error('Select an agent first'); return; }
-    if (!execInput.trim()) { toast.error('Enter input text'); return; }
+    if (!selectedAgentId) {
+      toast.error('Select an agent first');
+      return;
+    }
+    if (!execInput.trim()) {
+      toast.error('Enter input text');
+      return;
+    }
     setExecuting(true);
     try {
       const resp = await fetch(apiUrl(`/agentic/agents/${selectedAgentId}/execute`), {
@@ -259,19 +273,34 @@ export function AgenticOrchestrationDashboard() {
         body: JSON.stringify({ input: execInput }),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error(data.error?.message || 'Execution failed'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error(data.error?.message || 'Execution failed');
+        return;
+      }
       toast.success(`Execution ${data.executionId} — ${data.steps || 0} steps`);
       setExecInput('');
       fetchAll();
-    } catch { toast.error('Execution failed'); } finally { setExecuting(false); }
+    } catch {
+      toast.error('Execution failed');
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const controlExec = async (execId: string, action: 'pause' | 'resume' | 'abort') => {
     try {
-      const resp = await fetch(apiUrl(`/agentic/executions/${execId}/${action}`), { method: 'POST', headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/agentic/executions/${execId}/${action}`), {
+        method: 'POST',
+        headers: authHeaders(),
+      });
       const data = await resp.json();
-      if (data.success) { toast.success(`Execution ${action}ed`); fetchAll(); }
-    } catch { toast.error(`Failed to ${action}`); }
+      if (data.success) {
+        toast.success(`Execution ${action}ed`);
+        fetchAll();
+      }
+    } catch {
+      toast.error(`Failed to ${action}`);
+    }
   };
 
   const runInspect = async () => {
@@ -283,7 +312,9 @@ export function AgenticOrchestrationDashboard() {
       });
       const data = await resp.json();
       if (data.success) setInspectResult(data.result);
-    } catch { toast.error('Inspection failed'); }
+    } catch {
+      toast.error('Inspection failed');
+    }
   };
 
   const viewExecDetail = async (execId: string) => {
@@ -296,8 +327,17 @@ export function AgenticOrchestrationDashboard() {
 
   const formatTime = (ts: string | null) => {
     if (!ts) return '\u2014';
-    try { return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-    catch { return ts; }
+    try {
+      return new Date(ts).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch {
+      return ts;
+    }
   };
 
   const allTools = tools ? { ...tools.builtin, ...tools.custom } : {};
@@ -365,12 +405,24 @@ export function AgenticOrchestrationDashboard() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant="outline" className="text-xs">Completed: {stats?.completed ?? 0}</Badge>
-            <Badge variant="outline" className="text-xs">Failed: {stats?.failed ?? 0}</Badge>
-            <Badge variant="outline" className="text-xs">Aborted: {stats?.aborted ?? 0}</Badge>
-            <Badge variant="outline" className="text-xs">Total Steps: {stats?.totalSteps ?? 0}</Badge>
-            <Badge variant="outline" className="text-xs">Tokens: {stats?.totalTokensUsed ?? 0}</Badge>
-            <Badge variant="outline" className="text-xs">Avg Steps: {(stats?.avgStepsPerExecution ?? 0).toFixed(1)}</Badge>
+            <Badge variant="outline" className="text-xs">
+              Completed: {stats?.completed ?? 0}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Failed: {stats?.failed ?? 0}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Aborted: {stats?.aborted ?? 0}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Total Steps: {stats?.totalSteps ?? 0}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Tokens: {stats?.totalTokensUsed ?? 0}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              Avg Steps: {(stats?.avgStepsPerExecution ?? 0).toFixed(1)}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -381,7 +433,14 @@ export function AgenticOrchestrationDashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Agents</CardTitle>
-              <Button variant="default" size="sm" onClick={() => { resetBuilder(); setShowBuilder(true); }}>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  resetBuilder();
+                  setShowBuilder(true);
+                }}
+              >
                 <Plus className="h-3.5 w-3.5" /> New Agent
               </Button>
             </div>
@@ -392,11 +451,21 @@ export function AgenticOrchestrationDashboard() {
                 <div className="text-xs font-medium">{editingAgent ? 'Edit Agent' : 'Create Agent'}</div>
                 <div>
                   <label className="text-xs text-foreground-muted">Name</label>
-                  <Input value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="Code Review Agent" className="text-sm" />
+                  <Input
+                    value={agentName}
+                    onChange={(e) => setAgentName(e.target.value)}
+                    placeholder="Code Review Agent"
+                    className="text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-foreground-muted">Description</label>
-                  <Input value={agentDesc} onChange={(e) => setAgentDesc(e.target.value)} placeholder="Reviews code for security issues" className="text-sm" />
+                  <Input
+                    value={agentDesc}
+                    onChange={(e) => setAgentDesc(e.target.value)}
+                    placeholder="Reviews code for security issues"
+                    className="text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-foreground-muted">System Prompt</label>
@@ -410,8 +479,11 @@ export function AgenticOrchestrationDashboard() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-foreground-muted">Provider</label>
-                    <select value={agentProvider} onChange={(e) => setAgentProvider(e.target.value)}
-                      className="w-full text-sm border border-border rounded-md p-1.5 bg-background">
+                    <select
+                      value={agentProvider}
+                      onChange={(e) => setAgentProvider(e.target.value)}
+                      className="w-full text-sm border border-border rounded-md p-1.5 bg-background"
+                    >
                       <option value="openai">OpenAI</option>
                       <option value="anthropic">Anthropic</option>
                       <option value="ollama">Ollama</option>
@@ -419,12 +491,21 @@ export function AgenticOrchestrationDashboard() {
                   </div>
                   <div>
                     <label className="text-xs text-foreground-muted">Max Steps</label>
-                    <Input value={agentMaxSteps} onChange={(e) => setAgentMaxSteps(e.target.value)} type="number" className="text-sm" />
+                    <Input
+                      value={agentMaxSteps}
+                      onChange={(e) => setAgentMaxSteps(e.target.value)}
+                      type="number"
+                      className="text-sm"
+                    />
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    <input type="checkbox" checked={agentGuardrails} onChange={(e) => setAgentGuardrails(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={agentGuardrails}
+                      onChange={(e) => setAgentGuardrails(e.target.checked)}
+                    />
                     Guardrails
                   </label>
                   <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -442,7 +523,7 @@ export function AgenticOrchestrationDashboard() {
                           checked={agentTools.includes(toolName)}
                           onChange={(e) => {
                             if (e.target.checked) setAgentTools([...agentTools, toolName]);
-                            else setAgentTools(agentTools.filter(t => t !== toolName));
+                            else setAgentTools(agentTools.filter((t) => t !== toolName));
                           }}
                         />
                         {toolName}
@@ -454,14 +535,23 @@ export function AgenticOrchestrationDashboard() {
                   <Button variant="default" size="sm" onClick={createOrUpdateAgent}>
                     <Save className="h-3.5 w-3.5" /> {editingAgent ? 'Update' : 'Create'}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => { setShowBuilder(false); resetBuilder(); }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowBuilder(false);
+                      resetBuilder();
+                    }}
+                  >
                     Cancel
                   </Button>
                 </div>
               </div>
             )}
             {agents.length === 0 && !showBuilder ? (
-              <p className="text-xs text-foreground-muted text-center py-4">No agents configured. Click "New Agent" to create one.</p>
+              <p className="text-xs text-foreground-muted text-center py-4">
+                No agents configured. Click "New Agent" to create one.
+              </p>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {agents.map((agent) => (
@@ -471,20 +561,45 @@ export function AgenticOrchestrationDashboard() {
                       <Badge variant={agent.enabled ? 'success' : 'secondary'} className="text-[10px]">
                         {agent.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px]">{agent.config.provider}</Badge>
-                      <Badge variant="outline" className="text-[10px]">Steps: {agent.config.maxSteps}</Badge>
-                      {agent.config.guardrailEnabled && <Badge variant="outline" className="text-[10px]"><ShieldCheck className="h-2.5 w-2.5 mr-0.5" />Guardrails</Badge>}
+                      <Badge variant="outline" className="text-[10px]">
+                        {agent.config.provider}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        Steps: {agent.config.maxSteps}
+                      </Badge>
+                      {agent.config.guardrailEnabled && (
+                        <Badge variant="outline" className="text-[10px]">
+                          <ShieldCheck className="h-2.5 w-2.5 mr-0.5" />
+                          Guardrails
+                        </Badge>
+                      )}
                       <span className="text-[10px] text-foreground-muted ml-auto">Runs: {agent.executionCount}</span>
                     </div>
                     {agent.description && <p className="text-[10px] text-foreground-muted">{agent.description}</p>}
                     {agent.tools && agent.tools.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {agent.tools.map(t => <Badge key={t} variant="outline" className="text-[9px]">{t}</Badge>)}
+                        {agent.tools.map((t) => (
+                          <Badge key={t} variant="outline" className="text-[9px]">
+                            {t}
+                          </Badge>
+                        ))}
                       </div>
                     )}
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px]" onClick={() => editAgent(agent)}>Edit</Button>
-                      <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-destructive" onClick={() => deleteAgent(agent.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => editAgent(agent)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px] text-destructive"
+                        onClick={() => deleteAgent(agent.id)}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -512,9 +627,13 @@ export function AgenticOrchestrationDashboard() {
                 className="w-full text-sm border border-border rounded-md p-1.5 bg-background"
               >
                 <option value="">— Select an agent —</option>
-                {agents.filter(a => a.enabled).map(a => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
+                {agents
+                  .filter((a) => a.enabled)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
@@ -538,24 +657,50 @@ export function AgenticOrchestrationDashboard() {
                 {activeExecs.map((exec) => (
                   <div key={exec.id} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={STATE_COLORS[exec.state] || 'secondary'} className="text-[10px]">{exec.state}</Badge>
+                      <Badge variant={STATE_COLORS[exec.state] || 'secondary'} className="text-[10px]">
+                        {exec.state}
+                      </Badge>
                       <span className="font-mono text-[10px] text-foreground-muted">{exec.id}</span>
                       <span className="text-[10px]">Step: {exec.currentStep + 1}</span>
                       <div className="ml-auto flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => viewExecDetail(exec.id)} aria-label="View execution details">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1"
+                          onClick={() => viewExecDetail(exec.id)}
+                          aria-label="View execution details"
+                        >
                           <Activity className="h-3 w-3" />
                         </Button>
                         {exec.state === 'running' && (
-                          <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'pause')} aria-label="Pause execution">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1"
+                            onClick={() => controlExec(exec.id, 'pause')}
+                            aria-label="Pause execution"
+                          >
                             <Pause className="h-3 w-3" />
                           </Button>
                         )}
                         {exec.state === 'paused' && (
-                          <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'resume')} aria-label="Resume execution">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1"
+                            onClick={() => controlExec(exec.id, 'resume')}
+                            aria-label="Resume execution"
+                          >
                             <Play className="h-3 w-3" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => controlExec(exec.id, 'abort')} aria-label="Abort execution">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1"
+                          onClick={() => controlExec(exec.id, 'abort')}
+                          aria-label="Abort execution"
+                        >
                           <Square className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
@@ -573,15 +718,27 @@ export function AgenticOrchestrationDashboard() {
                   {execHistory.slice(0, 10).map((exec) => (
                     <div key={exec.id} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {exec.state === 'completed' ? <CheckCircle2 className="h-3 w-3 text-green-600" /> :
-                         exec.state === 'failed' || exec.state === 'guardrail_blocked' ? <XCircle className="h-3 w-3 text-destructive" /> :
-                         exec.state === 'aborted' ? <Square className="h-3 w-3 text-foreground-muted" /> :
-                         <Clock className="h-3 w-3 text-foreground-muted" />}
-                        <Badge variant={STATE_COLORS[exec.state] || 'secondary'} className="text-[10px]">{exec.state}</Badge>
+                        {exec.state === 'completed' ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        ) : exec.state === 'failed' || exec.state === 'guardrail_blocked' ? (
+                          <XCircle className="h-3 w-3 text-destructive" />
+                        ) : exec.state === 'aborted' ? (
+                          <Square className="h-3 w-3 text-foreground-muted" />
+                        ) : (
+                          <Clock className="h-3 w-3 text-foreground-muted" />
+                        )}
+                        <Badge variant={STATE_COLORS[exec.state] || 'secondary'} className="text-[10px]">
+                          {exec.state}
+                        </Badge>
                         <span className="font-mono text-[10px] text-foreground-muted">{exec.id}</span>
                         <span className="text-[10px]">Steps: {exec.steps.length}</span>
                         <span className="text-[10px]">Tokens: {exec.totalTokensUsed}</span>
-                        <Button variant="ghost" size="sm" className="h-5 px-1 ml-auto" onClick={() => viewExecDetail(exec.id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1 ml-auto"
+                          onClick={() => viewExecDetail(exec.id)}
+                        >
                           View
                         </Button>
                       </div>
@@ -629,7 +786,9 @@ export function AgenticOrchestrationDashboard() {
                     {inspectResult.passed ? 'Passed' : 'Blocked'}
                   </Badge>
                   {inspectResult.severity !== 'none' && (
-                    <Badge variant="outline" className="text-[10px]">Severity: {inspectResult.severity}</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      Severity: {inspectResult.severity}
+                    </Badge>
                   )}
                 </div>
                 {inspectResult.violations && inspectResult.violations.length > 0 && (
@@ -656,11 +815,15 @@ export function AgenticOrchestrationDashboard() {
           </CardHeader>
           <CardContent>
             {!selectedExec ? (
-              <p className="text-xs text-foreground-muted text-center py-6">Select an execution to view step-by-step trace</p>
+              <p className="text-xs text-foreground-muted text-center py-6">
+                Select an execution to view step-by-step trace
+              </p>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <Badge variant={STATE_COLORS[selectedExec.state] || 'secondary'} className="text-[10px]">{selectedExec.state}</Badge>
+                  <Badge variant={STATE_COLORS[selectedExec.state] || 'secondary'} className="text-[10px]">
+                    {selectedExec.state}
+                  </Badge>
                   <span className="font-mono text-[10px] text-foreground-muted">{selectedExec.id}</span>
                   <span className="text-[10px]">Steps: {selectedExec.steps.length}</span>
                   <span className="text-[10px]">Tokens: {selectedExec.totalTokensUsed}</span>
@@ -680,7 +843,16 @@ export function AgenticOrchestrationDashboard() {
                   <div key={i} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-[10px]">Step {step.index}</span>
-                      <Badge variant={step.state === 'completed' ? 'success' : step.state === 'blocked' || step.state === 'failed' ? 'destructive' : 'secondary'} className="text-[9px]">
+                      <Badge
+                        variant={
+                          step.state === 'completed'
+                            ? 'success'
+                            : step.state === 'blocked' || step.state === 'failed'
+                              ? 'destructive'
+                              : 'secondary'
+                        }
+                        className="text-[9px]"
+                      >
                         {step.state}
                       </Badge>
                       <span className="text-[10px] text-foreground-muted">{step.latencyMs}ms</span>
@@ -698,7 +870,10 @@ export function AgenticOrchestrationDashboard() {
                     {step.toolCalls && step.toolCalls.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {step.toolCalls.map((tc, j) => (
-                          <Badge key={j} variant="outline" className="text-[9px]"><Wrench className="h-2.5 w-2.5 mr-0.5" />{tc.tool}</Badge>
+                          <Badge key={j} variant="outline" className="text-[9px]">
+                            <Wrench className="h-2.5 w-2.5 mr-0.5" />
+                            {tc.tool}
+                          </Badge>
                         ))}
                       </div>
                     )}
@@ -726,13 +901,17 @@ export function AgenticOrchestrationDashboard() {
                   <div className="flex items-center gap-2">
                     <Wrench className="h-3 w-3 text-purple-600" />
                     <span className="font-medium">{tool.name}</span>
-                    <Badge variant="outline" className="text-[9px] ml-auto">{tool.category}</Badge>
+                    <Badge variant="outline" className="text-[9px] ml-auto">
+                      {tool.category}
+                    </Badge>
                   </div>
                   <p className="text-[10px] text-foreground-muted">{tool.description}</p>
                   {tool.parameters && Object.keys(tool.parameters).length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {Object.entries(tool.parameters).map(([param, type]) => (
-                        <Badge key={param} variant="outline" className="text-[9px]">{param}: {String(type)}</Badge>
+                        <Badge key={param} variant="outline" className="text-[9px]">
+                          {param}: {String(type)}
+                        </Badge>
                       ))}
                     </div>
                   )}

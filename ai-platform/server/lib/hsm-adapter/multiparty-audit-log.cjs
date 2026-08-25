@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 43: Multiparty Auditing and Remote Attestation Logs.
@@ -11,29 +11,29 @@
  * @module hsm-adapter/multiparty-audit-log
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxEntries: 10000,
   minVerifiers: 2,
   maxVerifiers: 7,
   verifierTimeoutMs: 60000,
-  hashAlgorithm: 'sha256',
+  hashAlgorithm: "sha256",
   allowedEventTypes: [
-    'ENCLAVE_HARDWARE_BOOTSTRAPPED',
-    'ATTESTATION_CHALLENGE_VERIFIED',
-    'ENCLAVE_KEY_PROVISIONED',
-    'SEALING_POLICY_VALIDATED',
-    'UNSEAL_POLICY_VALIDATED',
-    'ATTESTATION_CHALLENGE_ISSUED',
-    'ATTESTATION_POLICY_VALIDATED',
-    'KEY_PROVISIONING_POLICY_VALIDATED',
-    'ATTESTATION_REPLAY_DETECTED',
-    'ATTESTATION_EXPIRED',
-    'ENCLAVE_ROOT_ROTATION_INITIATED',
-    'ATTESTATION_CONTRACT_VERIFIED',
-    'AUDIT_RECEIPT_CHAINED',
+    "ENCLAVE_HARDWARE_BOOTSTRAPPED",
+    "ATTESTATION_CHALLENGE_VERIFIED",
+    "ENCLAVE_KEY_PROVISIONED",
+    "SEALING_POLICY_VALIDATED",
+    "UNSEAL_POLICY_VALIDATED",
+    "ATTESTATION_CHALLENGE_ISSUED",
+    "ATTESTATION_POLICY_VALIDATED",
+    "KEY_PROVISIONING_POLICY_VALIDATED",
+    "ATTESTATION_REPLAY_DETECTED",
+    "ATTESTATION_EXPIRED",
+    "ENCLAVE_ROOT_ROTATION_INITIATED",
+    "ATTESTATION_CONTRACT_VERIFIED",
+    "AUDIT_RECEIPT_CHAINED",
   ],
 };
 
@@ -60,7 +60,7 @@ class MultipartyAuditLog {
     this._entries = [];
     this._pending = new Map(); // entryId -> { entry, signatures: Map(verifierId -> sig), createdAt }
     this._verifiers = new Set(); // registered verifier IDs
-    this._lastHash = '0'.repeat(64); // genesis hash
+    this._lastHash = "0".repeat(64); // genesis hash
   }
 
   /**
@@ -68,12 +68,17 @@ class MultipartyAuditLog {
    * @param {string} verifierId
    */
   registerVerifier(verifierId) {
-    if (!verifierId || typeof verifierId !== 'string') {
-      throw new HsmAdapterError('INVALID_VERIFIER', 'verifierId must be a non-empty string');
+    if (!verifierId || typeof verifierId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_VERIFIER",
+        "verifierId must be a non-empty string",
+      );
     }
     if (this._verifiers.size >= this.maxVerifiers) {
-      throw new HsmAdapterError('VERIFIER_LIMIT_REACHED',
-        `maximum ${this.maxVerifiers} verifiers reached`);
+      throw new HsmAdapterError(
+        "VERIFIER_LIMIT_REACHED",
+        `maximum ${this.maxVerifiers} verifiers reached`,
+      );
     }
     this._verifiers.add(verifierId);
   }
@@ -104,15 +109,25 @@ class MultipartyAuditLog {
    * @returns {object} The created pending entry with its ID
    */
   append(event) {
-    if (!event || typeof event !== 'object') {
-      throw new HsmAdapterError('INVALID_EVENT', 'event is required');
+    if (!event || typeof event !== "object") {
+      throw new HsmAdapterError("INVALID_EVENT", "event is required");
     }
-    if (typeof event.eventType !== 'string' || !this.allowedEventTypes.has(event.eventType)) {
-      throw new HsmAdapterError('EVENT_TYPE_NOT_ALLOWED',
-        `event type ${event.eventType} is not in the allowed list`);
+    if (
+      typeof event.eventType !== "string" ||
+      !this.allowedEventTypes.has(event.eventType)
+    ) {
+      throw new HsmAdapterError(
+        "EVENT_TYPE_NOT_ALLOWED",
+        `event type ${event.eventType} is not in the allowed list`,
+      );
     }
     const timestamp = event.timestamp || Date.now();
-    const entryId = _hashEntryId(this.hashAlgorithm, this._lastHash, event.eventType, timestamp);
+    const entryId = _hashEntryId(
+      this.hashAlgorithm,
+      this._lastHash,
+      event.eventType,
+      timestamp,
+    );
     const prevHash = this._lastHash;
     const entry = {
       id: entryId,
@@ -129,8 +144,11 @@ class MultipartyAuditLog {
       signatures: new Map(),
       createdAt: Date.now(),
     });
-    if (typeof this._audit === 'function') {
-      this._audit('AUDIT_ENTRY_APPENDED', { entryId, eventType: event.eventType });
+    if (typeof this._audit === "function") {
+      this._audit("AUDIT_ENTRY_APPENDED", {
+        entryId,
+        eventType: event.eventType,
+      });
     }
     return { entryId, eventType: event.eventType, prevHash, pending: true };
   }
@@ -143,22 +161,30 @@ class MultipartyAuditLog {
    */
   signEntry(entryId, verifierId, signature) {
     if (!this._verifiers.has(verifierId)) {
-      throw new HsmAdapterError('VERIFIER_NOT_REGISTERED',
-        `verifier ${verifierId} is not registered`);
+      throw new HsmAdapterError(
+        "VERIFIER_NOT_REGISTERED",
+        `verifier ${verifierId} is not registered`,
+      );
     }
     const pending = this._pending.get(entryId);
     if (!pending) {
-      throw new HsmAdapterError('ENTRY_NOT_FOUND',
-        `entry ${entryId} is not in pending state`);
+      throw new HsmAdapterError(
+        "ENTRY_NOT_FOUND",
+        `entry ${entryId} is not in pending state`,
+      );
     }
     if (Date.now() - pending.createdAt > this.verifierTimeoutMs) {
       this._pending.delete(entryId);
-      throw new HsmAdapterError('VERIFICATION_TIMEOUT',
-        `entry ${entryId} verification window has expired`);
+      throw new HsmAdapterError(
+        "VERIFICATION_TIMEOUT",
+        `entry ${entryId} verification window has expired`,
+      );
     }
     if (pending.signatures.has(verifierId)) {
-      throw new HsmAdapterError('DUPLICATE_SIGNATURE',
-        `verifier ${verifierId} has already signed entry ${entryId}`);
+      throw new HsmAdapterError(
+        "DUPLICATE_SIGNATURE",
+        `verifier ${verifierId} has already signed entry ${entryId}`,
+      );
     }
     pending.signatures.set(verifierId, signature);
     // Check if we have enough signatures to commit
@@ -185,8 +211,8 @@ class MultipartyAuditLog {
       this._entries.shift();
     }
     this._pending.delete(entry.id);
-    if (typeof this._audit === 'function') {
-      this._audit('AUDIT_ENTRY_COMMITTED', {
+    if (typeof this._audit === "function") {
+      this._audit("AUDIT_ENTRY_COMMITTED", {
         entryId: entry.id,
         entryHash: entry.entryHash,
         verifierCount: pending.signatures.size,
@@ -200,7 +226,7 @@ class MultipartyAuditLog {
    * @returns {object|null}
    */
   getEntry(entryId) {
-    return this._entries.find(e => e.id === entryId) || null;
+    return this._entries.find((e) => e.id === entryId) || null;
   }
 
   /**
@@ -215,12 +241,12 @@ class MultipartyAuditLog {
     let results = this._entries;
     if (filter) {
       if (filter.eventType) {
-        results = results.filter(e => e.eventType === filter.eventType);
+        results = results.filter((e) => e.eventType === filter.eventType);
       }
-      if (typeof filter.since === 'number') {
-        results = results.filter(e => e.timestamp >= filter.since);
+      if (typeof filter.since === "number") {
+        results = results.filter((e) => e.timestamp >= filter.since);
       }
-      if (typeof filter.limit === 'number') {
+      if (typeof filter.limit === "number") {
         results = results.slice(-filter.limit);
       }
     }
@@ -232,7 +258,7 @@ class MultipartyAuditLog {
    * @returns {object[]}
    */
   getPendingEntries() {
-    return Array.from(this._pending.values()).map(p => ({
+    return Array.from(this._pending.values()).map((p) => ({
       ...p.entry,
       signatureCount: p.signatures.size,
       requiredSignatures: this.minVerifiers,
@@ -245,18 +271,33 @@ class MultipartyAuditLog {
    * @returns {object} Verification result
    */
   verifyChain() {
-    let prevHash = '0'.repeat(64);
+    let prevHash = "0".repeat(64);
     for (let i = 0; i < this._entries.length; i++) {
       const entry = this._entries[i];
       if (entry.prevHash !== prevHash) {
-        return { valid: false, brokenAtIndex: i, entryId: entry.id, reason: 'prevHash mismatch' };
+        return {
+          valid: false,
+          brokenAtIndex: i,
+          entryId: entry.id,
+          reason: "prevHash mismatch",
+        };
       }
       const recomputed = _computeEntryHash(this.hashAlgorithm, entry);
       if (entry.entryHash !== recomputed) {
-        return { valid: false, brokenAtIndex: i, entryId: entry.id, reason: 'entryHash mismatch' };
+        return {
+          valid: false,
+          brokenAtIndex: i,
+          entryId: entry.id,
+          reason: "entryHash mismatch",
+        };
       }
       if (Object.keys(entry.signatures).length < this.minVerifiers) {
-        return { valid: false, brokenAtIndex: i, entryId: entry.id, reason: 'insufficient signatures' };
+        return {
+          valid: false,
+          brokenAtIndex: i,
+          entryId: entry.id,
+          reason: "insufficient signatures",
+        };
       }
       prevHash = entry.entryHash;
     }
@@ -304,18 +345,22 @@ class MultipartyAuditLog {
     this._entries = [];
     this._pending.clear();
     this._verifiers.clear();
-    this._lastHash = '0'.repeat(64);
+    this._lastHash = "0".repeat(64);
   }
 }
 
 function _hashEntryId(algo, prevHash, eventType, timestamp) {
-  return crypto.createHash(algo)
-    .update(prevHash + ':' + eventType + ':' + timestamp + ':' + Date.now())
-    .digest('hex');
+  return crypto
+    .createHash(algo)
+    .update(prevHash + ":" + eventType + ":" + timestamp + ":" + Date.now())
+    .digest("hex");
 }
 
 function _computeEntryHash(algo, entry) {
-  const sigPart = JSON.stringify(entry.signatures, Object.keys(entry.signatures).sort());
+  const sigPart = JSON.stringify(
+    entry.signatures,
+    Object.keys(entry.signatures).sort(),
+  );
   const data = [
     entry.id,
     entry.eventType,
@@ -323,8 +368,8 @@ function _computeEntryHash(algo, entry) {
     entry.prevHash,
     JSON.stringify(entry.data),
     sigPart,
-  ].join('|');
-  return crypto.createHash(algo).update(data).digest('hex');
+  ].join("|");
+  return crypto.createHash(algo).update(data).digest("hex");
 }
 
 module.exports = { MultipartyAuditLog, DEFAULT_OPTIONS };

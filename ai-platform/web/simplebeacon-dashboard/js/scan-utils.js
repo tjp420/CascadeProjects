@@ -1,5 +1,5 @@
 // simplebeacon-ignore memory-leak
-import { scanService } from './services/scanService.js';
+import { scanService } from "./services/scanService.js";
 
 /**
  * Global scan utility wrapper for non-module consumers and quick scripting.
@@ -27,17 +27,20 @@ window.ScanUtils = {
         issues: report.rawIssues || report.detectedIssues || [],
         projectPath: report.projectRoot || null,
         timestamp: report.timestamp || null,
-        gateFailed: report.gateFailed || false
+        gateFailed: report.gateFailed || false,
       };
     }
     // Try fetching the report from the server if none cached
     try {
       await scanService.fetchReport();
       return {
-        issues: scanService.report?.rawIssues || scanService.report?.detectedIssues || [],
+        issues:
+          scanService.report?.rawIssues ||
+          scanService.report?.detectedIssues ||
+          [],
         projectPath: scanService.report?.projectRoot || null,
         timestamp: scanService.report?.timestamp || null,
-        gateFailed: scanService.report?.gateFailed || false
+        gateFailed: scanService.report?.gateFailed || false,
       };
     } catch {
       return { issues: [] };
@@ -66,5 +69,5 @@ window.ScanUtils = {
    */
   getIssueCategories() {
     return scanService.getIssueCategories();
-  }
+  },
 };

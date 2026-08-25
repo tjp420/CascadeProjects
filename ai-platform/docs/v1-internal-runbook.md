@@ -5,6 +5,7 @@ This runbook covers the deployment and operation of the Simplebeacon v1-internal
 ## Overview
 
 v1-internal is the production-ready version of the Simplebeacon platform with:
+
 - **Required Authentication**: `REQUIRE_AUTH=true`
 - **Phase 2 Infrastructure**: PostgreSQL + Redis
 - **Production Security**: JWT tokens, rate limiting, audit logging
@@ -13,12 +14,14 @@ v1-internal is the production-ready version of the Simplebeacon platform with:
 ## Prerequisites
 
 ### Environment Setup
+
 1. **Node.js**: >=16.0.0
 2. **Docker & Docker Compose**: For Phase 2 infrastructure
 3. **PostgreSQL Client**: For database management
 4. **Redis CLI**: For cache management
 
 ### Configuration Files
+
 - `.env.v1-internal` - Production environment configuration
 - `docker-compose.phase2.yml` - Phase 2 infrastructure
 - `docs/v1-internal-runbook.md` - This documentation
@@ -26,6 +29,7 @@ v1-internal is the production-ready version of the Simplebeacon platform with:
 ## Quick Start
 
 ### 1. Environment Configuration
+
 ```bash
 # Copy the example configuration
 cp .env.v1-internal.example .env.v1-internal
@@ -35,6 +39,7 @@ cp .env.v1-internal.example .env.v1-internal
 ```
 
 ### 2. Start Phase 2 Infrastructure
+
 ```bash
 # Start PostgreSQL and Redis
 npm run phase2:infra
@@ -44,6 +49,7 @@ docker ps
 ```
 
 ### 3. Start the Platform
+
 ```bash
 # Start with v1-internal profile
 npm run dashboard:v1-internal
@@ -53,6 +59,7 @@ REQUIRE_AUTH=true npm run dev
 ```
 
 ### 4. Verify Deployment
+
 ```bash
 # Run verification suite
 npm run verify:v1-internal-profile
@@ -64,6 +71,7 @@ npm run smoke:test
 ## Authentication Setup
 
 ### JWT Configuration
+
 The platform uses JWT tokens for authentication with refresh token support:
 
 ```javascript
@@ -75,6 +83,7 @@ JWT_REFRESH_EXPIRES_IN=7d
 ```
 
 ### User Management
+
 For v1-internal, demo users are seeded automatically:
 
 ```bash
@@ -85,6 +94,7 @@ test@simplebeacon.ai / test123
 ```
 
 ### Authentication Flow
+
 1. **Login**: `POST /api/auth/login` with email/password
 2. **Access Token**: JWT token returned (1 hour expiry)
 3. **Refresh Token**: Use refresh token to get new access token
@@ -93,6 +103,7 @@ test@simplebeacon.ai / test123
 ## Phase 2 Infrastructure
 
 ### Database Setup
+
 ```bash
 # Initialize database
 npm run phase2:infra
@@ -105,6 +116,7 @@ npm run db:seed
 ```
 
 ### Redis Setup
+
 ```bash
 # Start Redis service
 docker compose -f docker-compose.phase2.yml up redis -d
@@ -114,6 +126,7 @@ redis-cli -h localhost -p 6379 ping
 ```
 
 ### Service Health Checks
+
 ```bash
 # Check database connection
 curl http://localhost:3002/api/health
@@ -125,12 +138,14 @@ curl http://localhost:3002/api/platform/status
 ## Security Configuration
 
 ### Required Security Headers
+
 - **Helmet**: Security headers enabled
 - **CORS**: Configured for localhost:3002
 - **Rate Limiting**: 2000 requests per 15 minutes
 - **Audit Logging**: All API calls logged
 
 ### Environment Security
+
 ```bash
 # Production secrets must be configured when REQUIRE_AUTH=true
 JWT_SECRET=must-be-set
@@ -142,6 +157,7 @@ REDIS_PASSWORD=must-be-set
 ## Testing and Verification
 
 ### Unit Tests
+
 ```bash
 # Run all tests with coverage
 npm run test:coverage
@@ -154,6 +170,7 @@ npm run verify:critical-path-coverage
 ```
 
 ### Integration Tests
+
 ```bash
 # Run API integration tests
 npm run test:api
@@ -166,6 +183,7 @@ npm run test:integration
 ```
 
 ### Smoke Tests
+
 ```bash
 # Run smoke test suite
 npm run smoke:test
@@ -177,6 +195,7 @@ npm run smoke:test:production
 ## Deployment Checklist
 
 ### Deploy Gates (Mandatory)
+
 The deploy script enforces three gates before any production deployment:
 
 1. **Production Readiness Gate**: `npm run verify:production-deploy`
@@ -192,6 +211,7 @@ The deploy script enforces three gates before any production deployment:
    - Warnings are interactive (requires confirmation to proceed)
 
 ### Pre-deployment Checks
+
 - [ ] Environment variables configured in `.env.v1-internal`
 - [ ] JWT secrets are strong (32+ characters)
 - [ ] Database and Redis passwords are secure
@@ -200,6 +220,7 @@ The deploy script enforces three gates before any production deployment:
 - [ ] Rate limits configured appropriately
 
 ### Health Verification
+
 - [ ] `npm run verify:v1-internal-profile` passes
 - [ ] `npm run verify:production-deploy` passes
 - [ ] `npm run smoke:test:production` passes
@@ -209,6 +230,7 @@ The deploy script enforces three gates before any production deployment:
 - [ ] All API endpoints responding
 
 ### Post-deployment Monitoring
+
 - [ ] Application logs monitored
 - [ ] Database performance monitored
 - [ ] Redis performance monitored
@@ -221,6 +243,7 @@ The deploy script enforces three gates before any production deployment:
 ### Common Issues
 
 #### Authentication Failures
+
 ```bash
 # Check JWT configuration
 curl http://localhost:3002/api/platform/status | jq .authRequired
@@ -233,6 +256,7 @@ tail -f logs/audit.log | grep auth
 ```
 
 #### Database Connection Issues
+
 ```bash
 # Check database status
 docker compose -f docker-compose.phase2.yml ps postgres
@@ -245,6 +269,7 @@ docker compose -f docker-compose.phase2.yml logs postgres
 ```
 
 #### Redis Connection Issues
+
 ```bash
 # Check Redis status
 docker compose -f docker-compose.phase2.yml ps redis
@@ -257,6 +282,7 @@ docker compose -f docker-compose.phase2.yml logs redis
 ```
 
 #### Service Startup Issues
+
 ```bash
 # Check all services
 docker compose -f docker-compose.phase2.yml ps
@@ -272,6 +298,7 @@ npm run dashboard:v1-internal
 ### Performance Issues
 
 #### Slow API Response
+
 ```bash
 # Check database performance
 docker stats
@@ -284,6 +311,7 @@ curl http://localhost:3002/api/metrics/path-health
 ```
 
 #### Memory Issues
+
 ```bash
 # Monitor memory usage
 docker stats
@@ -298,12 +326,14 @@ npm run phase2:infra:down && npm run phase2:infra
 ## Maintenance
 
 ### Regular Tasks
+
 - **Daily**: Monitor logs and error rates
 - **Weekly**: Review security audit logs
 - **Monthly**: Update dependencies and security patches
 - **Quarterly**: Review and rotate secrets
 
 ### Backup Procedures
+
 ```bash
 # Backup database
 docker exec postgres_container pg_dump simplebeacon_v1_internal > backup.sql
@@ -316,6 +346,7 @@ cp .env.v1-internal .env.v1-internal.backup
 ```
 
 ### Log Management
+
 ```bash
 # Rotate audit logs
 logrotate -f /etc/logrotate.d/simplebeacon
@@ -330,18 +361,21 @@ df -h
 ## Emergency Procedures
 
 ### Security Incident
+
 1. **Immediate**: Rotate all secrets and passwords
 2. **Investigation**: Review audit logs for unauthorized access
 3. **Containment**: Block suspicious IP addresses
 4. **Recovery**: Restore from clean backup if needed
 
 ### Service Outage
+
 1. **Diagnosis**: Check service status and logs
 2. **Recovery**: Restart affected services
 3. **Verification**: Run smoke tests
 4. **Communication**: Notify stakeholders of resolution
 
 ### Data Corruption
+
 1. **Stop Services**: Prevent further damage
 2. **Assessment**: Determine extent of corruption
 3. **Recovery**: Restore from recent backup
@@ -350,12 +384,14 @@ df -h
 ## Support and Escalation
 
 ### Internal Resources
+
 - **Documentation**: `docs/` directory
 - **Configuration Examples**: `.env.v1-internal.example`
 - **Test Suites**: `tests/` directory
 - **Health Checks**: `/api/health` endpoint
 
 ### External Resources
+
 - **Node.js Documentation**: https://nodejs.org/docs/
 - **PostgreSQL Documentation**: https://www.postgresql.org/docs/
 - **Redis Documentation**: https://redis.io/documentation

@@ -33,17 +33,19 @@ function read(p) {
  * `export default ...` → stripped.
  */
 function stripExports(code) {
-  return code
-    // export { a, b, c };  → remove entirely
-    .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, '')
-    // export default ...;  → remove the line
-    .replace(/^\s*export\s+default\s+.*$/gm, '')
-    // export { a, b } from '...';  → remove
-    .replace(/^\s*export\s*\{[^}]*\}\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
-    // export const/let/var/function/class/async function
-    .replace(/^\s*export\s+(const|let|var|function|class|async\s+function)\b/gm, '$1')
-    // trailing `export { foo };` blocks
-    .replace(/\n\s*export\s*\{[^}]*\}\s*;?\s*\n/g, '\n');
+  return (
+    code
+      // export { a, b, c };  → remove entirely
+      .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, '')
+      // export default ...;  → remove the line
+      .replace(/^\s*export\s+default\s+.*$/gm, '')
+      // export { a, b } from '...';  → remove
+      .replace(/^\s*export\s*\{[^}]*\}\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+      // export const/let/var/function/class/async function
+      .replace(/^\s*export\s+(const|let|var|function|class|async\s+function)\b/gm, '$1')
+      // trailing `export { foo };` blocks
+      .replace(/\n\s*export\s*\{[^}]*\}\s*;?\s*\n/g, '\n')
+  );
 }
 
 /**
@@ -51,15 +53,17 @@ function stripExports(code) {
  * The imported bindings become locally-defined after concatenation.
  */
 function stripImports(code) {
-  return code
-    // import { a, b } from '...';
-    .replace(/^\s*import\s+\{[^}]*\}\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
-    // import defaultName from '...';
-    .replace(/^\s*import\s+\w+\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
-    // import '...';
-    .replace(/^\s*import\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
-    // import * as ns from '...';
-    .replace(/^\s*import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '');
+  return (
+    code
+      // import { a, b } from '...';
+      .replace(/^\s*import\s+\{[^}]*\}\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+      // import defaultName from '...';
+      .replace(/^\s*import\s+\w+\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+      // import '...';
+      .replace(/^\s*import\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+      // import * as ns from '...';
+      .replace(/^\s*import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+  );
 }
 
 /**
@@ -105,7 +109,7 @@ function main() {
   const DUPLICATE_BRIDGE_DECLS = [
     /const SEVERITY_MAP\s*=\s*\{[^}]*\}\s*;/,
     /const CREDENTIAL_ALLOWLIST\s*=\s*\/[^\/]+\/[a-z]*\s*;/,
-    /const IGNORE_LINE_RE\s*=\s*\/[^\/]+\/[a-z]*\s*;/
+    /const IGNORE_LINE_RE\s*=\s*\/[^\/]+\/[a-z]*\s*;/,
   ];
   let bridgeDeduped = bridgeStripped;
   for (const re of DUPLICATE_BRIDGE_DECLS) {
@@ -129,7 +133,7 @@ function main() {
     '',
     '// ===== scan-worker.js (inlined) =====',
     workerStripped.trim(),
-    ''
+    '',
   ].join('\n');
 
   fs.writeFileSync(OUT_PATH, bundled, 'utf8');
@@ -147,7 +151,9 @@ function main() {
     process.exit(1);
   }
   if (exportCount > 0) {
-    console.warn('[bundle-worker] WARNING: export statements remain — these are no-ops in classic workers but should be stripped');
+    console.warn(
+      '[bundle-worker] WARNING: export statements remain — these are no-ops in classic workers but should be stripped'
+    );
   }
 }
 

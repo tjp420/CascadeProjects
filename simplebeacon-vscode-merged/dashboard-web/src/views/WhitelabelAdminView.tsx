@@ -5,10 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import {
-  Palette, Plus, Trash2, RefreshCw, Building2, Globe, CheckCircle2,
-  XCircle, Eye, Code,
-} from 'lucide-react';
+import { Palette, Plus, Trash2, RefreshCw, Building2, Globe, CheckCircle2, XCircle, Eye, Code } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
 
@@ -50,9 +47,35 @@ type Partner = {
   subTenants: { orgId: string; name: string; addedAt: string }[];
 };
 
-const COLOR_FIELDS = ['primaryColor', 'secondaryColor', 'accentColor', 'backgroundColor', 'surfaceColor', 'textColor', 'emailTemplateColor'];
-const TEXT_FIELDS = ['productName', 'tagline', 'reportHeader', 'reportFooter', 'emailFromName', 'emailFromAddress', 'legalName'];
-const URL_FIELDS = ['logoUrl', 'logoDarkUrl', 'faviconUrl', 'customDomain', 'customSubdomain', 'privacyPolicyUrl', 'termsUrl', 'supportUrl', 'helpUrl'];
+const COLOR_FIELDS = [
+  'primaryColor',
+  'secondaryColor',
+  'accentColor',
+  'backgroundColor',
+  'surfaceColor',
+  'textColor',
+  'emailTemplateColor',
+];
+const TEXT_FIELDS = [
+  'productName',
+  'tagline',
+  'reportHeader',
+  'reportFooter',
+  'emailFromName',
+  'emailFromAddress',
+  'legalName',
+];
+const URL_FIELDS = [
+  'logoUrl',
+  'logoDarkUrl',
+  'faviconUrl',
+  'customDomain',
+  'customSubdomain',
+  'privacyPolicyUrl',
+  'termsUrl',
+  'supportUrl',
+  'helpUrl',
+];
 
 export function WhitelabelAdminView() {
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -91,10 +114,15 @@ export function WhitelabelAdminView() {
     }
   }, []);
 
-  useEffect(() => { fetchPartners(); }, [fetchPartners]);
+  useEffect(() => {
+    fetchPartners();
+  }, [fetchPartners]);
 
   const handleCreate = async () => {
-    const domains = createForm.domains.split(',').map(d => d.trim()).filter(Boolean);
+    const domains = createForm.domains
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
     if (!createForm.name || domains.length === 0) {
       toast.error('Name and at least one domain are required');
       return;
@@ -122,10 +150,19 @@ export function WhitelabelAdminView() {
       toast.success('Whitelabel partner created');
       setShowCreate(false);
       setCreateForm({
-        name: '', displayName: '', domains: '', productName: '',
-        primaryColor: '#4A90D9', secondaryColor: '#36A64F', accentColor: '#FF6600',
-        backgroundColor: '#0F172A', surfaceColor: '#1E293B', textColor: '#F1F5F9',
-        reportHeader: '', customDomain: '', customSubdomain: '',
+        name: '',
+        displayName: '',
+        domains: '',
+        productName: '',
+        primaryColor: '#4A90D9',
+        secondaryColor: '#36A64F',
+        accentColor: '#FF6600',
+        backgroundColor: '#0F172A',
+        surfaceColor: '#1E293B',
+        textColor: '#F1F5F9',
+        reportHeader: '',
+        customDomain: '',
+        customSubdomain: '',
       });
       fetchPartners();
     } catch (err: any) {
@@ -136,7 +173,8 @@ export function WhitelabelAdminView() {
   const handleDelete = async (partnerId: string) => {
     try {
       const resp = await fetch(apiUrl(`/whitelabel/partners/${partnerId}`), {
-        method: 'DELETE', headers: authHeaders(),
+        method: 'DELETE',
+        headers: authHeaders(),
       });
       if (!resp.ok) throw new Error('Delete failed');
       toast.success('Partner deleted');
@@ -225,38 +263,77 @@ export function WhitelabelAdminView() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Partner Name</Label>
-                <Input id="name" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+                <Input
+                  id="name"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name</Label>
-                <Input id="displayName" value={createForm.displayName} onChange={(e) => setCreateForm({ ...createForm, displayName: e.target.value })} />
+                <Input
+                  id="displayName"
+                  value={createForm.displayName}
+                  onChange={(e) => setCreateForm({ ...createForm, displayName: e.target.value })}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="domains">Domains (comma-separated)</Label>
-              <Input id="domains" placeholder="acme.com, partner.acme.com" value={createForm.domains} onChange={(e) => setCreateForm({ ...createForm, domains: e.target.value })} />
+              <Input
+                id="domains"
+                placeholder="acme.com, partner.acme.com"
+                value={createForm.domains}
+                onChange={(e) => setCreateForm({ ...createForm, domains: e.target.value })}
+              />
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="productName">Product Name</Label>
-                <Input id="productName" value={createForm.productName} onChange={(e) => setCreateForm({ ...createForm, productName: e.target.value })} />
+                <Input
+                  id="productName"
+                  value={createForm.productName}
+                  onChange={(e) => setCreateForm({ ...createForm, productName: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customSubdomain">Custom Subdomain</Label>
-                <Input id="customSubdomain" placeholder="acme" value={createForm.customSubdomain} onChange={(e) => setCreateForm({ ...createForm, customSubdomain: e.target.value })} />
+                <Input
+                  id="customSubdomain"
+                  placeholder="acme"
+                  value={createForm.customSubdomain}
+                  onChange={(e) => setCreateForm({ ...createForm, customSubdomain: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customDomain">Custom Domain</Label>
-                <Input id="customDomain" placeholder="compliance.acme.com" value={createForm.customDomain} onChange={(e) => setCreateForm({ ...createForm, customDomain: e.target.value })} />
+                <Input
+                  id="customDomain"
+                  placeholder="compliance.acme.com"
+                  value={createForm.customDomain}
+                  onChange={(e) => setCreateForm({ ...createForm, customDomain: e.target.value })}
+                />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-4">
-              {COLOR_FIELDS.slice(0, 4).map(field => (
+              {COLOR_FIELDS.slice(0, 4).map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label htmlFor={field}>{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</Label>
+                  <Label htmlFor={field}>
+                    {field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+                  </Label>
                   <div className="flex gap-2">
-                    <Input id={field} type="color" className="w-12 p-1" value={(createForm as any)[field]} onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })} />
-                    <Input className="flex-1" value={(createForm as any)[field]} onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })} />
+                    <Input
+                      id={field}
+                      type="color"
+                      className="w-12 p-1"
+                      value={(createForm as any)[field]}
+                      onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })}
+                    />
+                    <Input
+                      className="flex-1"
+                      value={(createForm as any)[field]}
+                      onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })}
+                    />
                   </div>
                 </div>
               ))}
@@ -264,7 +341,9 @@ export function WhitelabelAdminView() {
             <Separator />
             <div className="flex gap-2">
               <Button onClick={handleCreate}>Create Partner</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -279,31 +358,46 @@ export function WhitelabelAdminView() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-              {COLOR_FIELDS.map(field => (
+              {COLOR_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</Label>
+                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
                   <div className="flex gap-2">
-                    <Input type="color" className="w-12 p-1" value={(editingPartner.brand as any)[field] || '#000000'} onChange={(e) => updateBrandField(field, e.target.value)} />
-                    <Input className="flex-1" value={(editingPartner.brand as any)[field] || ''} onChange={(e) => updateBrandField(field, e.target.value)} />
+                    <Input
+                      type="color"
+                      className="w-12 p-1"
+                      value={(editingPartner.brand as any)[field] || '#000000'}
+                      onChange={(e) => updateBrandField(field, e.target.value)}
+                    />
+                    <Input
+                      className="flex-1"
+                      value={(editingPartner.brand as any)[field] || ''}
+                      onChange={(e) => updateBrandField(field, e.target.value)}
+                    />
                   </div>
                 </div>
               ))}
             </div>
             <Separator />
             <div className="grid gap-4 md:grid-cols-2">
-              {TEXT_FIELDS.map(field => (
+              {TEXT_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</Label>
-                  <Input value={(editingPartner.brand as any)[field] || ''} onChange={(e) => updateBrandField(field, e.target.value)} />
+                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
+                  <Input
+                    value={(editingPartner.brand as any)[field] || ''}
+                    onChange={(e) => updateBrandField(field, e.target.value)}
+                  />
                 </div>
               ))}
             </div>
             <Separator />
             <div className="grid gap-4 md:grid-cols-2">
-              {URL_FIELDS.map(field => (
+              {URL_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</Label>
-                  <Input value={(editingPartner.brand as any)[field] || ''} onChange={(e) => updateBrandField(field, e.target.value)} />
+                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
+                  <Input
+                    value={(editingPartner.brand as any)[field] || ''}
+                    onChange={(e) => updateBrandField(field, e.target.value)}
+                  />
                 </div>
               ))}
             </div>
@@ -319,7 +413,9 @@ export function WhitelabelAdminView() {
             </div>
             <div className="flex gap-2">
               <Button onClick={() => handleSaveBrand(editingPartner)}>Save Brand</Button>
-              <Button variant="outline" onClick={() => setEditingPartner(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setEditingPartner(null)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -331,7 +427,9 @@ export function WhitelabelAdminView() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">CSS Preview</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => setPreviewCss(null)}>Close</Button>
+              <Button size="sm" variant="outline" onClick={() => setPreviewCss(null)}>
+                Close
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -351,11 +449,14 @@ export function WhitelabelAdminView() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {partners.map(partner => (
+          {partners.map((partner) => (
             <Card key={partner.partnerId}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: partner.brand.primaryColor }}>
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: partner.brand.primaryColor }}
+                  >
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -369,16 +470,22 @@ export function WhitelabelAdminView() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-1">
-                  {partner.domains.map(d => (
+                  {partner.domains.map((d) => (
                     <Badge key={d} variant="outline" className="text-xs">
-                      <Globe className="h-3 w-3 mr-1" />{d}
+                      <Globe className="h-3 w-3 mr-1" />
+                      {d}
                     </Badge>
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Brand colors:</span>
-                  {COLOR_FIELDS.slice(0, 5).map(field => (
-                    <div key={field} className="h-4 w-4 rounded-full border" style={{ backgroundColor: (partner.brand as any)[field] }} title={field} />
+                  {COLOR_FIELDS.slice(0, 5).map((field) => (
+                    <div
+                      key={field}
+                      className="h-4 w-4 rounded-full border"
+                      style={{ backgroundColor: (partner.brand as any)[field] }}
+                      title={field}
+                    />
                   ))}
                 </div>
                 {partner.subTenants.length > 0 && (

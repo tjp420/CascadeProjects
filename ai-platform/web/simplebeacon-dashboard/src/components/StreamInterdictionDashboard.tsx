@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Activity,
   RefreshCw,
@@ -16,9 +22,9 @@ import {
   Ban,
   Clock,
   TrendingDown,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { apiUrl, authHeaders } from '@/config';
+} from "lucide-react";
+import { toast } from "sonner";
+import { apiUrl, authHeaders } from "@/config";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,13 +56,48 @@ interface StreamInterdictionStatus {
 
 // Failure axis metadata for display
 const FAILURE_AXES = [
-  { type: 'chain_verification', label: 'Chain Verification', icon: Shield, color: 'text-red-400' },
-  { type: 'pii_violation', label: 'PII Violation', icon: ShieldAlert, color: 'text-orange-400' },
-  { type: 'guardrail_refusal', label: 'Guardrail Refusal', icon: Ban, color: 'text-yellow-400' },
-  { type: 'auth_failure', label: 'Auth Failure', icon: ShieldAlert, color: 'text-purple-400' },
-  { type: 'org_partition', label: 'Org Partition', icon: Shield, color: 'text-blue-400' },
-  { type: 'rate_limit', label: 'Rate Limit', icon: Zap, color: 'text-cyan-400' },
-  { type: 'bundle_verification', label: 'Bundle Verification', icon: ShieldCheck, color: 'text-pink-400' },
+  {
+    type: "chain_verification",
+    label: "Chain Verification",
+    icon: Shield,
+    color: "text-red-400",
+  },
+  {
+    type: "pii_violation",
+    label: "PII Violation",
+    icon: ShieldAlert,
+    color: "text-orange-400",
+  },
+  {
+    type: "guardrail_refusal",
+    label: "Guardrail Refusal",
+    icon: Ban,
+    color: "text-yellow-400",
+  },
+  {
+    type: "auth_failure",
+    label: "Auth Failure",
+    icon: ShieldAlert,
+    color: "text-purple-400",
+  },
+  {
+    type: "org_partition",
+    label: "Org Partition",
+    icon: Shield,
+    color: "text-blue-400",
+  },
+  {
+    type: "rate_limit",
+    label: "Rate Limit",
+    icon: Zap,
+    color: "text-cyan-400",
+  },
+  {
+    type: "bundle_verification",
+    label: "Bundle Verification",
+    icon: ShieldCheck,
+    color: "text-pink-400",
+  },
 ];
 
 function formatDuration(ms: number): string {
@@ -79,18 +120,18 @@ export function StreamInterdictionDashboard() {
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [recordingKey, setRecordingKey] = useState('');
-  const [recordingType, setRecordingType] = useState('chain_verification');
-  const [recordingDetail, setRecordingDetail] = useState('');
+  const [recordingKey, setRecordingKey] = useState("");
+  const [recordingType, setRecordingType] = useState("chain_verification");
+  const [recordingDetail, setRecordingDetail] = useState("");
   const [recording, setRecording] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fetchErrorRef = useRef(false);
 
   const fetchStatus = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('audit/interdiction/stream/status'), {
+      const resp = await fetch(apiUrl("audit/interdiction/stream/status"), {
         headers: authHeaders(),
-        credentials: 'include',
+        credentials: "include",
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -100,9 +141,9 @@ export function StreamInterdictionDashboard() {
       setStatus(data);
       fetchErrorRef.current = false;
     } catch (err) {
-      console.error('StreamInterdictionDashboard.tsx error:', err);
+      console.error("StreamInterdictionDashboard.tsx error:", err);
       // Non-fatal — dashboard degrades gracefully
-      console.warn('[StreamInterdiction] fetch failed:', err);
+      console.warn("[StreamInterdiction] fetch failed:", err);
       // Stop polling after first failure to avoid console spam on missing endpoints
       if (!fetchErrorRef.current) {
         fetchErrorRef.current = true;
@@ -134,10 +175,10 @@ export function StreamInterdictionDashboard() {
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
-      const resp = await fetch(apiUrl('audit/interdiction/stream/clear'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        credentials: 'include',
+      const resp = await fetch(apiUrl("audit/interdiction/stream/clear"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -147,7 +188,9 @@ export function StreamInterdictionDashboard() {
       toast.success(`Cleared ${data.cleared} stream failure(s)`);
       void fetchStatus();
     } catch (err) {
-      toast.error(`Failed to clear: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to clear: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setClearing(false);
     }
@@ -155,15 +198,15 @@ export function StreamInterdictionDashboard() {
 
   const handleRecord = useCallback(async () => {
     if (!recordingKey.trim()) {
-      toast.error('API key is required');
+      toast.error("API key is required");
       return;
     }
     setRecording(true);
     try {
-      const resp = await fetch(apiUrl('audit/interdiction/stream/record'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        credentials: 'include',
+      const resp = await fetch(apiUrl("audit/interdiction/stream/record"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
         body: JSON.stringify({
           apiKey: recordingKey.trim(),
           failureType: recordingType,
@@ -176,15 +219,19 @@ export function StreamInterdictionDashboard() {
       }
       const data = await resp.json();
       if (data.interdicted) {
-        toast.warning(`Failure recorded — KEY AUTO-INTERDICTED (${data.count}/${data.threshold})`);
+        toast.warning(
+          `Failure recorded — KEY AUTO-INTERDICTED (${data.count}/${data.threshold})`,
+        );
       } else {
         toast.success(`Failure recorded (${data.count}/${data.threshold})`);
       }
-      setRecordingKey('');
-      setRecordingDetail('');
+      setRecordingKey("");
+      setRecordingDetail("");
       void fetchStatus();
     } catch (err) {
-      toast.error(`Failed to record: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to record: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setRecording(false);
     }
@@ -197,7 +244,9 @@ export function StreamInterdictionDashboard() {
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <Loader2 className="h-6 w-6 text-foreground-muted animate-spin" />
-          <p className="text-sm text-foreground-muted">Loading stream interdiction data…</p>
+          <p className="text-sm text-foreground-muted">
+            Loading stream interdiction data…
+          </p>
         </CardContent>
       </Card>
     );
@@ -208,8 +257,14 @@ export function StreamInterdictionDashboard() {
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <AlertTriangle className="h-8 w-8 text-foreground-muted" />
-          <p className="text-sm text-foreground-muted">Failed to load stream interdiction data</p>
-          <Button size="sm" variant="outline" onClick={() => void fetchStatus()}>
+          <p className="text-sm text-foreground-muted">
+            Failed to load stream interdiction data
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void fetchStatus()}
+          >
             <RefreshCw className="h-4 w-4 mr-2" /> Retry
           </Button>
         </CardContent>
@@ -236,16 +291,25 @@ export function StreamInterdictionDashboard() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={enabled ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-gray-500/15 text-gray-500 border-gray-500/30'}>
-              {enabled ? 'ACTIVE' : 'DISABLED'}
+            <Badge
+              variant="outline"
+              className={
+                enabled
+                  ? "bg-green-500/15 text-green-500 border-green-500/30"
+                  : "bg-gray-500/15 text-gray-500 border-gray-500/30"
+              }
+            >
+              {enabled ? "ACTIVE" : "DISABLED"}
             </Badge>
             <Button
               size="sm"
               variant="outline"
               onClick={() => setAutoRefresh((v) => !v)}
             >
-              <RefreshCw className={`h-4 w-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Auto' : 'Manual'}
+              <RefreshCw
+                className={`h-4 w-4 mr-1 ${autoRefresh ? "animate-spin" : ""}`}
+              />
+              {autoRefresh ? "Auto" : "Manual"}
             </Button>
             <Button
               size="sm"
@@ -258,7 +322,6 @@ export function StreamInterdictionDashboard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-
         {/* ── Top KPI Cards (4) ────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="rounded-lg border p-3 text-center">
@@ -268,7 +331,9 @@ export function StreamInterdictionDashboard() {
           </div>
           <div className="rounded-lg border p-3 text-center">
             <ShieldAlert className="h-5 w-5 mx-auto text-orange-500" />
-            <p className="text-2xl font-bold mt-1 text-orange-500">{totalAuto}</p>
+            <p className="text-2xl font-bold mt-1 text-orange-500">
+              {totalAuto}
+            </p>
             <p className="text-xs text-foreground-muted">Auto-Interdicts</p>
           </div>
           <div className="rounded-lg border p-3 text-center">
@@ -278,7 +343,9 @@ export function StreamInterdictionDashboard() {
           </div>
           <div className="rounded-lg border p-3 text-center">
             <Clock className="h-5 w-5 mx-auto text-foreground-muted" />
-            <p className="text-2xl font-bold mt-1">{formatDuration(status.windowMs)}</p>
+            <p className="text-2xl font-bold mt-1">
+              {formatDuration(status.windowMs)}
+            </p>
             <p className="text-xs text-foreground-muted">Window Size</p>
           </div>
         </div>
@@ -290,7 +357,7 @@ export function StreamInterdictionDashboard() {
             {FAILURE_AXES.map((axis) => {
               const Icon = axis.icon;
               const count = status.stats.byType[axis.type] || 0;
-              const threshold = status.thresholds[axis.type] || '—';
+              const threshold = status.thresholds[axis.type] || "—";
               return (
                 <div
                   key={axis.type}
@@ -309,10 +376,10 @@ export function StreamInterdictionDashboard() {
                     variant="outline"
                     className={
                       count >= (status.thresholds[axis.type] || Infinity)
-                        ? 'bg-red-500/15 text-red-500 border-red-500/30'
+                        ? "bg-red-500/15 text-red-500 border-red-500/30"
                         : count > 0
-                        ? 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30'
-                        : 'bg-gray-500/15 text-gray-500 border-gray-500/30'
+                          ? "bg-yellow-500/15 text-yellow-500 border-yellow-500/30"
+                          : "bg-gray-500/15 text-gray-500 border-gray-500/30"
                     }
                   >
                     {count}
@@ -333,8 +400,11 @@ export function StreamInterdictionDashboard() {
                   <tr>
                     <th className="text-left p-2 font-medium">API Key</th>
                     {FAILURE_AXES.map((a) => (
-                      <th key={a.type} className="text-center p-2 font-medium text-xs">
-                        {a.label.split(' ')[0]}
+                      <th
+                        key={a.type}
+                        className="text-center p-2 font-medium text-xs"
+                      >
+                        {a.label.split(" ")[0]}
                       </th>
                     ))}
                   </tr>
@@ -348,7 +418,13 @@ export function StreamInterdictionDashboard() {
                         return (
                           <td key={a.type} className="text-center p-2">
                             {c > 0 ? (
-                              <span className={c >= (status.thresholds[a.type] || Infinity) ? 'text-red-500 font-bold' : 'text-yellow-500'}>
+                              <span
+                                className={
+                                  c >= (status.thresholds[a.type] || Infinity)
+                                    ? "text-red-500 font-bold"
+                                    : "text-yellow-500"
+                                }
+                              >
                                 {c}
                               </span>
                             ) : (
@@ -368,18 +444,35 @@ export function StreamInterdictionDashboard() {
         {/* ── Recent Failures Feed ─────────────────────────────────────────── */}
         {status.recentFailures.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-3">Recent Failures (last {status.recentFailures.length})</h4>
+            <h4 className="text-sm font-semibold mb-3">
+              Recent Failures (last {status.recentFailures.length})
+            </h4>
             <div className="space-y-1.5 max-h-64 overflow-y-auto rounded-lg border p-2">
               {status.recentFailures.map((f, i) => {
                 const axis = FAILURE_AXES.find((a) => a.type === f.type);
                 const Icon = axis?.icon || AlertTriangle;
                 return (
-                  <div key={i} className="flex items-center gap-2 text-xs py-1 border-b last:border-0">
-                    <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${axis?.color || 'text-foreground-muted'}`} />
-                    <span className="font-mono text-foreground-muted flex-shrink-0">{f.apiKey}</span>
-                    <Badge variant="outline" className="text-[10px] py-0">{f.type}</Badge>
-                    {f.detail && <span className="text-foreground-muted truncate">{f.detail}</span>}
-                    <span className="ml-auto text-foreground-muted flex-shrink-0">{formatTimeAgo(f.at)}</span>
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs py-1 border-b last:border-0"
+                  >
+                    <Icon
+                      className={`h-3.5 w-3.5 flex-shrink-0 ${axis?.color || "text-foreground-muted"}`}
+                    />
+                    <span className="font-mono text-foreground-muted flex-shrink-0">
+                      {f.apiKey}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] py-0">
+                      {f.type}
+                    </Badge>
+                    {f.detail && (
+                      <span className="text-foreground-muted truncate">
+                        {f.detail}
+                      </span>
+                    )}
+                    <span className="ml-auto text-foreground-muted flex-shrink-0">
+                      {formatTimeAgo(f.at)}
+                    </span>
                   </div>
                 );
               })}
@@ -391,7 +484,8 @@ export function StreamInterdictionDashboard() {
         <div className="rounded-lg border p-3 space-y-2">
           <h4 className="text-sm font-semibold">Manual Failure Injection</h4>
           <p className="text-xs text-foreground-muted">
-            Record a test failure to verify the interdiction pipeline. Useful for validating threshold behavior.
+            Record a test failure to verify the interdiction pipeline. Useful
+            for validating threshold behavior.
           </p>
           <div className="flex flex-wrap gap-2">
             <Input
@@ -406,7 +500,9 @@ export function StreamInterdictionDashboard() {
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
               {FAILURE_AXES.map((a) => (
-                <option key={a.type} value={a.type}>{a.label}</option>
+                <option key={a.type} value={a.type}>
+                  {a.label}
+                </option>
               ))}
             </select>
             <Input
@@ -420,7 +516,11 @@ export function StreamInterdictionDashboard() {
               onClick={() => void handleRecord()}
               disabled={recording || !recordingKey.trim()}
             >
-              {recording ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Record'}
+              {recording ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Record"
+              )}
             </Button>
           </div>
         </div>
@@ -430,7 +530,8 @@ export function StreamInterdictionDashboard() {
           <div>
             <p className="text-sm font-medium">Clear All Stream Failures</p>
             <p className="text-xs text-foreground-muted">
-              Resets the sliding-window buffer. Interdicted keys remain locked until TTL expires.
+              Resets the sliding-window buffer. Interdicted keys remain locked
+              until TTL expires.
             </p>
           </div>
           <Button
@@ -439,7 +540,11 @@ export function StreamInterdictionDashboard() {
             onClick={() => void handleClear()}
             disabled={clearing || inWindow === 0}
           >
-            {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {clearing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
             Clear
           </Button>
         </div>
@@ -448,7 +553,8 @@ export function StreamInterdictionDashboard() {
         {status.stats.lastAutoInterdict && (
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
             <ShieldAlert className="h-3.5 w-3.5 text-orange-500" />
-            Last auto-interdiction: {formatTimeAgo(status.stats.lastAutoInterdict)}
+            Last auto-interdiction:{" "}
+            {formatTimeAgo(status.stats.lastAutoInterdict)}
           </div>
         )}
       </CardContent>

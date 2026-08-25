@@ -8,26 +8,26 @@
  * @returns {Promise<boolean>}
  */
 export async function copyToClipboard(text) {
-  const s = String(text ?? '');
-  if (!s) return false;
-  try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(s);
-      return true;
+    const s = String(text ?? '');
+    if (!s) return false;
+    try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            await navigator.clipboard.writeText(s);
+            return true;
+        }
+        if (typeof document !== 'undefined' && document.execCommand) {
+            const ta = document.createElement('textarea');
+            ta.value = s;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return ok;
+        }
+    } catch {
+        // fall through
     }
-    if (typeof document !== 'undefined' && document.execCommand) {
-      const ta = document.createElement('textarea');
-      ta.value = s;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      ta.remove();
-      return ok;
-    }
-  } catch {
-    // fall through
-  }
-  return false;
+    return false;
 }

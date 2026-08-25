@@ -7,22 +7,22 @@ import { apiBase } from './authService.js?v=20260722bridgefix1';
  * @returns {Promise<object>} Result with orgId and policy
  */
 export async function fetchRetentionConfig(authHeaders = {}) {
-  const base = apiBase() || '';
-  const url = `${base}/api/audit/retention/config`;
-  try {
-    const resp = await fetch(url, {
-      method: 'GET',
-      headers: { ...authHeaders },
-      credentials: 'include',
-    });
-    if (!resp.ok) {
-      const body = await resp.json().catch(() => ({}));
-      throw new Error(body.message || `HTTP ${resp.status}`);
+    const base = apiBase() || '';
+    const url = `${base}/api/audit/retention/config`;
+    try {
+        const resp = await fetch(url, {
+            method: 'GET',
+            headers: { ...authHeaders },
+            credentials: 'include'
+        });
+        if (!resp.ok) {
+            const body = await resp.json().catch(() => ({}));
+            throw new Error(body.message || `HTTP ${resp.status}`);
+        }
+        return await resp.json();
+    } catch (err) {
+        throw new Error(`Failed to fetch retention config: ${err.message}`);
     }
-    return await resp.json();
-  } catch (err) {
-    throw new Error(`Failed to fetch retention config: ${err.message}`);
-  }
 }
 
 /**
@@ -32,23 +32,23 @@ export async function fetchRetentionConfig(authHeaders = {}) {
  * @returns {Promise<object>} Result with orgId and updated policy
  */
 export async function updateRetentionConfig(config, authHeaders = {}) {
-  const base = apiBase() || '';
-  const url = `${base}/api/audit/retention/config`;
-  try {
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      credentials: 'include',
-      body: JSON.stringify(config),
-    });
-    if (!resp.ok) {
-      const errBody = await resp.json().catch(() => ({}));
-      throw new Error(errBody.message || `HTTP ${resp.status}`);
+    const base = apiBase() || '';
+    const url = `${base}/api/audit/retention/config`;
+    try {
+        const resp = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            credentials: 'include',
+            body: JSON.stringify(config)
+        });
+        if (!resp.ok) {
+            const errBody = await resp.json().catch(() => ({}));
+            throw new Error(errBody.message || `HTTP ${resp.status}`);
+        }
+        return await resp.json();
+    } catch (err) {
+        throw new Error(`Failed to update retention config: ${err.message}`);
     }
-    return await resp.json();
-  } catch (err) {
-    throw new Error(`Failed to update retention config: ${err.message}`);
-  }
 }
 
 /**
@@ -57,22 +57,22 @@ export async function updateRetentionConfig(config, authHeaders = {}) {
  * @returns {Promise<object>} Result with total, oldestTimestamp, newestTimestamp, purgeableCount, policy
  */
 export async function fetchRetentionStats(authHeaders = {}) {
-  const base = apiBase() || '';
-  const url = `${base}/api/audit/retention/stats`;
-  try {
-    const resp = await fetch(url, {
-      method: 'GET',
-      headers: { ...authHeaders },
-      credentials: 'include',
-    });
-    if (!resp.ok) {
-      const body = await resp.json().catch(() => ({}));
-      throw new Error(body.message || `HTTP ${resp.status}`);
+    const base = apiBase() || '';
+    const url = `${base}/api/audit/retention/stats`;
+    try {
+        const resp = await fetch(url, {
+            method: 'GET',
+            headers: { ...authHeaders },
+            credentials: 'include'
+        });
+        if (!resp.ok) {
+            const body = await resp.json().catch(() => ({}));
+            throw new Error(body.message || `HTTP ${resp.status}`);
+        }
+        return await resp.json();
+    } catch (err) {
+        throw new Error(`Failed to fetch retention stats: ${err.message}`);
     }
-    return await resp.json();
-  } catch (err) {
-    throw new Error(`Failed to fetch retention stats: ${err.message}`);
-  }
 }
 
 /**
@@ -81,20 +81,20 @@ export async function fetchRetentionStats(authHeaders = {}) {
  * @returns {Promise<object>} Result with purged, remaining, archived counts
  */
 export async function triggerRetentionPurge(authHeaders = {}) {
-  const base = apiBase() || '';
-  const url = `${base}/api/audit/retention/purge`;
-  try {
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { ...authHeaders },
-      credentials: 'include',
-    });
-    if (!resp.ok) {
-      const errBody = await resp.json().catch(() => ({}));
-      throw new Error(errBody.message || `HTTP ${resp.status}`);
+    const base = apiBase() || '';
+    const url = `${base}/api/audit/retention/purge`;
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { ...authHeaders },
+            credentials: 'include'
+        });
+        if (!resp.ok) {
+            const errBody = await resp.json().catch(() => ({}));
+            throw new Error(errBody.message || `HTTP ${resp.status}`);
+        }
+        return await resp.json();
+    } catch (err) {
+        throw new Error(`Failed to trigger purge: ${err.message}`);
     }
-    return await resp.json();
-  } catch (err) {
-    throw new Error(`Failed to trigger purge: ${err.message}`);
-  }
 }

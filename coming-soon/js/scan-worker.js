@@ -7,28 +7,30 @@
 const MAX_DISCOVERED_FILES = 500000;
 
 const LANGUAGE_REGISTRY = {
-    javascript: { extensions: ['js','cjs','mjs','ts','tsx','jsx'] },
-    python: { extensions: ['py','pyw','pyi'] },
-    java: { extensions: ['java','kt','scala','groovy'] },
+    javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
+    python: { extensions: ['py', 'pyw', 'pyi'] },
+    java: { extensions: ['java', 'kt', 'scala', 'groovy'] },
     go: { extensions: ['go'] },
     rust: { extensions: ['rs'] },
     php: { extensions: ['php'] },
     ruby: { extensions: ['rb'] },
-    dotnet: { extensions: ['cs','vb'] }
+    dotnet: { extensions: ['cs', 'vb'] }
 };
 
 const PATTERN_REGISTRY = {
     debugArtifacts: {
         appliesTo: ['javascript'],
-        pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
+        pattern:
+            /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
     },
     todoMarkers: {
-        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
         pattern: /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|BUG)\b/gi
     },
     credentials: {
-        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
-        pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        pattern:
+            /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
         appliesTo: ['javascript'],
@@ -68,23 +70,28 @@ const PATTERN_REGISTRY = {
     },
     phpDebug: {
         appliesTo: ['php'],
-        pattern: /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
+        pattern:
+            /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
     },
     phpFramework: {
         appliesTo: ['php'],
-        pattern: /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
+        pattern:
+            /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
     },
     dotnetDebug: {
         appliesTo: ['dotnet'],
-        pattern: /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
+        pattern:
+            /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
     },
     dotnetFramework: {
         appliesTo: ['dotnet'],
-        pattern: /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
+        pattern:
+            /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
     },
     rubyDebug: {
         appliesTo: ['ruby'],
-        pattern: /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
+        pattern:
+            /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
     },
     rubyFramework: {
         appliesTo: ['ruby'],
@@ -110,7 +117,10 @@ function detectDominantLanguage(paths) {
     for (const path of paths) {
         const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
         for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
-            if (config.extensions.includes(ext)) { counts[langKey] = (counts[langKey] || 0) + 1; break; }
+            if (config.extensions.includes(ext)) {
+                counts[langKey] = (counts[langKey] || 0) + 1;
+                break;
+            }
         }
     }
     const entries = Object.entries(counts);
@@ -121,7 +131,7 @@ function detectDominantLanguage(paths) {
 
 function getAnalyzersForLanguage(langKey) {
     return Object.entries(PATTERN_REGISTRY)
-        .filter(([,entry]) => entry.appliesTo.includes(langKey))
+        .filter(([, entry]) => entry.appliesTo.includes(langKey))
         .map(([id]) => id);
 }
 
@@ -149,7 +159,9 @@ async function simpleHash(str) {
     const data = encoder.encode(str);
     if (typeof crypto !== 'undefined' && crypto.subtle) {
         const buf = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        return Array.from(new Uint8Array(buf))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
     }
     // FNV-1a fallback
     let h = 0x811c9dc5;
@@ -165,8 +177,17 @@ async function simpleHash(str) {
  */
 function shouldSkipFile(path, deepScan) {
     const normalized = path.replace(/\\/g, '/');
-    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized)) return true;
-    if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)) return true;
+    if (
+        /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(
+            normalized
+        )
+    )
+        return true;
+    if (
+        !deepScan &&
+        /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)
+    )
+        return true;
     if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
     return false;
 }
@@ -222,13 +243,15 @@ async function scanFiles(files, deepScan) {
                 const results = runAnalyzer(name, text, file.path);
                 if (results.length > 0) {
                     allResults.push(...results);
-                    issues.push(...results.map(r => ({
-                        severity: SEVERITY_MAP[name] || 'medium',
-                        filePath: r.filePath,
-                        rule: name,
-                        impact: `${r.count} ${name} finding(s) detected`,
-                        fix: 'Review and remediate before next release.'
-                    })));
+                    issues.push(
+                        ...results.map(r => ({
+                            severity: SEVERITY_MAP[name] || 'medium',
+                            filePath: r.filePath,
+                            rule: name,
+                            impact: `${r.count} ${name} finding(s) detected`,
+                            fix: 'Review and remediate before next release.'
+                        }))
+                    );
                 }
             }
 
@@ -243,7 +266,10 @@ async function scanFiles(files, deepScan) {
     // Final progress update so UI reaches 100%
     self.postMessage({ type: 'progress', processed, total: files.length });
     if (textErrors > 0) {
-        self.postMessage({ type: 'warn', message: `${textErrors} files could not be read in worker. Main thread handles actual scanning.` });
+        self.postMessage({
+            type: 'warn',
+            message: `${textErrors} files could not be read in worker. Main thread handles actual scanning.`
+        });
     }
 
     return {
@@ -256,7 +282,7 @@ async function scanFiles(files, deepScan) {
 }
 
 // Message handler
-self.onmessage = async (e) => {
+self.onmessage = async e => {
     const { type, files, scanId } = e.data;
 
     if (type === 'scan') {

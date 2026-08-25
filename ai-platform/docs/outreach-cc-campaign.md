@@ -1,13 +1,16 @@
 # SimpleBeacon Corporate Outreach Campaign — CCO / VP Risk Management
 
 ## Target Profile
+
 - **Title**: Chief Compliance Officer, VP Risk Management, Head of AI Governance
 - **Industries**: Financial Services, HR Tech, Healthcare AI, Insurance, Legal Tech
 - **Pain Points**: EU AI Act August 2026 deadline, shadow AI systems, data leaks, AI-generated slop in production code, unapproved third-party models
 - **Buying Trigger**: Regulatory deadline pressure + board-level risk exposure
 
 ## The Lead Magnet: "Free AI Slop Audit"
+
 A complimentary 48-hour scan of the prospect's codebase that produces:
+
 1. Anonymized slop/hallucination count
 2. Shadow AI dependency map
 3. A 1-page Executive Risk Certificate (A-F grade with estimated financial liability)
@@ -43,11 +46,12 @@ Best,
 
 Hi {{FirstName}},
 
-CCOs in {{Industry}} are starting to ask a hard question: *How much AI-generated code is already in production that we don't know about?*
+CCOs in {{Industry}} are starting to ask a hard question: _How much AI-generated code is already in production that we don't know about?_
 
 With the EU AI Act enforcement deadline in August 2026, boards are now demanding proof that every AI integration is documented, disclosed, and compliant — not just the ones the engineering team volunteered.
 
 We run a 48-hour "AI Slop Audit" that maps four specific risk areas:
+
 1. Undocumented AI-generated placeholders in production code
 2. Exposed API keys and credential leaks
 3. Shadow AI models and unapproved third-party integrations
@@ -95,7 +99,7 @@ Last outreach — I promise.
 
 One question: Does your current vendor security review process catch AI-generated code that ships to production?
 
-Most DLP and SAST tools don't. They look for secrets and vulnerabilities, not for *"Lorem Ipsum"* placeholders that an AI assistant quietly inserted into a config file, or a hallucinated npm package that doesn't exist.
+Most DLP and SAST tools don't. They look for secrets and vulnerabilities, not for _"Lorem Ipsum"_ placeholders that an AI assistant quietly inserted into a config file, or a hallucinated npm package that doesn't exist.
 
 SimpleBeacon is a deterministic scanner built specifically for AI compliance. It runs offline, produces a board-ready risk certificate, and costs less than one hour of outside counsel.
 
@@ -115,21 +119,24 @@ Hi {{FirstName}}, I help CCOs find AI-generated slop and shadow models in produc
 ---
 
 ## Call-to-Action Buttons / Links
+
 - **Primary CTA**: "Request Free AI Slop Audit" → links to Calendly booking
 - **Secondary CTA**: "See Sample Risk Certificate" → links to `sample-clearance-pdf.html`
 - **Tertiary CTA**: "Buy Executive Clearance — $499" → Stripe checkout
 
 ## Follow-Up Sequence Cadence
-| Day | Action |
-|-----|--------|
-| 0 | Send Touch 1 (email) + LinkedIn connection |
-| 1 | View LinkedIn profile (triggers notification) |
-| 3 | Send Touch 2 (email reply thread) |
-| 5 | Like a LinkedIn post from prospect |
-| 7 | Send Touch 3 (final email) |
-| 14 | Add to nurture list (monthly compliance digest) |
+
+| Day | Action                                          |
+| --- | ----------------------------------------------- |
+| 0   | Send Touch 1 (email) + LinkedIn connection      |
+| 1   | View LinkedIn profile (triggers notification)   |
+| 3   | Send Touch 2 (email reply thread)               |
+| 5   | Like a LinkedIn post from prospect              |
+| 7   | Send Touch 3 (final email)                      |
+| 14  | Add to nurture list (monthly compliance digest) |
 
 ## Success Metrics
+
 - **Target**: 50 outreach attempts / week
 - **Goal**: 10 audits requested / month → 3 convert to paid ($499–$1,499)
 - **Break-even**: 6 paid conversions / month = ~$3,000 MRR
@@ -139,6 +146,7 @@ Hi {{FirstName}}, I help CCOs find AI-generated slop and shadow models in produc
 SimpleBeacon is a **deterministic code-scanning and audit tool** operated by human analysts. It does not make autonomous employment, credit, or healthcare decisions. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding. Human-in-the-loop review is mandatory for every Executive Risk Certificate.
 
 ## Industries to Prioritize (EU AI Act High-Risk)
+
 1. **Financial Services** — credit scoring, fraud detection (Annex III, Section 5)
 2. **HR Tech** — resume screening, hiring algorithms (Annex III, Section 4)
 3. **Healthcare AI** — diagnostics, patient triage (Annex III, Section 1)
@@ -146,4 +154,5 @@ SimpleBeacon is a **deterministic code-scanning and audit tool** operated by hum
 5. **Legal Tech** — contract analysis, case prediction (Annex III, Section 8)
 
 ---
-*Generated for SimpleBeacon go-to-market execution. Tailor {{FirstName}}, {{Company}}, and {{Industry}} per prospect.*
+
+_Generated for SimpleBeacon go-to-market execution. Tailor {{FirstName}}, {{Company}}, and {{Industry}} per prospect._

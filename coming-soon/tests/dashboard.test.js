@@ -28,8 +28,16 @@ function buildEuAiActControls(aiHits, licenseFiles, securityFiles) {
         status: aiCount > 0 ? 'REVIEW' : 'PASS',
         severity: aiCount > 0 ? 'medium' : 'low',
         description: aiCount > 0 ? 'Annex III lists...' : 'No AI system indicators...',
-        evidence: aiCount > 0 ? `${aiCount} AI indicator(s); ${hasDocs ? docCount + ' governance doc(s) present' : '0 governance docs'}` : 'None detected',
-        action: aiCount > 0 ? (hasDocs ? 'Review existing governance docs...' : 'Add risk-assessment.md...') : 'No action needed.'
+        evidence:
+            aiCount > 0
+                ? `${aiCount} AI indicator(s); ${hasDocs ? docCount + ' governance doc(s) present' : '0 governance docs'}`
+                : 'None detected',
+        action:
+            aiCount > 0
+                ? hasDocs
+                    ? 'Review existing governance docs...'
+                    : 'Add risk-assessment.md...'
+                : 'No action needed.'
     });
     controls.push({
         controlId: 'EU-AIA-ART-50',
@@ -48,7 +56,10 @@ function buildEuAiActControls(aiHits, licenseFiles, securityFiles) {
         status: aiCount > 0 ? (hasDocs ? 'REVIEW' : 'WARN') : 'PASS',
         severity: aiCount > 0 ? (hasDocs ? 'medium' : 'high') : 'low',
         description: aiCount > 0 ? 'High-risk AI systems...' : 'No AI indicators...',
-        evidence: aiCount > 0 ? `${hasDocs ? docCount + ' doc(s) present' : 'No risk management documentation detected'}` : 'None detected',
+        evidence:
+            aiCount > 0
+                ? `${hasDocs ? docCount + ' doc(s) present' : 'No risk management documentation detected'}`
+                : 'None detected',
         action: aiCount > 0 ? 'Create or update risk-assessment.md...' : 'No action needed.'
     });
     return controls;
@@ -58,9 +69,27 @@ function buildEuAiActControls(aiHits, licenseFiles, securityFiles) {
 // buildAnalyzerSections — from scanner-engine.js
 // ============================================================================
 const REPORT_SECTION_SCHEMA = [
-    { section: 'aiResidue', hitsVar: 'aiResidueHits', findingsVar: 'aiResidueFindings', label: 'AI residue pattern', detail: 'stubs, deprecated APIs, error swallowing, dead code' },
-    { section: 'performance', hitsVar: 'perfHits', findingsVar: 'perfFindings', label: 'performance anti-pattern', detail: 'nested loops, leaked listeners, inefficient regex' },
-    { section: 'complexity', hitsVar: 'complexityHits', findingsVar: 'complexityFindings', label: 'high complexity pattern', detail: 'over-long functions, deep nesting' }
+    {
+        section: 'aiResidue',
+        hitsVar: 'aiResidueHits',
+        findingsVar: 'aiResidueFindings',
+        label: 'AI residue pattern',
+        detail: 'stubs, deprecated APIs, error swallowing, dead code'
+    },
+    {
+        section: 'performance',
+        hitsVar: 'perfHits',
+        findingsVar: 'perfFindings',
+        label: 'performance anti-pattern',
+        detail: 'nested loops, leaked listeners, inefficient regex'
+    },
+    {
+        section: 'complexity',
+        hitsVar: 'complexityHits',
+        findingsVar: 'complexityFindings',
+        label: 'high complexity pattern',
+        detail: 'over-long functions, deep nesting'
+    }
 ];
 
 function buildAnalyzerSections(ctx, allowedSections) {
@@ -195,9 +224,20 @@ describe('Analyzer Report Sections', () => {
 describe('ZIP Markdown Generator', () => {
     test('generates markdown for allowed module', () => {
         const files = {};
-        const mockZip = { file: (name, content) => { files[name] = content; } };
+        const mockZip = {
+            file: (name, content) => {
+                files[name] = content;
+            }
+        };
         const report = { aiResidue: { aiResidueHits: 2, aiResidueFindings: [{ file: 'x.js', type: 'stub' }] } };
-        const template = { moduleId: '17', section: 'aiResidue', title: 'AI Residue', metricLabel: 'AI Residue Hits', advice: 'Clean up.', filename: 'ai-residue.md' };
+        const template = {
+            moduleId: '17',
+            section: 'aiResidue',
+            title: 'AI Residue',
+            metricLabel: 'AI Residue Hits',
+            advice: 'Clean up.',
+            filename: 'ai-residue.md'
+        };
         generateZipModuleMarkdown(mockZip, ['17'], report, 'MyApp', '2024-01-01', template);
         assert.ok(files['ai-residue.md']);
         assert.ok(files['ai-residue.md'].includes('AI Residue Report'));
@@ -207,18 +247,40 @@ describe('ZIP Markdown Generator', () => {
 
     test('skips disallowed module', () => {
         const files = {};
-        const mockZip = { file: (name, content) => { files[name] = content; } };
+        const mockZip = {
+            file: (name, content) => {
+                files[name] = content;
+            }
+        };
         const report = {};
-        const template = { moduleId: '17', section: 'aiResidue', title: 'AI Residue', metricLabel: 'Hits', advice: 'Clean.', filename: 'ai-residue.md' };
+        const template = {
+            moduleId: '17',
+            section: 'aiResidue',
+            title: 'AI Residue',
+            metricLabel: 'Hits',
+            advice: 'Clean.',
+            filename: 'ai-residue.md'
+        };
         generateZipModuleMarkdown(mockZip, ['18'], report, 'MyApp', '2024-01-01', template);
         assert.strictEqual(Object.keys(files).length, 0);
     });
 
     test('renders empty findings correctly', () => {
         const files = {};
-        const mockZip = { file: (name, content) => { files[name] = content; } };
+        const mockZip = {
+            file: (name, content) => {
+                files[name] = content;
+            }
+        };
         const report = { performance: { performanceHits: 0, performanceFindings: [] } };
-        const template = { moduleId: '18', section: 'performance', title: 'Performance', metricLabel: 'Hits', advice: 'Optimize.', filename: 'perf.md' };
+        const template = {
+            moduleId: '18',
+            section: 'performance',
+            title: 'Performance',
+            metricLabel: 'Hits',
+            advice: 'Optimize.',
+            filename: 'perf.md'
+        };
         generateZipModuleMarkdown(mockZip, ['18'], report, 'MyApp', '2024-01-01', template);
         assert.ok(files['perf.md']);
         assert.ok(files['perf.md'].includes('0'));

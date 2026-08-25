@@ -4,11 +4,11 @@
 
 ## 1. Normative references
 
-- **NIST SP 800-38F** — *Recommendation for Block Cipher Modes of Operation: Methods for Key Wrapping*
-- **RFC 3394** — *Advanced Encryption Standard (AES) Key Wrap Algorithm*
-- **RFC 5649** — *Advanced Encryption Standard (AES) Key Wrap with Padding Algorithm*
-- **RFC 8259** — *The JavaScript Object Notation (JSON) Data Interchange Format*
-- **FIPS 197** — *Advanced Encryption Standard (AES)*
+- **NIST SP 800-38F** — _Recommendation for Block Cipher Modes of Operation: Methods for Key Wrapping_
+- **RFC 3394** — _Advanced Encryption Standard (AES) Key Wrap Algorithm_
+- **RFC 5649** — _Advanced Encryption Standard (AES) Key Wrap with Padding Algorithm_
+- **RFC 8259** — _The JavaScript Object Notation (JSON) Data Interchange Format_
+- **FIPS 197** — _Advanced Encryption Standard (AES)_
 
 This document describes the `T10K` binary container used by `keyring-serializer.cjs` and consumed by the `BaseHsmAdapter` `exportKeyring` / `importKeyring` methods.
 
@@ -24,13 +24,13 @@ A T10K envelope is a single contiguous `Buffer`/`Uint8Array` with a fixed 12-byt
 0          4           6         8            12                12+N
 ```
 
-| Field | Offset | Size | Value / Semantics |
-|-------|--------|------|-------------------|
-| `Magic` | 0 | 4 | `0x54 0x31 0x30 0x4B` (`"T10K"` in US-ASCII) |
-| `Version` | 4 | 2 | Big-endian unsigned 16-bit integer. Current value `0x0001` |
-| `Flags` | 6 | 2 | Big-endian unsigned 16-bit integer. Reserved bitmask; must be `0x0000` in v1 |
-| `Body length` | 8 | 4 | Big-endian unsigned 32-bit integer. Length of the AES-KWP ciphertext (`N`) |
-| `AES-KWP body` | 12 | N | RFC 5649 `wrapPad` output over the UTF-8 JSON payload |
+| Field          | Offset | Size | Value / Semantics                                                            |
+| -------------- | ------ | ---- | ---------------------------------------------------------------------------- |
+| `Magic`        | 0      | 4    | `0x54 0x31 0x30 0x4B` (`"T10K"` in US-ASCII)                                 |
+| `Version`      | 4      | 2    | Big-endian unsigned 16-bit integer. Current value `0x0001`                   |
+| `Flags`        | 6      | 2    | Big-endian unsigned 16-bit integer. Reserved bitmask; must be `0x0000` in v1 |
+| `Body length`  | 8      | 4    | Big-endian unsigned 32-bit integer. Length of the AES-KWP ciphertext (`N`)   |
+| `AES-KWP body` | 12     | N    | RFC 5649 `wrapPad` output over the UTF-8 JSON payload                        |
 
 ### Constraints
 
@@ -74,7 +74,7 @@ The payload is not required to match a fixed schema, but consumers such as `Base
   "createdAt": "2026-08-01T00:00:00.000Z",
   "keyCount": 2,
   "keys": [
-    { "id": "key-active",   "alg": "X25519", "data": "<base64>" },
+    { "id": "key-active", "alg": "X25519", "data": "<base64>" },
     { "id": "key-previous", "alg": "X25519", "data": "<base64>" }
   ]
 }
@@ -115,17 +115,17 @@ Any failure at step 7 or 8 must be treated as an integrity failure; the caller m
 
 `keyring-serializer.cjs` throws a `KeyringValidationError` with the following message patterns. `BaseHsmAdapter` wraps these as generic `Error` instances with a `HSM Export/Import pipeline failure` prefix; callers may unwrap the inner `message` for diagnostics.
 
-| Condition | Throws | Notes |
-|-----------|--------|-------|
-| `keyringData` is not an object | `KeyringValidationError` | `Invalid dataset payload provided for serialization.` |
-| `kek` is missing or not a `Buffer` | `KeyringValidationError` | `KEK must be a Buffer.` |
-| `kek.length` is not 16, 24, or 32 | `KeyringValidationError` | `Invalid KEK length. Must be 128, 192, or 256 bits.` |
-| Serialized output exceeds 10 MiB | `KeyringValidationError` | `Serialized payload exceeds strict structural safety limits ...` |
-| `envelope` is not a `Buffer` | `KeyringValidationError` | `Target dataset for parsing must evaluate as a valid structural Buffer object.` |
-| `envelope.length < 12` | `KeyringValidationError` | `Malformed input stream: Header chunk length is under threshold limits.` |
-| Magic mismatch | `KeyringValidationError` | `Malformed dataset envelope: Unrecognized signature magic marker flags.` |
-| Version mismatch | `KeyringValidationError` | `Unsupported envelope version registry parsed: ...` |
-| Body size mismatch | `KeyringValidationError` | `Envelope body size alignment mismatch error condition detected.` |
+| Condition                           | Throws                   | Notes                                                                                   |
+| ----------------------------------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| `keyringData` is not an object      | `KeyringValidationError` | `Invalid dataset payload provided for serialization.`                                   |
+| `kek` is missing or not a `Buffer`  | `KeyringValidationError` | `KEK must be a Buffer.`                                                                 |
+| `kek.length` is not 16, 24, or 32   | `KeyringValidationError` | `Invalid KEK length. Must be 128, 192, or 256 bits.`                                    |
+| Serialized output exceeds 10 MiB    | `KeyringValidationError` | `Serialized payload exceeds strict structural safety limits ...`                        |
+| `envelope` is not a `Buffer`        | `KeyringValidationError` | `Target dataset for parsing must evaluate as a valid structural Buffer object.`         |
+| `envelope.length < 12`              | `KeyringValidationError` | `Malformed input stream: Header chunk length is under threshold limits.`                |
+| Magic mismatch                      | `KeyringValidationError` | `Malformed dataset envelope: Unrecognized signature magic marker flags.`                |
+| Version mismatch                    | `KeyringValidationError` | `Unsupported envelope version registry parsed: ...`                                     |
+| Body size mismatch                  | `KeyringValidationError` | `Envelope body size alignment mismatch error condition detected.`                       |
 | KWP unwrap / padding / JSON failure | `KeyringValidationError` | `Cryptographic envelope unpacking failed structural integrity verification passes: ...` |
 
 ### Future mapping
@@ -144,10 +144,10 @@ This mapping is currently tracked as **Enhancement E-02** in `.simplebeacon/qa/s
 A Master KEK must be a uniformly random byte string with one of the following lengths:
 
 | Key length | AES key size | Allowed? |
-|------------|--------------|----------|
-| 16 bytes | AES-128 | Yes |
-| 24 bytes | AES-192 | Yes |
-| 32 bytes | AES-256 | Yes |
+| ---------- | ------------ | -------- |
+| 16 bytes   | AES-128      | Yes      |
+| 24 bytes   | AES-192      | Yes      |
+| 32 bytes   | AES-256      | Yes      |
 
 KEKs are never serialized or stored inside the T10K envelope. The T10K format is key-agnostic: the same `wrapPad`/`unwrapPad` primitive is used for 128-, 192-, and 256-bit KEKs.
 
@@ -188,12 +188,12 @@ The implementation is validated against:
 
 Observed on the reference Node 22 runtime, 10,000 iterations per case:
 
-| Operation | Payload / KEK | µs/op | ops/sec |
-|-----------|---------------|-------|---------|
-| AES-KW wrap | 256-bit key, 256-bit KEK | 83.3 | 12,010 |
-| AES-KW unwrap | 256-bit key, 256-bit KEK | 85.2 | 11,732 |
-| AES-KWP wrap | 20-octet payload, 192-bit KEK | 65.5 | 15,272 |
-| AES-KWP wrap | 7-octet payload, 192-bit KEK | 3.9 | 255,150 |
-| T10K keyring wrap | Typical 2-key keyring, 256-bit KEK | ~107 | ~9,300 |
+| Operation         | Payload / KEK                      | µs/op | ops/sec |
+| ----------------- | ---------------------------------- | ----- | ------- |
+| AES-KW wrap       | 256-bit key, 256-bit KEK           | 83.3  | 12,010  |
+| AES-KW unwrap     | 256-bit key, 256-bit KEK           | 85.2  | 11,732  |
+| AES-KWP wrap      | 20-octet payload, 192-bit KEK      | 65.5  | 15,272  |
+| AES-KWP wrap      | 7-octet payload, 192-bit KEK       | 3.9   | 255,150 |
+| T10K keyring wrap | Typical 2-key keyring, 256-bit KEK | ~107  | ~9,300  |
 
 These numbers are intended as a baseline for future SLA definitions; no explicit threshold is currently in force.

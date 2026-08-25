@@ -1,4 +1,5 @@
 # B2B Sales Outreach Playbook — EU AI Act Compliance Officers
+
 ## Targeting Chief Legal Officers, Compliance Directors & Risk Officers
 
 > **Goal:** Book enterprise procurement consultations ($25K+ annual contracts) with compliance leaders navigating 2026 EU AI Act enforcement deadlines
@@ -12,21 +13,21 @@
 
 ### EU AI Act Enforcement Timeline
 
-| Date | Milestone | Impact |
-|------|-----------|--------|
-| Feb 2, 2025 | Prohibited AI practices enforced | Fines for violations of Article 5 bans |
-| Aug 2, 2025 | GPAI model obligations enforced | Transparency requirements for foundation models |
-| Aug 2, 2026 | High-risk system obligations enforced | **Full compliance required for Annex III systems** |
-| Aug 2, 2027 | Existing high-risk systems must comply | Legacy systems lose grandfathered status |
+| Date        | Milestone                              | Impact                                             |
+| ----------- | -------------------------------------- | -------------------------------------------------- |
+| Feb 2, 2025 | Prohibited AI practices enforced       | Fines for violations of Article 5 bans             |
+| Aug 2, 2025 | GPAI model obligations enforced        | Transparency requirements for foundation models    |
+| Aug 2, 2026 | High-risk system obligations enforced  | **Full compliance required for Annex III systems** |
+| Aug 2, 2027 | Existing high-risk systems must comply | Legacy systems lose grandfathered status           |
 
 ### Penalty Structure (Article 99)
 
-| Violation Class | Maximum Fine |
-|----------------|-------------|
-| Prohibited AI practice violation (Art. 5) | **EUR 35M or 7% of global annual turnover** |
-| High-risk system obligation violation | **EUR 15M or 3% of global annual turnover** |
+| Violation Class                              | Maximum Fine                                 |
+| -------------------------------------------- | -------------------------------------------- |
+| Prohibited AI practice violation (Art. 5)    | **EUR 35M or 7% of global annual turnover**  |
+| High-risk system obligation violation        | **EUR 15M or 3% of global annual turnover**  |
 | Incorrect/missing information to authorities | **EUR 7.5M or 1% of global annual turnover** |
-| GPAI model obligation violation | **EUR 15M or 3% of global annual turnover** |
+| GPAI model obligation violation              | **EUR 15M or 3% of global annual turnover**  |
 
 ### The Compliance Gap
 
@@ -513,16 +514,16 @@ legal team briefings.
 
 ## 6. Enterprise Procurement Objection Handling
 
-| Objection | Response |
-|-----------|----------|
-| "We already have SAST tools (Snyk, Sonar, GHAS)" | "Those catch traditional CVEs. SimpleBeacon catches AI-specific anti-patterns — hallucinated imports, placeholder secrets, copyleft contamination. Zero overlap. Most enterprises use both." |
-| "We don't use AI coding tools" | "Your contractors, vendors, and open-source dependencies do. SimpleBeacon detects AI-generated patterns transitively in third-party code you ingest." |
-| "$25K is expensive" | "The maximum EU AI Act fine is EUR 35M or 7% of global turnover. SimpleBeacon is 1,400x ROI on a single enforcement action avoided. One placeholder secret in production = $40K+ incident response." |
-| "We need SOC 2 / ISO 27001 compliance first" | "SimpleBeacon supports those initiatives. Our air-gapped deployment, SSO/SAML, and tamper-evident audit artifacts map directly to SOC 2 and ISO 27001 control objectives." |
-| "We're waiting to see how enforcement plays out" | "The August 2026 deadline is statutory. Enforcement actions typically begin within 90 days of deadline. Early adopters have 12+ months of compliance evidence by then. Late starters have zero." |
-| "Our legal team handles compliance" | "SimpleBeacon generates the artifacts your legal team needs. We don't replace legal counsel — we give them the evidence to demonstrate compliance. Most legal teams can't produce AI code audit trails without engineering tooling." |
-| "We need a pilot first" | "30-day enterprise trial. Up to 10 seats. No contract. No procurement paperwork. Self-serve onboarding via PowerShell or dashboard. Full Azure DevOps pipeline template included." |
-| "We need custom rules for our internal policies" | "SimpleBeacon supports custom guardrail rules via .simplebeacon/rules/. Regex and AST-based rules. Your AppSec team can author policy-specific rules that integrate with our 48 built-in analyzers + 25 scan engines." |
+| Objection                                        | Response                                                                                                                                                                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "We already have SAST tools (Snyk, Sonar, GHAS)" | "Those catch traditional CVEs. SimpleBeacon catches AI-specific anti-patterns — hallucinated imports, placeholder secrets, copyleft contamination. Zero overlap. Most enterprises use both."                                         |
+| "We don't use AI coding tools"                   | "Your contractors, vendors, and open-source dependencies do. SimpleBeacon detects AI-generated patterns transitively in third-party code you ingest."                                                                                |
+| "$25K is expensive"                              | "The maximum EU AI Act fine is EUR 35M or 7% of global turnover. SimpleBeacon is 1,400x ROI on a single enforcement action avoided. One placeholder secret in production = $40K+ incident response."                                 |
+| "We need SOC 2 / ISO 27001 compliance first"     | "SimpleBeacon supports those initiatives. Our air-gapped deployment, SSO/SAML, and tamper-evident audit artifacts map directly to SOC 2 and ISO 27001 control objectives."                                                           |
+| "We're waiting to see how enforcement plays out" | "The August 2026 deadline is statutory. Enforcement actions typically begin within 90 days of deadline. Early adopters have 12+ months of compliance evidence by then. Late starters have zero."                                     |
+| "Our legal team handles compliance"              | "SimpleBeacon generates the artifacts your legal team needs. We don't replace legal counsel — we give them the evidence to demonstrate compliance. Most legal teams can't produce AI code audit trails without engineering tooling." |
+| "We need a pilot first"                          | "30-day enterprise trial. Up to 10 seats. No contract. No procurement paperwork. Self-serve onboarding via PowerShell or dashboard. Full Azure DevOps pipeline template included."                                                   |
+| "We need custom rules for our internal policies" | "SimpleBeacon supports custom guardrail rules via .simplebeacon/rules/. Regex and AST-based rules. Your AppSec team can author policy-specific rules that integrate with our 48 built-in analyzers + 25 scan engines."               |
 
 ---
 
@@ -573,33 +574,33 @@ legal team briefings.
 
 ## 8. Multi-Touch Sequence Calendar
 
-| Day | Channel | Action | Persona |
-|-----|---------|--------|---------|
-| 0 | LinkedIn | Connection request with compliance hook | All |
-| +1 (if accepted) | Email | Email 1 (penalty hook / audit trail / risk quant) | All |
-| +4 (no reply) | Email | Email 2 (evidence gap / ISO 42001 / insurance) | All |
-| +5 | LinkedIn | Share EU AI Act enforcement update post | All |
-| +8 (no reply) | Email | Email 3 (board memo / peer proof / soft close) | All |
-| +10 | LinkedIn | Comment on their post or share relevant article | All |
-| +15 (no reply) | Email | Email 4 (breakup + assessment offer) | CLO |
-| +30 | LinkedIn | Re-engage with enforcement deadline countdown | All |
-| +60 | Email | "August 2026 deadline approaching" reactivation | All |
+| Day              | Channel  | Action                                            | Persona |
+| ---------------- | -------- | ------------------------------------------------- | ------- |
+| 0                | LinkedIn | Connection request with compliance hook           | All     |
+| +1 (if accepted) | Email    | Email 1 (penalty hook / audit trail / risk quant) | All     |
+| +4 (no reply)    | Email    | Email 2 (evidence gap / ISO 42001 / insurance)    | All     |
+| +5               | LinkedIn | Share EU AI Act enforcement update post           | All     |
+| +8 (no reply)    | Email    | Email 3 (board memo / peer proof / soft close)    | All     |
+| +10              | LinkedIn | Comment on their post or share relevant article   | All     |
+| +15 (no reply)   | Email    | Email 4 (breakup + assessment offer)              | CLO     |
+| +30              | LinkedIn | Re-engage with enforcement deadline countdown     | All     |
+| +60              | Email    | "August 2026 deadline approaching" reactivation   | All     |
 
 ---
 
 ## 9. Subject Line A/B Test Matrix
 
-| Variant | Target Persona | Rationale |
-|---------|---------------|-----------|
-| "EUR 35M or 7% of turnover — is [Company] exposed?" | CLO | Penalty fear, specific number |
-| "AI-generated code audit trail — can you produce one in 24 hours?" | CCO | Operational urgency |
-| "Quantifying AI-generated code risk in your production systems" | CRO | Risk management framing |
-| "EU AI Act Article 53 — are your AI code practices auditable?" | CLO | Regulatory specificity |
-| "The question your auditor will ask about AI-generated code" | CCO | Audit anxiety |
-| "AI code risk and your cyber insurance underwriting" | CRO | Insurance cost angle |
-| "Board-ready AI risk report — 30-second demo" | All | Low commitment + authority |
-| "How a fintech compliance team cut audit prep from 6 weeks to 2 days" | All | Social proof + efficiency |
-| "August 2026: Is your AI governance evidence ready?" | All | Deadline urgency |
+| Variant                                                               | Target Persona | Rationale                     |
+| --------------------------------------------------------------------- | -------------- | ----------------------------- |
+| "EUR 35M or 7% of turnover — is [Company] exposed?"                   | CLO            | Penalty fear, specific number |
+| "AI-generated code audit trail — can you produce one in 24 hours?"    | CCO            | Operational urgency           |
+| "Quantifying AI-generated code risk in your production systems"       | CRO            | Risk management framing       |
+| "EU AI Act Article 53 — are your AI code practices auditable?"        | CLO            | Regulatory specificity        |
+| "The question your auditor will ask about AI-generated code"          | CCO            | Audit anxiety                 |
+| "AI code risk and your cyber insurance underwriting"                  | CRO            | Insurance cost angle          |
+| "Board-ready AI risk report — 30-second demo"                         | All            | Low commitment + authority    |
+| "How a fintech compliance team cut audit prep from 6 weeks to 2 days" | All            | Social proof + efficiency     |
+| "August 2026: Is your AI governance evidence ready?"                  | All            | Deadline urgency              |
 
 ---
 
@@ -629,21 +630,22 @@ legal team briefings.
 
 ### Outreach Performance Targets
 
-| Metric | Target |
-|--------|--------|
-| Email open rate (CLO sequence) | > 55% |
-| Email open rate (CCO sequence) | > 50% |
-| Email open rate (CRO sequence) | > 45% |
-| Reply rate | > 12% |
-| Meeting booking rate | > 5% |
-| Pilot conversion (meeting → trial) | > 40% |
-| Contract conversion (trial → paid) | > 25% |
-| Average contract value | $25K-$50K |
-| Sales cycle length | 45-90 days |
+| Metric                             | Target     |
+| ---------------------------------- | ---------- |
+| Email open rate (CLO sequence)     | > 55%      |
+| Email open rate (CCO sequence)     | > 50%      |
+| Email open rate (CRO sequence)     | > 45%      |
+| Reply rate                         | > 12%      |
+| Meeting booking rate               | > 5%       |
+| Pilot conversion (meeting → trial) | > 40%      |
+| Contract conversion (trial → paid) | > 25%      |
+| Average contract value             | $25K-$50K  |
+| Sales cycle length                 | 45-90 days |
 
 ### Pipeline Tracking
 
 Track in CRM:
+
 - Persona type (CLO, CCO, CRO)
 - Sequence variant (A, B, C)
 - Subject line variant
@@ -657,4 +659,4 @@ Track in CRM:
 
 ---
 
-*End of B2B Sales Outreach Playbook — EU AI Act Compliance Officers*
+_End of B2B Sales Outreach Playbook — EU AI Act Compliance Officers_

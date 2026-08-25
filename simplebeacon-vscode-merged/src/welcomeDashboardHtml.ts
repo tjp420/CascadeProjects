@@ -6794,4 +6794,3 @@ vscode.postMessage({ command: 'ready' });
 </body>
 </html>`;
 }
-

@@ -12,19 +12,19 @@
  * @license MIT
  */
 
-const path = require('path');
+const path = require("path");
 
 function customResolver(request, options) {
   // Try the default resolver first by requiring it indirectly
   // via Node.js's own module resolution
   const basedir = options.basedir;
-  const extensions = options.extensions || ['.js', '.cjs', '.json'];
+  const extensions = options.extensions || [".js", ".cjs", ".json"];
 
   // Handle absolute paths
   if (path.isAbsolute(request)) {
     try {
       // Try direct file access first
-      const fs = require('fs');
+      const fs = require("fs");
       if (fs.existsSync(request)) {
         return request;
       }
@@ -41,10 +41,10 @@ function customResolver(request, options) {
   }
 
   // Handle relative paths
-  if (request.startsWith('./') || request.startsWith('../')) {
+  if (request.startsWith("./") || request.startsWith("../")) {
     const resolved = path.resolve(basedir, request);
     try {
-      const fs = require('fs');
+      const fs = require("fs");
       if (fs.existsSync(resolved)) {
         return resolved;
       }
@@ -63,16 +63,19 @@ function customResolver(request, options) {
   try {
     return require.resolve(request, {
       paths: [basedir, ...(options.paths || [])],
-      extensions
+      extensions,
     });
   } catch (e) {
     // Re-throw with a clear message
-    const err = new Error(`Cannot resolve module '${request}' from '${basedir}'`);
-    err.code = 'MODULE_NOT_FOUND';
+    const err = new Error(
+      `Cannot resolve module '${request}' from '${basedir}'`,
+    );
+    err.code = "MODULE_NOT_FOUND";
     throw err;
   }
 }
 
 module.exports = customResolver;
 module.exports.sync = customResolver;
-module.exports.async = async (request, options) => customResolver(request, options);
+module.exports.async = async (request, options) =>
+  customResolver(request, options);

@@ -22,11 +22,7 @@
     "scheme": "Fiat-Shamir-Lattice-NIZK",
     "securityLevel": 256
   },
-  "allowedAlgorithms": [
-    "lattice-vrf-mlwe",
-    "shake256",
-    "hmac-sha256"
-  ],
+  "allowedAlgorithms": ["lattice-vrf-mlwe", "shake256", "hmac-sha256"],
   "keyLifecycle": {
     "rotationIntervalDays": 90,
     "epochDurationMs": 86400000,

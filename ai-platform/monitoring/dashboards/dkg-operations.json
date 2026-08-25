@@ -2,11 +2,7 @@
   "schemaVersion": 38,
   "title": "DKG Gossip Operations",
   "uid": "dkg-operations",
-  "tags": [
-    "dkg",
-    "gossip",
-    "cluster-keyring-sync"
-  ],
+  "tags": ["dkg", "gossip", "cluster-keyring-sync"],
   "timezone": "browser",
   "time": {
     "from": "now-6h",

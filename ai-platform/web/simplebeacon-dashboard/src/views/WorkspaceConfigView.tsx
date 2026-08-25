@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { WorkspaceSandboxPanel } from '@/components/WorkspaceSandboxPanel';
-import { WorkspaceBudgetPanel } from '@/components/WorkspaceBudgetPanel';
-import { apiUrl, authHeaders } from '@/config';
-import { toast } from 'sonner';
-import { Briefcase } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { WorkspaceSandboxPanel } from "@/components/WorkspaceSandboxPanel";
+import { WorkspaceBudgetPanel } from "@/components/WorkspaceBudgetPanel";
+import { apiUrl, authHeaders } from "@/config";
+import { toast } from "sonner";
+import { Briefcase } from "lucide-react";
 
 interface SandboxSummary {
   success: boolean;
@@ -39,15 +39,20 @@ interface Budget {
   periodEnd: string;
   enabled: boolean;
   config: BudgetConfig;
-  alerts: { type: string; crossedValue: number; pct: number; timestamp: string }[];
+  alerts: {
+    type: string;
+    crossedValue: number;
+    pct: number;
+    timestamp: string;
+  }[];
 }
 
 export function WorkspaceConfigView() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
+  const isAdmin = user?.role === "admin" || user?.role === "superuser";
 
-  const [orgId, setOrgId] = useState<string>('default');
-  const [activeTab, setActiveTab] = useState('budgets');
+  const [orgId, setOrgId] = useState<string>("default");
+  const [activeTab, setActiveTab] = useState("budgets");
 
   const [summary, setSummary] = useState<SandboxSummary | null>(null);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -60,14 +65,17 @@ export function WorkspaceConfigView() {
     setLoadingSummary(true);
     setSummaryError(null);
     try {
-      const res = await fetch(apiUrl(`/workspace/sandbox-summary?orgId=${encodeURIComponent(orgId)}`), {
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        apiUrl(`/workspace/sandbox-summary?orgId=${encodeURIComponent(orgId)}`),
+        {
+          headers: authHeaders(),
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: SandboxSummary = await res.json();
       setSummary(data);
     } catch (err: any) {
-      setSummaryError(err.message || 'Failed to load sandbox telemetry');
+      setSummaryError(err.message || "Failed to load sandbox telemetry");
     } finally {
       setLoadingSummary(false);
     }
@@ -77,14 +85,17 @@ export function WorkspaceConfigView() {
     setLoadingBudgets(true);
     setBudgetError(null);
     try {
-      const res = await fetch(apiUrl(`/workspace/budgets?orgId=${encodeURIComponent(orgId)}`), {
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        apiUrl(`/workspace/budgets?orgId=${encodeURIComponent(orgId)}`),
+        {
+          headers: authHeaders(),
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setBudgets(data.budgets || []);
     } catch (err: any) {
-      setBudgetError(err.message || 'Failed to load budgets');
+      setBudgetError(err.message || "Failed to load budgets");
     } finally {
       setLoadingBudgets(false);
     }
@@ -98,11 +109,16 @@ export function WorkspaceConfigView() {
   const handleSave = useCallback(
     async (scope: string, updates: Partial<Budget>): Promise<boolean> => {
       try {
-        const res = await fetch(apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}?orgId=${encodeURIComponent(orgId)}`), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ ...updates, orgId }),
-        });
+        const res = await fetch(
+          apiUrl(
+            `/workspace/budgets/${encodeURIComponent(scope)}?orgId=${encodeURIComponent(orgId)}`,
+          ),
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ ...updates, orgId }),
+          },
+        );
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.message || `HTTP ${res.status}`);
@@ -111,21 +127,26 @@ export function WorkspaceConfigView() {
         await fetchBudgets();
         return true;
       } catch (err: any) {
-        toast.error(err.message || 'Budget update failed');
+        toast.error(err.message || "Budget update failed");
         return false;
       }
     },
-    [orgId, fetchBudgets]
+    [orgId, fetchBudgets],
   );
 
   const handleReset = useCallback(
     async (scope: string): Promise<boolean> => {
       try {
-        const res = await fetch(apiUrl(`/workspace/budgets/${encodeURIComponent(scope)}/reset?orgId=${encodeURIComponent(orgId)}`), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ orgId }),
-        });
+        const res = await fetch(
+          apiUrl(
+            `/workspace/budgets/${encodeURIComponent(scope)}/reset?orgId=${encodeURIComponent(orgId)}`,
+          ),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ orgId }),
+          },
+        );
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.message || `HTTP ${res.status}`);
@@ -134,11 +155,11 @@ export function WorkspaceConfigView() {
         await fetchBudgets();
         return true;
       } catch (err: any) {
-        toast.error(err.message || 'Budget reset failed');
+        toast.error(err.message || "Budget reset failed");
         return false;
       }
     },
-    [orgId, fetchBudgets]
+    [orgId, fetchBudgets],
   );
 
   return (
@@ -150,7 +171,8 @@ export function WorkspaceConfigView() {
             Workspace Configuration
           </h1>
           <p className="text-sm text-foreground-muted">
-            Sandbox telemetry and fiscal controls for multi-tenant administration.
+            Sandbox telemetry and fiscal controls for multi-tenant
+            administration.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -161,7 +183,14 @@ export function WorkspaceConfigView() {
             placeholder="org-id"
             className="w-48"
           />
-          <Button onClick={() => { fetchSummary(); fetchBudgets(); }}>Load</Button>
+          <Button
+            onClick={() => {
+              fetchSummary();
+              fetchBudgets();
+            }}
+          >
+            Load
+          </Button>
         </div>
       </div>
 

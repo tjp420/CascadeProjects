@@ -42,8 +42,11 @@
                     var envName2 = match.replace(/^INSERT_|_HERE$/gi, '').replace(/_/g, '_');
                     return 'process.env.' + envName2;
                 }
-                if (/^\[Insert\s/i.test(match) || /^\[Your\s/i.test(match) ||
-                    /^\[(?:Name|Date|Company)\]$/i.test(match)) {
+                if (
+                    /^\[Insert\s/i.test(match) ||
+                    /^\[Your\s/i.test(match) ||
+                    /^\[(?:Name|Date|Company)\]$/i.test(match)
+                ) {
                     return '<TODO: real value>';
                 }
                 if (/^\/\/\s*(?:Handle\s+this\s+later|AI\s+Generated\s+Placeholder)/i.test(match)) {
@@ -66,7 +69,9 @@
             regex: /(\x60\x60\x60(?:javascript|typescript|python|json)?|\x60\x60\x60\s?$)/gm,
             desc: 'Raw markdown code fence leaked into source/config — copied from an AI chat interface.',
             suggestion: 'Remove markdown code fences from source/config files.',
-            fix: function () { return ''; }
+            fix: function () {
+                return '';
+            }
         },
         // ---- SB-FICTION-004: hardcoded AI-default UI metric / Lorem Ipsum ----
         {
@@ -109,9 +114,15 @@
             confidence: 0.78,
             regex: /\/\/\s*(?:TODO|FIXME|HACK|XXX)\s*[-:]?\s*(?:as\s+(?:discussed|requested|mentioned)|per\s+your\s+(?:request|instructions)|based\s+on\s+(?:our|the)\s+(?:conversation|discussion)|you\s+(?:mentioned|asked|requested)|following\s+our\s+(?:chat|call|discussion))/gi,
             desc: 'TODO/FIXME comment contains AI chat context references — clean up before merge.',
-            suggestion: 'Replace conversational references with technical context: describe what needs to be done, not who asked.',
+            suggestion:
+                'Replace conversational references with technical context: describe what needs to be done, not who asked.',
             fix: function (match) {
-                return match.replace(/as\s+(?:discussed|requested|mentioned)|per\s+your\s+(?:request|instructions)|based\s+on\s+(?:our|the)\s+(?:conversation|discussion)|you\s+(?:mentioned|asked|requested)|following\s+our\s+(?:chat|call|discussion)/gi, 'see ticket spec').trim();
+                return match
+                    .replace(
+                        /as\s+(?:discussed|requested|mentioned)|per\s+your\s+(?:request|instructions)|based\s+on\s+(?:our|the)\s+(?:conversation|discussion)|you\s+(?:mentioned|asked|requested)|following\s+our\s+(?:chat|call|discussion)/gi,
+                        'see ticket spec'
+                    )
+                    .trim();
             }
         },
         // ---- SB-FICTION-007: hardcoded mock return value with placeholder comment ----
@@ -125,7 +136,7 @@
             desc: 'Hardcoded mock return value with placeholder comment in production code.',
             suggestion: 'Replace the mock return with actual business logic or move to a test fixture.',
             fix: function () {
-                return 'throw new Error(\'not implemented — wire real business logic\');';
+                return "throw new Error('not implemented — wire real business logic');";
             }
         },
         // ---- SB-FICTION-008: boilerplate comment restating function name ----
@@ -138,7 +149,9 @@
             regex: /\/\/\s*(?!This\s+module\s+provides\s+utility\b)(?:This\s+function\s+(?:does|handles|returns|creates|updates|deletes|processes)\s+\w+|This\s+method\s+(?:is|will|should)\s+\w+|This\s+component\s+renders\s+\w+|This\s+module\s+provides\s+\w+|The\s+above\s+code\s+\w+)/gi,
             desc: 'AI-generated boilerplate comment that restates the function name without adding context.',
             suggestion: 'Delete the obvious restatement or add architectural context (why, not what).',
-            fix: function () { return ''; }
+            fix: function () {
+                return '';
+            }
         },
         // ---- Plain-text patterns (consolidated from index.html TEXT_PATTERNS) ----
         {
@@ -150,7 +163,9 @@
             regex: /As\s+an\s+AI\s+language\s+model|I\s+am\s+an\s+AI|I'm\s+an\s+AI|as\s+an\s+AI\s+assistant|As\s+an\s+AI,/gi,
             desc: 'Text contains an AI self-identification phrase — the sender did not edit the LLM output.',
             suggestion: 'Rewrite the sentence in your own voice; remove the AI disclaimer.',
-            fix: function () { return ''; }
+            fix: function () {
+                return '';
+            }
         },
         {
             id: 'TXT-LLM-FILLER',
@@ -161,7 +176,9 @@
             regex: /I'd\s+be\s+happy\s+to\s+(?:help|assist|provide)|Feel\s+free\s+to\s+(?:ask|reach\s+out|let\s+me\s+know)|I\s+hope\s+this\s+(?:helps|email\s+finds\s+you\s+well)/gi,
             desc: 'Generic LLM transitional phrase detected — common in unedited AI output.',
             suggestion: 'Replace with a direct, human sentence.',
-            fix: function () { return ''; }
+            fix: function () {
+                return '';
+            }
         },
         {
             id: 'TXT-TODO-MARKER',
@@ -172,7 +189,9 @@
             regex: /(?:TODO|FIXME|HACK|XXX|BUG)\b/gi,
             desc: 'Unresolved TODO or FIXME marker found in the text.',
             suggestion: 'Resolve the marker or remove it before sending.',
-            fix: function (match) { return match + ' [RESOLVE BEFORE SEND]'; }
+            fix: function (match) {
+                return match + ' [RESOLVE BEFORE SEND]';
+            }
         },
         {
             id: 'TXT-FAKE-STATS',
@@ -183,7 +202,9 @@
             regex: /\b(?:99\.9|99\.99|100)\s*%?\s*(?:uptime|availability|accuracy|success\s*rate|coverage|reliability)|\b\d{4,}\s*(?:M|B|K|million|billion|thousand)\s+(?:users?|customers?|downloads?|requests?)/gi,
             desc: 'Suspiciously round or extreme statistic detected — common in AI-hallucinated metrics.',
             suggestion: 'Cite a real, sourced number or remove the claim.',
-            fix: function (match) { return match + ' [CITE SOURCE]'; }
+            fix: function (match) {
+                return match + ' [CITE SOURCE]';
+            }
         },
         {
             id: 'TXT-REPETITIVE',
@@ -209,7 +230,9 @@
             regex: /(?:It\s+is\s+worth\s+noting\s+that|It\s+should\s+be\s+noted\s+that|One\s+must\s+consider|It\s+is\s+important\s+to\s+recognize\s+that|This\s+serves\s+as\s+a\s+testament\s+to)/gi,
             desc: 'Vague hedging language commonly used by LLMs to pad word count.',
             suggestion: 'Cut the hedge; state the point directly.',
-            fix: function () { return ''; }
+            fix: function () {
+                return '';
+            }
         },
         {
             id: 'TXT-DOUBLE-ENCODED',
@@ -221,10 +244,25 @@
             desc: 'Double-encoded UTF-8 characters detected — copy-paste artifact from AI chat interfaces.',
             suggestion: 'Re-paste as plain text or fix the encoding.',
             fix: function (match) {
-                var map = { 'â€™': '\u2019', 'â€œ': '\u201C', 'â€': '\u201D',
-                            'Ã©': 'é', 'Ã¨': 'è', 'Ã«': 'ë', 'Ãª': 'ê',
-                            'Ã®': 'î', 'Ã¯': 'ï', 'Ã´': 'ô', 'Ã¶': 'ö',
-                            'Ã»': 'û', 'Ã¼': 'ü', 'Ã§': 'ç', 'Ã€': 'À', 'Ã‰': 'É', 'Ã¢': 'â' };
+                var map = {
+                    'â€™': '\u2019',
+                    'â€œ': '\u201C',
+                    'â€': '\u201D',
+                    'Ã©': 'é',
+                    'Ã¨': 'è',
+                    'Ã«': 'ë',
+                    Ãª: 'ê',
+                    'Ã®': 'î',
+                    'Ã¯': 'ï',
+                    'Ã´': 'ô',
+                    'Ã¶': 'ö',
+                    'Ã»': 'û',
+                    'Ã¼': 'ü',
+                    'Ã§': 'ç',
+                    'Ã€': 'À',
+                    'Ã‰': 'É',
+                    'Ã¢': 'â'
+                };
                 return map[match] || match;
             }
         },
@@ -237,7 +275,8 @@
             confidence: 0.97,
             regex: /(?:sk-ant-api03-[A-Za-z0-9_-]{10,}|sk-live-[A-Za-z0-9_-]{10,}|sk-[A-Za-z0-9_-]{20,}|re_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,})/g,
             desc: 'Hardcoded API key or live secret detected in source.',
-            suggestion: 'Move to an environment variable immediately. Rotate the key — it must be treated as compromised.',
+            suggestion:
+                'Move to an environment variable immediately. Rotate the key — it must be treated as compromised.',
             fix: function (match) {
                 var redacted = match.substring(0, 8) + '***REDACTED***';
                 return 'process.env.SECRET_KEY /* was: ' + redacted + ' — ROTATE NOW */';
@@ -329,7 +368,8 @@
         {
             id: 'fintech-handler',
             title: 'Fintech API Handler',
-            context: 'Real sample from the $1.25M fintech case study. A Cursor-generated handler shipped to staging with a leaked Anthropic key, a TODO placeholder, and a hallucinated SDK method.',
+            context:
+                'Real sample from the $1.25M fintech case study. A Cursor-generated handler shipped to staging with a leaked Anthropic key, a TODO placeholder, and a hallucinated SDK method.',
             slop: [
                 '// AI-generated handler — contains slop',
                 'export async function handleRequest(req: Request) {',
@@ -343,11 +383,11 @@
             fixed: [
                 'export async function handleRequest(req: Request) {',
                 '  const apiKey = process.env.ANTHROPIC_API_KEY; // was: sk-ant-api03-***REDACTED*** — ROTATE NOW',
-                '  if (!apiKey) throw new Error(\'ANTHROPIC_API_KEY not configured\');',
+                "  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');",
                 '  const data = await fetch(apiKey);',
                 '  // FIXME: implement error handling (see ticket spec)',
                 '  const user = await db.findOrCreateUser(req.userId); // verified against db client docs',
-                '  throw new Error(\'not implemented — wire real business logic\');',
+                "  throw new Error('not implemented — wire real business logic');",
                 '}'
             ].join('\n'),
             annotations: [
@@ -360,13 +400,14 @@
         {
             id: 'marketing-email',
             title: 'Marketing Email',
-            context: 'A sales rep pasted ChatGPT output into a customer email without editing. Four AI tells in 60 words.',
+            context:
+                'A sales rep pasted ChatGPT output into a customer email without editing. Four AI tells in 60 words.',
             slop: [
                 'Subject: [Insert Customer Name] — your Q3 proposal',
                 '',
                 'Hi [Name],',
                 '',
-                'As an AI language model, I hope this email finds you well. I\'d be happy to help',
+                "As an AI language model, I hope this email finds you well. I'd be happy to help",
                 'with your integration questions. Furthermore, our platform offers 99.99% Uptime',
                 'and 10,000 Users worldwide. Lorem Ipsum Dolor sit amet, consectetur adipiscing.',
                 '',
@@ -400,7 +441,8 @@
         {
             id: 'production-config',
             title: 'Production Config File',
-            context: 'A Copilot-suggested config.yml shipped with markdown fences, a hardcoded uptime claim, and an AI Assistant Note left in the comments.',
+            context:
+                'A Copilot-suggested config.yml shipped with markdown fences, a hardcoded uptime claim, and an AI Assistant Note left in the comments.',
             slop: [
                 '```yaml',
                 '# AI Assistant Note: generated by Copilot — review before deploy',
@@ -428,7 +470,8 @@
         {
             id: 'todo-debris',
             title: 'TODO Comment Debris',
-            context: 'A junior dev accepted a Claude suggestion wholesale. The TODOs reference chat context that no reviewer has access to.',
+            context:
+                'A junior dev accepted a Claude suggestion wholesale. The TODOs reference chat context that no reviewer has access to.',
             slop: [
                 '// TODO: implement caching as discussed in our call yesterday',
                 '// FIXME: based on our conversation, this needs rate limiting',
@@ -441,13 +484,17 @@
                 '// TODO: implement caching (see ticket ENG-421 spec)',
                 '// FIXME: add rate limiting (see ticket ENG-422 spec)',
                 'function authenticate(token) {',
-                '  throw new Error(\'not implemented — wire real business logic\');',
+                "  throw new Error('not implemented — wire real business logic');",
                 '}'
             ].join('\n'),
             annotations: [
                 { ruleId: 'SB-FICTION-006', line: 1, note: '"as discussed in our call" — chat context reference.' },
                 { ruleId: 'SB-FICTION-006', line: 2, note: '"based on our conversation" — chat context reference.' },
-                { ruleId: 'SB-FICTION-008', line: 3, note: '"This function handles authentication" — restates the name.' },
+                {
+                    ruleId: 'SB-FICTION-008',
+                    line: 3,
+                    note: '"This function handles authentication" — restates the name.'
+                },
                 { ruleId: 'SB-FICTION-007', line: 5, note: 'return true; // always succeed — mock in production path.' }
             ]
         }
@@ -557,7 +604,9 @@
         }
         // Drop overlapping edits (keep the first/earlier one) so two rules matching
         // the same span don't corrupt the output.
-        edits.sort(function (a, b) { return a.start - b.start; });
+        edits.sort(function (a, b) {
+            return a.start - b.start;
+        });
         var clean = [];
         var lastEnd = -1;
         for (var k = 0; k < edits.length; k++) {
@@ -567,7 +616,9 @@
             }
         }
         // Apply from end to start so indices remain valid
-        clean.sort(function (a, b) { return b.start - a.start; });
+        clean.sort(function (a, b) {
+            return b.start - a.start;
+        });
         var out = text;
         for (var j = 0; j < clean.length; j++) {
             var e = clean[j];

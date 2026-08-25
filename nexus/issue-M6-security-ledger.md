@@ -4,6 +4,7 @@
 Implement identity, RBAC, multi-signer operations, and an append-only signed ledger for audit and provenance.
 
 **Description**
+
 - Spectral identity: key pair scheme, fingerprinting format, rotation policy.
 - RBAC: roles (operator, auditor, sysadmin), scopes, policy enforcement middleware.
 - Multi-signer: 2-of-3 signing for high-impact commands.
@@ -14,6 +15,7 @@ Implement identity, RBAC, multi-signer operations, and an append-only signed led
 **Dependencies**: M1 (API), M3 (vessel)
 
 **Acceptance criteria**
+
 - Key management flows (create, rotate, revoke)
 - RBAC enforced on control APIs
 - Ledger stores signed entries and can be audited

@@ -1,4 +1,5 @@
 # Enterprise Landing Page Copy Variants
+
 ## SimpleBeacon.ai — EU AI Act Compliance Scanning
 
 > **Purpose:** Conversion-optimized copy for enterprise procurement landing pages
@@ -10,11 +11,15 @@
 ## Variant A: Penalty-Driven (Fear + Solution)
 
 ### Headline
+
 **EU AI Act enforcement begins August 2, 2026.**
+
 ### Subheadline
+
 Maximum penalty: EUR 35M or 7% of global turnover. SimpleBeacon generates the compliance evidence your auditor will demand — in 47 seconds, not 6 weeks.
 
 ### Hero CTA
+
 [Start 30-Day Enterprise Trial] [Schedule Compliance Briefing]
 
 ### Body
@@ -36,12 +41,14 @@ If not, you're exposed.
 SimpleBeacon is a deterministic compliance scanner that runs **100% locally** in your environment. No source code uploaded. No cloud dependency. No external access.
 
 **One scan generates:**
+
 - Executive Risk Certificate (PDF, signed) — for board presentations
 - EU AI Act Compliance Assessment (JSON) — for regulatory submissions
 - Remediation Roadmap — with statutory fine risk mappings per finding
 - Quality Gate Report — for CI/CD pipeline integration
 
 **48 analyzers + 25 scan engines** detect AI-specific anti-patterns:
+
 - Hallucinated npm packages and imports
 - Placeholder credentials in AI boilerplate
 - Copyleft license contamination from training data
@@ -63,11 +70,15 @@ SimpleBeacon is a deterministic compliance scanner that runs **100% locally** in
 ## Variant B: Evidence-Driven (Authority + Proof)
 
 ### Headline
+
 **Audit-ready AI governance evidence. Generated locally. In under 60 seconds.**
+
 ### Subheadline
+
 SimpleBeacon produces the Article 11, 12, and 14 documentation your legal team needs — without uploading a single line of source code.
 
 ### Hero CTA
+
 [See Sample Compliance Artifacts] [Book 30-Minute Briefing]
 
 ### Body
@@ -76,13 +87,13 @@ SimpleBeacon produces the Article 11, 12, and 14 documentation your legal team n
 
 SimpleBeacon was designed with input from Big 4 audit firms and EU regulatory consultants. Our compliance artifacts map directly to EU AI Act requirements:
 
-| Article | Requirement | SimpleBeacon Output |
-|---------|------------|---------------------|
-| Art. 9 | Risk management system | Risk Heatmap (3x3 severity x likelihood) |
-| Art. 11 | Technical documentation | AI system inventory + component classification |
+| Article | Requirement              | SimpleBeacon Output                             |
+| ------- | ------------------------ | ----------------------------------------------- |
+| Art. 9  | Risk management system   | Risk Heatmap (3x3 severity x likelihood)        |
+| Art. 11 | Technical documentation  | AI system inventory + component classification  |
 | Art. 12 | Record-keeping (logging) | Tamper-evident scan records with SHA-256 hashes |
-| Art. 14 | Human oversight | Quality gate enforcement + approval workflow |
-| Art. 43 | Conformity assessment | Executive Risk Certificate (signed PDF) |
+| Art. 14 | Human oversight          | Quality gate enforcement + approval workflow    |
+| Art. 43 | Conformity assessment    | Executive Risk Certificate (signed PDF)         |
 
 Also maps to **ISO/IEC 42001:2023** (AI Management System) clauses A.2, A.3, A.5, A.7.
 
@@ -100,15 +111,15 @@ Also maps to **ISO/IEC 42001:2023** (AI Management System) clauses A.2, A.3, A.5
 > The Executive Risk Certificate was accepted by our Big 4 auditor as
 > primary evidence of AI governance controls."
 >
-> — *Compliance Director, Series C Fintech*
+> — _Compliance Director, Series C Fintech_
 
 #### Enterprise Pricing
 
-| Tier | Seats | Price | Features |
-|------|-------|-------|----------|
-| Team | 5-25 | $49/mo | All scan engines, IDE integration, JSON reports |
-| Enterprise | 25-500 | $25K/yr | SSO, Azure DevOps, custom rules, PDF certificates, air-gapped |
-| Custom | 500+ | Contact sales | Dedicated deployment, custom integrations, SLA |
+| Tier       | Seats  | Price         | Features                                                      |
+| ---------- | ------ | ------------- | ------------------------------------------------------------- |
+| Team       | 5-25   | $49/mo        | All scan engines, IDE integration, JSON reports               |
+| Enterprise | 25-500 | $25K/yr       | SSO, Azure DevOps, custom rules, PDF certificates, air-gapped |
+| Custom     | 500+   | Contact sales | Dedicated deployment, custom integrations, SLA                |
 
 [Start Enterprise Trial] [Contact Sales]
 
@@ -117,11 +128,15 @@ Also maps to **ISO/IEC 42001:2023** (AI Management System) clauses A.2, A.3, A.5
 ## Variant C: Risk-Driven (Quantification + Insurance)
 
 ### Headline
+
 **Quantify your AI-generated code risk. Before your regulator does.**
+
 ### Subheadline
+
 48 analyzers + 25 scan engines. Board-ready risk certificates. Zero source code exposure. Continuous compliance via Azure DevOps.
 
 ### Hero CTA
+
 [Run Free Risk Assessment] [Download Risk Framework PDF]
 
 ### Body
@@ -211,4 +226,4 @@ No contract. No credit card. No source code uploaded.
 
 ---
 
-*End of Enterprise Landing Page Copy Variants*
+_End of Enterprise Landing Page Copy Variants_

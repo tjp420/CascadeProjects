@@ -27,7 +27,9 @@ function setStoredCount(count: number) {
     localStorage.setItem(STORAGE_KEY, String(count));
     const now = Date.now();
     localStorage.setItem(MONTH_KEY, String(now));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function shouldReset(): boolean {
@@ -64,7 +66,9 @@ export function useScanCounter() {
             setStoredCount(data.count);
           }
         }
-      } catch { /* ignore — use local count */ }
+      } catch {
+        /* ignore — use local count */
+      }
     })();
   }, []);
 
@@ -87,8 +91,11 @@ export function useScanCounter() {
           },
         });
       }
-    } catch { /* ignore — local count is the source of truth for free tier */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore — local count is the source of truth for free tier */
+    } finally {
+      setLoading(false);
+    }
   }, [scanCount]);
 
   const remaining = Math.max(0, capabilities.maxScans - scanCount);

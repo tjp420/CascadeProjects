@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                      |
+| ---------------- | ---------------------------------------------------------- |
 | Feature / change | Track 13: Multi-Tenant Key Isolation & Envelope Derivation |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track13-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                      |
+| Date             | 2026-08-01                                                 |
+| Branch           | `feature/track13-groundwork`                               |
+| Packages touched | ai-platform                                                |
 
 ## Scope
 
@@ -56,55 +56,55 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Multi-tenant tests pass | `cd ai-platform && npx jest --config jest.config.cjs multi-tenant-key-isolation` | [ ] |
-| L1-03 | Existing HSM/adapter tests still pass | `cd ai-platform && npx jest --config jest.config.cjs hsm-adapter asymmetric-adapter attestation` | [ ] |
-| L1-04 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ] |
-| L1-06 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                 | Command / method                                                                                 | Pass |
+| ----- | ------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| L1-01 | Syntax on changed `.cjs` files        | `node -c <file>`                                                                                 | [ ]  |
+| L1-02 | Multi-tenant tests pass               | `cd ai-platform && npx jest --config jest.config.cjs multi-tenant-key-isolation`                 | [ ]  |
+| L1-03 | Existing HSM/adapter tests still pass | `cd ai-platform && npx jest --config jest.config.cjs hsm-adapter asymmetric-adapter attestation` | [ ]  |
+| L1-04 | Full `ai-platform` test suite passes  | `cd ai-platform && npm test`                                                                     | [ ]  |
+| L1-05 | SimpleBeacon full gate                | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json`            | [ ]  |
+| L1-06 | No secrets in diff                    | `git diff --cached`                                                                              | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | Create KEK for a tenant | `createKEK('tenant-a')` | Returns a `kekId` scoped to `tenant-a` | [ ] |
-| L2-02 | Wrap and unwrap for same tenant | `wrap('tenant-a', kekId, plaintext)` then `unwrap('tenant-a', kekId, wrapped)` | Round-trip succeeds | [ ] |
-| L2-03 | DEK-mode wrap/unwrap | Derive a per-transaction DEK and encrypt a payload; decrypt with the same `salt` and `tenantId` | Round-trip succeeds | [ ] |
-| L2-04 | List KEKs is tenant-scoped | `listKEKs('tenant-a')` after creating keys for `tenant-a` and `tenant-b` | Returns only `tenant-a` keys | [ ] |
-| L2-05 | Asymmetric wrap binds tenant to context | `wrap('tenant-a', kekId, plaintext, 'app-ctx')` then `unwrap('tenant-a', kekId, wrapped, 'app-ctx')` | Round-trip succeeds | [ ] |
+| ID    | Scenario                                | Steps                                                                                                | Expected                               | Pass |
+| ----- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------- | ---- |
+| L2-01 | Create KEK for a tenant                 | `createKEK('tenant-a')`                                                                              | Returns a `kekId` scoped to `tenant-a` | [ ]  |
+| L2-02 | Wrap and unwrap for same tenant         | `wrap('tenant-a', kekId, plaintext)` then `unwrap('tenant-a', kekId, wrapped)`                       | Round-trip succeeds                    | [ ]  |
+| L2-03 | DEK-mode wrap/unwrap                    | Derive a per-transaction DEK and encrypt a payload; decrypt with the same `salt` and `tenantId`      | Round-trip succeeds                    | [ ]  |
+| L2-04 | List KEKs is tenant-scoped              | `listKEKs('tenant-a')` after creating keys for `tenant-a` and `tenant-b`                             | Returns only `tenant-a` keys           | [ ]  |
+| L2-05 | Asymmetric wrap binds tenant to context | `wrap('tenant-a', kekId, plaintext, 'app-ctx')` then `unwrap('tenant-a', kekId, wrapped, 'app-ctx')` | Round-trip succeeds                    | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Missing `tenantId` | Throws `UNAUTHORIZED_KEY_ACCESS` | [ ] |
-| L3-02 | Cross-tenant access attempt | `wrap('tenant-b', kekId-from-tenant-a, plaintext)` throws `UNAUTHORIZED_KEY_ACCESS` | [ ] |
-| L3-03 | Wrong tenant on unwrap | `unwrap('tenant-b', kekId, wrapped-from-tenant-a)` throws `UNAUTHORIZED_KEY_ACCESS` | [ ] |
-| L3-04 | Empty or null `tenantId` | Throws `UNAUTHORIZED_KEY_ACCESS` | [ ] |
-| L3-05 | Same `kekId` across tenants | Both tenants can create the same string `kekId` with no collision because lookups are namespaced | [ ] |
-| L3-06 | Salt reuse rejected | DEK derivation must not be called with an all-zeros or reused `salt` | [ ] |
-| L3-07 | Legacy non-tenant calls | Existing `wrap(kekId, plaintext)` without `tenantId` throws or is unsupported | [ ] |
+| ID    | Case                        | Expected                                                                                         | Pass |
+| ----- | --------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| L3-01 | Missing `tenantId`          | Throws `UNAUTHORIZED_KEY_ACCESS`                                                                 | [ ]  |
+| L3-02 | Cross-tenant access attempt | `wrap('tenant-b', kekId-from-tenant-a, plaintext)` throws `UNAUTHORIZED_KEY_ACCESS`              | [ ]  |
+| L3-03 | Wrong tenant on unwrap      | `unwrap('tenant-b', kekId, wrapped-from-tenant-a)` throws `UNAUTHORIZED_KEY_ACCESS`              | [ ]  |
+| L3-04 | Empty or null `tenantId`    | Throws `UNAUTHORIZED_KEY_ACCESS`                                                                 | [ ]  |
+| L3-05 | Same `kekId` across tenants | Both tenants can create the same string `kekId` with no collision because lookups are namespaced | [ ]  |
+| L3-06 | Salt reuse rejected         | DEK derivation must not be called with an all-zeros or reused `salt`                             | [ ]  |
+| L3-07 | Legacy non-tenant calls     | Existing `wrap(kekId, plaintext)` without `tenantId` throws or is unsupported                    | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Keys from one tenant are never returned by another tenant's `listKEKs` | [ ] |
-| S-02 | `tenantId` is cryptographically bound into the DEK and ECDH HKDF context | [ ] |
-| S-03 | No raw base KEK is exposed in the DEK-mode envelope | [ ] |
-| S-04 | Cross-tenant access throws `UNAUTHORIZED_KEY_ACCESS`, not `UNKNOWN_KEK` | [ ] |
+| ID   | Requirement                                                              | Pass |
+| ---- | ------------------------------------------------------------------------ | ---- |
+| S-01 | Keys from one tenant are never returned by another tenant's `listKEKs`   | [ ]  |
+| S-02 | `tenantId` is cryptographically bound into the DEK and ECDH HKDF context | [ ]  |
+| S-03 | No raw base KEK is exposed in the DEK-mode envelope                      | [ ]  |
+| S-04 | Cross-tenant access throws `UNAUTHORIZED_KEY_ACCESS`, not `UNKNOWN_KEK`  | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

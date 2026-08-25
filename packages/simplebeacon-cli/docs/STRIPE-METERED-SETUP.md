@@ -41,6 +41,7 @@ Create annual variants with 17% discount:
 - **Growth Annual**: `$1,490.00` / year
 
 Set env vars:
+
 ```bash
 STRIPE_PRICE_ID_STARTUP_ANNUAL=price_1...
 STRIPE_PRICE_ID_GROWTH_ANNUAL=price_1...
@@ -60,9 +61,12 @@ curl -X POST https://api.stripe.com/v1/subscription_items/{si_xxx}/usage_records
 ```
 
 Or use the built-in helper:
+
 ```javascript
-const { reportScanUsageToStripe } = require('./ai-platform/server/config/stripe.cjs');
-await reportScanUsageToStripe(process.env.STRIPE_SECRET_KEY, 'si_xxx', 2450);
+const {
+  reportScanUsageToStripe,
+} = require("./ai-platform/server/config/stripe.cjs");
+await reportScanUsageToStripe(process.env.STRIPE_SECRET_KEY, "si_xxx", 2450);
 ```
 
 ## Environment Variables Summary
@@ -84,11 +88,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ## Testing
 
 Use Stripe test mode Price IDs with the `TEST_` prefix:
+
 ```bash
 STRIPE_PRICE_ID_STARTUP_MONTHLY=price_test_...
 ```
 
 Test checkout flow:
+
 ```bash
 curl -X POST http://localhost:3001/api/simplebeacon/billing/checkout \
   -H "Content-Type: application/json" \

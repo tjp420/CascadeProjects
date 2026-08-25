@@ -15,7 +15,7 @@ The most glaring footprint is conversational leakage. Because LLMs are trained t
 ### The Signature
 
 ```javascript
-/(As an AI|Here is the implementation|I hope this helps)/gi
+/(As an AI|Here is the implementation|I hope this helps)/gi;
 ```
 
 ### The Fix

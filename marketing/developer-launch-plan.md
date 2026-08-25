@@ -16,11 +16,13 @@ Rationale: HN drives technical credibility and early adopters. Product Hunt driv
 ## Part 1: Show HN Launch
 
 ### Timing
+
 - **Day:** Tuesday or Wednesday (highest quality traffic, less noise than Monday)
 - **Time:** 8:00 AM ET / 5:00 AM PT (catch East Coast morning + West Coast wake-up)
 - **Window:** September 2 or 3, 2026 (after B2B batch 1 is live — social proof)
 
 ### Pre-Launch Checklist (T-7 days)
+
 - [ ] **CRITICAL: Make GitHub repo public** — currently private at github.com/tjp420/CascadeProjects (returns 404). Must be public before HN post.
 - [ ] Verify `npx simplebeacon scan --gate --offline` works on a clean machine
 - [ ] Verify VS Code extension installs from marketplace (search "SimpleBeacon")
@@ -41,16 +43,17 @@ Rationale: HN drives technical credibility and early adopters. Product Hunt driv
 
 ### First-Hour Engagement Strategy (0–60 min)
 
-| Time | Action |
-|------|--------|
-| 0 min | Post to HN |
-| 5 min | Share on Twitter/X: "Just launched on Show HN: [link]" |
-| 10 min | Post in 2-3 relevant Discord/Slack communities (dev tools, security) |
+| Time   | Action                                                                                                       |
+| ------ | ------------------------------------------------------------------------------------------------------------ |
+| 0 min  | Post to HN                                                                                                   |
+| 5 min  | Share on Twitter/X: "Just launched on Show HN: [link]"                                                       |
+| 10 min | Post in 2-3 relevant Discord/Slack communities (dev tools, security)                                         |
 | 15 min | Email warm contacts: "We just launched on HN, would appreciate an upvote if you find it interesting: [link]" |
-| 30 min | Check for first comments — respond within 15 min to each |
-| 45 min | If on front page, post a "thank you + technical deep dive" comment |
+| 30 min | Check for first comments — respond within 15 min to each                                                     |
+| 45 min | If on front page, post a "thank you + technical deep dive" comment                                           |
 
 ### Comment Response Rules
+
 - **Respond to every comment within 15 minutes** for the first 4 hours
 - Be technical, not promotional — HN downvotes marketing speak
 - When criticized, acknowledge valid points and explain the tradeoff
@@ -98,6 +101,7 @@ Rationale: HN drives technical credibility and early adopters. Product Hunt driv
     → "No. The AST scanner is JavaScript/TypeScript-only via @babel/parser with jsx and typescript plugins. For other languages, we use the 50 language-agnostic regex rules. Multi-language AST support (Python via tree-sitter, Go via go/ast) is on the Q4 2026 roadmap. The regex rules still catch the most common AI slop patterns across all languages — the AST layer is for structural patterns that require call-graph awareness."
 
 ### Post-Launch (Day 1–7)
+
 - [ ] Monitor HN comments for 48 hours
 - [ ] Track traffic via analytics (Google Analytics or Plausible)
 - [ ] Monitor `npx simplebeacon` install counts
@@ -111,11 +115,13 @@ Rationale: HN drives technical credibility and early adopters. Product Hunt driv
 ## Part 2: Product Hunt Launch (T+7 days)
 
 ### Timing
+
 - **Day:** Tuesday or Wednesday (avoid Monday rush and Friday drop-off)
 - **Time:** 12:01 AM PT (Product Hunt's day starts at midnight Pacific)
 - **Date:** September 9 or 10, 2026
 
 ### Pre-Launch Checklist (T-3 days)
+
 - [ ] Create Product Hunt account (if not exists)
 - [ ] Add product: name, tagline, description (see `marketing/outreach/product-hunt-launch.md`)
 - [ ] Upload media: 5 screenshots + 1 GIF + thumbnail (240×240)
@@ -127,31 +133,32 @@ Rationale: HN drives technical credibility and early adopters. Product Hunt driv
 
 ### Launch Day Strategy
 
-| Time (PT) | Action |
-|-----------|--------|
-| 12:01 AM | Product goes live |
-| 6:00 AM | Email warm contacts with direct PH link |
-| 7:00 AM | Post on Twitter/X: "We're live on Product Hunt today! [link]" |
-| 8:00 AM | Share in 3-4 relevant communities (dev tools, AI, security) |
-| 9:00 AM | Maker comment posted (tell the story, be authentic) |
-| 10:00 AM | Respond to every comment within 1 hour |
-| 12:00 PM | Mid-day check — adjust position, thank commenters |
-| 6:00 PM | Final push — share results so far on social |
-| 11:59 PM | Day ends — screenshot final position for marketing |
+| Time (PT) | Action                                                        |
+| --------- | ------------------------------------------------------------- |
+| 12:01 AM  | Product goes live                                             |
+| 6:00 AM   | Email warm contacts with direct PH link                       |
+| 7:00 AM   | Post on Twitter/X: "We're live on Product Hunt today! [link]" |
+| 8:00 AM   | Share in 3-4 relevant communities (dev tools, AI, security)   |
+| 9:00 AM   | Maker comment posted (tell the story, be authentic)           |
+| 10:00 AM  | Respond to every comment within 1 hour                        |
+| 12:00 PM  | Mid-day check — adjust position, thank commenters             |
+| 6:00 PM   | Final push — share results so far on social                   |
+| 11:59 PM  | Day ends — screenshot final position for marketing            |
 
 ### Media Requirements
 
-| Asset | Size | Content |
-|-------|------|---------|
-| Screenshot 1 | 1280×800 | Terminal scan output with findings |
-| Screenshot 2 | 1280×800 | VS Code extension sidebar with diagnostics |
-| Screenshot 3 | 1280×800 | GitHub Action PR comment (blocking finding) |
-| Screenshot 4 | 1280×800 | Compliance certificate PDF (sample) |
-| Screenshot 5 | 1280×800 | Dashboard with scan history |
-| GIF | 1270×760 | 30-second scan demo (install → scan → results) |
-| Thumbnail | 240×240 | SimpleBeacon logo on dark background |
+| Asset        | Size     | Content                                        |
+| ------------ | -------- | ---------------------------------------------- |
+| Screenshot 1 | 1280×800 | Terminal scan output with findings             |
+| Screenshot 2 | 1280×800 | VS Code extension sidebar with diagnostics     |
+| Screenshot 3 | 1280×800 | GitHub Action PR comment (blocking finding)    |
+| Screenshot 4 | 1280×800 | Compliance certificate PDF (sample)            |
+| Screenshot 5 | 1280×800 | Dashboard with scan history                    |
+| GIF          | 1270×760 | 30-second scan demo (install → scan → results) |
+| Thumbnail    | 240×240  | SimpleBeacon logo on dark background           |
 
 ### Topics/Tags
+
 Developer Tools, Security, Artificial Intelligence, Code Quality, Compliance
 
 ---
@@ -159,23 +166,27 @@ Developer Tools, Security, Artificial Intelligence, Code Quality, Compliance
 ## Part 3: Cross-Platform Amplification
 
 ### Reddit (T+1 day after HN)
+
 - **Subreddits:** r/programming, r/webdev, r/coding, r/devops, r/security
 - **Post type:** Text post (not link) — tell the story, link in comments
 - **Title:** "I built a 100% offline code scanner that catches AI-generated slop and credential leaks"
 - **See:** `marketing/reddit-launch.md` (update verified numbers before posting)
 
 ### Twitter/X (ongoing)
+
 - Thread at launch: "After 4 months of building, today we're launching SimpleBeacon on Show HN..."
 - 5-tweet thread: problem → solution → demo → pricing → CTA
 - Pin tweet for 48 hours
 - Engage with anyone who quotes/retweets
 
 ### Dev.to / Hashnode (T+2 days)
+
 - Cross-post the technical blog post: `marketing/blog-posts/physics-of-ai-slop.md`
 - Add install instructions and screenshots
 - Link to HN discussion for social proof
 
 ### Hacker News Follow-up (T+7 days)
+
 - If the launch went well, post a follow-up: "SimpleBeacon update: [X] downloads, [Y] GitHub stars, [Z] enterprise demos booked"
 - Share what was learned from the community feedback
 
@@ -183,26 +194,26 @@ Developer Tools, Security, Artificial Intelligence, Code Quality, Compliance
 
 ## Success Metrics
 
-| Metric | Show HN Target | Product Hunt Target |
-|--------|---------------|---------------------|
-| Front page | Yes (top 30) | Top 5 of the day |
-| Points | 50+ | 100+ |
-| Comments | 30+ | 20+ |
-| GitHub stars | +50 | +100 |
-| CLI installs | +200 | +500 |
-| VS Code installs | +50 | +150 |
-| Website traffic | +2,000 visits | +5,000 visits |
-| Demo requests | +5 | +10 |
-| Paid conversions | +2 | +5 |
+| Metric           | Show HN Target | Product Hunt Target |
+| ---------------- | -------------- | ------------------- |
+| Front page       | Yes (top 30)   | Top 5 of the day    |
+| Points           | 50+            | 100+                |
+| Comments         | 30+            | 20+                 |
+| GitHub stars     | +50            | +100                |
+| CLI installs     | +200           | +500                |
+| VS Code installs | +50            | +150                |
+| Website traffic  | +2,000 visits  | +5,000 visits       |
+| Demo requests    | +5             | +10                 |
+| Paid conversions | +2             | +5                  |
 
 ---
 
 ## Contingency Plans
 
-| Scenario | Response |
-|----------|---------|
-| HN post gets flagged/buried | Don't repost. Share on Twitter and Reddit instead. |
-| Negative comment dominates | Engage honestly, fix the issue, don't get defensive. |
-| Site goes down | Have Cloudflare cache as fallback. Monitor uptime. |
+| Scenario                            | Response                                                            |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| HN post gets flagged/buried         | Don't repost. Share on Twitter and Reddit instead.                  |
+| Negative comment dominates          | Engage honestly, fix the issue, don't get defensive.                |
+| Site goes down                      | Have Cloudflare cache as fallback. Monitor uptime.                  |
 | Someone finds a real security issue | Acknowledge publicly, fix immediately, publish a security advisory. |
-| Install fails for users | Pin the working version, publish fix within 2 hours. |
+| Install fails for users             | Pin the working version, publish fix within 2 hours.                |

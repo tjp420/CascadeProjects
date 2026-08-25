@@ -39,6 +39,7 @@ npm run test:integration
 ## Commit Messages
 
 Follow conventional commits:
+
 - `feat:` new feature
 - `fix:` bug fix
 - `docs:` documentation

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 19: Encrypted search token generator.
@@ -10,16 +10,19 @@
  * @module hsm-adapter/encrypted-search-token
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_TOKEN_LENGTH = 32;
 const DEFAULT_GRACE_WINDOW_MS = 300000;
 
 function _canonical(input) {
   if (Buffer.isBuffer(input)) return input;
-  if (typeof input === 'string') return Buffer.from(input, 'utf8');
-  throw new HsmAdapterError('INVALID_INPUT', 'query must be a string or Buffer');
+  if (typeof input === "string") return Buffer.from(input, "utf8");
+  throw new HsmAdapterError(
+    "INVALID_INPUT",
+    "query must be a string or Buffer",
+  );
 }
 
 function _secureZeroize(buf) {
@@ -37,7 +40,10 @@ class EncryptedSearchToken {
    */
   constructor(options = {}) {
     this._tokenExpiryMs = options.tokenExpiryMs || 300000;
-    this._graceWindowMs = typeof options.graceWindowMs === 'number' ? options.graceWindowMs : DEFAULT_GRACE_WINDOW_MS;
+    this._graceWindowMs =
+      typeof options.graceWindowMs === "number"
+        ? options.graceWindowMs
+        : DEFAULT_GRACE_WINDOW_MS;
     this._tokenLength = options.tokenLength || DEFAULT_TOKEN_LENGTH;
     this._logger = options.logger || null;
 
@@ -50,7 +56,11 @@ class EncryptedSearchToken {
 
   _audit(event, extra = {}) {
     if (!this._logger || !this._logger.info) return;
-    this._logger.info(event, { sub: 'hsm-adapter', provider: 'search-token', ...extra });
+    this._logger.info(event, {
+      sub: "hsm-adapter",
+      provider: "search-token",
+      ...extra,
+    });
   }
 
   _newSalt(provided) {
@@ -65,14 +75,19 @@ class EncryptedSearchToken {
       _secureZeroize(this._previousSalt);
     }
     this._previousSalt = this._salt;
-    this._previousSaltExpiredAt = Date.now() + this._tokenExpiryMs + this._graceWindowMs;
+    this._previousSaltExpiredAt =
+      Date.now() + this._tokenExpiryMs + this._graceWindowMs;
     this._salt = crypto.randomBytes(32);
     this._saltCreatedAt = Date.now();
     this._counter++;
   }
 
   _prune() {
-    if (this._previousSalt && this._previousSaltExpiredAt && Date.now() > this._previousSaltExpiredAt) {
+    if (
+      this._previousSalt &&
+      this._previousSaltExpiredAt &&
+      Date.now() > this._previousSaltExpiredAt
+    ) {
       _secureZeroize(this._previousSalt);
       this._previousSalt = null;
       this._previousSaltExpiredAt = null;
@@ -85,7 +100,7 @@ class EncryptedSearchToken {
   rotate() {
     this._prune();
     this._rotateSalt();
-    this._audit('TOKEN_ROTATED', { counter: this._counter });
+    this._audit("TOKEN_ROTATED", { counter: this._counter });
   }
 
   /**
@@ -98,12 +113,14 @@ class EncryptedSearchToken {
     this._prune();
     const s = salt || this._salt;
     const canonical = _canonical(query);
-    const hmac = crypto.createHmac('sha256', s);
+    const hmac = crypto.createHmac("sha256", s);
     hmac.update(canonical);
     const full = hmac.digest();
     const token = Buffer.from(full.subarray(0, this._tokenLength));
     _secureZeroize(full);
-    this._audit('STATE_MATCHED', { tokenPrefix: token.toString('hex').slice(0, 16) });
+    this._audit("STATE_MATCHED", {
+      tokenPrefix: token.toString("hex").slice(0, 16),
+    });
     return token;
   }
 
@@ -115,12 +132,18 @@ class EncryptedSearchToken {
    * @returns {boolean}
    */
   verify(storedToken, query) {
-    if (!Buffer.isBuffer(storedToken) || storedToken.length !== this._tokenLength) {
-      throw new HsmAdapterError('INVALID_INPUT', `storedToken must be a ${this._tokenLength}-byte Buffer`);
+    if (
+      !Buffer.isBuffer(storedToken) ||
+      storedToken.length !== this._tokenLength
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        `storedToken must be a ${this._tokenLength}-byte Buffer`,
+      );
     }
     this._prune();
     if (Date.now() - this._saltCreatedAt > this._tokenExpiryMs) {
-      throw new HsmAdapterError('TOKEN_EXPIRED', 'active salt has expired');
+      throw new HsmAdapterError("TOKEN_EXPIRED", "active salt has expired");
     }
     const current = this.generate(query, this._salt);
     if (current.equals(storedToken)) return true;

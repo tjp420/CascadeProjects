@@ -4,18 +4,10 @@
     "status": "complete",
     "currentCompletion": 100
   },
-  "implementationPhases": [
-    {}
-  ],
-  "riskManagement": [
-    {}
-  ],
-  "milestones": [
-    {}
-  ],
-  "immediateActions": [
-    {}
-  ],
+  "implementationPhases": [{}],
+  "riskManagement": [{}],
+  "milestones": [{}],
+  "immediateActions": [{}],
   "successMetrics": {},
   "resourceAllocation": {}
 }

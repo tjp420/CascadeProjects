@@ -2,16 +2,20 @@
  * SPA portal page exports — browser mirror of server/lib/spa-page-export.js
  */
 
-import { downloadJson, showToast } from '../utils.js';
-import { FEATURE_CATALOG } from '../services/platformService.js?v=20260716cachefix1';
+import { downloadJson, showToast } from "../utils.js";
+import { FEATURE_CATALOG } from "../services/platformService.js?v=20260716cachefix1";
 import {
   getScanFileMetrics,
   resolveDisplayScore,
   resolveJestTestsLabel,
   resolvePageSpecsLabel,
-  formatScanScopeSummary
-} from '../services/analyzeService.js';
-import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260716cachefix1';
+  formatScanScopeSummary,
+} from "../services/analyzeService.js";
+import {
+  pipelineStats,
+  prospectsWithSentLog,
+  OUTREACH_PROSPECTS,
+} from "../data/outreach-prospects.js?v=20260716cachefix1";
 
 /**
  * Page export filename.
@@ -30,8 +34,8 @@ export function pageExportFilename(pageId) {
  * @returns {any}
  */
 export function downloadPageExport(pageId, payload) {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Nothing to export yet.');
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Nothing to export yet.");
   }
   downloadJson(payload, pageExportFilename(pageId));
 }
@@ -43,9 +47,12 @@ export function downloadPageExport(pageId, payload) {
  * @param {any} label
  * @returns {any}
  */
-export function renderPageExportButton(pageId, { disabled = false, label = 'Export reports' } = {}) {
+export function renderPageExportButton(
+  pageId,
+  { disabled = false, label = "Export reports" } = {},
+) {
   return `
-    <button type="button" class="btn btn-secondary btn-sm" data-page-export="${pageId}" ${disabled ? 'disabled' : ''} title="Download page data as JSON">
+    <button type="button" class="btn btn-secondary btn-sm" data-page-export="${pageId}" ${disabled ? "disabled" : ""} title="Download page data as JSON">
       ${label}
     </button>
   `;
@@ -60,19 +67,24 @@ export function renderPageExportButton(pageId, { disabled = false, label = 'Expo
  * @returns {any}
  */
 export function bindPageExportButton(root, pageId, buildPayload, options = {}) {
-  root.querySelector(`[data-page-export="${pageId}"]`)?.addEventListener('click', async () => {
-    try {
-      const payload = typeof buildPayload === 'function' ? await buildPayload() : buildPayload;
-      if (!payload) {
-        showToast(options.emptyMessage || 'Nothing to export yet', 'info');
-        return;
+  root
+    .querySelector(`[data-page-export="${pageId}"]`)
+    ?.addEventListener("click", async () => {
+      try {
+        const payload =
+          typeof buildPayload === "function"
+            ? await buildPayload()
+            : buildPayload;
+        if (!payload) {
+          showToast(options.emptyMessage || "Nothing to export yet", "info");
+          return;
+        }
+        downloadPageExport(pageId, payload);
+        showToast(options.successMessage || "Reports exported", "success");
+      } catch (err) {
+        showToast(err.message, "error");
       }
-      downloadPageExport(pageId, payload);
-      showToast(options.successMessage || 'Reports exported', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  });
+    });
 }
 
 /**
@@ -90,7 +102,7 @@ function summarizeGateReport(report) {
     schemaCompliance: report.schemaCompliance ?? null,
     consistencyScore: report.consistencyScore ?? null,
     credentialFindings: report.credentialFindings ?? null,
-    productionLeakFindings: report.productionLeakFindings ?? null
+    productionLeakFindings: report.productionLeakFindings ?? null,
   };
 }
 
@@ -105,7 +117,7 @@ function summarizeBaseline(baseline) {
     syncedAt: baseline.syncedAt || null,
     jestTestsLabel: baseline.jestTestsLabel || null,
     jestSuites: baseline.jestSuites ?? null,
-    pageSamplesLabel: baseline.pageSamplesLabel || null
+    pageSamplesLabel: baseline.pageSamplesLabel || null,
   };
 }
 
@@ -126,7 +138,7 @@ function buildScanSnapshot(report, baseline, dashboardHome) {
     pageSpecs: resolvePageSpecsLabel(report, baseline),
     mockSampleFiles: metrics.mockSampleFiles ?? report.totalFiles ?? null,
     repositoryFiles: metrics.repositoryFiles ?? null,
-    scopeSummary: formatScanScopeSummary(report)
+    scopeSummary: formatScanScopeSummary(report),
   };
 }
 
@@ -137,12 +149,12 @@ function buildScanSnapshot(report, baseline, dashboardHome) {
  */
 export function buildTrustPageExport(trustData) {
   return {
-    type: 'simplebeacon-trust-page-export',
-    version: '1.0.0',
+    type: "simplebeacon-trust-page-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     trust: trustData?.live || trustData,
     publishedAt: trustData?.publishedAt || null,
-    staticHost: Boolean(trustData?.staticHost)
+    staticHost: Boolean(trustData?.staticHost),
   };
 }
 
@@ -152,17 +164,25 @@ export function buildTrustPageExport(trustData) {
  * @returns {any}
  */
 export function buildToolsPageExport(app) {
-  const { report, baseline, devTools, devWorkflows, mergerReductionScan, npmAudit, dashboardHome } = app.state;
+  const {
+    report,
+    baseline,
+    devTools,
+    devWorkflows,
+    mergerReductionScan,
+    npmAudit,
+    dashboardHome,
+  } = app.state;
   return {
-    type: 'simplebeacon-tools-export',
-    version: '1.0.0',
+    type: "simplebeacon-tools-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     tools: devTools || [],
     workflows: devWorkflows || [],
     consolidationScan: mergerReductionScan || null,
     npmAudit: npmAudit || null,
     scanSnapshot: buildScanSnapshot(report, baseline, dashboardHome),
-    baseline: summarizeBaseline(baseline)
+    baseline: summarizeBaseline(baseline),
   };
 }
 
@@ -175,16 +195,16 @@ export function buildHelpPageExport(app) {
   const help = app.state.help || {};
   const { report, baseline, dashboardHome } = app.state;
   return {
-    type: 'simplebeacon-help-export',
-    version: '1.0.0',
+    type: "simplebeacon-help-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
-    title: help.title || 'Help & Docs',
+    title: help.title || "Help & Docs",
     overview: help.overview || null,
     quickLinks: help.quickLinks || [],
     documentation: help.documentation || [],
     faq: help.faq || [],
     scanSnapshot: buildScanSnapshot(report, baseline, dashboardHome),
-    baseline: summarizeBaseline(baseline)
+    baseline: summarizeBaseline(baseline),
   };
 }
 
@@ -193,26 +213,33 @@ export function buildHelpPageExport(app) {
  * @param {any} filter
  * @returns {any}
  */
-export function buildFeaturesPageExport(filter = '') {
-  const q = String(filter || '').trim().toLowerCase();
+export function buildFeaturesPageExport(filter = "") {
+  const q = String(filter || "")
+    .trim()
+    .toLowerCase();
   const catalog = !q
     ? FEATURE_CATALOG
     : FEATURE_CATALOG.map((group) => ({
-      ...group,
-      items: group.items.filter((item) =>
-        `${item.label} ${item.description} ${item.route} ${group.group}`.toLowerCase().includes(q))
-    })).filter((group) => group.items.length);
-  const items = catalog.flatMap((group) => group.items.map((item) => ({ ...item, group: group.group })));
+        ...group,
+        items: group.items.filter((item) =>
+          `${item.label} ${item.description} ${item.route} ${group.group}`
+            .toLowerCase()
+            .includes(q),
+        ),
+      })).filter((group) => group.items.length);
+  const items = catalog.flatMap((group) =>
+    group.items.map((item) => ({ ...item, group: group.group })),
+  );
   return {
-    type: 'simplebeacon-features-export',
-    version: '1.0.0',
+    type: "simplebeacon-features-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     filter: q || null,
     groupCount: catalog.length,
     featureCount: items.length,
     routeCount: new Set(items.map((item) => item.route)).size,
     catalog,
-    features: items
+    features: items,
   };
 }
 
@@ -230,14 +257,14 @@ export function buildSettingsPageExport(app, draftConfig = null) {
     delete sanitized.secrets;
   }
   return {
-    type: 'simplebeacon-settings-page-export',
-    version: '1.0.0',
+    type: "simplebeacon-settings-page-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     config: sanitized,
     baseline: summarizeBaseline(app.state.baseline),
     scanSnapshot: summarizeGateReport(app.state.report),
-    configPath: '.simplebeacon/config.json',
-    note: 'AI provider secrets are never included in page exports.'
+    configPath: ".simplebeacon/config.json",
+    note: "AI provider secrets are never included in page exports.",
   };
 }
 
@@ -248,12 +275,12 @@ export function buildSettingsPageExport(app, draftConfig = null) {
  */
 export function buildAssessmentsPageExport(view) {
   return {
-    type: 'simplebeacon-assessments-portal-export',
-    version: '1.0.0',
+    type: "simplebeacon-assessments-portal-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     assessment: view.report || null,
     recentAssessments: view.recent || [],
-    gateSnapshot: summarizeGateReport(view.app.state.report)
+    gateSnapshot: summarizeGateReport(view.app.state.report),
   };
 }
 
@@ -266,8 +293,8 @@ export function buildOutreachPageExport(view) {
   const sent = view.sent || [];
   const prospects = prospectsWithSentLog(OUTREACH_PROSPECTS, sent);
   return {
-    type: 'simplebeacon-outreach-export',
-    version: '1.0.0',
+    type: "simplebeacon-outreach-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     config: view.config || null,
     throttle: view.config?.throttle || null,
@@ -276,11 +303,11 @@ export function buildOutreachPageExport(view) {
     sentCount: sent.length,
     sent: sent.slice(0, 100),
     draft: {
-      prospectId: view.draft?.prospectId || '',
-      templateId: view.draft?.templateId || '',
-      company: view.draft?.company || '',
-      subject: view.draft?.subject || ''
-    }
+      prospectId: view.draft?.prospectId || "",
+      templateId: view.draft?.templateId || "",
+      company: view.draft?.company || "",
+      subject: view.draft?.subject || "",
+    },
   };
 }
 
@@ -291,16 +318,17 @@ export function buildOutreachPageExport(view) {
  */
 export function buildDeliverablesPageExport(view) {
   return {
-    type: 'simplebeacon-deliverables-export',
-    version: '1.0.0',
+    type: "simplebeacon-deliverables-export",
+    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     products: view.products || [],
     urls: view.urls || {},
     selectedSku: view.activeSecondarySku || view.selectedSku || null,
     intake: { ...view.intake },
-    reportPreview: view.reportPreview || summarizeGateReport(view.app.state.report),
+    reportPreview:
+      view.reportPreview || summarizeGateReport(view.app.state.report),
     lastWorkspace: view.lastWorkspace || null,
     lastSprint: view.lastSprint || null,
-    waitlistCount: view.waitlistCount ?? null
+    waitlistCount: view.waitlistCount ?? null,
   };
 }

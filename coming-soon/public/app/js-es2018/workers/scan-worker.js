@@ -14,7 +14,8 @@ const YIELD_INTERVAL = 500; // yield back to main thread every N files
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
-const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage|idx|s2ma|s2ml|s2gs|s2vh|bank|stormmap|stormmod|replay|mng|snp|tga|dds|anim|model|fx|s2ga|s2ua|s2sa|s2ta|s2wa|s2ih|s2rh|s2ph|s2ch|s2nh|s2mh|s2dh|s2oh|s2ee|s2sb|s2gb|s2mb|s2ab|s2vb|s2lb|s2hb|s2cb|s2nb|s2pb|s2tb|s2wb|s2yb|s2zb|s2fb|s2qb|s2rb|s2xb|s2jb|s2kb|s2ib|s2eb|s2ob|s2ub)$/i;
+const BINARY_EXTENSIONS =
+    /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage|idx|s2ma|s2ml|s2gs|s2vh|bank|stormmap|stormmod|replay|mng|snp|tga|dds|anim|model|fx|s2ga|s2ua|s2sa|s2ta|s2wa|s2ih|s2rh|s2ph|s2ch|s2nh|s2mh|s2dh|s2oh|s2ee|s2sb|s2gb|s2mb|s2ab|s2vb|s2lb|s2hb|s2cb|s2nb|s2pb|s2tb|s2wb|s2yb|s2zb|s2fb|s2qb|s2rb|s2xb|s2jb|s2kb|s2ib|s2eb|s2ob|s2ub)$/i;
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
     python: { extensions: ['py', 'pyw', 'pyi'] },
@@ -24,12 +25,29 @@ const LANGUAGE_REGISTRY = {
     php: { extensions: ['php'] },
     ruby: { extensions: ['rb'] },
     dotnet: { extensions: ['cs', 'vb'] },
-    generic: { extensions: ['txt', 'ini', 'cfg', 'conf', 'env', 'json', 'xml', 'yaml', 'yml', 'md', 'log', 'properties', 'toml'] }
+    generic: {
+        extensions: [
+            'txt',
+            'ini',
+            'cfg',
+            'conf',
+            'env',
+            'json',
+            'xml',
+            'yaml',
+            'yml',
+            'md',
+            'log',
+            'properties',
+            'toml'
+        ]
+    }
 };
 const PATTERN_REGISTRY = {
     debugArtifacts: {
         appliesTo: ['javascript'],
-        pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
+        pattern:
+            /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
     },
     todoMarkers: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
@@ -37,7 +55,8 @@ const PATTERN_REGISTRY = {
     },
     credentials: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
+        pattern:
+            /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
         appliesTo: ['javascript', 'generic'],
@@ -81,23 +100,28 @@ const PATTERN_REGISTRY = {
     },
     phpDebug: {
         appliesTo: ['php'],
-        pattern: /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
+        pattern:
+            /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
     },
     phpFramework: {
         appliesTo: ['php'],
-        pattern: /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
+        pattern:
+            /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
     },
     dotnetDebug: {
         appliesTo: ['dotnet'],
-        pattern: /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
+        pattern:
+            /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
     },
     dotnetFramework: {
         appliesTo: ['dotnet'],
-        pattern: /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
+        pattern:
+            /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
     },
     rubyDebug: {
         appliesTo: ['ruby'],
-        pattern: /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
+        pattern:
+            /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
     },
     rubyFramework: {
         appliesTo: ['ruby'],
@@ -106,23 +130,39 @@ const PATTERN_REGISTRY = {
     // === Ported from legacy scanner-patterns.js for feature parity ===
     sensitiveData: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b|\b\d{3}-\d{2}-\d{4}\b|console\.(log|warn|error|info)\s*\(\s*(?:user|customer|email|password|token|ssn|phone)|localStorage\.setItem\s*\(\s*['"](?:token|auth|session|password)/i,
+        pattern:
+            /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b|\b\d{3}-\d{2}-\d{4}\b|console\.(log|warn|error|info)\s*\(\s*(?:user|customer|email|password|token|ssn|phone)|localStorage\.setItem\s*\(\s*['"](?:token|auth|session|password)/i,
         maxMatches: 3,
-        selfReferenceFilter: /\b(?:dev@simplebeacon\.ai|demo@simplebeacon\.ai|test@example\.com|noreply@|no-reply@|example\.com|localhost|127\.0\.0\.1|generate.*token|send.*email|email.*template|outreach|prospect|marketing|invoice|billing|payment|tier|sandbox|demo|test|fixture|mock|sample|dummy|fake|stub)\b/i,
+        selfReferenceFilter:
+            /\b(?:dev@simplebeacon\.ai|demo@simplebeacon\.ai|test@example\.com|noreply@|no-reply@|example\.com|localhost|127\.0\.0\.1|generate.*token|send.*email|email.*template|outreach|prospect|marketing|invoice|billing|payment|tier|sandbox|demo|test|fixture|mock|sample|dummy|fake|stub)\b/i,
         contextFilter: (snippet, filePath) => {
-            if (/Copyright|Author:|maintainer_email|PACKAGE_BUGREPORT|license|@googlegroups\.com|@google\.com|@apache\.org|@mozilla\.org/.test(snippet)) return false;
-            if (filePath && /\/(jquery|modernizr|underscore|bootstrap|lodash|moment|react|vue|angular)\b|\.min\.js$|\.pack\.js$|(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)\//i.test(filePath)) return false;
+            if (
+                /Copyright|Author:|maintainer_email|PACKAGE_BUGREPORT|license|@googlegroups\.com|@google\.com|@apache\.org|@mozilla\.org/.test(
+                    snippet
+                )
+            )
+                return false;
+            if (
+                filePath &&
+                /\/(jquery|modernizr|underscore|bootstrap|lodash|moment|react|vue|angular)\b|\.min\.js$|\.pack\.js$|(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)\//i.test(
+                    filePath
+                )
+            )
+                return false;
             return true;
         }
     },
     configDrift: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /localhost:\d+|127\.0\.0\.1:\d+|hardcoded.*url|password\s*=\s*['"]|secret\s*=\s*['"]|api_key\s*=\s*['"]/i,
+        pattern:
+            /localhost:\d+|127\.0\.0\.1:\d+|hardcoded.*url|password\s*=\s*['"]|secret\s*=\s*['"]|api_key\s*=\s*['"]/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
-            if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet)) return false;
+            if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet))
+                return false;
             if (/\/\/.*hardcoded|\/\*.*hardcoded|move hardcoded|configuration drift/i.test(snippet)) return false;
-            if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet)) return false;
+            if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet))
+                return false;
             return true;
         }
     },
@@ -157,12 +197,18 @@ const PATTERN_REGISTRY = {
     },
     loggingSecrets: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /console\.(log|warn|error|info)\s*\([^)]*(?:password|token|secret|apiKey|api_key|privateKey|private_key|credential)/i,
+        pattern:
+            /console\.(log|warn|error|info)\s*\([^)]*(?:password|token|secret|apiKey|api_key|privateKey|private_key|credential)/i,
         maxMatches: 3,
-        selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation|test-all-patterns|fixRegistry|findingConverter/i,
+        selfReferenceFilter:
+            /scanner-patterns|scanner-engine|pattern-documentation|test-all-patterns|fixRegistry|findingConverter/i,
         contextFilter: (snippet, filePath) => {
-            const hasVariable = /\b(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)\s*[,+)]/.test(snippet);
-            const onlyInString = /['"][^'"]*(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)[^'"]*['"]/.test(snippet);
+            const hasVariable =
+                /\b(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)\s*[,+)]/.test(snippet);
+            const onlyInString =
+                /['"][^'"]*(?:token|password|secret|apiKey|api_key|privateKey|private_key|credential)[^'"]*['"]/.test(
+                    snippet
+                );
             if (!hasVariable && onlyInString) return false;
             if (/\/\/\s*console\.(log|error|warn)/i.test(snippet)) return false;
             if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
@@ -173,7 +219,8 @@ const PATTERN_REGISTRY = {
         appliesTo: ['javascript', 'python', 'php', 'ruby', 'generic'],
         pattern: /\beval\s*\(|\bnew\s+Function\s*\(|\bsetTimeout\s*\(\s*['"`]|\bsetInterval\s*\(\s*['"`]/i,
         maxMatches: 3,
-        selfReferenceFilter: /new\s+RegExp\s*\(|RegExp\s*\(\s*['"`]|message:\s*['"]eval\(\)|severity.*warning.*eval-usage|scanner-patterns|scanner-engine|pattern-documentation/i,
+        selfReferenceFilter:
+            /new\s+RegExp\s*\(|RegExp\s*\(\s*['"`]|message:\s*['"]eval\(\)|severity.*warning.*eval-usage|scanner-patterns|scanner-engine|pattern-documentation/i,
         contextFilter: (snippet, filePath) => {
             if (/new\s+RegExp\s*\(/i.test(snippet)) return false;
             return true;
@@ -183,14 +230,15 @@ const PATTERN_REGISTRY = {
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bcrypto\.createHash\s*\(\s*['"`](?:md5|sha1)['"`]/i,
         maxMatches: 3,
-        contextFilter: (snippet) => {
+        contextFilter: snippet => {
             if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet)) return false;
             return true;
         }
     },
     secretInComment: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i,
+        pattern:
+            /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i,
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             if (filePath && /scanner-patterns|scanner-engine|pattern-documentation/i.test(filePath)) return false;
@@ -199,7 +247,8 @@ const PATTERN_REGISTRY = {
     },
     llmSlop: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*AI\s+Generated\s+Placeholder|```(?:javascript|typescript|python|json)\s*$|```\s*$|99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|Lorem\s+Ipsum|I have (written|implemented|created|updated) the .* as requested|Let me know if you need me to (adjust|update|change|modify)|AI Assistant Note:/i,
+        pattern:
+            /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*AI\s+Generated\s+Placeholder|```(?:javascript|typescript|python|json)\s*$|```\s*$|99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|Lorem\s+Ipsum|I have (written|implemented|created|updated) the .* as requested|Let me know if you need me to (adjust|update|change|modify)|AI Assistant Note:/i,
         maxMatches: 5,
         selfReferenceFilter: /llm-slop-patterns|fiction-kpi|rejectedFiction|scanner-patterns/i,
         contextFilter: (snippet, filePath) => {
@@ -211,7 +260,8 @@ const PATTERN_REGISTRY = {
     },
     productionLeak: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)sample(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*-sample\.json['"`]/i,
+        pattern:
+            /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*(?:\/|\\)sample(?:\/|\\)[^'"`]+['"`]|['"`][^'"`]*-sample\.json['"`]/i,
         maxMatches: 3,
         selfReferenceFilter: /production-leak|llm-slop-patterns|fiction-kpi|scanner-patterns/i,
         contextFilter: (snippet, filePath) => {
@@ -224,15 +274,18 @@ const PATTERN_REGISTRY = {
     },
     fictionKpi: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /\b(?:totalFeatures|featuresTracked|aiOptimizationsApplied|issuesDetected|issuesFound|patternsIdentified|openIssues)\s*[:=]\s*["']?\d+\b|\b(?:aiConfidence|confidence|accuracy|completionRate)\s*[:=]\s*["']?\d{1,3}\b|\b\d{1,3}\s*%\s*(?:completion|accuracy|confidence|uptime|secure)\b/i,
+        pattern:
+            /\b(?:totalFeatures|featuresTracked|aiOptimizationsApplied|issuesDetected|issuesFound|patternsIdentified|openIssues)\s*[:=]\s*["']?\d+\b|\b(?:aiConfidence|confidence|accuracy|completionRate)\s*[:=]\s*["']?\d{1,3}\b|\b\d{1,3}\s*%\s*(?:completion|accuracy|confidence|uptime|secure)\b/i,
         maxMatches: 3,
-        selfReferenceFilter: /rejectedFiction|fiction-kpi|fictionRemoved|fictionVsReality|not model output|baseline false|progressMetrics|scanner-patterns/i
+        selfReferenceFilter:
+            /rejectedFiction|fiction-kpi|fictionRemoved|fictionVsReality|not model output|baseline false|progressMetrics|scanner-patterns/i
     },
     hardcodedConfidence: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /confidence\s*[:=]\s*(?:0\.\d+|\d{1,3})\b/i,
         maxMatches: 3,
-        selfReferenceFilter: /rejectedFiction|fiction-kpi|scanner-patterns|confidence.*threshold|confidence.*score|confidence.*level/i
+        selfReferenceFilter:
+            /rejectedFiction|fiction-kpi|scanner-patterns|confidence.*threshold|confidence.*score|confidence.*level/i
     },
     hardcodedCompletion: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
@@ -273,7 +326,8 @@ const PATTERN_REGISTRY = {
     },
     aiPlaceholderComment: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
-        pattern: /\/\/\s*(?:TODO:?\s*Implement|TODO:?\s*Add|TODO:?\s*Replace|Placeholder for|Stub for|AI generated placeholder)/i,
+        pattern:
+            /\/\/\s*(?:TODO:?\s*Implement|TODO:?\s*Add|TODO:?\s*Replace|Placeholder for|Stub for|AI generated placeholder)/i,
         maxMatches: 3,
         selfReferenceFilter: /scanner-patterns|scanner-engine|pattern-documentation/i
     },
@@ -291,14 +345,15 @@ const PATTERN_REGISTRY = {
         pattern: /app\.(get|post|put|delete|patch)\s*\(\s*['"][^'"]+['"]/i,
         maxMatches: 3,
         selfReferenceFilter: /rateLimit|rate-limit|throttle|scanner-patterns/i,
-        contextFilter: (snippet) => {
+        contextFilter: snippet => {
             if (/rateLimit|rate-limit|throttle/i.test(snippet)) return false;
             return true;
         }
     },
     dbAntiPattern: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'generic'],
-        pattern: /SELECT\s+.*['"]\s*\+\s*['"]|query\s*\(\s*['"].*\+\s*['"]|raw\s*\(\s*['"].*\$\{|\.findAll\s*\(\s*\)(?!.*limit)/i,
+        pattern:
+            /SELECT\s+.*['"]\s*\+\s*['"]|query\s*\(\s*['"].*\+\s*['"]|raw\s*\(\s*['"].*\$\{|\.findAll\s*\(\s*\)(?!.*limit)/i,
         maxMatches: 3
     }
 };
@@ -330,56 +385,56 @@ const SEVERITY_MAP = {
     missingRateLimit: 'medium',
     dbAntiPattern: 'high'
 };
-const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
+const CREDENTIAL_ALLOWLIST =
+    /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
 const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data|euAiAct|eu-ai-act)/i;
-const EU_AI_ACT_COMPLIANCE_LINE_RE = /EU AI Act Documentation Marker|Documentation Marker|Annex III|Article\s*50|Article\s*12|euAiActCompliance|euAiAct|transparency disclosure|buildTransparency|providerTransparency|ScopeTransparency|aiSystemDisclosure|humanInTheLoop|human-in-the-loop|humanInTheLoop|human oversight|inference events logged|Risk Level:|Limited risk|not legal conformity|technical readiness|transparencyGaps|highRiskIndicators|aiSystemIndicators|documentationArtifacts|legal conformity|Disclaimer:/i;
+const EU_AI_ACT_COMPLIANCE_LINE_RE =
+    /EU AI Act Documentation Marker|Documentation Marker|Annex III|Article\s*50|Article\s*12|euAiActCompliance|euAiAct|transparency disclosure|buildTransparency|providerTransparency|ScopeTransparency|aiSystemDisclosure|humanInTheLoop|human-in-the-loop|humanInTheLoop|human oversight|inference events logged|Risk Level:|Limited risk|not legal conformity|technical readiness|transparencyGaps|highRiskIndicators|aiSystemIndicators|documentationArtifacts|legal conformity|Disclaimer:/i;
 function isTestOrFixturePath(normalized) {
-    return /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|simplebeacon-rule-tests)(?:\/|$)/i.test(normalized)
-        || /\.(test|spec)\.[a-z0-9]+$/i.test(normalized);
+    return (
+        /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|simplebeacon-rule-tests)(?:\/|$)/i.test(normalized) ||
+        /\.(test|spec)\.[a-z0-9]+$/i.test(normalized)
+    );
 }
 function isComplianceToolingPath(normalized) {
-    return /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|lib|mcp|analyzers|reporters)\//i.test(normalized)
-        || /(?:^|\/)(?:coming-soon|simplebeacon-vscode-merged|simplebeacon-vscode)(?:\/|$)/i.test(normalized)
-        || /(?:^|\/)dashboard-web\//i.test(normalized)
-        || /public\/dashboard\//i.test(normalized)
-        || /web\/simplebeacon-dashboard\/js(?:-es2018)?\/(?:services|workers|views)\//i.test(normalized)
-        || /server\/routes\/(?:chatbot-api|flexible-analyze-api)\.cjs$/i.test(normalized)
-        || /src\/api\/trust-api\.cjs$/i.test(normalized)
-        || /eu-ai-act|scanner-patterns|scanner-engine|compliance-mapper|credential-pattern-scanner|enterprise-guardrail|llm-slop-catalog|aiProblemAnalyzerSuite|extendedAnalyzers/i.test(normalized);
+    return (
+        /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|lib|mcp|analyzers|reporters)\//i.test(normalized) ||
+        /(?:^|\/)(?:coming-soon|simplebeacon-vscode-merged|simplebeacon-vscode)(?:\/|$)/i.test(normalized) ||
+        /(?:^|\/)dashboard-web\//i.test(normalized) ||
+        /public\/dashboard\//i.test(normalized) ||
+        /web\/simplebeacon-dashboard\/js(?:-es2018)?\/(?:services|workers|views)\//i.test(normalized) ||
+        /server\/routes\/(?:chatbot-api|flexible-analyze-api)\.cjs$/i.test(normalized) ||
+        /src\/api\/trust-api\.cjs$/i.test(normalized) ||
+        /eu-ai-act|scanner-patterns|scanner-engine|compliance-mapper|credential-pattern-scanner|enterprise-guardrail|llm-slop-catalog|aiProblemAnalyzerSuite|extendedAnalyzers/i.test(
+            normalized
+        )
+    );
 }
 function shouldSkipAnalyzerLine(name, filePath, line) {
     const normalized = filePath.replace(/\\/g, '/');
-    if (IGNORE_LINE_RE.test(line))
-        return true;
+    if (IGNORE_LINE_RE.test(line)) return true;
     if (name === 'credentials') {
-        if (isTestOrFixturePath(normalized) || CREDENTIAL_ALLOWLIST.test(line))
-            return true;
+        if (isTestOrFixturePath(normalized) || CREDENTIAL_ALLOWLIST.test(line)) return true;
     }
     if (name === 'euAiAct') {
-        if (isComplianceToolingPath(normalized) || EU_AI_ACT_COMPLIANCE_LINE_RE.test(line))
-            return true;
+        if (isComplianceToolingPath(normalized) || EU_AI_ACT_COMPLIANCE_LINE_RE.test(line)) return true;
     }
     if (name === 'hardcodedIp') {
-        if (/localhost|127\.0\.0\.1|0\.0\.0\.0|::1/i.test(line))
-            return true;
+        if (/localhost|127\.0\.0\.1|0\.0\.0\.0|::1/i.test(line)) return true;
     }
     return false;
 }
 function shouldSkipAnalyzerFile(name, filePath) {
     const normalized = filePath.replace(/\\/g, '/');
-    if (isTestOrFixturePath(normalized))
-        return true;
-    if (name === 'credentials' && /(?:^|\/)simplebeacon-rule-tests\//i.test(normalized))
-        return true;
-    if (name === 'euAiAct' && isComplianceToolingPath(normalized))
-        return true;
+    if (isTestOrFixturePath(normalized)) return true;
+    if (name === 'credentials' && /(?:^|\/)simplebeacon-rule-tests\//i.test(normalized)) return true;
+    if (name === 'euAiAct' && isComplianceToolingPath(normalized)) return true;
     return false;
 }
 function detectFileLanguage(path) {
     const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
     for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
-        if (config.extensions.includes(ext))
-            return langKey;
+        if (config.extensions.includes(ext)) return langKey;
     }
     return null;
 }
@@ -393,8 +448,7 @@ function extractMatches(text, pattern, max = 3, lineFilter = null) {
     const lines = text.split('\n');
     for (let i = 0; i < lines.length && matches.length < max; i++) {
         const line = lines[i];
-        if (lineFilter && lineFilter(line))
-            continue;
+        if (lineFilter && lineFilter(line)) continue;
         pattern.lastIndex = 0;
         if (pattern.test(line)) {
             matches.push({ line: i + 1, snippet: line.trim().slice(0, 120) });
@@ -407,14 +461,19 @@ function shouldSkipFile(path, deepScan, ignoreCtx) {
     if (ignoreCtx?.patterns?.length && isIgnoredVirtualPath(normalized, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
         return true;
     }
-    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i.test(normalized))
+    if (
+        /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i.test(
+            normalized
+        )
+    )
         return true;
-    if (/complete-scan.*\.json$/i.test(normalized) || /simplebeacon-export.*\.json$/i.test(normalized))
+    if (/complete-scan.*\.json$/i.test(normalized) || /simplebeacon-export.*\.json$/i.test(normalized)) return true;
+    if (
+        !deepScan &&
+        /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)
+    )
         return true;
-    if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized))
-        return true;
-    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized))
-        return true;
+    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
     return false;
 }
 function isBinary(path) {
@@ -426,10 +485,9 @@ function isBinaryOrLarge(path, size) {
 function runAnalyzer(name, text, filePath) {
     const results = [];
     const reg = PATTERN_REGISTRY[name];
-    if (shouldSkipAnalyzerFile(name, filePath))
-        return results;
+    if (shouldSkipAnalyzerFile(name, filePath)) return results;
     if (reg && reg.pattern) {
-        const lineFilter = (line) => shouldSkipAnalyzerLine(name, filePath, line);
+        const lineFilter = line => shouldSkipAnalyzerLine(name, filePath, line);
         const matches = extractMatches(text, reg.pattern, reg.maxMatches || 5, lineFilter);
         // Apply selfReferenceFilter and contextFilter (ported from legacy scanner-patterns.js)
         const filtered = matches.filter(m => {
@@ -458,10 +516,8 @@ async function withTimeout(promise, ms, label) {
                 timer = setTimeout(() => reject(new Error(`Timed out after ${Math.round(ms / 1000)}s: ${label}`)), ms);
             })
         ]);
-    }
-    finally {
-        if (timer)
-            clearTimeout(timer);
+    } finally {
+        if (timer) clearTimeout(timer);
     }
 }
 async function resolveFile(fileEntry) {
@@ -474,8 +530,7 @@ async function resolveFile(fileEntry) {
 async function analyzeWithTextPatterns(file, filePath) {
     const text = await withTimeout(file.text(), FILE_READ_TIMEOUT_MS, filePath);
     const fileLang = detectFileLanguage(filePath);
-    if (!fileLang)
-        return [];
+    if (!fileLang) return [];
     const analyzers = getAnalyzersForLanguage(fileLang);
     const issues = [];
     for (const name of analyzers) {
@@ -515,9 +570,18 @@ async function scanFiles(files, deepScan, state = null) {
      * Called from ALL file processing paths (binary, skipped, error, analyzed)
      * so the UI doesn't appear frozen on binary-heavy projects.
      */
-    const postProgress = (currentFile) => {
+    const postProgress = currentFile => {
         if (processed % 25 === 0) {
-            self.postMessage({ type: 'progress', processed, total, currentFile, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
+            self.postMessage({
+                type: 'progress',
+                processed,
+                total,
+                currentFile,
+                ignoredDir,
+                ignoredByPattern,
+                heavyVendor,
+                binarySkipped
+            });
         }
     };
     for (const file of files) {
@@ -528,11 +592,14 @@ async function scanFiles(files, deepScan, state = null) {
         if (shouldSkipFile(file.path, deepScan, ignoreCtx)) {
             // classify skip reason for telemetry
             const normalized = file.path.replace(/\\/g, '/');
-            const DIR_EXCLUDE_RE = /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i;
-            if (DIR_EXCLUDE_RE.test(normalized) || /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)/i.test(normalized)) {
+            const DIR_EXCLUDE_RE =
+                /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i;
+            if (
+                DIR_EXCLUDE_RE.test(normalized) ||
+                /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)/i.test(normalized)
+            ) {
                 ignoredDir++;
-            }
-            else {
+            } else {
                 ignoredByPattern++;
             }
             processed++;
@@ -577,10 +644,13 @@ async function scanFiles(files, deepScan, state = null) {
                 }
                 let results = [];
                 try {
-                    results = await withTimeout(analyzeFileChunks(fileObj, file.path), CHUNK_ANALYZE_TIMEOUT_MS, file.path);
+                    results = await withTimeout(
+                        analyzeFileChunks(fileObj, file.path),
+                        CHUNK_ANALYZE_TIMEOUT_MS,
+                        file.path
+                    );
                     chunkAnalyzed += 1;
-                }
-                catch (err) {
+                } catch (err) {
                     // chunk analyzer failed or timed out - skip to avoid OOM
                     heavyVendor += 1;
                     processed++;
@@ -602,12 +672,11 @@ async function scanFiles(files, deepScan, state = null) {
                     allResults.push({
                         analyzer: 'chunkAnalyzer',
                         filePath: file.path,
-                        matches: chunkIssues.map((i) => ({ line: i.line, snippet: i.impact })),
+                        matches: chunkIssues.map(i => ({ line: i.line, snippet: i.impact })),
                         count: chunkIssues.length
                     });
                 }
-            }
-            else if (detectFileLanguage(file.path)) {
+            } else if (detectFileLanguage(file.path)) {
                 const textIssues = await analyzeWithTextPatterns(fileObj, file.path);
                 for (const issue of textIssues) {
                     if (issues.length >= MAX_ISSUES) {
@@ -623,18 +692,32 @@ async function scanFiles(files, deepScan, state = null) {
             if (processed % YIELD_INTERVAL === 0) {
                 await new Promise(r => setTimeout(r, 0));
             }
-        }
-        catch (err) {
-                    textErrors++;
-                    processed++;
-                    postProgress(file.path);
-                    try {
-                        self.postMessage({ type: 'file-error', scanId: self.scanState?.scanId || null, file: file.path, name: err && err.name ? err.name : null, message: err && err.message ? err.message : String(err), stack: err && err.stack ? err.stack : null });
-                    }
-                    catch (_a) { }
+        } catch (err) {
+            textErrors++;
+            processed++;
+            postProgress(file.path);
+            try {
+                self.postMessage({
+                    type: 'file-error',
+                    scanId: self.scanState?.scanId || null,
+                    file: file.path,
+                    name: err && err.name ? err.name : null,
+                    message: err && err.message ? err.message : String(err),
+                    stack: err && err.stack ? err.stack : null
+                });
+            } catch (_a) {}
         }
     }
-    self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '', ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
+    self.postMessage({
+        type: 'progress',
+        processed,
+        total,
+        currentFile: files.length ? files[files.length - 1].path : '',
+        ignoredDir,
+        ignoredByPattern,
+        heavyVendor,
+        binarySkipped
+    });
     return {
         processed,
         totalFiles: total,
@@ -651,15 +734,14 @@ async function scanFiles(files, deepScan, state = null) {
         textErrors
     };
 }
-self.onmessage = async (e) => {
+self.onmessage = async e => {
     const { type, files, scanId, batchOffset, totalFiles, deepScan } = e.data;
     if (type === 'scan') {
         self.postMessage({ type: 'started', scanId, totalFiles: files.length });
         try {
             const results = await scanFiles(files, deepScan);
             self.postMessage({ type: 'complete', scanId, ...results });
-        }
-        catch (err) {
+        } catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });
         }
         return;
@@ -689,7 +771,14 @@ self.onmessage = async (e) => {
         }
         try {
             const batch = Array.isArray(files) ? files : [];
-            self.postMessage({ type: 'batch-started', scanId, batchOffset: batchOffset || 0, batchSize: batch.length, processed: state.processed, total: state.totalFiles });
+            self.postMessage({
+                type: 'batch-started',
+                scanId,
+                batchOffset: batchOffset || 0,
+                batchSize: batch.length,
+                processed: state.processed,
+                total: state.totalFiles
+            });
             const results = await scanFiles(batch, state.deepScan, state);
             state.allResults = results.allResults;
             state.issues = results.issues;
@@ -705,8 +794,7 @@ self.onmessage = async (e) => {
                 processed: state.processed,
                 total: state.totalFiles
             });
-        }
-        catch (err) {
+        } catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });
         }
         return;

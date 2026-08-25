@@ -2,10 +2,12 @@
 /**
  * Collect changed file paths for PR / CI diff-only scans.
  */
-const { execSync } = require('child_process');
+const { execSync } = require("child_process");
 
 function normalizeRelPath(entry) {
-    return String(entry || '').replace(/\\/g, '/').replace(/^\.\/+/, '');
+  return String(entry || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\/+/, "");
 }
 
 /**
@@ -14,15 +16,17 @@ function normalizeRelPath(entry) {
  * @returns {{ base: string, head: string }}
  */
 function resolveDiffRefs(options = {}) {
-    const base = options.baseRef
-        || process.env.SIMPLEBEACON_BASE_REF
-        || process.env.GITHUB_BASE_REF
-        || 'origin/main';
-    const head = options.headRef
-        || process.env.SIMPLEBEACON_HEAD_REF
-        || process.env.GITHUB_SHA
-        || 'HEAD';
-    return { base, head };
+  const base =
+    options.baseRef ||
+    process.env.SIMPLEBEACON_BASE_REF ||
+    process.env.GITHUB_BASE_REF ||
+    "origin/main";
+  const head =
+    options.headRef ||
+    process.env.SIMPLEBEACON_HEAD_REF ||
+    process.env.GITHUB_SHA ||
+    "HEAD";
+  return { base, head };
 }
 
 /**
@@ -33,34 +37,34 @@ function resolveDiffRefs(options = {}) {
  * @returns {string[]|null}
  */
 function collectGitDiffFiles(cwd, options = {}) {
-    const root = cwd || process.cwd();
-    const { base, head } = resolveDiffRefs(options);
-    const attempts = [
-        `git diff --name-only --diff-filter=ACMR ${base}...${head}`,
-        `git diff --name-only --diff-filter=ACMR ${base}..${head}`,
-        'git diff --name-only --diff-filter=ACMR HEAD~1..HEAD'
-    ];
+  const root = cwd || process.cwd();
+  const { base, head } = resolveDiffRefs(options);
+  const attempts = [
+    `git diff --name-only --diff-filter=ACMR ${base}...${head}`,
+    `git diff --name-only --diff-filter=ACMR ${base}..${head}`,
+    "git diff --name-only --diff-filter=ACMR HEAD~1..HEAD",
+  ];
 
-    for (const cmd of attempts) {
-        try {
-            const out = execSync(cmd, {
-                cwd: root,
-                encoding: 'utf8',
-                stdio: ['ignore', 'pipe', 'ignore']
-            });
-            const files = out.split(/\r?\n/).map(normalizeRelPath).filter(Boolean);
-            if (files.length) {
-                return files;
-            }
-        } catch {
-            /* try next strategy */
-        }
+  for (const cmd of attempts) {
+    try {
+      const out = execSync(cmd, {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      const files = out.split(/\r?\n/).map(normalizeRelPath).filter(Boolean);
+      if (files.length) {
+        return files;
+      }
+    } catch {
+      /* try next strategy */
     }
-    return null;
+  }
+  return null;
 }
 
 module.exports = {
-    collectGitDiffFiles,
-    resolveDiffRefs,
-    normalizeRelPath
+  collectGitDiffFiles,
+  resolveDiffRefs,
+  normalizeRelPath,
 };

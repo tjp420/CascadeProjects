@@ -10,7 +10,16 @@
     "message": "AI system for employment/recruitment detected — EU AI Act Annex III.4 high-risk classification",
     "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -25,7 +34,16 @@
     "message": "AI system for credit scoring/lending detected — EU AI Act Annex III.5 high-risk classification",
     "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -40,7 +58,16 @@
     "message": "Biometric identification AI detected — EU AI Act Annex III.1 high-risk classification",
     "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -55,7 +82,16 @@
     "message": "AI system for education assessment detected — EU AI Act Annex III.3 high-risk classification",
     "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -70,7 +106,16 @@
     "message": "AI system for law enforcement detected — EU AI Act Annex III.7 high-risk classification",
     "suggestion": "Implement risk management, data governance, human oversight, and transparency per EU AI Act Articles 9-15",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -85,7 +130,16 @@
     "message": "Fully automated decision without human oversight — EU AI Act Art. 14 violation risk",
     "suggestion": "Add human-in-the-loop review for automated decisions, especially for high-risk AI systems",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".md", ".mdx"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".md",
+        ".mdx"
+      ],
       "linePrefixes": ["// simplebeacon-ignore", "// eslint-disable"]
     }
   },
@@ -100,7 +154,14 @@
     "message": "FRIA reference detected — ensure assessment is completed before deployment (EU AI Act Art. 27)",
     "suggestion": "Verify a Fundamental Rights Impact Assessment has been completed for high-risk AI systems",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
   }

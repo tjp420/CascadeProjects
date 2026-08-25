@@ -12,8 +12,12 @@
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -93,12 +97,16 @@ function buildAssessmentExportNotes(assessment, _projectLabel) {
   const filesNote = buildFilesScannedNote(exec);
   if (filesNote) notes.push(filesNote);
   if (checklist.supplyChainSkipped && exec.gateResult === 'PASS') {
-    notes.push('Supply-chain checklist rows skipped — run npm audit on Compliance Audit page for SUPPLY-001/002 evidence.');
+    notes.push(
+      'Supply-chain checklist rows skipped — run npm audit on Compliance Audit page for SUPPLY-001/002 evidence.'
+    );
   }
   if (exec.gateResult === 'PASS' && checklist.readyForAutomation) {
     notes.push('Gate hygiene and applicable checklist rules pass — not vendor handoff or Complete scan clearance.');
   } else if (exec.gateResult === 'FAIL') {
-    notes.push(`Gate FAIL — ${exec.blockingCount ?? 0} blocking finding(s). Review gate report detectedIssues before merge.`);
+    notes.push(
+      `Gate FAIL — ${exec.blockingCount ?? 0} blocking finding(s). Review gate report detectedIssues before merge.`
+    );
   }
   return [...new Set(notes)].slice(0, 6);
 }
@@ -115,24 +123,18 @@ function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
   let ready = summary.readyForAutomation ?? executiveSummary.complianceReady ?? false;
   if (!sourceReport) return ready;
 
-  const ruleScoped = sourceReport.ruleScopedFilesAnalyzed
-    ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed
-    ?? 0;
-/**
- * Core security skipped.
- * @param {any} checklist?.rules || []
- * @returns {any}
- */
-  const coreSecuritySkipped = (checklist?.rules || []).some((r) =>
-    ['GATE-001', 'CRED-001', 'LEAK-001'].includes(r.id) && r.status === 'skip'
+  const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  /**
+   * Core security skipped.
+   * @param {any} checklist?.rules || []
+   * @returns {any}
+   */
+  const coreSecuritySkipped = (checklist?.rules || []).some(
+    (r) => ['GATE-001', 'CRED-001', 'LEAK-001'].includes(r.id) && r.status === 'skip'
   );
   const gatePass = Boolean(sourceReport.gate?.pass ?? executiveSummary.gateResult === 'PASS');
 
-  if (gatePass
-    && ruleScoped > 0
-    && (summary.failed ?? 0) === 0
-    && (summary.passed ?? 0) > 0
-    && !coreSecuritySkipped) {
+  if (gatePass && ruleScoped > 0 && (summary.failed ?? 0) === 0 && (summary.passed ?? 0) > 0 && !coreSecuritySkipped) {
     return true;
   }
   return ready;
@@ -167,14 +169,14 @@ function reconcileChecklistExport(checklist, projectLabel, sourceReport) {
     ? {
         ...checklist.summary,
         readyForAutomation: reconcileComplianceReady({}, checklist, sourceReport),
-        headline: normalizeSimpleBeaconBranding(checklist.summary.headline)
+        headline: normalizeSimpleBeaconBranding(checklist.summary.headline),
       }
     : checklist.summary;
   return {
     ...checklist,
     title: normalizeSimpleBeaconBranding(checklist.title || 'SimpleBeacon Corporate Safety Checklist'),
     projectRoot: redactProjectPathForExport(checklist.projectRoot, projectLabel),
-    summary
+    summary,
   };
 }
 
@@ -188,56 +190,46 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
   if (!assessment || assessment.type !== 'simplebeacon-assessment-report') return assessment;
 
   const sourceReport = options.sourceReport || null;
-  const projectLabel = projectLabelFromPath(
-    options.projectPath
-    || assessment.projectRoot
-    || sourceReport?.projectRoot
-  );
+  const projectLabel = projectLabelFromPath(options.projectPath || assessment.projectRoot || sourceReport?.projectRoot);
   const benchmarkScan = Boolean(
-    options.benchmarkScan
-    || assessment.benchmarkScan
-    || sourceReport?.benchmarkScan
-    || isBenchmarkPath(assessment.projectRoot)
+    options.benchmarkScan ||
+    assessment.benchmarkScan ||
+    sourceReport?.benchmarkScan ||
+    isBenchmarkPath(assessment.projectRoot)
   );
 
   let executiveSummary = reconcileExecutiveSummary(assessment, sourceReport);
   if (sourceReport) {
-    const ruleScoped = sourceReport.ruleScopedFilesAnalyzed
-      ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed
-      ?? null;
+    const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? null;
     const mockSampleFiles = sourceReport.mockSampleFiles ?? sourceReport.totalFiles ?? null;
     executiveSummary = {
       ...executiveSummary,
-      filesScanned: ruleScoped
-        ?? sourceReport.filesAnalyzed
-        ?? sourceReport.repositoryFilesTotal
-        ?? executiveSummary.filesScanned,
+      filesScanned:
+        ruleScoped ?? sourceReport.filesAnalyzed ?? sourceReport.repositoryFilesTotal ?? executiveSummary.filesScanned,
       mockSampleFiles,
       ruleScopedFilesAnalyzed: ruleScoped,
-      repositoryFilesTotal: sourceReport.repositoryFilesTotal
-        ?? sourceReport.repositoryInventory?.totalFiles
-        ?? executiveSummary.repositoryFilesTotal
-        ?? null,
+      repositoryFilesTotal:
+        sourceReport.repositoryFilesTotal ??
+        sourceReport.repositoryInventory?.totalFiles ??
+        executiveSummary.repositoryFilesTotal ??
+        null,
       gateResult: sourceReport.gate?.pass ? 'PASS' : 'FAIL',
       blockingCount: sourceReport.gate?.blockingCount ?? executiveSummary.blockingCount ?? 0,
       warningCount: sourceReport.gate?.warningCount ?? executiveSummary.warningCount ?? 0,
-      qualityScore: sourceReport.qualityScore ?? executiveSummary.qualityScore ?? null
+      qualityScore: sourceReport.qualityScore ?? executiveSummary.qualityScore ?? null,
     };
     const note = buildFilesScannedNote(executiveSummary);
     if (note) executiveSummary.filesScannedNote = note;
   }
 
-  const exportNotes = buildAssessmentExportNotes(
-    { ...assessment, executiveSummary },
-    projectLabel
-  );
+  const exportNotes = buildAssessmentExportNotes({ ...assessment, executiveSummary }, projectLabel);
 
   const { sourceReport: embeddedSource, ...rest } = assessment;
   const sanitizedSource = embeddedSource
     ? {
         generatedAt: embeddedSource.generatedAt ?? null,
         scanPaths: embeddedSource.scanPaths ?? null,
-        duplicateGroups: embeddedSource.duplicateGroups ?? null
+        duplicateGroups: embeddedSource.duplicateGroups ?? null,
       }
     : undefined;
 
@@ -248,7 +240,7 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
     projectRoot: redactProjectPathForExport(assessment.projectRoot, projectLabel),
     executiveSummary: {
       ...executiveSummary,
-      headline: normalizeSimpleBeaconBranding(executiveSummary.headline)
+      headline: normalizeSimpleBeaconBranding(executiveSummary.headline),
     },
     complianceChecklist: reconcileChecklistExport(assessment.complianceChecklist, projectLabel, sourceReport),
     ...(sanitizedSource ? { sourceReport: sanitizedSource } : {}),
@@ -267,20 +259,18 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
       benchmarkScan,
       attestationNote: benchmarkScan
         ? 'Benchmark clone assessment — not SimpleBeacon product handoff clearance.'
-        : 'Assessment export — gate hygiene and checklist attestation only, not vendor handoff clearance.'
+        : 'Assessment export — gate hygiene and checklist attestation only, not vendor handoff clearance.',
     },
     exportNotes,
     disclaimers: [
-      ...(benchmarkScan
-        ? ['Benchmark clone assessment — not SimpleBeacon ai-platform product handoff.']
-        : []),
+      ...(benchmarkScan ? ['Benchmark clone assessment — not SimpleBeacon ai-platform product handoff.'] : []),
       'Assessment export maps scan signals to deploy-readiness checklist rows — not legal conformity certification.',
       'Findings items may be truncated in exports; use gate report detectedIssues for remediation detail.',
       'Absolute host paths are redacted to project label in exports.',
-      'handoffEligible remains false — Complete scan clearance requires operator sign-off.'
+      'handoffEligible remains false — Complete scan clearance requires operator sign-off.',
     ],
     sanitized: true,
-    sanitizedAt: new Date().toISOString()
+    sanitizedAt: new Date().toISOString(),
   };
 }
 

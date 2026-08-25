@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 38: Encrypted P2P Routing.
@@ -21,17 +21,17 @@
  * @module hsm-adapter/encrypted-p2p-routing-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 // ── Route states ─────────────────────────────────────────────────
 const ROUTE_STATE = {
-  DISCOVERY: 'discovery',
-  ESTABLISHED: 'established',
-  ENCRYPTING: 'encrypting',
-  RELAYING: 'relaying',
-  DELIVERED: 'delivered',
-  REVOKED: 'revoked',
+  DISCOVERY: "discovery",
+  ESTABLISHED: "established",
+  ENCRYPTING: "encrypting",
+  RELAYING: "relaying",
+  DELIVERED: "delivered",
+  REVOKED: "revoked",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
@@ -144,7 +144,8 @@ class RouteTable {
   findRoute(source, destination) {
     if (!this._adjacency.has(source)) return null;
     if (!this._adjacency.has(destination)) return null;
-    if (this._blacklisted.has(source) || this._blacklisted.has(destination)) return null;
+    if (this._blacklisted.has(source) || this._blacklisted.has(destination))
+      return null;
     if (source === destination) return [source];
 
     const queue = [[source]];
@@ -195,11 +196,14 @@ class OnionEncryption {
    */
   static encrypt(message, route, peerKeys) {
     if (!Array.isArray(route) || route.length < 2) {
-      throw new HsmAdapterError('INVALID_INPUT', 'route must have at least 2 nodes');
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "route must have at least 2 nodes",
+      );
     }
 
     // Start with the innermost payload (the actual message)
-    let payload = Buffer.from(message, 'utf8');
+    let payload = Buffer.from(message, "utf8");
     const layers = []; // encrypted layers from innermost to outermost
 
     // Encrypt from destination back to source
@@ -207,31 +211,37 @@ class OnionEncryption {
       const hopId = route[i];
       const key = peerKeys.get(hopId);
       if (!key) {
-        throw new HsmAdapterError('PEER_KEY_MISSING', `no encryption key for peer ${hopId}`);
+        throw new HsmAdapterError(
+          "PEER_KEY_MISSING",
+          `no encryption key for peer ${hopId}`,
+        );
       }
 
       // Create the hop payload: next hop + encrypted payload
       const nextHop = i < route.length - 1 ? route[i + 1] : null;
       const hopData = {
         nextHop,
-        payload: payload.toString('hex'),
+        payload: payload.toString("hex"),
       };
       const hopDataStr = JSON.stringify(hopData);
 
       // Encrypt with AES-256-GCM
-      const keyBuf = Buffer.from(key, 'hex');
+      const keyBuf = Buffer.from(key, "hex");
       const iv = crypto.randomBytes(12);
-      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuf, iv);
-      const encrypted = Buffer.concat([cipher.update(hopDataStr, 'utf8'), cipher.final()]);
+      const cipher = crypto.createCipheriv("aes-256-gcm", keyBuf, iv);
+      const encrypted = Buffer.concat([
+        cipher.update(hopDataStr, "utf8"),
+        cipher.final(),
+      ]);
       const authTag = cipher.getAuthTag();
 
       const layer = {
-        iv: iv.toString('hex'),
-        encrypted: encrypted.toString('hex'),
-        authTag: authTag.toString('hex'),
+        iv: iv.toString("hex"),
+        encrypted: encrypted.toString("hex"),
+        authTag: authTag.toString("hex"),
       };
       layers.unshift(layer);
-      payload = Buffer.from(JSON.stringify(layer), 'utf8');
+      payload = Buffer.from(JSON.stringify(layer), "utf8");
     }
 
     return {
@@ -239,7 +249,7 @@ class OnionEncryption {
       layers,
       source: route[0],
       destination: route[route.length - 1],
-      messageHash: crypto.createHash('sha256').update(message).digest('hex'),
+      messageHash: crypto.createHash("sha256").update(message).digest("hex"),
     };
   }
 
@@ -251,21 +261,28 @@ class OnionEncryption {
    * @returns {object} { nextHop, remainingPayload, isFinal }
    */
   static decryptLayer(onionBundle, nodeId, key) {
-    if (!onionBundle || !Array.isArray(onionBundle.layers) || onionBundle.layers.length === 0) {
-      throw new HsmAdapterError('INVALID_ONION', 'onion bundle has no layers');
+    if (
+      !onionBundle ||
+      !Array.isArray(onionBundle.layers) ||
+      onionBundle.layers.length === 0
+    ) {
+      throw new HsmAdapterError("INVALID_ONION", "onion bundle has no layers");
     }
 
     const layer = onionBundle.layers[0];
-    const keyBuf = Buffer.from(key, 'hex');
-    const iv = Buffer.from(layer.iv, 'hex');
-    const encrypted = Buffer.from(layer.encrypted, 'hex');
-    const authTag = Buffer.from(layer.authTag, 'hex');
+    const keyBuf = Buffer.from(key, "hex");
+    const iv = Buffer.from(layer.iv, "hex");
+    const encrypted = Buffer.from(layer.encrypted, "hex");
+    const authTag = Buffer.from(layer.authTag, "hex");
 
     try {
-      const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuf, iv);
+      const decipher = crypto.createDecipheriv("aes-256-gcm", keyBuf, iv);
       decipher.setAuthTag(authTag);
-      const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-      const hopData = JSON.parse(decrypted.toString('utf8'));
+      const decrypted = Buffer.concat([
+        decipher.update(encrypted),
+        decipher.final(),
+      ]);
+      const hopData = JSON.parse(decrypted.toString("utf8"));
 
       return {
         nextHop: hopData.nextHop,
@@ -273,7 +290,10 @@ class OnionEncryption {
         isFinal: hopData.nextHop === null,
       };
     } catch (err) {
-      throw new HsmAdapterError('ONION_DECRYPT_FAILED', `decryption failed at node ${nodeId}: ${err.message}`);
+      throw new HsmAdapterError(
+        "ONION_DECRYPT_FAILED",
+        `decryption failed at node ${nodeId}: ${err.message}`,
+      );
     }
   }
 }
@@ -294,7 +314,7 @@ class EncryptedP2PRoutingEngine {
    */
   constructor(options = {}) {
     if (!options.localNodeId) {
-      throw new HsmAdapterError('INVALID_INPUT', 'localNodeId is required');
+      throw new HsmAdapterError("INVALID_INPUT", "localNodeId is required");
     }
     this.localNodeId = options.localNodeId;
     this.maxHopCount = options.maxHopCount || 16;
@@ -319,7 +339,7 @@ class EncryptedP2PRoutingEngine {
     if (sharedKey) {
       this._peerKeys.set(nodeId, sharedKey);
     }
-    this._emitAudit('PEER_ADDED', { nodeId });
+    this._emitAudit("PEER_ADDED", { nodeId });
   }
 
   /**
@@ -329,7 +349,7 @@ class EncryptedP2PRoutingEngine {
    */
   addEdge(nodeA, nodeB) {
     this._routeTable.addEdge(nodeA, nodeB);
-    this._emitAudit('EDGE_ADDED', { nodeA, nodeB });
+    this._emitAudit("EDGE_ADDED", { nodeA, nodeB });
   }
 
   /**
@@ -339,7 +359,7 @@ class EncryptedP2PRoutingEngine {
   removePeer(nodeId) {
     this._routeTable.removePeer(nodeId);
     this._peerKeys.delete(nodeId);
-    this._emitAudit('PEER_REMOVED', { nodeId });
+    this._emitAudit("PEER_REMOVED", { nodeId });
   }
 
   /**
@@ -347,10 +367,10 @@ class EncryptedP2PRoutingEngine {
    * @param {string} nodeId
    * @param {string} [reason]
    */
-  blacklistPeer(nodeId, reason = 'manual') {
+  blacklistPeer(nodeId, reason = "manual") {
     this._routeTable.blacklist(nodeId);
     this._peerKeys.delete(nodeId);
-    this._emitAudit('PEER_BLACKLISTED', { nodeId, reason });
+    this._emitAudit("PEER_BLACKLISTED", { nodeId, reason });
   }
 
   /**
@@ -361,10 +381,16 @@ class EncryptedP2PRoutingEngine {
   discoverRoute(destination) {
     const route = this._routeTable.findRoute(this.localNodeId, destination);
     if (!route) {
-      throw new HsmAdapterError('ROUTE_NOT_FOUND', `no route from ${this.localNodeId} to ${destination}`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_FOUND",
+        `no route from ${this.localNodeId} to ${destination}`,
+      );
     }
     if (route.length > this.maxHopCount) {
-      throw new HsmAdapterError('ROUTE_TOO_LONG', `route has ${route.length} hops, max is ${this.maxHopCount}`);
+      throw new HsmAdapterError(
+        "ROUTE_TOO_LONG",
+        `route has ${route.length} hops, max is ${this.maxHopCount}`,
+      );
     }
 
     const routeId = `route-${this._nextRouteId}`;
@@ -372,8 +398,17 @@ class EncryptedP2PRoutingEngine {
     this._routeStates.set(routeId, ROUTE_STATE.DISCOVERY);
     this._routeInfoCache.set(routeId, { route });
 
-    this._emitAudit('ROUTE_DISCOVERED', { routeId, route, hopCount: route.length });
-    return { routeId, route, hopCount: route.length, state: ROUTE_STATE.DISCOVERY };
+    this._emitAudit("ROUTE_DISCOVERED", {
+      routeId,
+      route,
+      hopCount: route.length,
+    });
+    return {
+      routeId,
+      route,
+      hopCount: route.length,
+      state: ROUTE_STATE.DISCOVERY,
+    };
   }
 
   /**
@@ -383,7 +418,7 @@ class EncryptedP2PRoutingEngine {
   establishRoute(routeId) {
     const route = this._getRoute(routeId);
     this._transition(routeId, ROUTE_STATE.ESTABLISHED);
-    this._emitAudit('ROUTE_ESTABLISHED', { routeId });
+    this._emitAudit("ROUTE_ESTABLISHED", { routeId });
     return { routeId, state: ROUTE_STATE.ESTABLISHED };
   }
 
@@ -396,20 +431,30 @@ class EncryptedP2PRoutingEngine {
   encryptMessage(routeId, message) {
     const routeState = this._routeStates.get(routeId);
     if (routeState !== ROUTE_STATE.ESTABLISHED) {
-      throw new HsmAdapterError('ROUTE_NOT_ESTABLISHED', `route ${routeId} must be established, got ${routeState}`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_ESTABLISHED",
+        `route ${routeId} must be established, got ${routeState}`,
+      );
     }
 
     // Get the route path from the discovery
     const routeInfo = this._getRouteInfo(routeId);
-    const onionBundle = OnionEncryption.encrypt(message, routeInfo.route, this._peerKeys);
+    const onionBundle = OnionEncryption.encrypt(
+      message,
+      routeInfo.route,
+      this._peerKeys,
+    );
 
     // Add anti-replay nonce
-    onionBundle.nonce = crypto.randomBytes(16).toString('hex');
+    onionBundle.nonce = crypto.randomBytes(16).toString("hex");
     onionBundle.timestamp = Date.now();
     onionBundle.routeId = routeId;
 
     this._transition(routeId, ROUTE_STATE.ENCRYPTING);
-    this._emitAudit('MESSAGE_ENCRYPTED', { routeId, messageHash: onionBundle.messageHash });
+    this._emitAudit("MESSAGE_ENCRYPTED", {
+      routeId,
+      messageHash: onionBundle.messageHash,
+    });
     return onionBundle;
   }
 
@@ -422,15 +467,22 @@ class EncryptedP2PRoutingEngine {
     const routeId = onionBundle.routeId;
     const routeState = this._routeStates.get(routeId);
     if (routeState !== ROUTE_STATE.ENCRYPTING) {
-      throw new HsmAdapterError('ROUTE_NOT_ENCRYPTED', `route ${routeId} must be in encrypting state, got ${routeState}`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_ENCRYPTED",
+        `route ${routeId} must be in encrypting state, got ${routeState}`,
+      );
     }
 
     // Anti-replay check
     this._validateReplay(onionBundle);
 
     this._transition(routeId, ROUTE_STATE.RELAYING);
-    this._emitAudit('MESSAGE_RELAYING', { routeId, nonce: onionBundle.nonce });
-    return { routeId, state: ROUTE_STATE.RELAYING, hopCount: onionBundle.route.length - 1 };
+    this._emitAudit("MESSAGE_RELAYING", { routeId, nonce: onionBundle.nonce });
+    return {
+      routeId,
+      state: ROUTE_STATE.RELAYING,
+      hopCount: onionBundle.route.length - 1,
+    };
   }
 
   /**
@@ -442,11 +494,18 @@ class EncryptedP2PRoutingEngine {
   decryptAtRelay(onionBundle, nodeId) {
     const key = this._peerKeys.get(nodeId);
     if (!key) {
-      throw new HsmAdapterError('PEER_KEY_MISSING', `no key for relay node ${nodeId}`);
+      throw new HsmAdapterError(
+        "PEER_KEY_MISSING",
+        `no key for relay node ${nodeId}`,
+      );
     }
 
     const result = OnionEncryption.decryptLayer(onionBundle, nodeId, key);
-    this._emitAudit('LAYER_DECRYPTED', { nodeId, nextHop: result.nextHop, isFinal: result.isFinal });
+    this._emitAudit("LAYER_DECRYPTED", {
+      nodeId,
+      nextHop: result.nextHop,
+      isFinal: result.isFinal,
+    });
     return result;
   }
 
@@ -457,10 +516,13 @@ class EncryptedP2PRoutingEngine {
   markDelivered(routeId) {
     const routeState = this._routeStates.get(routeId);
     if (routeState !== ROUTE_STATE.RELAYING) {
-      throw new HsmAdapterError('ROUTE_NOT_RELAYING', `route ${routeId} must be relaying, got ${routeState}`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_RELAYING",
+        `route ${routeId} must be relaying, got ${routeState}`,
+      );
     }
     this._transition(routeId, ROUTE_STATE.DELIVERED);
-    this._emitAudit('MESSAGE_DELIVERED', { routeId });
+    this._emitAudit("MESSAGE_DELIVERED", { routeId });
     return { routeId, state: ROUTE_STATE.DELIVERED };
   }
 
@@ -469,19 +531,28 @@ class EncryptedP2PRoutingEngine {
    * @param {string} routeId
    * @param {string} [reason]
    */
-  revokeRoute(routeId, reason = 'manual') {
+  revokeRoute(routeId, reason = "manual") {
     const routeState = this._routeStates.get(routeId);
     if (!routeState) {
-      throw new HsmAdapterError('ROUTE_NOT_FOUND', `route ${routeId} not found`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_FOUND",
+        `route ${routeId} not found`,
+      );
     }
     if (routeState === ROUTE_STATE.DELIVERED) {
-      throw new HsmAdapterError('ROUTE_ALREADY_DELIVERED', `route ${routeId} already delivered`);
+      throw new HsmAdapterError(
+        "ROUTE_ALREADY_DELIVERED",
+        `route ${routeId} already delivered`,
+      );
     }
     if (routeState === ROUTE_STATE.REVOKED) {
-      throw new HsmAdapterError('ROUTE_ALREADY_REVOKED', `route ${routeId} already revoked`);
+      throw new HsmAdapterError(
+        "ROUTE_ALREADY_REVOKED",
+        `route ${routeId} already revoked`,
+      );
     }
     this._transition(routeId, ROUTE_STATE.REVOKED);
-    this._emitAudit('ROUTE_REVOKED', { routeId, reason });
+    this._emitAudit("ROUTE_REVOKED", { routeId, reason });
     return { routeId, state: ROUTE_STATE.REVOKED, reason };
   }
 
@@ -493,7 +564,10 @@ class EncryptedP2PRoutingEngine {
   getRouteState(routeId) {
     const state = this._routeStates.get(routeId);
     if (!state) {
-      throw new HsmAdapterError('ROUTE_NOT_FOUND', `route ${routeId} not found`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_FOUND",
+        `route ${routeId} not found`,
+      );
     }
     return { routeId, state };
   }
@@ -528,7 +602,10 @@ class EncryptedP2PRoutingEngine {
    */
   _getRoute(routeId) {
     if (!this._routeStates.has(routeId)) {
-      throw new HsmAdapterError('ROUTE_NOT_FOUND', `route ${routeId} not found`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_FOUND",
+        `route ${routeId} not found`,
+      );
     }
     return routeId;
   }
@@ -541,7 +618,10 @@ class EncryptedP2PRoutingEngine {
   _getRouteInfo(routeId) {
     const info = this._routeInfoCache.get(routeId);
     if (!info) {
-      throw new HsmAdapterError('ROUTE_NOT_FOUND', `route info for ${routeId} not found`);
+      throw new HsmAdapterError(
+        "ROUTE_NOT_FOUND",
+        `route info for ${routeId} not found`,
+      );
     }
     return info;
   }
@@ -552,15 +632,21 @@ class EncryptedP2PRoutingEngine {
    */
   _validateReplay(onionBundle) {
     if (!onionBundle.nonce) {
-      throw new HsmAdapterError('REPLAY_MISSING_NONCE', 'message has no nonce');
+      throw new HsmAdapterError("REPLAY_MISSING_NONCE", "message has no nonce");
     }
     if (this._seenNonces.has(onionBundle.nonce)) {
-      throw new HsmAdapterError('REPLAY_DETECTED', `nonce ${onionBundle.nonce} already seen`);
+      throw new HsmAdapterError(
+        "REPLAY_DETECTED",
+        `nonce ${onionBundle.nonce} already seen`,
+      );
     }
     if (onionBundle.timestamp) {
       const age = Date.now() - onionBundle.timestamp;
       if (age > this.replayWindowMs) {
-        throw new HsmAdapterError('REPLAY_TIMESTAMP_EXPIRED', `message age ${age}ms exceeds window ${this.replayWindowMs}ms`);
+        throw new HsmAdapterError(
+          "REPLAY_TIMESTAMP_EXPIRED",
+          `message age ${age}ms exceeds window ${this.replayWindowMs}ms`,
+        );
       }
     }
     this._seenNonces.set(onionBundle.nonce, Date.now());
@@ -576,7 +662,7 @@ class EncryptedP2PRoutingEngine {
     const allowed = VALID_TRANSITIONS[currentState] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'ROUTE_INVALID_TRANSITION',
+        "ROUTE_INVALID_TRANSITION",
         `cannot transition route ${routeId} from ${currentState} to ${newState}`,
       );
     }

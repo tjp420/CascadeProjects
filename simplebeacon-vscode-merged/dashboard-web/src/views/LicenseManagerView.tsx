@@ -5,8 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import {
-  Users, RefreshCw, AlertCircle, UserPlus, Trash2, Copy, CheckCircle2,
-  Clock, Mail, Loader2, Crown,
+  Users,
+  RefreshCw,
+  AlertCircle,
+  UserPlus,
+  Trash2,
+  Copy,
+  CheckCircle2,
+  Clock,
+  Mail,
+  Loader2,
+  Crown,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -197,9 +206,7 @@ export function LicenseManagerView() {
                 <Users className="h-5 w-5" />
                 License Seat Management
               </CardTitle>
-              <CardDescription>
-                Manage developer seats for your {tierDisplayName(roster.tier)} plan
-              </CardDescription>
+              <CardDescription>Manage developer seats for your {tierDisplayName(roster.tier)} plan</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchRoster} disabled={loading}>
               <RefreshCw className="h-4 w-4" /> Refresh
@@ -225,8 +232,7 @@ export function LicenseManagerView() {
               <Progress
                 value={seatUtilization}
                 indicatorClassName={
-                  seatUtilization >= 100 ? 'bg-destructive' :
-                  seatUtilization >= 80 ? 'bg-yellow-500' : 'bg-primary'
+                  seatUtilization >= 100 ? 'bg-destructive' : seatUtilization >= 80 ? 'bg-yellow-500' : 'bg-primary'
                 }
               />
             )}

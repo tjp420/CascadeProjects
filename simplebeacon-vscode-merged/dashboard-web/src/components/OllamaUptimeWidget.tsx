@@ -170,9 +170,7 @@ export function OllamaUptimeWidget() {
 
   // Poll pull status when there are active downloads
   useEffect(() => {
-    const hasActive = pulls.some(
-      (p) => p.status === 'downloading' || p.status === 'starting',
-    );
+    const hasActive = pulls.some((p) => p.status === 'downloading' || p.status === 'starting');
     if (hasActive && !pullPollRef.current) {
       fetchPullStatus();
       pullPollRef.current = setInterval(fetchPullStatus, 2000);
@@ -251,11 +249,7 @@ export function OllamaUptimeWidget() {
             disabled={loading}
             className="h-7 w-7 p-0"
           >
-            {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </CardHeader>
@@ -264,9 +258,7 @@ export function OllamaUptimeWidget() {
         <div className={`flex items-center gap-2 rounded-md ${cfg.bg} px-3 py-2`}>
           <StatusIcon className={`h-4 w-4 ${cfg.color} ${isSpinning ? 'animate-spin' : ''}`} />
           <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
-          {data?.cached && (
-            <span className="text-xs text-muted-foreground ml-auto">cached</span>
-          )}
+          {data?.cached && <span className="text-xs text-muted-foreground ml-auto">cached</span>}
         </div>
 
         {/* Metrics grid */}
@@ -333,9 +325,7 @@ export function OllamaUptimeWidget() {
                       </div>
                     )}
                     {m.expiresAt && (
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
-                        expires {formatUptime(m.expiresAt)}
-                      </p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">expires {formatUptime(m.expiresAt)}</p>
                     )}
                   </div>
                 ))}
@@ -382,9 +372,7 @@ export function OllamaUptimeWidget() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                      {m.parameterSize && (
-                        <span className="text-[10px]">{m.parameterSize}</span>
-                      )}
+                      {m.parameterSize && <span className="text-[10px]">{m.parameterSize}</span>}
                       <span className="font-mono">{m.sizeDisplay}</span>
                     </div>
                   </div>
@@ -454,9 +442,7 @@ export function OllamaUptimeWidget() {
                           </div>
                         </>
                       )}
-                      {isErr && p.error && (
-                        <p className="mt-0.5 text-[10px] text-destructive truncate">{p.error}</p>
-                      )}
+                      {isErr && p.error && <p className="mt-0.5 text-[10px] text-destructive truncate">{p.error}</p>}
                     </div>
                   );
                 })}
@@ -473,9 +459,7 @@ export function OllamaUptimeWidget() {
         )}
 
         {/* Error message */}
-        {error && status !== 'connected' && (
-          <p className="text-xs text-destructive">{error}</p>
-        )}
+        {error && status !== 'connected' && <p className="text-xs text-destructive">{error}</p>}
 
         {/* Disconnected hint */}
         {status === 'disconnected' && !error && (

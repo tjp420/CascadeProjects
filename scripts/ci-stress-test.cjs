@@ -6,12 +6,18 @@
  * Usage: node scripts/ci-stress-test.cjs
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
 
-const ROOT = path.join(__dirname, '..');
-const CLI = path.join(ROOT, 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
+const ROOT = path.join(__dirname, "..");
+const CLI = path.join(
+  ROOT,
+  "packages",
+  "simplebeacon-cli",
+  "bin",
+  "simplebeacon.js",
+);
 
 // Ensure the CLI binary exists
 if (!fs.existsSync(CLI)) {
@@ -24,7 +30,7 @@ let failed = 0;
 
 function run(label, repoPath, expectGatePass) {
   console.log(`\n--- ${label} ---`);
-  const reportPath = path.join(repoPath, '.simplebeacon', 'report.json');
+  const reportPath = path.join(repoPath, ".simplebeacon", "report.json");
   try {
     // Clean up any old report
     if (fs.existsSync(reportPath)) {
@@ -32,7 +38,7 @@ function run(label, repoPath, expectGatePass) {
     }
 
     const cmd = `node "${CLI}" scan --gate --format json --output "${reportPath}" --path "${repoPath}"`;
-    execSync(cmd, { stdio: 'pipe', timeout: 120000 });
+    execSync(cmd, { stdio: "pipe", timeout: 120000 });
 
     if (!fs.existsSync(reportPath)) {
       console.log(`  ❌ No report generated`);
@@ -40,7 +46,7 @@ function run(label, repoPath, expectGatePass) {
       return;
     }
 
-    const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
     const gate = report.gate || {};
     const pass = gate.pass === true;
     const blocking = gate.blockingCount || 0;
@@ -52,13 +58,17 @@ function run(label, repoPath, expectGatePass) {
       console.log(`  ✅ Gate failed as expected (blocking=${blocking})`);
       passed++;
     } else {
-      console.log(`  ❌ Unexpected gate result: pass=${pass}, blocking=${blocking} (expected pass=${expectGatePass})`);
+      console.log(
+        `  ❌ Unexpected gate result: pass=${pass}, blocking=${blocking} (expected pass=${expectGatePass})`,
+      );
       failed++;
     }
   } catch (err) {
     // Non-zero exit from CLI means gate failed — expected for dirty repos
     if (!expectGatePass && err.status !== 0) {
-      console.log(`  ✅ CLI exited with code ${err.status} as expected for dirty repo`);
+      console.log(
+        `  ✅ CLI exited with code ${err.status} as expected for dirty repo`,
+      );
       passed++;
     } else {
       console.log(`  ❌ Error: ${err.message || err}`);
@@ -68,53 +78,55 @@ function run(label, repoPath, expectGatePass) {
 }
 
 function main() {
-  console.log('🔦 SimpleBeacon CI Action Stress Test\n');
+  console.log("🔦 SimpleBeacon CI Action Stress Test\n");
 
   // Test 1: Clean repo — this repo itself (already clean)
-  run('Test 1: Clean repo (CascadeProjects)', ROOT, true);
+  run("Test 1: Clean repo (CascadeProjects)", ROOT, true);
 
   // Test 2: Dirty repo — create a temp repo with intentionally bad code
-  const dirtyDir = path.join(ROOT, '.tmp-dirty-repo');
+  const dirtyDir = path.join(ROOT, ".tmp-dirty-repo");
   if (!fs.existsSync(dirtyDir)) {
     fs.mkdirSync(dirtyDir, { recursive: true });
   }
   fs.writeFileSync(
-    path.join(dirtyDir, 'leaked.js'),
-    `// simplebeacon:production-leak-intent: test-negative-case\nconst apiKey = 'sk-test-fake'; // simplebeacon-ignore credential-pattern — CI stress test fixture\nconst password = 'test-placeholder-for-ci'; // simplebeacon-ignore credential-pattern — CI stress test fixture\n`
+    path.join(dirtyDir, "leaked.js"),
+    `// simplebeacon:production-leak-intent: test-negative-case\nconst apiKey = 'sk-test-fake'; // simplebeacon-ignore credential-pattern — CI stress test fixture\nconst password = 'test-placeholder-for-ci'; // simplebeacon-ignore credential-pattern — CI stress test fixture\n`,
   );
   fs.writeFileSync(
-    path.join(dirtyDir, 'fiction.json'),
-    `{"completion_rate": "98.5%", "user_satisfaction": "99.9%"}\n`
+    path.join(dirtyDir, "fiction.json"),
+    `{"completion_rate": "98.5%", "user_satisfaction": "99.9%"}\n`,
   );
   fs.writeFileSync(
-    path.join(dirtyDir, 'sample.json'),
-    `{"status": "ok", "demo": true}\n`
+    path.join(dirtyDir, "sample.json"),
+    `{"status": "ok", "demo": true}\n`,
   );
-  run('Test 2: Dirty repo (intentional leaks + fiction)', dirtyDir, false);
+  run("Test 2: Dirty repo (intentional leaks + fiction)", dirtyDir, false);
 
   // Test 3: Large repo — verify the scan completes without timeout/crash.
   // Note: The CLI scanner has known false positives on well-known human-written
   // libraries (lodash, express). The goal here is stability, not gate accuracy.
-  const largeDir = path.join(ROOT, 'false-positive-audit', 'lodash');
+  const largeDir = path.join(ROOT, "false-positive-audit", "lodash");
   if (fs.existsSync(largeDir)) {
-    console.log('\n--- Test 3: Large repo (lodash) ---');
-    const reportPath = path.join(largeDir, '.simplebeacon', 'report.json');
+    console.log("\n--- Test 3: Large repo (lodash) ---");
+    const reportPath = path.join(largeDir, ".simplebeacon", "report.json");
     try {
       if (fs.existsSync(reportPath)) fs.unlinkSync(reportPath);
       const cmd = `node "${CLI}" scan --gate --format json --output "${reportPath}" --path "${largeDir}"`;
-      execSync(cmd, { stdio: 'pipe', timeout: 120000 });
+      execSync(cmd, { stdio: "pipe", timeout: 120000 });
       if (fs.existsSync(reportPath)) {
-        console.log('  ✅ Scan completed without crash or timeout');
+        console.log("  ✅ Scan completed without crash or timeout");
         passed++;
       } else {
-        console.log('  ❌ No report generated');
+        console.log("  ❌ No report generated");
         failed++;
       }
     } catch (err) {
       if (err.status !== 0 && err.stdout) {
         // Non-zero exit from gate failure is expected on large repos with
         // known CLI false positives — still counts as "completed"
-        console.log('  ✅ Scan completed (gate failed as expected due to known CLI false positives)');
+        console.log(
+          "  ✅ Scan completed (gate failed as expected due to known CLI false positives)",
+        );
         passed++;
       } else {
         console.log(`  ❌ Error: ${err.message || err}`);
@@ -122,8 +134,10 @@ function main() {
       }
     }
   } else {
-    console.log('\n--- Test 3: Large repo (lodash) ---');
-    console.log('  ⚠️  Skipped — lodash not found in false-positive-audit/lodash');
+    console.log("\n--- Test 3: Large repo (lodash) ---");
+    console.log(
+      "  ⚠️  Skipped — lodash not found in false-positive-audit/lodash",
+    );
   }
 
   // Cleanup
@@ -136,7 +150,7 @@ function main() {
   console.log(`Failed: ${failed}`);
 
   if (failed === 0) {
-    console.log('\n🚀 All CI stress tests passed.');
+    console.log("\n🚀 All CI stress tests passed.");
     process.exit(0);
   } else {
     console.log(`\n⚠️  ${failed} test(s) failed.`);

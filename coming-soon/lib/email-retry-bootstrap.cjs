@@ -10,9 +10,10 @@ function startEmailRetryWorker(options = {}) {
 
     try {
         const { processPendingEmails } = require('../scripts/email-retry-worker.cjs');
-        const run = () => processPendingEmails().catch((err) => {
-            logger.error('[EmailRetry] Cycle error:', err.message);
-        });
+        const run = () =>
+            processPendingEmails().catch(err => {
+                logger.error('[EmailRetry] Cycle error:', err.message);
+            });
 
         run();
         const timer = setInterval(run, intervalMs);

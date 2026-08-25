@@ -11,13 +11,13 @@ SimpleBeacon takes security seriously. As a tool designed to detect credential l
 
 We commit to security patches for the following versions:
 
-| Version | Status | Patch Window |
-|---------|--------|--------------|
+| Version | Status                                | Patch Window        |
+| ------- | ------------------------------------- | ------------------- |
 | 2.0.x   | :white_check_mark: Active development | 90 days from report |
-| 1.2.x   | :white_check_mark: Supported | 60 days from report |
-| 1.1.x   | :warning: Maintenance only | 30 days from report |
-| 1.0.x   | :x: End-of-life | No patches |
-| < 1.0   | :x: Unsupported | No patches |
+| 1.2.x   | :white_check_mark: Supported          | 60 days from report |
+| 1.1.x   | :warning: Maintenance only            | 30 days from report |
+| 1.0.x   | :x: End-of-life                       | No patches          |
+| < 1.0   | :x: Unsupported                       | No patches          |
 
 **End-of-life policy:** Versions older than 12 months receive no security updates. Upgrade to the latest stable release.
 
@@ -29,11 +29,11 @@ We commit to security patches for the following versions:
 
 If you discover a security vulnerability, please report it **privately** before public disclosure:
 
-| Channel | Address | Response SLA |
-|---------|---------|-------------|
-| **Primary** | `security@simplebeacon.ai` | 24 hours (acknowledgment) |
-| **Secondary** | `trevor_punt@live.com` | 48 hours (acknowledgment) |
-| **PGP Key** | [See below](#pgp-key) | Encrypted preferred |
+| Channel       | Address                    | Response SLA              |
+| ------------- | -------------------------- | ------------------------- |
+| **Primary**   | `security@simplebeacon.ai` | 24 hours (acknowledgment) |
+| **Secondary** | `trevor_punt@live.com`     | 48 hours (acknowledgment) |
+| **PGP Key**   | [See below](#pgp-key)      | Encrypted preferred       |
 
 **Subject line:** `[SECURITY] SimpleBeacon — <one-line summary>`
 
@@ -62,14 +62,14 @@ Please include as much of the following as possible:
 
 We follow the [ISO 29147](https://www.iso.org/standard/45170.html) responsible disclosure model:
 
-| Day | Action |
-|-----|--------|
-| **Day 0** | You report the vulnerability privately |
-| **Day 1** | We acknowledge receipt and assign a tracking ID (e.g., `SB-SEC-2026-001`) |
-| **Day 7** | We confirm vulnerability, provide initial assessment, and share fix timeline |
-| **Day 30** | We share draft advisory and proposed CVE (if applicable) |
-| **Day 60–90** | We release patched version and publish advisory |
-| **Day 90+** | You may publish your own write-up (if agreed timeline reached) |
+| Day           | Action                                                                       |
+| ------------- | ---------------------------------------------------------------------------- |
+| **Day 0**     | You report the vulnerability privately                                       |
+| **Day 1**     | We acknowledge receipt and assign a tracking ID (e.g., `SB-SEC-2026-001`)    |
+| **Day 7**     | We confirm vulnerability, provide initial assessment, and share fix timeline |
+| **Day 30**    | We share draft advisory and proposed CVE (if applicable)                     |
+| **Day 60–90** | We release patched version and publish advisory                              |
+| **Day 90+**   | You may publish your own write-up (if agreed timeline reached)               |
 
 **Expedited timeline:** For actively exploited vulnerabilities (0-day in the wild), we may release an emergency patch within 72 hours and disclose immediately.
 
@@ -120,12 +120,12 @@ We will **not** take legal action against researchers who follow these guideline
 
 We use the [CVSS v3.1](https://www.first.org/cvss/v3.1/specification-document) standard to score vulnerabilities:
 
-| Severity | CVSS Score | Example |
-|----------|-----------|---------|
-| **Critical** | 9.0–10.0 | Remote code execution, authentication bypass leading to admin access |
-| **High** | 7.0–8.9 | SQL injection, stored XSS, privilege escalation |
-| **Medium** | 4.0–6.9 | Reflected XSS, CSRF, information disclosure |
-| **Low** | 0.1–3.9 | Missing security headers, verbose error messages, hardcoded test credentials |
+| Severity     | CVSS Score | Example                                                                      |
+| ------------ | ---------- | ---------------------------------------------------------------------------- |
+| **Critical** | 9.0–10.0   | Remote code execution, authentication bypass leading to admin access         |
+| **High**     | 7.0–8.9    | SQL injection, stored XSS, privilege escalation                              |
+| **Medium**   | 4.0–6.9    | Reflected XSS, CSRF, information disclosure                                  |
+| **Low**      | 0.1–3.9    | Missing security headers, verbose error messages, hardcoded test credentials |
 
 ---
 
@@ -133,14 +133,14 @@ We use the [CVSS v3.1](https://www.first.org/cvss/v3.1/specification-document) s
 
 SimpleBeacon is designed with a **zero-upload, local-first** architecture:
 
-| Component | Data Boundary | Network Policy |
-|-----------|--------------|--------------|
-| **CLI scans** | Entirely local — no source code transmitted | `--offline` enforces zero network; `--upload` is explicit opt-in only |
-| **VS Code: extension** | Runs in extension host — scan reports saved to local `.simplebeacon/` | Webview panels load local dashboard HTML; no external scripts |
-| **Browser dashboard** | Executes in browser memory — JSZip and html2canvas generate outputs client-side | No telemetry without `SIMPLEBEACON_TELEMETRY=1` |
-| **MCP server** | Local stdio — no network sockets | Network guard patches `fetch`, `http.request`, `https.request` |
-| **API server** | Server-side — handles license validation, payment webhooks, anonymous scan metadata uploads | All endpoints require authentication; rate-limited |
-| **GitHub Action** | Runs in CI runner — same local-only guarantee as CLI | `--offline` flag available in action inputs |
+| Component              | Data Boundary                                                                               | Network Policy                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **CLI scans**          | Entirely local — no source code transmitted                                                 | `--offline` enforces zero network; `--upload` is explicit opt-in only |
+| **VS Code: extension** | Runs in extension host — scan reports saved to local `.simplebeacon/`                       | Webview panels load local dashboard HTML; no external scripts         |
+| **Browser dashboard**  | Executes in browser memory — JSZip and html2canvas generate outputs client-side             | No telemetry without `SIMPLEBEACON_TELEMETRY=1`                       |
+| **MCP server**         | Local stdio — no network sockets                                                            | Network guard patches `fetch`, `http.request`, `https.request`        |
+| **API server**         | Server-side — handles license validation, payment webhooks, anonymous scan metadata uploads | All endpoints require authentication; rate-limited                    |
+| **GitHub Action**      | Runs in CI runner — same local-only guarantee as CLI                                        | `--offline` flag available in action inputs                           |
 
 ### 6.1 Trust Verification
 
@@ -159,14 +159,14 @@ The `trust-guard.js` module actively monitors all network requests during scans.
 
 ## 7. Known Limitations & Accepted Risks
 
-| # | Limitation | Mitigation | Risk Level |
-|---|-----------|------------|------------|
-| 1 | **Browser scan memory**: Large repositories (>20K files) may exhaust browser memory | CLI recommended for repos >5K files; browser shows warning | Low |
-| 2 | **Credential pattern detection**: Heuristic regex matching produces false positives | Confidence scoring; manual review encouraged; false-positive suppression in config | Low |
-| 3 | **html2canvas rasterization**: Certificate PNG generated from off-screen DOM | File paths scrubbed before rasterization; no network requests during generation | Low |
-| 4 | **Token parsing**: Client-side JWT decode does not verify signatures | Real validation is server-side during payment; client-side decode is UI-only | Low |
-| 5 | **Local model inference**: Ollama/GGUF models run on user's machine | No data leaves machine; user controls model selection | None |
-| 6 | **GitHub Action token exposure**: `secrets.SIMPLEBEACON_TOKEN` could be logged | Action masks tokens in logs; recommends fine-grained PATs | Low |
+| #   | Limitation                                                                          | Mitigation                                                                         | Risk Level |
+| --- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| 1   | **Browser scan memory**: Large repositories (>20K files) may exhaust browser memory | CLI recommended for repos >5K files; browser shows warning                         | Low        |
+| 2   | **Credential pattern detection**: Heuristic regex matching produces false positives | Confidence scoring; manual review encouraged; false-positive suppression in config | Low        |
+| 3   | **html2canvas rasterization**: Certificate PNG generated from off-screen DOM        | File paths scrubbed before rasterization; no network requests during generation    | Low        |
+| 4   | **Token parsing**: Client-side JWT decode does not verify signatures                | Real validation is server-side during payment; client-side decode is UI-only       | Low        |
+| 5   | **Local model inference**: Ollama/GGUF models run on user's machine                 | No data leaves machine; user controls model selection                              | None       |
+| 6   | **GitHub Action token exposure**: `secrets.SIMPLEBEACON_TOKEN` could be logged      | Action masks tokens in logs; recommends fine-grained PATs                          | Low        |
 
 ---
 
@@ -174,9 +174,9 @@ The `trust-guard.js` module actively monitors all network requests during scans.
 
 We publicly acknowledge security researchers who report valid vulnerabilities:
 
-| Date | Researcher | CVE / Issue | Severity |
-|------|-----------|-------------|----------|
-| *None yet — be the first!* | | | |
+| Date                       | Researcher | CVE / Issue | Severity |
+| -------------------------- | ---------- | ----------- | -------- |
+| _None yet — be the first!_ |            |             |          |
 
 Researchers may choose to remain anonymous or use a pseudonym.
 
@@ -235,13 +235,12 @@ Subscribe to the GitHub Security Advisories to receive notifications for new dis
 
 ## 13. Contact
 
-| Role | Contact |
-|------|---------|
-| **Security Team Lead** | `security@simplebeacon.ai` |
-| **General Inquiries** | `hello@simplebeacon.ai` |
-| **Legal / Safe Harbor Questions** | `legal@simplebeacon.ai` |
+| Role                              | Contact                    |
+| --------------------------------- | -------------------------- |
+| **Security Team Lead**            | `security@simplebeacon.ai` |
+| **General Inquiries**             | `hello@simplebeacon.ai`    |
+| **Legal / Safe Harbor Questions** | `legal@simplebeacon.ai`    |
 
 ---
 
-*This policy is effective as of 2026-06-27 and may be updated. Changes will be announced 30 days in advance via GitHub releases and the security RSS feed.*
-
+_This policy is effective as of 2026-06-27 and may be updated. Changes will be announced 30 days in advance via GitHub releases and the security RSS feed._

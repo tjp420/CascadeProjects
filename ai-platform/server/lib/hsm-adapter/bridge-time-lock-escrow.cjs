@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 48: Bridge time-lock escrow.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/bridge-time-lock-escrow
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class BridgeTimeLockEscrow {
   constructor() {
@@ -35,7 +35,10 @@ class BridgeTimeLockEscrow {
    */
   lock(transferId, amount, lockEpoch, releaseEpoch) {
     if (this._escrows.has(transferId)) {
-      throw new HsmAdapterError('BRIDGE_ESCROW_EXISTS', `escrow ${transferId} already exists`);
+      throw new HsmAdapterError(
+        "BRIDGE_ESCROW_EXISTS",
+        `escrow ${transferId} already exists`,
+      );
     }
     this._escrows.set(transferId, {
       amount,
@@ -57,7 +60,10 @@ class BridgeTimeLockEscrow {
       return { valid: false, reason: `escrow ${transferId} not found` };
     }
     if (this._currentEpoch < escrow.releaseEpoch) {
-      return { valid: false, reason: `time-lock not released until epoch ${escrow.releaseEpoch}` };
+      return {
+        valid: false,
+        reason: `time-lock not released until epoch ${escrow.releaseEpoch}`,
+      };
     }
     return { valid: true, transferId };
   }
@@ -71,7 +77,10 @@ class BridgeTimeLockEscrow {
   addCommitteeSignature(transferId, signature) {
     const escrow = this._escrows.get(transferId);
     if (!escrow) {
-      throw new HsmAdapterError('BRIDGE_ESCROW_MISSING', `escrow ${transferId} not found`);
+      throw new HsmAdapterError(
+        "BRIDGE_ESCROW_MISSING",
+        `escrow ${transferId} not found`,
+      );
     }
     escrow.signatures.push(signature);
     return { transferId, signatures: escrow.signatures.length };
@@ -86,10 +95,18 @@ class BridgeTimeLockEscrow {
   attemptRelease(transferId, minQuorum) {
     const escrow = this._escrows.get(transferId);
     if (!escrow) {
-      throw new HsmAdapterError('BRIDGE_ESCROW_MISSING', `escrow ${transferId} not found`);
+      throw new HsmAdapterError(
+        "BRIDGE_ESCROW_MISSING",
+        `escrow ${transferId} not found`,
+      );
     }
     if (escrow.signatures.length < minQuorum) {
-      return { released: false, transferId, signatures: escrow.signatures.length, needed: minQuorum };
+      return {
+        released: false,
+        transferId,
+        signatures: escrow.signatures.length,
+        needed: minQuorum,
+      };
     }
     this._escrows.delete(transferId);
     return { released: true, transferId, signatures: escrow.signatures.length };

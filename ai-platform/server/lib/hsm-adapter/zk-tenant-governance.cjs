@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * ZK Tenant Governance Wrapper
@@ -13,95 +13,95 @@
  * @module hsm-adapter/zk-tenant-governance
  */
 
-const { incrementCounter } = require('./hsm-metrics.cjs');
+const { incrementCounter } = require("./hsm-metrics.cjs");
 
 const TENANT_ID_PATTERN = /^[a-zA-Z0-9-_]+$/;
-const DEFAULT_TENANT = 'default';
+const DEFAULT_TENANT = "default";
 
 /** Optional SiemSecurityBroker; stdout JSON fallback when unset. */
 let _siemBroker = null;
 
 const TRACK125_VALIDATOR_SPECS = Object.freeze([
   {
-    key: 'energy',
-    modulePath: './zk-energy-claim-validator.cjs',
-    exportName: 'ZkEnergyClaimValidator',
-    method: 'verifyEnergyClaim',
-    domain: 'energyGating',
-    metric: 'energy',
+    key: "energy",
+    modulePath: "./zk-energy-claim-validator.cjs",
+    exportName: "ZkEnergyClaimValidator",
+    method: "verifyEnergyClaim",
+    domain: "energyGating",
+    metric: "energy",
   },
   {
-    key: 'biometric',
-    modulePath: './zk-biometric-claim-validator.cjs',
-    exportName: 'ZkBiometricClaimValidator',
-    method: 'verifyBiometricClaim',
-    domain: 'biometricGating',
-    metric: 'biometric',
+    key: "biometric",
+    modulePath: "./zk-biometric-claim-validator.cjs",
+    exportName: "ZkBiometricClaimValidator",
+    method: "verifyBiometricClaim",
+    domain: "biometricGating",
+    metric: "biometric",
   },
   {
-    key: 'neural',
-    modulePath: './zk-neural-claim-validator.cjs',
-    exportName: 'ZkNeuralClaimValidator',
-    method: 'verifyNeuralClaim',
-    domain: 'neuralGating',
-    metric: 'neural',
+    key: "neural",
+    modulePath: "./zk-neural-claim-validator.cjs",
+    exportName: "ZkNeuralClaimValidator",
+    method: "verifyNeuralClaim",
+    domain: "neuralGating",
+    metric: "neural",
   },
   {
-    key: 'lookup',
-    modulePath: './zk-lookup-claim-validator.cjs',
-    exportName: 'ZkLookupClaimValidator',
-    method: 'validate',
-    domain: 'lookupGating',
-    metric: 'lookup',
-    ctorStyle: 'policyArg',
+    key: "lookup",
+    modulePath: "./zk-lookup-claim-validator.cjs",
+    exportName: "ZkLookupClaimValidator",
+    method: "validate",
+    domain: "lookupGating",
+    metric: "lookup",
+    ctorStyle: "policyArg",
   },
   {
-    key: 'storage',
-    modulePath: './zk-storage-claim-validator.cjs',
-    exportName: 'ZkStorageClaimValidator',
-    method: 'validateClaim',
-    domain: 'storageGating',
-    metric: 'storage',
+    key: "storage",
+    modulePath: "./zk-storage-claim-validator.cjs",
+    exportName: "ZkStorageClaimValidator",
+    method: "validateClaim",
+    domain: "storageGating",
+    metric: "storage",
   },
   {
-    key: 'authentication',
-    modulePath: './zk-authentication-claim-validator.cjs',
-    exportName: 'ZkAuthenticationClaimValidator',
-    method: 'verifyAuthenticationClaim',
-    domain: 'authenticationGating',
-    metric: 'authentication',
+    key: "authentication",
+    modulePath: "./zk-authentication-claim-validator.cjs",
+    exportName: "ZkAuthenticationClaimValidator",
+    method: "verifyAuthenticationClaim",
+    domain: "authenticationGating",
+    metric: "authentication",
   },
   {
-    key: 'drone',
-    modulePath: './zk-drone-claim-validator.cjs',
-    exportName: 'ZkDroneClaimValidator',
-    method: 'validateClaim',
-    domain: 'droneGating',
-    metric: 'drone',
+    key: "drone",
+    modulePath: "./zk-drone-claim-validator.cjs",
+    exportName: "ZkDroneClaimValidator",
+    method: "validateClaim",
+    domain: "droneGating",
+    metric: "drone",
   },
   {
-    key: 'genomic',
-    modulePath: './zk-genomic-claim-validator.cjs',
-    exportName: 'ZkGenomicClaimValidator',
-    method: 'verifyGenomicClaim',
-    domain: 'genomicGating',
-    metric: 'genomic',
+    key: "genomic",
+    modulePath: "./zk-genomic-claim-validator.cjs",
+    exportName: "ZkGenomicClaimValidator",
+    method: "verifyGenomicClaim",
+    domain: "genomicGating",
+    metric: "genomic",
   },
   {
-    key: 'insurance',
-    modulePath: './zk-insurance-claim-validator.cjs',
-    exportName: 'ZkInsuranceClaimValidator',
-    method: 'verifyClaimAudit',
-    domain: 'insuranceGating',
-    metric: 'insurance',
+    key: "insurance",
+    modulePath: "./zk-insurance-claim-validator.cjs",
+    exportName: "ZkInsuranceClaimValidator",
+    method: "verifyClaimAudit",
+    domain: "insuranceGating",
+    metric: "insurance",
   },
   {
-    key: 'quantum',
-    modulePath: './zk-quantum-claim-validator.cjs',
-    exportName: 'ZkQuantumClaimValidator',
-    method: 'verifyQuantumClaim',
-    domain: 'quantumGating',
-    metric: 'quantum',
+    key: "quantum",
+    modulePath: "./zk-quantum-claim-validator.cjs",
+    exportName: "ZkQuantumClaimValidator",
+    method: "verifyQuantumClaim",
+    domain: "quantumGating",
+    metric: "quantum",
   },
 ]);
 
@@ -114,7 +114,12 @@ function getZkGovernanceSiemBroker() {
 }
 
 function validateTenantId(tenantId) {
-  return typeof tenantId === 'string' && TENANT_ID_PATTERN.test(tenantId) && tenantId.length > 0 && tenantId.length <= 128;
+  return (
+    typeof tenantId === "string" &&
+    TENANT_ID_PATTERN.test(tenantId) &&
+    tenantId.length > 0 &&
+    tenantId.length <= 128
+  );
 }
 
 /**
@@ -123,24 +128,26 @@ function validateTenantId(tenantId) {
  * @param {string} reason
  */
 function emitZkIsolationViolation(tenantId, reason) {
-  incrementCounter('hsm_zk_tenant_isolation_violation_total');
+  incrementCounter("hsm_zk_tenant_isolation_violation_total");
   const payload = {
-    siemSeverity: 'CRITICAL',
-    siemCategory: 'zk_isolation_violation',
-    siemSource: 'zk-tenant-governance',
+    siemSeverity: "CRITICAL",
+    siemCategory: "zk_isolation_violation",
+    siemSource: "zk-tenant-governance",
     context: {
       tenantId: tenantId == null ? null : String(tenantId),
-      reason: reason || 'invalid_tenant_id',
+      reason: reason || "invalid_tenant_id",
     },
   };
   try {
-    if (_siemBroker && typeof _siemBroker.logEvent === 'function') {
+    if (_siemBroker && typeof _siemBroker.logEvent === "function") {
       _siemBroker.logEvent(payload);
     } else {
-      console.error(JSON.stringify({
-        ...payload,
-        timestamp: new Date().toISOString(),
-      }));
+      console.error(
+        JSON.stringify({
+          ...payload,
+          timestamp: new Date().toISOString(),
+        }),
+      );
     }
   } catch (_siemErr) {
     /* fail-silent SIEM path — counter already incremented */
@@ -148,20 +155,20 @@ function emitZkIsolationViolation(tenantId, reason) {
 }
 
 function resolvePolicy(engine, tenantId, domainName) {
-  if (!engine || typeof engine.getPolicy !== 'function') {
-    throw new Error('ZK_TENANT_GOVERNANCE: invalid policy engine');
+  if (!engine || typeof engine.getPolicy !== "function") {
+    throw new Error("ZK_TENANT_GOVERNANCE: invalid policy engine");
   }
   if (!validateTenantId(tenantId)) {
-    emitZkIsolationViolation(tenantId, 'invalid_tenant_id_format');
+    emitZkIsolationViolation(tenantId, "invalid_tenant_id_format");
     throw new Error(
-      'zk_isolation_violation: invalid tenant ID: ' + String(tenantId)
+      "zk_isolation_violation: invalid tenant ID: " + String(tenantId),
     );
   }
   const policy = engine.getPolicy(tenantId);
   if (!policy[domainName]) {
     const defaultPolicy = engine.getPolicy(DEFAULT_TENANT);
     if (!defaultPolicy[domainName]) {
-      throw new Error('ZK_TENANT_GOVERNANCE: unknown domain: ' + domainName);
+      throw new Error("ZK_TENANT_GOVERNANCE: unknown domain: " + domainName);
     }
     return defaultPolicy[domainName];
   }
@@ -169,10 +176,15 @@ function resolvePolicy(engine, tenantId, domainName) {
 }
 
 function trackVerification(domainName, tenantId, outcome) {
-  const counterName = 'hsm_zk_' + domainName + '_claim_' + (outcome === 'verified' ? 'verified' : 'failed') + '_total';
+  const counterName =
+    "hsm_zk_" +
+    domainName +
+    "_claim_" +
+    (outcome === "verified" ? "verified" : "failed") +
+    "_total";
   incrementCounter(counterName);
-  if (outcome === 'verified') {
-    incrementCounter('hsm_zk_tenant_context_validated_total');
+  if (outcome === "verified") {
+    incrementCounter("hsm_zk_tenant_context_validated_total");
   }
 }
 
@@ -186,11 +198,11 @@ function trackVerification(domainName, tenantId, outcome) {
 function createPolicyFacade(validator, domainPolicy) {
   return new Proxy(validator, {
     get(target, prop, receiver) {
-      if (prop === 'policy') {
+      if (prop === "policy") {
         return domainPolicy;
       }
       const value = Reflect.get(target, prop, receiver);
-      if (typeof value === 'function') {
+      if (typeof value === "function") {
         return function policyFacadeBound(...args) {
           return Reflect.apply(value, receiver, args);
         };
@@ -210,43 +222,54 @@ function createPolicyFacade(validator, domainPolicy) {
  */
 function runLookupWithIsolatedPolicy(validator, domainPolicy, request) {
   const Ctor = validator.constructor;
-  if (typeof Ctor !== 'function') {
-    throw new Error('ZK_TENANT_GOVERNANCE: lookup validator missing constructor');
+  if (typeof Ctor !== "function") {
+    throw new Error(
+      "ZK_TENANT_GOVERNANCE: lookup validator missing constructor",
+    );
   }
   const ephemeral = new Ctor(domainPolicy);
   return ephemeral.validate(request);
 }
 
-function wrapWithTenantGovernance(validator, engine, domainName, verifyMethod, metricDomain) {
-  if (!validator || typeof validator !== 'object') {
-    throw new Error('ZK_TENANT_GOVERNANCE: invalid validator');
+function wrapWithTenantGovernance(
+  validator,
+  engine,
+  domainName,
+  verifyMethod,
+  metricDomain,
+) {
+  if (!validator || typeof validator !== "object") {
+    throw new Error("ZK_TENANT_GOVERNANCE: invalid validator");
   }
-  if (typeof validator[verifyMethod] !== 'function') {
-    throw new Error('ZK_TENANT_GOVERNANCE: validator missing method: ' + verifyMethod);
+  if (typeof validator[verifyMethod] !== "function") {
+    throw new Error(
+      "ZK_TENANT_GOVERNANCE: validator missing method: " + verifyMethod,
+    );
   }
 
   const originalVerify = validator[verifyMethod];
-  const hadValidate = typeof validator.validate === 'function'
-    && validator.validate !== validator.validateTenant;
+  const hadValidate =
+    typeof validator.validate === "function" &&
+    validator.validate !== validator.validateTenant;
 
   validator.validateTenant = function validateTenant(tenantId, request) {
     const domainPolicy = resolvePolicy(engine, tenantId, domainName);
     try {
       let result;
       if (
-        domainName === 'lookupGating'
-        && verifyMethod === 'validate'
-        && typeof validator.constructor === 'function'
+        domainName === "lookupGating" &&
+        verifyMethod === "validate" &&
+        typeof validator.constructor === "function"
       ) {
         result = runLookupWithIsolatedPolicy(validator, domainPolicy, request);
       } else {
         const facade = createPolicyFacade(validator, domainPolicy);
         result = Reflect.apply(originalVerify, facade, [request]);
       }
-      trackVerification(metricDomain, tenantId, 'verified');
+      trackVerification(metricDomain, tenantId, "verified");
       return result;
     } catch (err) {
-      trackVerification(metricDomain, tenantId, 'failed');
+      trackVerification(metricDomain, tenantId, "failed");
       throw err;
     }
   };
@@ -270,22 +293,26 @@ function wrapWithTenantGovernance(validator, engine, domainName, verifyMethod, m
 function createGovernedClaimValidator(key, options = {}) {
   const spec = TRACK125_VALIDATOR_SPECS.find((s) => s.key === key);
   if (!spec) {
-    throw new Error('ZK_TENANT_GOVERNANCE: unknown validator key: ' + String(key));
+    throw new Error(
+      "ZK_TENANT_GOVERNANCE: unknown validator key: " + String(key),
+    );
   }
   let engine = options.engine;
   if (!engine) {
-    const { CryptoPolicyEngine } = require('./crypto-policy-engine.cjs');
+    const { CryptoPolicyEngine } = require("./crypto-policy-engine.cjs");
     engine = new CryptoPolicyEngine();
   }
   const mod = require(spec.modulePath);
   const ValidatorClass = mod[spec.exportName];
-  if (typeof ValidatorClass !== 'function') {
-    throw new Error('ZK_TENANT_GOVERNANCE: missing export ' + spec.exportName);
+  if (typeof ValidatorClass !== "function") {
+    throw new Error("ZK_TENANT_GOVERNANCE: missing export " + spec.exportName);
   }
 
   let instance;
-  if (spec.ctorStyle === 'policyArg') {
-    instance = new ValidatorClass(options.policy || options.validatorOptions || {});
+  if (spec.ctorStyle === "policyArg") {
+    instance = new ValidatorClass(
+      options.policy || options.validatorOptions || {},
+    );
   } else {
     const ctorOpts = Object.assign({}, options.validatorOptions || {});
     if (options.policy && ctorOpts.policy == null) {
@@ -294,7 +321,13 @@ function createGovernedClaimValidator(key, options = {}) {
     instance = new ValidatorClass(ctorOpts);
   }
 
-  return wrapWithTenantGovernance(instance, engine, spec.domain, spec.method, spec.metric);
+  return wrapWithTenantGovernance(
+    instance,
+    engine,
+    spec.domain,
+    spec.method,
+    spec.metric,
+  );
 }
 
 module.exports = {

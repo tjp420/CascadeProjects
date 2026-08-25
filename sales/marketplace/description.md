@@ -3,6 +3,7 @@
 ## Extension Description
 
 ### Short Description (128 characters max)
+
 Offline AI code audit — 48 analyzer engines, zero source-code upload, board-ready compliance reports.
 
 ### Full Description
@@ -12,6 +13,7 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 ## Features
 
 ### Real-Time Scanning (24 Regex Engines)
+
 - **AI Residue Detection:** Identifies TODO/FIXME stubs, dead comment blocks, and incomplete implementations
 - **Credential Leaks:** Detects hardcoded API keys, passwords, and tokens
 - **Sensitive Data:** Flags PII, email addresses, and personal information
@@ -22,6 +24,7 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 - **Agency Handoff:** Identifies incomplete deliverables and missing documentation
 
 ### Batch CLI Scanning (14 Additional Engines)
+
 - Full repository scanning with CI/CD integration
 - JSON schema validation
 - Sample consistency checking
@@ -32,6 +35,7 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 - File reduction analysis
 
 ### Tier System
+
 - **Free:** 10 local scans/month, 24 real-time IDE rules, CLI + VS Code extension
 - **Pro:** $9/month — unlimited scans, all 38 engines, CLI scanning, CI/CD integration, export reports
 - **Compliance Suite:** $399/month — unlimited scans, 48 analyzers, EU AI Act + SOC 2 artifacts, 5 team seats, board-ready certificate ZIP
@@ -39,18 +43,21 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 - **Enterprise Air-Gapped:** Custom pricing — on-premise deployment, SSO, unlimited seats, dedicated SLA
 
 ### Privacy-First Design
+
 - All scanning happens locally on your machine
 - Your source code never leaves your computer
 - No cloud processing or code transmission
 - License tokens used only for validation
 
 ### CI/CD Gate Integration
+
 - Enforce quality gates in your pipeline
 - Block merges with AI slop
 - Configurable severity thresholds
 - Export reports for audit trails
 
 ### Export Options
+
 - JSON reports for automation
 - Markdown reports for documentation
 - Gate status summaries
@@ -59,24 +66,28 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 ## Use Cases
 
 ### For Engineering Teams (VP of Engineering)
+
 - Stop shadow AI and copy-pasted LLM code from entering production
 - Enforce a local, zero-upload quality gate before code review
 - Catch hardcoded API keys, hallucinated dependencies, and placeholder KPIs in CI/CD
 - Show leadership exactly what AI-generated risks exist in the codebase
 
 ### For Compliance & Risk Officers
+
 - Generate board-ready Executive Risk Certificates for SOC 2 and EU AI Act audits
 - Produce PDF + JSON + remediation roadmaps in minutes, not weeks
 - Prove that code artifacts were audited without ever uploading source code
 - Reduce reliance on expensive external compliance consulting
 
 ### For Individual Developers
+
 - Clean up AI-generated code before committing
 - Learn best practices for AI-assisted development
 - Maintain professional code hygiene with a free local scanner
 - Upgrade to Pro for unlimited scans and CI integration
 
 ### For Startups and Scaleups
+
 - Prepare for investor due diligence with a $149 one-time Audit Certificate
 - Move to Compliance Suite as the team grows and regulatory pressure increases
 - Keep all scanning local so IP never leaves the machine
@@ -92,13 +103,16 @@ Offline AI code audit — 48 analyzer engines, zero source-code upload, board-re
 ## Configuration
 
 ### Basic Settings
+
 - `simplebeacon.scanLocation`: Custom scan path (optional)
 - `simplebeacon.fullScan`: Enable full directory scan (slower, more comprehensive)
 - `simplebeacon.licenseToken`: Your Pro/Enterprise license key
 - `simplebeacon.exclusions`: Glob patterns for files to exclude
 
 ### Severity Overrides
+
 Customize rule severity:
+
 ```json
 {
   "simplebeacon.severityOverrides": {
@@ -145,12 +159,14 @@ This extension is licensed under the MIT License. See LICENSE file for details.
 ## Changelog
 
 ### Version 3.0.438
+
 - Expanded false positive exclusions for 2,500+ scan report findings
 - Excluded package-lock.json, generated reports, knip output from secret scanning
 - Excluded dashboard views, scanner pattern files, and test fixtures from false positives
 - Added credential-specific ignoreGlobs for test files with test secrets
 
 ### Version 3.0.437
+
 - 48 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
 - Enhanced AI analysis with progressive multi-layer scanning
 - Real-time monitoring with AI session detection
@@ -163,12 +179,14 @@ This extension is licensed under the MIT License. See LICENSE file for details.
 - CLI scanner binary extensions synced with browser-sandbox engine
 
 ### Version 3.0.400
+
 - Dashboard 3.0 with enhanced compliance and quality panes
 - Model health monitoring with circuit breaker pattern
 - Analysis profiles: Quick, Balanced, Comprehensive, Real-time
 - Pattern detection using statistical analysis (no ML dependencies)
 
 ### Version 1.1.0
+
 - Enhanced AI analysis with intelligent model selection
 - Real-time analysis streaming via WebSocket
 - ML-inspired pattern detection
@@ -176,31 +194,37 @@ This extension is licensed under the MIT License. See LICENSE file for details.
 - Configuration options for analysis profiles
 
 ### Version 0.5.9
+
 - Added full scan option for comprehensive directory scanning
 - Improved false positive exclusions for scanner source code
 - Fixed CLI scanner exclusions for test reports
 
 ### Version 0.5.8
+
 - Enhanced full scan mode to include markdown files
 - Added directory exclusions for full scan mode
 - Improved file collection logic
 
 ### Version 0.5.7
+
 - Added full scan configuration option
 - Added UI toggle for full scan in sidebar
 - Modified scanning logic to respect full scan setting
 
 ### Version 0.5.6
+
 - Added exclusions for test fixtures and reports
 - Improved scan accuracy by skipping non-production files
 - Enhanced exclusion logic for test artifacts
 
 ### Version 0.5.5
+
 - Fixed browse location display in sidebar
 - Added webview message handling for scan location
 - Improved UI responsiveness
 
 ### Version 0.5.4
+
 - Initial release with 24 real-time scanning engines
 - Gate evaluation and severity thresholds
 - Export reports (JSON/Markdown)

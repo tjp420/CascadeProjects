@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 41: Enclave Attestation Client.
@@ -9,8 +9,8 @@
  * @module hsm-adapter/enclave-attestation-client
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class EnclaveAttestationClient {
   /**
@@ -25,7 +25,7 @@ class EnclaveAttestationClient {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    this.allowedAuthorities = options.allowedAuthorities || ['mock-authority'];
+    this.allowedAuthorities = options.allowedAuthorities || ["mock-authority"];
     this.allowedMeasurements = options.allowedMeasurements || [];
     this.expectedMrenclave = options.expectedMrenclave || null;
     this.maxAttestationAgeSeconds = options.maxAttestationAgeSeconds || 60;
@@ -33,9 +33,16 @@ class EnclaveAttestationClient {
     this._cache = new Map();
     this._verifiedMrenclaves = new Set();
     this._verifiedIds = new Set();
-    this._timestampSkewMs = typeof options.timestampSkewMs === 'number' ? options.timestampSkewMs : 10000;
-    this._nonceWindowMs = typeof options.nonceWindowMs === 'number' ? options.nonceWindowMs : 60000;
-    this._tokenTtlMs = typeof options.tokenTtlMs === 'number' ? options.tokenTtlMs : 5 * 60 * 1000;
+    this._timestampSkewMs =
+      typeof options.timestampSkewMs === "number"
+        ? options.timestampSkewMs
+        : 10000;
+    this._nonceWindowMs =
+      typeof options.nonceWindowMs === "number" ? options.nonceWindowMs : 60000;
+    this._tokenTtlMs =
+      typeof options.tokenTtlMs === "number"
+        ? options.tokenTtlMs
+        : 5 * 60 * 1000;
     this._seenNonces = new Map();
     this._issuedTokens = new Map();
     this._cache = this._cache || new Map();
@@ -47,42 +54,83 @@ class EnclaveAttestationClient {
    * @returns {object}
    */
   verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') {
-      return { valid: false, verified: false, reason: 'attestation document missing' };
+    if (!attestation || typeof attestation !== "object") {
+      return {
+        valid: false,
+        verified: false,
+        reason: "attestation document missing",
+      };
     }
 
     if (!attestation.authority) {
-      return { valid: false, verified: false, reason: 'attestation authority missing' };
+      return {
+        valid: false,
+        verified: false,
+        reason: "attestation authority missing",
+      };
     }
     if (!this.allowedAuthorities.includes(attestation.authority)) {
-      return { valid: false, verified: false, reason: `authority ${attestation.authority} is not trusted` };
+      return {
+        valid: false,
+        verified: false,
+        reason: `authority ${attestation.authority} is not trusted`,
+      };
     }
 
-    if (typeof attestation.timestamp !== 'number') {
-      return { valid: false, verified: false, reason: 'attestation timestamp missing' };
+    if (typeof attestation.timestamp !== "number") {
+      return {
+        valid: false,
+        verified: false,
+        reason: "attestation timestamp missing",
+      };
     }
-    const age = typeof attestation.attestationAgeSeconds === 'number'
-      ? attestation.attestationAgeSeconds
-      : Math.floor(Date.now() / 1000) - attestation.timestamp;
+    const age =
+      typeof attestation.attestationAgeSeconds === "number"
+        ? attestation.attestationAgeSeconds
+        : Math.floor(Date.now() / 1000) - attestation.timestamp;
     if (age > this.maxAttestationAgeSeconds) {
-      return { valid: false, verified: false, reason: `attestation expired: ${age}s old` };
+      return {
+        valid: false,
+        verified: false,
+        reason: `attestation expired: ${age}s old`,
+      };
     }
 
-    if (this.expectedMrenclave && attestation.mrenclave !== this.expectedMrenclave) {
-      return { valid: false, verified: false, reason: `MRENCLAVE ${attestation.mrenclave} does not match ${this.expectedMrenclave}` };
+    if (
+      this.expectedMrenclave &&
+      attestation.mrenclave !== this.expectedMrenclave
+    ) {
+      return {
+        valid: false,
+        verified: false,
+        reason: `MRENCLAVE ${attestation.mrenclave} does not match ${this.expectedMrenclave}`,
+      };
     }
 
     if (!attestation.signature) {
-      return { valid: false, verified: false, reason: 'attestation signature missing' };
+      return {
+        valid: false,
+        verified: false,
+        reason: "attestation signature missing",
+      };
     }
     const valid = this._verifySignature(attestation);
     if (!valid) {
-      return { valid: false, verified: false, reason: 'attestation signature invalid' };
+      return {
+        valid: false,
+        verified: false,
+        reason: "attestation signature invalid",
+      };
     }
 
     this._verifiedMrenclaves.add(attestation.mrenclave);
     if (attestation.nodeId) this._verifiedIds.add(attestation.nodeId);
-    return { valid: true, verified: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
+    return {
+      valid: true,
+      verified: true,
+      mrenclave: attestation.mrenclave,
+      authority: attestation.authority,
+    };
   }
 
   /**
@@ -91,21 +139,43 @@ class EnclaveAttestationClient {
   clearCache() {
     this._cache.clear();
     // Also clear transient verified state so a cache-clear truly resets verification
-    try { this._verifiedMrenclaves = new Set(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
-    try { this._verifiedIds = new Set(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
-    try { this._issuedTokens = new Map(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
-    try { this._seenNonces = new Map(); } catch (e) { console.error('enclave-attestation-client.cjs error:', e); }
+    try {
+      this._verifiedMrenclaves = new Set();
+    } catch (e) {
+      console.error("enclave-attestation-client.cjs error:", e);
+    }
+    try {
+      this._verifiedIds = new Set();
+    } catch (e) {
+      console.error("enclave-attestation-client.cjs error:", e);
+    }
+    try {
+      this._issuedTokens = new Map();
+    } catch (e) {
+      console.error("enclave-attestation-client.cjs error:", e);
+    }
+    try {
+      this._seenNonces = new Map();
+    } catch (e) {
+      console.error("enclave-attestation-client.cjs error:", e);
+    }
   }
 
   _verifySignature(attestation) {
     // Mock authority: production would verify ECDSA/PKCS#7 over COSE/DCAP/NSM attestation.
     // For unit-test mock documents, accept any non-empty signature.
-    if (attestation.authority === 'mock-authority' && attestation.enclaveType === 'mock') {
+    if (
+      attestation.authority === "mock-authority" &&
+      attestation.enclaveType === "mock"
+    ) {
       return !!attestation.signature;
     }
-    if (attestation.authority === 'mock-authority') {
+    if (attestation.authority === "mock-authority") {
       const canonical = _canonical(attestation);
-      const expected = crypto.createHmac('sha256', 'mock-authority-secret').update(canonical).digest('hex');
+      const expected = crypto
+        .createHmac("sha256", "mock-authority-secret")
+        .update(canonical)
+        .digest("hex");
       return attestation.signature === expected;
     }
     return true; // defer to native verification for real authorities
@@ -131,30 +201,36 @@ class EnclaveAttestationClient {
    * Throws HsmAdapterError with codes: MISSING_FIELDS, TIMESTAMP_SKEW, REPLAY_NONCE
    */
   async verifyHandshake(payload) {
-    if (!payload || typeof payload !== 'object') {
-      throw new HsmAdapterError('MISSING_FIELDS', 'handshake payload missing');
+    if (!payload || typeof payload !== "object") {
+      throw new HsmAdapterError("MISSING_FIELDS", "handshake payload missing");
     }
     const { peerId, nonce, timestamp } = payload;
-    if (!peerId || !nonce || typeof timestamp !== 'number') {
-      throw new HsmAdapterError('MISSING_FIELDS', 'handshake payload missing required fields');
+    if (!peerId || !nonce || typeof timestamp !== "number") {
+      throw new HsmAdapterError(
+        "MISSING_FIELDS",
+        "handshake payload missing required fields",
+      );
     }
 
     const now = Date.now();
     if (Math.abs(now - timestamp) > this._timestampSkewMs) {
-      throw new HsmAdapterError('TIMESTAMP_SKEW', 'timestamp outside allowed window');
+      throw new HsmAdapterError(
+        "TIMESTAMP_SKEW",
+        "timestamp outside allowed window",
+      );
     }
 
     // Replay protection: reject if nonce seen recently
     const seenAt = this._seenNonces.get(nonce);
-    if (seenAt && (now - seenAt) <= this._nonceWindowMs) {
-      throw new HsmAdapterError('REPLAY_NONCE', 'nonce replay detected');
+    if (seenAt && now - seenAt <= this._nonceWindowMs) {
+      throw new HsmAdapterError("REPLAY_NONCE", "nonce replay detected");
     }
 
     // Record nonce
     this._seenNonces.set(nonce, now);
 
     // Issue ephemeral token
-    const token = crypto.randomBytes(16).toString('hex');
+    const token = crypto.randomBytes(16).toString("hex");
     this._issuedTokens.set(token, now + this._tokenTtlMs);
 
     return { token };
@@ -181,12 +257,18 @@ function _canonical(attestation) {
   void authority;
   void signature;
   void certificate;
-  return Object.keys(rest).sort().map((k) => `${k}=${JSON.stringify(rest[k])}`).join('&');
+  return Object.keys(rest)
+    .sort()
+    .map((k) => `${k}=${JSON.stringify(rest[k])}`)
+    .join("&");
 }
 
 function _signMock(attestation) {
   const canonical = _canonical(attestation);
-  return crypto.createHmac('sha256', 'mock-authority-secret').update(canonical).digest('hex');
+  return crypto
+    .createHmac("sha256", "mock-authority-secret")
+    .update(canonical)
+    .digest("hex");
 }
 
 module.exports = { EnclaveAttestationClient, _signMock };

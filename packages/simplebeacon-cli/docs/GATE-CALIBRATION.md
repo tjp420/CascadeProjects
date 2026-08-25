@@ -4,12 +4,12 @@ Simplebeacon is **strict by default**. Large repos produce many **informational*
 
 ## What to measure (and what not to)
 
-| Metric | Use for marketing? | Use for engineering? |
-|--------|-------------------|----------------------|
-| **Raw findings** (thousands on OSS repos) | **No** — reads as noise | Triage + allowlist tuning only |
-| **Gate blocking count** | **Yes** — sparingly | CI pass/fail |
-| **MCP `blockingCount` on snippets** | Yes — shift-left demos | Pre-accept edit checks |
-| **False positives after allowlist** | Yes — with fixture repos | Week-1 onboarding |
+| Metric                                    | Use for marketing?       | Use for engineering?           |
+| ----------------------------------------- | ------------------------ | ------------------------------ |
+| **Raw findings** (thousands on OSS repos) | **No** — reads as noise  | Triage + allowlist tuning only |
+| **Gate blocking count**                   | **Yes** — sparingly      | CI pass/fail                   |
+| **MCP `blockingCount` on snippets**       | Yes — shift-left demos   | Pre-accept edit checks         |
+| **False positives after allowlist**       | Yes — with fixture repos | Week-1 onboarding              |
 
 Do not benchmark Simplebeacon by scanning random public monorepos and posting the total. That invites exactly the “4000 AI” critique.
 
@@ -17,12 +17,12 @@ Do not benchmark Simplebeacon by scanning random public monorepos and posting th
 
 Run on **controlled snippets** (see `tests/mcp.test.js`, `tests/rules.test.js`):
 
-| Input | Expected |
-|-------|----------|
-| `import x from '../web/data/status-sample.json'` | **Blocking** production-leak |
-| `const key = "AKIA…"` | **Blocking** credential pattern |
-| `YOUR_API_KEY_HERE` in source | **Blocking** LLM slop (SB-FICTION-001) |
-| Clean production import from API module | **No blocking** |
+| Input                                            | Expected                               |
+| ------------------------------------------------ | -------------------------------------- |
+| `import x from '../web/data/status-sample.json'` | **Blocking** production-leak           |
+| `const key = "AKIA…"`                            | **Blocking** credential pattern        |
+| `YOUR_API_KEY_HERE` in source                    | **Blocking** LLM slop (SB-FICTION-001) |
+| Clean production import from API module          | **No blocking**                        |
 
 Reproduce MCP path:
 
@@ -41,10 +41,10 @@ Report **gate pass/fail** and **blocking count** — not total `issueCount` or a
 
 ## Tuning false positives
 
-1. Run gate once; collect blocking issues.  
-2. Confirm each is real or test/fixture context.  
-3. Add path/pattern allowlists in `.simplebeacon/config.json`.  
-4. Re-run until gate reflects **release risk**, not inventory noise.  
+1. Run gate once; collect blocking issues.
+2. Confirm each is real or test/fixture context.
+3. Add path/pattern allowlists in `.simplebeacon/config.json`.
+4. Re-run until gate reflects **release risk**, not inventory noise.
 
 See [CONFIG.md](./CONFIG.md) and [PRODUCTION-LEAK-TRIAGE.md](./PRODUCTION-LEAK-TRIAGE.md).
 
@@ -52,9 +52,9 @@ See [CONFIG.md](./CONFIG.md) and [PRODUCTION-LEAK-TRIAGE.md](./PRODUCTION-LEAK-T
 
 Offer **methodology comparison** on the same fixture set:
 
-- Precision on known-bad snippets  
-- False positives on known-good production files  
-- Local execution + offline proof  
+- Precision on known-bad snippets
+- False positives on known-good production files
+- Local execution + offline proof
 
 Not stack wars (Rust vs Node) or raw totals on unrelated repos.
 

@@ -20,7 +20,7 @@ Generated: 2026-07-07T03:56:46.812Z
 - Delta: -32
 - Baseline issues: 1
 - ai-agent issues: 2335
-- *Note:* Baseline is a whole-workspace scan (CascadeProjects) with a much larger scope, so this is a directional contrast, not a like-for-like comparison.
+- _Note:_ Baseline is a whole-workspace scan (CascadeProjects) with a much larger scope, so this is a directional contrast, not a like-for-like comparison.
 
 ## Prioritized Action Items
 
@@ -31,6 +31,7 @@ Generated: 2026-07-07T03:56:46.812Z
 **Fix:** Move secrets to environment variables || a secret manager; never commit keys to version control.
 
 **Example files:**
+
 - `coming-soon/build-public.js`
 - `ai-platform/tests/secret-config.test.js`
 - `ai-platform/tools/generate-test-token.cjs`
@@ -44,6 +45,7 @@ Generated: 2026-07-07T03:56:46.812Z
 **Fix:** Add schema validators (Zod, AJV, pydantic) and enforce max_tokens on all LLM calls.
 
 **Example files:**
+
 - `false-positive-audit/ai-generated/src/chat-service.js`
 - `false-positive-audit/ai-generated/src/stream-handler.js`
 - `ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeEngineGrid.js`
@@ -60,8 +62,9 @@ Generated: 2026-07-07T03:56:46.812Z
 ## Dashboard Import
 
 A dashboard-compatible JSON report was generated at:
+
 - `c:\Users\Trevor\CascadeProjects\ai-agent-report-for-dashboard.json`
-It was also staged at `c:\Users\Trevor\CascadeProjects\ai-platform\.simplebeacon\report.json` for the SimpleBeacon dashboard.
+  It was also staged at `c:\Users\Trevor\CascadeProjects\ai-platform\.simplebeacon\report.json` for the SimpleBeacon dashboard.
 
 ## Next Steps
 

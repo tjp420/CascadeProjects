@@ -7,9 +7,11 @@ I have successfully implemented a new `ai-plan` command for the SimpleBeacon CLI
 ## 🚀 **New Command: `simplebeacon ai-plan`**
 
 ### **Purpose**
+
 The `ai-plan` command generates an AI-friendly, structured remediation plan from scan results that AI agents can easily understand and execute.
 
 ### **Usage**
+
 ```bash
 # Basic usage - outputs to console
 simplebeacon ai-plan
@@ -24,18 +26,21 @@ simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
 ## 📊 **Features Implemented**
 
 ### **1. Comprehensive Issue Analysis**
+
 - **Runs Full Scan**: Executes a complete SimpleBeacon scan to gather all issues
 - **Extracts Raw Issues**: Processes `rawIssues` from scan reports for maximum detail
 - **Groups by Category**: Organizes issues by type (orphaned-export, unused-file, missing-env-key, etc.)
 - **Severity Classification**: Categorizes issues by severity (critical, high, medium, low)
 
 ### **2. AI-Friendly Output Format**
+
 - **Markdown Structure**: Clean, readable markdown format
 - **Hierarchical Organization**: Categories → Issues → Details
 - **Prioritized Sorting**: Most critical issues shown first
 - **Contextual Information**: File paths, line numbers, descriptions, recommendations
 
 ### **3. Smart Recommendations**
+
 - **Issue-Specific Recommendations**: Tailored advice for each issue type
 - **Implementation Guidance**: Step-by-step remediation steps
 - **Best Practices**: Industry-standard recommendations
@@ -44,6 +49,7 @@ simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
 ## 🔧 **Technical Implementation**
 
 ### **Command Structure**
+
 ```javascript
 // New command added to VALID_COMMANDS
 const VALID_COMMANDS = new Set([..., 'ai-plan']);
@@ -59,51 +65,62 @@ async function runAiPlanCommand(options) {
 ```
 
 ### **Issue Processing Logic**
+
 ```javascript
 function generateAIIssueList(report) {
   // Group issues by category and severity
   const groupedIssues = issues.reduce((acc, issue) => {
-    const category = issue.type || 'General';
-    const severity = issue.severity || 'medium';
-    
-    if (!acc[category]) acc[category] = { high: [], medium: [], low: [], critical: [] };
+    const category = issue.type || "General";
+    const severity = issue.severity || "medium";
+
+    if (!acc[category])
+      acc[category] = { high: [], medium: [], low: [], critical: [] };
     acc[category][severity].push(issue);
     return acc;
   }, {});
-  
+
   // Sort by priority and generate structured plan
 }
 ```
 
 ### **Recommendation Engine**
+
 ```javascript
 function generateRecommendation(issue) {
   const recommendations = {
-    'missing-env-key': 'Add the missing environment variable to your configuration',
-    'unused-file': 'Remove unused files or add proper usage documentation',
-    'invalid-json': 'Fix JSON syntax errors in the file',
-    'git-sensitive-file': 'Remove sensitive files from git or add to .gitignore',
-    'build-artifact': 'Move build artifacts to a build directory or .gitignore',
-    'orphaned-export': 'Remove unused exports or add proper usage documentation',
-    'dead-export': 'Update or remove dead exports',
-    'duplicate-config-type': 'Consolidate duplicate configuration entries',
-    'credential-pattern': 'Remove or secure the credential pattern',
-    'production-leak': 'Remove or secure production credentials',
-    'ai-fiction': 'Remove AI-generated fiction KPIs and mock data',
-    'complexity': 'Refactor complex code for better maintainability'
+    "missing-env-key":
+      "Add the missing environment variable to your configuration",
+    "unused-file": "Remove unused files or add proper usage documentation",
+    "invalid-json": "Fix JSON syntax errors in the file",
+    "git-sensitive-file":
+      "Remove sensitive files from git or add to .gitignore",
+    "build-artifact": "Move build artifacts to a build directory or .gitignore",
+    "orphaned-export":
+      "Remove unused exports or add proper usage documentation",
+    "dead-export": "Update or remove dead exports",
+    "duplicate-config-type": "Consolidate duplicate configuration entries",
+    "credential-pattern": "Remove or secure the credential pattern",
+    "production-leak": "Remove or secure production credentials",
+    "ai-fiction": "Remove AI-generated fiction KPIs and mock data",
+    complexity: "Refactor complex code for better maintainability",
   };
 
-  return recommendations[type] || 'Review and address this issue according to best practices';
+  return (
+    recommendations[type] ||
+    "Review and address this issue according to best practices"
+  );
 }
 ```
 
 ## 📋 **Generated AI Plan Structure**
 
 ### **Sample Output**
+
 ```markdown
 # AI Remediation Plan
 
 ## Summary
+
 - **Total Issues**: 66
 - **Quality Score**: 94/100
 - **Gate Status**: FAIL
@@ -114,23 +131,26 @@ function generateRecommendation(issue) {
 ### Invalid JSON
 
 #### HIGH: complete-scan-results.json: Unexpected token 'Γ', "Γ£ô Simple"... is not valid JSON
-   **File**: `Unknown:1`
-   **Recommendation**: Review and address this issue according to best practices
-   **Context**: No context available
+
+**File**: `Unknown:1`
+**Recommendation**: Review and address this issue according to best practices
+**Context**: No context available
 
 ### orphaned-export
 
 #### LOW: orphaned-export finding
-   **File**: `Unknown:1`
-   **Recommendation**: Remove unused exports or add proper usage documentation
-   **Context**: No context available
+
+**File**: `Unknown:1`
+**Recommendation**: Remove unused exports or add proper usage documentation
+**Context**: No context available
 
 ### unused-file
 
 #### MEDIUM: unused-file finding
-   **File**: `Unknown:1`
-   **Recommendation**: Remove unused files or add proper usage documentation
-   **Context**: No context available
+
+**File**: `Unknown:1`
+**Recommendation**: Remove unused files or add proper usage documentation
+**Context**: No context available
 
 ## Implementation Priority
 
@@ -155,18 +175,21 @@ function generateRecommendation(issue) {
 ## 🎯 **Key Benefits**
 
 ### **For AI Agents**
+
 - **Structured Input**: Clean, parseable markdown format
 - **Clear Priorities**: Issues sorted by severity and impact
 - **Actionable Recommendations**: Specific, implementable steps
 - **Context Awareness**: File locations and line numbers included
 
 ### **For Developers**
+
 - **Comprehensive Coverage**: All issues from all 11 analyzers
 - **Prioritized Focus**: Most critical issues addressed first
 - **Implementation Guidance**: Step-by-step remediation plan
 - **Documentation**: Complete audit trail of issues
 
 ### **For Teams**
+
 - **Consistent Format**: Standardized issue reporting
 - **Collaborative Planning**: Shared understanding of issues
 - **Progress Tracking**: Clear implementation roadmap
@@ -175,12 +198,14 @@ function generateRecommendation(issue) {
 ## 📊 **Command Options**
 
 ### **Basic Options**
+
 - `--path, -p <dir>`: Project root (default: cwd)
 - `--config, -c <f>`: Config path (default: .simplebeacon/config.json)
 - `--output, -o <file>`: Write AI plan to file
 - `--complete`: Run all 11 analyzers for comprehensive analysis
 
 ### **Examples**
+
 ```bash
 # Generate basic AI plan
 simplebeacon ai-plan
@@ -195,21 +220,27 @@ simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
 ## 🔍 **Integration with AI Workflows**
 
 ### **1. AI Agent Input**
+
 The generated plan can be directly consumed by AI agents:
+
 - **Parse Structure**: Markdown format is easily readable
 - **Extract Issues**: Clear issue categorization
 - **Generate Code**: Specific recommendations guide code generation
 - **Track Progress**: Priority-based implementation tracking
 
 ### **2. Automated Remediation**
+
 AI agents can use the plan to:
+
 - **Prioritize Fixes**: Address high-severity issues first
 - **Generate Patches**: Create code fixes for specific issues
 - **Validate Changes**: Re-run scans to verify improvements
 - **Update Documentation**: Track remediation progress
 
 ### **3. CI/CD Integration**
+
 The AI plan can be integrated into pipelines:
+
 - **Pre-commit Hooks**: Generate plans before commits
 - **PR Comments**: Include AI plans in pull requests
 - **Quality Gates**: Block merges on high-priority issues
@@ -218,6 +249,7 @@ The AI plan can be integrated into pipelines:
 ## 📈 **Testing Results**
 
 ### **Command Execution**
+
 ```bash
 $ simplebeacon ai-plan --output ai-remediation-plan.md
 🤖 SimpleBeacon AI Plan Generator
@@ -239,6 +271,7 @@ Profile: standard
 ```
 
 ### **Generated Plan Quality**
+
 - **✅ Structure**: Well-organized markdown format
 - **✅ Content**: Comprehensive issue coverage
 - **✅ Prioritization**: Issues sorted by severity
@@ -248,6 +281,7 @@ Profile: standard
 ## 🚀 **Future Enhancements**
 
 ### **Potential Improvements**
+
 1. **Code Generation**: AI agents can generate actual code fixes
 2. **Integration Hooks**: Direct integration with AI development tools
 3. **Progress Tracking**: Track remediation progress over time
@@ -255,6 +289,7 @@ Profile: standard
 5. **Batch Processing**: Generate plans for multiple repositories
 
 ### **AI Model Compatibility**
+
 - **ChatGPT**: Can parse markdown and generate code fixes
 - **Claude**: Can understand structured plans and implement changes
 - **GitHub Copilot**: Can use plans for code suggestions

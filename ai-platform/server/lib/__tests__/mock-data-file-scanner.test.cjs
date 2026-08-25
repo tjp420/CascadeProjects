@@ -1,27 +1,29 @@
-'use strict';
+"use strict";
 
-jest.mock('../mock-data-helpers.cjs', () => ({
-  analyzeFileContent: jest.fn().mockReturnValue({ issues: [], needsValidation: false }),
-  ALLOWED_EXTENSIONS: /\.json$/
+jest.mock("../mock-data-helpers.cjs", () => ({
+  analyzeFileContent: jest
+    .fn()
+    .mockReturnValue({ issues: [], needsValidation: false }),
+  ALLOWED_EXTENSIONS: /\.json$/,
 }));
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { scanForMockFiles } = require('../mock-data-file-scanner.cjs');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const { scanForMockFiles } = require("../mock-data-file-scanner.cjs");
 
-describe('mock-data-file-scanner', () => {
-  test('exports scanForMockFiles function', () => {
-    expect(typeof scanForMockFiles).toBe('function');
+describe("mock-data-file-scanner", () => {
+  test("exports scanForMockFiles function", () => {
+    expect(typeof scanForMockFiles).toBe("function");
   });
 
-  test('scanForMockFiles returns object with files and issues arrays', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-scan-test-'));
+  test("scanForMockFiles returns object with files and issues arrays", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mock-scan-test-"));
     try {
-      fs.writeFileSync(path.join(tmpDir, 'data.json'), '{"test":true}');
+      fs.writeFileSync(path.join(tmpDir, "data.json"), '{"test":true}');
       const result = await scanForMockFiles(tmpDir);
-      expect(result).toHaveProperty('files');
-      expect(result).toHaveProperty('issues');
+      expect(result).toHaveProperty("files");
+      expect(result).toHaveProperty("issues");
       expect(Array.isArray(result.files)).toBe(true);
       expect(Array.isArray(result.issues)).toBe(true);
     } finally {
@@ -29,8 +31,8 @@ describe('mock-data-file-scanner', () => {
     }
   });
 
-  test('scanForMockFiles handles empty directory', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-scan-empty-'));
+  test("scanForMockFiles handles empty directory", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mock-scan-empty-"));
     try {
       const result = await scanForMockFiles(tmpDir);
       expect(result.files).toEqual([]);
@@ -40,10 +42,10 @@ describe('mock-data-file-scanner', () => {
     }
   });
 
-  test('scanForMockFiles skips non-matching extensions', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-scan-ext-'));
+  test("scanForMockFiles skips non-matching extensions", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mock-scan-ext-"));
     try {
-      fs.writeFileSync(path.join(tmpDir, 'readme.txt'), 'hello');
+      fs.writeFileSync(path.join(tmpDir, "readme.txt"), "hello");
       const result = await scanForMockFiles(tmpDir);
       expect(result.files).toEqual([]);
     } finally {

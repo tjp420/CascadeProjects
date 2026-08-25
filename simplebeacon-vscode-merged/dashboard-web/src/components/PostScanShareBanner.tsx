@@ -76,9 +76,7 @@ export function PostScanShareBanner({
 
   const handleCopy = async () => {
     try {
-      const payload = userEmail && referralUrl
-        ? `${shareText.split(' https://')[0]} ${trackingUrl}`
-        : shareText;
+      const payload = userEmail && referralUrl ? `${shareText.split(' https://')[0]} ${trackingUrl}` : shareText;
       await navigator.clipboard.writeText(payload.trim());
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -95,7 +93,7 @@ export function PostScanShareBanner({
   const tweetText = encodeURIComponent(
     gatePass && grade && grade !== '—'
       ? `Just cleared my codebase audit check with a SimpleBeacon grade of ${grade} using edge-speed local AI heuristics! No code uploads, 100% private. ${trackingUrl}`
-      : shareText.replace('https://simplebeacon.ai', trackingUrl),
+      : shareText.replace('https://simplebeacon.ai', trackingUrl)
   );
 
   return (
@@ -104,15 +102,16 @@ export function PostScanShareBanner({
         <div className="flex items-start gap-4">
           <Share2 className="h-6 w-6 text-sky-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <h4 className="text-sky-400 font-bold font-mono text-sm tracking-wide">
-              Share Your Scan Result
-            </h4>
+            <h4 className="text-sky-400 font-bold font-mono text-sm tracking-wide">Share Your Scan Result</h4>
             <p className="text-foreground-muted text-sm mt-1 leading-relaxed">
               {gatePass ? (
                 <>
                   Your repo passed the compliance gate
                   {grade && grade !== '—' ? (
-                    <> with grade <span className="font-mono text-emerald-400 font-semibold">{grade}</span></>
+                    <>
+                      {' '}
+                      with grade <span className="font-mono text-emerald-400 font-semibold">{grade}</span>
+                    </>
                   ) : score != null ? (
                     <> with a {score}% quality score</>
                   ) : null}
@@ -140,9 +139,13 @@ export function PostScanShareBanner({
                 className="whitespace-nowrap text-xs shrink-0"
               >
                 {copied ? (
-                  <><Check className="h-3.5 w-3.5 mr-1" /> Copied</>
+                  <>
+                    <Check className="h-3.5 w-3.5 mr-1" /> Copied
+                  </>
                 ) : (
-                  <><Copy className="h-3.5 w-3.5 mr-1" /> Copy</>
+                  <>
+                    <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                  </>
                 )}
               </Button>
             </div>

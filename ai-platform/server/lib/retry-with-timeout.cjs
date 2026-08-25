@@ -8,7 +8,7 @@
  * @param {number} [options.maxDelayMs=2000]
  * @param {number} [options.jitter=0.1]
  */
-'use strict';
+"use strict";
 
 async function retryWithTimeout(operation, options = {}) {
   const retries = options.retries !== undefined ? options.retries : 3;
@@ -24,7 +24,11 @@ async function retryWithTimeout(operation, options = {}) {
 
     const timeoutPromise = new Promise((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new Error(`ERR_EXECUTION_TIMEOUT: Operation exceeded the ${timeoutMs}ms limit.`));
+        reject(
+          new Error(
+            `ERR_EXECUTION_TIMEOUT: Operation exceeded the ${timeoutMs}ms limit.`,
+          ),
+        );
       }, timeoutMs);
     });
 
@@ -45,8 +49,14 @@ async function retryWithTimeout(operation, options = {}) {
       const sleepTime = Math.max(0, rawDelay + jitterOffset);
 
       // best-effort log
-      try { console.warn(`[RETRY SYSTEM] Attempt ${attempt} failed: ${error && error.message}. Retrying in ${Math.round(sleepTime)}ms...`); } catch (e) { console.error('retry-with-timeout.cjs error:', e); }
-      await new Promise(resolve => setTimeout(resolve, sleepTime));
+      try {
+        console.warn(
+          `[RETRY SYSTEM] Attempt ${attempt} failed: ${error && error.message}. Retrying in ${Math.round(sleepTime)}ms...`,
+        );
+      } catch (e) {
+        console.error("retry-with-timeout.cjs error:", e);
+      }
+      await new Promise((resolve) => setTimeout(resolve, sleepTime));
     }
   }
 }

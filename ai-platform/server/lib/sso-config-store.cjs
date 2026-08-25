@@ -7,13 +7,14 @@
  * @module sso-config-store
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const cryptoUtils = require('./crypto-utils.cjs');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const cryptoUtils = require("./crypto-utils.cjs");
 
 const SSO_CONFIG_PATH =
-  process.env.SSO_CONFIG_PATH || path.join(__dirname, '../../.simplebeacon', 'sso-configs.json');
+  process.env.SSO_CONFIG_PATH ||
+  path.join(__dirname, "../../.simplebeacon", "sso-configs.json");
 
 let _cache = null;
 let _cacheDirty = true;
@@ -43,7 +44,7 @@ let _cacheDirty = true;
 function readStore() {
   if (_cache && !_cacheDirty) return _cache;
   try {
-    const raw = fs.readFileSync(SSO_CONFIG_PATH, 'utf8');
+    const raw = fs.readFileSync(SSO_CONFIG_PATH, "utf8");
     _cache = JSON.parse(raw);
     if (!_cache.configs || !Array.isArray(_cache.configs)) {
       _cache = { configs: [] };
@@ -58,8 +59,8 @@ function readStore() {
 function writeStore(store) {
   const dir = path.dirname(SSO_CONFIG_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = SSO_CONFIG_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  const tmp = SSO_CONFIG_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmp, SSO_CONFIG_PATH);
   _cache = store;
   _cacheDirty = false;
@@ -71,13 +72,19 @@ function writeStore(store) {
  * @returns {string} Encrypted payload as base64 string
  */
 function encryptSecret(plaintext) {
-  const secret = process.env.SSO_CONFIG_ENCRYPTION_KEY || process.env.JWT_SECRET || 'dev-secret';
-  const key = crypto.createHash('sha256').update(secret).digest();
+  const secret =
+    process.env.SSO_CONFIG_ENCRYPTION_KEY ||
+    process.env.JWT_SECRET ||
+    "dev-secret";
+  const key = crypto.createHash("sha256").update(secret).digest();
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]).toString('base64');
+  return Buffer.concat([iv, tag, encrypted]).toString("base64");
 }
 
 /**
@@ -87,15 +94,21 @@ function encryptSecret(plaintext) {
  */
 function decryptSecret(encoded) {
   try {
-    const secret = process.env.SSO_CONFIG_ENCRYPTION_KEY || process.env.JWT_SECRET || 'dev-secret';
-    const key = crypto.createHash('sha256').update(secret).digest();
-    const buf = Buffer.from(encoded, 'base64');
+    const secret =
+      process.env.SSO_CONFIG_ENCRYPTION_KEY ||
+      process.env.JWT_SECRET ||
+      "dev-secret";
+    const key = crypto.createHash("sha256").update(secret).digest();
+    const buf = Buffer.from(encoded, "base64");
     const iv = buf.subarray(0, 12);
     const tag = buf.subarray(12, 28);
     const encrypted = buf.subarray(28);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+    return Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]).toString("utf8");
   } catch {
     return null;
   }
@@ -107,8 +120,8 @@ function decryptSecret(encoded) {
  * @returns {string}
  */
 function maskSecret(secret) {
-  if (!secret || secret.length < 12) return '****';
-  return secret.slice(0, 4) + '••••' + secret.slice(-4);
+  if (!secret || secret.length < 12) return "****";
+  return secret.slice(0, 4) + "••••" + secret.slice(-4);
 }
 
 /**
@@ -188,7 +201,10 @@ function getConfigDecrypted(providerId) {
   const config = store.configs.find((c) => c.providerId === providerId);
   if (!config) return null;
   if (config.oidc && config.oidc.clientSecret) {
-    config.oidc._decryptedSecret = decryptClientSecret(config.oidc.clientSecret, config.orgId);
+    config.oidc._decryptedSecret = decryptClientSecret(
+      config.oidc.clientSecret,
+      config.orgId,
+    );
   }
   return config;
 }
@@ -216,12 +232,13 @@ function createConfig(params) {
   const now = new Date().toISOString();
 
   const config = {
-    providerId: params.providerId || `sso-${crypto.randomBytes(4).toString('hex')}`,
+    providerId:
+      params.providerId || `sso-${crypto.randomBytes(4).toString("hex")}`,
     orgId: params.orgId,
     displayName: params.displayName || params.providerId,
-    method: params.method || 'oidc',
-    providerType: params.providerType || 'custom',
-    domain: params.domain || '',
+    method: params.method || "oidc",
+    providerType: params.providerType || "custom",
+    domain: params.domain || "",
     enabled: params.enabled !== false,
     saml: params.saml || null,
     oidc: params.oidc
@@ -264,7 +281,10 @@ function updateConfig(providerId, updates) {
   if (updates.oidc) {
     updated.oidc = { ...config.oidc, ...updates.oidc };
     if (updates.oidc.clientSecret) {
-      updated.oidc.clientSecret = cryptoUtils.encryptForOrg(updates.oidc.clientSecret, config.orgId);
+      updated.oidc.clientSecret = cryptoUtils.encryptForOrg(
+        updates.oidc.clientSecret,
+        config.orgId,
+      );
     }
   }
 

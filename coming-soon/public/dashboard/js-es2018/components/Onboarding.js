@@ -30,7 +30,8 @@ export function renderOnboarding() {
     title.id = 'onboarding-title';
     title.textContent = '🛡️ Welcome to Simplebeacon';
     const desc = document.createElement('p');
-    desc.textContent = 'Your automated code security checkpoint — like airport security for every change before it reaches production.';
+    desc.textContent =
+        'Your automated code security checkpoint — like airport security for every change before it reaches production.';
     const list = document.createElement('ul');
     list.className = 'modal-checklist';
     [
@@ -38,7 +39,7 @@ export function renderOnboarding() {
         'Get a pass/fail gate score and prioritized remediation roadmap',
         'Chat with AI about your findings — local Ollama or cloud providers',
         'Register FIDO2 security keys for passwordless authentication'
-    ].forEach((text) => {
+    ].forEach(text => {
         const li = document.createElement('li');
         li.textContent = text;
         list.appendChild(li);
@@ -84,28 +85,36 @@ export function renderOnboarding() {
  */
 export function bindOnboarding(overlay, { onStart, onTour, onDismiss }) {
     var _a, _b, _c, _d;
-    (_a = overlay.querySelector('#onboarding-start')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-        dismissOnboarding();
-        overlay.remove();
-        onStart === null || onStart === void 0 ? void 0 : onStart();
-    });
-    (_b = overlay.querySelector('#onboarding-tour')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
-        dismissOnboarding();
-        overlay.remove();
-        onTour === null || onTour === void 0 ? void 0 : onTour();
-    });
-    (_c = overlay.querySelector('#onboarding-dismiss')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
-        dismissOnboarding();
-        overlay.remove();
-        onDismiss === null || onDismiss === void 0 ? void 0 : onDismiss();
-    });
-    (_d = overlay.querySelector('#onboarding-getting-started')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', (e) => {
-        e.preventDefault();
-        dismissOnboarding();
-        overlay.remove();
-        onDismiss === null || onDismiss === void 0 ? void 0 : onDismiss();
-    });
-    overlay.addEventListener('click', (e) => {
+    (_a = overlay.querySelector('#onboarding-start')) === null || _a === void 0
+        ? void 0
+        : _a.addEventListener('click', () => {
+              dismissOnboarding();
+              overlay.remove();
+              onStart === null || onStart === void 0 ? void 0 : onStart();
+          });
+    (_b = overlay.querySelector('#onboarding-tour')) === null || _b === void 0
+        ? void 0
+        : _b.addEventListener('click', () => {
+              dismissOnboarding();
+              overlay.remove();
+              onTour === null || onTour === void 0 ? void 0 : onTour();
+          });
+    (_c = overlay.querySelector('#onboarding-dismiss')) === null || _c === void 0
+        ? void 0
+        : _c.addEventListener('click', () => {
+              dismissOnboarding();
+              overlay.remove();
+              onDismiss === null || onDismiss === void 0 ? void 0 : onDismiss();
+          });
+    (_d = overlay.querySelector('#onboarding-getting-started')) === null || _d === void 0
+        ? void 0
+        : _d.addEventListener('click', e => {
+              e.preventDefault();
+              dismissOnboarding();
+              overlay.remove();
+              onDismiss === null || onDismiss === void 0 ? void 0 : onDismiss();
+          });
+    overlay.addEventListener('click', e => {
         if (e.target === overlay) {
             dismissOnboarding();
             overlay.remove();

@@ -8,7 +8,9 @@
   "engines": {
     "vscode": "^1.99.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
     "onCommand:simplebeacon.runQuickScan",
     "onCommand:simplebeacon.gateStatus"

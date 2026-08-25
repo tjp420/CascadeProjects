@@ -7,6 +7,7 @@
 **Headline:** AI is writing your code. Who is checking it?
 
 **Talking points:**
+
 - AI coding assistants now generate a significant percentage of new code in many engineering orgs
 - Traditional linters and SAST tools were designed for human-written code — they catch syntax, style, and known vulnerability patterns
 - They do not catch AI-specific defects: fabricated KPIs, mock paths leaked into production, hardcoded credentials, placeholder text
@@ -20,6 +21,7 @@
 **Headline:** SimpleBeacon — the scanner built for AI-generated code
 
 **Talking points:**
+
 - Local-first static analysis tool that detects AI code slop: fictional metrics, mock/sample paths, hardcoded secrets, LLM placeholder text
 - 48 analyzers across 25 scan engines — pattern matching, AST analysis, and dataflow tracking
 - Zero LLM dependency: deterministic results, no hallucinated findings, no API costs, no model drift
@@ -33,6 +35,7 @@
 **Headline:** See it catch what your linter misses
 
 **Talking points:**
+
 - Run `npx simplebeacon scan --gate` on a sample repo live
 - Show the gate failing on high-severity findings
 - Walk through 2-3 findings: a hardcoded credential, a fabricated KPI, a placeholder TODO
@@ -46,6 +49,7 @@
 **Headline:** Every engineering team shipping AI-generated code needs this
 
 **Talking points:**
+
 - AI coding assistant adoption is near-ubiquitous among professional developers
 - Works regardless of which assistant generated the code: Cursor, VS Code Copilot, GitHub Copilot, Claude, Windsurf, Cline, Aider
 - Three buyer personas: engineering teams (pain: shipping broken code), compliance officers (pain: AI Act / SOC 2 evidence), CTOs (pain: production reliability and accountability)
@@ -59,6 +63,7 @@
 **Headline:** Three tiers, land-and-expand
 
 **Talking points:**
+
 - Developer: $49/mo — unlimited scans, CI gate, all 48 analyzers. Individual engineer land
 - Team Pro: $149/mo for 5 seats — adds EU AI Act and SOC 2 readiness, board-ready compliance certificates. Expand into teams
 - Enterprise: custom — air-gapped deployment, SSO/SAML, dedicated security analyst, custom analyzers. Strategic accounts
@@ -72,6 +77,7 @@
 **Headline:** Adoption and signal
 
 **Talking points:**
+
 - (Insert current metrics: number of scans run, repos scanned, GitHub stars, npm downloads, design partners, pilot conversions)
 - Highlight any named customers or design partners in the target personas
 - Share qualitative signal: specific examples of critical findings SimpleBeacon caught before production
@@ -84,6 +90,7 @@
 **Headline:** Built by people who have shipped and broken production code
 
 **Talking points:**
+
 - (Insert founder backgrounds: relevant engineering, security, and compliance experience)
 - Why this team: firsthand experience with AI-generated code shipping defects to production
 - Domain expertise in static analysis, CI/CD tooling, and regulatory compliance
@@ -96,6 +103,7 @@
 **Headline:** What we need
 
 **Talking points:**
+
 - (State the raise amount if fundraising, or the partnership / pilot ask if not)
 - Use of funds: analyzer expansion, enterprise sales, compliance certifications
 - Specific asks from the audience: design partners, intros to compliance officers at regulated companies, feedback on enterprise feature priorities
@@ -108,6 +116,7 @@
 **Headline:** What is next
 
 **Talking points:**
+
 - Near term: additional analyzers for emerging AI slop patterns, deeper CI platform integrations
 - Mid term: compliance framework expansions beyond EU AI Act and SOC 2 (ISO 42001, NIST AI RMF)
 - Long term: custom analyzer SDK for enterprise, org-wide policy enforcement, historical AI code debt auditing
@@ -120,6 +129,7 @@
 **Headline:** Questions
 
 **Talking points:**
+
 - Open the floor
 - Have backup slides ready for common questions: detailed analyzer list, CI integration examples, enterprise deployment architecture, competitive landscape vs. SAST tools and AI code review tools
 - Close with the CTA: "Run your first scan now — `npx simplebeacon scan`. Ship AI code with confidence."

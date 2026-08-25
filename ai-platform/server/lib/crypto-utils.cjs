@@ -1,13 +1,13 @@
-'use strict';
+"use strict";
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-const ALGO = 'aes-256-gcm';
+const ALGO = "aes-256-gcm";
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
-const PREFIX = 'enc:';
+const PREFIX = "enc:";
 
 function resolveKey() {
   const envKey =
@@ -17,13 +17,13 @@ function resolveKey() {
     null;
 
   if (envKey) {
-    return crypto.createHash('sha256').update(String(envKey)).digest();
+    return crypto.createHash("sha256").update(String(envKey)).digest();
   }
 
-  const keyPath = path.join(process.cwd(), '.simplebeacon', '.encryption-key');
+  const keyPath = path.join(process.cwd(), ".simplebeacon", ".encryption-key");
   try {
     if (fs.existsSync(keyPath)) {
-      return Buffer.from(fs.readFileSync(keyPath, 'utf8'), 'hex');
+      return Buffer.from(fs.readFileSync(keyPath, "utf8"), "hex");
     }
   } catch {
     // fall through to generate
@@ -31,7 +31,7 @@ function resolveKey() {
   const key = crypto.randomBytes(32);
   const dir = path.dirname(keyPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(keyPath, key.toString('hex'), { mode: 0o600 });
+  fs.writeFileSync(keyPath, key.toString("hex"), { mode: 0o600 });
   return key;
 }
 
@@ -46,9 +46,9 @@ let _decryptionKeys = null;
 function getDecryptionKeys() {
   if (_decryptionKeys) return _decryptionKeys;
   try {
-    const keyRotationStore = require('./key-rotation-store.cjs');
+    const keyRotationStore = require("./key-rotation-store.cjs");
     const versions = keyRotationStore.getDecryptionKeys();
-    _decryptionKeys = versions.map((v) => Buffer.from(v.keyHex, 'hex'));
+    _decryptionKeys = versions.map((v) => Buffer.from(v.keyHex, "hex"));
   } catch {
     // key-rotation-store not available ΓÇö just use the current key
     _decryptionKeys = [];
@@ -63,7 +63,7 @@ function refreshDecryptionKeys() {
 
 function refreshActiveKey() {
   try {
-    const keyRotationStore = require('./key-rotation-store.cjs');
+    const keyRotationStore = require("./key-rotation-store.cjs");
     const active = keyRotationStore.getActiveKeyBuffer();
     if (active) {
       ENCRYPTION_KEY = active;
@@ -75,30 +75,33 @@ function refreshActiveKey() {
 }
 
 function encrypt(plaintext) {
-  if (!plaintext) return '';
-  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  if (!plaintext) return "";
+  if (typeof plaintext !== "string") plaintext = String(plaintext);
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGO, ENCRYPTION_KEY, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
-  return `${PREFIX}${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+  return `${PREFIX}${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
 function decrypt(stored) {
-  if (!stored) return '';
-  if (typeof stored !== 'string') return '';
+  if (!stored) return "";
+  if (typeof stored !== "string") return "";
   if (!stored.startsWith(PREFIX)) return stored;
-  const parts = stored.split(':');
-  if (parts.length !== 4) return '';
+  const parts = stored.split(":");
+  if (parts.length !== 4) return "";
 
   const tryDecrypt = (key) => {
     try {
-      const iv = Buffer.from(parts[1], 'hex');
-      const tag = Buffer.from(parts[2], 'hex');
-      const encrypted = Buffer.from(parts[3], 'hex');
+      const iv = Buffer.from(parts[1], "hex");
+      const tag = Buffer.from(parts[2], "hex");
+      const encrypted = Buffer.from(parts[3], "hex");
       const decipher = crypto.createDecipheriv(ALGO, key, iv);
       decipher.setAuthTag(tag);
-      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+      return decipher.update(encrypted, null, "utf8") + decipher.final("utf8");
     } catch {
       return null;
     }
@@ -115,53 +118,56 @@ function decrypt(stored) {
     if (legacyResult !== null) return legacyResult;
   }
 
-  return '';
+  return "";
 }
 
-const SANDBOX_PREFIX = 'enc:sb:';
+const SANDBOX_PREFIX = "enc:sb:";
 
 function isEncrypted(value) {
-  return typeof value === 'string' && value.startsWith(PREFIX);
+  return typeof value === "string" && value.startsWith(PREFIX);
 }
 
 function deriveOrgKey(orgId) {
-  if (!orgId || typeof orgId !== 'string') {
-    throw new TypeError('orgId must be a non-empty string');
+  if (!orgId || typeof orgId !== "string") {
+    throw new TypeError("orgId must be a non-empty string");
   }
-  const salt = Buffer.from(`sb:org:${orgId}`, 'utf8');
-  return crypto.createHmac('sha256', ENCRYPTION_KEY).update(salt).digest();
+  const salt = Buffer.from(`sb:org:${orgId}`, "utf8");
+  return crypto.createHmac("sha256", ENCRYPTION_KEY).update(salt).digest();
 }
 
 function isOrgEncrypted(value) {
-  return typeof value === 'string' && value.startsWith(SANDBOX_PREFIX);
+  return typeof value === "string" && value.startsWith(SANDBOX_PREFIX);
 }
 
 function encryptForOrg(plaintext, orgId) {
-  if (!plaintext) return '';
-  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  if (!plaintext) return "";
+  if (typeof plaintext !== "string") plaintext = String(plaintext);
   const key = deriveOrgKey(orgId);
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGO, key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
-  return `${SANDBOX_PREFIX}${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+  return `${SANDBOX_PREFIX}${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
 function decryptForOrg(stored, orgId) {
-  if (!stored || typeof stored !== 'string') return '';
-  if (!stored.startsWith(SANDBOX_PREFIX)) return '';
+  if (!stored || typeof stored !== "string") return "";
+  if (!stored.startsWith(SANDBOX_PREFIX)) return "";
   const payload = stored.slice(SANDBOX_PREFIX.length);
-  const parts = payload.split(':');
-  if (parts.length !== 3) return '';
+  const parts = payload.split(":");
+  if (parts.length !== 3) return "";
 
   const tryDecrypt = (key) => {
     try {
-      const iv = Buffer.from(parts[0], 'hex');
-      const tag = Buffer.from(parts[1], 'hex');
-      const encrypted = Buffer.from(parts[2], 'hex');
+      const iv = Buffer.from(parts[0], "hex");
+      const tag = Buffer.from(parts[1], "hex");
+      const encrypted = Buffer.from(parts[2], "hex");
       const decipher = crypto.createDecipheriv(ALGO, key, iv);
       decipher.setAuthTag(tag);
-      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+      return decipher.update(encrypted, null, "utf8") + decipher.final("utf8");
     } catch {
       return null;
     }
@@ -169,11 +175,11 @@ function decryptForOrg(stored, orgId) {
 
   const key = deriveOrgKey(orgId);
   const result = tryDecrypt(key);
-  return result !== null ? result : '';
+  return result !== null ? result : "";
 }
 
 function encryptObject(obj, fields) {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const result = { ...obj };
   for (const field of fields) {
     if (result[field] != null && !isEncrypted(result[field])) {
@@ -184,7 +190,7 @@ function encryptObject(obj, fields) {
 }
 
 function decryptObject(obj, fields) {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const result = { ...obj };
   for (const field of fields) {
     if (result[field] != null && isEncrypted(result[field])) {
@@ -195,9 +201,9 @@ function decryptObject(obj, fields) {
 }
 
 function maskSecret(value) {
-  if (!value) return '****';
-  if (value.length <= 8) return '****';
-  return value.slice(0, 4) + 'ΓÇóΓÇóΓÇóΓÇó' + value.slice(-4);
+  if (!value) return "****";
+  if (value.length <= 8) return "****";
+  return value.slice(0, 4) + "ΓÇóΓÇóΓÇóΓÇó" + value.slice(-4);
 }
 
 // ── Deterministic Canonical Request Serializer ──────────────────────────────
@@ -227,7 +233,7 @@ function maskSecret(value) {
  */
 function _canonicalizeValue(value) {
   if (value === null) return null;
-  if (typeof value !== 'object') return value;
+  if (typeof value !== "object") return value;
 
   if (Array.isArray(value)) {
     return value.map(_canonicalizeValue);
@@ -254,7 +260,10 @@ function _canonicalizeValue(value) {
 function canonicalizeRequest(payload) {
   const canonicalized = _canonicalizeValue(payload);
   const canonical = JSON.stringify(canonicalized);
-  const hash = crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+  const hash = crypto
+    .createHash("sha256")
+    .update(canonical, "utf8")
+    .digest("hex");
   return {
     canonical,
     fingerprint: `sha256:${hash}`,
@@ -400,54 +409,57 @@ function createReplayDetector(options = {}) {
 
 // ── Per-Directory Sandbox Isolation Keys ────────────────────────────────────
 
-const DIRECTORY_PREFIX = 'enc:sb:dir:';
+const DIRECTORY_PREFIX = "enc:sb:dir:";
 
 function isDirectoryEncrypted(value) {
-  return typeof value === 'string' && value.startsWith(DIRECTORY_PREFIX);
+  return typeof value === "string" && value.startsWith(DIRECTORY_PREFIX);
 }
 
 function deriveDirectoryKey(orgId, directory) {
-  if (!orgId || typeof orgId !== 'string') {
-    throw new TypeError('orgId must be a non-empty string');
+  if (!orgId || typeof orgId !== "string") {
+    throw new TypeError("orgId must be a non-empty string");
   }
-  if (!directory || typeof directory !== 'string') {
-    throw new TypeError('directory must be a non-empty string');
+  if (!directory || typeof directory !== "string") {
+    throw new TypeError("directory must be a non-empty string");
   }
-  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, 'utf8');
-  return crypto.createHmac('sha256', ENCRYPTION_KEY).update(salt).digest();
+  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, "utf8");
+  return crypto.createHmac("sha256", ENCRYPTION_KEY).update(salt).digest();
 }
 
 function directoryKeyFingerprint(orgId, directory) {
   const key = deriveDirectoryKey(orgId, directory);
-  return crypto.createHash('sha256').update(key).digest('hex');
+  return crypto.createHash("sha256").update(key).digest("hex");
 }
 
 function encryptForDirectory(plaintext, orgId, directory) {
-  if (!plaintext) return '';
-  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  if (!plaintext) return "";
+  if (typeof plaintext !== "string") plaintext = String(plaintext);
   const key = deriveDirectoryKey(orgId, directory);
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGO, key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
-  return `${DIRECTORY_PREFIX}${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+  return `${DIRECTORY_PREFIX}${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
 function decryptForDirectory(stored, orgId, directory) {
-  if (!stored || typeof stored !== 'string') return '';
-  if (!stored.startsWith(DIRECTORY_PREFIX)) return '';
+  if (!stored || typeof stored !== "string") return "";
+  if (!stored.startsWith(DIRECTORY_PREFIX)) return "";
   const payload = stored.slice(DIRECTORY_PREFIX.length);
-  const parts = payload.split(':');
-  if (parts.length !== 3) return '';
+  const parts = payload.split(":");
+  if (parts.length !== 3) return "";
 
   const tryDecrypt = (key) => {
     try {
-      const iv = Buffer.from(parts[0], 'hex');
-      const tag = Buffer.from(parts[1], 'hex');
-      const encrypted = Buffer.from(parts[2], 'hex');
+      const iv = Buffer.from(parts[0], "hex");
+      const tag = Buffer.from(parts[1], "hex");
+      const encrypted = Buffer.from(parts[2], "hex");
       const decipher = crypto.createDecipheriv(ALGO, key, iv);
       decipher.setAuthTag(tag);
-      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+      return decipher.update(encrypted, null, "utf8") + decipher.final("utf8");
     } catch {
       return null;
     }
@@ -460,15 +472,18 @@ function decryptForDirectory(stored, orgId, directory) {
 
   // Fall back to derived directory keys from retired master keys
   // (supports zero-downtime key rotation for directory-level encryption)
-  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, 'utf8');
+  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, "utf8");
   for (const oldMasterKey of getDecryptionKeys()) {
-    const oldDerivedKey = crypto.createHmac('sha256', oldMasterKey).update(salt).digest();
+    const oldDerivedKey = crypto
+      .createHmac("sha256", oldMasterKey)
+      .update(salt)
+      .digest();
     if (oldDerivedKey.equals(key)) continue;
     const legacyResult = tryDecrypt(oldDerivedKey);
     if (legacyResult !== null) return legacyResult;
   }
 
-  return '';
+  return "";
 }
 
 module.exports = {

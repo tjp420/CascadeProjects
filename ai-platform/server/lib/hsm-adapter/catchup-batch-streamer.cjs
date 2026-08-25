@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 33: Catch-up batch streamer.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/catchup-batch-streamer
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class CatchUpBatchStreamer {
   /**
@@ -32,7 +32,7 @@ class CatchUpBatchStreamer {
    */
   async stream(session, coordinator) {
     if (!coordinator) {
-      throw new HsmAdapterError('INVALID_INPUT', 'coordinator is required');
+      throw new HsmAdapterError("INVALID_INPUT", "coordinator is required");
     }
 
     while (!session.completed) {
@@ -42,7 +42,7 @@ class CatchUpBatchStreamer {
         break;
       }
 
-      this._emitAudit('CATCH_UP_BATCH_STREAMED', {
+      this._emitAudit("CATCH_UP_BATCH_STREAMED", {
         sessionId: session.sessionId,
         nodeId: session.nodeId,
         shardId: session.shardId,

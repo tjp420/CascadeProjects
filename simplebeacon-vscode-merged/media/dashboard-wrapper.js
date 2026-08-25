@@ -14,10 +14,21 @@
 
   const browserHistory = { urls: [], index: -1, pendingUrl: null };
 
-  const SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
+  const SITE_PATHS = [
+    '/roadmap',
+    '/audit',
+    '/pricing',
+    '/contact',
+    '/team',
+    '/security',
+    '/terms',
+    '/privacy',
+    '/refund',
+    '/faq',
+  ];
 
   function getIframeOrigin() {
-    const src = iframe ? (iframe.getAttribute('src') || iframe.src || '') : '';
+    const src = iframe ? iframe.getAttribute('src') || iframe.src || '' : '';
     try {
       return new URL(src).origin;
     } catch (e) {
@@ -100,7 +111,9 @@
       } else if (!isWebsiteModeActive() && /^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) {
         _embedContext.websiteMode = false;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   function ensureEmbedParams(url) {
@@ -162,7 +175,9 @@
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) {
         return localBase.replace(/\/$/, '') + path + parsed.search + parsed.hash;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
     return url;
   }
 
@@ -180,7 +195,9 @@
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) {
         return url;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
     return url;
   }
 
@@ -191,7 +208,10 @@
     try {
       const parsed = new URL(url);
       const host = parsed.hostname.toLowerCase();
-      if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai') || host.endsWith('.netlify.app')) && parsed.pathname.indexOf('/dashboard') === 0) {
+      if (
+        (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai') || host.endsWith('.netlify.app')) &&
+        parsed.pathname.indexOf('/dashboard') === 0
+      ) {
         if (localBase) {
           return localBase.replace(/\/$/, '') + parsed.pathname + parsed.search + parsed.hash;
         }
@@ -200,7 +220,9 @@
           return localOrigin + parsed.pathname + parsed.search + parsed.hash;
         }
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
     return url;
   }
 
@@ -221,7 +243,9 @@
     if (bar) {
       bar.style.background = barBg;
       bar.style.borderBottomColor = barBorder;
-      bar.querySelectorAll('button').forEach(function (btn) { btn.style.color = btnColor; });
+      bar.querySelectorAll('button').forEach(function (btn) {
+        btn.style.color = btnColor;
+      });
     }
     if (urlInput) {
       urlInput.style.background = inputBg;
@@ -289,7 +313,9 @@
     let iframeUrl = preferLocalDashboardUrl(displayUrl);
     if (!canEmbed(iframeUrl)) {
       let clean = stripEmbedParams(displayUrl);
-      const notifyBase = _embedContext.notifyBase || (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
+      const notifyBase =
+        _embedContext.notifyBase ||
+        (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
       if (notifyBase && clean.indexOf('sb_notify_base=') === -1) {
         clean += (clean.indexOf('?') === -1 ? '?' : '&') + 'sb_notify_base=' + encodeURIComponent(notifyBase);
       }
@@ -382,28 +408,36 @@
         fetch(ev.data.url, {
           method: bridgeInit.method || 'GET',
           headers: bridgeInit.headers || undefined,
-          body: bridgeInit.body || undefined
-        }).then(function(res) {
-          return res.text().then(function(body) {
+          body: bridgeInit.body || undefined,
+        })
+          .then(function (res) {
+            return res.text().then(function (body) {
+              if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage(
+                  {
+                    command: 'bridgeFetchResponse',
+                    requestId: ev.data.requestId,
+                    status: res.status,
+                    contentType: res.headers.get('content-type') || 'application/json',
+                    body: body,
+                  },
+                  '*'
+                );
+              }
+            });
+          })
+          .catch(function (err) {
             if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.postMessage({
-                command: 'bridgeFetchResponse',
-                requestId: ev.data.requestId,
-                status: res.status,
-                contentType: res.headers.get('content-type') || 'application/json',
-                body: body
-              }, '*');
+              iframe.contentWindow.postMessage(
+                {
+                  command: 'bridgeFetchResponse',
+                  requestId: ev.data.requestId,
+                  error: err && err.message ? err.message : String(err),
+                },
+                '*'
+              );
             }
           });
-        }).catch(function(err) {
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-              command: 'bridgeFetchResponse',
-              requestId: ev.data.requestId,
-              error: err && err.message ? err.message : String(err)
-            }, '*');
-          }
-        });
         return;
       }
       if (ev.data.command === 'navigateToRoute' && ev.data.url) {
@@ -422,7 +456,19 @@
           pushHistory(displayUrl);
         }
       }
-      if (ev.data.command === 'setAuthState' || ev.data.command === 'getAuthState' || ev.data.command === 'dashboardRouteChanged' || ev.data.command === 'scanWorkspace' || ev.data.command === 'downloadComplete' || ev.data.command === 'downloadFile' || ev.data.command === 'openFile' || ev.data.command === 'openFileAtLine' || ev.data.command === 'updateReport' || ev.data.command === 'scanComplete' || ev.data.command === 'sendToAI') {
+      if (
+        ev.data.command === 'setAuthState' ||
+        ev.data.command === 'getAuthState' ||
+        ev.data.command === 'dashboardRouteChanged' ||
+        ev.data.command === 'scanWorkspace' ||
+        ev.data.command === 'downloadComplete' ||
+        ev.data.command === 'downloadFile' ||
+        ev.data.command === 'openFile' ||
+        ev.data.command === 'openFileAtLine' ||
+        ev.data.command === 'updateReport' ||
+        ev.data.command === 'scanComplete' ||
+        ev.data.command === 'sendToAI'
+      ) {
         vscode.postMessage(ev.data);
       }
       return;
@@ -448,7 +494,12 @@
       return;
     }
 
-    if (ev.data.command === 'setAuthState' || ev.data.command === 'setTheme' || ev.data.command === 'getAuthState' || ev.data.command === 'setWorkspacePath') {
+    if (
+      ev.data.command === 'setAuthState' ||
+      ev.data.command === 'setTheme' ||
+      ev.data.command === 'getAuthState' ||
+      ev.data.command === 'setWorkspacePath'
+    ) {
       if (ev.data.command === 'setTheme' && ev.data.theme) {
         applyWrapperTheme(ev.data.theme);
       }
@@ -469,7 +520,10 @@
     let iframeLoadTimer = null;
     iframe.addEventListener('load', function () {
       iframeLoaded = true;
-        if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
+      if (iframeLoadTimer) {
+        clearTimeout(iframeLoadTimer);
+        iframeLoadTimer = null;
+      }
       notifyIframeHideUrlBar();
       requestDashboardAuthState();
     });
@@ -493,15 +547,20 @@
           } else {
             // Non-dashboard pages (marketing, roadmap, etc.): open in simple browser
             let cleanUrl = stripEmbedParams(currentSrc);
-            const notifyBase = _embedContext.notifyBase || (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
+            const notifyBase =
+              _embedContext.notifyBase ||
+              (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
             if (notifyBase && cleanUrl.indexOf('sb_notify_base=') === -1) {
-              cleanUrl += (cleanUrl.indexOf('?') === -1 ? '?' : '&') + 'sb_notify_base=' + encodeURIComponent(notifyBase);
+              cleanUrl +=
+                (cleanUrl.indexOf('?') === -1 ? '?' : '&') + 'sb_notify_base=' + encodeURIComponent(notifyBase);
             }
             vscode.postMessage({ command: 'openInSimpleBrowser', url: cleanUrl });
             if (urlInput) urlInput.value = cleanUrl;
           }
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }, 3000);
     notifyIframeHideUrlBar();
     setInterval(notifyIframeHideUrlBar, 2000);
@@ -510,7 +569,9 @@
   const authPollInterval = setInterval(function () {
     requestDashboardAuthState();
     authPollCount++;
-    if (authPollCount >= 3) { clearInterval(authPollInterval); }
+    if (authPollCount >= 3) {
+      clearInterval(authPollInterval);
+    }
   }, 1000);
 
   let dragDepth = 0;
@@ -529,7 +590,9 @@
   function parseFileUri(uri) {
     if (!uri || !uri.startsWith('file:///')) return '';
     let p = uri.slice(8).replace(/\/$/, '');
-    try { p = decodeURIComponent(p); } catch (e) {}
+    try {
+      p = decodeURIComponent(p);
+    } catch (e) {}
     return p;
   }
   function extractDropPath(dt) {
@@ -539,7 +602,9 @@
       const item = dt.items && dt.items[0];
       if (item && typeof item.webkitGetAsEntry === 'function') {
         const entry = item.webkitGetAsEntry();
-        if (entry) { entryName = entry.name || ''; }
+        if (entry) {
+          entryName = entry.name || '';
+        }
       }
     } catch (e) {}
     const files = dt.files;
@@ -548,21 +613,41 @@
       const name = entryName || files[0].name || '';
       if (name) {
         const idx = fp.indexOf('/' + name + '/');
-        if (idx >= 0) { return { path: fp.slice(0, idx + name.length + 1), name }; }
+        if (idx >= 0) {
+          return { path: fp.slice(0, idx + name.length + 1), name };
+        }
         const endIdx = fp.lastIndexOf('/' + name);
-        if (endIdx >= 0) { return { path: fp.slice(0, endIdx + name.length + 1), name }; }
+        if (endIdx >= 0) {
+          return { path: fp.slice(0, endIdx + name.length + 1), name };
+        }
       }
       return { path: fp.substring(0, fp.lastIndexOf('/')), name: files[0].name };
     }
-    const uriList = (() => { try { return dt.getData('text/uri-list') || ''; } catch (e) { return ''; } })();
+    const uriList = (() => {
+      try {
+        return dt.getData('text/uri-list') || '';
+      } catch (e) {
+        return '';
+      }
+    })();
     if (uriList) {
       const uri = uriList.trim().split('\n')[0]?.trim();
       const p = parseFileUri(uri);
       if (p) return { path: p, name: p.split('/').pop() || '' };
     }
-    const plain = (() => { try { return dt.getData('text/plain') || ''; } catch (e) { return ''; } })();
+    const plain = (() => {
+      try {
+        return dt.getData('text/plain') || '';
+      } catch (e) {
+        return '';
+      }
+    })();
     if (plain) {
-      const p = plain.trim().split('\n')[0]?.trim().replace(/^["']|["']$/g, '');
+      const p = plain
+        .trim()
+        .split('\n')[0]
+        ?.trim()
+        .replace(/^["']|["']$/g, '');
       if (p && /^[a-zA-Z]:[\\\/]/.test(p)) {
         const normalized = p.replace(/[\\\/]+$/, '').replace(/\\/g, '/');
         return { path: normalized, name: normalized.split('/').pop() || '' };
@@ -570,10 +655,22 @@
     }
     return { path: '', name: '' };
   }
-  window.addEventListener('dragenter', function (ev) { ev.preventDefault(); showOverlay(); });
-  window.addEventListener('dragover', function (ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; if (iframe) iframe.style.pointerEvents = 'none'; });
-  window.addEventListener('dragleave', function () { hideOverlay(); });
-  overlay.addEventListener('dragover', function (ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; });
+  window.addEventListener('dragenter', function (ev) {
+    ev.preventDefault();
+    showOverlay();
+  });
+  window.addEventListener('dragover', function (ev) {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+    if (iframe) iframe.style.pointerEvents = 'none';
+  });
+  window.addEventListener('dragleave', function () {
+    hideOverlay();
+  });
+  overlay.addEventListener('dragover', function (ev) {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+  });
   function handleDrop(ev) {
     ev.preventDefault();
     ev.stopPropagation();
@@ -585,7 +682,10 @@
     if (path && iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ command: 'ideDropPath', path: path.replace(/\//g, '\\\\'), name }, '*');
     } else if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ command: 'ideDropFailed', reason: 'Could not read dropped path. Use Browse Folder or type the path.' }, '*');
+      iframe.contentWindow.postMessage(
+        { command: 'ideDropFailed', reason: 'Could not read dropped path. Use Browse Folder or type the path.' },
+        '*'
+      );
     }
   }
   overlay.addEventListener('drop', handleDrop);

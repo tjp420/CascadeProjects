@@ -1,157 +1,175 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-    <title>SimpleBeacon Walkthrough Embed Demo</title>
-    <meta name="description" content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough.">
-    <link rel="canonical" href="https://simplebeacon.ai/walkthrough-embed.html">
-    <meta name="robots" content="noindex, nofollow">
-    <meta property="og:title" content="SimpleBeacon Walkthrough Embed Demo">
-    <meta property="og:description" content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://simplebeacon.ai/walkthrough-embed.html">
-    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon Walkthrough Embed Demo">
-    <meta name="twitter:description" content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough.">
+    <head>
+        <meta charset="UTF-8" />
+        <title>SimpleBeacon Walkthrough Embed Demo</title>
+        <meta name="description" content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough." />
+        <link rel="canonical" href="https://simplebeacon.ai/walkthrough-embed.html" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content="SimpleBeacon Walkthrough Embed Demo" />
+        <meta
+            property="og:description"
+            content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/walkthrough-embed.html" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="SimpleBeacon Walkthrough Embed Demo" />
+        <meta
+            name="twitter:description"
+            content="Embedded demo page for the SimpleBeacon interactive terminal walkthrough."
+        />
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
-<style>
-  /* ====== LANDING PAGE STYLES (your existing site) ====== */
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0a0a0f;
-    color: #e2e8f0;
-    line-height: 1.6;
-  }
-  .hero {
-    text-align: center;
-    padding: 80px 20px 40px;
-  }
-  .hero h1 {
-    font-size: 48px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6, #22c55e);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .hero p {
-    font-size: 20px;
-    color: #94a3b8;
-    max-width: 560px;
-    margin: 0 auto 32px;
-  }
+        <style>
+            /* ====== LANDING PAGE STYLES (your existing site) ====== */
+            body {
+                margin: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #0a0a0f;
+                color: #e2e8f0;
+                line-height: 1.6;
+            }
+            .hero {
+                text-align: center;
+                padding: 80px 20px 40px;
+            }
+            .hero h1 {
+                font-size: 48px;
+                font-weight: 700;
+                margin-bottom: 16px;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6, #22c55e);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .hero p {
+                font-size: 20px;
+                color: #94a3b8;
+                max-width: 560px;
+                margin: 0 auto 32px;
+            }
 
-  /* ====== CTA BUTTONS ====== */
-  .cta-group {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .btn {
-    padding: 14px 28px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-  }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,0.3); }
-  .btn-secondary {
-    background: rgba(255,255,255,0.08);
-    color: #e2e8f0;
-    border: 1px solid rgba(255,255,255,0.12);
-  }
-  .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+            /* ====== CTA BUTTONS ====== */
+            .cta-group {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 14px 28px;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 600;
+                text-decoration: none;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s;
+            }
+            .btn-primary {
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                color: white;
+            }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+            }
+            .btn-secondary {
+                background: rgba(255, 255, 255, 0.08);
+                color: #e2e8f0;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+            }
+            .btn-secondary:hover {
+                background: rgba(255, 255, 255, 0.12);
+            }
 
-  /* ====== TERMINAL WALKTHROUGH SECTION ====== */
-  .demo-section {
-    max-width: 920px;
-    margin: 0 auto;
-    padding: 40px 20px 80px;
-  }
-  .demo-header {
-    text-align: center;
-    margin-bottom: 24px;
-  }
-  .demo-header h2 {
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .demo-header p {
-    color: #94a3b8;
-    font-size: 16px;
-  }
+            /* ====== TERMINAL WALKTHROUGH SECTION ====== */
+            .demo-section {
+                max-width: 920px;
+                margin: 0 auto;
+                padding: 40px 20px 80px;
+            }
+            .demo-header {
+                text-align: center;
+                margin-bottom: 24px;
+            }
+            .demo-header h2 {
+                font-size: 28px;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            .demo-header p {
+                color: #94a3b8;
+                font-size: 16px;
+            }
 
-  /* ====== IFRAME CONTAINER ====== */
-  .terminal-frame {
-    position: relative;
-    width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
-    background: #0d1117;
-  }
-  .terminal-frame iframe {
-    width: 100%;
-    height: 520px;
-    border: none;
-    display: block;
-  }
+            /* ====== IFRAME CONTAINER ====== */
+            .terminal-frame {
+                position: relative;
+                width: 100%;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+                background: #0d1117;
+            }
+            .terminal-frame iframe {
+                width: 100%;
+                height: 520px;
+                border: none;
+                display: block;
+            }
 
-  /* ====== RESPONSIVE ====== */
-  @media (max-width: 640px) {
-    .hero h1 { font-size: 32px; }
-    .hero p { font-size: 16px; }
-    .terminal-frame iframe { height: 480px; }
-  }
-</style>
-</head>
-<body>
+            /* ====== RESPONSIVE ====== */
+            @media (max-width: 640px) {
+                .hero h1 {
+                    font-size: 32px;
+                }
+                .hero p {
+                    font-size: 16px;
+                }
+                .terminal-frame iframe {
+                    height: 480px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- ====== HERO SECTION (your existing landing page) ====== -->
+        <div class="hero">
+            <h1>Detect AI slop before it ships</h1>
+            <p>
+                SimpleBeacon scans your code in real-time, catching hallucinated imports, placeholder secrets, and
+                boilerplate bloat — 100% offline.
+            </p>
+            <div class="cta-group">
+                <!-- Primary CTA — now opens the interactive walkthrough inline -->
+                <a href="#demo" class="btn btn-primary">See it in action</a>
+                <!-- Secondary CTA — VS Code marketplace -->
+                <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-secondary">Install Extension</a>
+            </div>
+        </div>
 
-<!-- ====== HERO SECTION (your existing landing page) ====== -->
-<div class="hero">
-  <h1>Detect AI slop before it ships</h1>
-  <p>SimpleBeacon scans your code in real-time, catching hallucinated imports, placeholder secrets, and boilerplate bloat — 100% offline.</p>
-  <div class="cta-group">
-    <!-- Primary CTA — now opens the interactive walkthrough inline -->
-    <a href="#demo" class="btn btn-primary">See it in action</a>
-    <!-- Secondary CTA — VS Code marketplace -->
-    <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-secondary">Install Extension</a>
-  </div>
-</div>
+        <!-- ====== INTERACTIVE WALKTHROUGH SECTION ====== -->
+        <div class="demo-section" id="demo">
+            <div class="demo-header">
+                <h2>Watch SimpleBeacon catch AI code in real time</h2>
+                <p>No download needed. See the exact findings it surfaces on a codebase with AI-generated code.</p>
+            </div>
 
-<!-- ====== INTERACTIVE WALKTHROUGH SECTION ====== -->
-<div class="demo-section" id="demo">
-  <div class="demo-header">
-    <h2>Watch SimpleBeacon catch AI code in real time</h2>
-    <p>No download needed. See the exact findings it surfaces on a codebase with AI-generated code.</p>
-  </div>
-
-  <!-- ====== IFRAME EMBED ====== -->
-  <div class="terminal-frame">
-    <iframe
-      src="https://simplebeacon.ai/terminal-walkthrough.html"
-      title="SimpleBeacon Terminal Walkthrough"
-      loading="lazy"
-      allow="fullscreen"
-    ></iframe>
-  </div>
-</div>
-
-</body>
+            <!-- ====== IFRAME EMBED ====== -->
+            <div class="terminal-frame">
+                <iframe
+                    src="https://simplebeacon.ai/terminal-walkthrough.html"
+                    title="SimpleBeacon Terminal Walkthrough"
+                    loading="lazy"
+                    allow="fullscreen"
+                ></iframe>
+            </div>
+        </div>
+    </body>
 </html>

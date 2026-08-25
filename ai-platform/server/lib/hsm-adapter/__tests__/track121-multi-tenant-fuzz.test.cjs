@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 121 Multi-Tenant Fuzzing Matrix — Adversarial edge cases
@@ -14,8 +14,8 @@
  * Follows the Track 120 multi-tenant fuzzing pattern.
  */
 
-const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+const { CryptoPolicyEngine } = require("../crypto-policy-engine.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 const {
   makeHashChainPrng,
   FUZZ_SEED,
@@ -26,22 +26,22 @@ const {
   makeTrack121PrngDrivenMultiLayerPolicy,
   makeTrack121ConcurrentValidationCall,
   cleanupPrototypePollution,
-} = require('./tenant-fuzz-harness.cjs');
+} = require("./tenant-fuzz-harness.cjs");
 
 afterEach(() => {
   cleanupPrototypePollution();
 });
 
-describe('Track 121 multi-tenant fuzzing matrix', () => {
+describe("Track 121 multi-tenant fuzzing matrix", () => {
   // ── FUZZ-121-01: Prototype pollution in multipartyReKeying is blocked ──
-  test('FUZZ-121-01: prototype pollution in multipartyReKeying is blocked', () => {
+  test("FUZZ-121-01: prototype pollution in multipartyReKeying is blocked", () => {
     const policy = makeTrack121ProtoPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    expect(Object.prototype).not.toHaveProperty('rekeyingGatePolluted');
-    expect(Object.prototype).not.toHaveProperty('rekeyingConstructorPolluted');
+    expect(Object.prototype).not.toHaveProperty("rekeyingGatePolluted");
+    expect(Object.prototype).not.toHaveProperty("rekeyingConstructorPolluted");
 
-    const resolved = engine.getPolicy('track121-polluter');
+    const resolved = engine.getPolicy("track121-polluter");
     expect(resolved).toBeDefined();
     expect(resolved.multipartyReKeying.minQuorumNodes).toBe(3);
     expect(resolved.multipartyReKeying.maxReKeyingEpochs).toBe(1000);
@@ -51,43 +51,43 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     expect(resolved.multipartyReKeying.allowThresholdAdjustment).toBe(true);
     expect(resolved.multipartyReKeying.maxShareholders).toBe(32);
 
-    const clean = engine.getPolicy('track121-clean');
+    const clean = engine.getPolicy("track121-clean");
     expect(clean.multipartyReKeying.minQuorumNodes).toBe(3);
     expect(clean.multipartyReKeying.requireShareZeroization).toBe(true);
 
     // Verify prototype was not polluted
-    expect(Object.prototype).not.toHaveProperty('rekeyingGatePolluted');
-    expect(Object.prototype).not.toHaveProperty('rekeyingConstructorPolluted');
+    expect(Object.prototype).not.toHaveProperty("rekeyingGatePolluted");
+    expect(Object.prototype).not.toHaveProperty("rekeyingConstructorPolluted");
   });
 
   // ── FUZZ-121-02: 5-level nested __proto__ / constructor pollution is blocked ──
-  test('FUZZ-121-02: 5-level nested __proto__ / constructor pollution is blocked', () => {
+  test("FUZZ-121-02: 5-level nested __proto__ / constructor pollution is blocked", () => {
     const policy = makeTrack121DeepNestedPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
     for (let i = 0; i < 5; i++) {
-      expect(Object.prototype).not.toHaveProperty('rekeyingProtoLevel' + i);
-      expect(Object.prototype).not.toHaveProperty('rekeyingCtorLevel' + i);
+      expect(Object.prototype).not.toHaveProperty("rekeyingProtoLevel" + i);
+      expect(Object.prototype).not.toHaveProperty("rekeyingCtorLevel" + i);
     }
 
-    const resolved = engine.getPolicy('track121-deep-polluter');
+    const resolved = engine.getPolicy("track121-deep-polluter");
     expect(resolved).toBeDefined();
     expect(resolved.multipartyReKeying).toBeDefined();
 
     // Clean tenant should be unaffected
-    const clean = engine.getPolicy('track121-clean');
+    const clean = engine.getPolicy("track121-clean");
     expect(clean.multipartyReKeying.minQuorumNodes).toBe(3);
     expect(clean.multipartyReKeying.maxShareholders).toBe(32);
 
     // Verify no prototype pollution leaked
     for (let i = 0; i < 5; i++) {
-      expect(Object.prototype).not.toHaveProperty('rekeyingProtoLevel' + i);
-      expect(Object.prototype).not.toHaveProperty('rekeyingCtorLevel' + i);
+      expect(Object.prototype).not.toHaveProperty("rekeyingProtoLevel" + i);
+      expect(Object.prototype).not.toHaveProperty("rekeyingCtorLevel" + i);
     }
   });
 
   // ── FUZZ-121-03: Deterministic SHA-256 PRNG is reproducible ──
-  test('FUZZ-121-03: deterministic SHA-256 PRNG is reproducible', () => {
+  test("FUZZ-121-03: deterministic SHA-256 PRNG is reproducible", () => {
     const prng1 = makeHashChainPrng(FUZZ_SEED);
     const prng2 = makeHashChainPrng(FUZZ_SEED);
     for (let i = 0; i < 100; i++) {
@@ -96,8 +96,8 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
   });
 
   // ── FUZZ-121-04: 1000 multi-layer random policies construct and merge without crash ──
-  test('FUZZ-121-04: 1000 multi-layer random policies construct and merge without crash', () => {
-    const prng = makeHashChainPrng(FUZZ_SEED + '-track121-multilayer');
+  test("FUZZ-121-04: 1000 multi-layer random policies construct and merge without crash", () => {
+    const prng = makeHashChainPrng(FUZZ_SEED + "-track121-multilayer");
     for (let i = 0; i < 1000; i++) {
       const policy = makeTrack121PrngDrivenMultiLayerPolicy(prng);
       const engine = new CryptoPolicyEngine(policy, { strict: true });
@@ -106,31 +106,33 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
         const resolved = engine.getPolicy(tid);
         expect(resolved).toBeDefined();
         if (resolved.multipartyReKeying) {
-          expect(typeof resolved.multipartyReKeying.minQuorumNodes).toBe('number');
+          expect(typeof resolved.multipartyReKeying.minQuorumNodes).toBe(
+            "number",
+          );
         }
       }
     }
     // Verify no prototype pollution leaked from 1000 iterations
-    expect(Object.prototype).not.toHaveProperty('rekeyingProtoLevel0');
-    expect(Object.prototype).not.toHaveProperty('rekeyingCtorLevel0');
+    expect(Object.prototype).not.toHaveProperty("rekeyingProtoLevel0");
+    expect(Object.prototype).not.toHaveProperty("rekeyingCtorLevel0");
   });
 
   // ── FUZZ-121-05: Strict reference sandboxing — mutation does not cross-tenant ──
-  test('FUZZ-121-05: strict reference sandboxing — mutation does not cross-tenant', () => {
+  test("FUZZ-121-05: strict reference sandboxing — mutation does not cross-tenant", () => {
     const policy = makeTrack121ProtoPollutionPolicy();
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    const polluterPolicy = engine.getPolicy('track121-polluter');
+    const polluterPolicy = engine.getPolicy("track121-polluter");
     polluterPolicy.multipartyReKeying.minQuorumNodes = 999;
     polluterPolicy.multipartyReKeying.maxShareholders = 999;
 
-    const cleanPolicy = engine.getPolicy('track121-clean');
+    const cleanPolicy = engine.getPolicy("track121-clean");
     expect(cleanPolicy.multipartyReKeying.minQuorumNodes).toBe(3);
     expect(cleanPolicy.multipartyReKeying.maxShareholders).toBe(32);
   });
 
   // ── FUZZ-121-06: Type confusion fails closed with structured HsmAdapterError ──
-  test('FUZZ-121-06: Track 121 type confusion fails closed with structured HsmAdapterError', () => {
+  test("FUZZ-121-06: Track 121 type confusion fails closed with structured HsmAdapterError", () => {
     const engine = new CryptoPolicyEngine({ default: {} }, { strict: true });
     const configs = makeTrack121TypeConfusionConfigs();
 
@@ -138,30 +140,35 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
       // Most type-confusion configs should either pass (type check skips non-matching types)
       // or fail with POLICY_VIOLATION_BLOCKED. The key invariant: no unhandled crashes.
       try {
-        const result = engine.validate('default', 'multipartyReKeying', value);
+        const result = engine.validate("default", "multipartyReKeying", value);
         expect(result).toBe(true);
       } catch (err) {
         expect(err).toBeInstanceOf(HsmAdapterError);
-        expect(err.code).toBe('POLICY_VIOLATION_BLOCKED');
+        expect(err.code).toBe("POLICY_VIOLATION_BLOCKED");
       }
       // Verify no prototype pollution leaked from type confusion payloads
-      expect(Object.prototype).not.toHaveProperty('rekeyingGatePolluted');
-      expect(Object.prototype).not.toHaveProperty('rekeyingConstructorPolluted');
+      expect(Object.prototype).not.toHaveProperty("rekeyingGatePolluted");
+      expect(Object.prototype).not.toHaveProperty(
+        "rekeyingConstructorPolluted",
+      );
     }
   });
 
   // ── FUZZ-121-07: PRNG-driven validation — 100 calls, no crash, structured errors ──
-  test('FUZZ-121-07: PRNG-driven multipartyReKeying validation — 100 calls, no crash', () => {
-    const prng = makeHashChainPrng(FUZZ_SEED + '-track121-validate');
+  test("FUZZ-121-07: PRNG-driven multipartyReKeying validation — 100 calls, no crash", () => {
+    const prng = makeHashChainPrng(FUZZ_SEED + "-track121-validate");
     // Use a policy with a restricted tenant to test the inverse guard
-    const engine = new CryptoPolicyEngine({
-      default: {},
-      tenants: {
-        'track121-restricted': {
-          multipartyReKeying: { allowThresholdAdjustment: false },
+    const engine = new CryptoPolicyEngine(
+      {
+        default: {},
+        tenants: {
+          "track121-restricted": {
+            multipartyReKeying: { allowThresholdAdjustment: false },
+          },
         },
       },
-    }, { strict: true });
+      { strict: true },
+    );
     let passed = 0;
     let blocked = 0;
     let inverseGuardBlocked = 0;
@@ -169,14 +176,18 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     for (let i = 0; i < 100; i++) {
       const call = makeTrack121PrngDrivenValidateCall(prng);
       try {
-        const result = engine.validate(call.tenantId, call.operation, call.config);
+        const result = engine.validate(
+          call.tenantId,
+          call.operation,
+          call.config,
+        );
         expect(result).toBe(true);
         passed++;
       } catch (err) {
         expect(err).toBeInstanceOf(HsmAdapterError);
-        expect(err.code).toBe('POLICY_VIOLATION_BLOCKED');
+        expect(err.code).toBe("POLICY_VIOLATION_BLOCKED");
         blocked++;
-        if (err.message.includes('threshold adjustment cannot be enabled')) {
+        if (err.message.includes("threshold adjustment cannot be enabled")) {
           inverseGuardBlocked++;
         }
       }
@@ -188,13 +199,15 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     // The inverse guard may or may not trigger depending on PRNG sequence,
     // but we verify the mechanism exists by checking the restricted tenant directly
     expect(() => {
-      engine.validate('track121-restricted', 'multipartyReKeying', { allowThresholdAdjustment: true });
+      engine.validate("track121-restricted", "multipartyReKeying", {
+        allowThresholdAdjustment: true,
+      });
     }).toThrow(/threshold adjustment cannot be enabled/);
   });
 
   // ── FUZZ-121-08: Concurrent validation flood does not race or crash ──
-  test('FUZZ-121-08: concurrent validation flood does not race or crash', async () => {
-    const prng = makeHashChainPrng(FUZZ_SEED + '-track121-concurrent');
+  test("FUZZ-121-08: concurrent validation flood does not race or crash", async () => {
+    const prng = makeHashChainPrng(FUZZ_SEED + "-track121-concurrent");
     const engine = new CryptoPolicyEngine({ default: {} }, { strict: true });
 
     const calls = [];
@@ -205,34 +218,37 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     const results = await Promise.all(
       calls.map(async (call) => {
         try {
-          return { ok: true, result: engine.validate(call.tenantId, call.operation, call.config) };
+          return {
+            ok: true,
+            result: engine.validate(call.tenantId, call.operation, call.config),
+          };
         } catch (err) {
           return { ok: false, code: err.code };
         }
-      })
+      }),
     );
 
     let okCount = 0;
     let blockedCount = 0;
     for (const r of results) {
       if (r.ok) okCount++;
-      else if (r.code === 'POLICY_VIOLATION_BLOCKED') blockedCount++;
+      else if (r.code === "POLICY_VIOLATION_BLOCKED") blockedCount++;
     }
     expect(okCount + blockedCount).toBe(1000);
     expect(blockedCount).toBeGreaterThan(0);
 
     // Verify no prototype pollution leaked after concurrent flood
-    expect(Object.prototype).not.toHaveProperty('rekeyingGatePolluted');
-    expect(Object.prototype).not.toHaveProperty('rekeyingProtoLevel0');
+    expect(Object.prototype).not.toHaveProperty("rekeyingGatePolluted");
+    expect(Object.prototype).not.toHaveProperty("rekeyingProtoLevel0");
   });
 
   // ── FUZZ-121-09: Cross-tenant multipartyReKeying mutation isolation ──
-  test('FUZZ-121-09: cross-tenant multipartyReKeying mutation isolation', () => {
+  test("FUZZ-121-09: cross-tenant multipartyReKeying mutation isolation", () => {
     const policy = {
-      version: '0.0.0',
+      version: "0.0.0",
       default: {},
       tenants: {
-        'tenant-a': {
+        "tenant-a": {
           multipartyReKeying: {
             minQuorumNodes: 5,
             maxReKeyingEpochs: 500,
@@ -243,7 +259,7 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
             maxShareholders: 16,
           },
         },
-        'tenant-b': {
+        "tenant-b": {
           multipartyReKeying: {
             minQuorumNodes: 3,
             maxReKeyingEpochs: 1000,
@@ -258,8 +274,8 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     };
     const engine = new CryptoPolicyEngine(policy, { strict: true });
 
-    const policyA = engine.getPolicy('tenant-a');
-    const policyB = engine.getPolicy('tenant-b');
+    const policyA = engine.getPolicy("tenant-a");
+    const policyB = engine.getPolicy("tenant-b");
 
     expect(policyA.multipartyReKeying.minQuorumNodes).toBe(5);
     expect(policyA.multipartyReKeying.maxReKeyingEpochs).toBe(500);
@@ -276,17 +292,27 @@ describe('Track 121 multi-tenant fuzzing matrix', () => {
     policyA.multipartyReKeying.maxShareholders = 999;
 
     // Tenant-b should be unaffected
-    const policyB2 = engine.getPolicy('tenant-b');
+    const policyB2 = engine.getPolicy("tenant-b");
     expect(policyB2.multipartyReKeying.minQuorumNodes).toBe(3);
     expect(policyB2.multipartyReKeying.maxShareholders).toBe(32);
 
     // Verify the inverse guard: tenant-a (restricted) cannot re-enable threshold adjustment
     expect(() => {
-      engine.validate('tenant-a', 'multipartyReKeying', { allowThresholdAdjustment: true });
+      engine.validate("tenant-a", "multipartyReKeying", {
+        allowThresholdAdjustment: true,
+      });
     }).toThrow(/threshold adjustment cannot be enabled/);
 
     // Tenant-b (unrestricted) can freely toggle threshold adjustment
-    expect(engine.validate('tenant-b', 'multipartyReKeying', { allowThresholdAdjustment: false })).toBe(true);
-    expect(engine.validate('tenant-b', 'multipartyReKeying', { allowThresholdAdjustment: true })).toBe(true);
+    expect(
+      engine.validate("tenant-b", "multipartyReKeying", {
+        allowThresholdAdjustment: false,
+      }),
+    ).toBe(true);
+    expect(
+      engine.validate("tenant-b", "multipartyReKeying", {
+        allowThresholdAdjustment: true,
+      }),
+    ).toBe(true);
   });
 });

@@ -5,7 +5,7 @@
  * @returns {string}
  */
 export function escapeRegExp(str) {
-    return String(str ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(str ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -14,12 +14,10 @@ export function escapeRegExp(str) {
  * @returns {string}
  */
 export function formatNumber(n) {
-    if (n == null)
-        return '—';
-    const numericCount = Number(n);
-    if (!Number.isFinite(numericCount))
-        return '—';
-    return numericCount.toLocaleString();
+  if (n == null) return '—';
+  const numericCount = Number(n);
+  if (!Number.isFinite(numericCount)) return '—';
+  return numericCount.toLocaleString();
 }
 
 /**
@@ -29,18 +27,15 @@ export function formatNumber(n) {
  * @returns {string}
  */
 export function formatPercent(value, fractionDigits = 1) {
-    if (value == null || value === '')
-        return '—';
-    const str = String(value).trim();
-    if (str.endsWith('%'))
-        return str;
-    const num = Number(str);
-    if (!Number.isFinite(num))
-        return '—';
-    const digits = Number.isFinite(fractionDigits)
-        ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
-        : 1;
-    return `${num.toFixed(digits)}%`;
+  if (value == null || value === '') return '—';
+  const str = String(value).trim();
+  if (str.endsWith('%')) return str;
+  const num = Number(str);
+  if (!Number.isFinite(num)) return '—';
+  const digits = Number.isFinite(fractionDigits)
+    ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
+    : 1;
+  return `${num.toFixed(digits)}%`;
 }
 
 /**
@@ -50,17 +45,14 @@ export function formatPercent(value, fractionDigits = 1) {
  * @returns {string}
  */
 export function formatBytes(bytes, decimals = 2) {
-    if (bytes == null || !Number.isFinite(bytes) || bytes < 0)
-        return '—';
-    if (bytes === 0)
-        return '0 B';
-    const digits = Number.isFinite(decimals) ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0))) : 2;
-    if (bytes < 1)
-        return `${bytes.toFixed(digits)} B`;
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
-    return `${(bytes / k ** i).toFixed(digits)} ${sizes[i]}`;
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '—';
+  if (bytes === 0) return '0 B';
+  const digits = Number.isFinite(decimals) ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0))) : 2;
+  if (bytes < 1) return `${bytes.toFixed(digits)} B`;
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  return `${(bytes / k ** i).toFixed(digits)} ${sizes[i]}`;
 }
 
 /**
@@ -71,9 +63,9 @@ export function formatBytes(bytes, decimals = 2) {
  * @returns {number}
  */
 export function clamp(val, min, max) {
-    const num = Number(val);
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return NaN;
-    return Number.isFinite(num) ? Math.min(Math.max(num, min), max) : min;
+  const num = Number(val);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return NaN;
+  return Number.isFinite(num) ? Math.min(Math.max(num, min), max) : min;
 }
 
 /**
@@ -82,28 +74,28 @@ export function clamp(val, min, max) {
  * @returns {string}
  */
 export function formatDuration(ms) {
-    if (ms == null || !Number.isFinite(ms) || ms < 0) return '—';
-    if (ms < 1000) return `${Math.round(ms)}ms`;
-    const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remSeconds = seconds % 60;
-    if (minutes < 60) return `${minutes}m ${remSeconds}s`;
-    const hours = Math.floor(minutes / 60);
-    const remMinutes = minutes % 60;
-    if (hours < 24) return `${hours}h ${remMinutes}m`;
-    const days = Math.floor(hours / 24);
-    const remHours = hours % 24;
-    if (days < 7) return `${days}d ${remHours}h`;
-    const weeks = Math.floor(days / 7);
-    const remDays = days % 7;
-    if (weeks < 4) return `${weeks}w ${remDays}d`;
-    const months = Math.floor(days / 30);
-    const remDaysAfterMonths = days % 30;
-    if (months < 12) return `${months}mo ${remDaysAfterMonths}d`;
-    const years = Math.floor(days / 365);
-    const remMonths = Math.floor((days % 365) / 30);
-    return `${years}y ${remMonths}mo`;
+  if (ms == null || !Number.isFinite(ms) || ms < 0) return '—';
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  if (hours < 24) return `${hours}h ${remMinutes}m`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  if (days < 7) return `${days}d ${remHours}h`;
+  const weeks = Math.floor(days / 7);
+  const remDays = days % 7;
+  if (weeks < 4) return `${weeks}w ${remDays}d`;
+  const months = Math.floor(days / 30);
+  const remDaysAfterMonths = days % 30;
+  if (months < 12) return `${months}mo ${remDaysAfterMonths}d`;
+  const years = Math.floor(days / 365);
+  const remMonths = Math.floor((days % 365) / 30);
+  return `${years}y ${remMonths}mo`;
 }
 
 /**
@@ -114,15 +106,15 @@ export function formatDuration(ms) {
  * @returns {string}
  */
 export function formatDate(date, opts = {}) {
-    if (date == null || date === '') return '—';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
-    const safeOpts = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
-    const { time = false } = safeOpts;
-    const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    if (!time) return dateStr;
-    const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    return `${dateStr} ${timeStr}`;
+  if (date == null || date === '') return '—';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '—';
+  const safeOpts = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
+  const { time = false } = safeOpts;
+  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  if (!time) return dateStr;
+  const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return `${dateStr} ${timeStr}`;
 }
 
 /** Average days per month for relative-time approximation. */
@@ -136,7 +128,7 @@ const DAYS_PER_YEAR = 365.25;
  * @returns {string}
  */
 export function timeAgo(date) {
-    return relativeTime(date);
+  return relativeTime(date);
 }
 
 /**
@@ -145,26 +137,26 @@ export function timeAgo(date) {
  * @returns {string}
  */
 export function relativeTime(date) {
-    if (date == null || date === '') return '—';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
-    const diff = Date.now() - d.getTime();
-    const isFuture = diff < 0;
-    const absDiff = Math.abs(diff);
-    const seconds = Math.floor(absDiff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const months = Math.floor(days / DAYS_PER_MONTH);
-    const years = Math.floor(days / DAYS_PER_YEAR);
-    const suffix = isFuture ? 'from now' : 'ago';
-    if (years > 0) return `${years}y ${suffix}`;
-    if (months > 0) return `${months}mo ${suffix}`;
-    if (days > 0) return `${days}d ${suffix}`;
-    if (hours > 0) return `${hours}h ${suffix}`;
-    if (minutes > 0) return `${minutes}m ${suffix}`;
-    if (seconds > 0) return isFuture ? `in ${seconds}s` : `${seconds}s ago`;
-    return 'just now';
+  if (date == null || date === '') return '—';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '—';
+  const diff = Date.now() - d.getTime();
+  const isFuture = diff < 0;
+  const absDiff = Math.abs(diff);
+  const seconds = Math.floor(absDiff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const months = Math.floor(days / DAYS_PER_MONTH);
+  const years = Math.floor(days / DAYS_PER_YEAR);
+  const suffix = isFuture ? 'from now' : 'ago';
+  if (years > 0) return `${years}y ${suffix}`;
+  if (months > 0) return `${months}mo ${suffix}`;
+  if (days > 0) return `${days}d ${suffix}`;
+  if (hours > 0) return `${hours}h ${suffix}`;
+  if (minutes > 0) return `${minutes}m ${suffix}`;
+  if (seconds > 0) return isFuture ? `in ${seconds}s` : `${seconds}s ago`;
+  return 'just now';
 }
 
 /** Prefix for AI summary skip messages. */
@@ -175,13 +167,28 @@ const FINDINGS_NOTE = '(findings unchanged)';
 
 /** Pattern → message map for human-friendly AI skip reasons. */
 const AI_SKIP_PATTERNS = [
-    { test: /openai is not configured/i, msg: 'add your OpenAI key in Settings → AI providers' },
-    { test: /anthropic is not configured/i, msg: 'add your Anthropic key in Settings → AI providers' },
-    { test: /ollama is not configured/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-    { test: /ollama is unreachable/i, msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers' },
-    { test: /ollama has no models/i, msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers' },
-    { test: /OLLAMA_MODEL|Local AI Models/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-    { test: /Filesystem scan only|Active local model is filesystem/i, msg: 'choose Ollama or a cloud provider in the AI provider dropdown' },
+  { test: /openai is not configured/i, msg: 'add your OpenAI key in Settings → AI providers' },
+  { test: /anthropic is not configured/i, msg: 'add your Anthropic key in Settings → AI providers' },
+  {
+    test: /ollama is not configured/i,
+    msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env',
+  },
+  {
+    test: /ollama is unreachable/i,
+    msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers',
+  },
+  {
+    test: /ollama has no models/i,
+    msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers',
+  },
+  {
+    test: /OLLAMA_MODEL|Local AI Models/i,
+    msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env',
+  },
+  {
+    test: /Filesystem scan only|Active local model is filesystem/i,
+    msg: 'choose Ollama or a cloud provider in the AI provider dropdown',
+  },
 ];
 
 /**
@@ -190,28 +197,30 @@ const AI_SKIP_PATTERNS = [
  * @returns {string}
  */
 export function formatAiSummarySkipMessage(errorMessage) {
-    let msg;
-    try {
-        msg = String(errorMessage || '');
-    } catch {
-        msg = '';
+  let msg;
+  try {
+    msg = String(errorMessage || '');
+  } catch {
+    msg = '';
+  }
+  for (const { test, msg: userMsg } of AI_SKIP_PATTERNS) {
+    if (test.test(msg)) {
+      return `${SKIP_PREFIX} — ${userMsg} ${FINDINGS_NOTE}.`;
     }
-    for (const { test, msg: userMsg } of AI_SKIP_PATTERNS) {
-        if (test.test(msg)) {
-            return `${SKIP_PREFIX} — ${userMsg} ${FINDINGS_NOTE}.`;
-        }
-    }
-    if (/Settings → AI providers/i.test(msg)) {
-        return `${SKIP_PREFIX} — ${msg.replace(/^[^:]+:\s*/i, '')} ${FINDINGS_NOTE}.`;
-    }
-    return `${SKIP_PREFIX}: ${msg}`;
+  }
+  if (/Settings → AI providers/i.test(msg)) {
+    return `${SKIP_PREFIX} — ${msg.replace(/^[^:]+:\s*/i, '')} ${FINDINGS_NOTE}.`;
+  }
+  return `${SKIP_PREFIX}: ${msg}`;
 }
 
 /**
  * No-op function. Useful as a default for optional callbacks.
  * @returns {void}
  */
-export function noop() { /* intentionally empty */ }
+export function noop() {
+  /* intentionally empty */
+}
 
 /**
  * True when the value is null, undefined, or a whitespace-only string.
@@ -219,7 +228,7 @@ export function noop() { /* intentionally empty */ }
  * @returns {boolean}
  */
 export function isBlank(value) {
-    return value == null || (typeof value === 'string' && value.trim().length === 0);
+  return value == null || (typeof value === 'string' && value.trim().length === 0);
 }
 
 /**
@@ -228,9 +237,9 @@ export function isBlank(value) {
  * @returns {string}
  */
 export function capitalize(str) {
-    const s = String(str ?? '');
-    if (!s) return s;
-    return s[0].toUpperCase() + s.slice(1);
+  const s = String(str ?? '');
+  if (!s) return s;
+  return s[0].toUpperCase() + s.slice(1);
 }
 
 /**
@@ -241,11 +250,11 @@ export function capitalize(str) {
  * @returns {string}
  */
 export function truncate(str, maxLen = 80, suffix = '…') {
-    const s = String(str ?? '');
-    const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
-    if (s.length <= limit) return s;
-    const endLen = Math.max(0, limit - String(suffix ?? '…').length);
-    return s.slice(0, endLen) + String(suffix ?? '…');
+  const s = String(str ?? '');
+  const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
+  if (s.length <= limit) return s;
+  const endLen = Math.max(0, limit - String(suffix ?? '…').length);
+  return s.slice(0, endLen) + String(suffix ?? '…');
 }
 
 /**
@@ -256,10 +265,10 @@ export function truncate(str, maxLen = 80, suffix = '…') {
  * @returns {string}
  */
 export function pluralize(count, singular, plural) {
-    const n = Number(count);
-    if (!Number.isFinite(n)) return `${count} ${singular}`;
-    const word = n === 1 ? singular : (plural ?? `${singular}s`);
-    return `${n} ${word}`;
+  const n = Number(count);
+  if (!Number.isFinite(n)) return `${count} ${singular}`;
+  const word = n === 1 ? singular : (plural ?? `${singular}s`);
+  return `${n} ${word}`;
 }
 
 /**
@@ -268,10 +277,10 @@ export function pluralize(count, singular, plural) {
  * @returns {string}
  */
 export function kebabCase(str) {
-    return String(str ?? '')
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase();
+  return String(str ?? '')
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
 }
 
 /**
@@ -280,9 +289,9 @@ export function kebabCase(str) {
  * @returns {string}
  */
 export function camelCase(str) {
-    return String(str ?? '')
-        .replace(/[-_\s]+(.)?/g, (_, ch) => (ch ? ch.toUpperCase() : ''))
-        .replace(/^[A-Z]/, ch => ch.toLowerCase());
+  return String(str ?? '')
+    .replace(/[-_\s]+(.)?/g, (_, ch) => (ch ? ch.toUpperCase() : ''))
+    .replace(/^[A-Z]/, (ch) => ch.toLowerCase());
 }
 
 /**
@@ -291,10 +300,10 @@ export function camelCase(str) {
  * @returns {string}
  */
 export function snakeCase(str) {
-    return String(str ?? '')
-        .replace(/([a-z])([A-Z])/g, '$1_$2')
-        .replace(/[\s-]+/g, '_')
-        .toLowerCase();
+  return String(str ?? '')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toLowerCase();
 }
 
 /**
@@ -303,7 +312,7 @@ export function snakeCase(str) {
  * @returns {string}
  */
 export function stripHtml(str) {
-    return String(str ?? '').replace(/<[^>]*>/g, '');
+  return String(str ?? '').replace(/<[^>]*>/g, '');
 }
 
 /**
@@ -314,12 +323,12 @@ export function stripHtml(str) {
  * @returns {string}
  */
 export function padStart(str, len, char = ' ') {
-    const s = String(str);
-    const targetLen = Math.max(0, Math.floor(Number(len) || 0));
-    const padChar = String(char || ' ').slice(0, 1);
-    if (s.length >= targetLen) return s;
-    const pad = padChar.repeat(targetLen - s.length);
-    return pad + s;
+  const s = String(str);
+  const targetLen = Math.max(0, Math.floor(Number(len) || 0));
+  const padChar = String(char || ' ').slice(0, 1);
+  if (s.length >= targetLen) return s;
+  const pad = padChar.repeat(targetLen - s.length);
+  return pad + s;
 }
 
 /**
@@ -330,12 +339,12 @@ export function padStart(str, len, char = ' ') {
  * @returns {string}
  */
 export function padEnd(str, len, char = ' ') {
-    const s = String(str);
-    const targetLen = Math.max(0, Math.floor(Number(len) || 0));
-    const padChar = String(char || ' ').slice(0, 1);
-    if (s.length >= targetLen) return s;
-    const pad = padChar.repeat(targetLen - s.length);
-    return s + pad;
+  const s = String(str);
+  const targetLen = Math.max(0, Math.floor(Number(len) || 0));
+  const padChar = String(char || ' ').slice(0, 1);
+  if (s.length >= targetLen) return s;
+  const pad = padChar.repeat(targetLen - s.length);
+  return s + pad;
 }
 
 /**
@@ -344,7 +353,7 @@ export function padEnd(str, len, char = ' ') {
  * @returns {string[]}
  */
 export function words(str) {
-    return String(str ?? '').match(/\w+/g) || [];
+  return String(str ?? '').match(/\w+/g) || [];
 }
 
 /**
@@ -354,9 +363,9 @@ export function words(str) {
  * @returns {string}
  */
 export function repeat(str, count) {
-    const s = String(str ?? '');
-    const n = Math.max(0, Math.floor(Number(count) || 0));
-    return s.repeat(n);
+  const s = String(str ?? '');
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  return s.repeat(n);
 }
 
 /**
@@ -365,9 +374,9 @@ export function repeat(str, count) {
  * @returns {string}
  */
 export function titleCase(str) {
-    return String(str ?? '')
-        .toLowerCase()
-        .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
+  return String(str ?? '')
+    .toLowerCase()
+    .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
 }
 
 /**
@@ -376,12 +385,12 @@ export function titleCase(str) {
  * @returns {string}
  */
 export function slugify(str) {
-    return String(str ?? '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  return String(str ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**
@@ -392,13 +401,13 @@ export function slugify(str) {
  * @returns {boolean}
  */
 export function inRange(value, start, end) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return false;
-    const s = Number(start);
-    const e = end === undefined ? s : Number(end);
-    const lo = Math.min(s, e);
-    const hi = Math.max(s, e);
-    return n >= lo && n < hi;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return false;
+  const s = Number(start);
+  const e = end === undefined ? s : Number(end);
+  const lo = Math.min(s, e);
+  const hi = Math.max(s, e);
+  return n >= lo && n < hi;
 }
 
 /**
@@ -408,9 +417,9 @@ export function inRange(value, start, end) {
  * @returns {number}
  */
 export function roundTo(value, decimals) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return NaN;
-    const d = Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)));
-    const mult = Math.pow(10, d);
-    return Math.round((n + Number.EPSILON) * mult) / mult;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return NaN;
+  const d = Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)));
+  const mult = Math.pow(10, d);
+  return Math.round((n + Number.EPSILON) * mult) / mult;
 }

@@ -7,7 +7,7 @@ import assert from 'assert';
 
 const VIEW_DIRS = [
   path.join(process.cwd(), 'dashboard-web', 'js', 'views'),
-  path.join(process.cwd(), 'dashboard-web', 'js-es2018', 'views')
+  path.join(process.cwd(), 'dashboard-web', 'js-es2018', 'views'),
 ];
 
 function findFiles(dir) {
@@ -61,7 +61,7 @@ function analyzeFile(file) {
 
       // heuristics: consider safe if expression contains escapeHtml( or sanitize or String(...) or Number(...)
       const safePatterns = ['escapeHtml(', 'sanitize', 'DOMPurify', 'String(', 'Number(', 'formatNumber('];
-      const isSafe = safePatterns.some(p => expr.includes(p));
+      const isSafe = safePatterns.some((p) => expr.includes(p));
 
       if (!isSafe) {
         problems.push({ expr, location: `${file}:${m.index + 1}` });
@@ -89,7 +89,8 @@ if (allProblems.length) {
     msg += `\nFile: ${p.file}\n`;
     for (const pr of p.problems) msg += `  - ${pr.expr} (approx at ${pr.location})\n`;
   }
-  msg += '\nRules: Interpolations inside backtick templates that look like HTML should be escaped with escapeHtml(...) or otherwise sanitized.\n';
+  msg +=
+    '\nRules: Interpolations inside backtick templates that look like HTML should be escaped with escapeHtml(...) or otherwise sanitized.\n';
   throw new Error(msg);
 }
 

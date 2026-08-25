@@ -29,7 +29,7 @@ const SENSITIVE_PATH_PATTERNS = [
     /\/api\/v2\/auth\//i,
     /\/api\/sso\//i,
     /\/api\/stripe\//i,
-    /\/api\/simplebeacon\/user\/ai-keys/i,
+    /\/api\/simplebeacon\/user\/ai-keys/i
 ];
 
 /** Maximum number of entries to capture (prevents unbounded memory growth). */
@@ -144,7 +144,11 @@ export class HarExporter {
             this._origXhrSend = null;
         }
         if (this._perfObserver) {
-            try { this._perfObserver.disconnect(); } catch { /* ignore */ }
+            try {
+                this._perfObserver.disconnect();
+            } catch {
+                /* ignore */
+            }
             this._perfObserver = null;
         }
     }
@@ -157,43 +161,46 @@ export class HarExporter {
         if (typeof window.fetch !== 'function') return;
         const self = this;
         this._origFetch = window.fetch;
-        window.fetch = function(input, init) {
+        window.fetch = function (input, init) {
             const url = typeof input === 'string' ? input : (input && input.url) || '';
             const method = (init && init.method) || (input && input.method) || 'GET';
             const reqHeaders = headersToArray(init && init.headers ? new Headers(init.headers) : new Headers());
             const sensitive = isSensitivePath(url);
-            const reqBody = (!sensitive && init && init.body) ? String(init.body).slice(0, 4096) : undefined;
+            const reqBody = !sensitive && init && init.body ? String(init.body).slice(0, 4096) : undefined;
             const startedTime = Date.now();
-            return self._origFetch.apply(this, arguments).then(res => {
-                const responseHeaders = headersToArray(res.headers);
-                self._addEntry({
-                    url,
-                    method,
-                    status: res.status,
-                    statusText: res.statusText || '',
-                    reqHeaders: redactHeaders(reqHeaders),
-                    resHeaders: redactHeaders(responseHeaders),
-                    reqBody: sensitive ? undefined : reqBody,
-                    startedTime,
-                    time: Date.now() - startedTime,
-                    resourceType: 'fetch',
+            return self._origFetch
+                .apply(this, arguments)
+                .then(res => {
+                    const responseHeaders = headersToArray(res.headers);
+                    self._addEntry({
+                        url,
+                        method,
+                        status: res.status,
+                        statusText: res.statusText || '',
+                        reqHeaders: redactHeaders(reqHeaders),
+                        resHeaders: redactHeaders(responseHeaders),
+                        reqBody: sensitive ? undefined : reqBody,
+                        startedTime,
+                        time: Date.now() - startedTime,
+                        resourceType: 'fetch'
+                    });
+                    return res;
+                })
+                .catch(err => {
+                    self._addEntry({
+                        url,
+                        method,
+                        status: 0,
+                        statusText: 'Error: ' + ((err && err.message) || String(err)),
+                        reqHeaders: redactHeaders(reqHeaders),
+                        resHeaders: [],
+                        reqBody: sensitive ? undefined : reqBody,
+                        startedTime,
+                        time: Date.now() - startedTime,
+                        resourceType: 'fetch'
+                    });
+                    throw err;
                 });
-                return res;
-            }).catch(err => {
-                self._addEntry({
-                    url,
-                    method,
-                    status: 0,
-                    statusText: 'Error: ' + (err && err.message || String(err)),
-                    reqHeaders: redactHeaders(reqHeaders),
-                    resHeaders: [],
-                    reqBody: sensitive ? undefined : reqBody,
-                    startedTime,
-                    time: Date.now() - startedTime,
-                    resourceType: 'fetch',
-                });
-                throw err;
-            });
         };
     }
 
@@ -207,17 +214,17 @@ export class HarExporter {
         this._origXhrOpen = XMLHttpRequest.prototype.open;
         this._origXhrSend = XMLHttpRequest.prototype.send;
         const xhrData = new WeakMap();
-        XMLHttpRequest.prototype.open = function(method, url) {
+        XMLHttpRequest.prototype.open = function (method, url) {
             xhrData.set(this, { method, url, startedTime: 0 });
             return self._origXhrOpen.apply(this, arguments);
         };
-        XMLHttpRequest.prototype.send = function(body) {
+        XMLHttpRequest.prototype.send = function (body) {
             const data = xhrData.get(this);
             if (data) {
                 data.startedTime = Date.now();
                 const sensitive = isSensitivePath(data.url);
-                const reqBody = (!sensitive && body) ? String(body).slice(0, 4096) : undefined;
-                this.addEventListener('loadend', function() {
+                const reqBody = !sensitive && body ? String(body).slice(0, 4096) : undefined;
+                this.addEventListener('loadend', function () {
                     const resHeaders = [];
                     const rawHeaders = (this.getAllResponseHeaders() || '').trim();
                     if (rawHeaders) {
@@ -238,7 +245,7 @@ export class HarExporter {
                         reqBody: sensitive ? undefined : reqBody,
                         startedTime: data.startedTime,
                         time: Date.now() - data.startedTime,
-                        resourceType: 'xhr',
+                        resourceType: 'xhr'
                     });
                 });
             }
@@ -255,7 +262,7 @@ export class HarExporter {
         if (typeof window.PerformanceObserver !== 'function') return;
         const self = this;
         try {
-            this._perfObserver = new PerformanceObserver(function(list) {
+            this._perfObserver = new PerformanceObserver(function (list) {
                 for (const entry of list.getEntries()) {
                     // Only add if we don't already have this URL from fetch/XHR
                     const exists = self._entries.some(e => e.url === entry.name);
@@ -270,13 +277,15 @@ export class HarExporter {
                             reqBody: undefined,
                             startedTime: performance.timeOrigin + entry.startTime,
                             time: entry.duration,
-                            resourceType: entry.initiatorType || 'other',
+                            resourceType: entry.initiatorType || 'other'
                         });
                     }
                 }
             });
             this._perfObserver.observe({ entryTypes: ['resource'] });
-        } catch { /* PerformanceObserver not supported */ }
+        } catch {
+            /* PerformanceObserver not supported */
+        }
     }
 
     /**
@@ -307,7 +316,7 @@ export class HarExporter {
                 queryString: [],
                 headersSize: -1,
                 bodySize: e.reqBody ? e.reqBody.length : 0,
-                postData: e.reqBody ? { mimeType: 'application/json', text: e.reqBody } : undefined,
+                postData: e.reqBody ? { mimeType: 'application/json', text: e.reqBody } : undefined
             },
             response: {
                 status: e.status,
@@ -318,22 +327,22 @@ export class HarExporter {
                 content: { size: 0, mimeType: 'application/json' },
                 redirectURL: '',
                 headersSize: -1,
-                bodySize: -1,
+                bodySize: -1
             },
             cache: {},
             timings: { send: 0, wait: 0, receive: e.time || 0 },
-            _resourceType: e.resourceType,
+            _resourceType: e.resourceType
         }));
         return {
             log: {
                 version: '1.2',
                 creator: {
                     name: 'SimpleBeacon Dashboard',
-                    version: '1.0',
+                    version: '1.0'
                 },
                 pages: [],
-                entries: harEntries,
-            },
+                entries: harEntries
+            }
         };
     }
 

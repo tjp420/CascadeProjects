@@ -16,15 +16,15 @@ SimpleBeacon AI Slop Cop is a **universal, local-first code-quality companion** 
 
 ### Why it's different
 
-| Traditional linters | AI Slop Cop |
-|---|---|
-| Language-specific | Universal core + language adapters |
-| Static rule set | 130+ rules across 12 categories, 40+ languages |
-| No AI context | Detects AI-specific patterns (boilerplate, placeholders, hallucinated APIs, mock returns) |
-| No compliance | EU AI Act, OWASP LLM Top 10, 19 regional AI safety frameworks |
-| No exposure framing | Each finding carries a cited dollar/risk exposure badge |
-| No agent integration | MCP tools let AI agents self-validate before committing |
-| Uploads source | Zero source upload — runs locally in the IDE, CLI, or MCP |
+| Traditional linters  | AI Slop Cop                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| Language-specific    | Universal core + language adapters                                                        |
+| Static rule set      | 130+ rules across 12 categories, 40+ languages                                            |
+| No AI context        | Detects AI-specific patterns (boilerplate, placeholders, hallucinated APIs, mock returns) |
+| No compliance        | EU AI Act, OWASP LLM Top 10, 19 regional AI safety frameworks                             |
+| No exposure framing  | Each finding carries a cited dollar/risk exposure badge                                   |
+| No agent integration | MCP tools let AI agents self-validate before committing                                   |
+| Uploads source       | Zero source upload — runs locally in the IDE, CLI, or MCP                                 |
 
 ### Who it's for
 
@@ -125,46 +125,47 @@ The free VS Code extension (`/downloads/simplebeacon.vsix`) is the primary entry
 
 ### 2.2 Layer mapping to existing code
 
-| Layer | What's built | What's missing |
-|---|---|---|
-| **Layer 1: Universal Intake** | File extension routing in `realtimeMonitor.ts getTypeSpecificPatterns()`, skip patterns in `analyzeFile()`, `.simplebeaconignore` loading in CLI | File role classification (app/config/test/docs/vendor/generated) is implicit, not explicit. No `FileRole` enum or classifier. |
-| **Layer 2: Generic Detectors** | 15 universal AI rules (`universal-ai-rules.json`), 8 fiction rules, 13 inline AI slop patterns, 7 base patterns (secrets, console.log, debugger, eval, innerHTML, TODO) | Empty catch detection (SB-AI-004 exists in CLI but not in extension). Unreachable code detection. Duplicated block detection. |
-| **Layer 3: Language Adapters** | JS/TS (3 rules), JSON (2 rules), Python (2 rules) in extension. CLI has broader coverage via `universal-ai-rules.json` (40+ languages for debug print, TODO, SSL, eval, credentials) | Go, Rust, Java/Kotlin, C#, Ruby, PHP, SQL, Bash, Docker/YAML language-specific patterns in the **extension**. CLI covers them generically but not with syntax-aware rules. |
-| **Layer 4: Policy + Suppression** | `.simplebeacon/config.json`, `.simplebeaconignore`, inline `// simplebeacon-ignore`, `slop-cop-disable-next-line`, file-level suppression headers, tier-gated allowlists, gate engine with `failOn`/`warnOn` | No custom rule DSL (JSON/YAML user-defined rules). No org-level policy distribution. No cross-editor config sync. |
+| Layer                             | What's built                                                                                                                                                                                                 | What's missing                                                                                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Layer 1: Universal Intake**     | File extension routing in `realtimeMonitor.ts getTypeSpecificPatterns()`, skip patterns in `analyzeFile()`, `.simplebeaconignore` loading in CLI                                                             | File role classification (app/config/test/docs/vendor/generated) is implicit, not explicit. No `FileRole` enum or classifier.                                              |
+| **Layer 2: Generic Detectors**    | 15 universal AI rules (`universal-ai-rules.json`), 8 fiction rules, 13 inline AI slop patterns, 7 base patterns (secrets, console.log, debugger, eval, innerHTML, TODO)                                      | Empty catch detection (SB-AI-004 exists in CLI but not in extension). Unreachable code detection. Duplicated block detection.                                              |
+| **Layer 3: Language Adapters**    | JS/TS (3 rules), JSON (2 rules), Python (2 rules) in extension. CLI has broader coverage via `universal-ai-rules.json` (40+ languages for debug print, TODO, SSL, eval, credentials)                         | Go, Rust, Java/Kotlin, C#, Ruby, PHP, SQL, Bash, Docker/YAML language-specific patterns in the **extension**. CLI covers them generically but not with syntax-aware rules. |
+| **Layer 4: Policy + Suppression** | `.simplebeacon/config.json`, `.simplebeaconignore`, inline `// simplebeacon-ignore`, `slop-cop-disable-next-line`, file-level suppression headers, tier-gated allowlists, gate engine with `failOn`/`warnOn` | No custom rule DSL (JSON/YAML user-defined rules). No org-level policy distribution. No cross-editor config sync.                                                          |
 
 ### 2.3 Component inventory
 
 **VS Code Extension** (`simplebeacon-vscode-merged/src/`):
 
-| Component | File | Status |
-|---|---|---|
-| Realtime monitor | `realtimeMonitor.ts` | ✅ Active — gutter icons, exposure $, AI session popups (added today) |
-| Quick-fix provider | `fixes/slopCopQuickFixProvider.ts` | ✅ Active — auto-fix lightbulbs (added today) |
-| Engine API client | `aiPlatform/engineApiClient.ts` | ✅ Connects to localhost:3000 |
-| Context guard | `aiPlatform/contextGuard.ts` | ✅ Truncates large payloads |
-| Diagnostics | `aiPlatform/diagnostics.ts` | ✅ Problems panel integration |
-| Dashboard | `dashboard4_0.ts`, `welcomeDashboard.ts` | ✅ Webview dashboard |
-| Sidebar | `modernSidebarProvider.ts` | ✅ Findings tree |
-| Fix engine | `fixes/fixEngine.ts` | ✅ Remediation engine |
-| Local Ollama | `fixes/localOllamaRemediation.ts` | ✅ Optional local LLM fixes |
-| Rule catalogs | `rules/*.json` | ✅ 4 JSON catalogs (security, OWASP, compliance, slop) |
+| Component          | File                                     | Status                                                                |
+| ------------------ | ---------------------------------------- | --------------------------------------------------------------------- |
+| Realtime monitor   | `realtimeMonitor.ts`                     | ✅ Active — gutter icons, exposure $, AI session popups (added today) |
+| Quick-fix provider | `fixes/slopCopQuickFixProvider.ts`       | ✅ Active — auto-fix lightbulbs (added today)                         |
+| Engine API client  | `aiPlatform/engineApiClient.ts`          | ✅ Connects to localhost:3000                                         |
+| Context guard      | `aiPlatform/contextGuard.ts`             | ✅ Truncates large payloads                                           |
+| Diagnostics        | `aiPlatform/diagnostics.ts`              | ✅ Problems panel integration                                         |
+| Dashboard          | `dashboard4_0.ts`, `welcomeDashboard.ts` | ✅ Webview dashboard                                                  |
+| Sidebar            | `modernSidebarProvider.ts`               | ✅ Findings tree                                                      |
+| Fix engine         | `fixes/fixEngine.ts`                     | ✅ Remediation engine                                                 |
+| Local Ollama       | `fixes/localOllamaRemediation.ts`        | ✅ Optional local LLM fixes                                           |
+| Rule catalogs      | `rules/*.json`                           | ✅ 4 JSON catalogs (security, OWASP, compliance, slop)                |
 
 **CLI** (`packages/simplebeacon-cli/src/`):
 
-| Component | Path | Status |
-|---|---|---|
-| Rule engine | `rules/*.js` (30+ scanners) | ✅ 130+ rules |
-| MCP server | `mcp/stdio-server.js`, `mcp/tools.js` | ✅ 12 MCP tools |
-| Gate engine | `gate.js` | ✅ failOn/warnOn |
-| Scan orchestrator | `scan.js` | ✅ Profile-based |
-| Reporters | `reporters/*.js` | ✅ JSON, text, GitHub |
-| Certificates | `lib/certify-client.js` | ✅ .sbcert signed |
-| Compliance | `compliance-rules/*.js` | ✅ 14 compliance rules |
-| Analyzers | `analyzers/data-cleanup/`, `analyzers/file-reduction/` | ✅ 12 analyzers |
+| Component         | Path                                                   | Status                 |
+| ----------------- | ------------------------------------------------------ | ---------------------- |
+| Rule engine       | `rules/*.js` (30+ scanners)                            | ✅ 130+ rules          |
+| MCP server        | `mcp/stdio-server.js`, `mcp/tools.js`                  | ✅ 12 MCP tools        |
+| Gate engine       | `gate.js`                                              | ✅ failOn/warnOn       |
+| Scan orchestrator | `scan.js`                                              | ✅ Profile-based       |
+| Reporters         | `reporters/*.js`                                       | ✅ JSON, text, GitHub  |
+| Certificates      | `lib/certify-client.js`                                | ✅ .sbcert signed      |
+| Compliance        | `compliance-rules/*.js`                                | ✅ 14 compliance rules |
+| Analyzers         | `analyzers/data-cleanup/`, `analyzers/file-reduction/` | ✅ 12 analyzers        |
 
 ### 2.4 Data flow
 
 **On-save / IDE mode:**
+
 ```
 User edits file → onDidChangeTextDocument (500ms debounce)
   → classify file by extension
@@ -178,6 +179,7 @@ User edits file → onDidChangeTextDocument (500ms debounce)
 ```
 
 **PR / diff mode (CLI):**
+
 ```
 git diff --name-only base...head
   → for each changed file:
@@ -190,6 +192,7 @@ git diff --name-only base...head
 ```
 
 **MCP / AI agent mode:**
+
 ```
 AI agent calls scan_snippet(content, filePath)
   → run snippet scanner (credentials, production-leak, fiction, slop)
@@ -207,119 +210,119 @@ AI agent calls scan_snippet(content, filePath)
 
 #### Layer 2: Generic Detectors (language-agnostic)
 
-| Rule ID | Category | What it detects | Severity | Exposure |
-|---|---|---|---|---|
-| SB-SEC-007a | Security | Hardcoded password | high | $4.45M avg breach |
-| SB-SEC-007b | Security | Hardcoded API key | high | $4.45M avg breach |
-| SB-SEC-007c | Security | Hardcoded token | high | $4.45M avg breach |
-| SB-SEC-007e | Security | AWS access key ID | error | $4.45M avg breach |
-| SB-SEC-007f | Security | DB connection string with creds | high | $4.45M avg breach |
-| SB-SEC-010b | Security | Credential/password logged | error | Info leak |
-| SB-SEC-010c | Security | SSN/national ID logged | error | GDPR fine |
-| SB-SEC-010d | Security | Credit card logged | error | PCI fine |
-| SB-FICTION-001 | AI Slop | LLM placeholder / conversational debris | high | Audit finding |
-| SB-FICTION-002 | AI Slop | Markdown code fence in source | high | Tech debt |
-| SB-FICTION-004 | AI Slop | Hardcoded fake metric / Lorem Ipsum | medium | €35M EU AI Act |
-| SB-FICTION-005 | AI Slop | Hallucinated SDK/API method | high | $100K+ incident |
-| SB-FICTION-006 | AI Slop | AI debris in TODO/FIXME | medium | Audit finding |
-| SB-FICTION-007 | AI Slop | Mock return value + placeholder | high | $80K–$200K |
-| SB-FICTION-008 | AI Slop | Boilerplate comment restating code | low | Tech debt |
-| SB-AI-001 | Universal | Debug print in non-JS language | low | Info leak |
-| SB-AI-002 | Universal | TODO/FIXME/HACK marker | low | Audit finding |
-| SB-AI-003 | Universal | Disabled SSL/TLS verification | medium | MITM risk |
-| SB-AI-004 | Universal | Empty catch swallows errors | medium | Silent failure |
-| SB-AI-005 | Universal | eval/exec/Function constructor | medium | RCE risk |
-| SB-AI-006 | Universal | Hardcoded credential assignment | medium | $4.45M breach |
-| SB-AI-007 | Universal | Debug mode in config | medium | Info leak |
-| SB-AI-008 | Universal | Broad exception catch | low | Hidden bugs |
-| SB-AI-009 | Universal | Hardcoded filesystem path | low | Portability |
-| SB-AI-011 | Universal | Bare string exception | medium | Error handling |
-| SB-AI-013 | Universal | Disabled auth check | medium | Auth bypass |
-| SB-AI-015 | Universal | Wildcard CORS/permissions | medium | CSRF risk |
+| Rule ID        | Category  | What it detects                         | Severity | Exposure          |
+| -------------- | --------- | --------------------------------------- | -------- | ----------------- |
+| SB-SEC-007a    | Security  | Hardcoded password                      | high     | $4.45M avg breach |
+| SB-SEC-007b    | Security  | Hardcoded API key                       | high     | $4.45M avg breach |
+| SB-SEC-007c    | Security  | Hardcoded token                         | high     | $4.45M avg breach |
+| SB-SEC-007e    | Security  | AWS access key ID                       | error    | $4.45M avg breach |
+| SB-SEC-007f    | Security  | DB connection string with creds         | high     | $4.45M avg breach |
+| SB-SEC-010b    | Security  | Credential/password logged              | error    | Info leak         |
+| SB-SEC-010c    | Security  | SSN/national ID logged                  | error    | GDPR fine         |
+| SB-SEC-010d    | Security  | Credit card logged                      | error    | PCI fine          |
+| SB-FICTION-001 | AI Slop   | LLM placeholder / conversational debris | high     | Audit finding     |
+| SB-FICTION-002 | AI Slop   | Markdown code fence in source           | high     | Tech debt         |
+| SB-FICTION-004 | AI Slop   | Hardcoded fake metric / Lorem Ipsum     | medium   | €35M EU AI Act    |
+| SB-FICTION-005 | AI Slop   | Hallucinated SDK/API method             | high     | $100K+ incident   |
+| SB-FICTION-006 | AI Slop   | AI debris in TODO/FIXME                 | medium   | Audit finding     |
+| SB-FICTION-007 | AI Slop   | Mock return value + placeholder         | high     | $80K–$200K        |
+| SB-FICTION-008 | AI Slop   | Boilerplate comment restating code      | low      | Tech debt         |
+| SB-AI-001      | Universal | Debug print in non-JS language          | low      | Info leak         |
+| SB-AI-002      | Universal | TODO/FIXME/HACK marker                  | low      | Audit finding     |
+| SB-AI-003      | Universal | Disabled SSL/TLS verification           | medium   | MITM risk         |
+| SB-AI-004      | Universal | Empty catch swallows errors             | medium   | Silent failure    |
+| SB-AI-005      | Universal | eval/exec/Function constructor          | medium   | RCE risk          |
+| SB-AI-006      | Universal | Hardcoded credential assignment         | medium   | $4.45M breach     |
+| SB-AI-007      | Universal | Debug mode in config                    | medium   | Info leak         |
+| SB-AI-008      | Universal | Broad exception catch                   | low      | Hidden bugs       |
+| SB-AI-009      | Universal | Hardcoded filesystem path               | low      | Portability       |
+| SB-AI-011      | Universal | Bare string exception                   | medium   | Error handling    |
+| SB-AI-013      | Universal | Disabled auth check                     | medium   | Auth bypass       |
+| SB-AI-015      | Universal | Wildcard CORS/permissions               | medium   | CSRF risk         |
 
 #### Layer 3: Language Adapters
 
 **JavaScript/TypeScript (current: 3 rules):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| var-declaration | `var` instead of `let`/`const` | info |
-| equality-comparison | `==` instead of `===` | warning |
-| immediately-invoked-function | IIFE pattern | info |
+| Rule ID                      | What it detects                | Severity |
+| ---------------------------- | ------------------------------ | -------- |
+| var-declaration              | `var` instead of `let`/`const` | info     |
+| equality-comparison          | `==` instead of `===`          | warning  |
+| immediately-invoked-function | IIFE pattern                   | info     |
 
 **JavaScript/TypeScript (planned additions):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-JS-001 | `dangerouslySetInnerHTML` | high |
-| SB-JS-002 | `fetch()` to localhost in production | medium |
-| SB-JS-003 | `new Function()` constructor | medium |
-| SB-JS-004 | `Object.assign` prototype pollution | high |
-| SB-JS-005 | `setInterval` without `clearInterval` | info |
+| Rule ID   | What it detects                       | Severity |
+| --------- | ------------------------------------- | -------- |
+| SB-JS-001 | `dangerouslySetInnerHTML`             | high     |
+| SB-JS-002 | `fetch()` to localhost in production  | medium   |
+| SB-JS-003 | `new Function()` constructor          | medium   |
+| SB-JS-004 | `Object.assign` prototype pollution   | high     |
+| SB-JS-005 | `setInterval` without `clearInterval` | info     |
 
 **Python (current: 2 rules, planned additions):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| print-statement | `print()` in production | warning |
-| bare-except | Bare `except:` clause | warning |
-| SB-PY-001 (planned) | `subprocess` with `shell=True` | high |
-| SB-PY-002 (planned) | `pickle.loads()` on untrusted data | high |
-| SB-PY-003 (planned) | `yaml.load()` without `Loader` | medium |
-| SB-PY-004 (planned) | `open()` on untrusted path | medium |
+| Rule ID             | What it detects                    | Severity |
+| ------------------- | ---------------------------------- | -------- |
+| print-statement     | `print()` in production            | warning  |
+| bare-except         | Bare `except:` clause              | warning  |
+| SB-PY-001 (planned) | `subprocess` with `shell=True`     | high     |
+| SB-PY-002 (planned) | `pickle.loads()` on untrusted data | high     |
+| SB-PY-003 (planned) | `yaml.load()` without `Loader`     | medium   |
+| SB-PY-004 (planned) | `open()` on untrusted path         | medium   |
 
 **Go (planned):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-GO-001 | `os/exec.Command` with string-built command | high |
-| SB-GO-002 | Unchecked `err` return | medium |
-| SB-GO-003 | `panic!` in library code | medium |
-| SB-GO-004 | `defer` in loop | low |
+| Rule ID   | What it detects                             | Severity |
+| --------- | ------------------------------------------- | -------- |
+| SB-GO-001 | `os/exec.Command` with string-built command | high     |
+| SB-GO-002 | Unchecked `err` return                      | medium   |
+| SB-GO-003 | `panic!` in library code                    | medium   |
+| SB-GO-004 | `defer` in loop                             | low      |
 
 **Rust (planned):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-RS-001 | `unsafe` block | high |
-| SB-RS-002 | `.unwrap()` on `Option`/`Result` | medium |
-| SB-RS-003 | `panic!` in library code | medium |
-| SB-RS-004 | Weak hash (`md5` crate) | medium |
+| Rule ID   | What it detects                  | Severity |
+| --------- | -------------------------------- | -------- |
+| SB-RS-001 | `unsafe` block                   | high     |
+| SB-RS-002 | `.unwrap()` on `Option`/`Result` | medium   |
+| SB-RS-003 | `panic!` in library code         | medium   |
+| SB-RS-004 | Weak hash (`md5` crate)          | medium   |
 
 **SQL (planned):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-SQL-001 | String interpolation in query | high |
-| SB-SQL-002 | Missing parameterization | high |
+| Rule ID    | What it detects               | Severity |
+| ---------- | ----------------------------- | -------- |
+| SB-SQL-001 | String interpolation in query | high     |
+| SB-SQL-002 | Missing parameterization      | high     |
 
 **Bash (planned):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-SH-001 | `curl | sh` pipe | high |
-| SB-SH-002 | `rm -rf /` pattern | critical |
-| SB-SH-003 | Undeclared env var assumption | medium |
+| Rule ID   | What it detects               | Severity |
+| --------- | ----------------------------- | -------- |
+| SB-SH-001 | `curl                         | sh` pipe | high |
+| SB-SH-002 | `rm -rf /` pattern            | critical |
+| SB-SH-003 | Undeclared env var assumption | medium   |
 
 **Docker/YAML (planned):**
 
-| Rule ID | What it detects | Severity |
-|---|---|---|
-| SB-SEC-017 | `privileged: true` | high |
-| SB-SEC-018 | `USER root` | high |
-| SB-SEC-019 | Hardcoded secret in ENV | high |
-| SB-SEC-020 | Missing HEALTHCHECK | medium |
+| Rule ID    | What it detects         | Severity |
+| ---------- | ----------------------- | -------- |
+| SB-SEC-017 | `privileged: true`      | high     |
+| SB-SEC-018 | `USER root`             | high     |
+| SB-SEC-019 | Hardcoded secret in ENV | high     |
+| SB-SEC-020 | Missing HEALTHCHECK     | medium   |
 
 #### Compliance & AI Safety (Layer 4, CLI-only currently)
 
-| Category | Rules | Frameworks |
-|---|---|---|
-| OWASP LLM Top 10 | 10 rules | LLM01-LLM10 (2025) |
-| EU AI Act | 16 rules | Annex III, Articles 9-15, 26-27, 50 |
-| Regional AI Safety | 19 rules | CA SB 1047, NIST AI RMF, CO SB 24-205, UT SB 149, NYC LL 144, Canada AIDA, UK DSIT, ISO 42001, Singapore, Brazil, TX HB 4045, IL, Japan, Australia, South Korea, China, India, OECD |
-| Enterprise Guardrails | 5 rules | Data leakage, token budget, loop budget, resilience, stream safety |
-| Token Bleed | 5 rules | Unchunked context, large serialization, long strings, unbounded tokens |
-| Deployment Readiness | 6 rules | Workspace membership, env vars, schema conflicts, CORS, render.yaml |
+| Category              | Rules    | Frameworks                                                                                                                                                                          |
+| --------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OWASP LLM Top 10      | 10 rules | LLM01-LLM10 (2025)                                                                                                                                                                  |
+| EU AI Act             | 16 rules | Annex III, Articles 9-15, 26-27, 50                                                                                                                                                 |
+| Regional AI Safety    | 19 rules | CA SB 1047, NIST AI RMF, CO SB 24-205, UT SB 149, NYC LL 144, Canada AIDA, UK DSIT, ISO 42001, Singapore, Brazil, TX HB 4045, IL, Japan, Australia, South Korea, China, India, OECD |
+| Enterprise Guardrails | 5 rules  | Data leakage, token budget, loop budget, resilience, stream safety                                                                                                                  |
+| Token Bleed           | 5 rules  | Unchunked context, large serialization, long strings, unbounded tokens                                                                                                              |
+| Deployment Readiness  | 6 rules  | Workspace membership, env vars, schema conflicts, CORS, render.yaml                                                                                                                 |
 
 ### 3.2 Severity distribution (current)
 
@@ -334,21 +337,21 @@ Info      ███████░░░░░░░░░░░░░  7 rules 
 
 ### 3.3 Language coverage matrix
 
-| Language | Generic (Layer 2) | Language-specific (Layer 3) | Compliance (Layer 4) | Total |
-|---|---|---|---|---|
-| JavaScript/TypeScript | ✅ 15 rules | ✅ 3 rules (planned: 5 more) | ✅ OWASP, EU AI Act | 40+ |
-| Python | ✅ 15 rules | ✅ 2 rules (planned: 4 more) | ✅ OWASP, EU AI Act | 30+ |
-| Go | ✅ 15 rules | ❌ (planned: 4 rules) | ✅ Regional | 20+ |
-| Rust | ✅ 15 rules | ❌ (planned: 4 rules) | ✅ Regional | 20+ |
-| Java/Kotlin | ✅ 15 rules | ❌ (planned: 4 rules) | ✅ Regional | 20+ |
-| C# | ✅ 15 rules | ❌ (planned: 4 rules) | ✅ Regional | 20+ |
-| Ruby | ✅ 15 rules | ❌ (planned: 3 rules) | ✅ Regional | 15+ |
-| PHP | ✅ 15 rules | ❌ (planned: 3 rules) | ✅ Regional | 15+ |
-| SQL | ❌ | ❌ (planned: 2 rules) | ❌ | 0 (planned: 2) |
-| Bash | ✅ 15 rules | ❌ (planned: 3 rules) | ❌ | 15+ |
-| Docker/YAML | ✅ 15 rules | ✅ 4 rules (in CLI) | ❌ | 19+ |
-| JSON | ✅ 15 rules | ✅ 2 rules | ❌ | 17+ |
-| 40+ others | ✅ 15 rules | ❌ | varies | 15+ |
+| Language              | Generic (Layer 2) | Language-specific (Layer 3)  | Compliance (Layer 4) | Total          |
+| --------------------- | ----------------- | ---------------------------- | -------------------- | -------------- |
+| JavaScript/TypeScript | ✅ 15 rules       | ✅ 3 rules (planned: 5 more) | ✅ OWASP, EU AI Act  | 40+            |
+| Python                | ✅ 15 rules       | ✅ 2 rules (planned: 4 more) | ✅ OWASP, EU AI Act  | 30+            |
+| Go                    | ✅ 15 rules       | ❌ (planned: 4 rules)        | ✅ Regional          | 20+            |
+| Rust                  | ✅ 15 rules       | ❌ (planned: 4 rules)        | ✅ Regional          | 20+            |
+| Java/Kotlin           | ✅ 15 rules       | ❌ (planned: 4 rules)        | ✅ Regional          | 20+            |
+| C#                    | ✅ 15 rules       | ❌ (planned: 4 rules)        | ✅ Regional          | 20+            |
+| Ruby                  | ✅ 15 rules       | ❌ (planned: 3 rules)        | ✅ Regional          | 15+            |
+| PHP                   | ✅ 15 rules       | ❌ (planned: 3 rules)        | ✅ Regional          | 15+            |
+| SQL                   | ❌                | ❌ (planned: 2 rules)        | ❌                   | 0 (planned: 2) |
+| Bash                  | ✅ 15 rules       | ❌ (planned: 3 rules)        | ❌                   | 15+            |
+| Docker/YAML           | ✅ 15 rules       | ✅ 4 rules (in CLI)          | ❌                   | 19+            |
+| JSON                  | ✅ 15 rules       | ✅ 2 rules                   | ❌                   | 17+            |
+| 40+ others            | ✅ 15 rules       | ❌                           | varies               | 15+            |
 
 ---
 
@@ -459,22 +462,23 @@ Info      ███████░░░░░░░░░░░░░  7 rules 
 
 ## 6. Success Metrics
 
-| Metric | Target | Measurement |
-|---|---|---|
-| Extension installs | 10K in 6 months | VS Code marketplace |
-| Real-time findings shown | 50K+ per day across all users | Telemetry (opt-in) |
-| Quick-fix acceptance rate | >40% of offered fixes applied | Extension telemetry |
-| AI session popup CTR | >15% click "Review findings" | Extension telemetry |
-| Gate pass rate (paid users) | >90% of PRs pass on first scan | CI telemetry |
-| Language coverage | 10+ languages with adapter-specific rules | Rule catalog audit |
-| False positive rate | <10% of findings dismissed | Dismissal tracking |
-| MCP tool usage | 1K+ agents calling scan_snippet daily | MCP server logs |
+| Metric                      | Target                                    | Measurement         |
+| --------------------------- | ----------------------------------------- | ------------------- |
+| Extension installs          | 10K in 6 months                           | VS Code marketplace |
+| Real-time findings shown    | 50K+ per day across all users             | Telemetry (opt-in)  |
+| Quick-fix acceptance rate   | >40% of offered fixes applied             | Extension telemetry |
+| AI session popup CTR        | >15% click "Review findings"              | Extension telemetry |
+| Gate pass rate (paid users) | >90% of PRs pass on first scan            | CI telemetry        |
+| Language coverage           | 10+ languages with adapter-specific rules | Rule catalog audit  |
+| False positive rate         | <10% of findings dismissed                | Dismissal tracking  |
+| MCP tool usage              | 1K+ agents calling scan_snippet daily     | MCP server logs     |
 
 ---
 
 ## 6.1 Quantified Impact Model
 
 The biggest improvement isn't "finding more issues." It's:
+
 - finding the **right** issues
 - suppressing the **wrong** ones
 - enforcing the repo's **actual** rules
@@ -482,16 +486,16 @@ The biggest improvement isn't "finding more issues." It's:
 
 ### What it does well
 
-| Capability | Mechanism | Milestone |
-|---|---|---|
-| Stop secret leaks | Credential detection + safe-value suppression | M1 |
-| Stop prod/test contamination | File role classifier + severity calibration | M1 |
-| Stop mock/sample data in production paths | Smart suppressor + path-role targeting | M1 + M2 |
-| Stop AI-generated dead code and placeholders | AI slop detection + confidence calibration | M1 |
-| Stop insecure defaults in config | Config role detection + custom rules | M1 + M2 |
-| Reduce noisy findings so developers trust the tool | Dismissal tracking + noise dashboard + allowlist suggester | M1 + M2 |
-| Enforce repo-specific conventions | Custom rule DSL + severity overrides | M2 |
-| Block bad changes before merge | Diff-based gating (changed files only) | M3 |
+| Capability                                         | Mechanism                                                  | Milestone |
+| -------------------------------------------------- | ---------------------------------------------------------- | --------- |
+| Stop secret leaks                                  | Credential detection + safe-value suppression              | M1        |
+| Stop prod/test contamination                       | File role classifier + severity calibration                | M1        |
+| Stop mock/sample data in production paths          | Smart suppressor + path-role targeting                     | M1 + M2   |
+| Stop AI-generated dead code and placeholders       | AI slop detection + confidence calibration                 | M1        |
+| Stop insecure defaults in config                   | Config role detection + custom rules                       | M1 + M2   |
+| Reduce noisy findings so developers trust the tool | Dismissal tracking + noise dashboard + allowlist suggester | M1 + M2   |
+| Enforce repo-specific conventions                  | Custom rule DSL + severity overrides                       | M2        |
+| Block bad changes before merge                     | Diff-based gating (changed files only)                     | M3        |
 
 ### What it cannot do
 
@@ -504,35 +508,35 @@ The biggest improvement isn't "finding more issues." It's:
 
 #### Small team repo (2-5 devs, mixed manual + AI code)
 
-| Metric | Before | After | Improvement |
-|---|---|---|---|
-| Obvious slop reaching review | ~15 issues/week | ~5 issues/week | **67% reduction** |
-| Review time on trivial issues | ~3h/week/dev | ~1h/week/dev | **67% reduction** |
-| Placeholder values shipped to prod | ~2/month | ~0-1/month | **75% reduction** |
-| Secret leak incidents | ~1/quarter | ~0/year | **~100% reduction** |
-| Developer trust in scanner | N/A | >80% | New capability |
+| Metric                             | Before          | After          | Improvement         |
+| ---------------------------------- | --------------- | -------------- | ------------------- |
+| Obvious slop reaching review       | ~15 issues/week | ~5 issues/week | **67% reduction**   |
+| Review time on trivial issues      | ~3h/week/dev    | ~1h/week/dev   | **67% reduction**   |
+| Placeholder values shipped to prod | ~2/month        | ~0-1/month     | **75% reduction**   |
+| Secret leak incidents              | ~1/quarter      | ~0/year        | **~100% reduction** |
+| Developer trust in scanner         | N/A             | >80%           | New capability      |
 
 #### Medium monorepo (10-20 devs, multi-language, CI-gated)
 
-| Metric | Before | After | Improvement |
-|---|---|---|---|
-| PR review churn on trivial issues | ~30% of review comments | ~10% | **67% reduction** |
-| CI gate false-positive rate | ~40% (noisy scanners) | <10% | **75% reduction** |
-| Time from PR open to merge (quality holds) | ~2-3 days | ~1 day | **50-67% faster** |
-| Cross-language pattern coverage | 1-2 languages | 10+ via adapters | **5-10x** |
-| Repo convention drift | ~10 violations/week | ~2/week | **80% reduction** |
+| Metric                                     | Before                  | After            | Improvement       |
+| ------------------------------------------ | ----------------------- | ---------------- | ----------------- |
+| PR review churn on trivial issues          | ~30% of review comments | ~10%             | **67% reduction** |
+| CI gate false-positive rate                | ~40% (noisy scanners)   | <10%             | **75% reduction** |
+| Time from PR open to merge (quality holds) | ~2-3 days               | ~1 day           | **50-67% faster** |
+| Cross-language pattern coverage            | 1-2 languages           | 10+ via adapters | **5-10x**         |
+| Repo convention drift                      | ~10 violations/week     | ~2/week          | **80% reduction** |
 
 #### AI-generated codebase (agent-heavy, 50%+ AI-authored)
 
-| Metric | Before | After | Improvement |
-|---|---|---|---|
-| AI slop reaching review | ~40 issues/week | ~12/week | **70% reduction** |
-| Fake production paths shipped | ~5/month | ~0-1/month | **80-100% reduction** |
-| Placeholder config values | ~8/month | ~1/month | **87% reduction** |
-| Duplicate boilerplate blocks | ~15/week | ~4/week | **73% reduction** |
-| Sample data accidentally shipped | ~3/month | ~0/month | **~100% reduction** |
-| AI agent self-correction rate | 0% (no feedback) | >60% (via MCP scan_snippet) | New capability |
-| Time spent reviewing AI drafts | ~4h/day/dev | ~1.5h/day/dev | **62% reduction** |
+| Metric                           | Before           | After                       | Improvement           |
+| -------------------------------- | ---------------- | --------------------------- | --------------------- |
+| AI slop reaching review          | ~40 issues/week  | ~12/week                    | **70% reduction**     |
+| Fake production paths shipped    | ~5/month         | ~0-1/month                  | **80-100% reduction** |
+| Placeholder config values        | ~8/month         | ~1/month                    | **87% reduction**     |
+| Duplicate boilerplate blocks     | ~15/week         | ~4/week                     | **73% reduction**     |
+| Sample data accidentally shipped | ~3/month         | ~0/month                    | **~100% reduction**   |
+| AI agent self-correction rate    | 0% (no feedback) | >60% (via MCP scan_snippet) | New capability        |
+| Time spent reviewing AI drafts   | ~4h/day/dev      | ~1.5h/day/dev               | **62% reduction**     |
 
 ### One-sentence summary
 
@@ -541,6 +545,7 @@ The biggest improvement isn't "finding more issues." It's:
 ### Why the trust layer (M1) is the foundation
 
 Without false-positive suppression, none of the other capabilities matter:
+
 - A scanner that cries wolf gets muted.
 - A muted scanner catches nothing.
 - A trusted scanner with 50 rules outperforms a muted scanner with 500 rules.
@@ -550,16 +555,18 @@ The file role classifier + severity calibrator + smart suppressor + confidence c
 ### Why custom rules (M2) unlock per-repo value
 
 Every repo has conventions that generic rules can't know:
+
 - "No `console.warn` in `src/api/**`"
 - "TODOs must have an assignee"
 - "This legacy path is allowlisted"
 - "This rule is error here, warning there"
 
-Custom rules make the scanner correct for *your* repo, not just *a* repo.
+Custom rules make the scanner correct for _your_ repo, not just _a_ repo.
 
 ### Why diff-based gating (M3) makes it practical
 
 Full-repo scans are for compliance. Diff-based scans are for coding.
+
 - IDE mode: scan only the file you're editing — instant feedback.
 - PR mode: scan only changed files — fast gate, no noise from pre-existing issues.
 - CI mode: full repo scan with baseline — compliance and audit.
@@ -586,17 +593,18 @@ Build an explicit `FileRole` enum and classifier that runs before any rule fires
 
 ```typescript
 type FileRole =
-  | 'app'        // production source code
-  | 'config'     // configuration files
-  | 'test'       // test files, specs, fixtures
-  | 'docs'       // markdown, documentation
-  | 'generated'  // build output, minified bundles, auto-generated
-  | 'vendor'     // node_modules, third-party, vendor
-  | 'infra'      // Dockerfiles, CI configs, IaC
-  | 'sample';    // examples, demos, mock data
+  | "app" // production source code
+  | "config" // configuration files
+  | "test" // test files, specs, fixtures
+  | "docs" // markdown, documentation
+  | "generated" // build output, minified bundles, auto-generated
+  | "vendor" // node_modules, third-party, vendor
+  | "infra" // Dockerfiles, CI configs, IaC
+  | "sample"; // examples, demos, mock data
 ```
 
 Classification signals:
+
 - **Path patterns**: `__tests__/` → test, `node_modules/` → vendor, `dist/` → generated, `.github/` → infra
 - **File name patterns**: `*.test.ts` → test, `*.spec.js` → test, `*.example.json` → sample, `*.md` → docs
 - **Content markers**: `// generated by` / `DO NOT EDIT` → generated, `// simplebeacon-ignore` header → respect
@@ -608,13 +616,13 @@ Files: `src/classifiers/fileRoleClassifier.ts`
 
 Before raising a finding, check the file role and downshift severity:
 
-| Rule | App code | Test | Docs | Sample | Generated | Vendor |
-|---|---|---|---|---|---|---|
-| `console.log` | warning | info | skip | skip | skip | skip |
-| `hardcoded-password` | error | info* | skip | info* | skip | skip |
-| `TODO/FIXME` | info | info | skip | skip | skip | skip |
-| `eval()` | warning | warning | skip | skip | skip | skip |
-| `ai-boilerplate` | warning | info | skip | skip | skip | skip |
+| Rule                 | App code | Test    | Docs | Sample | Generated | Vendor |
+| -------------------- | -------- | ------- | ---- | ------ | --------- | ------ |
+| `console.log`        | warning  | info    | skip | skip   | skip      | skip   |
+| `hardcoded-password` | error    | info*   | skip | info*  | skip      | skip   |
+| `TODO/FIXME`         | info     | info    | skip | skip   | skip      | skip   |
+| `eval()`             | warning  | warning | skip | skip   | skip      | skip   |
+| `ai-boilerplate`     | warning  | info    | skip | skip   | skip      | skip   |
 
 \* = only if the value matches known example/placeholder patterns (changeme, test-secret, etc.)
 
@@ -644,6 +652,7 @@ Files: `src/calibration/confidenceCalibrator.ts`, `src/calibration/dismissalTrac
 #### 1.5 Noise dashboard (week 4)
 
 A webview panel showing:
+
 - Top 10 rules by finding count
 - Top 10 rules by dismissal rate (false positive suspects)
 - Rules with zero findings (candidates for removal)
@@ -702,6 +711,7 @@ Files: `src/rules/severityOverride.ts`
 #### 2.4 Domain rule packs (week 7-8)
 
 Installable rule packs for common stacks:
+
 - React/Next.js
 - FastAPI/Flask
 - Go microservices
@@ -729,20 +739,21 @@ Files: `src/suppression/allowlistSuggester.ts`
 
 New and enhanced MCP tools:
 
-| Tool | Purpose |
-|---|---|
-| `scan_diff` | Scan only changed lines in a git diff (not the whole file) |
-| `suggest_fix` (enhanced) | Return deterministic fix patches, not just descriptions |
-| `suppress_finding` | Let agents add `// simplebeacon-ignore` with a reason |
-| `read_rules` | Let agents read the rule catalog before writing code |
-| `gate_check` | Let agents verify the gate will pass before opening a PR |
-| `read_custom_rules` | Let agents read repo-specific custom rules |
+| Tool                     | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| `scan_diff`              | Scan only changed lines in a git diff (not the whole file) |
+| `suggest_fix` (enhanced) | Return deterministic fix patches, not just descriptions    |
+| `suppress_finding`       | Let agents add `// simplebeacon-ignore` with a reason      |
+| `read_rules`             | Let agents read the rule catalog before writing code       |
+| `gate_check`             | Let agents verify the gate will pass before opening a PR   |
+| `read_custom_rules`      | Let agents read repo-specific custom rules                 |
 
 Files: `packages/simplebeacon-cli/src/mcp/hlers/agent-handlers.js`
 
 #### 3.2 Auto-validate on agent edit (week 10)
 
 When an AI agent edits a file:
+
 1. Automatically run `scan_snippet` on the changed content
 2. Surface findings to the agent via MCP
 3. If blocking findings exist, the agent gets fix instructions
@@ -753,6 +764,7 @@ Files: `src/aiPlatform/agentValidation.ts`
 #### 3.3 Refuse-to-commit gate (week 11)
 
 MCP tool that agents call before committing:
+
 - If gate fails, the agent receives a structured list of blocking issues
 - Agent gets deterministic fix suggestions for each
 - Agent can call `suppress_finding` for false positives (with reason)
@@ -789,4 +801,4 @@ Milestone 1 (Trust)          Milestone 2 (Custom Rules)    Milestone 3 (Agent)
 
 ---
 
-*This document is the source of truth for the AI Slop Cop universal companion direction. Update it as phases are completed.*
+_This document is the source of truth for the AI Slop Cop universal companion direction. Update it as phases are completed._

@@ -1,15 +1,15 @@
-'use strict';
-const { GroupReshardEngine } = require('../group-reshard-engine.cjs');
+"use strict";
+const { GroupReshardEngine } = require("../group-reshard-engine.cjs");
 
-describe('Reshard integration with EphemeralShareRatchet', () => {
-  test('end-to-end ratchet, purge, and unmask reconstructs new shares', () => {
+describe("Reshard integration with EphemeralShareRatchet", () => {
+  test("end-to-end ratchet, purge, and unmask reconstructs new shares", () => {
     // Setup initial numeric additive shares (simple model)
     const nodes = [
-      { id: 'n1', share: 100n },
-      { id: 'n2', share: 200n },
-      { id: 'n3', share: 300n },
+      { id: "n1", share: 100n },
+      { id: "n2", share: 200n },
+      { id: "n3", share: 300n },
     ];
-    const policy = { ratchetSeed: 'integration-test-seed', maxSequence: 100 };
+    const policy = { ratchetSeed: "integration-test-seed", maxSequence: 100 };
     const engine = new GroupReshardEngine({ policy, nodes });
 
     // Derive new shares (pre-ratchet) for expansion
@@ -17,7 +17,7 @@ describe('Reshard integration with EphemeralShareRatchet', () => {
     expect(preNew.length).toBe(4);
 
     // Ratchet each new share using the engine ratchet
-    const epochId = 'integration-epoch-1';
+    const epochId = "integration-epoch-1";
     const ratcheted = [];
     for (const s of preNew) {
       const token = { nodeIndex: s.index, value: BigInt(s.value), sequence: 0 };
@@ -32,15 +32,15 @@ describe('Reshard integration with EphemeralShareRatchet', () => {
     }
 
     // Recompute masks and unmask ratcheted values to recover preNew values
-    const crypto = require('crypto');
+    const crypto = require("crypto");
     const seed = Buffer.from(String(policy.ratchetSeed));
     const unmasked = [];
     for (const r of ratcheted) {
       const salt = Buffer.from(String(r.index));
-      const info = Buffer.from(epochId + '::0');
-      const maskRaw = crypto.hkdfSync('sha256', seed, salt, info, 32);
+      const info = Buffer.from(epochId + "::0");
+      const maskRaw = crypto.hkdfSync("sha256", seed, salt, info, 32);
       const maskBuf = Buffer.isBuffer(maskRaw) ? maskRaw : Buffer.from(maskRaw);
-      const maskBig = BigInt('0x' + maskBuf.toString('hex'));
+      const maskBig = BigInt("0x" + maskBuf.toString("hex"));
       const un = (BigInt(r.value) - maskBig) % engine._prime;
       unmasked.push(un < 0n ? un + engine._prime : un);
     }

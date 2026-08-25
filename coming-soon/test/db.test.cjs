@@ -25,7 +25,9 @@ describe('Database', () => {
         // Best-effort cleanup — file may be locked by node:sqlite
         try {
             if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
-        } catch { /* ignore lock errors */ }
+        } catch {
+            /* ignore lock errors */
+        }
     });
 
     it('should add a subscription', () => {

@@ -1,5 +1,5 @@
 // simplebeacon-ignore eval-danger: client.eval() is the ioredis method for Redis EVAL (Lua scripts), not JavaScript eval()
-'use strict';
+"use strict";
 
 /**
  * Redis-backed store for express-rate-limit v8.
@@ -26,9 +26,9 @@
  * @module redis-rate-limit-store
  */
 
-const logger = require('./app-logger.cjs');
+const logger = require("./app-logger.cjs");
 
-const KEY_PREFIX = process.env.REDIS_RATE_LIMIT_PREFIX || 'ratelimit:';
+const KEY_PREFIX = process.env.REDIS_RATE_LIMIT_PREFIX || "ratelimit:";
 const REDIS_RETRY_BASE_MS = Number(process.env.REDIS_RETRY_BASE_MS) || 1000;
 const REDIS_RETRY_MAX_MS = Number(process.env.REDIS_RETRY_MAX_MS) || 30000;
 
@@ -90,15 +90,15 @@ class RedisStore {
         1,
         fullKey,
         now,
-        windowMs
+        windowMs,
       );
       const counter = Number(result[0]) || 0;
-      const resetTimeMs = Number(result[1]) || (now + windowMs);
+      const resetTimeMs = Number(result[1]) || now + windowMs;
       return { counter, resetTime: new Date(resetTimeMs) };
     } catch (err) {
-      console.error('redis-rate-limit-store.cjs error:', err);
+      console.error("redis-rate-limit-store.cjs error:", err);
       // Fail open — allow the request during Redis outage
-      logger.warn('[RedisStore] increment failed, failing open:', err.message);
+      logger.warn("[RedisStore] increment failed, failing open:", err.message);
       return { counter: 0, resetTime: new Date(now + windowMs) };
     }
   }
@@ -115,7 +115,7 @@ class RedisStore {
     try {
       await this.client.decr(fullKey);
     } catch (err) {
-      logger.warn('[RedisStore] decrement failed:', err.message);
+      logger.warn("[RedisStore] decrement failed:", err.message);
     }
   }
 
@@ -129,7 +129,7 @@ class RedisStore {
     try {
       await this.client.del(fullKey);
     } catch (err) {
-      logger.warn('[RedisStore] resetKey failed:', err.message);
+      logger.warn("[RedisStore] resetKey failed:", err.message);
     }
   }
 
@@ -140,18 +140,22 @@ class RedisStore {
    */
   async resetAll() {
     try {
-      let cursor = '0';
+      let cursor = "0";
       do {
         const [nextCursor, keys] = await this.client.scan(
-          cursor, 'MATCH', `${this.prefix}*`, 'COUNT', 100
+          cursor,
+          "MATCH",
+          `${this.prefix}*`,
+          "COUNT",
+          100,
         );
         cursor = nextCursor;
         if (keys.length > 0) {
           await this.client.del(...keys);
         }
-      } while (cursor !== '0');
+      } while (cursor !== "0");
     } catch (err) {
-      logger.warn('[RedisStore] resetAll failed:', err.message);
+      logger.warn("[RedisStore] resetAll failed:", err.message);
     }
   }
 
@@ -169,7 +173,7 @@ class RedisStore {
       const resetTimeMs = Date.now() + (pttl > 0 ? pttl : 0);
       return { counter: Number(counter), resetTime: new Date(resetTimeMs) };
     } catch (err) {
-      logger.warn('[RedisStore] get failed:', err.message);
+      logger.warn("[RedisStore] get failed:", err.message);
       return undefined;
     }
   }
@@ -184,7 +188,11 @@ class RedisStore {
         await this.client.quit();
       }
     } catch (err) {
-      try { this.client.disconnect(); } catch { /* ignore */ }
+      try {
+        this.client.disconnect();
+      } catch {
+        /* ignore */
+      }
     }
   }
 }
@@ -196,14 +204,18 @@ let redisErrorUntil = 0;
 let redisRetryAttempt = 0;
 
 function isRateLimitRedisEnabled() {
-  if (process.env.ENABLE_REDIS_RATE_LIMIT === 'false') return false;
-  if (!process.env.REDIS_URL && !process.env.REDIS && !process.env.REDIS_HOST) return false;
+  if (process.env.ENABLE_REDIS_RATE_LIMIT === "false") return false;
+  if (!process.env.REDIS_URL && !process.env.REDIS && !process.env.REDIS_HOST)
+    return false;
   return true;
 }
 
 function markRedisError() {
   redisRetryAttempt++;
-  const delay = Math.min(REDIS_RETRY_BASE_MS * Math.pow(2, redisRetryAttempt - 1), REDIS_RETRY_MAX_MS);
+  const delay = Math.min(
+    REDIS_RETRY_BASE_MS * Math.pow(2, redisRetryAttempt - 1),
+    REDIS_RETRY_MAX_MS,
+  );
   redisErrorUntil = Date.now() + delay;
 }
 
@@ -222,7 +234,9 @@ function getRedisStore() {
   initAttempted = true;
 
   if (!isRateLimitRedisEnabled()) {
-    logger.info('[RedisStore] Redis rate limiting disabled (ENABLE_REDIS_RATE_LIMIT=false or no REDIS_URL)');
+    logger.info(
+      "[RedisStore] Redis rate limiting disabled (ENABLE_REDIS_RATE_LIMIT=false or no REDIS_URL)",
+    );
     return null;
   }
 
@@ -232,30 +246,37 @@ function getRedisStore() {
   }
 
   try {
-    const IORedis = require('ioredis');
-    const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
+    const IORedis = require("ioredis");
+    const url =
+      process.env.REDIS_URL || process.env.REDIS || "redis://127.0.0.1:6379";
     const client = new IORedis(url, {
-      retryStrategy: (times) => Math.min(times * REDIS_RETRY_BASE_MS, REDIS_RETRY_MAX_MS),
+      retryStrategy: (times) =>
+        Math.min(times * REDIS_RETRY_BASE_MS, REDIS_RETRY_MAX_MS),
       maxRetriesPerRequest: 3,
       enableOfflineQueue: true,
       connectTimeout: 5000,
     });
 
-    client.on('error', (err) => {
+    client.on("error", (err) => {
       markRedisError();
-      logger.warn('[RedisStore] Redis error:', err.message);
+      logger.warn("[RedisStore] Redis error:", err.message);
     });
 
-    client.on('connect', () => {
+    client.on("connect", () => {
       markRedisSuccess();
-      logger.info('[RedisStore] Connected to Redis for distributed rate limiting');
+      logger.info(
+        "[RedisStore] Connected to Redis for distributed rate limiting",
+      );
     });
 
     storeInstance = new RedisStore({ client, prefix: KEY_PREFIX });
     return storeInstance;
   } catch (err) {
     markRedisError();
-    logger.warn('[RedisStore] Failed to initialize Redis store, using in-memory fallback:', err.message);
+    logger.warn(
+      "[RedisStore] Failed to initialize Redis store, using in-memory fallback:",
+      err.message,
+    );
     return null;
   }
 }

@@ -1,4 +1,5 @@
 # SimpleBeacon Platform — Technical Architecture & Security Posture
+
 **Re-Attestation Deliverable | June 12, 2026**
 
 ---
@@ -16,23 +17,23 @@ SimpleBeacon is structured as a monorepo product with four primary interfaces:
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js >= 16 |
-| Web Framework | Express 4.22.2 |
-| Frontend Build | Vite 8.0.16 |
-| Database | PostgreSQL >= 13 (Phase 2) |
-| Cache | Redis 4.7.1 |
-| Auth | JWT (jsonwebtoken 9.0.3) + bcryptjs 3.0.3 |
-| 2FA | speakeasy 2.0.0 |
-| Payments | Stripe 22.1.1 |
+| Layer               | Technology                                         |
+| ------------------- | -------------------------------------------------- |
+| Runtime             | Node.js >= 16                                      |
+| Web Framework       | Express 4.22.2                                     |
+| Frontend Build      | Vite 8.0.16                                        |
+| Database            | PostgreSQL >= 13 (Phase 2)                         |
+| Cache               | Redis 4.7.1                                        |
+| Auth                | JWT (jsonwebtoken 9.0.3) + bcryptjs 3.0.3          |
+| 2FA                 | speakeasy 2.0.0                                    |
+| Payments            | Stripe 22.1.1                                      |
 | Security Middleware | Helmet 7.0.0, express-rate-limit 8.5.2, CORS 2.8.6 |
-| Logging | Winston 3.8.0 |
-| Testing | Jest 29.6.2, Supertest 7.2.2 |
-| Linting | ESLint 10.4.1 |
-| Containerization | Docker Compose |
-| CI/CD | GitHub Actions |
-| Language Plugins | ZScript, ACS, GLSL, Lua, Python, Rust, Go, SQL |
+| Logging             | Winston 3.8.0                                      |
+| Testing             | Jest 29.6.2, Supertest 7.2.2                       |
+| Linting             | ESLint 10.4.1                                      |
+| Containerization    | Docker Compose                                     |
+| CI/CD               | GitHub Actions                                     |
+| Language Plugins    | ZScript, ACS, GLSL, Lua, Python, Rust, Go, SQL     |
 
 ---
 
@@ -75,18 +76,18 @@ The enterprise DLP module (`enterprise-dlp.js`, `enterprise-patterns.cjs`) provi
 
 ## Codebase Health
 
-| Metric | Value |
-|--------|-------|
-| Repository files | 463 |
-| Repository folders | 73 |
-| Code files deep-scanned | 458 |
-| Mock / fixture files | 58 |
-| Schema compliance | 100% (50/50 page specs passed) |
-| Consistency score | 100% (68/68 JSON files consistent) |
-| Roadmap schema | 1/1 passed |
-| Duplicate file groups | 0 |
-| Invalid JSON | 0 |
-| Empty files | 0 |
+| Metric                  | Value                              |
+| ----------------------- | ---------------------------------- |
+| Repository files        | 463                                |
+| Repository folders      | 73                                 |
+| Code files deep-scanned | 458                                |
+| Mock / fixture files    | 58                                 |
+| Schema compliance       | 100% (50/50 page specs passed)     |
+| Consistency score       | 100% (68/68 JSON files consistent) |
+| Roadmap schema          | 1/1 passed                         |
+| Duplicate file groups   | 0                                  |
+| Invalid JSON            | 0                                  |
+| Empty files             | 0                                  |
 
 ---
 
@@ -107,6 +108,7 @@ The enterprise DLP module (`enterprise-dlp.js`, `enterprise-patterns.cjs`) provi
 ### CI/CD Pipeline
 
 GitHub Actions workflows include:
+
 - `simplebeacon-ai-hygiene-gate.yml` — Automated gate scan on every PR
 - `simplebeacon-enterprise-gate.yml` — Enterprise-level security checks
 - `simplebeacon-automated-lifecycle.yml` — Lifecycle management
@@ -127,13 +129,13 @@ All builds fail on high or critical severity findings.
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Dependency vulnerability introduced | Low | High | Automated `npm audit` in CI; Dependabot configured |
-| Credential leak in new feature | Low | Critical | Pre-commit hooks run gate scan; fail-on-high policy |
-| EU AI Act non-compliance | Very Low | High | 84 documentation artifacts; automated compliance scanning |
-| Service worker cache poisoning | Very Low | Medium | SW scope restricted to `/simplebeacon-dashboard/` |
-| Prompt injection via chatbot API | Low | Medium | Structured logging with truncation; no prompt text echoed |
+| Risk                                | Likelihood | Impact   | Mitigation                                                |
+| ----------------------------------- | ---------- | -------- | --------------------------------------------------------- |
+| Dependency vulnerability introduced | Low        | High     | Automated `npm audit` in CI; Dependabot configured        |
+| Credential leak in new feature      | Low        | Critical | Pre-commit hooks run gate scan; fail-on-high policy       |
+| EU AI Act non-compliance            | Very Low   | High     | 84 documentation artifacts; automated compliance scanning |
+| Service worker cache poisoning      | Very Low   | Medium   | SW scope restricted to `/simplebeacon-dashboard/`         |
+| Prompt injection via chatbot API    | Low        | Medium   | Structured logging with truncation; no prompt text echoed |
 
 ---
 
@@ -143,5 +145,5 @@ SimpleBeacon's technical architecture is mature, secure, and production-ready. T
 
 ---
 
-*Prepared by Cascade AI Agent | June 12, 2026*
-*Data sources: package.json, .simplebeacon/report.json, server/ middleware and route files*
+_Prepared by Cascade AI Agent | June 12, 2026_
+_Data sources: package.json, .simplebeacon/report.json, server/ middleware and route files_

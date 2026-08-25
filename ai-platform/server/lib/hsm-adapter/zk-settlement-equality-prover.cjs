@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 50: ZK settlement equality prover.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/zk-settlement-equality-prover
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkSettlementEqualityProver {
   /**
@@ -32,7 +32,7 @@ class ZkSettlementEqualityProver {
     const outgoing = BigInt(settlement.outgoingCommitment);
     const net = (incoming - outgoing).toString();
     const input = _canonicalInput(settlement, net);
-    return crypto.createHash('sha256').update(input).digest('hex');
+    return crypto.createHash("sha256").update(input).digest("hex");
   }
 
   /**
@@ -44,20 +44,26 @@ class ZkSettlementEqualityProver {
   verify(settlement, proof) {
     const expected = this.generate(settlement);
     if (proof !== expected) {
-      throw new HsmAdapterError('SETTLEMENT_EQUALITY_PROOF_INVALID', 'zk settlement equality proof verification failed');
+      throw new HsmAdapterError(
+        "SETTLEMENT_EQUALITY_PROOF_INVALID",
+        "zk settlement equality proof verification failed",
+      );
     }
     const incoming = BigInt(settlement.incomingCommitment);
     const outgoing = BigInt(settlement.outgoingCommitment);
     if (incoming !== outgoing) {
-      throw new HsmAdapterError('SETTLEMENT_NOT_BALANCED', `incoming ${incoming} does not equal outgoing ${outgoing}`);
+      throw new HsmAdapterError(
+        "SETTLEMENT_NOT_BALANCED",
+        `incoming ${incoming} does not equal outgoing ${outgoing}`,
+      );
     }
     return { verified: true, settlementId: settlement.settlementId };
   }
 }
 
 function _canonicalInput(settlement, net) {
-  const nodes = (settlement.clearingNodes || []).join(',');
-  const sigs = (settlement.nodeSignatures || []).map((s) => s.nodeId).join(',');
+  const nodes = (settlement.clearingNodes || []).join(",");
+  const sigs = (settlement.nodeSignatures || []).map((s) => s.nodeId).join(",");
   return `SETTLE:${settlement.settlementId}:${settlement.assetId}:${nodes}:${settlement.incomingCommitment}:${settlement.outgoingCommitment}:${net}:${settlement.timestamp}:${sigs}`;
 }
 

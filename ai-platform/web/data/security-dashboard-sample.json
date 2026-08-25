@@ -3,10 +3,6 @@
   "overview": {
     "activeThreats": 2
   },
-  "threats": [
-    {}
-  ],
-  "vulnerabilities": [
-    {}
-  ]
+  "threats": [{}],
+  "vulnerabilities": [{}]
 }

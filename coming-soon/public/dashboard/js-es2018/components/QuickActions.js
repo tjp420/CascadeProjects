@@ -38,8 +38,16 @@ export function renderQuickActions({ _onRunScan, _onExport, _onLegacy, _onSendAi
  */
 export function bindQuickActions(container, handlers) {
     var _a, _b, _c, _d;
-    (_a = container.querySelector('#action-run-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', handlers.onRunScan);
-    (_b = container.querySelector('#action-export')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', handlers.onExport);
-    (_c = container.querySelector('#action-send-ai')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', handlers.onSendAi || (() => { }));
-    (_d = container.querySelector('#action-legacy')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', handlers.onLegacy);
+    (_a = container.querySelector('#action-run-scan')) === null || _a === void 0
+        ? void 0
+        : _a.addEventListener('click', handlers.onRunScan);
+    (_b = container.querySelector('#action-export')) === null || _b === void 0
+        ? void 0
+        : _b.addEventListener('click', handlers.onExport);
+    (_c = container.querySelector('#action-send-ai')) === null || _c === void 0
+        ? void 0
+        : _c.addEventListener('click', handlers.onSendAi || (() => {}));
+    (_d = container.querySelector('#action-legacy')) === null || _d === void 0
+        ? void 0
+        : _d.addEventListener('click', handlers.onLegacy);
 }

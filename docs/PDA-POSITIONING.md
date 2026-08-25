@@ -63,24 +63,39 @@ SimpleBeacon gives AI coding agents a local-first safety harness — memory, tas
 ```html
 <section class="slop-cop-hero">
   <h2>AI Slop Cop for VS Code</h2>
-  <p class="subhead">Scan your workspace locally, surface repo issues, gate quality, and export reports — no source upload.</p>
+  <p class="subhead">
+    Scan your workspace locally, surface repo issues, gate quality, and export
+    reports — no source upload.
+  </p>
 
   <div class="value-grid">
     <div class="value-card">
       <h3>Catch AI mistakes before they ship</h3>
-      <p>Leaked secrets, hallucinated paths, fiction KPIs, LLM placeholder slop — caught locally, before merge.</p>
+      <p>
+        Leaked secrets, hallucinated paths, fiction KPIs, LLM placeholder slop —
+        caught locally, before merge.
+      </p>
     </div>
     <div class="value-card">
       <h3>Enforce your policies</h3>
-      <p>Define rules in JSON. AI agents check them before finalizing. Force-push, secret commits, deploys — blocked by default.</p>
+      <p>
+        Define rules in JSON. AI agents check them before finalizing.
+        Force-push, secret commits, deploys — blocked by default.
+      </p>
     </div>
     <div class="value-card">
       <h3>Track every agent action</h3>
-      <p>Memory, tasks, handoffs, and gate results — all recorded locally. Full audit trail for every AI-generated change.</p>
+      <p>
+        Memory, tasks, handoffs, and gate results — all recorded locally. Full
+        audit trail for every AI-generated change.
+      </p>
     </div>
     <div class="value-card">
       <h3>Gate the output</h3>
-      <p>Validation gates block merges when critical issues are found. No bypass, no soft-warn, no "trust the AI."</p>
+      <p>
+        Validation gates block merges when critical issues are found. No bypass,
+        no soft-warn, no "trust the AI."
+      </p>
     </div>
   </div>
 
@@ -90,7 +105,7 @@ SimpleBeacon gives AI coding agents a local-first safety harness — memory, tas
   </div>
 
   <p class="positioning-statement">
-    The value isn't that AI writes more code faster.<br>
+    The value isn't that AI writes more code faster.<br />
     It's that AI does less damage — and you can prove it.
   </p>
 </section>
@@ -112,11 +127,11 @@ The question isn't whether you can afford to add AI guardrails. It's whether you
 
 ### Tier framing
 
-| Tier | Price | Who it's for | What they get |
-|------|-------|-------------|---------------|
-| Developer | $49/mo | Individual devs using AI tools | Local scanner, gate, PDA, 48 analyzers, VS Code extension |
-| Team Pro | $149/mo/5 seats | Teams with multiple AI agents | Everything in Developer + shared policies, handoff records, EU AI Act compliance, SOC 2 reports |
-| Enterprise | Custom | Regulated industries, high-trust environments | Air-gapped deployment, SSO/SAML, dedicated analyst, custom rules, audit trail export |
+| Tier       | Price           | Who it's for                                  | What they get                                                                                   |
+| ---------- | --------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Developer  | $49/mo          | Individual devs using AI tools                | Local scanner, gate, PDA, 48 analyzers, VS Code extension                                       |
+| Team Pro   | $149/mo/5 seats | Teams with multiple AI agents                 | Everything in Developer + shared policies, handoff records, EU AI Act compliance, SOC 2 reports |
+| Enterprise | Custom          | Regulated industries, high-trust environments | Air-gapped deployment, SSO/SAML, dedicated analyst, custom rules, audit trail export            |
 
 ### Why each tier is priced where it is
 
@@ -129,27 +144,34 @@ The question isn't whether you can afford to add AI guardrails. It's whether you
 ## Landing Page Headline Hierarchy
 
 ### H1 (hero)
+
 **AI Slop Cop for VS Code**
-*Scan your workspace locally, surface repo issues, gate quality, and export reports — no source upload.*
+_Scan your workspace locally, surface repo issues, gate quality, and export reports — no source upload._
 
 ### H2 (value proposition)
+
 **The value isn't that AI writes more code faster. It's that AI does less damage.**
 
 ### H3 (feature pillars)
 
 #### Catch what AI gets wrong
+
 Leaked secrets. Hallucinated paths. Fiction KPIs. LLM placeholder slop. 48 analyzers, zero source upload.
 
 #### Enforce your rules
+
 Define policies in JSON. AI agents check them before finalizing. Force-push, secret commits, unapproved deploys — blocked by default.
 
 #### Track every agent action
+
 Memory, tasks, handoffs, and gate results — all recorded locally. Full audit trail for every AI-generated change.
 
 #### Gate the output
+
 Validation gates block merges when critical or high-severity issues are found. No bypass. No soft-warn. No "trust the AI."
 
 #### Ship with confidence
+
 Your code stays on your machine. Your policies stay in your repo. Your audit trail stays in your control.
 
 ### Supporting headlines (for sections)
@@ -170,6 +192,7 @@ Your code stays on your machine. Your policies stay in your repo. Your audit tra
 ## Sales One-Pager
 
 ### SimpleBeacon AI Slop Cop
+
 **The safety harness for AI coding.**
 
 ---
@@ -203,11 +226,11 @@ AI agent writes code
 
 **Pricing**
 
-| Tier | Price | Best for |
-|------|-------|----------|
-| Developer | $49/mo | Individual devs using AI tools |
-| Team Pro | $149/mo (5 seats) | Teams with multiple AI agents |
-| Enterprise | Custom | Regulated industries, air-gapped deployments |
+| Tier       | Price             | Best for                                     |
+| ---------- | ----------------- | -------------------------------------------- |
+| Developer  | $49/mo            | Individual devs using AI tools               |
+| Team Pro   | $149/mo (5 seats) | Teams with multiple AI agents                |
+| Enterprise | Custom            | Regulated industries, air-gapped deployments |
 
 **The bottom line**
 
@@ -219,36 +242,38 @@ The value isn't that AI writes more code faster. It's that AI does less damage �
 
 ## Positioning Assets Index
 
-| Asset | Location | Use case |
-|-------|----------|----------|
-| **Killer sentences** | Below | Homepage hero + sales deck |
-| Elevator pitch | "Sales Assets" section | Quick verbal pitch, email intro |
-| Value proposition (5 bullets) | "Sales Assets" section | Sales deck, product page |
-| Homepage HTML | "Sales Assets" section | Drop into coming-soon/public |
-| Pricing narrative | "Pricing Narrative" section | Sales calls, pricing page |
-| Headline hierarchy | "Landing Page" section | Homepage, product page, ads |
-| Sales one-pager | "Sales One-Pager" section | PDF export, leave-behind, email attachment |
-| How it works | "How It Works" section | Product website, onboarding |
-| Architecture blurb | "Architecture Blurb" section | Developer docs, internal design notes |
-| Landing page diagram | "Landing Page Diagram" section | Product website |
-| Architecture: Sidebar vs Engine | "Architecture" section | Internal docs, investor deck |
-| Positioning line | Throughout | "The value isn't that AI writes more code faster. It's that AI does less damage." |
+| Asset                           | Location                       | Use case                                                                          |
+| ------------------------------- | ------------------------------ | --------------------------------------------------------------------------------- |
+| **Killer sentences**            | Below                          | Homepage hero + sales deck                                                        |
+| Elevator pitch                  | "Sales Assets" section         | Quick verbal pitch, email intro                                                   |
+| Value proposition (5 bullets)   | "Sales Assets" section         | Sales deck, product page                                                          |
+| Homepage HTML                   | "Sales Assets" section         | Drop into coming-soon/public                                                      |
+| Pricing narrative               | "Pricing Narrative" section    | Sales calls, pricing page                                                         |
+| Headline hierarchy              | "Landing Page" section         | Homepage, product page, ads                                                       |
+| Sales one-pager                 | "Sales One-Pager" section      | PDF export, leave-behind, email attachment                                        |
+| How it works                    | "How It Works" section         | Product website, onboarding                                                       |
+| Architecture blurb              | "Architecture Blurb" section   | Developer docs, internal design notes                                             |
+| Landing page diagram            | "Landing Page Diagram" section | Product website                                                                   |
+| Architecture: Sidebar vs Engine | "Architecture" section         | Internal docs, investor deck                                                      |
+| Positioning line                | Throughout                     | "The value isn't that AI writes more code faster. It's that AI does less damage." |
 
 ---
 
 ## Killer Sentences
 
 ### Landing page (homepage hero)
+
 > **AI Slop Cop is the enforcement layer that keeps AI coding safe, traceable, and ship-ready.**
 
 ### Sales deck (investor / enterprise pitch)
+
 > **The PDA turns AI from a black box into a governable workflow.**
 
 ### Why these work
 
-The first sentence tells a buyer *what it is* and *what they get* — enforcement, safety, traceability, ship-readiness. It's concrete and actionable.
+The first sentence tells a buyer _what it is_ and _what they get_ — enforcement, safety, traceability, ship-readiness. It's concrete and actionable.
 
-The second sentence tells a decision-maker *why it matters* — AI goes from ungovernable to governable. It reframes the problem from "AI productivity" to "AI accountability," which is the thing organizations actually need to buy.
+The second sentence tells a decision-maker _why it matters_ — AI goes from ungovernable to governable. It reframes the problem from "AI productivity" to "AI accountability," which is the thing organizations actually need to buy.
 
 Both anchor on the same core message: **the agent is subject to the rules, not the other way around.**
 
@@ -256,7 +281,7 @@ Both anchor on the same core message: **the agent is subject to the rules, not t
 
 ## Proof of Operation
 
-*Verified live on 2026-08-19 against the actual PDA engine — not a mockup, not a screenshot, not a demo video.*
+_Verified live on 2026-08-19 against the actual PDA engine — not a mockup, not a screenshot, not a demo video._
 
 ### The test
 
@@ -322,14 +347,14 @@ The PDA is an enforcement and traceability layer. It does not magically self-hea
 
 Every agent session records:
 
-| Data | Source | Example |
-|------|--------|---------|
-| Agent identity | `agent-registry.js` | `Devin-Proof`, type `cursor`, session ID |
-| Task history | `task-store.js` | Created, blocked, completed, time spent |
-| Memory entries | `memory-store.js` | Decisions, facts, session notes, handoff briefs |
-| Policy checks | `policy-engine.js` | Action, allowed/blocked, violation details |
-| Gate results | `gate-bridge.js` | Pass/fail, blocking count, quality score |
-| Handoff briefs | `handoff` commands | Summary, completed/pending tasks, files changed |
+| Data           | Source              | Example                                         |
+| -------------- | ------------------- | ----------------------------------------------- |
+| Agent identity | `agent-registry.js` | `Devin-Proof`, type `cursor`, session ID        |
+| Task history   | `task-store.js`     | Created, blocked, completed, time spent         |
+| Memory entries | `memory-store.js`   | Decisions, facts, session notes, handoff briefs |
+| Policy checks  | `policy-engine.js`  | Action, allowed/blocked, violation details      |
+| Gate results   | `gate-bridge.js`    | Pass/fail, blocking count, quality score        |
+| Handoff briefs | `handoff` commands  | Summary, completed/pending tasks, files changed |
 
 All stored locally in `.simplebeacon/agent-pda/` as JSON.
 
@@ -431,16 +456,16 @@ PDA state → release confidence signals
 
 ### Metrics to compute
 
-| Metric | Source | What it tells you |
-|--------|--------|-------------------|
-| Gate pass rate | `gate-bridge.js` results | Is the codebase getting cleaner? |
-| Policy violation rate | `policy-engine.js` checks | Is the agent learning? |
-| Task completion rate | `task-store.js` | Is the agent finishing work? |
-| Average task time | `task-store.js` `timeSpentMs` | Is the agent efficient? |
-| Dependency block rate | `task-store.js` blocks | Are tasks well-ordered? |
-| Handoff completeness | `handoff` briefs | Are handoffs usable by next agent? |
-| Memory drift count | `memory-store.js` contradictions | Is the agent consistent? |
-| Repeat false positive count | `policy-engine.js` + scan reports | Are rules too broad? |
+| Metric                      | Source                            | What it tells you                  |
+| --------------------------- | --------------------------------- | ---------------------------------- |
+| Gate pass rate              | `gate-bridge.js` results          | Is the codebase getting cleaner?   |
+| Policy violation rate       | `policy-engine.js` checks         | Is the agent learning?             |
+| Task completion rate        | `task-store.js`                   | Is the agent finishing work?       |
+| Average task time           | `task-store.js` `timeSpentMs`     | Is the agent efficient?            |
+| Dependency block rate       | `task-store.js` blocks            | Are tasks well-ordered?            |
+| Handoff completeness        | `handoff` briefs                  | Are handoffs usable by next agent? |
+| Memory drift count          | `memory-store.js` contradictions  | Is the agent consistent?           |
+| Repeat false positive count | `policy-engine.js` + scan reports | Are rules too broad?               |
 
 ### What this is NOT
 
@@ -556,11 +581,11 @@ The moat is not autonomous code generation. The moat is **governed AI** — AI t
 
 ### The business model
 
-| Tier | Price | Target |
-|------|-------|--------|
-| Developer | $49/mo | Individual developers using AI agents |
-| Team Pro | $149/mo (5 seats) | Engineering teams needing policy enforcement + gate |
-| Enterprise | Custom | Organizations needing compliance, audit trails, SSO |
+| Tier       | Price             | Target                                              |
+| ---------- | ----------------- | --------------------------------------------------- |
+| Developer  | $49/mo            | Individual developers using AI agents               |
+| Team Pro   | $149/mo (5 seats) | Engineering teams needing policy enforcement + gate |
+| Enterprise | Custom            | Organizations needing compliance, audit trails, SSO |
 
 ### The market
 
@@ -583,11 +608,13 @@ AI goes from a black box to a governable workflow. That is the thing organizatio
 The sidebar is not a separate subsystem. It is the human-facing view of the same PDA state that the CLI/agent layer enforces.
 
 **Sidebar PDA (observability and control):**
+
 - Shows status — agents, tasks, memories, policies, gate results
 - Lets humans inspect and manage PDA state
 - Gives humans a visible control surface for what the engine is doing
 
 **Real PDA engine (enforcement and accountability):**
+
 - Registers agents
 - Creates and tracks tasks
 - Checks policy rules
@@ -665,6 +692,7 @@ SimpleBeacon doesn't rely on AI clicking the right buttons. The enforcement laye
 The AI agent doesn't interact with the sidebar. The agent interacts with the PDA engine through MCP tools, CLI commands, or REST API calls. The sidebar is for humans — to observe, inspect, and intervene.
 
 The protection comes from the engine:
+
 - **Task tracking** — the agent can't claim completion without the gate passing
 - **Agent identity** — every action is attributed to a registered agent
 - **Policy checks** — forbidden actions are blocked before execution
@@ -732,9 +760,9 @@ This means the safety harness works even when the sidebar is closed. The agent i
   </div>
 
   <p class="architecture-note">
-    The agent doesn't click buttons in the sidebar. The engine enforces the rules underneath.
-    The UI is for humans to observe and intervene. The safety harness works even when the sidebar is closed.
+    The agent doesn't click buttons in the sidebar. The engine enforces the
+    rules underneath. The UI is for humans to observe and intervene. The safety
+    harness works even when the sidebar is closed.
   </p>
 </section>
 ```
-

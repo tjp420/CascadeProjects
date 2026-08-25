@@ -5,35 +5,45 @@
  */
 async function sendResendMail(options) {
   try {
-    const apiKey = String(process.env.RESEND_API_KEY || '').trim();
-    if (!apiKey) return { sent: false, reason: 'missing_api_key' };
+    const apiKey = String(process.env.RESEND_API_KEY || "").trim();
+    if (!apiKey) return { sent: false, reason: "missing_api_key" };
 
-    const to = String(options.to || process.env.AUDIT_NOTIFY_TO || process.env.WAITLIST_NOTIFY_TO || '').trim();
-    if (!to) return { sent: false, reason: 'missing_notify_to' };
+    const to = String(
+      options.to ||
+        process.env.AUDIT_NOTIFY_TO ||
+        process.env.WAITLIST_NOTIFY_TO ||
+        "",
+    ).trim();
+    if (!to) return { sent: false, reason: "missing_notify_to" };
 
-    const from = String(options.from || process.env.AUDIT_NOTIFY_FROM || process.env.WAITLIST_NOTIFY_FROM || '').trim();
-    if (!from) return { sent: false, reason: 'missing_notify_from' };
+    const from = String(
+      options.from ||
+        process.env.AUDIT_NOTIFY_FROM ||
+        process.env.WAITLIST_NOTIFY_FROM ||
+        "",
+    ).trim();
+    if (!from) return { sent: false, reason: "missing_notify_from" };
 
     const payload = {
       from,
       to: [to],
       subject: options.subject,
-      text: options.text
+      text: options.text,
     };
 
     if (options.replyTo) payload.reply_to = options.replyTo;
 
-    const mailRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const mailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!mailRes.ok) {
-      const errorText = await mailRes.text().catch(() => '');
+      const errorText = await mailRes.text().catch(() => "");
       let friendly = `Resend HTTP ${mailRes.status}`;
       try {
         const parsed = JSON.parse(errorText);
@@ -42,7 +52,8 @@ async function sendResendMail(options) {
         if (errorText) friendly = errorText.slice(0, 300);
       }
       if (/authorization header required/i.test(friendly)) {
-        friendly = 'Resend API key missing or invalid — set RESEND_API_KEY in .env.v1-internal and restart the server.';
+        friendly =
+          "Resend API key missing or invalid — set RESEND_API_KEY in .env.v1-internal and restart the server.";
       }
       throw new Error(friendly);
     }
@@ -60,19 +71,21 @@ async function sendResendMail(options) {
  */
 function formatBookingEmail(entry) {
   return [
-    'New pre-launch audit booking request',
-    '',
+    "New pre-launch audit booking request",
+    "",
     `Contact email: ${entry.contactEmail}`,
     `Agency / company: ${entry.company}`,
     `Repository: ${entry.repository}`,
-    `Branch: ${entry.branch || 'main'}`,
-    `Client handoff date: ${entry.handoffDate || '(not provided)'}`,
+    `Branch: ${entry.branch || "main"}`,
+    `Client handoff date: ${entry.handoffDate || "(not provided)"}`,
     `Source: ${entry.source}`,
     `Payments mode: ${entry.paymentsMode}`,
-    entry.notes ? `Notes: ${entry.notes}` : '',
-    '',
-    `Received: ${entry.receivedAt}`
-  ].filter(Boolean).join('\n');
+    entry.notes ? `Notes: ${entry.notes}` : "",
+    "",
+    `Received: ${entry.receivedAt}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -84,7 +97,7 @@ async function sendAuditBookingEmail(entry) {
   return sendResendMail({
     subject: `[SimpleBeacon] Audit booking — ${entry.company}`,
     replyTo: entry.contactEmail,
-    text: formatBookingEmail(entry)
+    text: formatBookingEmail(entry),
   });
 }
 

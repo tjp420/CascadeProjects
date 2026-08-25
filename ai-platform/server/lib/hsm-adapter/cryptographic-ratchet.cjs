@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 18: Cryptographic double ratchet engine.
@@ -10,15 +10,15 @@
  * @module hsm-adapter/cryptographic-ratchet
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
-const SESSION_INFO = 'SimpleBeacon:Track18:Ratchet:v1';
-const CHAIN_INFO = 'SimpleBeacon:Track18:Ratchet:chain';
-const DH_INFO = 'SimpleBeacon:Track18:Ratchet:dh';
+const SESSION_INFO = "SimpleBeacon:Track18:Ratchet:v1";
+const CHAIN_INFO = "SimpleBeacon:Track18:Ratchet:chain";
+const DH_INFO = "SimpleBeacon:Track18:Ratchet:dh";
 
 function _hkdf(ikm, salt, info, length) {
-  return Buffer.from(crypto.hkdfSync('sha256', ikm, salt, info, length));
+  return Buffer.from(crypto.hkdfSync("sha256", ikm, salt, info, length));
 }
 
 function _bytesToBigInt(buf) {
@@ -44,7 +44,7 @@ class CryptographicRatchet {
    */
   constructor(rootKey, options = {}) {
     if (!Buffer.isBuffer(rootKey) || rootKey.length !== 32) {
-      throw new HsmAdapterError('INVALID_INPUT', 'rootKey must be 32 bytes');
+      throw new HsmAdapterError("INVALID_INPUT", "rootKey must be 32 bytes");
     }
     this._rootKey = Buffer.from(rootKey);
     this._isInitiator = options.isInitiator !== false;
@@ -72,7 +72,7 @@ class CryptographicRatchet {
       this._receivingChainInitialKey = Buffer.from(sendingChain);
     }
 
-    this._dhKeyPair = crypto.createECDH('secp256k1');
+    this._dhKeyPair = crypto.createECDH("secp256k1");
     this._dhKeyPair.setPrivateKey(dhSeed);
     this._dhPublicKey = this._dhKeyPair.getPublicKey();
     this._remoteDhPublicKey = remotePub;
@@ -80,14 +80,21 @@ class CryptographicRatchet {
 
   _ensureAlive() {
     if (Date.now() - this._createdAt > this._sessionExpiryMs) {
-      this._audit('SESSION_EXPIRED', { ageMs: Date.now() - this._createdAt });
-      throw new HsmAdapterError('SESSION_EXPIRED', 'Ratchet session has expired');
+      this._audit("SESSION_EXPIRED", { ageMs: Date.now() - this._createdAt });
+      throw new HsmAdapterError(
+        "SESSION_EXPIRED",
+        "Ratchet session has expired",
+      );
     }
   }
 
   _audit(event, extra = {}) {
     if (!this._logger || !this._logger.info) return;
-    this._logger.info(event, { sub: 'hsm-adapter', provider: 'ratchet', ...extra });
+    this._logger.info(event, {
+      sub: "hsm-adapter",
+      provider: "ratchet",
+      ...extra,
+    });
   }
 
   _ratchetChain(chainKey) {
@@ -117,7 +124,7 @@ class CryptographicRatchet {
    * @param {string} [direction='send']
    * @returns {object} new public key and info
    */
-  dhStep(remotePublicKey, direction = 'send') {
+  dhStep(remotePublicKey, direction = "send") {
     this._ensureAlive();
     if (remotePublicKey) {
       this._remoteDhPublicKey = Buffer.from(remotePublicKey);
@@ -131,7 +138,7 @@ class CryptographicRatchet {
     const receivingChain = dhData.subarray(64, 96);
     const dhSeed = dhData.subarray(96, 128);
 
-    if (direction === 'send') {
+    if (direction === "send") {
       this._sendingChainKey = sendingChain;
       this._receivingChainKey = receivingChain;
       this._receivingChainInitialKey = Buffer.from(receivingChain);
@@ -141,7 +148,7 @@ class CryptographicRatchet {
       this._receivingChainInitialKey = Buffer.from(sendingChain);
     }
 
-    this._dhKeyPair = crypto.createECDH('secp256k1');
+    this._dhKeyPair = crypto.createECDH("secp256k1");
     this._dhKeyPair.setPrivateKey(dhSeed);
     this._dhPublicKey = this._dhKeyPair.getPublicKey();
 
@@ -149,7 +156,11 @@ class CryptographicRatchet {
     this._sendingMessageIndex = 0;
     this._receivingMessageIndex = 0;
 
-    this._audit('RATCHET_STEPPED', { chainIndex: this._chainIndex, dh: true, direction });
+    this._audit("RATCHET_STEPPED", {
+      chainIndex: this._chainIndex,
+      dh: true,
+      direction,
+    });
     return { chainIndex: this._chainIndex, publicKey: this._dhPublicKey };
   }
 
@@ -203,10 +214,12 @@ class CryptographicRatchet {
    * @param {string|Buffer} [aad='']
    * @returns {object} envelope
    */
-  encrypt(plaintext, aad = '') {
+  encrypt(plaintext, aad = "") {
     this._ensureAlive();
-    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, 'utf8');
-    const { messageKey, nextChainKey } = this._ratchetChain(this._sendingChainKey);
+    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, "utf8");
+    const { messageKey, nextChainKey } = this._ratchetChain(
+      this._sendingChainKey,
+    );
     _secureZeroize(this._sendingChainKey);
     this._sendingChainKey = nextChainKey;
 
@@ -215,19 +228,25 @@ class CryptographicRatchet {
     iv.writeUInt32BE(this._chainIndex, 0);
     iv.writeUInt32BE(messageIndex, 8);
 
-    const fullAad = Buffer.concat([aadBuf, Buffer.from(`:${this._chainIndex}:${messageIndex}`)]);
-    const cipher = crypto.createCipheriv('aes-256-gcm', messageKey, iv);
+    const fullAad = Buffer.concat([
+      aadBuf,
+      Buffer.from(`:${this._chainIndex}:${messageIndex}`),
+    ]);
+    const cipher = crypto.createCipheriv("aes-256-gcm", messageKey, iv);
     cipher.setAAD(fullAad);
-    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const ciphertext = Buffer.concat([
+      cipher.update(plaintext),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
 
     const envelope = {
       chainIndex: this._chainIndex,
       messageIndex,
-      iv: iv.toString('base64'),
-      ciphertext: ciphertext.toString('base64'),
-      tag: tag.toString('base64'),
-      aad: aadBuf.toString('base64'),
+      iv: iv.toString("base64"),
+      ciphertext: ciphertext.toString("base64"),
+      tag: tag.toString("base64"),
+      aad: aadBuf.toString("base64"),
     };
     _secureZeroize(messageKey);
     return envelope;
@@ -239,16 +258,24 @@ class CryptographicRatchet {
    * @param {string|Buffer} [aad='']
    * @returns {Buffer}
    */
-  decrypt(envelope, aad = '') {
+  decrypt(envelope, aad = "") {
     this._ensureAlive();
-    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, 'utf8');
+    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, "utf8");
     if (envelope.chainIndex !== this._chainIndex) {
-      throw new HsmAdapterError('RATCHET_DESYNCHRONIZED', `chainIndex mismatch: ${envelope.chainIndex} != ${this._chainIndex}`);
+      throw new HsmAdapterError(
+        "RATCHET_DESYNCHRONIZED",
+        `chainIndex mismatch: ${envelope.chainIndex} != ${this._chainIndex}`,
+      );
     }
     if (envelope.messageIndex !== this._receivingMessageIndex) {
-      throw new HsmAdapterError('RATCHET_DESYNCHRONIZED', `messageIndex ${envelope.messageIndex} != expected ${this._receivingMessageIndex}; use message handler for out-of-order`);
+      throw new HsmAdapterError(
+        "RATCHET_DESYNCHRONIZED",
+        `messageIndex ${envelope.messageIndex} != expected ${this._receivingMessageIndex}; use message handler for out-of-order`,
+      );
     }
-    const { messageKey, nextChainKey } = this._ratchetChain(this._receivingChainKey);
+    const { messageKey, nextChainKey } = this._ratchetChain(
+      this._receivingChainKey,
+    );
     _secureZeroize(this._receivingChainKey);
     this._receivingChainKey = nextChainKey;
     this._receivingMessageIndex++;
@@ -263,27 +290,36 @@ class CryptographicRatchet {
    * @param {Buffer} messageKey
    * @returns {Buffer}
    */
-  decryptWithKey(envelope, aad = '', messageKey) {
-    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, 'utf8');
+  decryptWithKey(envelope, aad = "", messageKey) {
+    const aadBuf = Buffer.isBuffer(aad) ? aad : Buffer.from(aad, "utf8");
     return this._decryptWithKey(envelope, aadBuf, messageKey);
   }
 
   _decryptWithKey(envelope, aadBuf, messageKey) {
-    const iv = Buffer.from(envelope.iv, 'base64');
-    const ciphertext = Buffer.from(envelope.ciphertext, 'base64');
-    const tag = Buffer.from(envelope.tag, 'base64');
-    const aad = Buffer.concat([aadBuf, Buffer.from(`:${envelope.chainIndex}:${envelope.messageIndex}`)]);
+    const iv = Buffer.from(envelope.iv, "base64");
+    const ciphertext = Buffer.from(envelope.ciphertext, "base64");
+    const tag = Buffer.from(envelope.tag, "base64");
+    const aad = Buffer.concat([
+      aadBuf,
+      Buffer.from(`:${envelope.chainIndex}:${envelope.messageIndex}`),
+    ]);
 
-    const decipher = crypto.createDecipheriv('aes-256-gcm', messageKey, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", messageKey, iv);
     decipher.setAAD(aad);
     decipher.setAuthTag(tag);
     try {
-      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      const plaintext = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final(),
+      ]);
       _secureZeroize(messageKey);
       return plaintext;
     } catch (err) {
       _secureZeroize(messageKey);
-      throw new HsmAdapterError('RATCHET_DESYNCHRONIZED', `decryption failed: ${err.message}`);
+      throw new HsmAdapterError(
+        "RATCHET_DESYNCHRONIZED",
+        `decryption failed: ${err.message}`,
+      );
     }
   }
 }

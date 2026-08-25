@@ -1,346 +1,546 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Remediation Roadmap — Simplebeacon</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* roadmap-specific theme variables */
-    :root {
-      --primary: #7c3aed;
-      --primary-hover: #a78bfa;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --info: #3b82f6;
-      --background: #0a0a0a;
-      --surface: #141414;
-      --surface-elevated: #1a1a1a;
-      --surface-hover: #262626;
-      --border: #262626;
-      --text-primary: #fafafa;
-      --text-secondary: #a3a3a3;
-      --text-muted: #737373;
-      --font-family: 'Inter', system-ui, sans-serif;
-      --font-mono: ui-monospace, monospace;
-      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
-      --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
-      --space-8: 2rem; --space-10: 2.5rem;
-      --radius-md: 0.5rem; --radius-lg: 0.75rem;
-      --roadmap-accent: #7c3aed;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: var(--font-family);
-      background: var(--background);
-      color: var(--text-primary);
-      line-height: 1.5;
-    }
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: var(--space-6);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-      margin-bottom: var(--space-6);
-      flex-wrap: wrap;
-    }
-    h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
-    .subtitle { color: var(--text-muted); font-size: 0.875rem; margin: 0; }
-    .actions { display: flex; gap: var(--space-2); align-items: center; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      border-radius: var(--radius-md);
-      font-weight: 500;
-      font-size: 0.875rem;
-      cursor: pointer;
-      border: none;
-      background: var(--primary);
-      color: #fff;
-      transition: filter 150ms;
-    }
-    .btn:hover { filter: brightness(1.1); }
-    .btn-secondary {
-      background: var(--surface-elevated);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover { background: var(--surface-hover); }
-    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
-
-    .empty-state {
-      text-align: center;
-      padding: var(--space-10);
-      color: var(--text-muted);
-    }
-    .empty-state .icon { font-size: 2.5rem; margin-bottom: var(--space-4); }
-
-    .progress-wrap {
-      margin-bottom: var(--space-4);
-    }
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      font-size: 0.875rem;
-    }
-    .progress-bar {
-      background: var(--border);
-      border-radius: 6px;
-      height: 8px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 6px;
-      transition: width 300ms ease;
-    }
-
-    .filters {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: var(--space-4);
-    }
-    .filter-chip {
-      padding: 6px 12px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 0.8rem;
-      background: var(--surface);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 150ms;
-    }
-    .filter-chip.active {
-      border-color: var(--primary);
-      background: rgba(99,102,241,0.12);
-      color: var(--primary);
-    }
-
-    .metrics-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-      margin-bottom: var(--space-4);
-    }
-    .metric-chip {
-      padding: var(--space-2) var(--space-3);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-    }
-
-    .card {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      background: var(--surface);
-    }
-    .card.completed { opacity: 0.55; border-style: dashed; }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .pill.critical { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .pill.high { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .pill.medium { background: rgba(245,158,11,0.15); color: var(--warning); }
-    .pill.low { background: rgba(59,130,246,0.15); color: var(--info); }
-
-    .issue-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 6px;
-    }
-    .issue-type { font-weight: 500; word-break: break-word; }
-    .issue-desc { font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px; }
-    .issue-path { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
-    .issue-action {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border);
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-    }
-    .code-snippet {
-      margin: 8px 0 0;
-      padding: 8px 10px;
-      background: var(--background);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 0.75rem;
-      font-family: var(--font-mono);
-      overflow-x: auto;
-    }
-    .phase-header {
-      margin: var(--space-4) 0 var(--space-2);
-      padding: var(--space-3) var(--space-4);
-      background: var(--surface-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      border-left: 3px solid var(--primary);
-    }
-    .phase-header strong {
-      font-size: 0.875rem;
-      color: var(--text-primary);
-    }
-    .phase-header p {
-      margin: 4px 0 0;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
-
-    .row { display: flex; align-items: flex-start; gap: 12px; }
-    .col { flex: 1; min-width: 0; }
-
-    .meta-bar {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-bottom: var(--space-4);
-    }
-    .meta-bar code {
-      background: var(--surface-elevated);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: var(--font-mono);
-    }
-
-    @media (max-width: 640px) {
-      .container { padding: var(--space-4); }
-      header { flex-direction: column; align-items: flex-start; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <div>
-        <h1>Remediation Roadmap</h1>
-        <p class="subtitle">Prioritized action plan from scan findings</p>
-      </div>
-      <div class="actions">
-        <input type="file" id="file-input" accept=".json" style="display:none;">
-        <button class="btn btn-secondary btn-sm" id="import-btn">Import JSON</button>
-        <button class="btn btn-sm" id="export-btn">Export JSON</button>
-      </div>
-    </header>
-
-    <div id="app"></div>
-  </div>
-
-  <script>
-    const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-    let issues = [];
-    let completed = new Set(JSON.parse(localStorage.getItem('sb-roadmap-completed') || '[]'));
-    let importedAt = null;
-    let selectedCategory = 'all';
-    let showCompleted = false;
-
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => document.querySelectorAll(sel);
-
-    function getPlan(issue) {
-      const type = (issue.type || '').toLowerCase();
-      const ruleId = (issue.ruleId || issue.id || '').toLowerCase();
-      const desc = (issue.description || '').toLowerCase();
-      if (ruleId.includes('deploy') || type.includes('deploy leak')) return { action: 'Move URLs to environment config or dynamic injection', effort: '10 min', category: 'Security' };
-      if (ruleId.includes('debug-artifact') || type.includes('debug')) return { action: 'Remove debug statements', effort: '5 min', category: 'Cleanup' };
-      if (ruleId.includes('config-drift') || type.includes('config')) return { action: 'Move to environment variables', effort: '15 min', category: 'Security' };
-      if (ruleId.includes('sample-json-ref') || ruleId.includes('production-leak') || type.includes('sample') || type.includes('mock')) return { action: 'Replace with runtime data sources', effort: '30 min', category: 'Data' };
-      if (ruleId.includes('missing-security-header') || type.includes('security header')) return { action: 'Add helmet/CSP middleware', effort: '20 min', category: 'Security' };
-      if (ruleId.includes('governance-marker') || type.includes('license')) return { action: 'Review license compatibility', effort: '10 min', category: 'Legal' };
-      if (ruleId.includes('multi-lang-debug')) return { action: 'Remove multi-language debug output', effort: '5 min', category: 'Cleanup' };
-      if (type.includes('credential') || type.includes('secret')) return { action: 'Rotate secrets && use env vars', effort: '30 min', category: 'Security' };
-      if (type.includes('eslint') || type.includes('lint')) return { action: 'Fix linting violations', effort: '10 min', category: 'Quality' };
-      if (type.includes('empty file')) return { action: 'Remove or populate empty files', effort: '5 min', category: 'Cleanup' };
-      if (type.includes('invalid json')) return { action: 'Fix JSON syntax errors', effort: '10 min', category: 'Quality' };
-      if (type.includes('to'+'do') || type.includes('fix'+'me')) return { action: 'Address technical debt marker', effort: '20 min', category: 'Debt' };
-      if (type.includes('missing-env-key')) return { action: 'Add missing key to .env file', effort: '5 min', category: 'Config' };
-      if (type.includes('build-artifact')) return { action: 'Add to .gitignore or remove from repo', effort: '5 min', category: 'Cleanup' };
-      if (desc.includes('place'+'holder') || desc.includes('fictional') || desc.includes('mock')) return { action: 'Replace with production data', effort: '20 min', category: 'Data' };
-      return { action: issue.recommendedAction || issue.action || 'Review && remediate', effort: issue.effort || '20 min', category: issue.category || 'General' };
-    }
-
-    function getStats() {
-      const total = issues.length;
-      const done = issues.filter(i => completed.has(i.id)).length;
-      const bySev = { critical:0, high:0, medium:0, low:0, info:0 };
-      const byCat = {};
-      let effortMin = 0;
-      for (const i of issues) {
-        bySev[i.severity] = (bySev[i.severity] || 0) + 1;
-        const p = getPlan(i);
-        byCat[p.category] = (byCat[p.category] || 0) + 1;
-        if (!completed.has(i.id)) effortMin += parseInt(p.effort, 10) || 20;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remediation Roadmap — Simplebeacon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* roadmap-specific theme variables */
+      :root {
+        --primary: #7c3aed;
+        --primary-hover: #a78bfa;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        --background: #0a0a0a;
+        --surface: #141414;
+        --surface-elevated: #1a1a1a;
+        --surface-hover: #262626;
+        --border: #262626;
+        --text-primary: #fafafa;
+        --text-secondary: #a3a3a3;
+        --text-muted: #737373;
+        --font-family: "Inter", system-ui, sans-serif;
+        --font-mono: ui-monospace, monospace;
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        --space-10: 2.5rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --roadmap-accent: #7c3aed;
       }
-      return { total, done, remaining: total - done, bySev, byCat, effortMin };
-    }
-
-    function groupByCategory(arr) {
-      const g = {};
-      for (const i of arr) {
-        const c = getPlan(i).category;
-        if (!g[c]) g[c] = [];
-        g[c].push(i);
+      * {
+        box-sizing: border-box;
       }
-      return g;
-    }
+      body {
+        margin: 0;
+        font-family: var(--font-family);
+        background: var(--background);
+        color: var(--text-primary);
+        line-height: 1.5;
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: var(--space-6);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+        flex-wrap: wrap;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin: 0;
+      }
+      .actions {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        transition: filter 150ms;
+      }
+      .btn:hover {
+        filter: brightness(1.1);
+      }
+      .btn-secondary {
+        background: var(--surface-elevated);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: var(--surface-hover);
+      }
+      .btn-sm {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+      }
 
-    function sortBySeverity(arr) {
-      return [...arr].sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99));
-    }
+      .empty-state {
+        text-align: center;
+        padding: var(--space-10);
+        color: var(--text-muted);
+      }
+      .empty-state .icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--space-4);
+      }
 
-    function render() {
-      const app = $('#app');
-      if (!issues.length) {
-        app.innerHTML = `
+      .progress-wrap {
+        margin-bottom: var(--space-4);
+      }
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+      }
+      .progress-bar {
+        background: var(--border);
+        border-radius: 6px;
+        height: 8px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 6px;
+        transition: width 300ms ease;
+      }
+
+      .filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: var(--space-4);
+      }
+      .filter-chip {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.8rem;
+        background: var(--surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 150ms;
+      }
+      .filter-chip.active {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--primary);
+      }
+
+      .metrics-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+      }
+      .metric-chip {
+        padding: var(--space-2) var(--space-3);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        background: var(--surface);
+      }
+      .card.completed {
+        opacity: 0.55;
+        border-style: dashed;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .pill.critical {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .pill.high {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .pill.medium {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+      }
+      .pill.low {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info);
+      }
+
+      .issue-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .issue-type {
+        font-weight: 500;
+        word-break: break-word;
+      }
+      .issue-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+      }
+      .issue-path {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      .issue-action {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--border);
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+      .code-snippet {
+        margin: 8px 0 0;
+        padding: 8px 10px;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+        overflow-x: auto;
+      }
+      .phase-header {
+        margin: var(--space-4) 0 var(--space-2);
+        padding: var(--space-3) var(--space-4);
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--primary);
+      }
+      .phase-header strong {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+      }
+      .phase-header p {
+        margin: 4px 0 0;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--primary);
+      }
+
+      .row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .col {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .meta-bar {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: var(--space-4);
+      }
+      .meta-bar code {
+        background: var(--surface-elevated);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: var(--space-4);
+        }
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>Remediation Roadmap</h1>
+          <p class="subtitle">Prioritized action plan from scan findings</p>
+        </div>
+        <div class="actions">
+          <input
+            type="file"
+            id="file-input"
+            accept=".json"
+            style="display: none"
+          />
+          <button class="btn btn-secondary btn-sm" id="import-btn">
+            Import JSON
+          </button>
+          <button class="btn btn-sm" id="export-btn">Export JSON</button>
+        </div>
+      </header>
+
+      <div id="app"></div>
+    </div>
+
+    <script>
+      const SEVERITY_ORDER = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        info: 4,
+      };
+      let issues = [];
+      let completed = new Set(
+        JSON.parse(localStorage.getItem("sb-roadmap-completed") || "[]"),
+      );
+      let importedAt = null;
+      let selectedCategory = "all";
+      let showCompleted = false;
+
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => document.querySelectorAll(sel);
+
+      function getPlan(issue) {
+        const type = (issue.type || "").toLowerCase();
+        const ruleId = (issue.ruleId || issue.id || "").toLowerCase();
+        const desc = (issue.description || "").toLowerCase();
+        if (ruleId.includes("deploy") || type.includes("deploy leak"))
+          return {
+            action: "Move URLs to environment config or dynamic injection",
+            effort: "10 min",
+            category: "Security",
+          };
+        if (ruleId.includes("debug-artifact") || type.includes("debug"))
+          return {
+            action: "Remove debug statements",
+            effort: "5 min",
+            category: "Cleanup",
+          };
+        if (ruleId.includes("config-drift") || type.includes("config"))
+          return {
+            action: "Move to environment variables",
+            effort: "15 min",
+            category: "Security",
+          };
+        if (
+          ruleId.includes("sample-json-ref") ||
+          ruleId.includes("production-leak") ||
+          type.includes("sample") ||
+          type.includes("mock")
+        )
+          return {
+            action: "Replace with runtime data sources",
+            effort: "30 min",
+            category: "Data",
+          };
+        if (
+          ruleId.includes("missing-security-header") ||
+          type.includes("security header")
+        )
+          return {
+            action: "Add helmet/CSP middleware",
+            effort: "20 min",
+            category: "Security",
+          };
+        if (ruleId.includes("governance-marker") || type.includes("license"))
+          return {
+            action: "Review license compatibility",
+            effort: "10 min",
+            category: "Legal",
+          };
+        if (ruleId.includes("multi-lang-debug"))
+          return {
+            action: "Remove multi-language debug output",
+            effort: "5 min",
+            category: "Cleanup",
+          };
+        if (type.includes("credential") || type.includes("secret"))
+          return {
+            action: "Rotate secrets && use env vars",
+            effort: "30 min",
+            category: "Security",
+          };
+        if (type.includes("eslint") || type.includes("lint"))
+          return {
+            action: "Fix linting violations",
+            effort: "10 min",
+            category: "Quality",
+          };
+        if (type.includes("empty file"))
+          return {
+            action: "Remove or populate empty files",
+            effort: "5 min",
+            category: "Cleanup",
+          };
+        if (type.includes("invalid json"))
+          return {
+            action: "Fix JSON syntax errors",
+            effort: "10 min",
+            category: "Quality",
+          };
+        if (type.includes("to" + "do") || type.includes("fix" + "me"))
+          return {
+            action: "Address technical debt marker",
+            effort: "20 min",
+            category: "Debt",
+          };
+        if (type.includes("missing-env-key"))
+          return {
+            action: "Add missing key to .env file",
+            effort: "5 min",
+            category: "Config",
+          };
+        if (type.includes("build-artifact"))
+          return {
+            action: "Add to .gitignore or remove from repo",
+            effort: "5 min",
+            category: "Cleanup",
+          };
+        if (
+          desc.includes("place" + "holder") ||
+          desc.includes("fictional") ||
+          desc.includes("mock")
+        )
+          return {
+            action: "Replace with production data",
+            effort: "20 min",
+            category: "Data",
+          };
+        return {
+          action:
+            issue.recommendedAction || issue.action || "Review && remediate",
+          effort: issue.effort || "20 min",
+          category: issue.category || "General",
+        };
+      }
+
+      function getStats() {
+        const total = issues.length;
+        const done = issues.filter((i) => completed.has(i.id)).length;
+        const bySev = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+        const byCat = {};
+        let effortMin = 0;
+        for (const i of issues) {
+          bySev[i.severity] = (bySev[i.severity] || 0) + 1;
+          const p = getPlan(i);
+          byCat[p.category] = (byCat[p.category] || 0) + 1;
+          if (!completed.has(i.id)) effortMin += parseInt(p.effort, 10) || 20;
+        }
+        return {
+          total,
+          done,
+          remaining: total - done,
+          bySev,
+          byCat,
+          effortMin,
+        };
+      }
+
+      function groupByCategory(arr) {
+        const g = {};
+        for (const i of arr) {
+          const c = getPlan(i).category;
+          if (!g[c]) g[c] = [];
+          g[c].push(i);
+        }
+        return g;
+      }
+
+      function sortBySeverity(arr) {
+        return [...arr].sort(
+          (a, b) =>
+            (SEVERITY_ORDER[a.severity] ?? 99) -
+            (SEVERITY_ORDER[b.severity] ?? 99),
+        );
+      }
+
+      function render() {
+        const app = $("#app");
+        if (!issues.length) {
+          app.innerHTML = `
           <div class="empty-state">
             <div class="icon">🗺️</div>
             <p>No roadmap loaded.</p>
             <p style="font-size:0.8rem;margin-top:8px;">Import a JSON roadmap or open the dashboard to run a scan.</p>
           </div>`;
-        return;
-      }
+          return;
+        }
 
-      const stats = getStats();
-      const pct = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
-      const effortHours = Math.ceil(stats.effortMin / 60);
-      const effortLabel = effortHours < 1 ? `${stats.effortMin} min` : `~${effortHours}h`;
-      const grouped = groupByCategory(issues);
-      const cats = Object.entries(stats.byCat).sort((a, b) => b[1] - a[1]);
+        const stats = getStats();
+        const pct = stats.total
+          ? Math.round((stats.done / stats.total) * 100)
+          : 0;
+        const effortHours = Math.ceil(stats.effortMin / 60);
+        const effortLabel =
+          effortHours < 1 ? `${stats.effortMin} min` : `~${effortHours}h`;
+        const grouped = groupByCategory(issues);
+        const cats = Object.entries(stats.byCat).sort((a, b) => b[1] - a[1]);
 
-      let filtered = selectedCategory === 'all' ? issues : (grouped[selectedCategory] || []);
-      filtered = showCompleted ? filtered : filtered.filter(i => !completed.has(i.id));
-      filtered = sortBySeverity(filtered);
+        let filtered =
+          selectedCategory === "all" ? issues : grouped[selectedCategory] || [];
+        filtered = showCompleted
+          ? filtered
+          : filtered.filter((i) => !completed.has(i.id));
+        filtered = sortBySeverity(filtered);
 
-      app.innerHTML = `
-        ${importedAt ? `<div class="meta-bar">Imported <code>${new Date(importedAt).toLocaleString()}</code></div>` : ''}
+        app.innerHTML = `
+        ${importedAt ? `<div class="meta-bar">Imported <code>${new Date(importedAt).toLocaleString()}</code></div>` : ""}
         <div class="progress-wrap">
           <div class="progress-header">
             <span><strong>Progress:</strong> ${stats.done}/${stats.total} completed</span>
@@ -359,188 +559,313 @@
         </div>
 
         <div class="filters">
-          <button class="filter-chip ${selectedCategory==='all'?'active':''}" data-cat="all">All Categories</button>
-          ${cats.map(([c,n]) => `<button class="filter-chip ${selectedCategory===c?'active':''}" data-cat="${escape(c)}">${escape(c)} (${n})</button>`).join('')}
+          <button class="filter-chip ${selectedCategory === "all" ? "active" : ""}" data-cat="all">All Categories</button>
+          ${cats.map(([c, n]) => `<button class="filter-chip ${selectedCategory === c ? "active" : ""}" data-cat="${escape(c)}">${escape(c)} (${n})</button>`).join("")}
           <label style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:0.8rem;cursor:pointer;color:var(--text-muted);">
-            <input type="checkbox" id="show-done" ${showCompleted?'checked':''}> Show completed
+            <input type="checkbox" id="show-done" ${showCompleted ? "checked" : ""}> Show completed
           </label>
         </div>
 
         <div>
-          ${filtered.length ? (() => {
-            let lastPhase = null;
-            return filtered.map(i => {
-              let header = '';
-              if (i._phaseId && i._phaseId !== lastPhase) {
-                const blocked = i._phaseDependsOn ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);margin-left:8px;">Blocked by ${escape(i._phaseDependsOn)}</span>` : '';
-                header = `<div class="phase-header"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;"><strong>${escape(i._phaseTitle || i._phaseId)}</strong>${blocked}</div>${i._phaseDescription ? `<p>${escape(i._phaseDescription)}</p>` : ''}</div>`;
-              }
-              lastPhase = i._phaseId || lastPhase;
-              return header + renderCard(i);
-            }).join('');
-          })() : '<div class="empty-state" style="padding:var(--space-8);"><p>All issues in this category are completed 🎉</p></div>'}
+          ${
+            filtered.length
+              ? (() => {
+                  let lastPhase = null;
+                  return filtered
+                    .map((i) => {
+                      let header = "";
+                      if (i._phaseId && i._phaseId !== lastPhase) {
+                        const blocked = i._phaseDependsOn
+                          ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);margin-left:8px;">Blocked by ${escape(i._phaseDependsOn)}</span>`
+                          : "";
+                        header = `<div class="phase-header"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;"><strong>${escape(i._phaseTitle || i._phaseId)}</strong>${blocked}</div>${i._phaseDescription ? `<p>${escape(i._phaseDescription)}</p>` : ""}</div>`;
+                      }
+                      lastPhase = i._phaseId || lastPhase;
+                      return header + renderCard(i);
+                    })
+                    .join("");
+                })()
+              : '<div class="empty-state" style="padding:var(--space-8);"><p>All issues in this category are completed 🎉</p></div>'
+          }
         </div>
       `;
 
-      bind();
-    }
+        bind();
+      }
 
-    function renderCard(i) {
-      const p = getPlan(i);
-      const done = completed.has(i.id);
-      return `
-        <div class="card ${done ? 'completed' : ''}">
+      function renderCard(i) {
+        const p = getPlan(i);
+        const done = completed.has(i.id);
+        return `
+        <div class="card ${done ? "completed" : ""}">
           <div class="row">
-            <input type="checkbox" class="checkbox" data-id="${escape(i.id)}" ${done ? 'checked' : ''}>
+            <input type="checkbox" class="checkbox" data-id="${escape(i.id)}" ${done ? "checked" : ""}>
             <div class="col">
               <div class="issue-header">
-                <span class="pill ${escape(i.severity || 'info')}">${escape(i.severity || 'info')}</span>
+                <span class="pill ${escape(i.severity || "info")}">${escape(i.severity || "info")}</span>
                 <span class="pill" style="background:var(--surface-hover);color:var(--text-secondary);">${escape(p.category)}</span>
                 <span style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">${escape(p.effort)}</span>
               </div>
-              <div class="issue-type">${escape(i.type || 'Issue')}</div>
-              <div class="issue-desc">${escape(i.description || '')}</div>
-              <div class="issue-path">${escape(i.filePath || '—')}</div>
-              ${i._codeSnippet ? `<pre class="code-snippet"><code>${escape(i._codeSnippet)}</code></pre>` : ''}
+              <div class="issue-type">${escape(i.type || "Issue")}</div>
+              <div class="issue-desc">${escape(i.description || "")}</div>
+              <div class="issue-path">${escape(i.filePath || "—")}</div>
+              ${i._codeSnippet ? `<pre class="code-snippet"><code>${escape(i._codeSnippet)}</code></pre>` : ""}
               <div class="issue-action"><strong>Action:</strong> ${escape(p.action)}</div>
             </div>
           </div>
         </div>
       `;
-    }
-
-    function escape(s) {
-      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]);
-    }
-
-    function bind() {
-      $$('.filter-chip').forEach(b => b.onclick = () => { selectedCategory = b.dataset.cat; render(); });
-      $('#show-done')?.addEventListener('change', e => { showCompleted = e.target.checked; render(); });
-      $$('.checkbox').forEach(cb => cb.addEventListener('change', e => {
-        if (e.target.checked) completed.add(cb.dataset.id);
-        else completed.delete(cb.dataset.id);
-        localStorage.setItem('sb-roadmap-completed', JSON.stringify([...completed]));
-        render();
-      }));
-    }
-
-    function parsePhases(data) {
-      let loaded = [];
-      if (Array.isArray(data.issues)) loaded = data.issues;
-      else if (Array.isArray(data.phases)) {
-        let idx = 0;
-        for (const phase of data.phases) {
-          for (const task of phase.tasks || []) {
-            loaded.push({
-              id: 'roadmap-' + phase.id + '-' + idx++,
-              severity: ['critical','high','medium','low','info'].includes(phase.severity) ? phase.severity : 'medium',
-              type: phase.id,
-              category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id,
-              description: task.description,
-              filePath: task.location || '-',
-              action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
-              effort: phase.effort || '20 min',
-              completed: task.done || false,
-              _phaseId: phase.id,
-              _phaseTitle: phase.title,
-              _phaseDependsOn: phase.dependsOn,
-              _phaseDescription: phase.description,
-              _codeSnippet: task.codeSnippet
-            });
-          }
-        }
       }
-      return loaded;
-    }
 
-    function applyLoadedIssues(loaded, at) {
-      if (!loaded.length) return false;
-      issues = loaded.map(i => ({ id: i.id, severity: i.severity, type: i.type, description: i.description, filePath: i.filePath, recommendedAction: i.action, effort: i.effort, category: i.category, _phaseId: i._phaseId, _phaseTitle: i._phaseTitle, _phaseDependsOn: i._phaseDependsOn, _phaseDescription: i._phaseDescription, _codeSnippet: i._codeSnippet }));
-      importedAt = at || new Date().toISOString();
-      for (const i of issues) if (i.completed) completed.add(i.id);
-      localStorage.setItem('sb-roadmap-completed', JSON.stringify([...completed]));
-      return true;
-    }
+      function escape(s) {
+        return String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
 
-    function importFileFromData(data) {
-      const loaded = parsePhases(data);
-      const ok = applyLoadedIssues(loaded, data.exportedAt || data.summary?.exportedAt || data.metadata?.exportedAt);
-      if (ok) render();
-    }
-
-    function importFile(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          const loaded = parsePhases(data);
-          if (!loaded.length) { alert('No issues found in JSON'); return; }
-          applyLoadedIssues(loaded, data.exportedAt || data.summary?.exportedAt || data.metadata?.exportedAt || new Date().toISOString());
+      function bind() {
+        $$(".filter-chip").forEach(
+          (b) =>
+            (b.onclick = () => {
+              selectedCategory = b.dataset.cat;
+              render();
+            }),
+        );
+        $("#show-done")?.addEventListener("change", (e) => {
+          showCompleted = e.target.checked;
           render();
-        } catch (err) { alert('Failed to parse JSON: ' + err.message); }
-      };
-      reader.readAsText(file);
-    }
+        });
+        $$(".checkbox").forEach((cb) =>
+          cb.addEventListener("change", (e) => {
+            if (e.target.checked) completed.add(cb.dataset.id);
+            else completed.delete(cb.dataset.id);
+            localStorage.setItem(
+              "sb-roadmap-completed",
+              JSON.stringify([...completed]),
+            );
+            render();
+          }),
+        );
+      }
 
-    function exportJson() {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        totalIssues: issues.length,
-        completed: [...completed],
-        issues: issues.map(i => {
-          const p = getPlan(i);
-          return { id: i.id, severity: i.severity, type: i.type, category: p.category, description: i.description, filePath: i.filePath, action: p.action, effort: p.effort, completed: completed.has(i.id) };
-        })
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `roadmap-${new Date().toISOString().slice(0,10)}.json`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-
-    $('#import-btn').addEventListener('click', () => $('#file-input').click());
-    $('#file-input').addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) { importFile(f); e.target.value = ''; } });
-    $('#export-btn').addEventListener('click', exportJson);
-
-    // Try auto-load from common paths
-    async function tryAutoLoad() {
-      const paths = [
-        '/data/complete-scan-ai-platform-2026-06-12.json',
-        '/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json',
-        '/data/roadmap-from-scan-cascadeprojects-2026-06-12.json',
-        '/data/roadmap-from-scan-ai-agent-2026-06-12.json',
-        '/data/roadmap-from-scan-2026-06-11.json',
-        '/data/roadmap-ai-agent-complete-2026-06-11.json'
-      ];
-      for (const url of paths) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (!res.ok) continue;
-          let data = await res.json();
-          // Extract roadmap from complete-scan wrapper
-          if (data.type === 'simplebeacon-complete-scan' && data.results?.roadmap) {
-            const roadmap = data.results.roadmap;
-            if (Array.isArray(roadmap.phases) && roadmap.phases.length) {
-              data = { phases: roadmap.phases, summary: roadmap.summary || data.summary };
-            } else if (Array.isArray(roadmap.issues) && roadmap.issues.length) {
-              data = { issues: roadmap.issues, metadata: { exportedAt: data.generatedAt } };
+      function parsePhases(data) {
+        let loaded = [];
+        if (Array.isArray(data.issues)) loaded = data.issues;
+        else if (Array.isArray(data.phases)) {
+          let idx = 0;
+          for (const phase of data.phases) {
+            for (const task of phase.tasks || []) {
+              loaded.push({
+                id: "roadmap-" + phase.id + "-" + idx++,
+                severity: [
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "info",
+                ].includes(phase.severity)
+                  ? phase.severity
+                  : "medium",
+                type: phase.id,
+                category:
+                  (phase.title || "").replace(/^Phase \d+:\s*/, "") || phase.id,
+                description: task.description,
+                filePath: task.location || "-",
+                action:
+                  task.type === "fix"
+                    ? "Fix required"
+                    : task.type === "verify"
+                      ? "Verify"
+                      : task.type === "audit"
+                        ? "Audit"
+                        : task.type === "doc"
+                          ? "Document"
+                          : "Review",
+                effort: phase.effort || "20 min",
+                completed: task.done || false,
+                _phaseId: phase.id,
+                _phaseTitle: phase.title,
+                _phaseDependsOn: phase.dependsOn,
+                _phaseDescription: phase.description,
+                _codeSnippet: task.codeSnippet,
+              });
             }
           }
-          if (Array.isArray(data.issues) && data.issues.length) {
-            issues = data.issues.map(i => ({ ...i, _phaseId: i._phaseId, _phaseTitle: i._phaseTitle, _phaseDependsOn: i._phaseDependsOn, _phaseDescription: i._phaseDescription, _codeSnippet: i._codeSnippet }));
-            importedAt = data.metadata?.exportedAt;
-            render(); return;
-          } else if (Array.isArray(data.phases) && data.phases.length) {
-            importFileFromData(data);
-            return;
-          }
-        } catch {}
+        }
+        return loaded;
       }
-      render();
-    }
 
-    tryAutoLoad();
-  </script>
-</body>
+      function applyLoadedIssues(loaded, at) {
+        if (!loaded.length) return false;
+        issues = loaded.map((i) => ({
+          id: i.id,
+          severity: i.severity,
+          type: i.type,
+          description: i.description,
+          filePath: i.filePath,
+          recommendedAction: i.action,
+          effort: i.effort,
+          category: i.category,
+          _phaseId: i._phaseId,
+          _phaseTitle: i._phaseTitle,
+          _phaseDependsOn: i._phaseDependsOn,
+          _phaseDescription: i._phaseDescription,
+          _codeSnippet: i._codeSnippet,
+        }));
+        importedAt = at || new Date().toISOString();
+        for (const i of issues) if (i.completed) completed.add(i.id);
+        localStorage.setItem(
+          "sb-roadmap-completed",
+          JSON.stringify([...completed]),
+        );
+        return true;
+      }
+
+      function importFileFromData(data) {
+        const loaded = parsePhases(data);
+        const ok = applyLoadedIssues(
+          loaded,
+          data.exportedAt ||
+            data.summary?.exportedAt ||
+            data.metadata?.exportedAt,
+        );
+        if (ok) render();
+      }
+
+      function importFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            const loaded = parsePhases(data);
+            if (!loaded.length) {
+              alert("No issues found in JSON");
+              return;
+            }
+            applyLoadedIssues(
+              loaded,
+              data.exportedAt ||
+                data.summary?.exportedAt ||
+                data.metadata?.exportedAt ||
+                new Date().toISOString(),
+            );
+            render();
+          } catch (err) {
+            alert("Failed to parse JSON: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function exportJson() {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          totalIssues: issues.length,
+          completed: [...completed],
+          issues: issues.map((i) => {
+            const p = getPlan(i);
+            return {
+              id: i.id,
+              severity: i.severity,
+              type: i.type,
+              category: p.category,
+              description: i.description,
+              filePath: i.filePath,
+              action: p.action,
+              effort: p.effort,
+              completed: completed.has(i.id),
+            };
+          }),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `roadmap-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      $("#import-btn").addEventListener("click", () =>
+        $("#file-input").click(),
+      );
+      $("#file-input").addEventListener("change", (e) => {
+        const f = e.target.files?.[0];
+        if (f) {
+          importFile(f);
+          e.target.value = "";
+        }
+      });
+      $("#export-btn").addEventListener("click", exportJson);
+
+      // Try auto-load from common paths
+      async function tryAutoLoad() {
+        const paths = [
+          "/data/complete-scan-ai-platform-2026-06-12.json",
+          "/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json",
+          "/data/roadmap-from-scan-cascadeprojects-2026-06-12.json",
+          "/data/roadmap-from-scan-ai-agent-2026-06-12.json",
+          "/data/roadmap-from-scan-2026-06-11.json",
+          "/data/roadmap-ai-agent-complete-2026-06-11.json",
+        ];
+        for (const url of paths) {
+          try {
+            const res = await fetch(url, { cache: "no-store" });
+            if (!res.ok) continue;
+            let data = await res.json();
+            // Extract roadmap from complete-scan wrapper
+            if (
+              data.type === "simplebeacon-complete-scan" &&
+              data.results?.roadmap
+            ) {
+              const roadmap = data.results.roadmap;
+              if (Array.isArray(roadmap.phases) && roadmap.phases.length) {
+                data = {
+                  phases: roadmap.phases,
+                  summary: roadmap.summary || data.summary,
+                };
+              } else if (
+                Array.isArray(roadmap.issues) &&
+                roadmap.issues.length
+              ) {
+                data = {
+                  issues: roadmap.issues,
+                  metadata: { exportedAt: data.generatedAt },
+                };
+              }
+            }
+            if (Array.isArray(data.issues) && data.issues.length) {
+              issues = data.issues.map((i) => ({
+                ...i,
+                _phaseId: i._phaseId,
+                _phaseTitle: i._phaseTitle,
+                _phaseDependsOn: i._phaseDependsOn,
+                _phaseDescription: i._phaseDescription,
+                _codeSnippet: i._codeSnippet,
+              }));
+              importedAt = data.metadata?.exportedAt;
+              render();
+              return;
+            } else if (Array.isArray(data.phases) && data.phases.length) {
+              importFileFromData(data);
+              return;
+            }
+          } catch {}
+        }
+        render();
+      }
+
+      tryAutoLoad();
+    </script>
+  </body>
 </html>

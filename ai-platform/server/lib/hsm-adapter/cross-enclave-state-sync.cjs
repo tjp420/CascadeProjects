@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 44: Distributed Sharding and Cross-Enclave State Sync.
@@ -17,30 +17,34 @@
  * @module hsm-adapter/cross-enclave-state-sync
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  validateTenantContext,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require("../replication-tenant-context.cjs");
 
 const DEFAULT_OPTIONS = {
   replicationFactor: 3,
   minSyncQuorum: 2,
   maxEnclaves: 16,
-  shardAssignmentStrategy: 'consistent-hash', // or 'round-robin'
+  shardAssignmentStrategy: "consistent-hash", // or 'round-robin'
   syncTimeoutMs: 30000,
   maxStateSizeBytes: 1048576,
-  conflictResolution: 'last-writer-wins', // or 'quorum-merge'
+  conflictResolution: "last-writer-wins", // or 'quorum-merge'
 };
 
 const ENCLAVE_STATUS = {
-  ACTIVE: 'active',
-  DEGRADED: 'degraded',
-  OFFLINE: 'offline',
+  ACTIVE: "active",
+  DEGRADED: "degraded",
+  OFFLINE: "offline",
 };
 
 const SYNC_OP_TYPE = {
-  FULL: 'full',
-  INCREMENTAL: 'incremental',
-  REPAIR: 'repair',
+  FULL: "full",
+  INCREMENTAL: "incremental",
+  REPAIR: "repair",
 };
 
 /**
@@ -74,16 +78,23 @@ class CrossEnclaveStateSync {
    * @param {number} [meta.capacity] - Relative capacity weight (default 1)
    */
   registerEnclave(enclaveId, meta) {
-    if (!enclaveId || typeof enclaveId !== 'string') {
-      throw new HsmAdapterError('INVALID_ENCLAVE', 'enclaveId must be a non-empty string');
+    if (!enclaveId || typeof enclaveId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_ENCLAVE",
+        "enclaveId must be a non-empty string",
+      );
     }
     if (this._enclaves.size >= this.maxEnclaves) {
-      throw new HsmAdapterError('ENCLAVE_LIMIT_REACHED',
-        `maximum ${this.maxEnclaves} enclaves reached`);
+      throw new HsmAdapterError(
+        "ENCLAVE_LIMIT_REACHED",
+        `maximum ${this.maxEnclaves} enclaves reached`,
+      );
     }
     if (this._enclaves.has(enclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_ALREADY_REGISTERED',
-        `enclave ${enclaveId} already registered`);
+      throw new HsmAdapterError(
+        "ENCLAVE_ALREADY_REGISTERED",
+        `enclave ${enclaveId} already registered`,
+      );
     }
     this._enclaves.set(enclaveId, {
       id: enclaveId,
@@ -92,8 +103,8 @@ class CrossEnclaveStateSync {
       load: 0,
       lastHeartbeat: Date.now(),
     });
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_REGISTERED', { enclaveId });
+    if (typeof this._audit === "function") {
+      this._audit("ENCLAVE_REGISTERED", { enclaveId });
     }
   }
 
@@ -103,7 +114,10 @@ class CrossEnclaveStateSync {
    */
   unregisterEnclave(enclaveId) {
     if (!this._enclaves.has(enclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     this._enclaves.delete(enclaveId);
     // Reassign shards that were on this enclave
@@ -115,8 +129,8 @@ class CrossEnclaveStateSync {
         }
       }
     }
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_UNREGISTERED', { enclaveId });
+    if (typeof this._audit === "function") {
+      this._audit("ENCLAVE_UNREGISTERED", { enclaveId });
     }
   }
 
@@ -128,7 +142,10 @@ class CrossEnclaveStateSync {
   heartbeat(enclaveId, status) {
     const enclave = this._enclaves.get(enclaveId);
     if (!enclave) {
-      throw new HsmAdapterError('ENCLAVE_NOT_FOUND', `enclave ${enclaveId} not found`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_FOUND",
+        `enclave ${enclaveId} not found`,
+      );
     }
     enclave.lastHeartbeat = Date.now();
     if (status && status.load !== undefined) enclave.load = status.load;
@@ -148,7 +165,7 @@ class CrossEnclaveStateSync {
    * @returns {object[]}
    */
   getActiveEnclaves() {
-    return this.getEnclaves().filter(e => e.status === ENCLAVE_STATUS.ACTIVE);
+    return this.getEnclaves().filter((e) => e.status === ENCLAVE_STATUS.ACTIVE);
   }
 
   /**
@@ -157,16 +174,24 @@ class CrossEnclaveStateSync {
    * @returns {object} Assignment result
    */
   createShard(shardId) {
-    if (!shardId || typeof shardId !== 'string') {
-      throw new HsmAdapterError('INVALID_SHARD', 'shardId must be a non-empty string');
+    if (!shardId || typeof shardId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_SHARD",
+        "shardId must be a non-empty string",
+      );
     }
     if (this._shards.has(shardId)) {
-      throw new HsmAdapterError('SHARD_ALREADY_EXISTS', `shard ${shardId} already exists`);
+      throw new HsmAdapterError(
+        "SHARD_ALREADY_EXISTS",
+        `shard ${shardId} already exists`,
+      );
     }
     const enclaveIds = this._selectEnclavesForShard();
     if (enclaveIds.length < this.minSyncQuorum) {
-      throw new HsmAdapterError('INSUFFICIENT_ENCLAVES',
-        `need at least ${this.minSyncQuorum} active enclaves, have ${enclaveIds.length}`);
+      throw new HsmAdapterError(
+        "INSUFFICIENT_ENCLAVES",
+        `need at least ${this.minSyncQuorum} active enclaves, have ${enclaveIds.length}`,
+      );
     }
     const shard = {
       id: shardId,
@@ -179,8 +204,8 @@ class CrossEnclaveStateSync {
       shard.vectorClock.set(eid, 0);
     }
     this._shards.set(shardId, shard);
-    if (typeof this._audit === 'function') {
-      this._audit('SHARD_CREATED', { shardId, enclaveIds });
+    if (typeof this._audit === "function") {
+      this._audit("SHARD_CREATED", { shardId, enclaveIds });
     }
     return { shardId, enclaveIds };
   }
@@ -194,11 +219,12 @@ class CrossEnclaveStateSync {
     const active = this.getActiveEnclaves();
     if (active.length === 0) return [];
 
-    if (this.shardAssignmentStrategy === 'round-robin') {
+    if (this.shardAssignmentStrategy === "round-robin") {
       // Sort by load (ascending) and pick top N
       const sorted = active.sort((a, b) => a.load - b.load);
-      return sorted.slice(0, Math.min(this.replicationFactor, sorted.length))
-        .map(e => e.id);
+      return sorted
+        .slice(0, Math.min(this.replicationFactor, sorted.length))
+        .map((e) => e.id);
     }
 
     // consistent-hash: use hash-based assignment
@@ -223,15 +249,18 @@ class CrossEnclaveStateSync {
     const needed = this.replicationFactor - shard.enclaveIds.size;
     if (needed <= 0) return;
     const available = this.getActiveEnclaves()
-      .filter(e => !shard.enclaveIds.has(e.id))
+      .filter((e) => !shard.enclaveIds.has(e.id))
       .sort((a, b) => a.load - b.load);
     for (let i = 0; i < Math.min(needed, available.length); i++) {
       shard.enclaveIds.add(available[i].id);
       shard.vectorClock.set(available[i].id, 0);
       available[i].load++;
     }
-    if (typeof this._audit === 'function') {
-      this._audit('SHARD_REASSIGNED', { shardId, newEnclaves: available.slice(0, needed).map(e => e.id) });
+    if (typeof this._audit === "function") {
+      this._audit("SHARD_REASSIGNED", {
+        shardId,
+        newEnclaves: available.slice(0, needed).map((e) => e.id),
+      });
     }
   }
 
@@ -246,16 +275,23 @@ class CrossEnclaveStateSync {
   writeState(shardId, key, value, enclaveId) {
     const shard = this._shards.get(shardId);
     if (!shard) {
-      throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
+      throw new HsmAdapterError(
+        "SHARD_NOT_FOUND",
+        `shard ${shardId} not found`,
+      );
     }
     if (!shard.enclaveIds.has(enclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_NOT_ASSIGNED',
-        `enclave ${enclaveId} is not assigned to shard ${shardId}`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_ASSIGNED",
+        `enclave ${enclaveId} is not assigned to shard ${shardId}`,
+      );
     }
     const valueStr = JSON.stringify(value);
     if (Buffer.byteLength(valueStr) > this.maxStateSizeBytes) {
-      throw new HsmAdapterError('STATE_TOO_LARGE',
-        `state value exceeds maximum ${this.maxStateSizeBytes} bytes`);
+      throw new HsmAdapterError(
+        "STATE_TOO_LARGE",
+        `state value exceeds maximum ${this.maxStateSizeBytes} bytes`,
+      );
     }
     const seq = (shard.vectorClock.get(enclaveId) || 0) + 1;
     shard.vectorClock.set(enclaveId, seq);
@@ -263,18 +299,30 @@ class CrossEnclaveStateSync {
     const existing = shard.state.get(key);
     // Conflict resolution
     if (existing) {
-      if (this.conflictResolution === 'last-writer-wins') {
+      if (this.conflictResolution === "last-writer-wins") {
         if (timestamp < existing.timestamp) {
-          return { shardId, key, conflict: true, resolved: 'rejected-stale', version: shard.version };
+          return {
+            shardId,
+            key,
+            conflict: true,
+            resolved: "rejected-stale",
+            version: shard.version,
+          };
         }
-      } else if (this.conflictResolution === 'quorum-merge') {
+      } else if (this.conflictResolution === "quorum-merge") {
         // Merge: keep both values, newer wins on key collision
       }
     }
     shard.state.set(key, { value, timestamp, enclaveId, sequence: seq });
     shard.version++;
-    if (typeof this._audit === 'function') {
-      this._audit('STATE_WRITTEN', { shardId, key, enclaveId, sequence: seq, version: shard.version });
+    if (typeof this._audit === "function") {
+      this._audit("STATE_WRITTEN", {
+        shardId,
+        key,
+        enclaveId,
+        sequence: seq,
+        version: shard.version,
+      });
     }
     return { shardId, key, enclaveId, sequence: seq, version: shard.version };
   }
@@ -288,10 +336,20 @@ class CrossEnclaveStateSync {
   readState(shardId, key) {
     const shard = this._shards.get(shardId);
     if (!shard) {
-      throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
+      throw new HsmAdapterError(
+        "SHARD_NOT_FOUND",
+        `shard ${shardId} not found`,
+      );
     }
     const entry = shard.state.get(key);
-    return entry ? { key, value: entry.value, timestamp: entry.timestamp, enclaveId: entry.enclaveId } : null;
+    return entry
+      ? {
+          key,
+          value: entry.value,
+          timestamp: entry.timestamp,
+          enclaveId: entry.enclaveId,
+        }
+      : null;
   }
 
   /**
@@ -305,11 +363,16 @@ class CrossEnclaveStateSync {
   syncState(shardId, sourceEnclaveId, remoteState, remoteVectorClock) {
     const shard = this._shards.get(shardId);
     if (!shard) {
-      throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
+      throw new HsmAdapterError(
+        "SHARD_NOT_FOUND",
+        `shard ${shardId} not found`,
+      );
     }
     if (!shard.enclaveIds.has(sourceEnclaveId)) {
-      throw new HsmAdapterError('ENCLAVE_NOT_ASSIGNED',
-        `enclave ${sourceEnclaveId} is not assigned to shard ${shardId}`);
+      throw new HsmAdapterError(
+        "ENCLAVE_NOT_ASSIGNED",
+        `enclave ${sourceEnclaveId} is not assigned to shard ${shardId}`,
+      );
     }
     const result = {
       shardId,
@@ -352,8 +415,8 @@ class CrossEnclaveStateSync {
     }
     shard.version++;
     this._logSync(result);
-    if (typeof this._audit === 'function') {
-      this._audit('STATE_SYNCED', result);
+    if (typeof this._audit === "function") {
+      this._audit("STATE_SYNCED", result);
     }
     return result;
   }
@@ -366,7 +429,10 @@ class CrossEnclaveStateSync {
   getVectorClock(shardId) {
     const shard = this._shards.get(shardId);
     if (!shard) {
-      throw new HsmAdapterError('SHARD_NOT_FOUND', `shard ${shardId} not found`);
+      throw new HsmAdapterError(
+        "SHARD_NOT_FOUND",
+        `shard ${shardId} not found`,
+      );
     }
     const result = {};
     for (const [eid, seq] of shard.vectorClock) {
@@ -380,7 +446,7 @@ class CrossEnclaveStateSync {
    * @returns {object[]}
    */
   getShards() {
-    return Array.from(this._shards.values()).map(s => ({
+    return Array.from(this._shards.values()).map((s) => ({
       id: s.id,
       enclaveIds: Array.from(s.enclaveIds),
       version: s.version,
@@ -415,7 +481,10 @@ class CrossEnclaveStateSync {
     const now = Date.now();
     const stale = [];
     for (const [id, enclave] of this._enclaves) {
-      if (enclave.status === ENCLAVE_STATUS.ACTIVE && now - enclave.lastHeartbeat > threshold) {
+      if (
+        enclave.status === ENCLAVE_STATUS.ACTIVE &&
+        now - enclave.lastHeartbeat > threshold
+      ) {
         enclave.status = ENCLAVE_STATUS.OFFLINE;
         stale.push(id);
         // Reassign shards
@@ -428,8 +497,8 @@ class CrossEnclaveStateSync {
         }
       }
     }
-    if (stale.length > 0 && typeof this._audit === 'function') {
-      this._audit('STALE_ENCLAVES_DETECTED', { enclaveIds: stale });
+    if (stale.length > 0 && typeof this._audit === "function") {
+      this._audit("STALE_ENCLAVES_DETECTED", { enclaveIds: stale });
     }
     return stale;
   }
@@ -440,7 +509,7 @@ class CrossEnclaveStateSync {
    * @returns {object[]}
    */
   getSyncLog(limit) {
-    const n = typeof limit === 'number' ? limit : 20;
+    const n = typeof limit === "number" ? limit : 20;
     return this._syncLog.slice(-n);
   }
 
@@ -486,4 +555,9 @@ class CrossEnclaveStateSync {
   }
 }
 
-module.exports = { CrossEnclaveStateSync, DEFAULT_OPTIONS, ENCLAVE_STATUS, SYNC_OP_TYPE };
+module.exports = {
+  CrossEnclaveStateSync,
+  DEFAULT_OPTIONS,
+  ENCLAVE_STATUS,
+  SYNC_OP_TYPE,
+};

@@ -6,14 +6,14 @@ Reduced full-repo gate scan findings from **10,956 to 296** — a **97% reductio
 
 ## Scan Metrics
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Total findings | 10,956 | 296 |
-| Critical | 0 | 0 |
-| High | 0 | 0 |
-| Medium | 1,463 | 247 |
-| Low | 9,493 | 49 |
-| Gate status | PASS | PASS |
+| Metric         | Before | After |
+| -------------- | ------ | ----- |
+| Total findings | 10,956 | 296   |
+| Critical       | 0      | 0     |
+| High           | 0      | 0     |
+| Medium         | 1,463  | 247   |
+| Low            | 9,493  | 49    |
+| Gate status    | PASS   | PASS  |
 
 ## Changes by Commit
 
@@ -51,31 +51,32 @@ Reduced full-repo gate scan findings from **10,956 to 296** — a **97% reductio
 
 ### 5. Five small security categories cleaned (`a038e1bbb`)
 
-| Rule | Before | After | Fix |
-|------|--------|-------|-----|
-| SB-AI-006 (credentials) | 13 | 0 | Added test files, ESLint output, test tools to excludePaths |
-| SB-AI-007 (debug mode) | 3 | 0 | Changed `[:=]` to `=` only; added docker-compose.dev to excludePaths |
-| SB-AI-013 (auth bypass) | 2 | 0 | Changed `[:=]` to `=` only (data fields use `:` not `=`) |
-| SB-AI-014 (long sleep) | 9 | 0 | Removed JS/TS (setTimeout is non-blocking, not sleep) |
-| SB-AI-015 (wildcard CORS) | 9 | 1 | Added dev/test servers to excludePaths; documented remaining |
+| Rule                      | Before | After | Fix                                                                  |
+| ------------------------- | ------ | ----- | -------------------------------------------------------------------- |
+| SB-AI-006 (credentials)   | 13     | 0     | Added test files, ESLint output, test tools to excludePaths          |
+| SB-AI-007 (debug mode)    | 3      | 0     | Changed `[:=]` to `=` only; added docker-compose.dev to excludePaths |
+| SB-AI-013 (auth bypass)   | 2      | 0     | Changed `[:=]` to `=` only (data fields use `:` not `=`)             |
+| SB-AI-014 (long sleep)    | 9      | 0     | Removed JS/TS (setTimeout is non-blocking, not sleep)                |
+| SB-AI-015 (wildcard CORS) | 9      | 1     | Added dev/test servers to excludePaths; documented remaining         |
 
 **Result:** 605 → 570 (95% cumulative)
 
 ### 6. Five remaining categories cleaned (`d4ed64ad5`)
 
-| Rule | Before | After | Fix |
-|------|--------|-------|-----|
-| SB-AI-001 (debug prints) | 69 | 0 | Removed echo/println/fmt.Println (standard output, not debug) |
-| SB-AI-005 (eval/exec) | 16 | 0 | Added alert-templates and redis-rate-limit-store to excludePaths |
-| SB-AI-008 (broad catch) | 10 | 0 | Added spa_fallback_server.py to excludePaths |
-| SB-AI-009 (hardcoded paths) | 95 | 24 | Added .ps1/.bat/.cmd, tools/ to excludePaths |
-| SB-AI-010 (wildcard import) | 108 | 0 | Removed JS/TS (`from X import *` is Python syntax) |
+| Rule                        | Before | After | Fix                                                              |
+| --------------------------- | ------ | ----- | ---------------------------------------------------------------- |
+| SB-AI-001 (debug prints)    | 69     | 0     | Removed echo/println/fmt.Println (standard output, not debug)    |
+| SB-AI-005 (eval/exec)       | 16     | 0     | Added alert-templates and redis-rate-limit-store to excludePaths |
+| SB-AI-008 (broad catch)     | 10     | 0     | Added spa_fallback_server.py to excludePaths                     |
+| SB-AI-009 (hardcoded paths) | 95     | 24    | Added .ps1/.bat/.cmd, tools/ to excludePaths                     |
+| SB-AI-010 (wildcard import) | 108    | 0     | Removed JS/TS (`from X import *` is Python syntax)               |
 
 **Result:** 570 → 296 (97% cumulative)
 
 ### 7. Empty catch block remediation (206 catches fixed)
 
 Added `console.error` logging to 206 empty/comment-only catch blocks across 9 files:
+
 - `main.js` (3 copies)
 - `dom.js` (3 copies)
 - `dataServer.ts`
@@ -89,25 +90,28 @@ Added `console.error` logging to 206 empty/comment-only catch blocks across 9 fi
 
 ## Remaining 296 Findings
 
-| Rule | Count | Description | Status |
-|------|-------|-------------|--------|
-| SB-AI-004 | 246 | Multi-line catches with comments | Advisory — being remediated |
-| SB-AI-002 | 25 | Legitimate TODOs | Tracked in GitHub issue #810 |
-| SB-AI-009 | 24 | Hardcoded paths in utility files | Advisory |
-| SB-AI-015 | 1 | Origin-validated CORS fallback | Documented with simplebeacon-ignore |
+| Rule      | Count | Description                      | Status                              |
+| --------- | ----- | -------------------------------- | ----------------------------------- |
+| SB-AI-004 | 246   | Multi-line catches with comments | Advisory — being remediated         |
+| SB-AI-002 | 25    | Legitimate TODOs                 | Tracked in GitHub issue #810        |
+| SB-AI-009 | 24    | Hardcoded paths in utility files | Advisory                            |
+| SB-AI-015 | 1     | Origin-validated CORS fallback   | Documented with simplebeacon-ignore |
 
 ## Files Modified
 
 ### Scanner rule definitions
+
 - `packages/simplebeacon-cli/src/rules/universal-ai-rules.json` — 6 commits tightening patterns
 - `packages/simplebeacon-cli/src/rules/custom-heuristic-scanner.js` — extraSkipDirs support
 - `packages/simplebeacon-cli/src/scan.js` — pass extraSkipDirs to custom-heuristic scanner
 
 ### Scan configuration
+
 - `.simplebeacon/config.json` — added custom-heuristic.ignoreGlobs, skip dirs
 - `ai-platform/.simplebeacon/config.json` — added skip dirs for node_modules_host, vsix-staging, etc.
 
 ### Production code
+
 - `worker-deploy/src/worker.js` — CORS suppress comment
 - `ai-platform/simplebeacon-server.cjs` — CORS suppress comment
 - 9 files with 206 empty catch blocks fixed (see above)
@@ -126,6 +130,7 @@ npx simplebeacon gate status
 ## Conclusion
 
 The scan reduction was achieved through:
+
 1. **Scanner bug fix** — custom-heuristic scanner now respects config skip dirs (51% reduction)
 2. **Pattern tightening** — requiring comment prefixes for TODO markers, assignment operators for config values (78% reduction)
 3. **Language exclusion** — removing JS/TS from rules that don't apply (broad catch, long sleep, wildcard import) (92% reduction)

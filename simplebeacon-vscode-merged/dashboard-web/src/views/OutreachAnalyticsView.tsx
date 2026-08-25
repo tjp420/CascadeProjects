@@ -5,13 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import {
-  Mail, Users, TrendingUp, CheckCircle2, Calendar, DollarSign,
-  Target, Send, RefreshCw, Inbox,
+  Mail,
+  Users,
+  TrendingUp,
+  CheckCircle2,
+  Calendar,
+  DollarSign,
+  Target,
+  Send,
+  RefreshCw,
+  Inbox,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -125,12 +145,12 @@ const COLORS = {
 };
 
 const FUNNEL_COLORS = [
-  COLORS.blue,    // Prospects
-  COLORS.cyan,    // Contacted
-  COLORS.purple,  // Replied
-  COLORS.amber,   // Meetings
-  COLORS.pink,    // Pilots
-  COLORS.green,   // Closed
+  COLORS.blue, // Prospects
+  COLORS.cyan, // Contacted
+  COLORS.purple, // Replied
+  COLORS.amber, // Meetings
+  COLORS.pink, // Pilots
+  COLORS.green, // Closed
 ];
 
 const SEQUENCE_COLORS: Record<string, string> = {
@@ -150,11 +170,11 @@ const SEQUENCE_LABELS: Record<string, string> = {
 function computeFunnelData(campaign: CampaignState): FunnelStage[] {
   const prospects = Object.values(campaign.prospects || {});
   const total = prospects.length;
-  const contacted = prospects.filter(p => p.status === 'contacted' || (p.emailHistory?.length ?? 0) > 0).length;
-  const replied = prospects.filter(p => p.replied).length;
-  const meetings = prospects.filter(p => p.meetingBooked).length;
-  const pilots = prospects.filter(p => p.pilotStarted).length;
-  const closed = prospects.filter(p => p.closed).length;
+  const contacted = prospects.filter((p) => p.status === 'contacted' || (p.emailHistory?.length ?? 0) > 0).length;
+  const replied = prospects.filter((p) => p.replied).length;
+  const meetings = prospects.filter((p) => p.meetingBooked).length;
+  const pilots = prospects.filter((p) => p.pilotStarted).length;
+  const closed = prospects.filter((p) => p.closed).length;
   return [
     { stage: 'Prospects', count: total, fill: FUNNEL_COLORS[0] },
     { stage: 'Contacted', count: contacted, fill: FUNNEL_COLORS[1] },
@@ -168,12 +188,12 @@ function computeFunnelData(campaign: CampaignState): FunnelStage[] {
 function computeSequenceMetrics(campaign: CampaignState): SequenceMetric[] {
   const prospects = Object.values(campaign.prospects || {});
   const sequences = ['A', 'B', 'C'];
-  return sequences.map(seq => {
-    const inSeq = prospects.filter(p => p.sequence === seq);
+  return sequences.map((seq) => {
+    const inSeq = prospects.filter((p) => p.sequence === seq);
     const sent = inSeq.reduce((sum, p) => sum + (p.emailHistory?.length ?? 0), 0);
-    const replies = inSeq.filter(p => p.replied).length;
-    const meetings = inSeq.filter(p => p.meetingBooked).length;
-    const closes = inSeq.filter(p => p.closed).length;
+    const replies = inSeq.filter((p) => p.replied).length;
+    const meetings = inSeq.filter((p) => p.meetingBooked).length;
+    const closes = inSeq.filter((p) => p.closed).length;
     const denom = inSeq.length || 1;
     return {
       sequence: seq,
@@ -209,7 +229,7 @@ function computeTimelineData(campaign: CampaignState): TimelinePoint[] {
 
   const sorted = Object.keys(byDate).sort();
   let cumulative = 0;
-  return sorted.map(d => {
+  return sorted.map((d) => {
     cumulative += byDate[d].replies;
     return {
       date: d,
@@ -219,10 +239,7 @@ function computeTimelineData(campaign: CampaignState): TimelinePoint[] {
   });
 }
 
-function computeRecentActivity(
-  campaign: CampaignState,
-  prospects: ProspectRecord[],
-): ActivityRow[] {
+function computeRecentActivity(campaign: CampaignState, prospects: ProspectRecord[]): ActivityRow[] {
   const prospectMap: Record<string, ProspectRecord> = {};
   for (const p of prospects) {
     if (p.id) prospectMap[p.id] = p;
@@ -263,9 +280,9 @@ function computeOverviewStats(campaign: CampaignState): OverviewStats {
   const prospects = Object.values(campaign.prospects || {});
   const total = prospects.length;
   const emailsSent = prospects.reduce((sum, p) => sum + (p.emailHistory?.length ?? 0), 0);
-  const replies = prospects.filter(p => p.replied).length;
-  const meetings = prospects.filter(p => p.meetingBooked).length;
-  const closed = prospects.filter(p => p.closed).length;
+  const replies = prospects.filter((p) => p.replied).length;
+  const meetings = prospects.filter((p) => p.meetingBooked).length;
+  const closed = prospects.filter((p) => p.closed).length;
   const pipelineValue = prospects.reduce((sum, p) => sum + (p.closedValue || 0), 0);
   return {
     totalProspects: total,
@@ -364,7 +381,7 @@ export function OutreachAnalyticsView() {
     for (const p of prospectsList) {
       if (p.sequence in counts) counts[p.sequence] += 1;
     }
-    return (['A', 'B', 'C'] as const).map(seq => ({
+    return (['A', 'B', 'C'] as const).map((seq) => ({
       name: SEQUENCE_LABELS[seq],
       value: counts[seq],
       fill: SEQUENCE_COLORS[seq],
@@ -428,8 +445,8 @@ export function OutreachAnalyticsView() {
           <CardContent className="pt-6 flex flex-col items-center gap-3 py-12">
             <Inbox className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              No outreach campaign data found. Run the outreach pipeline to populate
-              prospect sequences and start tracking campaign analytics here.
+              No outreach campaign data found. Run the outreach pipeline to populate prospect sequences and start
+              tracking campaign analytics here.
             </p>
             <Button variant="outline" size="sm" onClick={loadData}>
               <RefreshCw className="h-4 w-4" /> Refresh
@@ -505,9 +522,7 @@ export function OutreachAnalyticsView() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${overview.pipelineValue.toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold">${overview.pipelineValue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">closed value</p>
           </CardContent>
         </Card>
@@ -538,24 +553,15 @@ export function OutreachAnalyticsView() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Conversion Funnel</CardTitle>
-              <CardDescription>
-                Prospects progressing through each stage of the outreach campaign
-              </CardDescription>
+              <CardDescription>Prospects progressing through each stage of the outreach campaign</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={funnelData}
-                  layout="vertical"
-                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                >
+                <BarChart data={funnelData} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" allowDecimals={false} />
                   <YAxis dataKey="stage" type="category" width={90} />
-                  <Tooltip
-                    cursor={{ fill: 'transparent' }}
-                    formatter={(v) => [String(v), 'Count']}
-                  />
+                  <Tooltip cursor={{ fill: 'transparent' }} formatter={(v) => [String(v), 'Count']} />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {funnelData.map((entry, idx) => (
                       <Cell key={idx} fill={entry.fill} />
@@ -580,11 +586,7 @@ export function OutreachAnalyticsView() {
                         <span className="text-sm font-medium">{stage.stage}</span>
                       </div>
                       <span className="text-xl font-bold">{stage.count}</span>
-                      {idx > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {rate}% from previous
-                        </span>
-                      )}
+                      {idx > 0 && <span className="text-xs text-muted-foreground">{rate}% from previous</span>}
                     </div>
                   );
                 })}
@@ -599,9 +601,7 @@ export function OutreachAnalyticsView() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Sequence Performance</CardTitle>
-                <CardDescription>
-                  Emails sent, replies, meetings, and closes per sequence
-                </CardDescription>
+                <CardDescription>Emails sent, replies, meetings, and closes per sequence</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -623,22 +623,12 @@ export function OutreachAnalyticsView() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Persona Distribution</CardTitle>
-                <CardDescription>
-                  Prospect allocation across CLO, CCO, and CRO sequences
-                </CardDescription>
+                <CardDescription>Prospect allocation across CLO, CCO, and CRO sequences</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={personaData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                    >
+                    <Pie data={personaData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                       {personaData.map((entry, idx) => (
                         <Cell key={idx} fill={entry.fill} />
                       ))}
@@ -704,9 +694,7 @@ export function OutreachAnalyticsView() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  No email send history available yet.
-                </p>
+                <p className="py-12 text-center text-sm text-muted-foreground">No email send history available yet.</p>
               )}
             </CardContent>
           </Card>
@@ -735,9 +723,7 @@ export function OutreachAnalyticsView() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  No reply data available yet.
-                </p>
+                <p className="py-12 text-center text-sm text-muted-foreground">No reply data available yet.</p>
               )}
             </CardContent>
           </Card>
@@ -795,9 +781,7 @@ export function OutreachAnalyticsView() {
                   </table>
                 </div>
               ) : (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  No recent activity to display.
-                </p>
+                <p className="py-12 text-center text-sm text-muted-foreground">No recent activity to display.</p>
               )}
             </CardContent>
           </Card>

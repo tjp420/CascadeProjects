@@ -7,8 +7,10 @@
 ---
 
 ## 1. Dashboard Overview
+
 **File:** `01-dashboard-overview.png`
 **How to capture:**
+
 1. Open VS Code: with SimpleBeacon extension installed
 2. Click the SimpleBeacon icon in the Activity Bar (left sidebar)
 3. Ensure the Dashboard tab is selected (default view)
@@ -17,6 +19,7 @@
 6. Show at least 2–3 quick action buttons
 
 **Key elements to verify:**
+
 - [ ] KPI cards are fully visible and not cropped
 - [ ] Quality Score shows a realistic value (not 0 or loading)
 - [ ] Gate Status color is visible (green for pass / red for fail)
@@ -26,14 +29,17 @@
 ---
 
 ## 2. Upload & Validate Panel
+
 **File:** `02-upload-validate.png`
 **How to capture:**
+
 1. In the SimpleBeacon sidebar, click "Upload & Validate"
 2. Drag a sample `.simplebeacon/report.json` into the drop zone
 3. Wait for validation to complete (show both valid checks and errors)
 4. If no errors available, use the template download button first
 
 **Key elements to verify:**
+
 - [ ] Three-stage wizard header is visible (Drop → Validate → Results)
 - [ ] Split counters show (e.g., "Valid Checks: 12 / Errors Found: 3")
 - [ ] At least one inline error cell is visible
@@ -43,13 +49,16 @@
 ---
 
 ## 3. Remediation Roadmap
+
 **File:** `03-remediation-roadmap.png`
 **How to capture:**
+
 1. In the SimpleBeacon sidebar, click "Remediation Roadmap"
 2. Ensure at least one phase has progress > 0%
 3. Scroll to show the remediation card grid (2–3 cards)
 
 **Key elements to verify:**
+
 - [ ] Risk reduction header visible (Open Vulnerabilities, Risk Score, Completion Date)
 - [ ] Three phase swimlanes visible (Triage / Short-Term / Long-Term)
 - [ ] Progress bars show color and percentage
@@ -59,13 +68,16 @@
 ---
 
 ## 4. Gate Report Detail
+
 **File:** `04-gate-report.png`
 **How to capture:**
+
 1. Run a scan that produces at least one medium-severity finding
 2. In the sidebar, click "Gate Report" or view the scan results panel
 3. Expand one finding to show full detail
 
 **Key elements to verify:**
+
 - [ ] Gate pass/fail banner is visible at top
 - [ ] Issue list shows severity icons
 - [ ] At least one expanded finding shows file path + line number
@@ -75,13 +87,16 @@
 ---
 
 ## 5. Settings / Configuration
+
 **File:** `05-settings-configuration.png`
 **How to capture:**
+
 1. Open VS Code: Settings (File → Preferences → Settings)
 2. Search "simplebeacon" in the settings search box
 3. Show the SimpleBeacon configuration section
 
 **Key elements to verify:**
+
 - [ ] Settings search bar shows "simplebeacon"
 - [ ] At least 5–6 settings are visible (scan mode, max files, exclusions, etc.)
 - [ ] Descriptions are readable
@@ -92,6 +107,7 @@
 ## Capture Tools
 
 **Recommended:**
+
 - Windows: `Win + Shift + S` (Snipping Tool) → select exact 1280×800 region
 - macOS: `Cmd + Shift + 4` + hold `Space` for window capture
 - Browser extension: GoFullPage or similar for web dashboard captures

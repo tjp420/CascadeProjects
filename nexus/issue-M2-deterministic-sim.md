@@ -4,6 +4,7 @@
 Build a deterministic, replayable simulation core with checkpointing and rollback.
 
 **Description**
+
 - Deterministic engine API (step(), runUntil(), snapshot()).
 - Checkpoint frames: immutable frames, delta-compressed storage.
 - Rollback and validation harness to assert bit-exact replay.
@@ -13,6 +14,7 @@ Build a deterministic, replayable simulation core with checkpointing and rollbac
 **Dependencies**: M1 (node model)
 
 **Acceptance criteria**
+
 - Able to run a simulation scenario and produce a checkpoint
 - Replaying from the checkpoint reproduces identical output
 - Storage layer supports efficient delta checkpointing

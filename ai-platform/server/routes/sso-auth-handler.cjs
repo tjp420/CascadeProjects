@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * SSO Authentication Handler — Live OIDC + SAML 2.0 Protocol Flows
@@ -14,14 +14,14 @@
  * @module sso-auth-handler
  */
 
-const crypto = require('crypto');
-const https = require('https');
-const { URL, URLSearchParams } = require('url');
-const logger = require('../lib/app-logger.cjs');
-const ssoConfigStore = require('../lib/sso-config-store.cjs');
-const { generateToken } = require('../lib/auth/token-service.cjs');
-const auditStore = require('../lib/enterprise-audit-store.cjs');
-const ssoHardening = require('../lib/sso-production-hardening.cjs');
+const crypto = require("crypto");
+const https = require("https");
+const { URL, URLSearchParams } = require("url");
+const logger = require("../lib/app-logger.cjs");
+const ssoConfigStore = require("../lib/sso-config-store.cjs");
+const { generateToken } = require("../lib/auth/token-service.cjs");
+const auditStore = require("../lib/enterprise-audit-store.cjs");
+const ssoHardening = require("../lib/sso-production-hardening.cjs");
 
 // ── Open redirect prevention ────────────────────────────────────────────────
 
@@ -31,13 +31,13 @@ const ssoHardening = require('../lib/sso-production-hardening.cjs');
  * cannot redirect to arbitrary external HTTP URLs.
  */
 function isSafeRedirectUrl(target) {
-  if (!target || typeof target !== 'string') return false;
+  if (!target || typeof target !== "string") return false;
   // Relative URLs (e.g. /dashboard) are safe
-  if (target.startsWith('/') && !target.startsWith('//')) return true;
+  if (target.startsWith("/") && !target.startsWith("//")) return true;
   try {
     const parsed = new URL(target);
     // Only HTTPS redirects to external hosts are allowed
-    return parsed.protocol === 'https:';
+    return parsed.protocol === "https:";
   } catch {
     return false;
   }
@@ -54,7 +54,7 @@ function safeRedirect(res, target) {
     return res.status(302).end();
   }
   logger.warn(`[SSO] Blocked unsafe redirect to: ${target}`);
-  res.location('/dashboard');
+  res.location("/dashboard");
   return res.status(302).end();
 }
 
@@ -64,19 +64,19 @@ const stateStore = new Map();
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 function generateState() {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 function generateNonce() {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 function generatePKCEVerifier() {
-  return crypto.randomBytes(48).toString('base64url');
+  return crypto.randomBytes(48).toString("base64url");
 }
 
 function pkceVerifierToChallenge(verifier) {
-  return crypto.createHash('sha256').update(verifier).digest('base64url');
+  return crypto.createHash("sha256").update(verifier).digest("base64url");
 }
 
 function storeState(state, data) {
@@ -100,22 +100,25 @@ function consumeState(state) {
 function httpsPost(url, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
-    const postData = typeof body === 'string' ? body : new URLSearchParams(body).toString();
+    const postData =
+      typeof body === "string" ? body : new URLSearchParams(body).toString();
     const options = {
       hostname: parsed.hostname,
       port: parsed.port || 443,
       path: parsed.pathname + parsed.search,
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData),
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Length": Buffer.byteLength(postData),
         ...headers,
       },
     };
     const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => {
         try {
           const json = JSON.parse(data);
           resolve({ status: res.statusCode, data: json });
@@ -124,7 +127,7 @@ function httpsPost(url, body, headers = {}) {
         }
       });
     });
-    req.on('error', reject);
+    req.on("error", reject);
     req.write(postData);
     req.end();
   });
@@ -137,16 +140,18 @@ function httpsGet(url, accessToken) {
       hostname: parsed.hostname,
       port: parsed.port || 443,
       path: parsed.pathname + parsed.search,
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
       },
     };
     const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      res.on("end", () => {
         try {
           const json = JSON.parse(data);
           resolve({ status: res.statusCode, data: json });
@@ -155,7 +160,7 @@ function httpsGet(url, accessToken) {
         }
       });
     });
-    req.on('error', reject);
+    req.on("error", reject);
     req.end();
   });
 }
@@ -169,10 +174,10 @@ async function fetchOidcDiscovery(issuerUrl) {
     const cached = discoveryCache.get(issuerUrl);
     if (Date.now() - cached.fetchedAt < 60 * 60 * 1000) return cached.doc;
   }
-  const discoveryUrl = issuerUrl.endsWith('/')
-    ? issuerUrl + '.well-known/openid-configuration'
-    : issuerUrl + '/.well-known/openid-configuration';
-  const result = await httpsGet(discoveryUrl, '');
+  const discoveryUrl = issuerUrl.endsWith("/")
+    ? issuerUrl + ".well-known/openid-configuration"
+    : issuerUrl + "/.well-known/openid-configuration";
+  const result = await httpsGet(discoveryUrl, "");
   if (result.status !== 200) {
     throw new Error(`OIDC discovery failed: ${result.status}`);
   }
@@ -183,22 +188,26 @@ async function fetchOidcDiscovery(issuerUrl) {
 // ── ID Token Validation ─────────────────────────────────────────────────────
 
 function validateIdToken(idToken, config, expectedNonce) {
-  const parts = idToken.split('.');
-  if (parts.length !== 3) throw new Error('Invalid ID token format');
-  const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
-  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+  const parts = idToken.split(".");
+  if (parts.length !== 3) throw new Error("Invalid ID token format");
+  const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
+  const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
 
   if (payload.iss && payload.iss !== config.oidc.issuer) {
-    throw new Error(`ID token issuer mismatch: ${payload.iss} != ${config.oidc.issuer}`);
+    throw new Error(
+      `ID token issuer mismatch: ${payload.iss} != ${config.oidc.issuer}`,
+    );
   }
   if (payload.aud && payload.aud !== config.oidc.clientId) {
-    throw new Error(`ID token audience mismatch: ${payload.aud} != ${config.oidc.clientId}`);
+    throw new Error(
+      `ID token audience mismatch: ${payload.aud} != ${config.oidc.clientId}`,
+    );
   }
   if (expectedNonce && payload.nonce !== expectedNonce) {
-    throw new Error('ID token nonce mismatch — possible replay attack');
+    throw new Error("ID token nonce mismatch — possible replay attack");
   }
   if (payload.exp && payload.exp * 1000 < Date.now()) {
-    throw new Error('ID token expired');
+    throw new Error("ID token expired");
   }
 
   return payload;
@@ -207,21 +216,25 @@ function validateIdToken(idToken, config, expectedNonce) {
 // ── User Provisioning ───────────────────────────────────────────────────────
 
 function provisionSsoUser(userInfo, config) {
-  const email = userInfo.email || userInfo['email'] || userInfo.preferred_username;
-  if (!email) throw new Error('No email returned from IdP');
+  const email =
+    userInfo.email || userInfo["email"] || userInfo.preferred_username;
+  if (!email) throw new Error("No email returned from IdP");
 
-  const name = userInfo.name || `${userInfo.given_name || ''} ${userInfo.family_name || ''}`.trim() || email;
-  const orgId = config.orgId || 'sso';
-  const userId = `sso:${orgId}:${crypto.createHash('sha256').update(email).digest('hex').slice(0, 16)}`;
+  const name =
+    userInfo.name ||
+    `${userInfo.given_name || ""} ${userInfo.family_name || ""}`.trim() ||
+    email;
+  const orgId = config.orgId || "sso";
+  const userId = `sso:${orgId}:${crypto.createHash("sha256").update(email).digest("hex").slice(0, 16)}`;
 
   return {
     id: userId,
     email,
     name,
-    trustLevel: 'silver',
-    role: 'sso-user',
-    tier: 'enterprise',
-    features: ['sso', 'enterprise_dashboard', 'compliance_scan'],
+    trustLevel: "silver",
+    role: "sso-user",
+    tier: "enterprise",
+    features: ["sso", "enterprise_dashboard", "compliance_scan"],
     ssoProviderId: config.providerId,
     ssoOrgId: orgId,
   };
@@ -231,11 +244,11 @@ function provisionSsoUser(userInfo, config) {
 
 async function initiateOidcLogin(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return sendError(res, 400, 'providerId required');
+  if (!providerId) return sendError(res, 400, "providerId required");
 
   const config = ssoConfigStore.getConfigDecrypted(providerId);
-  if (!config || !config.enabled || config.method !== 'oidc') {
-    return sendError(res, 404, 'OIDC provider not found or disabled');
+  if (!config || !config.enabled || config.method !== "oidc") {
+    return sendError(res, 404, "OIDC provider not found or disabled");
   }
 
   try {
@@ -245,7 +258,8 @@ async function initiateOidcLogin(req, res) {
     const pkceVerifier = generatePKCEVerifier();
     const pkceChallenge = pkceVerifierToChallenge(pkceVerifier);
 
-    const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const appBaseUrl =
+      process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
     const redirectUri = `${appBaseUrl}/api/sso/oidc/callback`;
 
     storeState(state, {
@@ -253,26 +267,27 @@ async function initiateOidcLogin(req, res) {
       nonce,
       pkceVerifier,
       redirectUri,
-      method: 'oidc',
+      method: "oidc",
     });
 
     const authParams = new URLSearchParams({
-      response_type: 'code',
+      response_type: "code",
       client_id: config.oidc.clientId,
       redirect_uri: redirectUri,
       state,
       nonce,
-      scope: config.oidc.scope || 'openid profile email',
+      scope: config.oidc.scope || "openid profile email",
       code_challenge: pkceChallenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: "S256",
     });
 
-    const authUrl = discovery.authorization_endpoint + '?' + authParams.toString();
+    const authUrl =
+      discovery.authorization_endpoint + "?" + authParams.toString();
     logger.info(`[SSO] Initiating OIDC login for provider ${providerId}`);
     safeRedirect(res, authUrl);
   } catch (err) {
-    logger.error('[SSO] OIDC initiation failed:', err.message);
-    sendError(res, 500, 'OIDC initiation failed', { message: err.message });
+    logger.error("[SSO] OIDC initiation failed:", err.message);
+    sendError(res, 500, "OIDC initiation failed", { message: err.message });
   }
 }
 
@@ -283,22 +298,25 @@ async function oidcCallback(req, res) {
 
   if (error) {
     logger.warn(`[SSO] OIDC callback error: ${error} — ${error_description}`);
-    const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    return safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent(error)}`);
+    const frontendUrl = process.env.DASHBOARD_URL || "/dashboard";
+    return safeRedirect(
+      res,
+      `${frontendUrl}?sso_error=${encodeURIComponent(error)}`,
+    );
   }
 
   if (!code || !state) {
-    return sendError(res, 400, 'Missing code or state parameter');
+    return sendError(res, 400, "Missing code or state parameter");
   }
 
   const stateData = consumeState(state);
-  if (!stateData || stateData.method !== 'oidc') {
-    return sendError(res, 400, 'Invalid or expired state');
+  if (!stateData || stateData.method !== "oidc") {
+    return sendError(res, 400, "Invalid or expired state");
   }
 
   const config = ssoConfigStore.getConfigDecrypted(stateData.providerId);
   if (!config) {
-    return sendError(res, 404, 'SSO provider configuration not found');
+    return sendError(res, 404, "SSO provider configuration not found");
   }
 
   try {
@@ -306,16 +324,18 @@ async function oidcCallback(req, res) {
 
     // Exchange authorization code for tokens
     const tokenResponse = await httpsPost(discovery.token_endpoint, {
-      grant_type: 'authorization_code',
+      grant_type: "authorization_code",
       code,
       redirect_uri: stateData.redirectUri,
       client_id: config.oidc.clientId,
-      client_secret: config.oidc._decryptedSecret || '',
+      client_secret: config.oidc._decryptedSecret || "",
       code_verifier: stateData.pkceVerifier,
     });
 
     if (tokenResponse.status !== 200) {
-      throw new Error(`Token exchange failed: ${tokenResponse.status} — ${JSON.stringify(tokenResponse.data)}`);
+      throw new Error(
+        `Token exchange failed: ${tokenResponse.status} — ${JSON.stringify(tokenResponse.data)}`,
+      );
     }
 
     const tokens = tokenResponse.data;
@@ -324,27 +344,45 @@ async function oidcCallback(req, res) {
     let idTokenPayload = null;
     if (tokens.id_token) {
       idTokenPayload = await ssoHardening.validateIdTokenProduction(
-        tokens.id_token, config, discovery, stateData.nonce,
-        config.oidc._decryptedSecret || ''
+        tokens.id_token,
+        config,
+        discovery,
+        stateData.nonce,
+        config.oidc._decryptedSecret || "",
       );
     }
 
     // Fetch userinfo — use Microsoft Graph for Azure AD, standard OIDC userinfo otherwise
     let userInfo = {};
     if (tokens.access_token) {
-      if (config.providerType === 'azure_ad' || (config.oidc && config.oidc.tenantId)) {
+      if (
+        config.providerType === "azure_ad" ||
+        (config.oidc && config.oidc.tenantId)
+      ) {
         // Azure AD: use Microsoft Graph API for richer user info
         try {
-          userInfo = await ssoHardening.fetchMicrosoftGraphUser(tokens.access_token);
+          userInfo = await ssoHardening.fetchMicrosoftGraphUser(
+            tokens.access_token,
+          );
         } catch (graphErr) {
-          logger.warn('[SSO] Microsoft Graph userinfo failed, falling back to OIDC userinfo:', graphErr.message);
+          logger.warn(
+            "[SSO] Microsoft Graph userinfo failed, falling back to OIDC userinfo:",
+            graphErr.message,
+          );
           if (discovery.userinfo_endpoint) {
-            const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
-            if (userInfoResponse.status === 200) userInfo = userInfoResponse.data;
+            const userInfoResponse = await httpsGet(
+              discovery.userinfo_endpoint,
+              tokens.access_token,
+            );
+            if (userInfoResponse.status === 200)
+              userInfo = userInfoResponse.data;
           }
         }
       } else if (discovery.userinfo_endpoint) {
-        const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
+        const userInfoResponse = await httpsGet(
+          discovery.userinfo_endpoint,
+          tokens.access_token,
+        );
         if (userInfoResponse.status === 200) {
           userInfo = userInfoResponse.data;
         }
@@ -357,7 +395,7 @@ async function oidcCallback(req, res) {
     }
 
     if (!userInfo.email && !userInfo.preferred_username) {
-      throw new Error('No email claim in ID token or userinfo response');
+      throw new Error("No email claim in ID token or userinfo response");
     }
 
     // Provision user and issue JWT
@@ -367,30 +405,35 @@ async function oidcCallback(req, res) {
     // Audit log
     try {
       auditStore.appendAuditEntry({
-        action: 'sso_login_success',
+        action: "sso_login_success",
         orgId: config.orgId,
         actor: user.email,
         details: {
           providerId: config.providerId,
-          method: 'oidc',
+          method: "oidc",
           issuer: config.oidc.issuer,
         },
         timestamp: new Date().toISOString(),
       });
     } catch (auditErr) {
-      logger.warn('[SSO] Audit log write failed:', auditErr.message);
+      logger.warn("[SSO] Audit log write failed:", auditErr.message);
     }
 
-    logger.info(`[SSO] OIDC login success: ${user.email} via ${config.providerId}`);
+    logger.info(
+      `[SSO] OIDC login success: ${user.email} via ${config.providerId}`,
+    );
 
     // Redirect to frontend with token
-    const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
+    const frontendUrl = process.env.DASHBOARD_URL || "/dashboard";
     const redirectUrl = `${frontendUrl}?sso_token=${encodeURIComponent(jwt)}&sso_provider=${encodeURIComponent(config.providerId)}`;
     safeRedirect(res, redirectUrl);
   } catch (err) {
-    logger.error('[SSO] OIDC callback failed:', err.message);
-    const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('oidc_callback_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    logger.error("[SSO] OIDC callback failed:", err.message);
+    const frontendUrl = process.env.DASHBOARD_URL || "/dashboard";
+    safeRedirect(
+      res,
+      `${frontendUrl}?sso_error=${encodeURIComponent("oidc_callback_failed")}&sso_message=${encodeURIComponent(err.message)}`,
+    );
   }
 }
 
@@ -398,22 +441,24 @@ async function oidcCallback(req, res) {
 
 async function initiateSamlLogin(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return sendError(res, 400, 'providerId required');
+  if (!providerId) return sendError(res, 400, "providerId required");
 
   const config = ssoConfigStore.getConfigDecrypted(providerId);
-  if (!config || !config.enabled || config.method !== 'saml') {
-    return sendError(res, 404, 'SAML provider not found or disabled');
+  if (!config || !config.enabled || config.method !== "saml") {
+    return sendError(res, 404, "SAML provider not found or disabled");
   }
 
   try {
     const state = generateState();
-    const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const appBaseUrl =
+      process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
     const acsUrl = `${appBaseUrl}/api/sso/saml/acs`;
-    const entityId = config.saml.issuer || process.env.APP_NAME || 'simplebeacon';
+    const entityId =
+      config.saml.issuer || process.env.APP_NAME || "simplebeacon";
 
     storeState(state, {
       providerId,
-      method: 'saml',
+      method: "saml",
       acsUrl,
     });
 
@@ -429,19 +474,19 @@ async function initiateSamlLogin(req, res) {
     const entryPoint = config.saml.entryPoint;
 
     // Redirect to IdP with SAMLRequest and RelayState
-    const redirectUrl = `${entryPoint}?SAMLRequest=${encodeURIComponent(Buffer.from(samlRequest).toString('base64'))}&RelayState=${relayState}`;
+    const redirectUrl = `${entryPoint}?SAMLRequest=${encodeURIComponent(Buffer.from(samlRequest).toString("base64"))}&RelayState=${relayState}`;
     logger.info(`[SSO] Initiating SAML login for provider ${providerId}`);
     safeRedirect(res, redirectUrl);
   } catch (err) {
-    logger.error('[SSO] SAML initiation failed:', err.message);
-    sendError(res, 500, 'SAML initiation failed', { message: err.message });
+    logger.error("[SSO] SAML initiation failed:", err.message);
+    sendError(res, 500, "SAML initiation failed", { message: err.message });
   }
 }
 
 // ── SAML AuthnRequest Builder ───────────────────────────────────────────────
 
 function buildSamlAuthnRequest({ entityId, acsUrl, providerId, issuer }) {
-  const id = '_' + crypto.randomBytes(16).toString('hex');
+  const id = "_" + crypto.randomBytes(16).toString("hex");
   const issueInstant = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>
 <samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
@@ -462,7 +507,7 @@ async function samlAcs(req, res) {
   const { SAMLResponse, RelayState } = req.body || {};
 
   if (!SAMLResponse) {
-    return sendError(res, 400, 'Missing SAMLResponse');
+    return sendError(res, 400, "Missing SAMLResponse");
   }
 
   let stateData = null;
@@ -470,18 +515,18 @@ async function samlAcs(req, res) {
     stateData = consumeState(RelayState);
   }
 
-  if (!stateData || stateData.method !== 'saml') {
-    return sendError(res, 400, 'Invalid or expired RelayState');
+  if (!stateData || stateData.method !== "saml") {
+    return sendError(res, 400, "Invalid or expired RelayState");
   }
 
   const config = ssoConfigStore.getConfigDecrypted(stateData.providerId);
   if (!config) {
-    return sendError(res, 404, 'SSO provider configuration not found');
+    return sendError(res, 404, "SSO provider configuration not found");
   }
 
   try {
     // Decode and parse SAML response
-    const samlXml = Buffer.from(SAMLResponse, 'base64').toString('utf8');
+    const samlXml = Buffer.from(SAMLResponse, "base64").toString("utf8");
     const assertion = parseSamlAssertion(samlXml, config);
 
     // Provision user and issue JWT
@@ -491,29 +536,34 @@ async function samlAcs(req, res) {
     // Audit log
     try {
       auditStore.appendAuditEntry({
-        action: 'sso_login_success',
+        action: "sso_login_success",
         orgId: config.orgId,
         actor: user.email,
         details: {
           providerId: config.providerId,
-          method: 'saml',
+          method: "saml",
           entryPoint: config.saml.entryPoint,
         },
         timestamp: new Date().toISOString(),
       });
     } catch (auditErr) {
-      logger.warn('[SSO] Audit log write failed:', auditErr.message);
+      logger.warn("[SSO] Audit log write failed:", auditErr.message);
     }
 
-    logger.info(`[SSO] SAML login success: ${user.email} via ${config.providerId}`);
+    logger.info(
+      `[SSO] SAML login success: ${user.email} via ${config.providerId}`,
+    );
 
-    const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
+    const frontendUrl = process.env.DASHBOARD_URL || "/dashboard";
     const redirectUrl = `${frontendUrl}?sso_token=${encodeURIComponent(jwt)}&sso_provider=${encodeURIComponent(config.providerId)}`;
     safeRedirect(res, redirectUrl);
   } catch (err) {
-    logger.error('[SSO] SAML ACS failed:', err.message);
-    const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('saml_acs_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    logger.error("[SSO] SAML ACS failed:", err.message);
+    const frontendUrl = process.env.DASHBOARD_URL || "/dashboard";
+    safeRedirect(
+      res,
+      `${frontendUrl}?sso_error=${encodeURIComponent("saml_acs_failed")}&sso_message=${encodeURIComponent(err.message)}`,
+    );
   }
 }
 
@@ -521,44 +571,58 @@ async function samlAcs(req, res) {
 
 function parseSamlAssertion(xml, config) {
   // Basic SAML response validation
-  if (!xml.includes('<samlp:Response') && !xml.includes('<Response')) {
-    throw new Error('Invalid SAML response: missing Response element');
+  if (!xml.includes("<samlp:Response") && !xml.includes("<Response")) {
+    throw new Error("Invalid SAML response: missing Response element");
   }
 
   // Production: validate XML digital signature if IdP certificate is configured
   if (config.saml && config.saml._decryptedCert) {
-    const sigResult = ssoHardening.validateSamlSignature(xml, config.saml._decryptedCert);
+    const sigResult = ssoHardening.validateSamlSignature(
+      xml,
+      config.saml._decryptedCert,
+    );
     if (!sigResult.valid) {
-      logger.warn('[SSO] SAML signature validation failed:', sigResult.reason);
+      logger.warn("[SSO] SAML signature validation failed:", sigResult.reason);
       // In production, reject unsigned/unverified assertions
       if (config.saml.signatureRequired !== false) {
-        throw new Error(`SAML signature validation failed: ${sigResult.reason}`);
+        throw new Error(
+          `SAML signature validation failed: ${sigResult.reason}`,
+        );
       }
     } else {
-      logger.info('[SSO] SAML signature verified successfully');
+      logger.info("[SSO] SAML signature verified successfully");
     }
   } else if (config.saml && config.saml.signatureRequired !== false) {
-    throw new Error('SAML signature required but no IdP certificate configured');
+    throw new Error(
+      "SAML signature required but no IdP certificate configured",
+    );
   }
 
   // Check for status success
-  if (xml.includes('<samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:')) {
-    const statusMatch = xml.match(/StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:([^"]+)"/);
-    if (statusMatch && statusMatch[1] !== 'Success') {
+  if (
+    xml.includes('<samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:')
+  ) {
+    const statusMatch = xml.match(
+      /StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:([^"]+)"/,
+    );
+    if (statusMatch && statusMatch[1] !== "Success") {
       throw new Error(`SAML response status: ${statusMatch[1]}`);
     }
   }
 
   // Extract NameID (email)
-  const nameIdMatch = xml.match(/<saml:NameID[^>]*>([^<]+)<\/saml:NameID>/) ||
-                      xml.match(/<NameID[^>]*>([^<]+)<\/NameID>/);
+  const nameIdMatch =
+    xml.match(/<saml:NameID[^>]*>([^<]+)<\/saml:NameID>/) ||
+    xml.match(/<NameID[^>]*>([^<]+)<\/NameID>/);
   const email = nameIdMatch ? nameIdMatch[1] : null;
-  if (!email) throw new Error('No NameID found in SAML assertion');
+  if (!email) throw new Error("No NameID found in SAML assertion");
 
   // Extract attributes
   const attributes = {};
-  const attrRegex = /<saml:Attribute Name="([^"]+)"[^>]*>\s*<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/g;
-  const attrRegex2 = /<Attribute Name="([^"]+)"[^>]*>\s*<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/g;
+  const attrRegex =
+    /<saml:Attribute Name="([^"]+)"[^>]*>\s*<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/g;
+  const attrRegex2 =
+    /<Attribute Name="([^"]+)"[^>]*>\s*<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/g;
   for (const regex of [attrRegex, attrRegex2]) {
     let match;
     while ((match = regex.exec(xml)) !== null) {
@@ -567,40 +631,66 @@ function parseSamlAssertion(xml, config) {
   }
 
   // Check conditions (NotBefore / NotOnOrAfter)
-  const conditionsMatch = xml.match(/<saml:Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/) ||
-                          xml.match(/<Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/);
+  const conditionsMatch =
+    xml.match(
+      /<saml:Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/,
+    ) ||
+    xml.match(/<Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/);
   if (conditionsMatch) {
     const notBefore = new Date(conditionsMatch[1]);
     const notOnOrAfter = new Date(conditionsMatch[2]);
     const now = new Date();
     if (now < notBefore || now >= notOnOrAfter) {
-      throw new Error(`SAML assertion outside valid time window: ${conditionsMatch[1]} to ${conditionsMatch[2]}`);
+      throw new Error(
+        `SAML assertion outside valid time window: ${conditionsMatch[1]} to ${conditionsMatch[2]}`,
+      );
     }
   }
 
   // Check audience
-  const audienceMatch = xml.match(/<saml:Audience[^>]*>([^<]+)<\/saml:Audience>/) ||
-                        xml.match(/<Audience[^>]*>([^<]+)<\/Audience>/);
+  const audienceMatch =
+    xml.match(/<saml:Audience[^>]*>([^<]+)<\/saml:Audience>/) ||
+    xml.match(/<Audience[^>]*>([^<]+)<\/Audience>/);
   if (audienceMatch) {
-    const expectedAudience = config.saml.issuer || process.env.APP_NAME || 'simplebeacon';
+    const expectedAudience =
+      config.saml.issuer || process.env.APP_NAME || "simplebeacon";
     if (audienceMatch[1] !== expectedAudience) {
-      throw new Error(`SAML audience mismatch: ${audienceMatch[1]} != ${expectedAudience}`);
+      throw new Error(
+        `SAML audience mismatch: ${audienceMatch[1]} != ${expectedAudience}`,
+      );
     }
   }
 
   // Map common SAML attribute names
   return {
     email,
-    name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-          attributes.name ||
-          attributes.cn ||
-          email,
-    given_name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ||
-                attributes.givenname || attributes.firstname || '',
-    family_name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] ||
-                 attributes.surname || attributes.lastname || '',
-    preferred_username: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
-                        attributes.email || email,
+    name:
+      attributes[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+      ] ||
+      attributes.name ||
+      attributes.cn ||
+      email,
+    given_name:
+      attributes[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+      ] ||
+      attributes.givenname ||
+      attributes.firstname ||
+      "",
+    family_name:
+      attributes[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+      ] ||
+      attributes.surname ||
+      attributes.lastname ||
+      "",
+    preferred_username:
+      attributes[
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+      ] ||
+      attributes.email ||
+      email,
   };
 }
 
@@ -608,7 +698,7 @@ function parseSamlAssertion(xml, config) {
 
 async function resolveSsoByDomain(req, res) {
   const { email } = req.query;
-  if (!email) return sendError(res, 400, 'email parameter required');
+  if (!email) return sendError(res, 400, "email parameter required");
 
   const config = ssoConfigStore.resolveConfigByDomain(email);
   if (!config) {
@@ -628,16 +718,17 @@ async function resolveSsoByDomain(req, res) {
 
 async function samlMetadata(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return sendError(res, 400, 'providerId required');
+  if (!providerId) return sendError(res, 400, "providerId required");
 
   const config = ssoConfigStore.getConfig(providerId);
-  if (!config || config.method !== 'saml') {
-    return sendError(res, 404, 'SAML provider not found');
+  if (!config || config.method !== "saml") {
+    return sendError(res, 404, "SAML provider not found");
   }
 
-  const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const appBaseUrl =
+    process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
   const acsUrl = `${appBaseUrl}/api/sso/saml/acs`;
-  const entityId = config.saml.issuer || process.env.APP_NAME || 'simplebeacon';
+  const entityId = config.saml.issuer || process.env.APP_NAME || "simplebeacon";
 
   const metadata = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
@@ -651,30 +742,30 @@ async function samlMetadata(req, res) {
   </SPSSODescriptor>
 </EntityDescriptor>`;
 
-  res.set('Content-Type', 'application/xml');
+  res.set("Content-Type", "application/xml");
   res.send(metadata);
 }
 
 // ── Express Router Setup ────────────────────────────────────────────────────
 
-const express = require('express');
-const { sendError } = require('../lib/response-helpers.cjs');
+const express = require("express");
+const { sendError } = require("../lib/response-helpers.cjs");
 const router = express.Router();
 
 // OIDC routes
-router.get('/oidc/login', initiateOidcLogin);
-router.get('/oidc/callback', oidcCallback);
+router.get("/oidc/login", initiateOidcLogin);
+router.get("/oidc/callback", oidcCallback);
 
 // SAML routes
-router.get('/saml/login', initiateSamlLogin);
-router.post('/saml/acs', express.urlencoded({ extended: false }), samlAcs);
-router.get('/saml/metadata', samlMetadata);
+router.get("/saml/login", initiateSamlLogin);
+router.post("/saml/acs", express.urlencoded({ extended: false }), samlAcs);
+router.get("/saml/metadata", samlMetadata);
 
 // Domain resolution (for login page auto-detection)
-router.get('/resolve', resolveSsoByDomain);
+router.get("/resolve", resolveSsoByDomain);
 
 // Provider presets (for UI-guided SSO configuration)
-router.get('/presets', (req, res) => {
+router.get("/presets", (req, res) => {
   res.json({ success: true, presets: ssoHardening.PROVIDER_PRESETS });
 });
 

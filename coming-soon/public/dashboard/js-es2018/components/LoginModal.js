@@ -65,7 +65,8 @@ export function showLoginModal({ onSuccess } = {}) {
     recoveryBtn.type = 'button';
     recoveryBtn.className = 'btn btn-secondary btn-block';
     recoveryBtn.id = 'login-recovery-btn';
-    recoveryBtn.style.cssText = 'margin-top:8px;background:var(--warning-bg,#fef3c7);color:var(--warning,#f59e0b);border-color:var(--warning,#f59e0b);';
+    recoveryBtn.style.cssText =
+        'margin-top:8px;background:var(--warning-bg,#fef3c7);color:var(--warning,#f59e0b);border-color:var(--warning,#f59e0b);';
     recoveryBtn.textContent = '🔐 Account Recovery';
     form.appendChild(label);
     form.appendChild(input);
@@ -79,7 +80,7 @@ export function showLoginModal({ onSuccess } = {}) {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     const errorEl = overlay.querySelector('#login-error');
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async e => {
         var _a;
         e.preventDefault();
         const token = overlay.querySelector('#login-token').value.trim();
@@ -91,14 +92,18 @@ export function showLoginModal({ onSuccess } = {}) {
         }
         if (authService.isTokenActivated(token)) {
             const binding = authService.getTokenBinding(token);
-            const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
+            const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email)
+                ? ` (${binding.email})`
+                : '';
             overlay.remove();
             showToast(`This token is registered to an account${emailHint}. Redirecting to email sign-in.`, 'info');
             window.location.hash = '#/signin';
             return;
         }
         try {
-            const password = ((_a = overlay.querySelector('#login-token-password')) === null || _a === void 0 ? void 0 : _a.value) || '';
+            const password =
+                ((_a = overlay.querySelector('#login-token-password')) === null || _a === void 0 ? void 0 : _a.value) ||
+                '';
             authService.setSession(token, { token, source: 'modal', password });
             const valid = await authService.validateSession(password ? { password } : undefined);
             if (!valid) {
@@ -107,8 +112,7 @@ export function showLoginModal({ onSuccess } = {}) {
             overlay.remove();
             showToast('Dashboard unlocked', 'success');
             onSuccess === null || onSuccess === void 0 ? void 0 : onSuccess();
-        }
-        catch (err) {
+        } catch (err) {
             authService.clearSession();
             const message = err.message || 'Token validation failed';
             if (errorEl) {
@@ -123,8 +127,7 @@ export function showLoginModal({ onSuccess } = {}) {
     // Account Recovery — show recovery form inside the same modal
     recoveryBtn.addEventListener('click', () => {
         const existingRecovery = overlay.querySelector('#recovery-form');
-        if (existingRecovery)
-            return;
+        if (existingRecovery) return;
         // Hide login form elements
         label.style.display = 'none';
         input.style.display = 'none';
@@ -132,8 +135,7 @@ export function showLoginModal({ onSuccess } = {}) {
         passwordInput.style.display = 'none';
         submitBtn.style.display = 'none';
         recoveryBtn.style.display = 'none';
-        if (errorEl)
-            errorEl.hidden = true;
+        if (errorEl) errorEl.hidden = true;
         // Build recovery form
         const recoveryForm = document.createElement('div');
         recoveryForm.id = 'recovery-form';
@@ -184,7 +186,11 @@ export function showLoginModal({ onSuccess } = {}) {
         recoveryEmail === null || recoveryEmail === void 0 ? void 0 : recoveryEmail.focus();
         recoverySubmit.addEventListener('click', async () => {
             var _a;
-            const email = (_a = recoveryEmail === null || recoveryEmail === void 0 ? void 0 : recoveryEmail.value) === null || _a === void 0 ? void 0 : _a.trim();
+            const email =
+                (_a = recoveryEmail === null || recoveryEmail === void 0 ? void 0 : recoveryEmail.value) === null ||
+                _a === void 0
+                    ? void 0
+                    : _a.trim();
             if (!email) {
                 recoveryStatus.textContent = 'Please enter an email address.';
                 recoveryStatus.style.color = 'var(--error)';
@@ -197,14 +203,14 @@ export function showLoginModal({ onSuccess } = {}) {
                 if (data.success) {
                     recoveryStatus.textContent = 'Recovery link sent! Check your inbox.';
                     recoveryStatus.style.color = 'var(--success)';
-                    setTimeout(() => { recoveryBack.click(); }, 2500);
-                }
-                else {
+                    setTimeout(() => {
+                        recoveryBack.click();
+                    }, 2500);
+                } else {
                     recoveryStatus.textContent = data.error || 'Failed to send recovery link.';
                     recoveryStatus.style.color = 'var(--error)';
                 }
-            }
-            catch (_b) {
+            } catch (_b) {
                 recoveryStatus.textContent = 'Network error. Please try again.';
                 recoveryStatus.style.color = 'var(--error)';
             }
@@ -217,8 +223,7 @@ export function showLoginModal({ onSuccess } = {}) {
             passwordInput.style.display = '';
             submitBtn.style.display = '';
             recoveryBtn.style.display = '';
-            if (errorEl)
-                errorEl.hidden = true;
+            if (errorEl) errorEl.hidden = true;
             input.focus();
         });
     });

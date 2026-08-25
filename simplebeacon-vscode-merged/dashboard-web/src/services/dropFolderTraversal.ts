@@ -168,10 +168,11 @@ export async function collectFilesFromDrop(
     }
   }
 
-  const firstRel = files[0]?._virtualPath
-    || (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath
-    || files[0]?.name
-    || 'dropped-folder';
+  const firstRel =
+    files[0]?._virtualPath ||
+    (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath ||
+    files[0]?.name ||
+    'dropped-folder';
   const rootName = String(firstRel).split('/')[0] || 'dropped-folder';
 
   return { files, rootName, traverseErrors: state.errors };

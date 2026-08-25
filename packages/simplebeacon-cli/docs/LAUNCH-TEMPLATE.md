@@ -34,11 +34,11 @@ Deterministic static analysis for **AI-assisted development risks**: fiction KPI
 
 ## Primary delivery model (2026)
 
-| Model | Who runs scan | Code location |
-|-------|---------------|---------------|
-| **CLI in client CI** (default) | Client | Client runner / Docker |
-| **Docker on client VPC** | Client ops | Client infrastructure |
-| **Consultant PDF** (optional) | Client runs CLI; shares JSON report only | Never required to send source |
+| Model                          | Who runs scan                            | Code location                 |
+| ------------------------------ | ---------------------------------------- | ----------------------------- |
+| **CLI in client CI** (default) | Client                                   | Client runner / Docker        |
+| **Docker on client VPC**       | Client ops                               | Client infrastructure         |
+| **Consultant PDF** (optional)  | Client runs CLI; shares JSON report only | Never required to send source |
 
 Legacy ZIP-to-founder workflow is **deprecated** — do not lead with it in sales or site copy.
 

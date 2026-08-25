@@ -32,16 +32,23 @@ function checkRate(ip) {
 }
 
 // Periodic cleanup of rate log
-setInterval(() => {
-    const now = Date.now();
-    for (const [ip, entry] of rateLog) {
-        if (now >= entry.resetAt) rateLog.delete(ip);
-    }
-}, 5 * 60 * 1000);
+setInterval(
+    () => {
+        const now = Date.now();
+        for (const [ip, entry] of rateLog) {
+            if (now >= entry.resetAt) rateLog.delete(ip);
+        }
+    },
+    5 * 60 * 1000
+);
 
 // Try to load DB for persistent storage
 let db = null;
-try { db = require('../lib/db.cjs'); } catch (e) { db = null; }
+try {
+    db = require('../lib/db.cjs');
+} catch (e) {
+    db = null;
+}
 
 // Try to create events table if DB is available
 try {
@@ -67,7 +74,11 @@ try {
 
 function hashIp(ip) {
     const crypto = require('crypto');
-    return crypto.createHash('sha256').update(String(ip || '') + (process.env.SIMPLEBEACON_LICENSE_SECRET || 'fallback')).digest('hex').slice(0, 16);
+    return crypto
+        .createHash('sha256')
+        .update(String(ip || '') + (process.env.SIMPLEBEACON_LICENSE_SECRET || 'fallback'))
+        .digest('hex')
+        .slice(0, 16);
 }
 
 function persistEvent(eventData) {
@@ -152,7 +163,8 @@ router.get('/api/funnel/events', (req, res) => {
                 const rows = db.all(
                     `SELECT event, page, session_id, utm_source, utm_medium, utm_campaign, payload, created_at
                      FROM funnel_events ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-                    limit, offset
+                    limit,
+                    offset
                 );
                 return res.json({ events: rows, source: 'db' });
             } catch (e) {

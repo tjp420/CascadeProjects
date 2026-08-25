@@ -7,16 +7,16 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| Feature / change | Stage 2: Azure Key Vault Managed HSM Adapter |
-| Author | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/stage2-azure-keyvault-adapter` (to be created) |
-| Packages touched | ai-platform |
-| Target provider | Azure Key Vault Managed HSM ( Dedicated HSM pool, FIPS 140-2 L3 ) |
-| SDK packages | `@azure/keyvault-keys`, `@azure/keyvault-certificates`, `@azure/identity` |
-| Prerequisite | PR #119 merged (Stage 1 tracks 10-21 on `main`) |
+| Field            | Value                                                                     |
+| ---------------- | ------------------------------------------------------------------------- |
+| Feature / change | Stage 2: Azure Key Vault Managed HSM Adapter                              |
+| Author           | Devin                                                                     |
+| Date             | 2026-08-01                                                                |
+| Branch           | `feature/stage2-azure-keyvault-adapter` (to be created)                   |
+| Packages touched | ai-platform                                                               |
+| Target provider  | Azure Key Vault Managed HSM ( Dedicated HSM pool, FIPS 140-2 L3 )         |
+| SDK packages     | `@azure/keyvault-keys`, `@azure/keyvault-certificates`, `@azure/identity` |
+| Prerequisite     | PR #119 merged (Stage 1 tracks 10-21 on `main`)                           |
 
 ---
 
@@ -65,14 +65,14 @@ Use `@azure/identity` `DefaultAzureCredential` with the following chain order:
 
 ```javascript
 // azure-credential-provider.cjs
-const { DefaultAzureCredential } = require('@azure/identity');
+const { DefaultAzureCredential } = require("@azure/identity");
 
 function createCredential(options = {}) {
   // DefaultAzureCredential tries all of the above in order.
   // For Managed HSM, the credential must have the "Managed HSM Crypto User"
   // or "Managed HSM Crypto Officer" role assignment on the target pool.
   return new DefaultAzureCredential({
-    tenantId: options.tenantId,        // override for multi-tenant SP
+    tenantId: options.tenantId, // override for multi-tenant SP
     managedIdentityClientId: options.managedIdentityClientId, // user-assigned MI
   });
 }
@@ -82,12 +82,12 @@ function createCredential(options = {}) {
 
 ```javascript
 const adapter = new AzureKeyVaultAdapter({
-  vaultUrl: 'https://my-hsm.managedhsm.azure.net',
+  vaultUrl: "https://my-hsm.managedhsm.azure.net",
   credentialOptions: {
     managedIdentityClientId: process.env.AZURE_MANAGED_IDENTITY_CLIENT_ID,
   },
   // Optional: override default API version
-  apiVersion: '7.5',
+  apiVersion: "7.5",
   // Optional: retry policy
   retryOptions: {
     maxRetries: 3,
@@ -103,13 +103,13 @@ const adapter = new AzureKeyVaultAdapter({
 
 ### 2.3 Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AZURE_MANAGED_HSM_URL` | Yes | Managed HSM pool URL (e.g. `https://my-hsm.managedhsm.azure.net`) |
-| `AZURE_TENANT_ID` | SP only | Azure AD tenant ID for service principal auth |
-| `AZURE_CLIENT_ID` | SP/MI | Client ID (SP or user-assigned MI) |
-| `AZURE_CLIENT_SECRET` | SP only | Client secret for service principal auth |
-| `AZURE_MANAGED_IDENTITY_CLIENT_ID` | MI only | User-assigned managed identity client ID |
+| Variable                           | Required | Description                                                       |
+| ---------------------------------- | -------- | ----------------------------------------------------------------- |
+| `AZURE_MANAGED_HSM_URL`            | Yes      | Managed HSM pool URL (e.g. `https://my-hsm.managedhsm.azure.net`) |
+| `AZURE_TENANT_ID`                  | SP only  | Azure AD tenant ID for service principal auth                     |
+| `AZURE_CLIENT_ID`                  | SP/MI    | Client ID (SP or user-assigned MI)                                |
+| `AZURE_CLIENT_SECRET`              | SP only  | Client secret for service principal auth                          |
+| `AZURE_MANAGED_IDENTITY_CLIENT_ID` | MI only  | User-assigned managed identity client ID                          |
 
 ### 2.4 Initialization Flow
 
@@ -132,16 +132,16 @@ initialize()
 
 ### 3.1 Method-to-API Mapping
 
-| Adapter Method | Azure SDK Call | REST Endpoint | Algorithm |
-|----------------|---------------|---------------|-----------|
-| `_createKEK(tenantId, meta)` | `keyClient.createKey(name, 'AES', { size: 256, tags })` | `PUT /keys/{name}` | AES-256 |
-| `_wrap(tenantId, kekId, plaintext)` | `cryptoClient.encrypt('A256KW', plaintext)` | `POST /keys/{name}/wrapkey` | A256KW (AES-KW with 256-bit KEK) |
-| `_unwrap(tenantId, kekId, wrapped)` | `cryptoClient.decrypt('A256KW', wrapped)` | `POST /keys/{name}/unwrapkey` | A256KW |
-| `_rotateKEK(tenantId, oldKekId)` | `keyClient.rotateKey(oldKekId)` + create new | `POST /keys/{name}/rotate` | AES-256 |
-| `_listKEKs(tenantId)` | `keyClient.listPropertiesOfKeys()` filtered by tag | `GET /keys` | — |
-| `_zeroize(tenantId, kekId)` | `keyClient.beginDeleteKey(kekId)` + poll | `DELETE /keys/{name}` | — |
-| `exportKeyring(data, masterKek)` | (inherited from BaseHsmAdapter) | — | AES-KWP via `keyring-serializer.cjs` |
-| `importKeyring(envelope, masterKek)` | (inherited from BaseHsmAdapter) | — | AES-KWP via `keyring-serializer.cjs` |
+| Adapter Method                       | Azure SDK Call                                          | REST Endpoint                 | Algorithm                            |
+| ------------------------------------ | ------------------------------------------------------- | ----------------------------- | ------------------------------------ |
+| `_createKEK(tenantId, meta)`         | `keyClient.createKey(name, 'AES', { size: 256, tags })` | `PUT /keys/{name}`            | AES-256                              |
+| `_wrap(tenantId, kekId, plaintext)`  | `cryptoClient.encrypt('A256KW', plaintext)`             | `POST /keys/{name}/wrapkey`   | A256KW (AES-KW with 256-bit KEK)     |
+| `_unwrap(tenantId, kekId, wrapped)`  | `cryptoClient.decrypt('A256KW', wrapped)`               | `POST /keys/{name}/unwrapkey` | A256KW                               |
+| `_rotateKEK(tenantId, oldKekId)`     | `keyClient.rotateKey(oldKekId)` + create new            | `POST /keys/{name}/rotate`    | AES-256                              |
+| `_listKEKs(tenantId)`                | `keyClient.listPropertiesOfKeys()` filtered by tag      | `GET /keys`                   | —                                    |
+| `_zeroize(tenantId, kekId)`          | `keyClient.beginDeleteKey(kekId)` + poll                | `DELETE /keys/{name}`         | —                                    |
+| `exportKeyring(data, masterKek)`     | (inherited from BaseHsmAdapter)                         | —                             | AES-KWP via `keyring-serializer.cjs` |
+| `importKeyring(envelope, masterKek)` | (inherited from BaseHsmAdapter)                         | —                             | AES-KWP via `keyring-serializer.cjs` |
 
 ### 3.2 Key Naming Convention
 
@@ -210,14 +210,14 @@ class AuditInterceptor {
       this._audit(action, {
         operation,
         durationMs: Date.now() - start,
-        status: 'success',
+        status: "success",
       });
       return result;
     } catch (err) {
       this._audit(action, {
         operation,
         durationMs: Date.now() - start,
-        status: 'failure',
+        status: "failure",
         error: err.code || err.message,
       });
       throw err;
@@ -227,7 +227,7 @@ class AuditInterceptor {
   _audit(event, extra) {
     if (!this.logger || !this.logger.info) return;
     this.logger.info(event, {
-      sub: 'hsm-adapter',
+      sub: "hsm-adapter",
       provider: this.providerName,
       ...extra,
     });
@@ -237,16 +237,16 @@ class AuditInterceptor {
 
 ### 4.2 Audit Event Constants
 
-| Event | Trigger | Extra Fields |
-|-------|---------|--------------|
-| `CREATE_KEK` | `_createKEK` success | `tenantId`, `kekId`, `keyType`, `keySize` |
-| `WRAP` | `_wrap` success | `tenantId`, `kekId`, `plaintextLen`, `outputLen` |
-| `UNWRAP` | `_unwrap` success | `tenantId`, `kekId`, `wrappedLen`, `outputLen` |
-| `ROTATE_KEK` | `_rotateKEK` success | `tenantId`, `oldKekId`, `newKekId` |
-| `KEY_ZEROIZED` | `_zeroize` success | `tenantId`, `kekId`, `reason` |
-| `KEY_EVICTED` | eviction engine callback | `tenantId`, `kekId`, `reason` |
-| `AUTH_FAILURE` | credential chain exhausted | `tenantId?`, `error` |
-| `CONNECTION_FAILURE` | HSM unreachable | `vaultUrl`, `error` |
+| Event                | Trigger                    | Extra Fields                                     |
+| -------------------- | -------------------------- | ------------------------------------------------ |
+| `CREATE_KEK`         | `_createKEK` success       | `tenantId`, `kekId`, `keyType`, `keySize`        |
+| `WRAP`               | `_wrap` success            | `tenantId`, `kekId`, `plaintextLen`, `outputLen` |
+| `UNWRAP`             | `_unwrap` success          | `tenantId`, `kekId`, `wrappedLen`, `outputLen`   |
+| `ROTATE_KEK`         | `_rotateKEK` success       | `tenantId`, `oldKekId`, `newKekId`               |
+| `KEY_ZEROIZED`       | `_zeroize` success         | `tenantId`, `kekId`, `reason`                    |
+| `KEY_EVICTED`        | eviction engine callback   | `tenantId`, `kekId`, `reason`                    |
+| `AUTH_FAILURE`       | credential chain exhausted | `tenantId?`, `error`                             |
+| `CONNECTION_FAILURE` | HSM unreachable            | `vaultUrl`, `error`                              |
 
 ### 4.3 Sensitive Data Handling
 
@@ -272,11 +272,11 @@ Azure Key Vault Managed HSM is a dedicated, customer-isolated HSM pool that prov
 
 The adapter requires the following Azure RBAC role on the Managed HSM pool:
 
-| Role | Operations |
-|------|------------|
+| Role                       | Operations                        |
+| -------------------------- | --------------------------------- |
 | Managed HSM Crypto Officer | Create, list, rotate, delete keys |
-| Managed HSM Crypto User | Wrap, unwrap, encrypt, decrypt |
-| Managed HSM Crypto Auditor | Read audit logs (optional) |
+| Managed HSM Crypto User    | Wrap, unwrap, encrypt, decrypt    |
+| Managed HSM Crypto Auditor | Read audit logs (optional)        |
 
 ### 5.3 Network Security
 
@@ -290,16 +290,16 @@ The adapter requires the following Azure RBAC role on the Managed HSM pool:
 
 Azure SDK errors are mapped to `HsmAdapterError` codes consistent with Stage 1:
 
-| Azure Error Code | HsmAdapterError Code | Description |
-|------------------|---------------------|-------------|
-| `401` / `Unauthorized` | `AUTH_FAILURE` | Credential chain exhausted or invalid |
-| `403` / `Forbidden` | `UNAUTHORIZED_KEY_ACCESS` | Missing RBAC role assignment |
-| `404` / `KeyNotFound` | `KEK_NOT_FOUND` | Key does not exist in the vault |
-| `409` / `Conflict` | `KEK_EXISTS` | Key name collision (should not happen with random IDs) |
-| `429` / `TooManyRequests` | `RATE_LIMITED` | Azure throttling; retry with backoff |
-| `5xx` | `HSM_UNAVAILABLE` | Managed HSM service error |
-| Timeout | `CONNECTION_FAILURE` | Network timeout to HSM pool |
-| `A256KW` unsupported | `MECHANISM_INVALID` | HSM pool does not support AES-KW (should not happen on Managed HSM) |
+| Azure Error Code          | HsmAdapterError Code      | Description                                                         |
+| ------------------------- | ------------------------- | ------------------------------------------------------------------- |
+| `401` / `Unauthorized`    | `AUTH_FAILURE`            | Credential chain exhausted or invalid                               |
+| `403` / `Forbidden`       | `UNAUTHORIZED_KEY_ACCESS` | Missing RBAC role assignment                                        |
+| `404` / `KeyNotFound`     | `KEK_NOT_FOUND`           | Key does not exist in the vault                                     |
+| `409` / `Conflict`        | `KEK_EXISTS`              | Key name collision (should not happen with random IDs)              |
+| `429` / `TooManyRequests` | `RATE_LIMITED`            | Azure throttling; retry with backoff                                |
+| `5xx`                     | `HSM_UNAVAILABLE`         | Managed HSM service error                                           |
+| Timeout                   | `CONNECTION_FAILURE`      | Network timeout to HSM pool                                         |
+| `A256KW` unsupported      | `MECHANISM_INVALID`       | HSM pool does not support AES-KW (should not happen on Managed HSM) |
 
 ---
 
@@ -311,35 +311,35 @@ File: `ai-platform/server/lib/hsm-adapter/__tests__/azure-keyvault-adapter.test.
 
 All Azure SDK calls are mocked using `jest.mock()` or a custom mock layer. No real Azure credentials required.
 
-| Test | Description |
-|------|-------------|
-| `initialize resolves with valid credentials` | Mock `KeyClient.getPropertiesOfKey` → resolves |
-| `initialize rejects with AUTH_FAILURE` | Mock credential chain → 401 |
-| `initialize rejects with CONNECTION_FAILURE` | Mock `KeyClient` → timeout |
-| `createKEK returns kekId and tags tenant` | Mock `createKey` → verify name format and tags |
-| `createKEK rejects unsupported key size` | `kekBits=512` → `INVALID_KEK_BITS` |
-| `wrap returns 40-byte A256KW output` | Mock `encrypt` → verify buffer length |
-| `wrap rejects unknown KEK` | Mock `encrypt` → 404 → `KEK_NOT_FOUND` |
-| `wrap rejects non-Buffer plaintext` | Pass string → `INVALID_INPUT` |
-| `unwrap returns 32-byte plaintext` | Mock `decrypt` → verify buffer |
-| `unwrap rejects corrupted wrapped key` | Mock `decrypt` → throws |
-| `rotateKEK creates new key and returns new kekId` | Mock `rotateKey` → verify new ID |
-| `listKEKs filters by tenant tag` | Mock `listPropertiesOfKeys` → filter by `tenant` tag |
-| `zeroize deletes key and emits KEY_ZEROIZED audit` | Mock `beginDeleteKey` → verify audit log |
-| `exportKeyring inherits from BaseHsmAdapter` | Verify T10K envelope serialization works |
-| `importKeyring inherits from BaseHsmAdapter` | Verify T10K envelope deserialization works |
-| `audit interceptor logs success and failure` | Verify `_audit` called with correct event and status |
-| `tenant isolation: wrap with wrong tenantId` | Verify `UNAUTHORIZED_KEY_ACCESS` |
+| Test                                               | Description                                          |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| `initialize resolves with valid credentials`       | Mock `KeyClient.getPropertiesOfKey` → resolves       |
+| `initialize rejects with AUTH_FAILURE`             | Mock credential chain → 401                          |
+| `initialize rejects with CONNECTION_FAILURE`       | Mock `KeyClient` → timeout                           |
+| `createKEK returns kekId and tags tenant`          | Mock `createKey` → verify name format and tags       |
+| `createKEK rejects unsupported key size`           | `kekBits=512` → `INVALID_KEK_BITS`                   |
+| `wrap returns 40-byte A256KW output`               | Mock `encrypt` → verify buffer length                |
+| `wrap rejects unknown KEK`                         | Mock `encrypt` → 404 → `KEK_NOT_FOUND`               |
+| `wrap rejects non-Buffer plaintext`                | Pass string → `INVALID_INPUT`                        |
+| `unwrap returns 32-byte plaintext`                 | Mock `decrypt` → verify buffer                       |
+| `unwrap rejects corrupted wrapped key`             | Mock `decrypt` → throws                              |
+| `rotateKEK creates new key and returns new kekId`  | Mock `rotateKey` → verify new ID                     |
+| `listKEKs filters by tenant tag`                   | Mock `listPropertiesOfKeys` → filter by `tenant` tag |
+| `zeroize deletes key and emits KEY_ZEROIZED audit` | Mock `beginDeleteKey` → verify audit log             |
+| `exportKeyring inherits from BaseHsmAdapter`       | Verify T10K envelope serialization works             |
+| `importKeyring inherits from BaseHsmAdapter`       | Verify T10K envelope deserialization works           |
+| `audit interceptor logs success and failure`       | Verify `_audit` called with correct event and status |
+| `tenant isolation: wrap with wrong tenantId`       | Verify `UNAUTHORIZED_KEY_ACCESS`                     |
 
 ### 7.2 Integration Tests (Live Azure — Optional)
 
- gated behind `AZURE_MANAGED_HSM_URL` environment variable. Skipped in CI by default.
+gated behind `AZURE_MANAGED_HSM_URL` environment variable. Skipped in CI by default.
 
-| Test | Description |
-|------|-------------|
-| `live: createKEK → wrap → unwrap round-trip` | End-to-end against real Managed HSM |
-| `live: rotateKEK preserves old key for unwrap` | Old version still decrypts |
-| `live: listKEKs returns only current tenant` | Cross-tenant isolation verified |
+| Test                                           | Description                         |
+| ---------------------------------------------- | ----------------------------------- |
+| `live: createKEK → wrap → unwrap round-trip`   | End-to-end against real Managed HSM |
+| `live: rotateKEK preserves old key for unwrap` | Old version still decrypts          |
+| `live: listKEKs returns only current tenant`   | Cross-tenant isolation verified     |
 
 ### 7.3 CI Strategy
 
@@ -382,10 +382,10 @@ All Azure SDK calls are mocked using `jest.mock()` or a custom mock layer. No re
 
 ## 9. Dependency Manifest
 
-| Package | Version | Purpose |
-|---------|---------|---------|
+| Package                | Version                 | Purpose                         |
+| ---------------------- | ----------------------- | ------------------------------- |
 | `@azure/keyvault-keys` | `^4.8.0` (>=7 days old) | Key CRUD, rotation, wrap/unwrap |
-| `@azure/identity` | `^4.5.0` (>=7 days old) | DefaultAzureCredential chain |
+| `@azure/identity`      | `^4.5.0` (>=7 days old) | DefaultAzureCredential chain    |
 
 Both packages are ESM-only in recent versions. The adapter will use dynamic `import()` wrapped in a CommonJS `require()` shim to maintain compatibility with the existing `.cjs` codebase:
 
@@ -394,8 +394,8 @@ Both packages are ESM-only in recent versions. The adapter will use dynamic `imp
 let KeyClient, CryptographyClient, DefaultAzureCredential;
 
 async function loadAzureSDKs() {
-  const keys = await import('@azure/keyvault-keys');
-  const identity = await import('@azure/identity');
+  const keys = await import("@azure/keyvault-keys");
+  const identity = await import("@azure/identity");
   KeyClient = keys.KeyClient;
   CryptographyClient = keys.CryptographyClient;
   DefaultAzureCredential = identity.DefaultAzureCredential;

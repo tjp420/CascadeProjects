@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Root Trust Store
@@ -16,16 +16,19 @@
  * @module hsm-adapter/root-trust-store
  */
 
-const fs = require('fs');
-const crypto = require('crypto');
-const { parseCertificate, getFingerprint } = require('./cert-chain-validator.cjs');
+const fs = require("fs");
+const crypto = require("crypto");
+const {
+  parseCertificate,
+  getFingerprint,
+} = require("./cert-chain-validator.cjs");
 
 class RootTrustStore {
   constructor(options = {}) {
-    this._amdArk = null;       // X509Certificate
-    this._amdAsk = null;       // X509Certificate
-    this._intelRootCA = null;  // X509Certificate
-    this._intelPckCA = null;   // X509Certificate
+    this._amdArk = null; // X509Certificate
+    this._amdAsk = null; // X509Certificate
+    this._intelRootCA = null; // X509Certificate
+    this._intelPckCA = null; // X509Certificate
     this._pinnedFingerprints = new Set();
     this._loaded = false;
 
@@ -43,7 +46,8 @@ class RootTrustStore {
         this._pinnedFingerprints.add(getFingerprint(this._intelRootCA));
       }
     }
-    if (options.intelPckCA) this._intelPckCA = this._loadCert(options.intelPckCA);
+    if (options.intelPckCA)
+      this._intelPckCA = this._loadCert(options.intelPckCA);
 
     // Allow pre-pinned fingerprints
     if (options.pinnedFingerprints) {
@@ -63,14 +67,14 @@ class RootTrustStore {
    */
   _loadCert(input) {
     if (input instanceof crypto.X509Certificate) return input;
-    if (typeof input === 'string') {
+    if (typeof input === "string") {
       // Check if it's a file path or PEM content
-      if (input.includes('-----BEGIN CERTIFICATE-----')) {
+      if (input.includes("-----BEGIN CERTIFICATE-----")) {
         return parseCertificate(input);
       }
       // Try reading as file path
       try {
-        const content = fs.readFileSync(input, 'utf8');
+        const content = fs.readFileSync(input, "utf8");
         return parseCertificate(content);
       } catch {
         return parseCertificate(input); // Try as hex
@@ -128,25 +132,33 @@ class RootTrustStore {
    * Get the AMD ARK root certificate.
    * @returns {X509Certificate|null}
    */
-  getAmdArk() { return this._amdArk; }
+  getAmdArk() {
+    return this._amdArk;
+  }
 
   /**
    * Get the AMD ASK intermediate certificate.
    * @returns {X509Certificate|null}
    */
-  getAmdAsk() { return this._amdAsk; }
+  getAmdAsk() {
+    return this._amdAsk;
+  }
 
   /**
    * Get the Intel Root CA certificate.
    * @returns {X509Certificate|null}
    */
-  getIntelRootCA() { return this._intelRootCA; }
+  getIntelRootCA() {
+    return this._intelRootCA;
+  }
 
   /**
    * Get the Intel PCK CA intermediate certificate.
    * @returns {X509Certificate|null}
    */
-  getIntelPckCA() { return this._intelPckCA; }
+  getIntelPckCA() {
+    return this._intelPckCA;
+  }
 
   /**
    * Check if a fingerprint is pinned.
@@ -177,19 +189,25 @@ class RootTrustStore {
    * Check if AMD root-of-trust is configured.
    * @returns {boolean}
    */
-  hasAMD() { return this._amdArk !== null; }
+  hasAMD() {
+    return this._amdArk !== null;
+  }
 
   /**
    * Check if Intel root-of-trust is configured.
    * @returns {boolean}
    */
-  hasIntel() { return this._intelRootCA !== null; }
+  hasIntel() {
+    return this._intelRootCA !== null;
+  }
 
   /**
    * Check if any root-of-trust is configured.
    * @returns {boolean}
    */
-  isConfigured() { return this.hasAMD() || this.hasIntel(); }
+  isConfigured() {
+    return this.hasAMD() || this.hasIntel();
+  }
 
   /**
    * Get a summary of the trust store (no sensitive data).

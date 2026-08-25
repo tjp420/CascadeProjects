@@ -3,6 +3,7 @@
 **Scope:** Implement hybrid KEM+signature primitives and session bootstrap.
 
 **Tasks:**
+
 - Implement KEM wrapper (Kyber) with Node bindings or pure-JS fallback
 - Implement hybrid signature scheme (Ed25519 + PQ signature if selected)
 - Wire `IdentityRatchet` into `server/lib/crypto` namespace

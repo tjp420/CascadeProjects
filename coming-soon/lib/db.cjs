@@ -193,43 +193,71 @@ function getDb() {
     // Schema migrations for existing databases
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN provider TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN provider_message_id TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN attempts INTEGER DEFAULT 0;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN last_error TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN delivered_at TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN bounced_at TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE email_queue ADD COLUMN opened_at TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_email_queue_status_attempts ON email_queue(status, attempts);`);
-    } catch (err) { /* index may already exist */ }
+    } catch (err) {
+        /* index may already exist */
+    }
     try {
         db.exec(`ALTER TABLE users ADD COLUMN name TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active';`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
         db.exec(`ALTER TABLE users ADD COLUMN username TEXT;`);
-    } catch (err) { /* column may already exist */ }
+    } catch (err) {
+        /* column may already exist */
+    }
     try {
-        db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != '';`);
-    } catch (err) { /* index may already exist */ }
+        db.exec(
+            `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != '';`
+        );
+    } catch (err) {
+        /* index may already exist */
+    }
     try {
         db.exec(`UPDATE users SET status = 'active' WHERE status IS NULL OR status = '';`);
-    } catch (err) { /* ignore */ }
+    } catch (err) {
+        /* ignore */
+    }
     return db;
 }
 
@@ -265,9 +293,9 @@ function queueEmail({ id, to, subject, text, html, provider, providerMessageId }
 
 function getPendingEmails(limit = 100) {
     const db = getDb();
-    return db.prepare(
-        'SELECT * FROM email_queue WHERE status = ? ORDER BY queued_at ASC LIMIT ?'
-    ).all('pending', limit);
+    return db
+        .prepare('SELECT * FROM email_queue WHERE status = ? ORDER BY queued_at ASC LIMIT ?')
+        .all('pending', limit);
 }
 
 function markEmailSent(id, provider, providerMessageId) {
@@ -279,9 +307,7 @@ function markEmailSent(id, provider, providerMessageId) {
 
 function updateEmailStatus(id, status, lastError) {
     const db = getDb();
-    db.prepare(
-        "UPDATE email_queue SET status = ?, last_error = ? WHERE id = ?"
-    ).run(status, lastError || null, id);
+    db.prepare('UPDATE email_queue SET status = ?, last_error = ? WHERE id = ?').run(status, lastError || null, id);
 }
 
 function getEmailByProviderMessageId(providerMessageId) {
@@ -291,16 +317,16 @@ function getEmailByProviderMessageId(providerMessageId) {
 
 function getEmailsForRetry(limit = 100) {
     const db = getDb();
-    return db.prepare(
-        "SELECT * FROM email_queue WHERE status = 'pending' AND (attempts IS NULL OR attempts < 3) ORDER BY queued_at ASC LIMIT ?"
-    ).all(limit);
+    return db
+        .prepare(
+            "SELECT * FROM email_queue WHERE status = 'pending' AND (attempts IS NULL OR attempts < 3) ORDER BY queued_at ASC LIMIT ?"
+        )
+        .all(limit);
 }
 
 function incrementEmailAttempts(id) {
     const db = getDb();
-    db.prepare(
-        "UPDATE email_queue SET attempts = attempts + 1 WHERE id = ?"
-    ).run(id);
+    db.prepare('UPDATE email_queue SET attempts = attempts + 1 WHERE id = ?').run(id);
 }
 
 function getOrCreateCustomer(email) {
@@ -309,17 +335,16 @@ function getOrCreateCustomer(email) {
     if (existing) return existing;
     const crypto = require('crypto');
     const apiKey = 'sb_' + crypto.randomBytes(24).toString('hex');
-    db.prepare(
-        'INSERT INTO customers (email, api_key) VALUES (?, ?)'
-    ).run(email.trim().toLowerCase(), apiKey);
+    db.prepare('INSERT INTO customers (email, api_key) VALUES (?, ?)').run(email.trim().toLowerCase(), apiKey);
     return db.prepare('SELECT * FROM customers WHERE email = ?').get(email.trim().toLowerCase());
 }
 
 function updateCustomerStripeId(email, stripeCustomerId) {
     const db = getDb();
-    db.prepare(
-        "UPDATE customers SET stripe_customer_id = ?, updated_at = datetime('now') WHERE email = ?"
-    ).run(stripeCustomerId, email.trim().toLowerCase());
+    db.prepare("UPDATE customers SET stripe_customer_id = ?, updated_at = datetime('now') WHERE email = ?").run(
+        stripeCustomerId,
+        email.trim().toLowerCase()
+    );
 }
 
 function updateCustomerSubscription(email, status, tier) {
@@ -346,20 +371,30 @@ function getAllPaidSubscriptions() {
 
 function getAllUsers() {
     const db = getDb();
-    return db.prepare('SELECT id, email, name, status, tier, created_at, updated_at FROM users ORDER BY created_at DESC').all();
+    return db
+        .prepare('SELECT id, email, name, status, tier, created_at, updated_at FROM users ORDER BY created_at DESC')
+        .all();
 }
 
 function addRefundRecord(customerEmail, stripeSubscriptionId, amount, reason) {
     const db = getDb();
     db.prepare(
         'INSERT INTO refunds (customer_email, stripe_subscription_id, amount, reason, status) VALUES (?, ?, ?, ?, ?)'
-    ).run(customerEmail.trim().toLowerCase(), stripeSubscriptionId || null, amount || null, reason || null, 'completed');
+    ).run(
+        customerEmail.trim().toLowerCase(),
+        stripeSubscriptionId || null,
+        amount || null,
+        reason || null,
+        'completed'
+    );
     return { success: true };
 }
 
 function getRefundsForCustomer(email) {
     const db = getDb();
-    return db.prepare('SELECT * FROM refunds WHERE customer_email = ? ORDER BY created_at DESC').all(email.trim().toLowerCase());
+    return db
+        .prepare('SELECT * FROM refunds WHERE customer_email = ? ORDER BY created_at DESC')
+        .all(email.trim().toLowerCase());
 }
 
 function getAllRefunds() {
@@ -369,10 +404,12 @@ function getAllRefunds() {
 
 function updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason) {
     const db = getDb();
-    db.prepare(
-        "UPDATE paid_subscriptions SET status = 'refunded' WHERE stripe_subscription_id = ?"
-    ).run(stripeSubscriptionId);
-    const sub = db.prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?').get(stripeSubscriptionId);
+    db.prepare("UPDATE paid_subscriptions SET status = 'refunded' WHERE stripe_subscription_id = ?").run(
+        stripeSubscriptionId
+    );
+    const sub = db
+        .prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+        .get(stripeSubscriptionId);
     if (sub) {
         addRefundRecord(sub.customer_email, stripeSubscriptionId, null, reason);
         db.prepare(
@@ -391,9 +428,10 @@ function addPaidSubscription(customerEmail, stripeSubscriptionId, stripePriceId,
 
 function updatePaidSubscriptionStatus(stripeSubscriptionId, status) {
     const db = getDb();
-    db.prepare(
-        'UPDATE paid_subscriptions SET status = ? WHERE stripe_subscription_id = ?'
-    ).run(status, stripeSubscriptionId);
+    db.prepare('UPDATE paid_subscriptions SET status = ? WHERE stripe_subscription_id = ?').run(
+        status,
+        stripeSubscriptionId
+    );
 }
 
 function createUser(email, passwordHash, salt, tier, options = {}) {
@@ -410,7 +448,9 @@ function createUser(email, passwordHash, salt, tier, options = {}) {
 
 function getUserByUsername(username) {
     const db = getDb();
-    const normalized = String(username || '').trim().toLowerCase();
+    const normalized = String(username || '')
+        .trim()
+        .toLowerCase();
     if (!normalized) return null;
     return db.prepare('SELECT * FROM users WHERE lower(username) = ?').get(normalized);
 }
@@ -422,9 +462,10 @@ function getUserByEmail(email) {
 
 function updateUserTier(email, tier) {
     const db = getDb();
-    db.prepare(
-        "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE email = ?"
-    ).run(tier, email.trim().toLowerCase());
+    db.prepare("UPDATE users SET tier = ?, updated_at = datetime('now') WHERE email = ?").run(
+        tier,
+        email.trim().toLowerCase()
+    );
 }
 
 function getUserById(id) {
@@ -436,9 +477,7 @@ function getUserById(id) {
 
 function updateUserTierById(id, tier) {
     const db = getDb();
-    db.prepare(
-        "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(tier, Number(id));
+    db.prepare("UPDATE users SET tier = ?, updated_at = datetime('now') WHERE id = ?").run(tier, Number(id));
 }
 
 function deleteUserById(id) {
@@ -448,18 +487,20 @@ function deleteUserById(id) {
 
 function updateUserStatus(id, status) {
     const db = getDb();
-    db.prepare(
-        "UPDATE users SET status = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(status, Number(id));
+    db.prepare("UPDATE users SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, Number(id));
 }
 
 function updateUserDetails(id, { name, email }) {
     const db = getDb();
-    const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email.trim().toLowerCase(), Number(id));
+    const existing = db
+        .prepare('SELECT id FROM users WHERE email = ? AND id != ?')
+        .get(email.trim().toLowerCase(), Number(id));
     if (existing) return { success: false, error: 'Email already in use by another account' };
-    db.prepare(
-        "UPDATE users SET name = ?, email = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(name || null, email.trim().toLowerCase(), Number(id));
+    db.prepare("UPDATE users SET name = ?, email = ?, updated_at = datetime('now') WHERE id = ?").run(
+        name || null,
+        email.trim().toLowerCase(),
+        Number(id)
+    );
     return { success: true };
 }
 
@@ -481,9 +522,11 @@ function saveCliReport({ reportId, email, scannedPath, title, score, letterGrade
 
 function getCliReportsByEmail(email, limit = 50) {
     const db = getDb();
-    return db.prepare(
-        'SELECT report_id, customer_email, scanned_path, title, score, letter_grade, created_at FROM cli_reports WHERE customer_email = ? ORDER BY created_at DESC LIMIT ?'
-    ).all(email.trim().toLowerCase(), limit);
+    return db
+        .prepare(
+            'SELECT report_id, customer_email, scanned_path, title, score, letter_grade, created_at FROM cli_reports WHERE customer_email = ? ORDER BY created_at DESC LIMIT ?'
+        )
+        .all(email.trim().toLowerCase(), limit);
 }
 
 function getCliReportById(reportId) {
@@ -502,32 +545,32 @@ function createValidationCode(email, code, tokenHash, expiresAt) {
 
 function getValidationCodeByEmailAndCode(email, code) {
     const db = getDb();
-    return db.prepare(
-        'SELECT * FROM email_validation_codes WHERE email = ? AND code = ? ORDER BY created_at DESC LIMIT 1'
-    ).get(email.trim().toLowerCase(), code);
+    return db
+        .prepare('SELECT * FROM email_validation_codes WHERE email = ? AND code = ? ORDER BY created_at DESC LIMIT 1')
+        .get(email.trim().toLowerCase(), code);
 }
 
 function getValidationCodeByTokenHash(tokenHash) {
     const db = getDb();
-    return db.prepare(
-        'SELECT * FROM email_validation_codes WHERE token_hash = ? ORDER BY created_at DESC LIMIT 1'
-    ).get(tokenHash);
+    return db
+        .prepare('SELECT * FROM email_validation_codes WHERE token_hash = ? ORDER BY created_at DESC LIMIT 1')
+        .get(tokenHash);
 }
 
 function markValidationCodeUsed(id) {
     const db = getDb();
-    db.prepare(
-        "UPDATE email_validation_codes SET used = 1 WHERE id = ?"
-    ).run(id);
+    db.prepare('UPDATE email_validation_codes SET used = 1 WHERE id = ?').run(id);
 }
 
 function recordWebhookEvent(eventId, source, eventType, payloadHash) {
     if (!eventId) return false;
     const db = getDb();
-    const result = db.prepare(
-        `INSERT OR IGNORE INTO webhook_events (id, source, event_type, payload_hash)
+    const result = db
+        .prepare(
+            `INSERT OR IGNORE INTO webhook_events (id, source, event_type, payload_hash)
          VALUES (?, ?, ?, ?)`
-    ).run(String(eventId), String(source || 'unknown'), String(eventType || 'unknown'), payloadHash || null);
+        )
+        .run(String(eventId), String(source || 'unknown'), String(eventType || 'unknown'), payloadHash || null);
     return !!(result && result.changes === 1);
 }
 
@@ -538,7 +581,11 @@ function generatePartnerCode() {
 
 function getReferrerByEmail(email) {
     const db = getDb();
-    return db.prepare('SELECT * FROM referrers WHERE user_email = ?').get(String(email || '').trim().toLowerCase());
+    return db.prepare('SELECT * FROM referrers WHERE user_email = ?').get(
+        String(email || '')
+            .trim()
+            .toLowerCase()
+    );
 }
 
 function getReferrerByPartnerCode(partnerCode) {
@@ -552,7 +599,9 @@ function getReferrerById(referrerId) {
 }
 
 function getOrCreateReferrer(email, tier) {
-    const normalized = String(email || '').trim().toLowerCase();
+    const normalized = String(email || '')
+        .trim()
+        .toLowerCase();
     if (!normalized || !normalized.includes('@')) {
         throw new Error('Valid email required');
     }
@@ -594,9 +643,9 @@ function getOrCreateReferralLink(referrerId, channel) {
     const referrer = db.prepare('SELECT * FROM referrers WHERE id = ?').get(referrerId);
     if (!referrer) throw new Error('Referrer not found');
 
-    const existing = db.prepare(
-        `SELECT * FROM referral_links WHERE referrer_id = ? AND channel = ? ORDER BY created_at ASC LIMIT 1`
-    ).get(referrerId, channel || 'web');
+    const existing = db
+        .prepare(`SELECT * FROM referral_links WHERE referrer_id = ? AND channel = ? ORDER BY created_at ASC LIMIT 1`)
+        .get(referrerId, channel || 'web');
     if (existing) return existing;
 
     const crypto = require('crypto');
@@ -631,13 +680,7 @@ function createReferralAttribution({ linkId, refereeIpHash, refereeEmail, cookie
     db.prepare(
         `INSERT INTO referral_attributions (id, link_id, referee_email, referee_ip_hash, status, cookie_expires)
          VALUES (?, ?, ?, ?, 'clicked', ?)`
-    ).run(
-        id,
-        linkId,
-        refereeEmail ? String(refereeEmail).trim().toLowerCase() : null,
-        refereeIpHash,
-        cookieExpires
-    );
+    ).run(id, linkId, refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, refereeIpHash, cookieExpires);
     return db.prepare('SELECT * FROM referral_attributions WHERE id = ?').get(id);
 }
 
@@ -657,8 +700,10 @@ function getReferralStatsByEmail(email) {
         return empty;
     }
     const db = getDb();
-    const links = db.prepare('SELECT id, slug, channel, clicks FROM referral_links WHERE referrer_id = ?').all(referrer.id);
-    const linkIds = links.map((l) => l.id);
+    const links = db
+        .prepare('SELECT id, slug, channel, clicks FROM referral_links WHERE referrer_id = ?')
+        .all(referrer.id);
+    const linkIds = links.map(l => l.id);
     if (!linkIds.length) {
         return {
             ...empty,
@@ -667,16 +712,19 @@ function getReferralStatsByEmail(email) {
         };
     }
     const placeholders = linkIds.map(() => '?').join(',');
-    const attrRow = db.prepare(
-        `SELECT
+    const attrRow = db
+        .prepare(
+            `SELECT
             COUNT(*) AS attributions,
             SUM(CASE WHEN status IN ('signed_up', 'converted') THEN 1 ELSE 0 END) AS signups,
             SUM(CASE WHEN status = 'converted' THEN 1 ELSE 0 END) AS conversions
          FROM referral_attributions WHERE link_id IN (${placeholders})`
-    ).get(...linkIds);
+        )
+        .get(...linkIds);
     const clicks = links.reduce((sum, l) => sum + (Number(l.clicks) || 0), 0);
-    const ledgerRows = db.prepare(
-        `SELECT
+    const ledgerRows = db
+        .prepare(
+            `SELECT
             a.id AS attribution_id,
             a.created_at,
             a.status AS attribution_status,
@@ -692,9 +740,10 @@ function getReferralStatsByEmail(email) {
          WHERE l.referrer_id = ?
          ORDER BY COALESCE(r.granted_at, a.created_at) DESC
          LIMIT 50`
-    ).all(referrer.id);
+        )
+        .all(referrer.id);
 
-    const ledger = ledgerRows.map((row) => {
+    const ledger = ledgerRows.map(row => {
         const rewardCents = Number(row.reward_value) || 0;
         let status = 'pending';
         if (row.attribution_status === 'converted' && row.reward_id) {
@@ -729,19 +778,25 @@ function getReferralStatsByEmail(email) {
 
 function getReferralAttributionById(attributionId) {
     const db = getDb();
-    return db.prepare(`
+    return db
+        .prepare(
+            `
         SELECT a.*, l.referrer_id, l.slug
         FROM referral_attributions a
         JOIN referral_links l ON a.link_id = l.id
         WHERE a.id = ?
-    `).get(String(attributionId || ''));
+    `
+        )
+        .get(String(attributionId || ''));
 }
 
 function getLatestOpenReferralAttribution(slug, refereeEmail) {
     const db = getDb();
     const normalizedEmail = refereeEmail ? String(refereeEmail).trim().toLowerCase() : null;
     if (normalizedEmail) {
-        const byEmail = db.prepare(`
+        const byEmail = db
+            .prepare(
+                `
             SELECT a.*, l.referrer_id, l.slug
             FROM referral_attributions a
             JOIN referral_links l ON a.link_id = l.id
@@ -751,10 +806,14 @@ function getLatestOpenReferralAttribution(slug, refereeEmail) {
               AND datetime(a.cookie_expires) >= datetime('now')
             ORDER BY a.created_at DESC
             LIMIT 1
-        `).get(String(slug || ''), normalizedEmail);
+        `
+            )
+            .get(String(slug || ''), normalizedEmail);
         if (byEmail) return byEmail;
     }
-    return db.prepare(`
+    return db
+        .prepare(
+            `
         SELECT a.*, l.referrer_id, l.slug
         FROM referral_attributions a
         JOIN referral_links l ON a.link_id = l.id
@@ -763,42 +822,56 @@ function getLatestOpenReferralAttribution(slug, refereeEmail) {
           AND datetime(a.cookie_expires) >= datetime('now')
         ORDER BY a.created_at DESC
         LIMIT 1
-    `).get(String(slug || ''));
+    `
+        )
+        .get(String(slug || ''));
 }
 
 function markReferralAttributionSignedUp(attributionId, refereeEmail) {
     const db = getDb();
-    const result = db.prepare(`
+    const result = db
+        .prepare(
+            `
         UPDATE referral_attributions
         SET status = 'signed_up', referee_email = COALESCE(?, referee_email)
         WHERE id = ? AND status = 'clicked'
-    `).run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
+    `
+        )
+        .run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
     return !!(result && result.changes === 1);
 }
 
 function markReferralAttributionConverted(attributionId, refereeEmail) {
     const db = getDb();
-    const result = db.prepare(`
+    const result = db
+        .prepare(
+            `
         UPDATE referral_attributions
         SET status = 'converted',
             converted_at = datetime('now'),
             referee_email = COALESCE(?, referee_email)
         WHERE id = ? AND status IN ('clicked', 'signed_up')
-    `).run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
+    `
+        )
+        .run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
     return !!(result && result.changes === 1);
 }
 
 function grantReferralReward({ attributionId, referrerId, rewardType, rewardValue }) {
     const crypto = require('crypto');
     const db = getDb();
-    const existing = db.prepare('SELECT id FROM referral_rewards WHERE attribution_id = ?').get(String(attributionId || ''));
+    const existing = db
+        .prepare('SELECT id FROM referral_rewards WHERE attribution_id = ?')
+        .get(String(attributionId || ''));
     if (existing) return existing;
 
     const id = `rew_${crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex')}`;
-    db.prepare(`
+    db.prepare(
+        `
         INSERT INTO referral_rewards (id, attribution_id, referrer_id, reward_type, reward_value, status, granted_at)
         VALUES (?, ?, ?, ?, ?, 'granted', datetime('now'))
-    `).run(
+    `
+    ).run(
         id,
         String(attributionId || ''),
         String(referrerId || ''),
@@ -807,11 +880,13 @@ function grantReferralReward({ attributionId, referrerId, rewardType, rewardValu
     );
 
     if (rewardType === 'cert_credit' || !rewardType) {
-        db.prepare(`
+        db.prepare(
+            `
             UPDATE referrers
             SET cert_credit_cents = cert_credit_cents + ?
             WHERE id = ?
-        `).run(Number(rewardValue) || 0, String(referrerId || ''));
+        `
+        ).run(Number(rewardValue) || 0, String(referrerId || ''));
     }
 
     return db.prepare('SELECT * FROM referral_rewards WHERE id = ?').get(id);

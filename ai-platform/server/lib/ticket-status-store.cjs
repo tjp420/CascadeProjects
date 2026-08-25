@@ -1,14 +1,18 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'ticket-status.json');
+const STORE_PATH = path.join(
+  process.cwd(),
+  ".simplebeacon",
+  "ticket-status.json",
+);
 
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { tickets: {} };
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     return JSON.parse(raw);
   } catch {
     return { tickets: {} };
@@ -33,14 +37,16 @@ function makeOrgKey(orgId, scanId, category) {
 
 function markTicketed(scanId, category, ticketRef, ticketTarget, orgId) {
   const store = readStore();
-  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
+  const key = orgId
+    ? makeOrgKey(orgId, scanId, category)
+    : makeKey(scanId, category);
   store.tickets[key] = {
-    orgId: orgId || 'default',
+    orgId: orgId || "default",
     scanId,
     category,
     ticketRef,
-    ticketTarget: ticketTarget || 'jira',
-    status: 'ticketed',
+    ticketTarget: ticketTarget || "jira",
+    status: "ticketed",
     markedAt: new Date().toISOString(),
   };
   writeStore(store);
@@ -49,15 +55,19 @@ function markTicketed(scanId, category, ticketRef, ticketTarget, orgId) {
 
 function unmarkTicketed(scanId, category, orgId) {
   const store = readStore();
-  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
+  const key = orgId
+    ? makeOrgKey(orgId, scanId, category)
+    : makeKey(scanId, category);
   delete store.tickets[key];
   writeStore(store);
-  return { scanId, category, status: 'unticketed' };
+  return { scanId, category, status: "unticketed" };
 }
 
 function getTicketStatus(scanId, category, orgId) {
   const store = readStore();
-  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
+  const key = orgId
+    ? makeOrgKey(orgId, scanId, category)
+    : makeKey(scanId, category);
   return store.tickets[key] || null;
 }
 
@@ -83,7 +93,9 @@ function getTicketedKeys(orgId) {
 
 // Backward-compatible key builder for org-scoped lookups in route handlers
 function buildTicketKey(orgId, scanId, category) {
-  return orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
+  return orgId
+    ? makeOrgKey(orgId, scanId, category)
+    : makeKey(scanId, category);
 }
 
 module.exports = {

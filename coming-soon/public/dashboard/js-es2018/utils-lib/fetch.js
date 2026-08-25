@@ -9,19 +9,28 @@
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry]
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
+export async function fetchWithTimeout(
+    url,
+    options = {},
+    ms = 10000,
+    retry = { count: 0, delay: 1000, maxDelay: 30000 }
+) {
     const target = String(url || '');
-    let opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    let opts = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
     const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-    const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
-    const sleep = (n) => new Promise(r => setTimeout(r, n));
-    const attempt = async (attemptNum) => {
+    const retryCfg = {
+        count: 0,
+        delay: 1000,
+        maxDelay: 30000,
+        ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {})
+    };
+    const sleep = n => new Promise(r => setTimeout(r, n));
+    const attempt = async attemptNum => {
         var _a;
         const controller = new AbortController();
         let cleanup = null;
         if (opts.signal && typeof opts.signal.addEventListener === 'function') {
-            if (opts.signal.aborted)
-                throw new Error('Request aborted by caller');
+            if (opts.signal.aborted) throw new Error('Request aborted by caller');
             const onAbort = () => controller.abort();
             opts.signal.addEventListener('abort', onAbort, { once: true });
             cleanup = () => opts.signal.removeEventListener('abort', onAbort);
@@ -30,11 +39,17 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
         try {
             try {
                 const targetUrl = new URL(target, typeof location !== 'undefined' ? location.href : undefined);
-                if (typeof location !== 'undefined' && opts && opts.credentials === 'include' && targetUrl.origin !== location.origin) {
+                if (
+                    typeof location !== 'undefined' &&
+                    opts &&
+                    opts.credentials === 'include' &&
+                    targetUrl.origin !== location.origin
+                ) {
                     opts = { ...opts, credentials: 'omit' };
                 }
+            } catch (_c) {
+                /* ignore */
             }
-            catch (_c) { /* ignore */ }
             const res = await fetch(target, { ...opts, signal: controller.signal });
             if (!res.ok) {
                 const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;
@@ -45,8 +60,7 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
                 }
             }
             return res;
-        }
-        catch (err) {
+        } catch (err) {
             if (err.name === 'AbortError') {
                 if ((_a = opts.signal) === null || _a === void 0 ? void 0 : _a.aborted)
                     throw new Error('Request aborted by caller');
@@ -58,11 +72,9 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
                 return attempt(attemptNum + 1);
             }
             throw err;
-        }
-        finally {
+        } finally {
             clearTimeout(timer);
-            if (cleanup)
-                cleanup();
+            if (cleanup) cleanup();
         }
     };
     return attempt(0);

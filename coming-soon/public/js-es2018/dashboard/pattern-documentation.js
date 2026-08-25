@@ -12,7 +12,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'llmSlop',
         name: 'LLM Slop / Placeholder',
         severity: 'medium',
-        description: 'Detects unresolved AI-generated placeholders, markdown code fences leaked into source code, and hardcoded AI-default metrics that should not reach production.',
+        description:
+            'Detects unresolved AI-generated placeholders, markdown code fences leaked into source code, and hardcoded AI-default metrics that should not reach production.',
         detailedExplanation: `
             AI coding assistants often leave behind placeholder text, markdown code fences, or 
             hardcoded default metrics that should not reach production. This pattern detects:
@@ -49,7 +50,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'tokenBleed',
         name: 'Token Bleed Risk',
         severity: 'medium',
-        description: 'Detects very long string literals (>2000 characters) that may cause context overflow in LLM prompts and inefficient memory usage.',
+        description:
+            'Detects very long string literals (>2000 characters) that may cause context overflow in LLM prompts and inefficient memory usage.',
         detailedExplanation: `
             Long string literals in code can cause several issues:
             
@@ -78,7 +80,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'productionLeak',
         name: 'Production Data Leak',
         severity: 'medium',
-        description: 'Detects references to non-production data paths (e.g., test datasets, staging configs, demo files) in source code that could expose development artifacts or incorrect configurations.',
+        description:
+            'Detects references to non-production data paths (e.g., test datasets, staging configs, demo files) in source code that could expose development artifacts or incorrect configurations.',
         detailedExplanation: `
             Production code should never reference development-only data paths. This pattern detects:
             
@@ -109,7 +112,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'fictionKpi',
         name: 'Hardcoded Fiction KPI',
         severity: 'medium',
-        description: 'Detects hardcoded metrics, completion rates, and AI confidence scores that may be AI-generated fiction rather than real measured values.',
+        description:
+            'Detects hardcoded metrics, completion rates, and AI confidence scores that may be AI-generated fiction rather than real measured values.',
         detailedExplanation: `
             AI assistants often generate placeholder metrics that look realistic but are not based on actual data:
             
@@ -123,11 +127,7 @@ const PATTERN_DOCUMENTATION = {
             not properly validated with real data.
         `,
         examples: {
-            bad: [
-                'const accuracy = 95;',
-                'const completionRate = "87%";',
-                'const totalFeatures = 150;'
-            ],
+            bad: ['const accuracy = 95;', 'const completionRate = "87%";', 'const totalFeatures = 150;'],
             good: [
                 'const accuracy = calculateAccuracy(predictions, actual);',
                 'const completionRate = calculateCompletionRate();',
@@ -142,7 +142,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'credentials',
         name: 'Credential Pattern',
         severity: 'high',
-        description: 'Detects hardcoded credentials, API keys, passwords, and secrets in source code that pose security risks.',
+        description:
+            'Detects hardcoded credentials, API keys, passwords, and secrets in source code that pose security risks.',
         detailedExplanation: `
             Hardcoded credentials in source code are a major security vulnerability. This pattern detects:
             
@@ -175,7 +176,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'debugArtifacts',
         name: 'Debug Artifact',
         severity: 'low',
-        description: 'Detects debug statements, console.log calls, debugger statements, and other development artifacts that should not be in production code.',
+        description:
+            'Detects debug statements, console.log calls, debugger statements, and other development artifacts that should not be in production code.',
         detailedExplanation: `
             Debug artifacts left in production code can cause performance issues, information leakage, 
             and poor user experience. This pattern detects:
@@ -189,11 +191,7 @@ const PATTERN_DOCUMENTATION = {
             These artifacts should be removed or replaced with proper logging before deployment.
         `,
         examples: {
-            bad: [
-                'console.log("Debug info");',
-                'debugger;',
-                'alert("Error occurred");'
-            ],
+            bad: ['console.log("Debug info");', 'debugger;', 'alert("Error occurred");'],
             good: [
                 'logger.info("Debug info");',
                 '// debugger; // Commented out for production',
@@ -208,7 +206,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'aiIndicators',
         name: 'AI System Indicators',
         severity: 'low',
-        description: 'Detects AI/LLM SDK imports, model inference patterns, and AI-related code that indicates use of artificial intelligence in the system.',
+        description:
+            'Detects AI/LLM SDK imports, model inference patterns, and AI-related code that indicates use of artificial intelligence in the system.',
         detailedExplanation: `
             AI system indicators help identify where AI/ML is being used in the codebase. This pattern detects:
             
@@ -235,7 +234,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'configDrift',
         name: 'Configuration Drift',
         severity: 'low',
-        description: 'Detects hardcoded configuration values, missing environment variable usage, and configuration inconsistencies across environments.',
+        description:
+            'Detects hardcoded configuration values, missing environment variable usage, and configuration inconsistencies across environments.',
         detailedExplanation: `
             Configuration drift occurs when hardcoded values are used instead of environment-specific configuration. 
             This pattern detects:
@@ -248,11 +248,7 @@ const PATTERN_DOCUMENTATION = {
             Proper configuration management ensures consistency across environments and security.
         `,
         examples: {
-            bad: [
-                'const apiUrl = "https://api.example.com";',
-                'const debug = true;',
-                'const apiKey = "changeme";'
-            ],
+            bad: ['const apiUrl = "https://api.example.com";', 'const debug = true;', 'const apiKey = "changeme";'],
             good: [
                 'const apiUrl = process.env.API_URL || "https://api.example.com";',
                 'const debug = process.env.DEBUG === "true";',
@@ -267,7 +263,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'performance',
         name: 'Performance Issue',
         severity: 'low',
-        description: 'Detects common performance anti-patterns like nested loops, memory leaks, event listener leaks, and inefficient regular expressions.',
+        description:
+            'Detects common performance anti-patterns like nested loops, memory leaks, event listener leaks, and inefficient regular expressions.',
         detailedExplanation: `
             Performance issues can significantly impact application responsiveness and resource usage. 
             This pattern detects:
@@ -300,7 +297,8 @@ const PATTERN_DOCUMENTATION = {
         id: 'complexityMetric',
         name: 'High Complexity',
         severity: 'low',
-        description: 'Detects overly long functions, deeply nested control flow, and high cyclomatic complexity that makes code hard to maintain and test.',
+        description:
+            'Detects overly long functions, deeply nested control flow, and high cyclomatic complexity that makes code hard to maintain and test.',
         detailedExplanation: `
             High complexity code is difficult to understand, maintain, and test. This pattern detects:
             
@@ -345,8 +343,7 @@ function getPatternDocumentation(patternId) {
  */
 function getPatternSummary(patternId) {
     const doc = PATTERN_DOCUMENTATION[patternId];
-    if (!doc)
-        return null;
+    if (!doc) return null;
     return `${doc.name} (${doc.severity}): ${doc.description}`;
 }
 /**
@@ -363,9 +360,12 @@ function getAllPatternIds() {
  */
 function searchPatterns(keyword) {
     const lowerKeyword = keyword.toLowerCase();
-    return Object.values(PATTERN_DOCUMENTATION).filter(doc => doc.name.toLowerCase().includes(lowerKeyword) ||
-        doc.description.toLowerCase().includes(lowerKeyword) ||
-        doc.detailedExplanation.toLowerCase().includes(lowerKeyword));
+    return Object.values(PATTERN_DOCUMENTATION).filter(
+        doc =>
+            doc.name.toLowerCase().includes(lowerKeyword) ||
+            doc.description.toLowerCase().includes(lowerKeyword) ||
+            doc.detailedExplanation.toLowerCase().includes(lowerKeyword)
+    );
 }
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

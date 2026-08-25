@@ -10,22 +10,31 @@ const {
   publicSubscriptionStatus,
   normalizeEmail,
   checkTrialExpiry,
-  shouldSendTrialWarning
-} = require('../lib/simplebeacon-subscription-store.cjs');
-const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.cjs');
+  shouldSendTrialWarning,
+} = require("../lib/simplebeacon-subscription-store.cjs");
+const {
+  verifyLicenseToken,
+} = require("../../packages/simplebeacon-cli/src/lib/license-token.cjs");
 
 const PAID_VIEWS = new Set([
-  'dashboard',
-  'audit',
-  'results',
-  'analyze',
-  'tools',
-  'platform',
-  'quality',
-  'settings'
+  "dashboard",
+  "audit",
+  "results",
+  "analyze",
+  "tools",
+  "platform",
+  "quality",
+  "settings",
 ]);
 
-const FREE_TIERS = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
+const FREE_TIERS = new Set([
+  "community",
+  "developer",
+  "sandbox",
+  "instant",
+  "free",
+  "",
+]);
 
 /**
  * Extract api token.
@@ -34,10 +43,10 @@ const FREE_TIERS = new Set(['community', 'developer', 'sandbox', 'instant', 'fre
  */
 function extractApiToken(req) {
   const header = req.headers.authorization;
-  if (header?.startsWith('Bearer ')) {
+  if (header?.startsWith("Bearer ")) {
     return header.slice(7).trim();
   }
-  return req.headers['x-simplebeacon-token'] || req.query.apiToken || null;
+  return req.headers["x-simplebeacon-token"] || req.query.apiToken || null;
 }
 
 /**
@@ -47,7 +56,7 @@ function extractApiToken(req) {
  */
 function extractEmail(req) {
   if (req.user?.email) return req.user.email;
-  const headerEmail = req.headers['x-simplebeacon-email'];
+  const headerEmail = req.headers["x-simplebeacon-email"];
   if (headerEmail) return headerEmail;
   if (req.query.email) return req.query.email;
   if (req.body?.email) return req.body.email;
@@ -60,7 +69,11 @@ function extractEmail(req) {
  * @returns {any}
  */
 function envFlag(name) {
-  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+  return (
+    String(process.env[name] || "")
+      .trim()
+      .toLowerCase() === "true"
+  );
 }
 
 /**
@@ -69,12 +82,14 @@ function envFlag(name) {
  * @returns {string|null}
  */
 function resolveLicenseSecret() {
-  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim();
   if (secret) {
     return secret;
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.');
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.",
+    );
   }
   return null;
 }
@@ -84,7 +99,10 @@ function resolveLicenseSecret() {
  * @returns {any}
  */
 function isInternalDashboardMode() {
-  return envFlag('SIMPLEBEACON_INTERNAL_DASHBOARD') || process.env.NODE_ENV === 'development';
+  return (
+    envFlag("SIMPLEBEACON_INTERNAL_DASHBOARD") ||
+    process.env.NODE_ENV === "development"
+  );
 }
 
 /**
@@ -94,14 +112,20 @@ function isInternalDashboardMode() {
  */
 function upgradePayload(extra = {}) {
   return {
-    error: 'subscription_required',
-    message: 'Upgrade to Cloud Teams for dashboard and API access.',
-    upgradeUrl: '/#/pricing',
+    error: "subscription_required",
+    message: "Upgrade to Cloud Teams for dashboard and API access.",
+    upgradeUrl: "/#/pricing",
     pricing: {
-      free: ['CLI local scanning', 'Text/JSON reports', 'No hosted dashboard'],
-      paid: ['Dashboard + scan history', 'Compliance Audit + Analyze UI', 'Assessment workflow', 'JSON exports', 'API quota when billing enabled']
+      free: ["CLI local scanning", "Text/JSON reports", "No hosted dashboard"],
+      paid: [
+        "Dashboard + scan history",
+        "Compliance Audit + Analyze UI",
+        "Assessment workflow",
+        "JSON exports",
+        "API quota when billing enabled",
+      ],
     },
-    ...extra
+    ...extra,
   };
 }
 
@@ -113,9 +137,11 @@ function upgradePayload(extra = {}) {
 async function sendTrialWarningEmail(record) {
   if (!record?.email || !record?.trialEndsAt) return;
   try {
-    const { renderTrialEnding } = require('../lib/billing-email-templates.cjs');
-    const { sendEmail } = require('../../../coming-soon/services/email.cjs');
-    const { subject, text, html } = renderTrialEnding({ trialEnd: record.trialEndsAt });
+    const { renderTrialEnding } = require("../lib/billing-email-templates.cjs");
+    const { sendEmail } = require("../../../coming-soon/services/email.cjs");
+    const { subject, text, html } = renderTrialEnding({
+      trialEnd: record.trialEndsAt,
+    });
     await sendEmail({ to: record.email, subject, text, html });
   } catch {
     // Non-blocking — trial warning is best-effort
@@ -135,17 +161,29 @@ function createRequireSubscription(options = {}) {
     const email = normalizeEmail(extractEmail(req));
 
     if (bypassEmail && email === bypassEmail) {
-      req.simplebeaconSubscription = { tier: 'paid', subscriptionActive: true, bypass: true };
+      req.simplebeaconSubscription = {
+        tier: "paid",
+        subscriptionActive: true,
+        bypass: true,
+      };
       return next();
     }
 
     if (isInternalDashboardMode()) {
-      req.simplebeaconSubscription = { tier: 'paid', subscriptionActive: true, internal: true };
+      req.simplebeaconSubscription = {
+        tier: "paid",
+        subscriptionActive: true,
+        internal: true,
+      };
       return next();
     }
 
     if (!isMonetizationEnabled()) {
-      req.simplebeaconSubscription = { tier: 'community', subscriptionActive: false, community: true };
+      req.simplebeaconSubscription = {
+        tier: "community",
+        subscriptionActive: false,
+        community: true,
+      };
       return next();
     }
 
@@ -165,14 +203,20 @@ function createRequireSubscription(options = {}) {
           if (consumeQuota) {
             const usage = await consumeApiCall(token);
             if (!usage.allowed) {
-              return res.status(429).json(upgradePayload({
-                error: usage.reason === 'rate_limit' ? 'rate_limit_exceeded' : 'subscription_required',
-                message: usage.reason === 'rate_limit'
-                  ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
-                  : upgradePayload().message,
-                limit: usage.limit,
-                remaining: usage.remaining ?? 0
-              }));
+              return res.status(429).json(
+                upgradePayload({
+                  error:
+                    usage.reason === "rate_limit"
+                      ? "rate_limit_exceeded"
+                      : "subscription_required",
+                  message:
+                    usage.reason === "rate_limit"
+                      ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
+                      : upgradePayload().message,
+                  limit: usage.limit,
+                  remaining: usage.remaining ?? 0,
+                }),
+              );
             }
             req.simplebeaconUsage = usage;
           }
@@ -201,11 +245,18 @@ function createRequireSubscription(options = {}) {
     if (allowFree && token) {
       const secret = resolveLicenseSecret();
       if (!secret) {
-        return res.status(503).json({ error: 'license_secret_unconfigured', message: 'License validation is not configured.' });
+        return res
+          .status(503)
+          .json({
+            error: "license_secret_unconfigured",
+            message: "License validation is not configured.",
+          });
       }
       const payload = verifyLicenseToken(token, secret);
       if (payload) {
-        const tier = String(payload.tier || payload.product || 'community').toLowerCase();
+        const tier = String(
+          payload.tier || payload.product || "community",
+        ).toLowerCase();
         if (FREE_TIERS.has(tier)) {
           req.simplebeaconSubscription = {
             tier,
@@ -213,7 +264,7 @@ function createRequireSubscription(options = {}) {
             readOnly: true,
             freeToken: true,
             scansRemaining: 0,
-            apiRemaining: 0
+            apiRemaining: 0,
           };
           return next();
         }
@@ -238,5 +289,5 @@ module.exports = {
   extractApiToken,
   extractEmail,
   isPaidDashboardView,
-  upgradePayload
+  upgradePayload,
 };

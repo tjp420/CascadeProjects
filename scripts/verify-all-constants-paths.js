@@ -1,9 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const REPO_ROOT = 'C:/Users/Trevor/CascadeProjects';
-const EXCLUDES = ['node_modules', '.git', 'coverage', 'dist', 'build'];
+const REPO_ROOT = "C:/Users/Trevor/CascadeProjects";
+const EXCLUDES = ["node_modules", ".git", "coverage", "dist", "build"];
 
 function shouldSkip(dir) {
   return EXCLUDES.includes(path.basename(dir));
@@ -14,25 +14,30 @@ function walk(dir, files = []) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       if (!shouldSkip(fullPath)) walk(fullPath, files);
-    } else if (entry.name.endsWith('.js') || entry.name.endsWith('.cjs')) {
+    } else if (entry.name.endsWith(".js") || entry.name.endsWith(".cjs")) {
       files.push(fullPath);
     }
   }
   return files;
 }
 
-const constantsFile = path.join(REPO_ROOT, 'ai-platform/server/config/constants.cjs');
+const constantsFile = path.join(
+  REPO_ROOT,
+  "ai-platform/server/config/constants.cjs",
+);
 
 for (const file of walk(REPO_ROOT)) {
-  const content = fs.readFileSync(file, 'utf8');
-  const matches = [...content.matchAll(/require\(['"]([^'"]*constants\.cjs)['"]\)/g)];
+  const content = fs.readFileSync(file, "utf8");
+  const matches = [
+    ...content.matchAll(/require\(['"]([^'"]*constants\.cjs)['"]\)/g),
+  ];
   if (!matches.length) continue;
 
   const fileDir = path.dirname(file);
   for (const m of matches) {
     const reqPath = m[1];
     let resolved;
-    if (reqPath.startsWith('.')) {
+    if (reqPath.startsWith(".")) {
       resolved = path.resolve(fileDir, reqPath);
     } else {
       resolved = path.join(REPO_ROOT, reqPath);
@@ -43,8 +48,10 @@ for (const file of walk(REPO_ROOT)) {
     if (!exists) {
       console.log(`BROKEN: ${relFile}`);
       console.log(`  requires: ${reqPath}`);
-      console.log(`  resolves to: ${path.relative(REPO_ROOT, resolved)} (NOT FOUND)`);
-      console.log('');
+      console.log(
+        `  resolves to: ${path.relative(REPO_ROOT, resolved)} (NOT FOUND)`,
+      );
+      console.log("");
     }
   }
 }

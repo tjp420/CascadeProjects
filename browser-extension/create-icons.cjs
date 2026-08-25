@@ -2,19 +2,19 @@
 /**
  * Generate simple placeholder PNG icons for the extension.
  */
-const { execSync } = require('child_process');
-const path = require('path');
+const { execSync } = require("child_process");
+const path = require("path");
 
 const ROOT = __dirname;
 const SIZES = [16, 48, 128];
-const COLOR = '#0078FF';
+const COLOR = "#0078FF";
 
 function hexToRgb(hex) {
-  const clean = hex.replace('#', '');
+  const clean = hex.replace("#", "");
   return {
     r: parseInt(clean.slice(0, 2), 16),
     g: parseInt(clean.slice(2, 4), 16),
-    b: parseInt(clean.slice(4, 6), 16)
+    b: parseInt(clean.slice(4, 6), 16),
   };
 }
 
@@ -23,16 +23,16 @@ function main() {
   for (const size of SIZES) {
     const outPath = path.join(ROOT, `icon-${size}.png`);
     const ps = [
-      'Add-Type -AssemblyName System.Drawing',
+      "Add-Type -AssemblyName System.Drawing",
       `$bmp = New-Object System.Drawing.Bitmap(${size}, ${size})`,
       `$g = [System.Drawing.Graphics]::FromImage($bmp)`,
       `$g.Clear([System.Drawing.Color]::FromArgb(255, ${r}, ${g}, ${b}))`,
       `$g.Dispose()`,
       `$bmp.Save('${outPath}')`,
-      `$bmp.Dispose()`
-    ].join('; ');
+      `$bmp.Dispose()`,
+    ].join("; ");
     execSync(`powershell -Command "${ps}"`, { cwd: ROOT });
-    if (process.env.SB_DEBUG === '1') {
+    if (process.env.SB_DEBUG === "1") {
       process.stdout.write([`Created ${outPath}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
     }
   }

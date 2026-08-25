@@ -1,98 +1,389 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>SimpleBeacon Architecture Map</title>
-<style>
-:root{--bg:#0f1117;--fg:#e2e8f0;--panel:#161b22;--border:#30363d;--muted:#8b949e;--ac:#6366f1}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);font-size:13px;line-height:1.5;min-height:100vh}
-.app{max-width:1200px;margin:0 auto;padding:20px}
-.header{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:20px 24px;background:linear-gradient(135deg,var(--panel) 0%,var(--bg) 100%);border:1px solid var(--border);border-radius:18px}
-.brand-icon{width:52px;height:52px;border-radius:6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:20px}
-.brand-title{font-size:24px;font-weight:800}
-.brand-sub{color:var(--muted);font-size:12px}
-.layout{display:flex;gap:20px}
-.sidebar{width:260px;flex-shrink:0}
-.main{flex:1;min-width:0}
-.section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
-.section-header{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.section-header::before{content:'';width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,#6366f1,#8b5cf6)}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 8px;text-align:center}
-.metric-value{font-size:22px;font-weight:800;color:var(--ac)}
-.metric-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-top:4px}
-.ext-bar{display:flex;align-items:flex-end;gap:2px;height:24px;margin-bottom:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.03)}
-.ext-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
-.btn:hover{opacity:.9}
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty h3{font-size:18px;margin-bottom:8px;color:var(--fg)}
-.layer{border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:12px;background:rgba(24,27,36,0.8)}
-.layer-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.layer-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.layer-title{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
-.layer-count{font-size:11px;color:var(--muted);margin-left:auto}
-.layer-files{display:flex;flex-wrap:wrap;gap:6px;max-height:140px;overflow-y:auto}
-.layer-file{padding:4px 10px;border-radius:6px;font-size:11px;font-family:monospace;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc}
-@media(max-width:900px){.layout{flex-direction:column}.sidebar{width:100%}}
-</style>
-</head>
-<body>
-<div class="app">
-  <div class="header">
-    <div class="brand-icon">SB</div>
-    <div><div class="brand-title">SimpleBeacon</div><div class="brand-sub">Architecture Map</div></div>
-  </div>
-  <div class="layout">
-    <div class="sidebar">
-      <div class="metrics" id="metrics"></div>
-      <div class="section"><div class="section-header">Languages</div><div class="ext-bar" id="extBar"></div><div class="ext-legend" id="extLegend"></div></div>
-      <div class="section">
-        <div class="section-header">Legend</div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;margin-right:6px"></span>Entry Points</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block;margin-right:6px"></span>UI / Components</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block;margin-right:6px"></span>Business Logic</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:6px"></span>Data / Infrastructure</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#a855f7;display:inline-block;margin-right:6px"></span>Utilities / Shared</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#eab308;display:inline-block;margin-right:6px"></span>Tests / Mocks</div>
-          <div><span style="width:10px;height:10px;border-radius:50%;background:#6b7280;display:inline-block;margin-right:6px"></span>Other / Config</div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>SimpleBeacon Architecture Map</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --fg: #e2e8f0;
+        --panel: #161b22;
+        --border: #30363d;
+        --muted: #8b949e;
+        --ac: #6366f1;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      .app {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, var(--panel) 0%, var(--bg) 100%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+      }
+      .brand-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #fff;
+        font-size: 20px;
+      }
+      .brand-title {
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .brand-sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .layout {
+        display: flex;
+        gap: 20px;
+      }
+      .sidebar {
+        width: 260px;
+        flex-shrink: 0;
+      }
+      .main {
+        flex: 1;
+        min-width: 0;
+      }
+      .section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .section-header {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-header::before {
+        content: '';
+        width: 3px;
+        height: 14px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, #6366f1, #8b5cf6);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .metric-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 14px 8px;
+        text-align: center;
+      }
+      .metric-value {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--ac);
+      }
+      .metric-label {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-top: 4px;
+      }
+      .ext-bar {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 24px;
+        margin-bottom: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .ext-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 11px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+      }
+      .empty h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: var(--fg);
+      }
+      .layer {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        background: rgba(24, 27, 36, 0.8);
+      }
+      .layer-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .layer-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .layer-title {
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .layer-count {
+        font-size: 11px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+      .layer-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-height: 140px;
+        overflow-y: auto;
+      }
+      .layer-file {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-family: monospace;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        color: #a5b4fc;
+      }
+      @media (max-width: 900px) {
+        .layout {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="brand-icon">SB</div>
+        <div>
+          <div class="brand-title">SimpleBeacon</div>
+          <div class="brand-sub">Architecture Map</div>
         </div>
       </div>
-      <div class="section">
-        <div class="section-header">Export</div>
-        <select id="fmt" style="padding:6px 10px;border-radius:4px;border:1px solid var(--border);background:var(--panel);color:var(--fg);font-size:12px;width:100%;margin-bottom:8px"><option value="csv">CSV</option><option value="json">JSON</option><option value="txt">TXT</option></select>
-        <button class="btn" style="width:100%" id="exportBtn">Export</button>
+      <div class="layout">
+        <div class="sidebar">
+          <div class="metrics" id="metrics"></div>
+          <div class="section">
+            <div class="section-header">Languages</div>
+            <div class="ext-bar" id="extBar"></div>
+            <div class="ext-legend" id="extLegend"></div>
+          </div>
+          <div class="section">
+            <div class="section-header">Legend</div>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11px">
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #ef4444;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Entry Points
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #f97316;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >UI / Components
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #3b82f6;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Business Logic
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #22c55e;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Data / Infrastructure
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #a855f7;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Utilities / Shared
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #eab308;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Tests / Mocks
+              </div>
+              <div>
+                <span
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #6b7280;
+                    display: inline-block;
+                    margin-right: 6px;
+                  "
+                ></span
+                >Other / Config
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-header">Export</div>
+            <select
+              id="fmt"
+              style="
+                padding: 6px 10px;
+                border-radius: 4px;
+                border: 1px solid var(--border);
+                background: var(--panel);
+                color: var(--fg);
+                font-size: 12px;
+                width: 100%;
+                margin-bottom: 8px;
+              "
+            >
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+              <option value="txt">TXT</option>
+            </select>
+            <button class="btn" style="width: 100%" id="exportBtn">Export</button>
+          </div>
+        </div>
+        <div class="main">
+          <div class="section">
+            <div class="section-header">Architecture Map</div>
+            <div id="archMap"></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="main">
-      <div class="section"><div class="section-header">Architecture Map</div><div id="archMap"></div></div>
-    </div>
-  </div>
-</div>
-<script>
-const colors=['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#a855f7'];
-const layerMeta={entry:{t:'Entry Points',c:'#ef4444'},ui:{t:'UI / Components',c:'#f97316'},business:{t:'Business Logic',c:'#3b82f6'},data:{t:'Data / Infrastructure',c:'#22c55e'},utils:{t:'Utilities / Shared',c:'#a855f7'},tests:{t:'Tests / Mocks',c:'#eab308'},other:{t:'Other / Config',c:'#6b7280'}};
-function $(id){return document.getElementById(id);}
-function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function flatten(tree,prefix){const out=[];prefix=prefix||'';if(!tree||typeof tree!=='object')return out;for(const k of Object.keys(tree)){const v=tree[k];const path=prefix?prefix+'/'+k:k;if(v===null)out.push(path);else if(typeof v==='object'&&!Array.isArray(v))out.push(...flatten(v,path));}return out;}
-function classify(fp){const p=fp.toLowerCase().replace(/\/g,'/');const name=p.split('/').pop()||'';if(/\/(node_modules|vendor|\.git)\//.test(p))return'other';if(/\/(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)\//.test(p)||/\.(test|spec)\.(js|ts|jsx|tsx|py|go|rs)$/.test(name))return'tests';if(/^(index|main|app|server|cli|entry|bootstrap|start)\.(js|ts|cjs|mjs|py|go|rs|java)$/.test(name))return'entry';if(/\/(components?|ui|pages?|views?|templates?|widgets|screens|layouts?)\//.test(p)||/\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name))return'ui';if(/\/(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?)\//.test(p)||/(service|controller|route|handler|middleware|action)\.(js|ts|cjs|mjs)$/.test(name))return'business';if(/\/(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm)\//.test(p)||/(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\.(js|ts|json|yaml|yml|env)$/.test(name))return'data';if(/\/(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?)\//.test(p)||/(util|helper|common|shared|tool|lib)\.(js|ts|cjs|mjs)$/.test(name))return'utils';return'other';}
-function render(report){report=report||{};const summary=report.summary||{};const filePaths=report.fileTree?flatten(report.fileTree):[];const issues=report.detectedIssues||report.rawIssues||report.findings||report.issues||[];const extensions=report.extensions||[];const totalFiles=filePaths.length||report.totalFiles||summary.totalFiles||0;const totalDirs=summary.totalDirectories||0;const totalLangs=extensions.length||0;
-$('metrics').innerHTML='<div class="metric-card"><div class="metric-value">'+(totalFiles||'-')+'</div><div class="metric-label">Files</div></div><div class="metric-card"><div class="metric-value">'+(totalDirs||'-')+'</div><div class="metric-label">Dirs</div></div><div class="metric-card"><div class="metric-value">'+(totalLangs||'-')+'</div><div class="metric-label">Langs</div></div><div class="metric-card"><div class="metric-value">'+(issues.length||'-')+'</div><div class="metric-label">Issues</div></div>';
-const extCounts={};let extTotal=0;for(const ex of extensions){if(ex&&ex.extension&&typeof ex.count==='number'){extCounts[ex.extension]=ex.count;extTotal+=ex.count;}}const sortedExts=Object.entries(extCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);let extBarHtml='',extLegendHtml='';for(let i=0;i<sortedExts.length;i++){const[ext,count]=sortedExts[i];const pct=extTotal>0?(count/extTotal*100).toFixed(1):'0';const color=colors[i%colors.length];extBarHtml+='<div style="width:'+pct+'%;height:100%;background:'+color+'"></div>';extLegendHtml+='<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:'+color+'"></span>'+esc(ext)+' '+count+'</span>';}$('extBar').innerHTML=extBarHtml;$('extLegend').innerHTML=extLegendHtml;
-const layers={entry:[],ui:[],business:[],data:[],utils:[],tests:[],other:[]};for(const fp of filePaths){const layer=classify(fp);if(!layers[layer])layers[layer]=[];layers[layer].push(fp);}
-let archHtml='<div style="display:flex;flex-direction:column;gap:16px;padding:8px 0;">';for(const key of['entry','ui','business','data','utils','tests','other']){const items=layers[key];if(!items||items.length===0)continue;const m=layerMeta[key];const shown=items.slice(0,60);let filesHtml='';for(const item of shown){const fn=item.split(/[\/]/).pop()||item;filesHtml+='<span style="padding:4px 10px;border-radius:6px;font-size:11px;font-family:monospace;background:'+m.c+'15;border:1px solid '+m.c+'33;color:'+m.c+'">'+esc(fn)+'</span>';}if(items.length>60)filesHtml+='<span style="padding:4px 10px;border-radius:6px;font-size:11px;color:var(--muted)">... +'+(items.length-60)+' more</span>';archHtml+='<div class="layer" style="border-color:'+m.c+'33"><div class="layer-header"><span class="layer-dot" style="background:'+m.c+'"></span><span class="layer-title">'+m.t+'</span><span class="layer-count">'+items.length+' files</span></div><div class="layer-files">'+filesHtml+'</div></div>';}if(filePaths.length===0)archHtml+='<div class="empty"><h3>&#128451; No File Data</h3><p>Run a scan to populate the architecture map.</p></div>';archHtml+='</div>';$('archMap').innerHTML=archHtml;
-document.getElementById('exportBtn').onclick=function(){const fmt=document.getElementById('fmt').value;const date=new Date().toISOString().slice(0,10);let content,mime,ext;if(fmt==='json'){content=JSON.stringify({generatedAt:new Date().toISOString(),files:filePaths,issues:issues},null,2);mime='application/json';ext='json';}else if(fmt==='txt'){content='SimpleBeacon Architecture Map
-Generated: '+new Date().toISOString()+'
-Files: '+filePaths.length+'
+    <script>
+      const colors=['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#a855f7'];
+      const layerMeta={entry:{t:'Entry Points',c:'#ef4444'},ui:{t:'UI / Components',c:'#f97316'},business:{t:'Business Logic',c:'#3b82f6'},data:{t:'Data / Infrastructure',c:'#22c55e'},utils:{t:'Utilities / Shared',c:'#a855f7'},tests:{t:'Tests / Mocks',c:'#eab308'},other:{t:'Other / Config',c:'#6b7280'}};
+      function $(id){return document.getElementById(id);}
+      function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+      function flatten(tree,prefix){const out=[];prefix=prefix||'';if(!tree||typeof tree!=='object')return out;for(const k of Object.keys(tree)){const v=tree[k];const path=prefix?prefix+'/'+k:k;if(v===null)out.push(path);else if(typeof v==='object'&&!Array.isArray(v))out.push(...flatten(v,path));}return out;}
+      function classify(fp){const p=fp.toLowerCase().replace(/\/g,'/');const name=p.split('/').pop()||'';if(/\/(node_modules|vendor|\.git)\//.test(p))return'other';if(/\/(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)\//.test(p)||/\.(test|spec)\.(js|ts|jsx|tsx|py|go|rs)$/.test(name))return'tests';if(/^(index|main|app|server|cli|entry|bootstrap|start)\.(js|ts|cjs|mjs|py|go|rs|java)$/.test(name))return'entry';if(/\/(components?|ui|pages?|views?|templates?|widgets|screens|layouts?)\//.test(p)||/\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name))return'ui';if(/\/(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?)\//.test(p)||/(service|controller|route|handler|middleware|action)\.(js|ts|cjs|mjs)$/.test(name))return'business';if(/\/(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm)\//.test(p)||/(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\.(js|ts|json|yaml|yml|env)$/.test(name))return'data';if(/\/(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?)\//.test(p)||/(util|helper|common|shared|tool|lib)\.(js|ts|cjs|mjs)$/.test(name))return'utils';return'other';}
+      function render(report){report=report||{};const summary=report.summary||{};const filePaths=report.fileTree?flatten(report.fileTree):[];const issues=report.detectedIssues||report.rawIssues||report.findings||report.issues||[];const extensions=report.extensions||[];const totalFiles=filePaths.length||report.totalFiles||summary.totalFiles||0;const totalDirs=summary.totalDirectories||0;const totalLangs=extensions.length||0;
+      $('metrics').innerHTML='<div class="metric-card"><div class="metric-value">'+(totalFiles||'-')+'</div><div class="metric-label">Files</div></div><div class="metric-card"><div class="metric-value">'+(totalDirs||'-')+'</div><div class="metric-label">Dirs</div></div><div class="metric-card"><div class="metric-value">'+(totalLangs||'-')+'</div><div class="metric-label">Langs</div></div><div class="metric-card"><div class="metric-value">'+(issues.length||'-')+'</div><div class="metric-label">Issues</div></div>';
+      const extCounts={};let extTotal=0;for(const ex of extensions){if(ex&&ex.extension&&typeof ex.count==='number'){extCounts[ex.extension]=ex.count;extTotal+=ex.count;}}const sortedExts=Object.entries(extCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);let extBarHtml='',extLegendHtml='';for(let i=0;i<sortedExts.length;i++){const[ext,count]=sortedExts[i];const pct=extTotal>0?(count/extTotal*100).toFixed(1):'0';const color=colors[i%colors.length];extBarHtml+='<div style="width:'+pct+'%;height:100%;background:'+color+'"></div>';extLegendHtml+='<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:'+color+'"></span>'+esc(ext)+' '+count+'</span>';}$('extBar').innerHTML=extBarHtml;$('extLegend').innerHTML=extLegendHtml;
+      const layers={entry:[],ui:[],business:[],data:[],utils:[],tests:[],other:[]};for(const fp of filePaths){const layer=classify(fp);if(!layers[layer])layers[layer]=[];layers[layer].push(fp);}
+      let archHtml='<div style="display:flex;flex-direction:column;gap:16px;padding:8px 0;">';for(const key of['entry','ui','business','data','utils','tests','other']){const items=layers[key];if(!items||items.length===0)continue;const m=layerMeta[key];const shown=items.slice(0,60);let filesHtml='';for(const item of shown){const fn=item.split(/[\/]/).pop()||item;filesHtml+='<span style="padding:4px 10px;border-radius:6px;font-size:11px;font-family:monospace;background:'+m.c+'15;border:1px solid '+m.c+'33;color:'+m.c+'">'+esc(fn)+'</span>';}if(items.length>60)filesHtml+='<span style="padding:4px 10px;border-radius:6px;font-size:11px;color:var(--muted)">... +'+(items.length-60)+' more</span>';archHtml+='<div class="layer" style="border-color:'+m.c+'33"><div class="layer-header"><span class="layer-dot" style="background:'+m.c+'"></span><span class="layer-title">'+m.t+'</span><span class="layer-count">'+items.length+' files</span></div><div class="layer-files">'+filesHtml+'</div></div>';}if(filePaths.length===0)archHtml+='<div class="empty"><h3>&#128451; No File Data</h3><p>Run a scan to populate the architecture map.</p></div>';archHtml+='</div>';$('archMap').innerHTML=archHtml;
+      document.getElementById('exportBtn').onclick=function(){const fmt=document.getElementById('fmt').value;const date=new Date().toISOString().slice(0,10);let content,mime,ext;if(fmt==='json'){content=JSON.stringify({generatedAt:new Date().toISOString(),files:filePaths,issues:issues},null,2);mime='application/json';ext='json';}else if(fmt==='txt'){content='SimpleBeacon Architecture Map
+      Generated: '+new Date().toISOString()+'
+      Files: '+filePaths.length+'
 
-'+filePaths.join('
-');mime='text/plain';ext='txt';}else{let csv='File
-';for(let i=0;i<filePaths.length;i++){csv+='"'+String(filePaths[i]).replace(/"/g,'""')+'"
-';}content=csv;mime='text/csv';ext='csv';}const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='simplebeacon-codemap-'+date+'.'+ext;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);};}
-function fetchData(){const rp=window._relayPort||3001;fetch('http://localhost:'+rp+'/api/data').then(r=>r.json()).then(data=>{render(data);}).catch(e=>{console.error('[CodeMap] fetch failed:',e);render({});});}
-fetchData();setInterval(fetchData,3000);
-</script>
-</body>
+      '+filePaths.join('
+      ');mime='text/plain';ext='txt';}else{let csv='File
+      ';for(let i=0;i<filePaths.length;i++){csv+='"'+String(filePaths[i]).replace(/"/g,'""')+'"
+      ';}content=csv;mime='text/csv';ext='csv';}const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='simplebeacon-codemap-'+date+'.'+ext;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);};}
+      function fetchData(){const rp=window._relayPort||3001;fetch('http://localhost:'+rp+'/api/data').then(r=>r.json()).then(data=>{render(data);}).catch(e=>{console.error('[CodeMap] fetch failed:',e);render({});});}
+      fetchData();setInterval(fetchData,3000);
+    </script>
+  </body>
 </html>

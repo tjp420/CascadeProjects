@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 52: ZK attestation contract verifier.
@@ -11,8 +11,8 @@
  * @module hsm-adapter/zk-attestation-contract-verifier
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkAttestationContractVerifier {
   /**
@@ -35,7 +35,7 @@ class ZkAttestationContractVerifier {
    */
   generate(token) {
     const input = _canonicalInput(token);
-    return crypto.createHash('sha256').update(input).digest('hex');
+    return crypto.createHash("sha256").update(input).digest("hex");
   }
 
   /**
@@ -51,29 +51,44 @@ class ZkAttestationContractVerifier {
       try {
         const result = this._attestationClient.verify(verifierAttestation);
         if (!result.verified) {
-          throw new HsmAdapterError('TOKEN_VERIFIER_UNATTESTED', 'verifier attestation invalid');
+          throw new HsmAdapterError(
+            "TOKEN_VERIFIER_UNATTESTED",
+            "verifier attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TOKEN_VERIFIER_UNATTESTED', 'verifier attestation invalid');
+        throw new HsmAdapterError(
+          "TOKEN_VERIFIER_UNATTESTED",
+          "verifier attestation invalid",
+        );
       }
     }
     const expected = this.generate(token);
     if (proof !== expected) {
-      throw new HsmAdapterError('TOKEN_PROOF_INVALID', 'zk access proof verification failed');
+      throw new HsmAdapterError(
+        "TOKEN_PROOF_INVALID",
+        "zk access proof verification failed",
+      );
     }
     const now = currentEpoch || Math.floor(Date.now() / 1000);
     if (now > token.expiryEpoch) {
       if (this.policy.banExpiredProofNodes && token.nodeId) {
         this._bannedNodes.add(token.nodeId);
       }
-      throw new HsmAdapterError('TOKEN_EXPIRED', `token expired at epoch ${token.expiryEpoch}`);
+      throw new HsmAdapterError(
+        "TOKEN_EXPIRED",
+        `token expired at epoch ${token.expiryEpoch}`,
+      );
     }
-    if (token.status !== 'issued') {
-      throw new HsmAdapterError('TOKEN_NOT_ISSUED', 'token has not reached issuance quorum');
+    if (token.status !== "issued") {
+      throw new HsmAdapterError(
+        "TOKEN_NOT_ISSUED",
+        "token has not reached issuance quorum",
+      );
     }
     if (this._audit) {
-      this._audit('ATTESTATION_CONTRACT_VERIFIED', {
+      this._audit("ATTESTATION_CONTRACT_VERIFIED", {
         tokenId: token.tokenId,
         scopeHash: token.scopeHash,
         expiryEpoch: token.expiryEpoch,
@@ -93,7 +108,9 @@ class ZkAttestationContractVerifier {
 }
 
 function _canonicalInput(token) {
-  const sigs = (token.committeeSignatures || []).map((s) => s.committeeMemberId).join(',');
+  const sigs = (token.committeeSignatures || [])
+    .map((s) => s.committeeMemberId)
+    .join(",");
   return `TOKEN:${token.tokenId}:${token.scopeHash}:${token.expiryEpoch}:${sigs}:${token.blindSignatureWeight}`;
 }
 

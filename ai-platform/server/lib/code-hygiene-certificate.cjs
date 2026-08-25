@@ -3,11 +3,12 @@
  * Code Hygiene Certificate — co-branded executive HTML (print → PDF).
  */
 
-const crypto = require('crypto');
-const { escapeHtml } = require('./code-roadmap-export.cjs');
-const { resolveLogoSrc } = require('./agency-branding-store.cjs');
+const crypto = require("crypto");
+const { escapeHtml } = require("./code-roadmap-export.cjs");
+const { resolveLogoSrc } = require("./agency-branding-store.cjs");
 
-const SIMPLEBEACON_BADGE_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCAxODAgNDAiPjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjMTExODI3Ii8+PHRleHQgeD0iMTAiIHk9IjI2IiBmaWxsPSIjNTg2NkZmIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbXBsZUJlYWNvbjwvdGV4dD48dGV4dCB4PSIxMTAiIHk9IjI2IiBmaWxsPSIjOUI5QTA0IiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+VkVSSUZJRUQ8L3RleHQ+PC9zdmc+';
+const SIMPLEBEACON_BADGE_SVG =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCAxODAgNDAiPjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjMTExODI3Ii8+PHRleHQgeD0iMTAiIHk9IjI2IiBmaWxsPSIjNTg2NkZmIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbXBsZUJlYWNvbjwvdGV4dD48dGV4dCB4PSIxMTAiIHk9IjI2IiBmaWxsPSIjOUI5QTA0IiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+VkVSSUZJRUQ8L3RleHQ+PC9zdmc+";
 
 /**
  * Classify issue.
@@ -15,11 +16,13 @@ const SIMPLEBEACON_BADGE_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cD
  * @returns {any}
  */
 function classifyIssue(issue = {}) {
-  const blob = `${issue.type || ''} ${issue.rule || ''} ${issue.description || ''}`.toLowerCase();
-  if (/credential|secret|aws|jwt|api.key/.test(blob)) return 'credential';
-  if (/production.leak|sample.path|mock.path|fixtures-path/.test(blob)) return 'leak';
-  if (/fiction|kpi|mock.sample|baseline.drift/.test(blob)) return 'fiction';
-  return 'other';
+  const blob =
+    `${issue.type || ""} ${issue.rule || ""} ${issue.description || ""}`.toLowerCase();
+  if (/credential|secret|aws|jwt|api.key/.test(blob)) return "credential";
+  if (/production.leak|sample.path|mock.path|fixtures-path/.test(blob))
+    return "leak";
+  if (/fiction|kpi|mock.sample|baseline.drift/.test(blob)) return "fiction";
+  return "other";
 }
 
 /**
@@ -34,17 +37,19 @@ function summarizeReport(report = {}) {
     buckets[classifyIssue(issue)].push(issue);
   }
 
-/**
- * Max severity.
- * @param {any} list
- * @returns {any}
- */
+  /**
+   * Max severity.
+   * @param {any} list
+   * @returns {any}
+   */
   const maxSeverity = (list) => {
     const order = { critical: 4, high: 3, moderate: 2, medium: 2, low: 1 };
-    let max = 'none';
+    let max = "none";
     let score = 0;
     for (const item of list) {
-      const sev = String(item.severity || item.severityBand || 'low').toLowerCase();
+      const sev = String(
+        item.severity || item.severityBand || "low",
+      ).toLowerCase();
       const val = order[sev] || 0;
       if (val > score) {
         score = val;
@@ -68,14 +73,14 @@ function summarizeReport(report = {}) {
       credential: buckets.credential.length,
       leak: buckets.leak.length,
       fiction: buckets.fiction.length,
-      other: buckets.other.length
+      other: buckets.other.length,
     },
     maxSeverity: {
       credential: maxSeverity(buckets.credential),
       leak: maxSeverity(buckets.leak),
-      fiction: maxSeverity(buckets.fiction)
+      fiction: maxSeverity(buckets.fiction),
     },
-    topFindings: issues.slice(0, 12)
+    topFindings: issues.slice(0, 12),
   };
 }
 
@@ -87,22 +92,38 @@ function summarizeReport(report = {}) {
 function buildCertificateModel(options = {}) {
   const report = options.report || {};
   const summary = summarizeReport(report);
-  const certificateId = options.certificate_id
-    || `sb_cert_${crypto.randomBytes(8).toString('hex')}`;
+  const certificateId =
+    options.certificate_id ||
+    `sb_cert_${crypto.randomBytes(8).toString("hex")}`;
 
   return {
     certificateId,
-    scanId: options.scan_id || certificateId.replace('sb_cert_', 'sb_auth_'),
-    milestone: String(options.milestone || 'release').trim(),
-    generatedAt: options.generated_at || report.generatedAt || new Date().toISOString(),
+    scanId: options.scan_id || certificateId.replace("sb_cert_", "sb_auth_"),
+    milestone: String(options.milestone || "release").trim(),
+    generatedAt:
+      options.generated_at || report.generatedAt || new Date().toISOString(),
     branding: options.branding || {},
     project: {
-      client_name: options.credentials?.projectName || options.client_name || options.project?.client_name || 'Client',
-      project_name: options.credentials?.projectName || options.project_name || options.project?.project_name || 'Project',
-      agency_name: options.agency_name || options.branding?.agency_name || options.project?.agency_name || 'Agency'
+      client_name:
+        options.credentials?.projectName ||
+        options.client_name ||
+        options.project?.client_name ||
+        "Client",
+      project_name:
+        options.credentials?.projectName ||
+        options.project_name ||
+        options.project?.project_name ||
+        "Project",
+      agency_name:
+        options.agency_name ||
+        options.branding?.agency_name ||
+        options.project?.agency_name ||
+        "Agency",
     },
     summary,
-    verificationUrl: options.verification_url || `https://simplebeacon.ai/verify/${certificateId}`
+    verificationUrl:
+      options.verification_url ||
+      `https://simplebeacon.ai/verify/${certificateId}`,
   };
 }
 
@@ -115,13 +136,17 @@ function renderFindingsTable(findings = []) {
   if (!findings.length) {
     return '<p class="muted">No blocking findings at configured gate severities.</p>';
   }
-  const rows = findings.map((f) => {
-    const sev = escapeHtml(String(f.severity || f.severityBand || 'medium'));
-    const type = escapeHtml(String(f.type || f.rule || 'Finding'));
-    const pathText = escapeHtml(String(f.filePath || f.path || '—'));
-    const desc = escapeHtml(String(f.description || f.message || '').slice(0, 120));
-    return `<tr><td>${sev}</td><td>${type}</td><td><code>${pathText}</code></td><td>${desc}</td></tr>`;
-  }).join('');
+  const rows = findings
+    .map((f) => {
+      const sev = escapeHtml(String(f.severity || f.severityBand || "medium"));
+      const type = escapeHtml(String(f.type || f.rule || "Finding"));
+      const pathText = escapeHtml(String(f.filePath || f.path || "—"));
+      const desc = escapeHtml(
+        String(f.description || f.message || "").slice(0, 120),
+      );
+      return `<tr><td>${sev}</td><td>${type}</td><td><code>${pathText}</code></td><td>${desc}</td></tr>`;
+    })
+    .join("");
   return `<table class="findings"><thead><tr><th>Severity</th><th>Category</th><th>Path</th><th>Summary</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -132,26 +157,43 @@ function renderFindingsTable(findings = []) {
  */
 function renderCertificateHtml(model) {
   const branding = model.branding || {};
-  const brandColor = branding.brand_color_hex || '#2563EB';
+  const brandColor = branding.brand_color_hex || "#2563EB";
   const logoSrc = resolveLogoSrc(branding);
   const agencyLogoHtml = logoSrc
     ? `<img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(model.project.agency_name)}" />`
     : `<div class="logo-fallback">${escapeHtml(model.project.agency_name)}</div>`;
 
-  const statusClass = model.summary.hasFailures ? 'status-review' : 'status-pass';
-  const statusLabel = model.summary.hasFailures ? 'ACTION REQUIRED' : 'PASSED SECURE HYGIENE GATE';
-  const dateLabel = new Date(model.generatedAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const statusClass = model.summary.hasFailures
+    ? "status-review"
+    : "status-pass";
+  const statusLabel = model.summary.hasFailures
+    ? "ACTION REQUIRED"
+    : "PASSED SECURE HYGIENE GATE";
+  const dateLabel = new Date(model.generatedAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
-  const milestoneLabel = model.milestone.charAt(0).toUpperCase() + model.milestone.slice(1);
+  const milestoneLabel =
+    model.milestone.charAt(0).toUpperCase() + model.milestone.slice(1);
 
   const recs = [];
-  if (model.summary.counts.credential > 0) recs.push('Remove or rotate exposed credential patterns before client handoff.');
-  if (model.summary.counts.leak > 0) recs.push('Eliminate sample/mock path references from production directories.');
-  if (model.summary.counts.fiction > 0) recs.push('Replace AI-fiction KPIs in mock/dashboard samples with measured values.');
-  if (!recs.length) recs.push('Maintain current gate configuration through Beta and Release milestones.');
+  if (model.summary.counts.credential > 0)
+    recs.push(
+      "Remove or rotate exposed credential patterns before client handoff.",
+    );
+  if (model.summary.counts.leak > 0)
+    recs.push(
+      "Eliminate sample/mock path references from production directories.",
+    );
+  if (model.summary.counts.fiction > 0)
+    recs.push(
+      "Replace AI-fiction KPIs in mock/dashboard samples with measured values.",
+    );
+  if (!recs.length)
+    recs.push(
+      "Maintain current gate configuration through Beta and Release milestones.",
+    );
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -232,7 +274,7 @@ function renderCertificateHtml(model) {
     </div>
     ${renderFindingsTable(model.summary.topFindings)}
     <h3 class="section-title" style="margin-top:28px">Recommendations</h3>
-    <ol class="rec-list">${recs.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ol>
+    <ol class="rec-list">${recs.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ol>
   </section>
 
   <section class="page">
@@ -244,7 +286,7 @@ function renderCertificateHtml(model) {
         <li>Credential and sample-path checks completed before client-facing launch.</li>
         <li>AI-assisted development hygiene documented for vendor and procurement reviews.</li>
       </ul>
-      <p class="muted" style="margin-top:16px">Agency: ${escapeHtml(model.project.agency_name)}${branding.contact_email ? ` · ${escapeHtml(branding.contact_email)}` : ''}</p>
+      <p class="muted" style="margin-top:16px">Agency: ${escapeHtml(model.project.agency_name)}${branding.contact_email ? ` · ${escapeHtml(branding.contact_email)}` : ""}</p>
       <p class="muted">SimpleBeacon verification · Certificate ${escapeHtml(model.certificateId)} · ${escapeHtml(model.verificationUrl)}</p>
     </div>
   </section>
@@ -255,5 +297,5 @@ function renderCertificateHtml(model) {
 module.exports = {
   summarizeReport,
   buildCertificateModel,
-  renderCertificateHtml
+  renderCertificateHtml,
 };

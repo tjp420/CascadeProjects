@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 35: Cluster Key Reconciliation.
@@ -20,40 +20,53 @@
  * @module hsm-adapter/cluster-key-reconciliation-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { validateTenantContext, TENANT_FIELD, DEFAULT_TENANT } = require('../replication-tenant-context.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  validateTenantContext,
+  TENANT_FIELD,
+  DEFAULT_TENANT,
+} = require("../replication-tenant-context.cjs");
 
 // ── Reconciliation states ────────────────────────────────────────
 const RECONCILIATION_STATE = {
-  SCANNING: 'scanning',
-  DIVERGENT: 'divergent',
-  RECONCILING: 'reconciling',
-  RECONCILED: 'reconciled',
-  QUARANTINED: 'quarantined',
+  SCANNING: "scanning",
+  DIVERGENT: "divergent",
+  RECONCILING: "reconciling",
+  RECONCILED: "reconciled",
+  QUARANTINED: "quarantined",
 };
 
 // ── Valid state transitions ──────────────────────────────────────
 const VALID_TRANSITIONS = {
-  [RECONCILIATION_STATE.SCANNING]: [RECONCILIATION_STATE.DIVERGENT, RECONCILIATION_STATE.RECONCILED],
-  [RECONCILIATION_STATE.DIVERGENT]: [RECONCILIATION_STATE.RECONCILING, RECONCILIATION_STATE.QUARANTINED],
-  [RECONCILIATION_STATE.RECONCILING]: [RECONCILIATION_STATE.RECONCILED, RECONCILIATION_STATE.QUARANTINED],
+  [RECONCILIATION_STATE.SCANNING]: [
+    RECONCILIATION_STATE.DIVERGENT,
+    RECONCILIATION_STATE.RECONCILED,
+  ],
+  [RECONCILIATION_STATE.DIVERGENT]: [
+    RECONCILIATION_STATE.RECONCILING,
+    RECONCILIATION_STATE.QUARANTINED,
+  ],
+  [RECONCILIATION_STATE.RECONCILING]: [
+    RECONCILIATION_STATE.RECONCILED,
+    RECONCILIATION_STATE.QUARANTINED,
+  ],
   [RECONCILIATION_STATE.RECONCILED]: [],
   [RECONCILIATION_STATE.QUARANTINED]: [],
 };
 
 // ── Divergence severity ──────────────────────────────────────────
 const DIVERGENCE_SEVERITY = {
-  NONE: 'none',
-  MINOR: 'minor',
-  CRITICAL: 'critical',
+  NONE: "none",
+  MINOR: "minor",
+  CRITICAL: "critical",
 };
 
 // ── Node health states ───────────────────────────────────────────
 const NODE_HEALTH = {
-  HEALTHY: 'healthy',
-  DIVERGENT: 'divergent',
-  QUARANTINED: 'quarantined',
+  HEALTHY: "healthy",
+  DIVERGENT: "divergent",
+  QUARANTINED: "quarantined",
 };
 
 /**
@@ -62,7 +75,7 @@ const NODE_HEALTH = {
  * @returns {string} hex digest
  */
 function computeKeyFingerprint(keyMaterial) {
-  return crypto.createHash('sha256').update(keyMaterial).digest('hex');
+  return crypto.createHash("sha256").update(keyMaterial).digest("hex");
 }
 
 /**
@@ -151,7 +164,12 @@ class KeyEpochTracker {
   detectDivergence(keyId) {
     const nodes = this.getKeyNodes(keyId);
     if (nodes.size === 0) {
-      return { keyId, severity: DIVERGENCE_SEVERITY.NONE, divergentNodes: [], quorumEpoch: null };
+      return {
+        keyId,
+        severity: DIVERGENCE_SEVERITY.NONE,
+        divergentNodes: [],
+        quorumEpoch: null,
+      };
     }
 
     // Group nodes by fingerprint
@@ -195,12 +213,15 @@ class KeyEpochTracker {
     }
 
     // Severity: critical if no majority can form quorum
-    const severity = majorityCount >= Math.floor(nodes.size / 2) + 1
-      ? DIVERGENCE_SEVERITY.MINOR
-      : DIVERGENCE_SEVERITY.CRITICAL;
+    const severity =
+      majorityCount >= Math.floor(nodes.size / 2) + 1
+        ? DIVERGENCE_SEVERITY.MINOR
+        : DIVERGENCE_SEVERITY.CRITICAL;
 
     // Quorum epoch is the max epoch in the majority group
-    const majorityEpochs = fingerprintGroups.get(majorityFingerprint).map((n) => n.epoch);
+    const majorityEpochs = fingerprintGroups
+      .get(majorityFingerprint)
+      .map((n) => n.epoch);
     const quorumEpoch = Math.max(...majorityEpochs);
 
     return {
@@ -230,11 +251,18 @@ class ClusterKeyReconciliationEngine {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    if (!Array.isArray(options.clusterNodes) || options.clusterNodes.length === 0) {
-      throw new HsmAdapterError('INVALID_INPUT', 'clusterNodes must be a non-empty array');
+    if (
+      !Array.isArray(options.clusterNodes) ||
+      options.clusterNodes.length === 0
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "clusterNodes must be a non-empty array",
+      );
     }
     this.clusterNodes = new Set(options.clusterNodes);
-    this.minQuorumNodes = options.minQuorumNodes || Math.floor(options.clusterNodes.length / 2) + 1;
+    this.minQuorumNodes =
+      options.minQuorumNodes || Math.floor(options.clusterNodes.length / 2) + 1;
     this.maxEpochRollbackAttempts = options.maxEpochRollbackAttempts || 3;
     this._audit = options.audit || null;
 
@@ -262,7 +290,7 @@ class ClusterKeyReconciliationEngine {
     const fingerprint = computeKeyFingerprint(keyMaterial);
     this._tracker.registerNodeKey(keyId, nodeId, epoch, fingerprint);
 
-    this._emitAudit('KEY_REGISTERED', { keyId, nodeId, epoch, fingerprint });
+    this._emitAudit("KEY_REGISTERED", { keyId, nodeId, epoch, fingerprint });
   }
 
   /**
@@ -292,7 +320,7 @@ class ClusterKeyReconciliationEngine {
           this._nodeHealth.set(nodeId, NODE_HEALTH.DIVERGENT);
         }
 
-        this._emitAudit('KEY_DIVERGENCE_DETECTED', {
+        this._emitAudit("KEY_DIVERGENCE_DETECTED", {
           keyId,
           severity: report.severity,
           divergentCount: report.divergentNodes.length,
@@ -311,8 +339,8 @@ class ClusterKeyReconciliationEngine {
     const state = this._reconciliationStates.get(keyId);
     if (state !== RECONCILIATION_STATE.DIVERGENT) {
       throw new HsmAdapterError(
-        'RECONCILIATION_NOT_DIVERGENT',
-        `key ${keyId} is in state ${state || 'untracked'}, must be divergent`,
+        "RECONCILIATION_NOT_DIVERGENT",
+        `key ${keyId} is in state ${state || "untracked"}, must be divergent`,
       );
     }
 
@@ -321,17 +349,22 @@ class ClusterKeyReconciliationEngine {
     if (targetEpoch < currentEpoch) {
       const attempts = (this._rollbackAttempts.get(keyId) || 0) + 1;
       this._rollbackAttempts.set(keyId, attempts);
-      this._emitAudit('KEY_EPOCH_ROLLBACK_BLOCKED', { keyId, targetEpoch, currentEpoch, attempts });
+      this._emitAudit("KEY_EPOCH_ROLLBACK_BLOCKED", {
+        keyId,
+        targetEpoch,
+        currentEpoch,
+        attempts,
+      });
 
       if (attempts >= this.maxEpochRollbackAttempts) {
         this._transition(keyId, RECONCILIATION_STATE.QUARANTINED);
         throw new HsmAdapterError(
-          'RECONCILIATION_QUARANTINED',
+          "RECONCILIATION_QUARANTINED",
           `key ${keyId} quarantined after ${attempts} rollback attempts`,
         );
       }
       throw new HsmAdapterError(
-        'KEY_EPOCH_ROLLBACK_BLOCKED',
+        "KEY_EPOCH_ROLLBACK_BLOCKED",
         `target epoch ${targetEpoch} < current epoch ${currentEpoch} for key ${keyId}`,
       );
     }
@@ -339,7 +372,11 @@ class ClusterKeyReconciliationEngine {
     this._transition(keyId, RECONCILIATION_STATE.RECONCILING);
     this._promotionVotes.set(keyId, new Map());
 
-    this._emitAudit('RECONCILIATION_STARTED', { keyId, targetEpoch, currentEpoch });
+    this._emitAudit("RECONCILIATION_STARTED", {
+      keyId,
+      targetEpoch,
+      currentEpoch,
+    });
     return { keyId, targetEpoch, state: RECONCILIATION_STATE.RECONCILING };
   }
 
@@ -355,7 +392,7 @@ class ClusterKeyReconciliationEngine {
     // Only healthy nodes can vote
     if (this._nodeHealth.get(nodeId) !== NODE_HEALTH.HEALTHY) {
       throw new HsmAdapterError(
-        'NODE_NOT_HEALTHY',
+        "NODE_NOT_HEALTHY",
         `node ${nodeId} is ${this._nodeHealth.get(nodeId)} and cannot vote on key promotion`,
       );
     }
@@ -363,7 +400,7 @@ class ClusterKeyReconciliationEngine {
     const state = this._reconciliationStates.get(keyId);
     if (state !== RECONCILIATION_STATE.RECONCILING) {
       throw new HsmAdapterError(
-        'RECONCILIATION_NOT_IN_PROGRESS',
+        "RECONCILIATION_NOT_IN_PROGRESS",
         `key ${keyId} is in state ${state}, must be reconciling`,
       );
     }
@@ -374,7 +411,12 @@ class ClusterKeyReconciliationEngine {
     const votes = this._promotionVotes.get(keyId);
     votes.set(nodeId, votedEpoch);
 
-    this._emitAudit('PROMOTION_VOTED', { keyId, nodeId, votedEpoch, totalVotes: votes.size });
+    this._emitAudit("PROMOTION_VOTED", {
+      keyId,
+      nodeId,
+      votedEpoch,
+      totalVotes: votes.size,
+    });
 
     // Check if quorum reached
     if (votes.size >= this.minQuorumNodes) {
@@ -407,7 +449,11 @@ class ClusterKeyReconciliationEngine {
       }
     }
 
-    this._emitAudit('KEY_PROMOTED', { keyId, newEpoch, quorumVotes: this._promotionVotes.get(keyId).size });
+    this._emitAudit("KEY_PROMOTED", {
+      keyId,
+      newEpoch,
+      quorumVotes: this._promotionVotes.get(keyId).size,
+    });
   }
 
   /**
@@ -415,16 +461,22 @@ class ClusterKeyReconciliationEngine {
    * @param {string} keyId
    * @param {string} [reason]
    */
-  quarantine(keyId, reason = 'manual') {
+  quarantine(keyId, reason = "manual") {
     const state = this._reconciliationStates.get(keyId);
     if (state === RECONCILIATION_STATE.RECONCILED) {
-      throw new HsmAdapterError('RECONCILIATION_ALREADY_RECONCILED', `key ${keyId} already reconciled`);
+      throw new HsmAdapterError(
+        "RECONCILIATION_ALREADY_RECONCILED",
+        `key ${keyId} already reconciled`,
+      );
     }
     if (state === RECONCILIATION_STATE.QUARANTINED) {
-      throw new HsmAdapterError('RECONCILIATION_ALREADY_QUARANTINED', `key ${keyId} already quarantined`);
+      throw new HsmAdapterError(
+        "RECONCILIATION_ALREADY_QUARANTINED",
+        `key ${keyId} already quarantined`,
+      );
     }
     this._transition(keyId, RECONCILIATION_STATE.QUARANTINED);
-    this._emitAudit('KEY_QUARANTINED', { keyId, reason });
+    this._emitAudit("KEY_QUARANTINED", { keyId, reason });
     return { keyId, state: RECONCILIATION_STATE.QUARANTINED, reason };
   }
 
@@ -434,7 +486,8 @@ class ClusterKeyReconciliationEngine {
    * @returns {object}
    */
   getReconciliationState(keyId) {
-    const state = this._reconciliationStates.get(keyId) || RECONCILIATION_STATE.SCANNING;
+    const state =
+      this._reconciliationStates.get(keyId) || RECONCILIATION_STATE.SCANNING;
     const promotedEpoch = this._tracker.getPromotedEpoch(keyId);
     const votes = this._promotionVotes.get(keyId);
     return {
@@ -490,7 +543,10 @@ class ClusterKeyReconciliationEngine {
    */
   _validateNode(nodeId) {
     if (!this.clusterNodes.has(nodeId)) {
-      throw new HsmAdapterError('NODE_UNKNOWN', `node ${nodeId} not in cluster`);
+      throw new HsmAdapterError(
+        "NODE_UNKNOWN",
+        `node ${nodeId} not in cluster`,
+      );
     }
   }
 
@@ -500,11 +556,12 @@ class ClusterKeyReconciliationEngine {
    * @param {string} newState
    */
   _transition(keyId, newState) {
-    const currentState = this._reconciliationStates.get(keyId) || RECONCILIATION_STATE.SCANNING;
+    const currentState =
+      this._reconciliationStates.get(keyId) || RECONCILIATION_STATE.SCANNING;
     const allowed = VALID_TRANSITIONS[currentState] || [];
     if (!allowed.includes(newState)) {
       throw new HsmAdapterError(
-        'RECONCILIATION_INVALID_TRANSITION',
+        "RECONCILIATION_INVALID_TRANSITION",
         `cannot transition key ${keyId} from ${currentState} to ${newState}`,
       );
     }

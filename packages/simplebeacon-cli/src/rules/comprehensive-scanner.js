@@ -6,24 +6,113 @@
  * api-contract, file-naming.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const MAX_SCAN_BYTES = 256000; // smaller limit = faster
 
 // Simple string-includes checks (extremely fast)
 const STRING_CHECKS = [
-  { id: 'ai-indicators', terms: ['openai', 'langchain', 'anthropic', 'claude', 'gpt-4', 'gpt-3', 'ollama', 'cohere', 'huggingface', 'transformers', 'tensorflow', 'pytorch', 'keras', 'sklearn', 'scikit-learn', 'mlflow', 'wandb'], ext: ['.js','.ts','.jsx','.tsx','.py'] },
-  { id: 'governance', terms: ['MIT License', 'Apache License', 'SPDX-License', 'Copyright (c)', 'All rights reserved'], ext: ['.js','.ts','.py'] },
-  { id: 'governance-marker', terms: ['CODE_OF_CONDUCT', 'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CODEOWNERS'], ext: ['.js','.ts','.py','.yml','.yaml'] },
-  { id: 'database-patterns', terms: ['query(`', 'exec(`', 'execute(`', "query('", "exec('", "execute('"], ext: ['.js','.ts','.jsx','.tsx','.py','.php'] },
-  { id: 'framework-practices', terms: ['useEffect(() => {', 'useEffect(()=>'], ext: ['.js','.jsx','.ts','.tsx'] },
-  { id: 'workspace-health', terms: ["require('../../../", 'require("../../../', "from '../../../", 'from "../../../'], ext: ['.js','.ts','.jsx','.tsx','.cjs','.mjs'] },
-  { id: 'api-contract', terms: ['openapi:', 'swagger:', 'openapi.json', 'swagger.json', 'openapi.yaml', 'swagger.yaml'], ext: ['.js','.ts','.json','.yaml','.yml'] },
-  { id: 'documentation', terms: ['export function', 'export class', 'export async function'], ext: ['.js','.ts','.jsx','.tsx','.py'] },
-  { id: 'accessibility', terms: ['<img'], ext: ['.html','.jsx','.tsx','.vue','.svelte'] },
-  { id: 'i18n', terms: ["textContent = '", 'textContent = "', "innerText = '", 'innerText = "'], ext: ['.js','.ts','.jsx','.tsx'] },
-  { id: 'security-headers', terms: ['express()'], ext: ['.js','.ts','.cjs'] }
+  {
+    id: "ai-indicators",
+    terms: [
+      "openai",
+      "langchain",
+      "anthropic",
+      "claude",
+      "gpt-4",
+      "gpt-3",
+      "ollama",
+      "cohere",
+      "huggingface",
+      "transformers",
+      "tensorflow",
+      "pytorch",
+      "keras",
+      "sklearn",
+      "scikit-learn",
+      "mlflow",
+      "wandb",
+    ],
+    ext: [".js", ".ts", ".jsx", ".tsx", ".py"],
+  },
+  {
+    id: "governance",
+    terms: [
+      "MIT License",
+      "Apache License",
+      "SPDX-License",
+      "Copyright (c)",
+      "All rights reserved",
+    ],
+    ext: [".js", ".ts", ".py"],
+  },
+  {
+    id: "governance-marker",
+    terms: [
+      "CODE_OF_CONDUCT",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CHANGELOG.md",
+      "LICENSE",
+      "NOTICE",
+      "CODEOWNERS",
+    ],
+    ext: [".js", ".ts", ".py", ".yml", ".yaml"],
+  },
+  {
+    id: "database-patterns",
+    terms: ["query(`", "exec(`", "execute(`", "query('", "exec('", "execute('"],
+    ext: [".js", ".ts", ".jsx", ".tsx", ".py", ".php"],
+  },
+  {
+    id: "framework-practices",
+    terms: ["useEffect(() => {", "useEffect(()=>"],
+    ext: [".js", ".jsx", ".ts", ".tsx"],
+  },
+  {
+    id: "workspace-health",
+    terms: [
+      "require('../../../",
+      'require("../../../',
+      "from '../../../",
+      'from "../../../',
+    ],
+    ext: [".js", ".ts", ".jsx", ".tsx", ".cjs", ".mjs"],
+  },
+  {
+    id: "api-contract",
+    terms: [
+      "openapi:",
+      "swagger:",
+      "openapi.json",
+      "swagger.json",
+      "openapi.yaml",
+      "swagger.yaml",
+    ],
+    ext: [".js", ".ts", ".json", ".yaml", ".yml"],
+  },
+  {
+    id: "documentation",
+    terms: ["export function", "export class", "export async function"],
+    ext: [".js", ".ts", ".jsx", ".tsx", ".py"],
+  },
+  {
+    id: "accessibility",
+    terms: ["<img"],
+    ext: [".html", ".jsx", ".tsx", ".vue", ".svelte"],
+  },
+  {
+    id: "i18n",
+    terms: [
+      "textContent = '",
+      'textContent = "',
+      "innerText = '",
+      'innerText = "',
+    ],
+    ext: [".js", ".ts", ".jsx", ".tsx"],
+  },
+  { id: "security-headers", terms: ["express()"], ext: [".js", ".ts", ".cjs"] },
 ];
 
 const SKIP_PATH_PATTERNS = [
@@ -80,18 +169,23 @@ const SKIP_PATH_PATTERNS = [
   /sales\/support\/simulate-registration-flow\.js$/i,
   /ai-platform\/tools\/test-billing-pipeline\.js$/i,
   /comprehensive-scanner\.js$/i,
-  /\.min\.(js|css)$/i
+  /\.min\.(js|css)$/i,
 ];
 
 function shouldSkipPath(relativePath) {
-  return SKIP_PATH_PATTERNS.some(p => p.test(relativePath));
+  return SKIP_PATH_PATTERNS.some((p) => p.test(relativePath));
 }
 
 function shouldSkipCheckForPath(checkId, relativePath) {
-  const rel = relativePath.replace(/\\/g, '/');
+  const rel = relativePath.replace(/\\/g, "/");
   // Governance markers are expected in AI platform source files with license headers
-  if (checkId === 'governance' || checkId === 'governance-marker') {
-    if (/\b(ai-agent\/prompts\.js|eslint\.config\.js|enterprise-dlp\.js|action\.yml|\.github\/workflows\/simplebeacon-ai-hygiene-gate\.yml|consistency-score\.test\.js|packages\/simplebeacon-intelligence\/src\/constants\.js|packages\/simplebeacon-intelligence\/src\/index\.js)\b/.test(rel)) return true;
+  if (checkId === "governance" || checkId === "governance-marker") {
+    if (
+      /\b(ai-agent\/prompts\.js|eslint\.config\.js|enterprise-dlp\.js|action\.yml|\.github\/workflows\/simplebeacon-ai-hygiene-gate\.yml|consistency-score\.test\.js|packages\/simplebeacon-intelligence\/src\/constants\.js|packages\/simplebeacon-intelligence\/src\/index\.js)\b/.test(
+        rel,
+      )
+    )
+      return true;
     // CLI source files reference governance file names in scan logic and help text
     if (/packages\/simplebeacon-cli\/(bin|src)\//.test(rel)) return true;
     // Guardrails public examples and GitHub templates legitimately reference governance files
@@ -102,44 +196,74 @@ function shouldSkipCheckForPath(checkId, relativePath) {
     if (/^verify-codemap/.test(rel)) return true;
   }
   // AI SDK usage is expected in AI platform source files
-  if (checkId === 'ai-indicators') {
-    if (/\b(auto-processor\.js|audit_viz\.py|orchestrator\.test\.js|test-gateway\.js)\b/.test(rel)) return true;
+  if (checkId === "ai-indicators") {
+    if (
+      /\b(auto-processor\.js|audit_viz\.py|orchestrator\.test\.js|test-gateway\.js)\b/.test(
+        rel,
+      )
+    )
+      return true;
     // Scanner rule definitions contain AI terms by design (they detect AI patterns)
     if (/\/rules\//.test(rel)) return true;
     // MCP server, proxy, and AI tooling modules legitimately reference AI providers
     if (/\/mcp\//.test(rel) || /\/proxy\//.test(rel)) return true;
-    if (/\b(local-remediation\.js|runtime-sentinel\.js|ai-enhanced-report\.js|report-enhance\.js|credential-pattern-scanner\.js|data-cleanup-export-sanitize\.js|cleanup-brief-export-sanitize\.js|javascript-ast-scanner\.js)\b/.test(rel)) return true;
+    if (
+      /\b(local-remediation\.js|runtime-sentinel\.js|ai-enhanced-report\.js|report-enhance\.js|credential-pattern-scanner\.js|data-cleanup-export-sanitize\.js|cleanup-brief-export-sanitize\.js|javascript-ast-scanner\.js)\b/.test(
+        rel,
+      )
+    )
+      return true;
     // CLI bin entry and frameworkless app reference AI terms in help text and config
-    if (/bin\/simplebeacon(-mcp)?\.js$/.test(rel) || /simplebeacon-frameworkless\/app\.js$/.test(rel)) return true;
+    if (
+      /bin\/simplebeacon(-mcp)?\.js$/.test(rel) ||
+      /simplebeacon-frameworkless\/app\.js$/.test(rel)
+    )
+      return true;
   }
   // security-headers: main server file already has securityHeaders middleware
-  if (checkId === 'security-headers') {
-    if (/\b(server\/index\.cjs|server\/middleware\/security\.cjs)\b/.test(rel)) return true;
+  if (checkId === "security-headers") {
+    if (/\b(server\/index\.cjs|server\/middleware\/security\.cjs)\b/.test(rel))
+      return true;
   }
   // workspace-health: monorepo cross-package requires are expected
-  if (checkId === 'workspace-health') {
-    if (/\b(server\/routes\/compliance-schema-api\.cjs|server\/routes\/demo-simplebeacon-api\.cjs|server\/routes\/flexible-analyze-api\.cjs|server\/lib\/central-data-config\.cjs|packages\/simplebeacon-intelligence\/src\/slm-bridge\.js)\b/.test(rel)) return true;
+  if (checkId === "workspace-health") {
+    if (
+      /\b(server\/routes\/compliance-schema-api\.cjs|server\/routes\/demo-simplebeacon-api\.cjs|server\/routes\/flexible-analyze-api\.cjs|server\/lib\/central-data-config\.cjs|packages\/simplebeacon-intelligence\/src\/slm-bridge\.js)\b/.test(
+        rel,
+      )
+    )
+      return true;
     // Monorepo utility/shared modules legitimately use deep relative requires to sibling packages
-    if (/\/(shared-utils|server\/lib|server\/routes\/lib|src\/api\/billing)\//.test(rel) && /\/(project-require|trust-levels|ml-pattern-detector|report-bundle-builder|validate-project-token|mock-data-schema-validator|mock-data-scanner|page-sample-specs|path-classification|repository-audit-baseline|simplebeacon-proxy|website-scanner|flexible-analyze-roadmap)\./.test(rel)) return true;
+    if (
+      /\/(shared-utils|server\/lib|server\/routes\/lib|src\/api\/billing)\//.test(
+        rel,
+      ) &&
+      /\/(project-require|trust-levels|ml-pattern-detector|report-bundle-builder|validate-project-token|mock-data-schema-validator|mock-data-scanner|page-sample-specs|path-classification|repository-audit-baseline|simplebeacon-proxy|website-scanner|flexible-analyze-roadmap)\./.test(
+        rel,
+      )
+    )
+      return true;
     // CLI analyzer/utils modules use deep relative requires for monorepo access
-    if (/packages\/simplebeacon-cli\/src\/(lib|analyzers)\//.test(rel)) return true;
+    if (/packages\/simplebeacon-cli\/src\/(lib|analyzers)\//.test(rel))
+      return true;
   }
   // Documentation: CLI source files export functions as their public API by design
-  if (checkId === 'documentation') {
+  if (checkId === "documentation") {
     if (/packages\/simplebeacon-cli\/src\//.test(rel)) return true;
   }
   // i18n: frameworkless app uses textContent for static demo content
-  if (checkId === 'i18n') {
+  if (checkId === "i18n") {
     if (/simplebeacon-frameworkless\//.test(rel)) return true;
   }
   // framework-practices: useEffect is standard React in dashboard view/component files
-  if (checkId === 'framework-practices') {
+  if (checkId === "framework-practices") {
     if (/simplebeacon-dashboard\/src\//.test(rel)) return true;
   }
   // api-contract: skip the actual contract definition files and CI/infra that references them
-  if (checkId === 'api-contract') {
+  if (checkId === "api-contract") {
     // The OpenAPI/Swagger spec files themselves ARE the contract — don't flag them
-    if (/(?:^|[\\/])(openapi|swagger)\.(yaml|yml|json)$/i.test(rel)) return true;
+    if (/(?:^|[\\/])(openapi|swagger)\.(yaml|yml|json)$/i.test(rel))
+      return true;
     // CI workflows that lint/test the spec are the correct usage pattern
     if (/(?:^|[\\/])\.github[\\/]workflows[\\/]/.test(rel)) return true;
     // Docker compose files for Prism/mock-server infrastructure
@@ -160,24 +284,39 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
   if (content.length > MAX_SCAN_BYTES) return issues;
   if (shouldSkipPath(relativePath)) return issues;
 
-  const lineCount = content.split('\n').length;
-  const rel = relativePath.replace(/\\/g, '/');
-  const isSourceDir = /\/(src|lib|server|app|web|components|views|routes|controllers|models|services|packages|rules|analyzers)\//i.test(rel);
+  const lineCount = content.split("\n").length;
+  const rel = relativePath.replace(/\\/g, "/");
+  const isSourceDir =
+    /\/(src|lib|server|app|web|components|views|routes|controllers|models|services|packages|rules|analyzers)\//i.test(
+      rel,
+    );
 
   // file-naming: check path itself, not content
-  if (/\s/.test(path.basename(relativePath)) && /\.(js|ts|jsx|tsx|cjs|mjs|json|md)$/i.test(relativePath)) {
+  if (
+    /\s/.test(path.basename(relativePath)) &&
+    /\.(js|ts|jsx|tsx|cjs|mjs|json|md)$/i.test(relativePath)
+  ) {
     issues.push({
-      id: `file-naming-${relativePath}`, severity: 'low', type: 'file-naming',
-      filePath: relativePath, file: relativePath, line: 1, pattern: 'file-naming', count: 1,
+      id: `file-naming-${relativePath}`,
+      severity: "low",
+      type: "file-naming",
+      filePath: relativePath,
+      file: relativePath,
+      line: 1,
+      pattern: "file-naming",
+      count: 1,
       description: `${relativePath}: File name contains spaces — use kebab-case or snake_case`,
-      recommendedAction: 'Rename file to remove spaces', affectedFiles: [path.basename(relativePath)],
-      metadata: { ruleId: 'file-naming', match: relativePath }
+      recommendedAction: "Rename file to remove spaces",
+      affectedFiles: [path.basename(relativePath)],
+      metadata: { ruleId: "file-naming", match: relativePath },
     });
   }
 
   const lowerContent = content.toLowerCase();
-  const lines = content.split('\n');
-  const hasFileLevelIgnore = /simplebeacon-ignore/i.test(content.substring(0, 500));
+  const lines = content.split("\n");
+  const hasFileLevelIgnore = /simplebeacon-ignore/i.test(
+    content.substring(0, 500),
+  );
 
   for (const check of STRING_CHECKS) {
     // skip if rule already at max
@@ -191,10 +330,18 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
     if (hasFileLevelIgnore) continue;
 
     // restrict documentation/security-headers to substantial source files
-    if ((check.id === 'documentation' || check.id === 'security-headers') && (!isSourceDir || lineCount < 30)) continue;
+    if (
+      (check.id === "documentation" || check.id === "security-headers") &&
+      (!isSourceDir || lineCount < 30)
+    )
+      continue;
 
     // framework-practices: useEffect is a standard React hook; skip React component files outright
-    if (check.id === 'framework-practices' && /from ['"]react['"]|require\(['"]react['"]\)|import\s+React/.test(content)) continue;
+    if (
+      check.id === "framework-practices" &&
+      /from ['"]react['"]|require\(['"]react['"]\)|import\s+React/.test(content)
+    )
+      continue;
 
     if (check.ext && !check.ext.includes(ext)) continue;
     for (const term of check.terms) {
@@ -202,36 +349,60 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
       if (!lowerContent.includes(lowerTerm)) continue;
 
       // Find the matching line for context-aware filtering
-      const matchLineIndex = lines.findIndex(l => l.toLowerCase().includes(lowerTerm));
+      const matchLineIndex = lines.findIndex((l) =>
+        l.toLowerCase().includes(lowerTerm),
+      );
       if (matchLineIndex < 0) continue;
       const matchLine = lines[matchLineIndex];
 
       // Check for simplebeacon-ignore suppression on the preceding line
-      const prevLine = matchLineIndex > 0 ? lines[matchLineIndex - 1] : '';
-      if (/\/\/\s*simplebeacon-ignore\s*[:\s]/i.test(prevLine) && new RegExp(check.id, 'i').test(prevLine)) continue;
+      const prevLine = matchLineIndex > 0 ? lines[matchLineIndex - 1] : "";
+      if (
+        /\/\/\s*simplebeacon-ignore\s*[:\s]/i.test(prevLine) &&
+        new RegExp(check.id, "i").test(prevLine)
+      )
+        continue;
 
       // Context filters to reduce false positives
-      if (check.id === 'governance-marker') {
+      if (check.id === "governance-marker") {
         // Skip env-var names like SIMPLEBEACON_LICENSE_TOKEN, _LICENSE_SECRET, etc.
-        if (/\b\w+_LICENSE_\w+|\b\w+_NOTICE_\w+|SIMPLEBEACON_LICENSE/.test(matchLine)) continue;
+        if (
+          /\b\w+_LICENSE_\w+|\b\w+_NOTICE_\w+|SIMPLEBEACON_LICENSE/.test(
+            matchLine,
+          )
+        )
+          continue;
         // Skip severity levels in JSDoc/comments: debug | info | notice | warning | critical
-        if (/\bdebug\s*\|\s*info\s*\|\s*notice\s*\|\s*warning\s*\|\s*critical\b/.test(matchLine)) continue;
+        if (
+          /\bdebug\s*\|\s*info\s*\|\s*notice\s*\|\s*warning\s*\|\s*critical\b/.test(
+            matchLine,
+          )
+        )
+          continue;
       }
-      if (check.id === 'database-patterns') {
+      if (check.id === "database-patterns") {
         // Skip parameterized queries: $1, $2, ?, or array params after the query string
         if (/\$\d+|\?\s*\]|\[\s*req\.|\[\s*\w+\s*\]/.test(matchLine)) continue;
       }
-      if (check.id === 'security-headers') {
+      if (check.id === "security-headers") {
         // Skip if file already contains helmet or securityHeaders — those are the fixes
-        if (/helmet\(|securityHeaders|security\.headers/.test(lowerContent)) continue;
+        if (/helmet\(|securityHeaders|security\.headers/.test(lowerContent))
+          continue;
       }
 
       issues.push({
-        id: `${check.id}-${relativePath}-${term}`, severity: 'low', type: check.id,
-        filePath: relativePath, file: relativePath, line: Math.max(1, matchLineIndex + 1), pattern: check.id, count: 1,
+        id: `${check.id}-${relativePath}-${term}`,
+        severity: "low",
+        type: check.id,
+        filePath: relativePath,
+        file: relativePath,
+        line: Math.max(1, matchLineIndex + 1),
+        pattern: check.id,
+        count: 1,
         description: `${relativePath}:${Math.max(1, matchLineIndex + 1)} ${check.id} pattern detected`,
-        recommendedAction: 'Review and address the identified pattern', affectedFiles: [path.basename(relativePath)],
-        metadata: { ruleId: check.id, match: term }
+        recommendedAction: "Review and address the identified pattern",
+        affectedFiles: [path.basename(relativePath)],
+        metadata: { ruleId: check.id, match: term },
       });
       ruleCounters[check.id] = (ruleCounters[check.id] || 0) + 1;
       break; // Only 1 issue per rule per file
@@ -248,29 +419,48 @@ async function scanComprehensive(uniqueFiles, options = {}) {
   const rootDir = options.rootDir || process.cwd();
 
   // build-readiness: check for missing key project files
-  const requiredFiles = ['package.json', '.gitignore', 'README.md', 'LICENSE'];
+  const requiredFiles = ["package.json", ".gitignore", "README.md", "LICENSE"];
   for (const req of requiredFiles) {
     if (!fs.existsSync(path.join(rootDir, req))) {
       results.push({
-        id: `build-readiness-missing-${req}`, severity: 'low', type: 'build-readiness',
-        filePath: req, file: req, line: 1, pattern: 'build-readiness', count: 1,
+        id: `build-readiness-missing-${req}`,
+        severity: "low",
+        type: "build-readiness",
+        filePath: req,
+        file: req,
+        line: 1,
+        pattern: "build-readiness",
+        count: 1,
         description: `Missing ${req} — expected project file not found`,
-        recommendedAction: `Add ${req} to project root`, affectedFiles: [req],
-        metadata: { ruleId: 'build-readiness', match: req }
+        recommendedAction: `Add ${req} to project root`,
+        affectedFiles: [req],
+        metadata: { ruleId: "build-readiness", match: req },
       });
     }
   }
 
   // compliance: check for missing governance files
-  const governanceFiles = ['LICENSE', 'CODE_OF_CONDUCT.md', 'SECURITY.md', 'CONTRIBUTING.md'];
+  const governanceFiles = [
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+  ];
   for (const gf of governanceFiles) {
     if (!fs.existsSync(path.join(rootDir, gf))) {
       results.push({
-        id: `compliance-missing-${gf}`, severity: 'low', type: 'compliance',
-        filePath: gf, file: gf, line: 1, pattern: 'compliance', count: 1,
+        id: `compliance-missing-${gf}`,
+        severity: "low",
+        type: "compliance",
+        filePath: gf,
+        file: gf,
+        line: 1,
+        pattern: "compliance",
+        count: 1,
         description: `Missing ${gf} — governance file not found`,
-        recommendedAction: `Add ${gf} to project root`, affectedFiles: [gf],
-        metadata: { ruleId: 'compliance', match: gf }
+        recommendedAction: `Add ${gf} to project root`,
+        affectedFiles: [gf],
+        metadata: { ruleId: "compliance", match: gf },
       });
     }
   }
@@ -281,20 +471,23 @@ async function scanComprehensive(uniqueFiles, options = {}) {
   for (const file of uniqueFiles) {
     const base = path.basename(file.path);
     if (/\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i.test(base)) {
-      const stripped = base.replace(/\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i, '');
+      const stripped = base.replace(
+        /\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i,
+        "",
+      );
       testBasenames.add(stripped);
       // Also register compound name: parentdir-modname (e.g. analyze-export-bundle-engines)
       const dirName = path.basename(path.dirname(file.path));
-      if (dirName === '__tests__') {
+      if (dirName === "__tests__") {
         // For __tests__/analyze-export-bundle-engines.test.cjs, register both
         // the full compound name and the last segment after the first hyphen
         testCompoundNames.add(stripped);
-        const parts = stripped.split('-');
+        const parts = stripped.split("-");
         if (parts.length > 1) {
           // Register the last N parts as potential matches for nested source files
           // e.g. for "analyze-export-bundle-engines", also register "engines"
           for (let i = 1; i < parts.length; i++) {
-            testBasenames.add(parts.slice(i).join('-'));
+            testBasenames.add(parts.slice(i).join("-"));
           }
         }
       }
@@ -305,41 +498,67 @@ async function scanComprehensive(uniqueFiles, options = {}) {
     if (shouldSkipPath(file.relativePath)) continue;
     let content;
     try {
-      content = await fs.promises.readFile(file.path, 'utf8');
+      content = await fs.promises.readFile(file.path, "utf8");
     } catch {
       continue;
     }
     scannedCount++;
-    results.push(...scanFileFast(file.relativePath, file.ext, content, ruleCounters));
+    results.push(
+      ...scanFileFast(file.relativePath, file.ext, content, ruleCounters),
+    );
 
     // test-coverage: flag substantial source files (>50 lines) in meaningful dirs with no test (max 50)
     const baseName = path.basename(file.path, file.ext);
-    const rel = file.relativePath.replace(/\\/g, '/');
-    const lineCount = content.split('\n').length;
-    const isMeaningfulSource = /\/(src|lib|server|app|web|components|views|routes|controllers|models|services)\//i.test(rel) && !/\/(config|configs)\//i.test(rel);
-    const isSkippedName = /\b(index|config|types|constants|utils|helpers|setup|init|main|cli|bin)\b/i.test(baseName);
-    if ((ruleCounters['test-coverage'] || 0) < 50 && isMeaningfulSource && !isSkippedName && lineCount > 50 && ['.js','.ts','.jsx','.tsx','.cjs','.mjs'].includes(file.ext) && !/\.(test|spec)$/.test(baseName)) {
+    const rel = file.relativePath.replace(/\\/g, "/");
+    const lineCount = content.split("\n").length;
+    const isMeaningfulSource =
+      /\/(src|lib|server|app|web|components|views|routes|controllers|models|services)\//i.test(
+        rel,
+      ) && !/\/(config|configs)\//i.test(rel);
+    const isSkippedName =
+      /\b(index|config|types|constants|utils|helpers|setup|init|main|cli|bin)\b/i.test(
+        baseName,
+      );
+    if (
+      (ruleCounters["test-coverage"] || 0) < 50 &&
+      isMeaningfulSource &&
+      !isSkippedName &&
+      lineCount > 50 &&
+      [".js", ".ts", ".jsx", ".tsx", ".cjs", ".mjs"].includes(file.ext) &&
+      !/\.(test|spec)$/.test(baseName)
+    ) {
       // Check exact basename match, compound name (parentdir-basename), and __tests__ compound naming
       const parentDirName = path.basename(path.dirname(file.path));
       const compoundName = `${parentDirName}-${baseName}`;
-      const hasTest = testBasenames.has(baseName) || testBasenames.has(compoundName) || testCompoundNames.has(compoundName);
+      const hasTest =
+        testBasenames.has(baseName) ||
+        testBasenames.has(compoundName) ||
+        testCompoundNames.has(compoundName);
       if (!hasTest) {
         results.push({
-          id: `test-coverage-${file.relativePath}`, severity: 'low', type: 'test-coverage',
-          filePath: file.relativePath, file: file.relativePath, line: 1, pattern: 'test-coverage', count: 1,
+          id: `test-coverage-${file.relativePath}`,
+          severity: "low",
+          type: "test-coverage",
+          filePath: file.relativePath,
+          file: file.relativePath,
+          line: 1,
+          pattern: "test-coverage",
+          count: 1,
           description: `${file.relativePath}: Source file (${lineCount} lines) has no corresponding test file`,
-          recommendedAction: 'Add a test file for this module', affectedFiles: [path.basename(file.relativePath)],
-          metadata: { ruleId: 'test-coverage', match: baseName }
+          recommendedAction: "Add a test file for this module",
+          affectedFiles: [path.basename(file.relativePath)],
+          metadata: { ruleId: "test-coverage", match: baseName },
         });
-        ruleCounters['test-coverage'] = (ruleCounters['test-coverage'] || 0) + 1;
+        ruleCounters["test-coverage"] =
+          (ruleCounters["test-coverage"] || 0) + 1;
       }
     }
   }
 
   return {
-    scanner: 'comprehensive',
+    scanner: "comprehensive",
     issues: results,
-    summary: `Scanned ${scannedCount} files, found ${results.length} issues across ${new Set(results.map(i => i.type)).size} categories.`
+    summary: `Scanned ${scannedCount} files, found ${results.length} issues across ${new Set(results.map((i) => i.type)).size} categories.`,
   };
 }
 

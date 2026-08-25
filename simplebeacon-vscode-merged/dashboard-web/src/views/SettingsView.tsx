@@ -1,5 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor, Copy, CreditCard, ExternalLink, AlertCircle } from 'lucide-react';
+import {
+  Settings,
+  Key,
+  FolderTree,
+  Cpu,
+  Palette,
+  Bell,
+  Check,
+  Loader2,
+  Trash2,
+  Sun,
+  Moon,
+  Monitor,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  AlertCircle,
+} from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,18 +45,38 @@ const PROVIDER_DISCOVERY_CACHE_KEY = 'simplebeacon_provider_discovery_cache';
 const PROVIDER_DISCOVERY_TTL_MS = 15000;
 const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
 const OLLAMA_REGISTRY_MODELS: string[] = [
-  'llama3.2', 'llama3.1', 'llama3', 'llama2',
-  'mistral', 'mistral-nemo', 'mixtral',
-  'codellama', 'codegemma', 'qwen2.5-coder', 'deepseek-coder-v2',
-  'phi3', 'phi3.5', 'gemma2', 'gemma',
-  'qwen2.5', 'qwen2', 'yi',
-  'llava', 'llava-llama3',
-  'dolphin-llama3', 'dolphin-mistral',
-  'wizardlm2', 'orca2',
-  'command-r', 'command-r-plus',
-  'starcoder2', 'stable-code',
-  'mathstral', 'granite-code',
-  'smollm2', 'llama3.2-vision',
+  'llama3.2',
+  'llama3.1',
+  'llama3',
+  'llama2',
+  'mistral',
+  'mistral-nemo',
+  'mixtral',
+  'codellama',
+  'codegemma',
+  'qwen2.5-coder',
+  'deepseek-coder-v2',
+  'phi3',
+  'phi3.5',
+  'gemma2',
+  'gemma',
+  'qwen2.5',
+  'qwen2',
+  'yi',
+  'llava',
+  'llava-llama3',
+  'dolphin-llama3',
+  'dolphin-mistral',
+  'wizardlm2',
+  'orca2',
+  'command-r',
+  'command-r-plus',
+  'starcoder2',
+  'stable-code',
+  'mathstral',
+  'granite-code',
+  'smollm2',
+  'llama3.2-vision',
 ];
 const PROVIDER_MODEL_OPTIONS: Record<'ollama' | 'openai' | 'anthropic', string[]> = {
   ollama: OLLAMA_REGISTRY_MODELS,
@@ -110,10 +147,13 @@ function readProviderDiscoveryCache(): string[] {
 function writeProviderDiscoveryCache(ollamaModels: string[]) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(PROVIDER_DISCOVERY_CACHE_KEY, JSON.stringify({
-      fetchedAt: Date.now(),
-      ollamaModels,
-    }));
+    localStorage.setItem(
+      PROVIDER_DISCOVERY_CACHE_KEY,
+      JSON.stringify({
+        fetchedAt: Date.now(),
+        ollamaModels,
+      })
+    );
   } catch {
     // best-effort only
   }
@@ -122,8 +162,12 @@ function writeProviderDiscoveryCache(ollamaModels: string[]) {
 export function SettingsView() {
   const [enabled, setEnabled] = useState(isNotificationsEnabled());
   const { user } = useAuth();
-  const [defaultProjectPath, setDefaultProjectPath] = useState(() => localStorage.getItem('simplebeacon_default_project_path') || '');
-  const [productionPaths, setProductionPaths] = useState(() => localStorage.getItem('simplebeacon_production_paths') || '');
+  const [defaultProjectPath, setDefaultProjectPath] = useState(
+    () => localStorage.getItem('simplebeacon_default_project_path') || ''
+  );
+  const [productionPaths, setProductionPaths] = useState(
+    () => localStorage.getItem('simplebeacon_production_paths') || ''
+  );
   const [savingPaths, setSavingPaths] = useState(false);
 
   const handleSavePaths = useCallback(() => {
@@ -174,13 +218,25 @@ export function SettingsView() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="default-project-path">Default Project Path</Label>
-                <Input id="default-project-path" placeholder="/path/to/project" value={defaultProjectPath} onChange={(e) => setDefaultProjectPath(e.target.value)} />
+                <Input
+                  id="default-project-path"
+                  placeholder="/path/to/project"
+                  value={defaultProjectPath}
+                  onChange={(e) => setDefaultProjectPath(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="production-paths">Production Paths</Label>
-                <Input id="production-paths" placeholder="server/, src/, web/" value={productionPaths} onChange={(e) => setProductionPaths(e.target.value)} />
+                <Input
+                  id="production-paths"
+                  placeholder="server/, src/, web/"
+                  value={productionPaths}
+                  onChange={(e) => setProductionPaths(e.target.value)}
+                />
               </div>
-              <Button onClick={handleSavePaths} disabled={savingPaths}>{savingPaths ? 'Saving...' : 'Save Paths'}</Button>
+              <Button onClick={handleSavePaths} disabled={savingPaths}>
+                {savingPaths ? 'Saving...' : 'Save Paths'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -238,7 +294,11 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
   function safeStripeRedirect(url: string): boolean {
     try {
       const parsed = new URL(url);
-      if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
+      if (
+        parsed.hostname === 'checkout.stripe.com' ||
+        parsed.hostname === 'billing.stripe.com' ||
+        parsed.hostname.endsWith('.stripe.com')
+      ) {
         window.open(parsed.href, '_self');
         return true;
       }
@@ -270,7 +330,9 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
     }
   }, [userEmail]);
 
-  useEffect(() => { void loadBillingStatus(); }, [loadBillingStatus]);
+  useEffect(() => {
+    void loadBillingStatus();
+  }, [loadBillingStatus]);
 
   const handleManageSubscription = async () => {
     if (!userEmail) {
@@ -315,9 +377,7 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
           <CreditCard className="h-5 w-5" />
           Subscription
         </CardTitle>
-        <CardDescription>
-          Manage your plan, upgrade, downgrade, or cancel your subscription.
-        </CardDescription>
+        <CardDescription>Manage your plan, upgrade, downgrade, or cancel your subscription.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {statusLoading ? (
@@ -392,7 +452,9 @@ function ApiKeysTab() {
     }
   }, []);
 
-  useEffect(() => { void loadKeys(); }, [loadKeys]);
+  useEffect(() => {
+    void loadKeys();
+  }, [loadKeys]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -575,7 +637,10 @@ function AiProvidersTab() {
 
       // On the hosted dashboard, the server can't reach the user's local Ollama.
       // Probe directly from the browser to discover installed models.
-      const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      const isHosted =
+        typeof window !== 'undefined' &&
+        window.location.protocol === 'https:' &&
+        !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
       if (isHosted) {
         const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
         if (browserModels && browserModels.length > 0) {
@@ -598,27 +663,28 @@ function AiProvidersTab() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const fromPrefs = modelPrefs[selectedProvider] || '';
-    const fallbackOptions = selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
-      ? dynamicOllamaModels
-      : PROVIDER_MODEL_OPTIONS[selectedProvider];
+    const fallbackOptions =
+      selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
+        ? dynamicOllamaModels
+        : PROVIDER_MODEL_OPTIONS[selectedProvider];
     const fallback = fallbackOptions[0] || '';
-    const stored = selectedProvider === 'ollama'
-      ? ollamaModel
-      : selectedProvider === 'openai'
-        ? openaiModel
-        : anthropicModel;
+    const stored =
+      selectedProvider === 'ollama' ? ollamaModel : selectedProvider === 'openai' ? openaiModel : anthropicModel;
     setSelectedModel(fromPrefs || stored || fallback);
   }, [selectedProvider, modelPrefs, ollamaModel, openaiModel, anthropicModel, dynamicOllamaModels]);
 
-  const availableModelOptions = selectedProvider === 'ollama'
-    ? (dynamicOllamaModels.length > 0
-      ? dynamicOllamaModels
-      : PROVIDER_MODEL_OPTIONS[selectedProvider])
-    : PROVIDER_MODEL_OPTIONS[selectedProvider];
+  const availableModelOptions =
+    selectedProvider === 'ollama'
+      ? dynamicOllamaModels.length > 0
+        ? dynamicOllamaModels
+        : PROVIDER_MODEL_OPTIONS[selectedProvider]
+      : PROVIDER_MODEL_OPTIONS[selectedProvider];
   const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
   const oracleInstalledSettings = selectedProvider === 'ollama' && availableModelOptions.includes('unbreakable-oracle');
 
@@ -630,11 +696,12 @@ function AiProvidersTab() {
       writeModelPrefs(nextPrefs);
 
       await waitForApiBase();
-      const payload = selectedProvider === 'ollama'
-        ? { ollamaBaseUrl: ollamaUrl, ollamaModel: selectedModel || ollamaModel }
-        : selectedProvider === 'openai'
-          ? { openaiModel: selectedModel }
-          : { anthropicModel: selectedModel };
+      const payload =
+        selectedProvider === 'ollama'
+          ? { ollamaBaseUrl: ollamaUrl, ollamaModel: selectedModel || ollamaModel }
+          : selectedProvider === 'openai'
+            ? { openaiModel: selectedModel }
+            : { anthropicModel: selectedModel };
       const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -670,7 +737,10 @@ function AiProvidersTab() {
     <Card>
       <CardHeader>
         <CardTitle>AI Providers</CardTitle>
-        <CardDescription>Configure AI analysis providers for the chatbot and narrative summaries. Outputs are AI-generated — EU AI Act Article 50 disclosure.</CardDescription>
+        <CardDescription>
+          Configure AI analysis providers for the chatbot and narrative summaries. Outputs are AI-generated — EU AI Act
+          Article 50 disclosure.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Provider Status */}
@@ -715,15 +785,16 @@ function AiProvidersTab() {
                 }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                {selectedProvider === 'ollama' && (
-                  oracleInstalledSettings ? (
+                {selectedProvider === 'ollama' &&
+                  (oracleInstalledSettings ? (
                     <option value="unbreakable-oracle">★ unbreakable-oracle (installed)</option>
                   ) : (
                     <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
-                  )
-                )}
+                  ))}
                 {availableModelOptions.map((model) => (
-                  <option key={model} value={model}>{model}</option>
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
                 ))}
                 <option value="__custom__">Custom model…</option>
               </select>
@@ -738,7 +809,9 @@ function AiProvidersTab() {
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
             />
-            <p className="text-xs text-foreground-muted">Use this if your exact model name is not listed in the dropdown.</p>
+            <p className="text-xs text-foreground-muted">
+              Use this if your exact model name is not listed in the dropdown.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -750,7 +823,9 @@ function AiProvidersTab() {
               onChange={(e) => setOllamaUrl(e.target.value)}
               disabled={selectedProvider !== 'ollama'}
             />
-            <p className="text-xs text-foreground-muted">Default: http://localhost:11434 — only used when provider is set to Ollama</p>
+            <p className="text-xs text-foreground-muted">
+              Default: http://localhost:11434 — only used when provider is set to Ollama
+            </p>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>
@@ -787,10 +862,16 @@ function AiProvidersTab() {
 ollama create unbreakable-oracle -f Modelfile
 ollama run unbreakable-oracle`}</pre>
             </div>
-            <Button size="sm" variant="outline" onClick={() => {
-              navigator.clipboard.writeText('curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle');
-              toast.success('Copied install commands to clipboard');
-            }}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  'curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle'
+                );
+                toast.success('Copied install commands to clipboard');
+              }}
+            >
               <Copy className="h-3.5 w-3.5 mr-1" /> Copy install commands
             </Button>
           </div>
@@ -799,7 +880,9 @@ ollama run unbreakable-oracle`}</pre>
         <Separator />
 
         <div className="text-xs text-foreground-muted space-y-1">
-          <p><strong>OpenAI</strong> and <strong>Anthropic</strong> keys are managed in the API Keys tab.</p>
+          <p>
+            <strong>OpenAI</strong> and <strong>Anthropic</strong> keys are managed in the API Keys tab.
+          </p>
           <p>Keys are encrypted at rest (AES-256-GCM) and never exposed back to the browser.</p>
           <p>The chatbot will use the first available provider in order: Ollama → OpenAI → Anthropic.</p>
         </div>
@@ -815,7 +898,9 @@ function ProviderStatusCard({ label, configured, hint }: { label: string; config
         <span className="text-sm font-medium">{label}</span>
         <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
           {configured ? (
-            <><Check className="h-3 w-3 mr-1" /> Ready</>
+            <>
+              <Check className="h-3 w-3 mr-1" /> Ready
+            </>
           ) : (
             'Not configured'
           )}
@@ -835,7 +920,9 @@ function ThemeTab() {
     try {
       const stored = localStorage.getItem('sb_theme');
       setFollowSystem(!stored);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const applyTheme = (next: 'light' | 'dark') => {
@@ -895,9 +982,7 @@ function ThemeTab() {
               type="button"
               onClick={enableFollowSystem}
               className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
-                followSystem
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/40'
+                followSystem ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
               }`}
             >
               <Monitor className="h-6 w-6 text-foreground-muted" />

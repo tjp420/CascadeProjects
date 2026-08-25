@@ -1,18 +1,44 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Award, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, TrendingUp, Download } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { navigate } from '@/router/HashRouter';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Award,
+  FileCode,
+  AlertTriangle,
+  Shield,
+  CheckCircle2,
+  Play,
+  Info,
+  TrendingUp,
+  Download,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { navigate } from "@/router/HashRouter";
 
 interface ScanResultData {
   totalFiles: number;
   issueCount: number;
-  severityCounts: { critical: number; high: number; medium: number; low: number; info: number };
+  severityCounts: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+  };
   gate: { pass: boolean; blockingCount: number; warningCount: number };
   qualityScore: number | null;
   projectPath: string;
-  scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
+  scanScope: {
+    profile: string;
+    resultsViewScope: string;
+    codeFilesAnalyzed: number;
+  };
 }
 
 export function QualityView() {
@@ -22,11 +48,11 @@ export function QualityView() {
 
   useEffect(() => {
     try {
-      const full = localStorage.getItem('sb_last_scan_full');
+      const full = localStorage.getItem("sb_last_scan_full");
       if (full) setResult(JSON.parse(full));
-      const report = localStorage.getItem('sb_last_scan_report');
+      const report = localStorage.getItem("sb_last_scan_report");
       if (report) setFullReport(JSON.parse(report));
-      const time = localStorage.getItem('sb_last_scan_time');
+      const time = localStorage.getItem("sb_last_scan_time");
       if (time) setScanTime(new Date(time).toLocaleString());
     } catch {
       /* ignore */
@@ -42,17 +68,25 @@ export function QualityView() {
         severityCounts: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
         gate: { pass: true, blockingCount: 0, warningCount: 0 },
         qualityScore: 100,
-        projectPath: '',
-        scanScope: { profile: 'unknown', resultsViewScope: 'quality', codeFilesAnalyzed: 0 },
+        projectPath: "",
+        scanScope: {
+          profile: "unknown",
+          resultsViewScope: "quality",
+          codeFilesAnalyzed: 0,
+        },
       },
       scanTime,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const root = ((result && result.projectPath) || 'quality').replace(/[\/:\\\s]+/g, '-').slice(0, 60);
+    const a = document.createElement("a");
+    const root = ((result && result.projectPath) || "quality")
+      .replace(/[\/:\\\s]+/g, "-")
+      .slice(0, 60);
     a.href = url;
-    a.download = `quality-${root || 'quality'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.download = `quality-${root || "quality"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -64,15 +98,21 @@ export function QualityView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Quality</h1>
-          <p className="text-foreground-muted">Code quality metrics and trends</p>
+          <p className="text-foreground-muted">
+            Code quality metrics and trends
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <Award className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">No quality metrics to display</p>
-            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see quality metrics</p>
+            <p className="text-sm text-foreground-muted">
+              No quality metrics to display
+            </p>
+            <p className="text-xs text-foreground-muted">
+              Run a scan from the Analyze page to see quality metrics
+            </p>
             <div className="mt-2 flex gap-2">
-              <Button onClick={() => navigate('analyze')}>
+              <Button onClick={() => navigate("analyze")}>
                 <Play className="h-4 w-4 mr-2" /> Go to Analyze
               </Button>
               <Button variant="outline" onClick={exportQuality}>
@@ -85,17 +125,48 @@ export function QualityView() {
     );
   }
 
-  const sev = result.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  const sev = result.severityCounts || {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    info: 0,
+  };
   const score = result.qualityScore ?? 0;
   const gatePass = result.gate?.pass ?? false;
   const codeFiles = result.scanScope?.codeFilesAnalyzed ?? 0;
 
   const severityItems = [
-    { label: 'Critical', value: sev.critical || 0, color: 'text-red-500', bg: 'bg-red-500/10' },
-    { label: 'High', value: sev.high || 0, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { label: 'Medium', value: sev.medium || 0, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    { label: 'Low', value: sev.low || 0, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Info', value: sev.info || 0, color: 'text-gray-500', bg: 'bg-gray-500/10' },
+    {
+      label: "Critical",
+      value: sev.critical || 0,
+      color: "text-red-500",
+      bg: "bg-red-500/10",
+    },
+    {
+      label: "High",
+      value: sev.high || 0,
+      color: "text-orange-500",
+      bg: "bg-orange-500/10",
+    },
+    {
+      label: "Medium",
+      value: sev.medium || 0,
+      color: "text-yellow-500",
+      bg: "bg-yellow-500/10",
+    },
+    {
+      label: "Low",
+      value: sev.low || 0,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+    {
+      label: "Info",
+      value: sev.info || 0,
+      color: "text-gray-500",
+      bg: "bg-gray-500/10",
+    },
   ];
 
   return (
@@ -103,7 +174,9 @@ export function QualityView() {
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Quality</h1>
-          <p className="text-foreground-muted">Code quality metrics and trends</p>
+          <p className="text-foreground-muted">
+            Code quality metrics and trends
+          </p>
         </div>
         <div className="ml-4 flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={exportQuality}>
@@ -129,7 +202,8 @@ export function QualityView() {
               </Badge>
             )}
             <Badge variant="outline" className="gap-1">
-              <Shield className="h-3 w-3" /> {result.gate?.blockingCount ?? 0} blocking
+              <Shield className="h-3 w-3" /> {result.gate?.blockingCount ?? 0}{" "}
+              blocking
             </Badge>
           </div>
         </CardContent>
@@ -142,7 +216,9 @@ export function QualityView() {
             <CardDescription>Total Issues</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{result.issueCount ?? 0}</div>
+            <div className="text-2xl font-semibold">
+              {result.issueCount ?? 0}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -185,10 +261,16 @@ export function QualityView() {
                 <div className="flex-1 h-6 rounded-full bg-muted overflow-hidden">
                   <div
                     className={`h-full ${item.bg} transition-all`}
-                    style={{ width: `${Math.max(pct, item.value > 0 ? 8 : 0)}%` }}
+                    style={{
+                      width: `${Math.max(pct, item.value > 0 ? 8 : 0)}%`,
+                    }}
                   />
                 </div>
-                <div className={`w-10 text-sm font-semibold text-right ${item.color}`}>{item.value}</div>
+                <div
+                  className={`w-10 text-sm font-semibold text-right ${item.color}`}
+                >
+                  {item.value}
+                </div>
               </div>
             );
           })}
@@ -204,12 +286,20 @@ export function QualityView() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {Object.entries(fullReport.qualityScorecard).map(([dim, score]) => (
-                <div key={dim} className="rounded-md border p-3 text-center">
-                  <div className="text-xs text-foreground-muted capitalize">{dim}</div>
-                  <div className={`text-2xl font-bold ${(score as number) >= 80 ? 'text-green-600' : (score as number) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>{score as number}</div>
-                </div>
-              ))}
+              {Object.entries(fullReport.qualityScorecard).map(
+                ([dim, score]) => (
+                  <div key={dim} className="rounded-md border p-3 text-center">
+                    <div className="text-xs text-foreground-muted capitalize">
+                      {dim}
+                    </div>
+                    <div
+                      className={`text-2xl font-bold ${(score as number) >= 80 ? "text-green-600" : (score as number) >= 50 ? "text-yellow-600" : "text-red-600"}`}
+                    >
+                      {score as number}
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           </CardContent>
         </Card>
@@ -225,15 +315,17 @@ export function QualityView() {
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-foreground-muted">Project Path</span>
-            <span className="font-mono text-xs">{result.projectPath || '—'}</span>
+            <span className="font-mono text-xs">
+              {result.projectPath || "—"}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-foreground-muted">Scan Profile</span>
-            <span>{result.scanScope?.profile || '—'}</span>
+            <span>{result.scanScope?.profile || "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-foreground-muted">Scan Time</span>
-            <span>{scanTime || '—'}</span>
+            <span>{scanTime || "—"}</span>
           </div>
         </CardContent>
       </Card>

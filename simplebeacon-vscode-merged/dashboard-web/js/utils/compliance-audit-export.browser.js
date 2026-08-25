@@ -10,7 +10,7 @@ import {
   sanitizeNpmAuditForQualityExport,
   buildNpmAuditCsv,
   buildQualitySummaryCsv,
-  normalizeSimpleBeaconBranding
+  normalizeSimpleBeaconBranding,
 } from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
@@ -23,7 +23,7 @@ export const LAYER_LABELS = {
   productionLeaks: 'Production path leaks',
   roadmap: 'Roadmap & duplicates',
   jestBaseline: 'Jest baseline',
-  gate: 'Compliance gate'
+  gate: 'Compliance gate',
 };
 
 /**
@@ -54,8 +54,10 @@ function parseTimestamp(value) {
  */
 function isBenchmarkComplianceAudit(audit = {}) {
   const path = String(audit.report?.projectRoot || '').replace(/\\/g, '/');
-  return Boolean(audit.report?.benchmarkScan || audit.report?.scanTargetProfile === 'benchmark-cache')
-    || /\/github-cache\//i.test(path);
+  return (
+    Boolean(audit.report?.benchmarkScan || audit.report?.scanTargetProfile === 'benchmark-cache') ||
+    /\/github-cache\//i.test(path)
+  );
 }
 
 /**
@@ -99,8 +101,7 @@ function resolveCanonicalJestLabel(audit = {}) {
   if (liveLabel) return liveLabel;
   const pageSampleAt = parseTimestamp(audit.pageSamples?.baselineComparison?.generatedAt);
   const reportAt = parseTimestamp(audit.report?.generatedAt);
-  const pageLabel = audit.pageSamples?.baselineComparison?.overview?.jestTestsLabel
-    || audit.baseline?.jestTestsLabel;
+  const pageLabel = audit.pageSamples?.baselineComparison?.overview?.jestTestsLabel || audit.baseline?.jestTestsLabel;
   const layerLabel = audit.auditLayers?.jestBaseline?.label;
   const benchmarkScan = isBenchmarkComplianceAudit(audit);
   if (!pageLabel) return layerLabel || null;
@@ -118,13 +119,17 @@ function resolveCanonicalJestLabel(audit = {}) {
 function resolveCanonicalPageSpecsLabel(audit = {}) {
   const pageSampleAt = parseTimestamp(audit.pageSamples?.baselineComparison?.generatedAt);
   const reportAt = parseTimestamp(audit.report?.generatedAt);
-  const pageLabel = audit.pageSamples?.baselineComparison?.overview?.pageSamplesLabel
-    || audit.baseline?.pageSamplesLabel;
+  const pageLabel =
+    audit.pageSamples?.baselineComparison?.overview?.pageSamplesLabel || audit.baseline?.pageSamplesLabel;
   const report = audit.report || {};
-  const reportLabel = report.pageSampleSchemaChecked != null
-    ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
-    : null;
-  if (pageLabel && (!reportLabel || reportLabel === '0/0' || (pageSampleAt != null && reportAt != null && pageSampleAt >= reportAt))) {
+  const reportLabel =
+    report.pageSampleSchemaChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
+      : null;
+  if (
+    pageLabel &&
+    (!reportLabel || reportLabel === '0/0' || (pageSampleAt != null && reportAt != null && pageSampleAt >= reportAt))
+  ) {
     return pageLabel;
   }
   return reportLabel || pageLabel || audit.baseline?.pageSamplesLabel || null;
@@ -185,7 +190,7 @@ function splitDocumentationPaths(euAiActSummary = {}) {
     operatorDocumentationFound,
     simplebeaconArtifactPaths,
     operatorDocumentationCount: operatorDocumentationFound.length,
-    simplebeaconArtifactCount: simplebeaconArtifactPaths.length
+    simplebeaconArtifactCount: simplebeaconArtifactPaths.length,
   };
   if (scanMatchedNonDocsPaths.length) {
     next.scanMatchedNonDocsPaths = scanMatchedNonDocsPaths;
@@ -205,7 +210,9 @@ function splitDocumentationPaths(euAiActSummary = {}) {
 function buildMissingOverlayNotes(audit = {}) {
   const notes = [];
   if (!audit.assessment) {
-    notes.push('Assessment overlay omitted — run Assess on Compliance Audit page or `npx simplebeacon assess` for checklist metrics.');
+    notes.push(
+      'Assessment overlay omitted — run Assess on Compliance Audit page or `npx simplebeacon assess` for checklist metrics.'
+    );
   }
   if (!audit.npmAudit) {
     notes.push('npm audit overlay omitted — run npm audit on Compliance Audit page for supply-chain metrics.');
@@ -234,9 +241,7 @@ function buildPageSpecsMismatchNote(audit = {}, pageSpecsLabel) {
  */
 function resolveProjectLabel(audit = {}) {
   return projectLabelFromPath(
-    audit.report?.projectRoot
-    || audit.npmAudit?.projectPath
-    || audit.assessment?.projectRoot
+    audit.report?.projectRoot || audit.npmAudit?.projectPath || audit.assessment?.projectRoot
   );
 }
 
@@ -250,16 +255,18 @@ export function buildAuditMetrics(audit = {}) {
   const dash = audit.dashboard?.scanStatus || {};
   const inventory = report.repositoryInventory;
 
-  const consistencyScore = report.consistencyScore
-    ?? dash.consistencyScore
-    ?? report.schemaCompliance
-    ?? dash.qualityScore
-    ?? report.qualityScore;
+  const consistencyScore =
+    report.consistencyScore ??
+    dash.consistencyScore ??
+    report.schemaCompliance ??
+    dash.qualityScore ??
+    report.qualityScore;
 
   const pageSpecsChecked = report.pageSampleSchemaChecked;
-  const pageSpecsLabel = pageSpecsChecked != null
-    ? `${report.pageSampleSchemaPassed ?? 0}/${pageSpecsChecked}`
-    : audit.baseline?.pageSamplesLabel ?? null;
+  const pageSpecsLabel =
+    pageSpecsChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${pageSpecsChecked}`
+      : (audit.baseline?.pageSamplesLabel ?? null);
 
   const mockSampleFiles = report.mockSampleFiles ?? dash.mockSampleFiles ?? report.totalFiles;
   const filesAnalyzed = report.filesAnalyzed ?? dash.totalFilesScanned;
@@ -276,7 +283,7 @@ export function buildAuditMetrics(audit = {}) {
     inventoryFolders: inventory?.totalFolders ?? null,
     inventoryRoot: inventory?.projectRoot ?? report.projectRoot ?? null,
     qualityScore: report.qualityScore ?? dash.qualityScore ?? null,
-    ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? null
+    ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? null,
   };
 }
 
@@ -324,23 +331,25 @@ export function buildComplianceAuditSummary(audit = {}) {
   } else if (jestTestsLabel && layerJest && jestTestsLabel !== layerJest) {
     jestBaselineNote = `Summary jestTestsLabel uses fresher baseline (${jestTestsLabel}); audit layer cached ${layerJest}.`;
   }
-  const pageSpecsNote = benchmarkScan && pageSpecsLabel && pageSpecsLabel !== '0/0'
-    && metrics.pageSpecsLabel === '0/0'
-    ? `Page sample schema not evaluated on OSS clone — summary uses product baseline panel (${pageSpecsLabel}).`
-    : null;
+  const pageSpecsNote =
+    benchmarkScan && pageSpecsLabel && pageSpecsLabel !== '0/0' && metrics.pageSpecsLabel === '0/0'
+      ? `Page sample schema not evaluated on OSS clone — summary uses product baseline panel (${pageSpecsLabel}).`
+      : null;
   const npmProjectLabel = projectLabelFromPath(audit.npmAudit?.projectPath || audit.npmAudit?.auditRoot);
-  const npmAuditScopeNote = benchmarkScan && npmProjectLabel && npmProjectLabel !== projectLabel
-    ? `npm audit ran on product platform (${npmProjectLabel}, ${npmStats?.dependencies ?? '?'} dependencies) — gate report scoped to benchmark clone ${projectLabel}.`
-    : null;
+  const npmAuditScopeNote =
+    benchmarkScan && npmProjectLabel && npmProjectLabel !== projectLabel
+      ? `npm audit ran on product platform (${npmProjectLabel}, ${npmStats?.dependencies ?? '?'} dependencies) — gate report scoped to benchmark clone ${projectLabel}.`
+      : null;
   const productPlatformRoot = resolveProductPlatformRoot(audit);
 
   return {
     gatePass: gate.pass ?? null,
     gateBlockingCount: gate.blockingCount ?? null,
     gateWarningCount: gate.warningCount ?? null,
-    gateFailureNote: gate.pass === false
-      ? `Gate FAIL — ${gate.blockingCount ?? 0} blocking finding(s). Review detectedIssues in report export.`
-      : null,
+    gateFailureNote:
+      gate.pass === false
+        ? `Gate FAIL — ${gate.blockingCount ?? 0} blocking finding(s). Review detectedIssues in report export.`
+        : null,
     consistencyScore: metrics.consistencyScore ?? null,
     qualityScore: metrics.qualityScore ?? null,
     pageSpecsLabel,
@@ -372,7 +381,7 @@ export function buildComplianceAuditSummary(audit = {}) {
     checklistTotal: checklist.total ?? null,
     ...(jestBaselineNote ? { jestBaselineNote } : {}),
     ...(pageSpecsNote ? { pageSpecsNote } : {}),
-    ...(npmAuditScopeNote ? { npmAuditScopeNote } : {})
+    ...(npmAuditScopeNote ? { npmAuditScopeNote } : {}),
   };
 }
 
@@ -389,7 +398,7 @@ function bucketProductionLeaks(issues = []) {
       description: issue.description,
       severity: issue.severity,
       count: issue.count || 1,
-      recommendedAction: issue.recommendedAction
+      recommendedAction: issue.recommendedAction,
     }));
 }
 
@@ -402,7 +411,10 @@ function bucketProductionLeaks(issues = []) {
  */
 function summarizeFindingBucket(items, emptyText, findingsCount = items.length) {
   if (items.length) {
-    return items.slice(0, 5).map((i) => `${i.file}: ${i.description}`).join('; ');
+    return items
+      .slice(0, 5)
+      .map((i) => `${i.file}: ${i.description}`)
+      .join('; ');
   }
   if (findingsCount > 0) {
     return `${findingsCount} finding(s) — see detectedIssues in gate report export.`;
@@ -418,7 +430,7 @@ function summarizeFindingBucket(items, emptyText, findingsCount = items.length) 
  */
 function reconcileAssessmentFromReport(assessment, report) {
   if (!assessment || !report) return assessment;
-  const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
+  const sourceIssues = report.rawIssues?.length ? report.rawIssues : report.detectedIssues || [];
   const productionLeaks = bucketProductionLeaks(sourceIssues);
   const sev = report.severityCounts || {};
   const findings = { ...(assessment.findings || {}) };
@@ -433,7 +445,7 @@ function reconcileAssessmentFromReport(assessment, report) {
         productionLeaks,
         'No mock/sample path references in production directories.',
         count
-      )
+      ),
     };
   }
 
@@ -446,9 +458,9 @@ function reconcileAssessmentFromReport(assessment, report) {
       mediumIssues: sev.medium ?? 0,
       lowIssues: sev.low ?? 0,
       blockingCount: report.gate?.blockingCount ?? assessment.executiveSummary?.blockingCount ?? 0,
-      warningCount: report.gate?.warningCount ?? assessment.executiveSummary?.warningCount ?? 0
+      warningCount: report.gate?.warningCount ?? assessment.executiveSummary?.warningCount ?? 0,
     },
-    findings
+    findings,
   };
 }
 
@@ -463,7 +475,7 @@ function sanitizeReportExport(report, projectLabel, options = {}) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
     projectPath: report.projectRoot || projectLabel,
-    exportFilename: options.exportFilename
+    exportFilename: options.exportFilename,
   });
   const euSummary = sanitized.euAiActSummary?.documentationFound?.length
     ? { euAiActSummary: splitDocumentationPaths(sanitized.euAiActSummary) }
@@ -474,7 +486,7 @@ function sanitizeReportExport(report, projectLabel, options = {}) {
     title: normalizeSimpleBeaconBranding(sanitized.title),
     generatedBy: normalizeSimpleBeaconBranding(sanitized.generatedBy),
     blockingCount: sanitized.gate?.blockingCount ?? sanitized.blockingCount ?? null,
-    warningCount: sanitized.gate?.warningCount ?? sanitized.warningCount ?? null
+    warningCount: sanitized.gate?.warningCount ?? sanitized.warningCount ?? null,
   };
 }
 
@@ -497,20 +509,20 @@ function sanitizeAssessmentExport(assessment, projectLabel, report) {
     provenance: 'assessment-artifact',
     ...(reconciled.complianceChecklist
       ? {
-        complianceChecklist: {
-          ...reconciled.complianceChecklist,
-          title: normalizeSimpleBeaconBranding(reconciled.complianceChecklist.title)
+          complianceChecklist: {
+            ...reconciled.complianceChecklist,
+            title: normalizeSimpleBeaconBranding(reconciled.complianceChecklist.title),
+          },
         }
-      }
       : {}),
     ...(sourceReport
       ? {
-        sourceReport: {
-          generatedAt: sourceReport.generatedAt ?? null,
-          duplicateGroups: sourceReport.duplicateGroups ?? null
+          sourceReport: {
+            generatedAt: sourceReport.generatedAt ?? null,
+            duplicateGroups: sourceReport.duplicateGroups ?? null,
+          },
         }
-      }
-      : {})
+      : {}),
   };
 }
 
@@ -525,7 +537,7 @@ function sanitizeAuditLayersExport(auditLayers, audit = {}) {
   const report = audit.report || {};
   const gate = {
     ...(auditLayers.gate || {}),
-    ...(report.gate || {})
+    ...(report.gate || {}),
   };
   const next = { ...auditLayers, gate };
   const liveJest = resolveLiveJestLabel(report);
@@ -538,7 +550,7 @@ function sanitizeAuditLayersExport(auditLayers, audit = {}) {
       status: report.jestBaselinePassed === false ? 'fail' : next.jestBaseline.status,
       ...(layerLabel && layerLabel !== liveJest
         ? { labelRaw: layerLabel, labelSource: 'gate-scan-export-reconciled' }
-        : {})
+        : {}),
     };
   }
 
@@ -560,7 +572,7 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
   const next = {
     ...rest,
     provenance: 'dashboard-audit-snapshot',
-    fictionCatalogOmitted: Array.isArray(fictionCatalog) ? fictionCatalog.length : 0
+    fictionCatalogOmitted: Array.isArray(fictionCatalog) ? fictionCatalog.length : 0,
   };
 
   if (next.scanStatus) {
@@ -579,7 +591,7 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
       qualityScore: report.qualityScore ?? next.scanStatus.qualityScore,
       ...(priorGatePass != null && priorGatePass !== gate.pass
         ? { gateStatusSource: 'gate-scan-export-reconciled' }
-        : {})
+        : {}),
     };
   }
 
@@ -590,10 +602,10 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
       pageSamplesLabel: pageSpecsLabel,
       ...(priorLabel && priorLabel !== pageSpecsLabel
         ? {
-          pageSamplesLabelRaw: priorLabel,
-          pageSamplesLabelSource: 'gate-scan-export-reconciled'
-        }
-        : {})
+            pageSamplesLabelRaw: priorLabel,
+            pageSamplesLabelSource: 'gate-scan-export-reconciled',
+          }
+        : {}),
     };
   }
 
@@ -604,7 +616,7 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
       gatePass: gate.pass,
       ...(priorGatePass != null && priorGatePass !== gate.pass
         ? { gatePassSource: 'gate-scan-export-reconciled' }
-        : {})
+        : {}),
     };
   }
 
@@ -612,7 +624,7 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
     next.trends = {
       ...next.trends,
       repositoryFileCountTrend: next.trends.aiAdoptionTrend,
-      aiAdoptionTrendNote: 'repositoryFileCountTrend tracks repo file inventory snapshots — not AI adoption rate.'
+      aiAdoptionTrendNote: 'repositoryFileCountTrend tracks repo file inventory snapshots — not AI adoption rate.',
     };
     delete next.trends.aiAdoptionTrend;
   }
@@ -636,7 +648,7 @@ function sanitizeBaselineExport(baseline, context = {}) {
       ...next,
       jestTestsLabel: jestLabel,
       jestTestsLabelRaw: next.jestTestsLabel,
-      jestTestsLabelSource: 'gate-scan-export-reconciled'
+      jestTestsLabelSource: 'gate-scan-export-reconciled',
     };
   }
   return { ...next, provenance: baseline.dataSource || 'repository-audit' };
@@ -651,11 +663,10 @@ function buildExportProvenance(audit = {}) {
   return {
     report: audit.report ? 'live-gate-scan' : 'missing',
     assessment: audit.assessment ? 'assessment-artifact' : 'missing',
-    npmAudit: audit.npmAudit?.error ? 'error' : (audit.npmAudit ? 'live-npm-audit' : 'missing'),
+    npmAudit: audit.npmAudit?.error ? 'error' : audit.npmAudit ? 'live-npm-audit' : 'missing',
     dashboard: audit.dashboard ? 'dashboard-audit-snapshot' : 'missing',
-    fictionCatalog: Array.isArray(audit.fictionCatalog) && audit.fictionCatalog.length
-      ? 'rejected-fiction-catalog'
-      : 'missing'
+    fictionCatalog:
+      Array.isArray(audit.fictionCatalog) && audit.fictionCatalog.length ? 'rejected-fiction-catalog' : 'missing',
   };
 }
 
@@ -670,15 +681,18 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
   const benchmarkScan = isBenchmarkComplianceAudit(audit);
   const summary = buildComplianceAuditSummary(audit);
   const sanitizedReport = sanitizeReportExport(audit.report, projectLabel, options);
-  const npmAudit = audit.npmAudit && !audit.npmAudit.error
-    ? sanitizeNpmAuditForQualityExport(audit.npmAudit, benchmarkScan ? 'ai-platform' : projectLabel)
-    : (audit.npmAudit?.error ? { error: audit.npmAudit.error } : audit.npmAudit || null);
+  const npmAudit =
+    audit.npmAudit && !audit.npmAudit.error
+      ? sanitizeNpmAuditForQualityExport(audit.npmAudit, benchmarkScan ? 'ai-platform' : projectLabel)
+      : audit.npmAudit?.error
+        ? { error: audit.npmAudit.error }
+        : audit.npmAudit || null;
   const pageSpecsMismatchNote = buildPageSpecsMismatchNote(audit, summary.pageSpecsLabel);
-/**
- * Report export notes.
- * @param {number} sanitizedReport?.exportNotes || []
- * @returns {any}
- */
+  /**
+   * Report export notes.
+   * @param {number} sanitizedReport?.exportNotes || []
+   * @returns {any}
+   */
   const reportExportNotes = (sanitizedReport?.exportNotes || []).filter((note) => {
     const text = String(note);
     if (summary.gateFailureNote && /gate fail/i.test(text)) return false;
@@ -698,7 +712,7 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
     !benchmarkScan && summary.gatePass
       ? 'Gate pass on configured severities — hygiene attestation only, not vendor handoff clearance.'
       : null,
-    ...reportExportNotes
+    ...reportExportNotes,
   ]);
 
   return {
@@ -712,14 +726,16 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
     provenance: buildExportProvenance(audit),
     disclaimers: [
       ...(benchmarkScan
-        ? ['Benchmark clone audit export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.']
+        ? [
+            'Benchmark clone audit export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.',
+          ]
         : []),
       'Compliance audit export bundles gate layers, fiction catalog, and optional assessment/npm audit.',
       'fictionCatalog lists documented rejected-fiction patterns — not active KPI claims.',
       'Gate report export omits rawIssues; use detectedIssues for remediation.',
       'Absolute host paths are redacted to project label in exports.',
       'npm audit and dashboard overlays may reflect product platform scope when gate scan targets a benchmark clone.',
-      'Static scan hygiene — not legal conformity or vendor handoff certification.'
+      'Static scan hygiene — not legal conformity or vendor handoff certification.',
     ],
     auditLayers: sanitizeAuditLayersExport(audit.auditLayers, audit),
     fictionCatalog: audit.fictionCatalog || [],
@@ -747,9 +763,9 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
       benchmarkScan,
       attestationNote: benchmarkScan
         ? 'Benchmark clone compliance audit — not SimpleBeacon product handoff clearance.'
-        : 'Compliance audit export — hygiene metrics only, not vendor handoff clearance.'
+        : 'Compliance audit export — hygiene metrics only, not vendor handoff clearance.',
     },
-    exportNotes
+    exportNotes,
   };
 }
 
@@ -768,18 +784,21 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
 export function sanitizeComplianceAuditExport(bundle, options = {}) {
   if (!bundle) return bundle;
   if (bundle.type === 'simplebeacon-compliance-audit-export') {
-    return buildComplianceAuditExportBundle({
-      type: bundle.sourceType,
-      generatedAt: bundle.sourceGeneratedAt,
-      report: bundle.report,
-      baseline: bundle.baseline,
-      dashboard: bundle.dashboard,
-      pageSamples: bundle.pageSamples,
-      auditLayers: bundle.auditLayers,
-      fictionCatalog: bundle.fictionCatalog,
-      assessment: bundle.assessment,
-      npmAudit: bundle.npmAudit
-    }, options);
+    return buildComplianceAuditExportBundle(
+      {
+        type: bundle.sourceType,
+        generatedAt: bundle.sourceGeneratedAt,
+        report: bundle.report,
+        baseline: bundle.baseline,
+        dashboard: bundle.dashboard,
+        pageSamples: bundle.pageSamples,
+        auditLayers: bundle.auditLayers,
+        fictionCatalog: bundle.fictionCatalog,
+        assessment: bundle.assessment,
+        npmAudit: bundle.npmAudit,
+      },
+      options
+    );
   }
   return buildComplianceAuditExportBundle(bundle, options);
 }
@@ -808,14 +827,7 @@ export function buildAuditLayersCsv(auditLayers = {}) {
     const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
     const checked = layer.scanned ?? layer.checked ?? layer.label ?? '';
     const findings = layer.findings ?? layer.blockingCount ?? '';
-    return [
-      key,
-      LAYER_LABELS[key] || key,
-      status,
-      checked,
-      findings,
-      layer.compliance ?? ''
-    ].map(csvEscape).join(',');
+    return [key, LAYER_LABELS[key] || key, status, checked, findings, layer.compliance ?? ''].map(csvEscape).join(',');
   });
 
   return [header.join(','), ...rows].join('\n');
@@ -830,13 +842,11 @@ export function buildAssessmentChecklistCsv(assessment) {
   const rules = assessment?.complianceChecklist?.rules;
   if (!rules?.length) return null;
   const header = ['id', 'title', 'status', 'category', 'severity'];
-  const rows = rules.map((rule) => [
-    rule.id || '',
-    rule.title || '',
-    rule.status || '',
-    rule.category || '',
-    rule.severity || ''
-  ].map(csvEscape).join(','));
+  const rows = rules.map((rule) =>
+    [rule.id || '', rule.title || '', rule.status || '', rule.category || '', rule.severity || '']
+      .map(csvEscape)
+      .join(',')
+  );
   return [header.join(','), ...rows].join('\n');
 }
 

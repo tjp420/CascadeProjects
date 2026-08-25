@@ -125,6 +125,7 @@ npx vsce publish
 ```
 
 This will:
+
 - Upload the extension to the marketplace
 - Use the metadata from package.json
 - Publish under the `simplebeacon` publisher
@@ -178,6 +179,7 @@ If screenshots weren't included in the package, you can add them via the web int
 **Problem:** Extension fails marketplace validation
 
 **Solution:**
+
 - Check icon is 128x128px minimum
 - Verify README is not empty
 - Ensure all required fields in package.json are filled
@@ -188,6 +190,7 @@ If screenshots weren't included in the package, you can add them via the web int
 **Problem:** Screenshots exceed size limit
 
 **Solution:**
+
 - Resize screenshots to exactly 1280x800px
 - Compress images to under 1MB each
 - Use PNG format
@@ -197,6 +200,7 @@ If screenshots weren't included in the package, you can add them via the web int
 **Problem:** Trying to publish over existing extension
 
 **Solution:**
+
 - Increment version number in package.json
 - Re-run `npm run compile` and `npm run package`
 - Publish with new version
@@ -227,6 +231,7 @@ For future updates:
 ## Next Steps
 
 After successful publication:
+
 1. Share the marketplace link
 2. Announce on social media
 3. Monitor downloads and ratings
@@ -241,5 +246,6 @@ https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop
 ## Support
 
 For marketplace publishing issues:
+
 - VSCode Marketplace documentation: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
 - vsce documentation: https://github.com/microsoft/vscode-vsce

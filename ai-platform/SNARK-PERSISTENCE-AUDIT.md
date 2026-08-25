@@ -53,6 +53,7 @@ Track parity with other runtime implementations to ensure serialized numeric enc
 - Canonicalization vector: include sample canonicalized JCS outputs and expected SHA256 evidence IDs.
 
 Suggested fields per parity check:
+
 - Vector name
 - Origin (JS/Rust/Go)
 - Payload sample (linked file)

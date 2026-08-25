@@ -1,4 +1,5 @@
 # SimpleBeacon
+
 ### The AI Code Debt Scanner That Catches What Linters Miss
 
 ---
@@ -15,24 +16,24 @@ It runs entirely on your machine. No source code is ever uploaded.
 
 ## Key Differentiators
 
-| Feature | Detail |
-|---|---|
-| 48 analyzers | Coverage across secrets, placeholders, mock paths, fabricated logic, and config drift |
-| 25 scan engines | Layered detection combining pattern, AST, and dataflow analysis |
-| Zero LLM dependency | Deterministic results — no hallucinated findings, no API costs, no model drift |
-| Local-only scanning | Source code never leaves your environment; no upload required |
-| CI/CD gate | Blocks merges on high-severity findings; configurable thresholds |
-| EU AI Act compliance | Documentation and evidence trails for Article 9-16 transparency requirements |
+| Feature              | Detail                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| 48 analyzers         | Coverage across secrets, placeholders, mock paths, fabricated logic, and config drift |
+| 25 scan engines      | Layered detection combining pattern, AST, and dataflow analysis                       |
+| Zero LLM dependency  | Deterministic results — no hallucinated findings, no API costs, no model drift        |
+| Local-only scanning  | Source code never leaves your environment; no upload required                         |
+| CI/CD gate           | Blocks merges on high-severity findings; configurable thresholds                      |
+| EU AI Act compliance | Documentation and evidence trails for Article 9-16 transparency requirements          |
 
 ---
 
 ## Pricing
 
-| Tier | Price | Best For |
-|---|---|---|
-| **Developer** | $49/mo | Individual engineers — unlimited scans, CI gate, all 48 analyzers |
-| **Team Pro** | $149/mo (5 seats) | Teams shipping AI-assisted code — EU AI Act + SOC 2 readiness, board-ready compliance certificates |
-| **Enterprise** | Custom | Large orgs — air-gapped deployment, SSO/SAML, dedicated security analyst, custom analyzers |
+| Tier           | Price             | Best For                                                                                           |
+| -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| **Developer**  | $49/mo            | Individual engineers — unlimited scans, CI gate, all 48 analyzers                                  |
+| **Team Pro**   | $149/mo (5 seats) | Teams shipping AI-assisted code — EU AI Act + SOC 2 readiness, board-ready compliance certificates |
+| **Enterprise** | Custom            | Large orgs — air-gapped deployment, SSO/SAML, dedicated security analyst, custom analyzers         |
 
 All plans include the full analyzer set. Higher tiers add compliance tooling, team management, and deployment flexibility.
 

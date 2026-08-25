@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 15: Volatile eviction engine.
@@ -9,7 +9,7 @@
  * @module hsm-adapter/volatile-eviction-engine
  */
 
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_INTERVAL_MS = 30_000;
 
@@ -18,8 +18,8 @@ function _entryKey(tenantId, kekId) {
 }
 
 function _splitKey(key) {
-  const [tenantId, ...rest] = key.split(':');
-  const kekId = rest.join(':');
+  const [tenantId, ...rest] = key.split(":");
+  const kekId = rest.join(":");
   return { tenantId, kekId };
 }
 
@@ -30,18 +30,27 @@ class VolatileEvictionEngine {
    * @param {number} [options.intervalMs=30000] - scan interval; 0 disables automatic eviction
    */
   constructor(policyEngine, options = {}) {
-    if (!policyEngine || typeof policyEngine.getPolicy !== 'function') {
-      throw new HsmAdapterError('INVALID_INPUT', 'VolatileEvictionEngine requires a policy engine with getPolicy()');
+    if (!policyEngine || typeof policyEngine.getPolicy !== "function") {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "VolatileEvictionEngine requires a policy engine with getPolicy()",
+      );
     }
     this._policyEngine = policyEngine;
-    this._intervalMs = options.intervalMs === undefined ? DEFAULT_INTERVAL_MS : options.intervalMs;
+    this._intervalMs =
+      options.intervalMs === undefined
+        ? DEFAULT_INTERVAL_MS
+        : options.intervalMs;
     this._registry = new Map();
     this._timer = null;
   }
 
   register(tenantId, kekId, zeroizeCallback) {
-    if (typeof zeroizeCallback !== 'function') {
-      throw new HsmAdapterError('INVALID_INPUT', 'zeroizeCallback must be a function');
+    if (typeof zeroizeCallback !== "function") {
+      throw new HsmAdapterError(
+        "INVALID_INPUT",
+        "zeroizeCallback must be a function",
+      );
     }
     const key = _entryKey(tenantId, kekId);
     this._registry.set(key, {
@@ -86,7 +95,7 @@ class VolatileEvictionEngine {
    * interval. Useful for shutdown or emergency purge.
    * @param {string} reason
    */
-  async evictAll(reason = 'explicit') {
+  async evictAll(reason = "explicit") {
     for (const [key, entry] of this._registry.entries()) {
       await this._triggerEviction(key, entry, reason);
     }
@@ -96,9 +105,12 @@ class VolatileEvictionEngine {
     const now = Date.now();
     for (const [key, entry] of this._registry.entries()) {
       const policy = this._policyEngine.getPolicy(entry.tenantId);
-      const seconds = policy && policy.eviction ? policy.eviction.inactivityEvictionSeconds : 0;
+      const seconds =
+        policy && policy.eviction
+          ? policy.eviction.inactivityEvictionSeconds
+          : 0;
       if (seconds > 0 && now - entry.lastUsed > seconds * 1000) {
-        await this._triggerEviction(key, entry, 'inactivity');
+        await this._triggerEviction(key, entry, "inactivity");
       }
     }
   }
@@ -108,7 +120,7 @@ class VolatileEvictionEngine {
     try {
       await entry.zeroizeCallback(entry.kekId, reason);
     } catch (err) {
-      console.error('volatile-eviction-engine.cjs error:', err);
+      console.error("volatile-eviction-engine.cjs error:", err);
       // Eviction failures are logged by the adapter; do not stop the timer.
     }
   }

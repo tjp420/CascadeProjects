@@ -3,11 +3,11 @@
  * Founder / Tier 0 outreach email via Resend — send as @simplebeacon.ai from localhost.
  */
 
-const fs = require('fs');
-const path = require('path');
-const logger = require('./app-logger.cjs');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./app-logger.cjs");
 
-const constants = require('../config/constants.cjs');
+const constants = require("../config/constants.cjs");
 const fsp = fs.promises;
 
 /**
@@ -15,7 +15,7 @@ const fsp = fs.promises;
  * @returns {any}
  */
 function getOutreachFrom() {
-  return String(process.env.OUTREACH_FROM || 'outreach@simplebeacon.ai').trim();
+  return String(process.env.OUTREACH_FROM || "outreach@simplebeacon.ai").trim();
 }
 
 /**
@@ -23,7 +23,9 @@ function getOutreachFrom() {
  * @returns {any}
  */
 function getOutreachReplyTo() {
-  return String(process.env.OUTREACH_REPLY_TO || 'outreach@simplebeacon.ai').trim();
+  return String(
+    process.env.OUTREACH_REPLY_TO || "outreach@simplebeacon.ai",
+  ).trim();
 }
 
 /**
@@ -31,7 +33,7 @@ function getOutreachReplyTo() {
  * @returns {any}
  */
 function isOutreachConfigured() {
-  return Boolean(String(process.env.RESEND_API_KEY || '').trim());
+  return Boolean(String(process.env.RESEND_API_KEY || "").trim());
 }
 
 /**
@@ -40,8 +42,8 @@ function isOutreachConfigured() {
  * @returns {any}
  */
 function sentLogPath(options) {
-  const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
-  return path.join(dataDir, 'outreach-sent.json');
+  const dataDir = options.dataDir || path.join(__dirname, "..", "..", "data");
+  return path.join(dataDir, "outreach-sent.json");
 }
 
 /**
@@ -64,7 +66,7 @@ async function writeSentLog(rows, options) {
  */
 function sentEntryId(row, index = 0) {
   if (row?.id) return String(row.id);
-  return `${row.sentAt || 'unknown'}|${row.to || ''}|${index}`;
+  return `${row.sentAt || "unknown"}|${row.to || ""}|${index}`;
 }
 
 /**
@@ -75,16 +77,16 @@ function sentEntryId(row, index = 0) {
 async function loadSentLog(options) {
   const file = sentLogPath(options);
   try {
-    const raw = await fsp.readFile(file, 'utf8');
+    const raw = await fsp.readFile(file, "utf8");
     const rows = JSON.parse(raw);
     const list = Array.isArray(rows) ? rows : [];
     return list.map((row, index) => ({
       ...row,
-      id: row.id || sentEntryId(row, index)
+      id: row.id || sentEntryId(row, index),
     }));
   } catch (err) {
-    if (err && err.code === 'ENOENT') return [];
-    logger.warn('[outreach] load log failed:', err.message);
+    if (err && err.code === "ENOENT") return [];
+    logger.warn("[outreach] load log failed:", err.message);
     return [];
   }
 }
@@ -96,17 +98,19 @@ async function loadSentLog(options) {
  * @returns {any}
  */
 async function removeSentLogEntry(id, options) {
-  const needle = String(id || '').trim();
+  const needle = String(id || "").trim();
   if (!needle) {
-    const err = new Error('missing_id');
-    err.code = 'missing_id';
+    const err = new Error("missing_id");
+    err.code = "missing_id";
     throw err;
   }
   const rows = await loadSentLog(options);
-  const index = rows.findIndex((row, i) => sentEntryId(row, i) === needle || row.id === needle);
+  const index = rows.findIndex(
+    (row, i) => sentEntryId(row, i) === needle || row.id === needle,
+  );
   if (index < 0) {
-    const err = new Error('not_found');
-    err.code = 'not_found';
+    const err = new Error("not_found");
+    err.code = "not_found";
     throw err;
   }
   rows.splice(index, 1);
@@ -135,7 +139,7 @@ async function appendSentLog(entry, options) {
  * @returns {any}
  */
 function validateEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
 /**
@@ -145,46 +149,48 @@ function validateEmail(value) {
  * @returns {any}
  */
 async function sendOutreachEmail(payload, options = {}) {
-  const to = String(payload.to || '').trim().toLowerCase();
-  const subject = String(payload.subject || '').trim();
-  const text = String(payload.text || '').trim();
+  const to = String(payload.to || "")
+    .trim()
+    .toLowerCase();
+  const subject = String(payload.subject || "").trim();
+  const text = String(payload.text || "").trim();
 
   if (!validateEmail(to)) {
-    const err = new Error('invalid_email');
-    err.code = 'invalid_email';
+    const err = new Error("invalid_email");
+    err.code = "invalid_email";
     throw err;
   }
   if (!subject || subject.length < 3) {
-    const err = new Error('subject_too_short');
-    err.code = 'subject_too_short';
+    const err = new Error("subject_too_short");
+    err.code = "subject_too_short";
     throw err;
   }
   if (!text || text.length < 20) {
-    const err = new Error('message_too_short');
-    err.code = 'message_too_short';
+    const err = new Error("message_too_short");
+    err.code = "message_too_short";
     throw err;
   }
   if (text.length > constants.TIMEOUT_12S) {
-    const err = new Error('message_too_long');
-    err.code = 'message_too_long';
+    const err = new Error("message_too_long");
+    err.code = "message_too_long";
     throw err;
   }
 
   const from = getOutreachFrom();
   const replyTo = getOutreachReplyTo();
-  const { sendResendMail } = require('./audit-booking-mail.cjs');
+  const { sendResendMail } = require("./audit-booking-mail.cjs");
 
   const result = await sendResendMail({
     to,
     from,
     replyTo,
     subject,
-    text
+    text,
   });
 
   if (!result.sent) {
-    const err = new Error(result.reason || 'email_not_configured');
-    err.code = result.reason || 'email_not_configured';
+    const err = new Error(result.reason || "email_not_configured");
+    err.code = result.reason || "email_not_configured";
     throw err;
   }
 
@@ -193,15 +199,15 @@ async function sendOutreachEmail(payload, options = {}) {
     subject,
     from,
     replyTo,
-    company: String(payload.company || '').trim() || undefined,
-    prospectId: String(payload.prospectId || '').trim() || undefined,
-    sentAt: new Date().toISOString()
+    company: String(payload.company || "").trim() || undefined,
+    prospectId: String(payload.prospectId || "").trim() || undefined,
+    sentAt: new Date().toISOString(),
   };
 
   try {
     await appendSentLog(entry, options);
   } catch (err) {
-    logger.warn('[outreach] log persist failed:', err.message);
+    logger.warn("[outreach] log persist failed:", err.message);
   }
 
   return { ...result, entry };
@@ -216,5 +222,5 @@ module.exports = {
   sentEntryId,
   removeSentLogEntry,
   sendOutreachEmail,
-  validateEmail
+  validateEmail,
 };

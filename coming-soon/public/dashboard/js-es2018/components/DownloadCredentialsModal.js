@@ -8,7 +8,12 @@ import { escapeHtml } from '../utils.js?v=20260731audit1';
  * @param {Function} options.onSubmit - Called with credentials object
  * @param {Object} [options.defaults] - Default values for fields
  */
-export function showDownloadCredentialsModal({ title = 'Edit Report Credentials', submitLabel = 'Download', onSubmit, defaults = {} } = {}) {
+export function showDownloadCredentialsModal({
+    title = 'Edit Report Credentials',
+    submitLabel = 'Download',
+    onSubmit,
+    defaults = {}
+} = {}) {
     var _a;
     const existing = document.getElementById('download-credentials-modal');
     existing === null || existing === void 0 ? void 0 : existing.remove();
@@ -34,12 +39,33 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
     form.id = 'download-creds-form';
     form.className = 'modal-body';
     const fields = [
-        { id: 'dc-project-name', label: 'Project / Company Name', placeholder: 'Acme Corp', value: defaults.projectName || '' },
-        { id: 'dc-signatory-name', label: 'Signatory Name', placeholder: 'Jane Smith', value: defaults.signatoryName || '' },
-        { id: 'dc-signatory-title', label: 'Signatory Title', placeholder: 'Chief Technology Officer', value: defaults.signatoryTitle || '' },
-        { id: 'dc-contact-email', label: 'Contact Email', placeholder: 'Contact email address', value: defaults.contactEmail || '', inputmode: 'email' }
+        {
+            id: 'dc-project-name',
+            label: 'Project / Company Name',
+            placeholder: 'Acme Corp',
+            value: defaults.projectName || ''
+        },
+        {
+            id: 'dc-signatory-name',
+            label: 'Signatory Name',
+            placeholder: 'Jane Smith',
+            value: defaults.signatoryName || ''
+        },
+        {
+            id: 'dc-signatory-title',
+            label: 'Signatory Title',
+            placeholder: 'Chief Technology Officer',
+            value: defaults.signatoryTitle || ''
+        },
+        {
+            id: 'dc-contact-email',
+            label: 'Contact Email',
+            placeholder: 'Contact email address',
+            value: defaults.contactEmail || '',
+            inputmode: 'email'
+        }
     ];
-    fields.forEach((field) => {
+    fields.forEach(field => {
         const lbl = document.createElement('label');
         lbl.className = 'field-label';
         lbl.setAttribute('for', field.id);
@@ -51,8 +77,7 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
         inp.autocomplete = 'off';
         inp.placeholder = field.placeholder;
         inp.value = field.value;
-        if (field.inputmode)
-            inp.inputMode = field.inputmode;
+        if (field.inputmode) inp.inputMode = field.inputmode;
         form.appendChild(lbl);
         form.appendChild(inp);
     });
@@ -82,11 +107,10 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
         overlay.remove();
     }
     cancelBtn.addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay)
-            close();
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) close();
     });
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', e => {
         e.preventDefault();
         const credentials = {
             projectName: overlay.querySelector('#dc-project-name').value.trim(),

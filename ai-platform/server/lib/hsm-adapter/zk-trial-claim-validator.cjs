@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 79: ZK Trial Claim Validator.
@@ -14,8 +14,8 @@
  * @module hsm-adapter/zk-trial-claim-validator
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class ZkTrialClaimValidator {
   /**
@@ -42,62 +42,119 @@ class ZkTrialClaimValidator {
   verifyTrialClaim(request) {
     _validateClaimRequest(this.policy, request);
     if (!this._hub) {
-      throw new HsmAdapterError('TRIALCLAIM_HUB_MISSING', 'clinical trial verification gating hub is required');
+      throw new HsmAdapterError(
+        "TRIALCLAIM_HUB_MISSING",
+        "clinical trial verification gating hub is required",
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('TRIALCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "TRIALCLAIM_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('TRIALCLAIM_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "TRIALCLAIM_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('TRIALCLAIM_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "TRIALCLAIM_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.peerId === 'string' && this._bannedPeers.has(request.peerId)) {
-      throw new HsmAdapterError('TRIALCLAIM_PEER_BANNED', `peer ${request.peerId} is banned`);
+    if (
+      typeof request.peerId === "string" &&
+      this._bannedPeers.has(request.peerId)
+    ) {
+      throw new HsmAdapterError(
+        "TRIALCLAIM_PEER_BANNED",
+        `peer ${request.peerId} is banned`,
+      );
     }
-    if (!request.zkTrialRangeProofHash || typeof request.zkTrialRangeProofHash !== 'string') {
+    if (
+      !request.zkTrialRangeProofHash ||
+      typeof request.zkTrialRangeProofHash !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRIALCLAIM_ZK_PROOF_MISSING', 'zero-knowledge trial range proof hash is required');
+      throw new HsmAdapterError(
+        "TRIALCLAIM_ZK_PROOF_MISSING",
+        "zero-knowledge trial range proof hash is required",
+      );
     }
-    if (!request.partialSignature || typeof request.partialSignature !== 'string') {
+    if (
+      !request.partialSignature ||
+      typeof request.partialSignature !== "string"
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRIALCLAIM_PARTIAL_SIG_MISSING', 'partial signature is required');
+      throw new HsmAdapterError(
+        "TRIALCLAIM_PARTIAL_SIG_MISSING",
+        "partial signature is required",
+      );
     }
     const pool = this._hub.getPool(request.poolId);
     if (!pool) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRIALCLAIM_POOL_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "TRIALCLAIM_POOL_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (typeof request.trialDurationSeconds === 'number' && request.trialDurationSeconds > (this.policy.maxTrialDurationSeconds || 94608000)) {
+    if (
+      typeof request.trialDurationSeconds === "number" &&
+      request.trialDurationSeconds >
+        (this.policy.maxTrialDurationSeconds || 94608000)
+    ) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRIALCLAIM_TRIAL_DURATION_OUT_OF_BOUNDS', `trial duration seconds ${request.trialDurationSeconds} exceeds maximum ${this.policy.maxTrialDurationSeconds}`);
+      throw new HsmAdapterError(
+        "TRIALCLAIM_TRIAL_DURATION_OUT_OF_BOUNDS",
+        `trial duration seconds ${request.trialDurationSeconds} exceeds maximum ${this.policy.maxTrialDurationSeconds}`,
+      );
     }
-    const claimKey = `${request.poolId}:${request.peerId || 'anonymous'}`;
+    const claimKey = `${request.poolId}:${request.peerId || "anonymous"}`;
     if (this._verifiedClaims.has(claimKey)) {
       this._banPeerIfPolicy(request);
-      throw new HsmAdapterError('TRIALCLAIM_DUPLICATE', `trial claim for pool ${request.poolId} already verified`);
+      throw new HsmAdapterError(
+        "TRIALCLAIM_DUPLICATE",
+        `trial claim for pool ${request.poolId} already verified`,
+      );
     }
-    const claimId = request.claimId || `claim-${crypto.randomBytes(4).toString('hex')}`;
+    const claimId =
+      request.claimId || `claim-${crypto.randomBytes(4).toString("hex")}`;
     const now = Math.floor(Date.now() / 1000);
     const claim = {
       claimId,
       poolId: request.poolId,
-      blindedCohortMetricCommitment: request.blindedCohortMetricCommitment || 'unspecified',
-      blindedClaimValueCommitment: request.blindedClaimValueCommitment || 'unspecified',
+      blindedCohortMetricCommitment:
+        request.blindedCohortMetricCommitment || "unspecified",
+      blindedClaimValueCommitment:
+        request.blindedClaimValueCommitment || "unspecified",
       zkTrialRangeProofHash: request.zkTrialRangeProofHash,
-      clearingCommitteeAttestationHash: request.clearingCommitteeAttestationHash || 'unspecified',
+      clearingCommitteeAttestationHash:
+        request.clearingCommitteeAttestationHash || "unspecified",
       verifiedAt: now,
     };
     this._verifiedClaims.set(claimKey, claim);
     this._hub.markTrialClaimVerified(request.poolId);
     if (this._audit) {
-      this._audit('ZK_TRIAL_CLAIM_VERIFIED', { ...claim });
+      this._audit("ZK_TRIAL_CLAIM_VERIFIED", { ...claim });
     }
     return claim;
   }
@@ -125,7 +182,10 @@ class ZkTrialClaimValidator {
    * @private
    */
   _banPeerIfPolicy(request) {
-    if (this.policy.banMalformedOrOutOfOrderTrialClaims && typeof request.peerId === 'string') {
+    if (
+      this.policy.banMalformedOrOutOfOrderTrialClaims &&
+      typeof request.peerId === "string"
+    ) {
       this._bannedPeers.add(request.peerId);
     }
   }
@@ -133,10 +193,19 @@ class ZkTrialClaimValidator {
 
 function _validateClaimRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('TRIALCLAIM_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "TRIALCLAIM_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('TRIALCLAIM_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "TRIALCLAIM_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

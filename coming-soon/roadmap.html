@@ -1,503 +1,1269 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <script>
-    // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
-    // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
-    // triggers SRI console errors when the tag has an integrity attribute. Strip the
-    // integrity and remove the tag entirely in Brave; otherwise attach an onerror cleanup.
-    (function() {
-      function isBeacon(el) {
-        if (!el || el.tagName !== 'SCRIPT') return false;
-        var src = el.src || '';
-        var cf = el.getAttribute('data-cf-beacon');
-        return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
-      }
-      function neutralize(el) {
-        if (!isBeacon(el)) return;
-        // Edge-injected beacon tags may carry an integrity hash that does not match
-        // the actual script body, which causes SRI console errors. Stop them before
-        // the browser fetches by stripping src and disabling execution.
-        if (el.hasAttribute && el.hasAttribute('integrity')) {
-          try { el.removeAttribute('src'); } catch (_) {}
-          try { el.type = 'text/plain'; } catch (_) {}
-        }
-        el.removeAttribute('integrity');
-        el.removeAttribute('crossorigin');
-        var isBrave = typeof navigator.brave !== 'undefined';
-        var ua = navigator.userAgent || '';
-        if (isBrave || /Brave/.test(ua)) {
-          if (el.parentNode) el.parentNode.removeChild(el);
-          return;
-        }
-        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
-      }
-      var scripts = document.querySelectorAll('script');
-      for (var i = 0; i < scripts.length; i++) neutralize(scripts[i]);
-      if (window.MutationObserver) {
-        var mo = new MutationObserver(function(records) {
-          records.forEach(function(record) {
-            Array.prototype.forEach.call(record.addedNodes || [], function(node) {
-              if (node.nodeType === 1) {
-                if (node.tagName === 'SCRIPT') neutralize(node);
-                if (node.querySelectorAll) {
-                  Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+    <head>
+        <meta charset="UTF-8" />
+        <script>
+            // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
+            // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
+            // triggers SRI console errors when the tag has an integrity attribute. Strip the
+            // integrity and remove the tag entirely in Brave; otherwise attach an onerror cleanup.
+            (function () {
+                function isBeacon(el) {
+                    if (!el || el.tagName !== 'SCRIPT') return false;
+                    var src = el.src || '';
+                    var cf = el.getAttribute('data-cf-beacon');
+                    return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
                 }
-              }
+                function neutralize(el) {
+                    if (!isBeacon(el)) return;
+                    // Edge-injected beacon tags may carry an integrity hash that does not match
+                    // the actual script body, which causes SRI console errors. Stop them before
+                    // the browser fetches by stripping src and disabling execution.
+                    if (el.hasAttribute && el.hasAttribute('integrity')) {
+                        try {
+                            el.removeAttribute('src');
+                        } catch (_) {}
+                        try {
+                            el.type = 'text/plain';
+                        } catch (_) {}
+                    }
+                    el.removeAttribute('integrity');
+                    el.removeAttribute('crossorigin');
+                    var isBrave = typeof navigator.brave !== 'undefined';
+                    var ua = navigator.userAgent || '';
+                    if (isBrave || /Brave/.test(ua)) {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                        return;
+                    }
+                    el.onerror = function () {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    };
+                }
+                var scripts = document.querySelectorAll('script');
+                for (var i = 0; i < scripts.length; i++) neutralize(scripts[i]);
+                if (window.MutationObserver) {
+                    var mo = new MutationObserver(function (records) {
+                        records.forEach(function (record) {
+                            Array.prototype.forEach.call(record.addedNodes || [], function (node) {
+                                if (node.nodeType === 1) {
+                                    if (node.tagName === 'SCRIPT') neutralize(node);
+                                    if (node.querySelectorAll) {
+                                        Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+                                    }
+                                }
+                            });
+                        });
+                    });
+                    mo.observe(document.documentElement, { childList: true, subtree: true });
+                }
+            })();
+        </script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script>
+            /* v9-stale-guard — always purge stale hash/localStorage on fresh load unless share=1 */
+            (function () {
+                try {
+                    var q = new URLSearchParams(location.search);
+                    var h = q.get('h') || '';
+                    var v = q.get('v') || '';
+                    var isShare = q.get('share') === '1';
+                    var lastH = sessionStorage.getItem('sb_last_h');
+                    var lastV = sessionStorage.getItem('sb_last_v');
+                    var hOrVChanged = (lastH && lastH !== h) || (lastV && lastV !== v);
+                    var isFresh = !lastH; /* first visit this session */
+                    var shouldClear = !isShare && (isFresh || hOrVChanged);
+                    if (location.hash.length > 1) {
+                        var r = null;
+                        try {
+                            r = JSON.parse(atob(location.hash.slice(1).replace(/-/g, '+').replace(/_/g, '/')));
+                        } catch (_) {
+                            r = null;
+                        }
+                        if (r) {
+                            var generatedAt = r.generatedAt ? new Date(r.generatedAt) : null;
+                            var ageHours = generatedAt ? (Date.now() - generatedAt.getTime()) / 36e5 : 999;
+                            var qs = r.qualityScore,
+                                sc = r.schemaCompliance,
+                                cs = r.consistencyScore;
+                            var allNull = qs == null && sc == null && cs == null;
+                            var expired = ageHours > 0.001; /* ~4 seconds — effectively immediate on reload */
+                            if (allNull || expired || shouldClear) {
+                                history.replaceState(null, '', location.pathname + location.search);
+                                try {
+                                    for (var k in localStorage) {
+                                        if (k.indexOf('sbr_') === 0) localStorage.removeItem(k);
+                                    }
+                                } catch (_) {}
+                            }
+                        }
+                    } else if (shouldClear) {
+                        try {
+                            for (var k in localStorage) {
+                                if (k.indexOf('sbr_') === 0) localStorage.removeItem(k);
+                            }
+                        } catch (_) {}
+                    }
+                    sessionStorage.setItem('sb_last_h', h);
+                    sessionStorage.setItem('sb_last_v', v);
+                } catch (e) {}
+            })();
+        </script>
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
+        <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+        <title>SimpleBeacon Data Quality Roadmap</title>
+        <script>
+            (function () {
+                try {
+                    var theme = localStorage.getItem('simplebeacon-theme') || 'dark';
+                    if (theme === 'light') {
+                        document.documentElement.setAttribute('data-theme', 'light');
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/css/roadmap.css?h=1784596919635" />
+        <script src="/js-es2018/auth.js" defer></script>
+        <script type="module" src="/js-es2018/dashboard/phase-registry.js?h=1784596919635"></script>
+    </head>
+    <body>
+        <a
+            href="#app"
+            class="skip-link"
+            style="
+                position: absolute;
+                left: -9999px;
+                top: auto;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                z-index: 1001;
+            "
+            >Skip to content</a
+        >
+        <script>
+            document.querySelector('.skip-link').addEventListener('focus', function () {
+                this.style.position = 'fixed';
+                this.style.left = '16px';
+                this.style.top = '16px';
+                this.style.width = 'auto';
+                this.style.height = 'auto';
+                this.style.padding = '8px 16px';
+                this.style.background = 'var(--accent)';
+                this.style.color = '#fff';
+                this.style.borderRadius = '8px';
+                this.style.fontWeight = '600';
+                this.style.textDecoration = 'none';
             });
-          });
-        });
-        mo.observe(document.documentElement, { childList: true, subtree: true });
-      }
-    })();
-  </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>/* v9-stale-guard — always purge stale hash/localStorage on fresh load unless share=1 */
-(function(){
-  try {
-    var q = new URLSearchParams(location.search);
-    var h = q.get('h') || '';
-    var v = q.get('v') || '';
-    var isShare = q.get('share') === '1';
-    var lastH = sessionStorage.getItem('sb_last_h');
-    var lastV = sessionStorage.getItem('sb_last_v');
-    var hOrVChanged = (lastH && lastH !== h) || (lastV && lastV !== v);
-    var isFresh = !lastH; /* first visit this session */
-    var shouldClear = !isShare && (isFresh || hOrVChanged);
-    if (location.hash.length > 1) {
-      var r = null;
-      try {
-        r = JSON.parse(atob(location.hash.slice(1).replace(/-/g,'+').replace(/_/g,'/')));
-      } catch (_) { r = null; }
-      if (r) {
-        var generatedAt = r.generatedAt ? new Date(r.generatedAt) : null;
-        var ageHours = generatedAt ? (Date.now() - generatedAt.getTime()) / (36e5) : 999;
-        var qs = r.qualityScore, sc = r.schemaCompliance, cs = r.consistencyScore;
-        var allNull = qs == null && sc == null && cs == null;
-        var expired = ageHours > 0.001; /* ~4 seconds — effectively immediate on reload */
-        if (allNull || expired || shouldClear) {
-          history.replaceState(null, '', location.pathname + location.search);
-          try { for (var k in localStorage) { if (k.indexOf('sbr_') === 0) localStorage.removeItem(k); } } catch (_) {}
-        }
-      }
-    } else if (shouldClear) {
-      try { for (var k in localStorage) { if (k.indexOf('sbr_') === 0) localStorage.removeItem(k); } } catch (_) {}
-    }
-    sessionStorage.setItem('sb_last_h', h);
-    sessionStorage.setItem('sb_last_v', v);
-  } catch (e) {}
-})();</script>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>SimpleBeacon Data Quality Roadmap</title>
-  <script>
-    (function() {
-      try {
-        var theme = localStorage.getItem('simplebeacon-theme') || 'dark';
-        if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/roadmap.css?h=1784596919635">
-  <script src="/js-es2018/auth.js" defer></script>
-  <script type="module" src="/js-es2018/dashboard/phase-registry.js?h=1784596919635"></script>
-</head>
-<body>
-  <a href="#app" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:1001;">Skip to content</a>
-  <script>
-    document.querySelector('.skip-link').addEventListener('focus',function(){this.style.position='fixed';this.style.left='16px';this.style.top='16px';this.style.width='auto';this.style.height='auto';this.style.padding='8px 16px';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderRadius='8px';this.style.fontWeight='600';this.style.textDecoration='none';});
-    document.querySelector('.skip-link').addEventListener('blur',function(){this.style.position='absolute';this.style.left='-9999px';this.style.top='auto';this.style.width='1px';this.style.height='1px';});
-  </script>
-  <div class="container">
-<nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
-  <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
-  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
-    <div class="sb-nav-more-wrap">
-      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
-      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
-      <div class="sb-nav-more-menu">
-    <a href="/roadmap" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"/></svg>Roadmap</a>
-    <a href="/pricing" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Pricing</a>
-    <a href="/community" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"/></svg>Install</a>
-    <a href="/blog/case-study-ai-slop-1-25m" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>Blog</a>
-    <a href="/faq" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>FAQ</a>
-    <a href="/contact" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Contact</a>
-      </div>
-    </div>
-    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#6366f1;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
-    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
-  </div>
-</nav>
-<style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
-    <div class="hero">
-      <div class="hero-badge">Data-Quality Driven</div>
-      <h1>Remediation Roadmap Generator</h1>
-      <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan.</p>
-    </div>
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
-      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Load Report from URL or Path</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space:nowrap;">&#128194; Browse</button>
-        <input type="text" id="reportUrlInput" placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-family:inherit;font-size:0.9rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;">
-        <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space:nowrap;">&#9889; Analyze</button>
-      </div>
-    </div>
-    <div class="dropzone" id="dropzone">
-      <div class="icon">&#128206;</div>
-      <h3>Drop scan report.json or .zip here</h3>
-      <p>Or click to browse</p>
-      <input type="file" id="fileInput" accept=".json,.zip" aria-label="Upload scan report JSON or ZIP">
-    </div>
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:32px;">
-      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Or paste JSON directly</label>
-      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;resize:vertical;"></textarea>
-      <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;">Load JSON Report</button>
-      <button id="loadTestReportBtn" class="btn btn-secondary" style="margin-top:8px;width:100%;font-size:0.8rem;">&#128200; Load Test Report</button>
-      <p style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">Press Ctrl+Enter to submit</p>
-    </div>
-    <div id="app" style="display:none;" role="main">
-      <div class="roadmap-section" role="region" aria-labelledby="dashboardTitle">
-        <div class="section-header">
-          <div><div class="section-title" id="dashboardTitle">Data Quality Dashboard</div><div class="section-subtitle" id="projectName">Project: —</div></div>
-          <div style="font-size:0.8rem;color:var(--text-muted);" id="scanDate">—</div>
-        </div>
-        <div class="scorecard-grid" id="scorecards"></div>
-      </div>
-      <div class="action-bar">
-        <button class="btn btn-secondary" id="exportJsonBtn">&#128229; JSON</button>
-        <button class="btn btn-secondary" id="copyReportBtn">&#128203; Markdown</button>
-        <button class="btn btn-secondary" id="copySummaryBtn">&#128220; Copy Summary</button>
-        <button class="btn btn-secondary" id="exportGitHubBtn">&#129302; GitHub Issues</button>
-        <button class="btn btn-secondary" id="exportJiraBtn">&#128220; Jira CSV</button>
-        <button class="btn btn-secondary" id="exportTrelloBtn">&#127183; Trello JSON</button>
-        <button class="btn btn-secondary" id="shareUrlBtn">&#128279; Share</button>
-        <button class="btn btn-secondary" id="exportCsvBtn">&#128202; CSV</button>
-        <button class="btn btn-secondary" id="exportPdfBtn">&#128196; PDF</button>
-        <button class="btn btn-primary" id="newScanBtn">&#128259; New Report</button>
-      </div>
-      <div id="overallHealth"></div>
-      <div id="findingsBanner"></div>
-      <div class="roadmap-section" role="region" aria-labelledby="roadmapTitle">
-        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div class="section-title" id="roadmapTitle">Remediation Roadmap</div><div class="section-subtitle">Auto-generated from scan findings</div></div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" id="importPhaseBtn">&#128206; Import Phase</button>
-            <button class="btn btn-secondary" id="exportRoadmapJsonBtn">&#128229; Download JSON</button>
-          </div>
-        </div>
-        <div class="filter-bar" id="phaseFilters">
-          <button class="filter-btn active" data-filter="all">All Phases</button>
-          <button class="filter-btn" data-filter="pending">Pending</button>
-          <button class="filter-btn" data-filter="completed">Completed</button>
-          <button class="filter-btn" data-filter="blocked">Blocked</button>
-        </div>
-        <input type="text" id="taskSearch" class="search-bar" placeholder="🔍 Search tasks across all phases..." aria-label="Search tasks across all phases">
-        <div class="search-hits" id="searchHits"></div>
-        <div id="globalProgress" style="display:none;margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:0.75rem;color:var(--text-muted);">
-            <span>Overall Progress</span><span id="globalProgressText">0%</span>
-          </div>
-          <div style="height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
-            <div id="globalProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:3px;transition:width 0.4s ease;"></div>
-          </div>
-          <div class="sprint-tracker" id="sprintTracker" style="margin-top:12px;">
-            <div class="sprint-metric">
-              <div class="sprint-metric-value" id="sprintVelocity">0</div>
-              <div class="sprint-metric-label">Tasks / Hour</div>
-              <div class="sprint-metric-delta positive" id="sprintVelocityLabel">Velocity</div>
+            document.querySelector('.skip-link').addEventListener('blur', function () {
+                this.style.position = 'absolute';
+                this.style.left = '-9999px';
+                this.style.top = 'auto';
+                this.style.width = '1px';
+                this.style.height = '1px';
+            });
+        </script>
+        <div class="container">
+            <nav
+                class="sb-site-nav"
+                style="
+                    background: #0b0f19;
+                    border-bottom: 1px solid #1e293b;
+                    padding: 14px 24px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    box-sizing: border-box;
+                "
+            >
+                <a
+                    href="/"
+                    style="
+                        color: #f3f4f6;
+                        text-decoration: none;
+                        font-weight: 700;
+                        font-size: 1.05rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    "
+                    ><svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#6366f1"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 8v8M8 12h8" /></svg
+                    >SimpleBeacon</a
+                >
+                <div style="display: flex; align-items: center; gap: 4px">
+                    <a
+                        href="/audit"
+                        style="
+                            color: #f3f4f6;
+                            text-decoration: none;
+                            margin-left: 14px;
+                            font-size: 0.9rem;
+                            font-weight: 600;
+                            white-space: nowrap;
+                            padding: 6px 12px;
+                            border-radius: 8px;
+                            transition: background 0.2s;
+                        "
+                        onmouseover="this.style.background = 'rgba(255,255,255,0.06)'"
+                        onmouseout="this.style.background = 'transparent'"
+                        >Audit</a
+                    ><a
+                        href="/app/"
+                        style="
+                            color: #f3f4f6;
+                            text-decoration: none;
+                            margin-left: 14px;
+                            font-size: 0.9rem;
+                            font-weight: 600;
+                            white-space: nowrap;
+                            padding: 6px 12px;
+                            border-radius: 8px;
+                            transition: background 0.2s;
+                        "
+                        onmouseover="this.style.background = 'rgba(255,255,255,0.06)'"
+                        onmouseout="this.style.background = 'transparent'"
+                        >Dashboard</a
+                    >
+                    <div class="sb-nav-more-wrap">
+                        <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle" />
+                        <label for="sb-nav-more-toggle" class="sb-nav-more-label"
+                            >More<svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="sb-nav-more-arrow"
+                            >
+                                <path d="M6 9l6 6 6-6" /></svg
+                        ></label>
+                        <div class="sb-nav-more-menu">
+                            <a
+                                href="/roadmap"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path
+                                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"
+                                    /></svg
+                                >Roadmap</a
+                            >
+                            <a
+                                href="/pricing"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg
+                                >Pricing</a
+                            >
+                            <a
+                                href="/community"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"
+                                    /></svg
+                                >Install</a
+                            >
+                            <a
+                                href="/blog/case-study-ai-slop-1-25m"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path
+                                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+                                    /></svg
+                                >Blog</a
+                            >
+                            <a
+                                href="/faq"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path
+                                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    /></svg
+                                >FAQ</a
+                            >
+                            <a
+                                href="/contact"
+                                class="sb-nav-more-link"
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 10px;
+                                    padding: 10px 16px;
+                                    color: #9ca3af;
+                                    text-decoration: none;
+                                    font-size: 0.875rem;
+                                    white-space: nowrap;
+                                    transition:
+                                        background 0.15s,
+                                        color 0.15s;
+                                "
+                                onmouseover="
+                                    this.style.background = 'rgba(255,255,255,0.06)';
+                                    this.style.color = '#F3F4F6';
+                                "
+                                onmouseout="
+                                    this.style.background = 'transparent';
+                                    this.style.color = '#9CA3AF';
+                                "
+                                ><svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    style="opacity: 0.7; flex-shrink: 0"
+                                >
+                                    <path
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                    /></svg
+                                >Contact</a
+                            >
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        id="nav-signin-btn"
+                        style="
+                            display: none;
+                            margin-left: 10px;
+                            padding: 6px 14px;
+                            background: #6366f1;
+                            color: white;
+                            font-size: 0.85rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            border: none;
+                            border-radius: 8px;
+                        "
+                    >
+                        Sign in
+                    </button>
+                    <button
+                        type="button"
+                        id="nav-signout-btn"
+                        style="
+                            display: none;
+                            margin-left: 10px;
+                            padding: 6px 14px;
+                            background: transparent;
+                            color: #9ca3af;
+                            font-size: 0.85rem;
+                            font-weight: 500;
+                            cursor: pointer;
+                            border: 1px solid #374151;
+                            border-radius: 8px;
+                        "
+                    >
+                        Sign out
+                    </button>
+                </div>
+            </nav>
+            <style>
+                .iframe-embed .sb-site-nav {
+                    display: none !important;
+                }
+                .sb-nav-more-wrap {
+                    position: relative;
+                }
+                .sb-nav-more-toggle {
+                    display: none;
+                }
+                .sb-nav-more-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-left: 6px;
+                    padding: 6px 12px;
+                    background: transparent;
+                    color: #9ca3af;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    border: 1px solid #30363d;
+                    border-radius: 8px;
+                    transition:
+                        background 0.2s,
+                        color 0.2s;
+                    user-select: none;
+                }
+                .sb-nav-more-label:hover {
+                    background: rgba(255, 255, 255, 0.06);
+                    color: #f3f4f6;
+                }
+                .sb-nav-more-arrow {
+                    transition: transform 0.2s;
+                    display: inline-block;
+                }
+                .sb-nav-more-menu {
+                    display: none;
+                    position: absolute;
+                    top: calc(100% + 6px);
+                    right: 0;
+                    min-width: 200px;
+                    background: #111827;
+                    border: 1px solid #1e293b;
+                    border-radius: 12px;
+                    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+                    padding: 6px;
+                    z-index: 200;
+                    overflow: hidden;
+                }
+                .sb-nav-more-toggle:checked ~ .sb-nav-more-menu {
+                    display: block;
+                }
+                .sb-nav-more-toggle:checked ~ .sb-nav-more-label .sb-nav-more-arrow {
+                    transform: rotate(180deg);
+                }
+                .sb-nav-more-toggle:checked ~ .sb-nav-more-label {
+                    background: rgba(255, 255, 255, 0.06);
+                    color: #f3f4f6;
+                }
+            </style>
+            <div class="hero">
+                <div class="hero-badge">Data-Quality Driven</div>
+                <h1>Remediation Roadmap Generator</h1>
+                <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan.</p>
             </div>
-            <div class="sprint-metric">
-              <div class="sprint-metric-value" id="sprintBurned">0m</div>
-              <div class="sprint-metric-label">Tech Debt Burned</div>
-              <div class="sprint-metric-delta positive">Cumulative</div>
+            <div
+                style="
+                    background: var(--bg-card);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    padding: 16px 20px;
+                    margin-bottom: 20px;
+                "
+            >
+                <label
+                    style="
+                        display: block;
+                        font-size: 0.75rem;
+                        color: var(--text-muted);
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    "
+                    >&#128203; Load Report from URL or Path</label
+                >
+                <div style="display: flex; gap: 8px; align-items: center">
+                    <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space: nowrap">
+                        &#128194; Browse
+                    </button>
+                    <input
+                        type="text"
+                        id="reportUrlInput"
+                        placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json"
+                        style="
+                            flex: 1;
+                            padding: 10px 12px;
+                            border: 1px solid var(--border);
+                            border-radius: 8px;
+                            background: var(--bg-input);
+                            color: var(--text-main);
+                            font-family: inherit;
+                            font-size: 0.9rem;
+                            outline: none;
+                            transition:
+                                border-color 0.2s,
+                                box-shadow 0.2s;
+                        "
+                    />
+                    <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space: nowrap">
+                        &#9889; Analyze
+                    </button>
+                </div>
             </div>
-            <div class="sprint-metric">
-              <div class="sprint-metric-value" id="sprintRemaining">0</div>
-              <div class="sprint-metric-label">Tasks Remaining</div>
-              <div class="sprint-effort-bar"><div class="bar-track"><div class="bar-fill" id="sprintRemainingBar" style="width:0%;background:var(--warning);"></div></div></div>
+            <div class="dropzone" id="dropzone">
+                <div class="icon">&#128206;</div>
+                <h3>Drop scan report.json or .zip here</h3>
+                <p>Or click to browse</p>
+                <input type="file" id="fileInput" accept=".json,.zip" aria-label="Upload scan report JSON or ZIP" />
             </div>
-            <div class="sprint-metric">
-              <div class="sprint-metric-value" id="sprintEta">—</div>
-              <div class="sprint-metric-label">Est. Completion</div>
-              <div class="sprint-metric-delta" id="sprintEtaLabel">based on velocity</div>
+            <div
+                style="
+                    background: var(--bg-card);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin-bottom: 32px;
+                "
+            >
+                <label
+                    style="
+                        display: block;
+                        font-size: 0.75rem;
+                        color: var(--text-muted);
+                        margin-bottom: 6px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    "
+                    >&#128203; Or paste JSON directly</label
+                >
+                <textarea
+                    id="jsonPasteInput"
+                    placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}'
+                    style="
+                        width: 100%;
+                        min-height: 120px;
+                        padding: 12px;
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        background: var(--bg-input);
+                        color: var(--text);
+                        font-family: 'SF Mono', Monaco, monospace;
+                        font-size: 0.8rem;
+                        resize: vertical;
+                    "
+                ></textarea>
+                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top: 10px; width: 100%">
+                    Load JSON Report
+                </button>
+                <button
+                    id="loadTestReportBtn"
+                    class="btn btn-secondary"
+                    style="margin-top: 8px; width: 100%; font-size: 0.8rem"
+                >
+                    &#128200; Load Test Report
+                </button>
+                <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 8px">Press Ctrl+Enter to submit</p>
             </div>
-          </div>
+            <div id="app" style="display: none" role="main">
+                <div class="roadmap-section" role="region" aria-labelledby="dashboardTitle">
+                    <div class="section-header">
+                        <div>
+                            <div class="section-title" id="dashboardTitle">Data Quality Dashboard</div>
+                            <div class="section-subtitle" id="projectName">Project: —</div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted)" id="scanDate">—</div>
+                    </div>
+                    <div class="scorecard-grid" id="scorecards"></div>
+                </div>
+                <div class="action-bar">
+                    <button class="btn btn-secondary" id="exportJsonBtn">&#128229; JSON</button>
+                    <button class="btn btn-secondary" id="copyReportBtn">&#128203; Markdown</button>
+                    <button class="btn btn-secondary" id="copySummaryBtn">&#128220; Copy Summary</button>
+                    <button class="btn btn-secondary" id="exportGitHubBtn">&#129302; GitHub Issues</button>
+                    <button class="btn btn-secondary" id="exportJiraBtn">&#128220; Jira CSV</button>
+                    <button class="btn btn-secondary" id="exportTrelloBtn">&#127183; Trello JSON</button>
+                    <button class="btn btn-secondary" id="shareUrlBtn">&#128279; Share</button>
+                    <button class="btn btn-secondary" id="exportCsvBtn">&#128202; CSV</button>
+                    <button class="btn btn-secondary" id="exportPdfBtn">&#128196; PDF</button>
+                    <button class="btn btn-primary" id="newScanBtn">&#128259; New Report</button>
+                </div>
+                <div id="overallHealth"></div>
+                <div id="findingsBanner"></div>
+                <div class="roadmap-section" role="region" aria-labelledby="roadmapTitle">
+                    <div
+                        class="section-header"
+                        style="display: flex; justify-content: space-between; align-items: center"
+                    >
+                        <div>
+                            <div class="section-title" id="roadmapTitle">Remediation Roadmap</div>
+                            <div class="section-subtitle">Auto-generated from scan findings</div>
+                        </div>
+                        <div style="display: flex; gap: 8px">
+                            <button class="btn btn-secondary" id="importPhaseBtn">&#128206; Import Phase</button>
+                            <button class="btn btn-secondary" id="exportRoadmapJsonBtn">&#128229; Download JSON</button>
+                        </div>
+                    </div>
+                    <div class="filter-bar" id="phaseFilters">
+                        <button class="filter-btn active" data-filter="all">All Phases</button>
+                        <button class="filter-btn" data-filter="pending">Pending</button>
+                        <button class="filter-btn" data-filter="completed">Completed</button>
+                        <button class="filter-btn" data-filter="blocked">Blocked</button>
+                    </div>
+                    <input
+                        type="text"
+                        id="taskSearch"
+                        class="search-bar"
+                        placeholder="🔍 Search tasks across all phases..."
+                        aria-label="Search tasks across all phases"
+                    />
+                    <div class="search-hits" id="searchHits"></div>
+                    <div id="globalProgress" style="display: none; margin-bottom: 16px">
+                        <div
+                            style="
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-bottom: 4px;
+                                font-size: 0.75rem;
+                                color: var(--text-muted);
+                            "
+                        >
+                            <span>Overall Progress</span><span id="globalProgressText">0%</span>
+                        </div>
+                        <div style="height: 6px; background: var(--bg-card); border-radius: 3px; overflow: hidden">
+                            <div
+                                id="globalProgressFill"
+                                style="
+                                    height: 100%;
+                                    width: 0%;
+                                    background: linear-gradient(90deg, var(--accent), var(--success));
+                                    border-radius: 3px;
+                                    transition: width 0.4s ease;
+                                "
+                            ></div>
+                        </div>
+                        <div class="sprint-tracker" id="sprintTracker" style="margin-top: 12px">
+                            <div class="sprint-metric">
+                                <div class="sprint-metric-value" id="sprintVelocity">0</div>
+                                <div class="sprint-metric-label">Tasks / Hour</div>
+                                <div class="sprint-metric-delta positive" id="sprintVelocityLabel">Velocity</div>
+                            </div>
+                            <div class="sprint-metric">
+                                <div class="sprint-metric-value" id="sprintBurned">0m</div>
+                                <div class="sprint-metric-label">Tech Debt Burned</div>
+                                <div class="sprint-metric-delta positive">Cumulative</div>
+                            </div>
+                            <div class="sprint-metric">
+                                <div class="sprint-metric-value" id="sprintRemaining">0</div>
+                                <div class="sprint-metric-label">Tasks Remaining</div>
+                                <div class="sprint-effort-bar">
+                                    <div class="bar-track">
+                                        <div
+                                            class="bar-fill"
+                                            id="sprintRemainingBar"
+                                            style="width: 0%; background: var(--warning)"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sprint-metric">
+                                <div class="sprint-metric-value" id="sprintEta">—</div>
+                                <div class="sprint-metric-label">Est. Completion</div>
+                                <div class="sprint-metric-delta" id="sprintEtaLabel">based on velocity</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px">
+                        <button
+                            class="btn btn-secondary"
+                            id="toggleShowAllTimeline"
+                            style="font-size: 0.8rem; padding: 6px 16px"
+                        >
+                            Show All
+                        </button>
+                    </div>
+                    <div class="timeline" id="timeline"></div>
+                </div>
+                <div class="roadmap-section" id="allIssuesSection" role="region" aria-labelledby="issuesTitle">
+                    <div
+                        class="section-header"
+                        style="display: flex; justify-content: space-between; align-items: center"
+                    >
+                        <div
+                            class="collapse-toggle"
+                            id="allIssuesToggle"
+                            aria-expanded="true"
+                            role="button"
+                            tabindex="0"
+                        >
+                            <span class="collapse-chevron">▼</span>
+                            <div>
+                                <div class="section-title" id="issuesTitle">All Issues</div>
+                                <div class="section-subtitle">Complete list from scan report</div>
+                            </div>
+                        </div>
+                        <div
+                            style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center"
+                            id="issueSeverityFilters"
+                        ></div>
+                        <button
+                            class="btn btn-secondary"
+                            id="exportIssuesJsonBtn"
+                            title="Export filtered issues as JSON"
+                        >
+                            &#128229; Export JSON
+                        </button>
+                    </div>
+                    <input
+                        type="text"
+                        id="issueSearch"
+                        class="search-bar"
+                        placeholder="🔍 Filter issues by type, file, or description..."
+                        aria-label="Filter issues by type, file, or description"
+                    />
+                    <div class="search-hits" id="issueSearchHits"></div>
+                    <div
+                        id="allIssuesList"
+                        style="
+                            max-height: 600px;
+                            overflow-y: auto;
+                            background: var(--bg-card);
+                            border: 1px solid var(--border);
+                            border-radius: 12px;
+                            padding: 16px;
+                        "
+                    ></div>
+                    <div style="text-align: center; margin-top: 10px">
+                        <button
+                            class="btn btn-secondary"
+                            id="toggleShowAllIssues"
+                            style="font-size: 0.8rem; padding: 6px 16px"
+                        >
+                            Show All
+                        </button>
+                    </div>
+                </div>
+                <div class="roadmap-section" role="region" aria-labelledby="previewTitle">
+                    <div class="section-header">
+                        <div
+                            class="collapse-toggle"
+                            id="sourcePreviewToggle"
+                            aria-expanded="true"
+                            role="button"
+                            tabindex="0"
+                        >
+                            <span class="collapse-chevron">▼</span>
+                            <div class="section-title" id="previewTitle">Source Report Preview</div>
+                        </div>
+                        <button
+                            id="downloadSourceReportBtn"
+                            class="btn btn-primary"
+                            style="display: none; font-size: 0.75rem; padding: 6px 12px"
+                        >
+                            &#128229; Download
+                        </button>
+                    </div>
+                    <div class="collapsible-panel" id="sourcePreviewPanel">
+                        <div class="json-preview"><pre id="jsonPreview"></pre></div>
+                    </div>
+                </div>
+            </div>
+            <div class="empty-state" id="emptyState">
+                <div class="icon">&#127757;</div>
+                <p>Load a SimpleBeacon scan report to see your data quality dashboard and remediation roadmap.</p>
+            </div>
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-          <button class="btn btn-secondary" id="toggleShowAllTimeline" style="font-size:0.8rem;padding:6px 16px;">Show All</button>
+        <input type="file" id="phaseImportInput" accept=".json" style="display: none" />
+        <div class="toast" id="toast" aria-live="polite" aria-atomic="true" role="status"></div>
+        <div class="fab-container" id="fabContainer">
+            <button class="fab fab-secondary" id="fabExport" title="Export">&#128229;</button>
+            <button class="fab" id="fabNewScan" title="New Report">&#128259;</button>
         </div>
-        <div class="timeline" id="timeline"></div>
-      </div>
-      <div class="roadmap-section" id="allIssuesSection" role="region" aria-labelledby="issuesTitle">
-        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="collapse-toggle" id="allIssuesToggle" aria-expanded="true" role="button" tabindex="0">
-            <span class="collapse-chevron">▼</span>
-            <div><div class="section-title" id="issuesTitle">All Issues</div><div class="section-subtitle">Complete list from scan report</div></div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;" id="issueSeverityFilters"></div>
-          <button class="btn btn-secondary" id="exportIssuesJsonBtn" title="Export filtered issues as JSON">&#128229; Export JSON</button>
-        </div>
-        <input type="text" id="issueSearch" class="search-bar" placeholder="🔍 Filter issues by type, file, or description..." aria-label="Filter issues by type, file, or description">
-        <div class="search-hits" id="issueSearchHits"></div>
-        <div id="allIssuesList" style="max-height:600px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;"></div>
-        <div style="text-align:center;margin-top:10px;">
-          <button class="btn btn-secondary" id="toggleShowAllIssues" style="font-size:0.8rem;padding:6px 16px;">Show All</button>
-        </div>
-      </div>
-      <div class="roadmap-section" role="region" aria-labelledby="previewTitle">
-        <div class="section-header">
-          <div class="collapse-toggle" id="sourcePreviewToggle" aria-expanded="true" role="button" tabindex="0">
-            <span class="collapse-chevron">▼</span>
-            <div class="section-title" id="previewTitle">Source Report Preview</div>
-          </div>
-          <button id="downloadSourceReportBtn" class="btn btn-primary" style="display:none;font-size:0.75rem;padding:6px 12px;">&#128229; Download</button>
-        </div>
-        <div class="collapsible-panel" id="sourcePreviewPanel">
-          <div class="json-preview"><pre id="jsonPreview"></pre></div>
-        </div>
-      </div>
-    </div>
-    <div class="empty-state" id="emptyState">
-      <div class="icon">&#127757;</div>
-      <p>Load a SimpleBeacon scan report to see your data quality dashboard and remediation roadmap.</p>
-    </div>
-  </div>
-  <input type="file" id="phaseImportInput" accept=".json" style="display:none;">
-  <div class="toast" id="toast" aria-live="polite" aria-atomic="true" role="status"></div>
-  <div class="fab-container" id="fabContainer">
-    <button class="fab fab-secondary" id="fabExport" title="Export">&#128229;</button>
-    <button class="fab" id="fabNewScan" title="New Report">&#128259;</button>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-  <script src="/js-es2018/roadmap-app.js?h=1784596919635"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+        <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+        <script src="/js-es2018/roadmap-app.js?h=1784596919635"></script>
 
-  <!-- Sign-in Modal -->
-  <div class="signin-overlay" id="signinOverlay">
-    <div class="signin-panel">
-      <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
-      <div class="signin-header">
-        <span class="signin-icon" aria-hidden="true">&#128274;</span>
-        <h3 class="signin-title">Sign In</h3>
-        <p class="signin-sub">Access your SimpleBeacon dashboard.</p>
-      </div>
-      <div class="signin-subtabs">
-        <button type="button" class="signin-subtab active" data-mode="login" id="subtab-login">Sign In</button>
-        <button type="button" class="signin-subtab" data-mode="register" id="subtab-register">Create Account</button>
-      </div>
-      <form id="signin-email-form" class="signin-form active">
-        <div class="signin-field">
-          <label for="signinEmail">Email / Username</label>
-          <input type="text" id="signinEmail" placeholder="email@example.com or username" autocomplete="email">
+        <!-- Sign-in Modal -->
+        <div class="signin-overlay" id="signinOverlay">
+            <div class="signin-panel">
+                <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
+                <div class="signin-header">
+                    <span class="signin-icon" aria-hidden="true">&#128274;</span>
+                    <h3 class="signin-title">Sign In</h3>
+                    <p class="signin-sub">Access your SimpleBeacon dashboard.</p>
+                </div>
+                <div class="signin-subtabs">
+                    <button type="button" class="signin-subtab active" data-mode="login" id="subtab-login">
+                        Sign In
+                    </button>
+                    <button type="button" class="signin-subtab" data-mode="register" id="subtab-register">
+                        Create Account
+                    </button>
+                </div>
+                <form id="signin-email-form" class="signin-form active">
+                    <div class="signin-field">
+                        <label for="signinEmail">Email / Username</label>
+                        <input
+                            type="text"
+                            id="signinEmail"
+                            placeholder="email@example.com or username"
+                            autocomplete="email"
+                        />
+                    </div>
+                    <div class="signin-field">
+                        <label for="signinPassword">Password</label>
+                        <input
+                            type="password"
+                            id="signinPassword"
+                            placeholder="Enter your password..."
+                            autocomplete="current-password"
+                        />
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin: -4px 0 8px">
+                        <button
+                            type="button"
+                            id="forgot-password-btn"
+                            style="
+                                background: none;
+                                border: none;
+                                color: var(--accent);
+                                font-size: 0.78rem;
+                                cursor: pointer;
+                                padding: 0;
+                            "
+                        >
+                            Forgot Password?
+                        </button>
+                    </div>
+                    <p class="signin-error" id="signinError"></p>
+                    <button class="signin-btn" type="button" id="signinEmailBtn">Sign In</button>
+                </form>
+                <div class="signin-divider"><span>or</span></div>
+                <button
+                    type="button"
+                    class="signin-btn"
+                    id="webauthn-signin-btn"
+                    style="
+                        background: var(--bg-elevated);
+                        color: var(--text-main);
+                        border: 1px solid var(--border);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    "
+                >
+                    <span>&#128274;</span> Sign in with Security Key
+                </button>
+                <p class="signin-note" id="email-mode-note">
+                    New here? Switch to <strong>Create Account</strong> to register.
+                </p>
+                <p class="signin-footer">
+                    <a href="/demo">View read-only demo</a>
+                    <span class="signin-footer-sep">&middot;</span>
+                    <a href="/dashboard/about">About &amp; install</a>
+                    <span class="signin-footer-sep">&middot;</span>
+                    <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer"
+                        >GitHub</a
+                    >
+                </p>
+            </div>
         </div>
-        <div class="signin-field">
-          <label for="signinPassword">Password</label>
-          <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
-          <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
-        </div>
-        <p class="signin-error" id="signinError"></p>
-        <button class="signin-btn" type="button" id="signinEmailBtn">Sign In</button>
-      </form>
-      <div class="signin-divider"><span>or</span></div>
-      <button type="button" class="signin-btn" id="webauthn-signin-btn" style="background:var(--bg-elevated);color:var(--text-main);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;">
-        <span>&#128274;</span> Sign in with Security Key
-      </button>
-      <p class="signin-note" id="email-mode-note">New here? Switch to <strong>Create Account</strong> to register.</p>
-      <p class="signin-footer">
-        <a href="/demo">View read-only demo</a>
-        <span class="signin-footer-sep">&middot;</span>
-        <a href="/dashboard/about">About &amp; install</a>
-        <span class="signin-footer-sep">&middot;</span>
-        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
-      </p>
-    </div>
-  </div>
 
-  <script>
-    // Nav signout button logic
-    (function() {
-      var signoutBtn = document.getElementById('nav-signout-btn');
-      var signinBtn = document.getElementById('nav-signin-btn');
-      var TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
-      function getCookie(name) {
-        var m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
-        return m ? decodeURIComponent(m[1]) : '';
-      }
-      function clearCookie(name) {
-        document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
-      }
-      function decodeJwtPayload(token) {
-        if (!token || typeof token !== 'string') return null;
-        var parts = token.split('.');
-        if (parts.length !== 3) return null;
-        try {
-          var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-          var pad = '='.repeat((4 - b64.length % 4) % 4);
-          return JSON.parse(atob(b64 + pad));
-        } catch(_) { return null; }
-      }
-      function isJwtExpired(t) {
-        var p = decodeJwtPayload(t);
-        return !!(p && p.exp && p.exp * 1000 < Date.now());
-      }
-      function hasAnyToken() {
-        return TOKEN_KEYS.some(function(k) {
-          var v = localStorage.getItem(k) || getCookie(k);
-          if (!v || v.length <= 10) return false;
-          if (isJwtExpired(v)) {
-            try { localStorage.removeItem(k); } catch(_){}
-            clearCookie(k);
-            return false;
-          }
-          return true;
-        });
-      }
-      function updateAuthNav() {
-        var authed = hasAnyToken();
-        if (signoutBtn) signoutBtn.style.display = authed ? 'inline-block' : 'none';
-        if (signinBtn) signinBtn.style.display = authed ? 'none' : 'inline-block';
-        document.querySelectorAll('.sb-nav-more-link[href="/pricing"]').forEach(function(el) { el.style.display = authed ? 'none' : 'flex'; });
-      }
-      // Persist token from URL query param
-      try {
-        var urlParams = new URLSearchParams(window.location.search);
-        var urlToken = urlParams.get('token');
-        if (urlToken) {
-          localStorage.setItem('simplebeacon_token', urlToken);
-        }
-      } catch(e) {}
-      if (signoutBtn) {
-        signoutBtn.addEventListener('click', function() {
-          for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
-          localStorage.removeItem('sb-user'); localStorage.removeItem('sb_user');
-          clearCookie('sb-user'); clearCookie('sb_user');
-          updateAuthNav();
-          try {
-            var bc = new BroadcastChannel('simplebeacon-auth');
-            bc.postMessage({type:'signed-out'});
-            bc.close();
-          } catch(e) {}
-          var toast = document.createElement('div');
-          toast.textContent = 'Signed out successfully';
-          toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
-          document.body.appendChild(toast);
-          setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
-        });
-      }
-      // BroadcastChannel for real-time cross-page auth sync
-      try {
-        var authBC = new BroadcastChannel('simplebeacon-auth');
-        authBC.onmessage = function(e) {
-          if (e.data && e.data.type === 'signed-out') {
-            for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
-            updateAuthNav();
-          }
-          if (e.data && e.data.type === 'signed-in') { updateAuthNav(); }
-        };
-      } catch(e) {}
-      // Periodic check for auth state changes
-      setInterval(updateAuthNav, 2000);
-      var emailMode = 'login';
-      var signinOverlay = document.getElementById('signinOverlay');
-      var signinCloseBtn = document.getElementById('signinCloseBtn');
-      var signinEmailBtn = document.getElementById('signinEmailBtn');
-      var signinEmail = document.getElementById('signinEmail');
-      var signinPassword = document.getElementById('signinPassword');
-      var signinError = document.getElementById('signinError');
-      var subtabLogin = document.getElementById('subtab-login');
-      var subtabRegister = document.getElementById('subtab-register');
-      var forgotPasswordBtn = document.getElementById('forgot-password-btn');
-      var webauthnBtn = document.getElementById('webauthn-signin-btn');
-      var emailModeNote = document.getElementById('email-mode-note');
+        <script>
+            // Nav signout button logic
+            (function () {
+                var signoutBtn = document.getElementById('nav-signout-btn');
+                var signinBtn = document.getElementById('nav-signin-btn');
+                var TOKEN_KEYS = [
+                    'cascadeAuthToken',
+                    'access_token',
+                    'token',
+                    'authToken',
+                    'simplebeacon_token',
+                    'sb-token',
+                    'sb_token'
+                ];
+                function getCookie(name) {
+                    var m = document.cookie.match(
+                        '(?:^|; )' + name.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)'
+                    );
+                    return m ? decodeURIComponent(m[1]) : '';
+                }
+                function clearCookie(name) {
+                    document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
+                }
+                function decodeJwtPayload(token) {
+                    if (!token || typeof token !== 'string') return null;
+                    var parts = token.split('.');
+                    if (parts.length !== 3) return null;
+                    try {
+                        var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                        var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+                        return JSON.parse(atob(b64 + pad));
+                    } catch (_) {
+                        return null;
+                    }
+                }
+                function isJwtExpired(t) {
+                    var p = decodeJwtPayload(t);
+                    return !!(p && p.exp && p.exp * 1000 < Date.now());
+                }
+                function hasAnyToken() {
+                    return TOKEN_KEYS.some(function (k) {
+                        var v = localStorage.getItem(k) || getCookie(k);
+                        if (!v || v.length <= 10) return false;
+                        if (isJwtExpired(v)) {
+                            try {
+                                localStorage.removeItem(k);
+                            } catch (_) {}
+                            clearCookie(k);
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+                function updateAuthNav() {
+                    var authed = hasAnyToken();
+                    if (signoutBtn) signoutBtn.style.display = authed ? 'inline-block' : 'none';
+                    if (signinBtn) signinBtn.style.display = authed ? 'none' : 'inline-block';
+                    document.querySelectorAll('.sb-nav-more-link[href="/pricing"]').forEach(function (el) {
+                        el.style.display = authed ? 'none' : 'flex';
+                    });
+                }
+                // Persist token from URL query param
+                try {
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var urlToken = urlParams.get('token');
+                    if (urlToken) {
+                        localStorage.setItem('simplebeacon_token', urlToken);
+                    }
+                } catch (e) {}
+                if (signoutBtn) {
+                    signoutBtn.addEventListener('click', function () {
+                        for (var i = 0; i < TOKEN_KEYS.length; i++) {
+                            localStorage.removeItem(TOKEN_KEYS[i]);
+                            clearCookie(TOKEN_KEYS[i]);
+                        }
+                        localStorage.removeItem('sb-user');
+                        localStorage.removeItem('sb_user');
+                        clearCookie('sb-user');
+                        clearCookie('sb_user');
+                        updateAuthNav();
+                        try {
+                            var bc = new BroadcastChannel('simplebeacon-auth');
+                            bc.postMessage({ type: 'signed-out' });
+                            bc.close();
+                        } catch (e) {}
+                        var toast = document.createElement('div');
+                        toast.textContent = 'Signed out successfully';
+                        toast.style.cssText =
+                            'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
+                        document.body.appendChild(toast);
+                        setTimeout(function () {
+                            toast.style.opacity = '0';
+                            setTimeout(function () {
+                                toast.remove();
+                            }, 300);
+                        }, 2000);
+                    });
+                }
+                // BroadcastChannel for real-time cross-page auth sync
+                try {
+                    var authBC = new BroadcastChannel('simplebeacon-auth');
+                    authBC.onmessage = function (e) {
+                        if (e.data && e.data.type === 'signed-out') {
+                            for (var i = 0; i < TOKEN_KEYS.length; i++) {
+                                localStorage.removeItem(TOKEN_KEYS[i]);
+                                clearCookie(TOKEN_KEYS[i]);
+                            }
+                            updateAuthNav();
+                        }
+                        if (e.data && e.data.type === 'signed-in') {
+                            updateAuthNav();
+                        }
+                    };
+                } catch (e) {}
+                // Periodic check for auth state changes
+                setInterval(updateAuthNav, 2000);
+                var emailMode = 'login';
+                var signinOverlay = document.getElementById('signinOverlay');
+                var signinCloseBtn = document.getElementById('signinCloseBtn');
+                var signinEmailBtn = document.getElementById('signinEmailBtn');
+                var signinEmail = document.getElementById('signinEmail');
+                var signinPassword = document.getElementById('signinPassword');
+                var signinError = document.getElementById('signinError');
+                var subtabLogin = document.getElementById('subtab-login');
+                var subtabRegister = document.getElementById('subtab-register');
+                var forgotPasswordBtn = document.getElementById('forgot-password-btn');
+                var webauthnBtn = document.getElementById('webauthn-signin-btn');
+                var emailModeNote = document.getElementById('email-mode-note');
 
-      function setEmailMode(mode) {
-        emailMode = mode;
-        if (subtabLogin) subtabLogin.classList.toggle('active', mode === 'login');
-        if (subtabRegister) subtabRegister.classList.toggle('active', mode === 'register');
-        if (signinEmailBtn) signinEmailBtn.textContent = mode === 'register' ? 'Create Account' : 'Sign In';
-        if (emailModeNote) emailModeNote.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
-        if (forgotPasswordBtn) forgotPasswordBtn.style.display = mode === 'login' ? 'block' : 'none';
-      }
-      function openSigninModal() {
-        if (signinOverlay) { signinOverlay.classList.add('active'); }
-        if (signinEmail) { setTimeout(function() { signinEmail.focus(); }, 50); }
-      }
-      function closeSigninModal() {
-        if (signinOverlay) { signinOverlay.classList.remove('active'); signinError.style.display = 'none'; }
-      }
-      function showSuccessToast(msg) {
-        var toast = document.createElement('div');
-        toast.textContent = msg;
-        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
-        document.body.appendChild(toast);
-        setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
-      }
-      function handleEmailSignin() {
-        var email = signinEmail.value.trim();
-        var password = signinPassword.value;
-        if (!email || !password) {
-          signinError.textContent = 'Please enter both email and password.';
-          signinError.style.display = 'block'; return;
-        }
-        signinError.style.display = 'none';
-        closeSigninModal();
-        updateAuthNav();
-        showSuccessToast(emailMode === 'register' ? 'Account created successfully' : 'Signed in successfully');
-      }
-      function handleForgotPassword() {
-        var email = signinEmail.value.trim();
-        if (!email) { signinError.textContent = 'Please enter your email first.'; signinError.style.display = 'block'; return; }
-        signinError.style.display = 'none';
-        showSuccessToast('Recovery instructions sent (demo).');
-      }
-      function handleWebAuthn() {
-        if (!window.PublicKeyCredential) {
-          signinError.textContent = 'Security key login is not supported in this browser.';
-          signinError.style.display = 'block'; return;
-        }
-        signinError.style.display = 'none';
-        showSuccessToast('Security key authentication started (demo).');
-      }
+                function setEmailMode(mode) {
+                    emailMode = mode;
+                    if (subtabLogin) subtabLogin.classList.toggle('active', mode === 'login');
+                    if (subtabRegister) subtabRegister.classList.toggle('active', mode === 'register');
+                    if (signinEmailBtn) signinEmailBtn.textContent = mode === 'register' ? 'Create Account' : 'Sign In';
+                    if (emailModeNote)
+                        emailModeNote.innerHTML =
+                            mode === 'login'
+                                ? 'New here? Switch to <strong>Create Account</strong> to register.'
+                                : 'Already have an account? Switch to <strong>Sign In</strong>.';
+                    if (forgotPasswordBtn) forgotPasswordBtn.style.display = mode === 'login' ? 'block' : 'none';
+                }
+                function openSigninModal() {
+                    if (signinOverlay) {
+                        signinOverlay.classList.add('active');
+                    }
+                    if (signinEmail) {
+                        setTimeout(function () {
+                            signinEmail.focus();
+                        }, 50);
+                    }
+                }
+                function closeSigninModal() {
+                    if (signinOverlay) {
+                        signinOverlay.classList.remove('active');
+                        signinError.style.display = 'none';
+                    }
+                }
+                function showSuccessToast(msg) {
+                    var toast = document.createElement('div');
+                    toast.textContent = msg;
+                    toast.style.cssText =
+                        'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
+                    document.body.appendChild(toast);
+                    setTimeout(function () {
+                        toast.style.opacity = '0';
+                        setTimeout(function () {
+                            toast.remove();
+                        }, 300);
+                    }, 2000);
+                }
+                function handleEmailSignin() {
+                    var email = signinEmail.value.trim();
+                    var password = signinPassword.value;
+                    if (!email || !password) {
+                        signinError.textContent = 'Please enter both email and password.';
+                        signinError.style.display = 'block';
+                        return;
+                    }
+                    signinError.style.display = 'none';
+                    closeSigninModal();
+                    updateAuthNav();
+                    showSuccessToast(
+                        emailMode === 'register' ? 'Account created successfully' : 'Signed in successfully'
+                    );
+                }
+                function handleForgotPassword() {
+                    var email = signinEmail.value.trim();
+                    if (!email) {
+                        signinError.textContent = 'Please enter your email first.';
+                        signinError.style.display = 'block';
+                        return;
+                    }
+                    signinError.style.display = 'none';
+                    showSuccessToast('Recovery instructions sent (demo).');
+                }
+                function handleWebAuthn() {
+                    if (!window.PublicKeyCredential) {
+                        signinError.textContent = 'Security key login is not supported in this browser.';
+                        signinError.style.display = 'block';
+                        return;
+                    }
+                    signinError.style.display = 'none';
+                    showSuccessToast('Security key authentication started (demo).');
+                }
 
-      function authDashboardUrl(route) {
-        return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
-      }
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
-      if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
-      if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
-        if (emailMode === 'register') {
-          window.location.href = authDashboardUrl('register');
-          return;
-        }
-        handleEmailSignin();
-      });
-      if (signinPassword) signinPassword.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          if (emailMode === 'register') {
-            window.location.href = authDashboardUrl('register');
-            return;
-          }
-          handleEmailSignin();
-        }
-      });
-      if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
-      if (subtabRegister) subtabRegister.addEventListener('click', function() { window.location.href = authDashboardUrl('register'); });
-      if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
-      if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
+                function authDashboardUrl(route) {
+                    return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
+                }
+                if (signinBtn)
+                    signinBtn.addEventListener('click', function () {
+                        window.location.href = authDashboardUrl('signin');
+                    });
+                if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
+                if (signinOverlay)
+                    signinOverlay.addEventListener('click', function (e) {
+                        if (e.target === signinOverlay) closeSigninModal();
+                    });
+                if (signinEmailBtn)
+                    signinEmailBtn.addEventListener('click', function () {
+                        if (emailMode === 'register') {
+                            window.location.href = authDashboardUrl('register');
+                            return;
+                        }
+                        handleEmailSignin();
+                    });
+                if (signinPassword)
+                    signinPassword.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            if (emailMode === 'register') {
+                                window.location.href = authDashboardUrl('register');
+                                return;
+                            }
+                            handleEmailSignin();
+                        }
+                    });
+                if (subtabLogin)
+                    subtabLogin.addEventListener('click', function () {
+                        setEmailMode('login');
+                    });
+                if (subtabRegister)
+                    subtabRegister.addEventListener('click', function () {
+                        window.location.href = authDashboardUrl('register');
+                    });
+                if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+                if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 
-      updateAuthNav();
-      window.addEventListener('storage', function(e) {
-        if (e.key === null || (TOKEN_KEYS.indexOf(e.key) !== -1 && !e.newValue)) updateAuthNav();
-      });
-    })();
-  </script>
-</body>
+                updateAuthNav();
+                window.addEventListener('storage', function (e) {
+                    if (e.key === null || (TOKEN_KEYS.indexOf(e.key) !== -1 && !e.newValue)) updateAuthNav();
+                });
+            })();
+        </script>
+    </body>
 </html>

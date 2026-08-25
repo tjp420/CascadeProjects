@@ -19,12 +19,13 @@
  * @module enterprise-audit-store
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-const AUDIT_STORE_PATH = process.env.ENTERPRISE_AUDIT_PATH
-  || path.join(__dirname, '../../.simplebeacon', 'enterprise-audit.json');
+const AUDIT_STORE_PATH =
+  process.env.ENTERPRISE_AUDIT_PATH ||
+  path.join(__dirname, "../../.simplebeacon", "enterprise-audit.json");
 
 let _cache = null;
 let _cacheDirty = true;
@@ -36,7 +37,7 @@ let _cacheDirty = true;
 function readAuditStore() {
   if (_cache && !_cacheDirty) return _cache;
   try {
-    const raw = fs.readFileSync(AUDIT_STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(AUDIT_STORE_PATH, "utf8");
     _cache = JSON.parse(raw);
     if (!_cache.entries || !Array.isArray(_cache.entries)) {
       _cache = { entries: [], chainHead: null };
@@ -55,8 +56,8 @@ function readAuditStore() {
 function writeAuditStore(store) {
   const dir = path.dirname(AUDIT_STORE_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = AUDIT_STORE_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  const tmp = AUDIT_STORE_PATH + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
   fs.renameSync(tmp, AUDIT_STORE_PATH);
   _cache = store;
   _cacheDirty = false;
@@ -75,9 +76,9 @@ function computeHash(entry, previousHash) {
     action: entry.action,
     orgId: entry.orgId,
     actor: entry.actor,
-    previousHash: previousHash || '',
+    previousHash: previousHash || "",
   });
-  return crypto.createHash('sha256').update(payload).digest('hex');
+  return crypto.createHash("sha256").update(payload).digest("hex");
 }
 
 /**
@@ -94,7 +95,16 @@ function computeHash(entry, previousHash) {
  * @param {object} [params.metadata] — Additional context
  * @returns {object} The created audit entry
  */
-function appendEntry({ action, orgId, actor, actorIp, description, before, after, metadata }) {
+function appendEntry({
+  action,
+  orgId,
+  actor,
+  actorIp,
+  description,
+  before,
+  after,
+  metadata,
+}) {
   const store = readAuditStore();
   const previousHash = store.chainHead;
   const entry = {
@@ -104,7 +114,7 @@ function appendEntry({ action, orgId, actor, actorIp, description, before, after
     orgId,
     actor,
     actorIp: actorIp || null,
-    description: description || '',
+    description: description || "",
     before: before || null,
     after: after || null,
     metadata: metadata || {},
@@ -136,28 +146,31 @@ function queryEntries(filters = {}) {
   let entries = [...store.entries];
 
   if (filters.orgId) {
-    entries = entries.filter(e => e.orgId === filters.orgId);
+    entries = entries.filter((e) => e.orgId === filters.orgId);
   }
   if (filters.action) {
-    entries = entries.filter(e => e.action === filters.action);
+    entries = entries.filter((e) => e.action === filters.action);
   }
   if (filters.actor) {
-    entries = entries.filter(e => e.actor === filters.actor);
+    entries = entries.filter((e) => e.actor === filters.actor);
   }
   if (filters.startDate) {
     const start = new Date(filters.startDate);
-    entries = entries.filter(e => new Date(e.timestamp) >= start);
+    entries = entries.filter((e) => new Date(e.timestamp) >= start);
   }
   if (filters.endDate) {
     const end = new Date(filters.endDate);
-    entries = entries.filter(e => new Date(e.timestamp) <= end);
+    entries = entries.filter((e) => new Date(e.timestamp) <= end);
   }
 
   entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const MAX_PAGE_SIZE = 200;
   const DEFAULT_PAGE_SIZE = 50;
-  const limit = Math.min(Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const limit = Math.min(
+    Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1),
+    MAX_PAGE_SIZE,
+  );
   const offset = Math.max(parseInt(filters.offset, 10) || 0, 0);
   const total = entries.length;
   const paginated = entries.slice(offset, offset + limit);
@@ -187,7 +200,11 @@ function verifyChain() {
   }
 
   if (store.chainHead !== previousHash) {
-    return { valid: false, brokenAt: store.entries.length - 1, totalEntries: store.entries.length };
+    return {
+      valid: false,
+      brokenAt: store.entries.length - 1,
+      totalEntries: store.entries.length,
+    };
   }
 
   return { valid: true, brokenAt: null, totalEntries: store.entries.length };

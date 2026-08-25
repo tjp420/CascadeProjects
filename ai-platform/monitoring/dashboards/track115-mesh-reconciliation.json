@@ -2,11 +2,7 @@
   "schemaVersion": 38,
   "title": "Track 115 — Mesh State Reconciliation",
   "uid": "track115-mesh-reconciliation",
-  "tags": [
-    "track115",
-    "mesh",
-    "hsm-vault"
-  ],
+  "tags": ["track115", "mesh", "hsm-vault"],
   "timezone": "browser",
   "time": {
     "from": "now-6h",

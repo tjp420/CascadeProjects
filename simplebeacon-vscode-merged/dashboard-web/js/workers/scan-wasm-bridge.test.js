@@ -20,14 +20,17 @@ async function test() {
   assert.deepStrictEqual(rules, ['credentials', 'debugArtifacts', 'todoMarkers']);
 
   // PE binary detection (first two bytes are MZ)
-  const pe = new Uint8Array([0x4D, 0x5A, 0x00, 0x00, 0x00]);
+  const pe = new Uint8Array([0x4d, 0x5a, 0x00, 0x00, 0x00]);
   const peFile = new File([pe], 'app.exe', { type: 'application/octet-stream' });
   const peResults = await analyzeFileChunks(peFile, 'app.exe', 64);
   assert.strictEqual(peResults.is_pe, true);
 
   // Issue conversion
   const issues = findingsToIssues(results, 'sample.js');
-  assert.strictEqual(issues.some((i) => i.rule === 'credentials' && i.severity === 'critical'), true);
+  assert.strictEqual(
+    issues.some((i) => i.rule === 'credentials' && i.severity === 'critical'),
+    true
+  );
 
   console.log('scan-wasm-bridge JS fallback tests passed');
 }

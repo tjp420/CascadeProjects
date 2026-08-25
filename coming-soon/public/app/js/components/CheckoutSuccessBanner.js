@@ -11,14 +11,11 @@ const POLL_MS = 2000;
 const MAX_ATTEMPTS = 15;
 
 function readCheckoutParams() {
-    if (typeof window === 'undefined')
-        return null;
+    if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') !== 'success')
-        return null;
+    if (params.get('checkout') !== 'success') return null;
     const sessionId = params.get('session_id');
-    if (!sessionId)
-        return null;
+    if (!sessionId) return null;
     return { sessionId };
 }
 
@@ -29,8 +26,9 @@ function stripCheckoutQueryParams() {
         url.searchParams.delete('session_id');
         const next = `${url.pathname}${url.search}${url.hash}`;
         window.history.replaceState({}, '', next);
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
 }
 
 function renderLoading(banner) {
@@ -66,9 +64,10 @@ function renderSuccess(banner, { token, email }, onActivate, onStockpile) {
             await navigator.clipboard.writeText(token);
             copyBtn.textContent = 'Copied!';
             showToast('License token copied', 'success');
-            setTimeout(() => { copyBtn.textContent = 'Copy token'; }, 2000);
-        }
-        catch {
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy token';
+            }, 2000);
+        } catch {
             showToast('Copy failed — select the token manually', 'error');
         }
     });
@@ -104,10 +103,8 @@ function renderError(banner, message) {
 async function fetchSessionToken(sessionId) {
     const data = await billingService.fetchCheckoutSession(sessionId);
     const token = data?.token || data?.licenseToken || null;
-    if (token)
-        return { token, email: data.email || '', product: data.product || null };
-    if (data?.paymentStatus === 'paid')
-        return { token: null, email: data.email || '', pending: true };
+    if (token) return { token, email: data.email || '', product: data.product || null };
+    if (data?.paymentStatus === 'paid') return { token: null, email: data.email || '', pending: true };
     throw new Error(data?.message || data?.error || 'Session lookup failed');
 }
 
@@ -119,8 +116,7 @@ async function fetchSessionToken(sessionId) {
  */
 export async function mountCheckoutSuccessBanner(container, options = {}) {
     const params = readCheckoutParams();
-    if (!params)
-        return false;
+    if (!params) return false;
 
     const zone = container.querySelector('#settings-notification-zone') || container;
     const banner = document.createElement('div');
@@ -131,25 +127,32 @@ export async function mountCheckoutSuccessBanner(container, options = {}) {
 
     const activate = (token, email) => {
         billingService.setApiToken(token);
-        if (email)
-            billingService.setEmail(email);
+        if (email) billingService.setEmail(email);
         authService.setSession(token, { email: email || 'team@simplebeacon.ai', tier: 'team' });
         options.onTokenReady?.(token, email);
         showToast('Team license activated in dashboard', 'success');
     };
 
     const stockpile = (token, email) => {
-        const result = addToStockpile(token, { email: email || 'team@simplebeacon.ai', tier: 'team' }, { product: 'checkout' });
+        const result = addToStockpile(
+            token,
+            { email: email || 'team@simplebeacon.ai', tier: 'team' },
+            { product: 'checkout' }
+        );
         if (result.ok) {
-            showToast(result.duplicate ? 'Token already in your stockpile' : 'Time token saved to stockpile — load it from Profile or Settings', 'success');
+            showToast(
+                result.duplicate
+                    ? 'Token already in your stockpile'
+                    : 'Time token saved to stockpile — load it from Profile or Settings',
+                'success'
+            );
             options.onStockpiled?.(token, email);
-        }
-        else {
+        } else {
             showToast(result.error || 'Could not stockpile token', 'error');
         }
     };
 
-    const attemptLoad = async (sessionId) => {
+    const attemptLoad = async sessionId => {
         for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
             try {
                 const result = await fetchSessionToken(sessionId);
@@ -159,7 +162,7 @@ export async function mountCheckoutSuccessBanner(container, options = {}) {
                     return true;
                 }
                 if (result.pending && i < MAX_ATTEMPTS - 1) {
-                    await new Promise((r) => setTimeout(r, POLL_MS));
+                    await new Promise(r => setTimeout(r, POLL_MS));
                     continue;
                 }
                 const retryBtn = renderPending(banner, result.email);
@@ -168,10 +171,9 @@ export async function mountCheckoutSuccessBanner(container, options = {}) {
                     void attemptLoad(sessionId);
                 });
                 return false;
-            }
-            catch (err) {
+            } catch (err) {
                 if (i < MAX_ATTEMPTS - 1) {
-                    await new Promise((r) => setTimeout(r, POLL_MS));
+                    await new Promise(r => setTimeout(r, POLL_MS));
                     continue;
                 }
                 renderError(banner, err.message || 'Please refresh or check your email.');

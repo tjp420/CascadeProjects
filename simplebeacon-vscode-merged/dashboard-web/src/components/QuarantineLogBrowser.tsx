@@ -164,7 +164,9 @@ export function QuarantineLogBrowser() {
       }
       const result: HealChainResponse = await resp.json();
       if (result.healed) {
-        toast.success(`Chain healed: ${result.quarantined.length} quarantined, ${result.relinked} relinked, ${result.remaining} remaining`);
+        toast.success(
+          `Chain healed: ${result.quarantined.length} quarantined, ${result.relinked} relinked, ${result.remaining} remaining`
+        );
       } else {
         toast.success('Chain is already valid — no healing needed');
       }
@@ -304,31 +306,20 @@ export function QuarantineLogBrowser() {
                 <Archive className="h-5 w-5" />
                 Quarantine Log Browser
               </CardTitle>
-              <CardDescription className="mt-1">
-                Forensic inspection of quarantined audit entries
-              </CardDescription>
+              <CardDescription className="mt-1">Forensic inspection of quarantined audit entries</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setAutoRefresh((v) => !v)}
-              >
+              <Button size="sm" variant="outline" onClick={() => setAutoRefresh((v) => !v)}>
                 <RefreshCw className={`h-4 w-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
                 {autoRefresh ? 'Auto' : 'Manual'}
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void fetchQuarantine()}
-              >
+              <Button size="sm" variant="outline" onClick={() => void fetchQuarantine()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-
           {/* ── Summary KPIs ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border p-3 text-center">
@@ -352,30 +343,18 @@ export function QuarantineLogBrowser() {
             </div>
             <div className="rounded-lg border p-3 text-center">
               <Lock className="h-5 w-5 mx-auto text-foreground-muted" />
-              <p className="text-2xl font-bold mt-1">
-                {metadata.encrypted ? 'YES' : 'NO'}
-              </p>
+              <p className="text-2xl font-bold mt-1">{metadata.encrypted ? 'YES' : 'NO'}</p>
               <p className="text-xs text-foreground-muted">Encrypted</p>
             </div>
           </div>
 
           {/* ── Action Bar ────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => void handleHeal()}
-              disabled={healing}
-            >
+            <Button size="sm" variant="destructive" onClick={() => void handleHeal()} disabled={healing}>
               {healing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
               Re-Heal Chain
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleDownloadAll()}
-              disabled={entries.length === 0}
-            >
+            <Button size="sm" variant="outline" onClick={() => handleDownloadAll()} disabled={entries.length === 0}>
               <Download className="h-4 w-4" />
               Download All
             </Button>
@@ -413,9 +392,7 @@ export function QuarantineLogBrowser() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-medium truncate">
-                        {entry.id.slice(0, 12)}…
-                      </span>
+                      <span className="text-sm font-mono font-medium truncate">{entry.id.slice(0, 12)}…</span>
                       <Badge variant="outline" className={`text-[10px] py-0 ${reasonColor(entry.quarantineReason)}`}>
                         {reasonLabel(entry.quarantineReason)}
                       </Badge>
@@ -427,9 +404,7 @@ export function QuarantineLogBrowser() {
                     </div>
                   </div>
                   <div className="flex-shrink-0 flex items-center gap-1">
-                    <span className="text-xs font-mono text-foreground-muted">
-                      {truncateHash(entry.hash)}
-                    </span>
+                    <span className="text-xs font-mono text-foreground-muted">{truncateHash(entry.hash)}</span>
                     <ChevronRight className="h-4 w-4 text-foreground-muted" />
                   </div>
                 </div>
@@ -441,10 +416,7 @@ export function QuarantineLogBrowser() {
 
       {/* ── Detail Drawer / Overlay ──────────────────────────────────────── */}
       {drawerOpen && selectedEntry && (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/50"
-          onClick={closeDrawer}
-        >
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={closeDrawer}>
           <div
             className="w-full max-w-2xl h-full bg-background border-l shadow-xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -510,9 +482,7 @@ export function QuarantineLogBrowser() {
                 <div className="space-y-1.5">
                   <div>
                     <span className="text-xs text-foreground-muted">Stored Hash</span>
-                    <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">
-                      {selectedEntry.hash || '—'}
-                    </p>
+                    <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">{selectedEntry.hash || '—'}</p>
                   </div>
                   <div>
                     <span className="text-xs text-foreground-muted">Previous Hash</span>
@@ -533,12 +503,17 @@ export function QuarantineLogBrowser() {
                     ) : (
                       <ShieldAlert className="h-5 w-5 text-red-500" />
                     )}
-                    <Badge variant="outline" className={verifyResult.hashMatches ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-red-500/15 text-red-500 border-red-500/30'}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        verifyResult.hashMatches
+                          ? 'bg-green-500/15 text-green-500 border-green-500/30'
+                          : 'bg-red-500/15 text-red-500 border-red-500/30'
+                      }
+                    >
                       {verifyResult.hashMatches ? 'HASH MATCHES' : 'HASH MISMATCH'}
                     </Badge>
-                    <span className="text-xs text-foreground-muted">
-                      Decryption: {verifyResult.decryptionStatus}
-                    </span>
+                    <span className="text-xs text-foreground-muted">Decryption: {verifyResult.decryptionStatus}</span>
                   </div>
                   {!verifyResult.hashMatches && (
                     <div className="space-y-1">
@@ -569,28 +544,15 @@ export function QuarantineLogBrowser() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 sticky bottom-0 bg-background py-3 border-t">
-                <Button
-                  size="sm"
-                  onClick={() => void handleVerifyEntry(selectedEntry)}
-                  disabled={verifying}
-                >
+                <Button size="sm" onClick={() => void handleVerifyEntry(selectedEntry)} disabled={verifying}>
                   {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                   Verify Hash
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDownloadEntry(selectedEntry)}
-                >
+                <Button size="sm" variant="outline" onClick={() => handleDownloadEntry(selectedEntry)}>
                   <Download className="h-4 w-4" />
                   Download JSON
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={closeDrawer}
-                  className="ml-auto"
-                >
+                <Button size="sm" variant="ghost" onClick={closeDrawer} className="ml-auto">
                   Close
                 </Button>
               </div>

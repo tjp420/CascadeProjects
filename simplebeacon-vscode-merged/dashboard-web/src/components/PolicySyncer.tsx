@@ -59,7 +59,10 @@ export function PolicySyncer() {
       const org = (orgsJson.orgs || [])[0];
       const orgId = org?.orgId || 'org-source';
 
-      const polResp = await fetch(apiUrl(`/api/audit/pii/policies/${encodeURIComponent(orgId)}`), { headers: authHeaders(), credentials: 'include' });
+      const polResp = await fetch(apiUrl(`/api/audit/pii/policies/${encodeURIComponent(orgId)}`), {
+        headers: authHeaders(),
+        credentials: 'include',
+      });
       if (!polResp.ok) throw new Error(`Policy request failed: ${polResp.status}`);
       const polJson = await polResp.json();
       const policies: PiiPolicy[] = polJson.policies || [];
@@ -93,10 +96,10 @@ export function PolicySyncer() {
 
   const fetchBlockedCount = useCallback(async () => {
     try {
-      const resp = await fetch(
-        apiUrl('/api/audit/log?action=compliance_policy_violation&limit=1&offset=0'),
-        { headers: authHeaders(), credentials: 'include' },
-      );
+      const resp = await fetch(apiUrl('/api/audit/log?action=compliance_policy_violation&limit=1&offset=0'), {
+        headers: authHeaders(),
+        credentials: 'include',
+      });
       if (!resp.ok) return;
       const json: AuditLogResult = await resp.json();
       setBlocked(json.total || 0);
@@ -123,10 +126,15 @@ export function PolicySyncer() {
             <Shield className="w-4 h-4 mr-2 text-indigo-500" />
             Information Governance & Policy Syncer Status
           </h3>
-          <p className="text-xs text-slate-400 mt-1">Tenant-scoped operational compliance guidelines, rule sets, and access barriers.</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Tenant-scoped operational compliance guidelines, rule sets, and access barriers.
+          </p>
         </div>
         <button
-          onClick={() => { void fetchData(); void fetchBlockedCount(); }}
+          onClick={() => {
+            void fetchData();
+            void fetchBlockedCount();
+          }}
           disabled={loading}
           className="p-2 border border-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/40 transition-all disabled:opacity-50"
         >
@@ -137,7 +145,9 @@ export function PolicySyncer() {
       {error && (
         <div className="bg-red-950/20 border border-red-900/40 p-4 rounded-lg text-xs text-red-400 mb-6 flex items-center">
           <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span><strong>Sync Error:</strong> {error}</span>
+          <span>
+            <strong>Sync Error:</strong> {error}
+          </span>
         </div>
       )}
 
@@ -145,7 +155,9 @@ export function PolicySyncer() {
         <div className="space-y-4 text-xs">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-slate-950/40 p-4 rounded-lg border border-slate-800/60 font-mono">
-              <span className="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">Active Blueprint ID</span>
+              <span className="text-slate-500 block mb-1 uppercase tracking-wider text-[10px]">
+                Active Blueprint ID
+              </span>
               <span className="text-slate-200 font-semibold">{policy.policyId}</span>
             </div>
             <div className="bg-slate-950/40 p-4 rounded-lg border border-slate-800/60 font-mono">
@@ -169,7 +181,9 @@ export function PolicySyncer() {
           </div>
 
           <div className="mt-6">
-            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block mb-3 font-mono">Active Policy Interception Matrix</span>
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block mb-3 font-mono">
+              Active Policy Interception Matrix
+            </span>
             <div className="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/20">
               <table className="w-full text-left border-collapse font-mono">
                 <thead>
@@ -186,11 +200,13 @@ export function PolicySyncer() {
                       <td className="p-3 font-semibold text-slate-200">{rule.ruleId}</td>
                       <td className="p-3 text-slate-400">{rule.axis}</td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          rule.effect === 'DENY' || rule.effect === 'DISABLED'
-                            ? 'bg-red-950 text-red-400 border-red-900/40'
-                            : 'bg-emerald-950 text-emerald-400 border-emerald-900/40'
-                        }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                            rule.effect === 'DENY' || rule.effect === 'DISABLED'
+                              ? 'bg-red-950 text-red-400 border-red-900/40'
+                              : 'bg-emerald-950 text-emerald-400 border-emerald-900/40'
+                          }`}
+                        >
                           {rule.effect}
                         </span>
                       </td>
@@ -202,8 +218,10 @@ export function PolicySyncer() {
             </div>
           </div>
         </div>
-      ) : !loading && (
-        <div className="text-slate-500 font-mono text-center py-6">No policy blueprints currently mapped.</div>
+      ) : (
+        !loading && (
+          <div className="text-slate-500 font-mono text-center py-6">No policy blueprints currently mapped.</div>
+        )
       )}
     </div>
   );

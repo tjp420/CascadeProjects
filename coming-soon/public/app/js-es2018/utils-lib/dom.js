@@ -8,7 +8,7 @@ function _getCachedRect(el, maxAge = 100) {
     if (!el || typeof el.getBoundingClientRect !== 'function') return null;
     const now = Date.now();
     const cached = _rectCache.get(el);
-    if (cached && (now - cached.ts) < maxAge) return cached.rect;
+    if (cached && now - cached.ts < maxAge) return cached.rect;
     const rect = el.getBoundingClientRect();
     _rectCache.set(el, { rect, ts: now });
     return rect;
@@ -26,15 +26,17 @@ function _renderToast(container, message, type, duration) {
     }, duration);
 }
 export function showToast(message, type = 'info') {
-    if (typeof document === 'undefined' || !document.body)
-        return;
-    const container = document.getElementById('toast-container') || (() => {
-        const el = document.createElement('div');
-        el.id = 'toast-container';
-        el.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
-        document.body.appendChild(el);
-        return el;
-    })();
+    if (typeof document === 'undefined' || !document.body) return;
+    const container =
+        document.getElementById('toast-container') ||
+        (() => {
+            const el = document.createElement('div');
+            el.id = 'toast-container';
+            el.style.cssText =
+                'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
+            document.body.appendChild(el);
+            return el;
+        })();
     _renderToast(container, message, typeof type === 'string' ? type : 'info', 3500);
 }
 
@@ -48,13 +50,11 @@ export async function requestNotificationPermission() {
         // Some browsers return a Promise, some a string — normalize
         const result = await Notification.requestPermission();
         return String(result || 'default');
-    }
-    catch (e) {
+    } catch (e) {
         try {
             // fallback for older APIs
             return Notification.permission || 'default';
-        }
-        catch (_a) {
+        } catch (_a) {
             return 'default';
         }
     }
@@ -65,8 +65,7 @@ const SB_NOTIFICATIONS_ENABLED_KEY = 'sb_notifications_enabled';
 function readNotificationsEnabled() {
     try {
         return localStorage.getItem(SB_NOTIFICATIONS_ENABLED_KEY) !== 'false';
-    }
-    catch (_a) {
+    } catch (_a) {
         return true;
     }
 }
@@ -74,8 +73,7 @@ function readNotificationsEnabled() {
 function writeNotificationsEnabled(enabled) {
     try {
         localStorage.setItem(SB_NOTIFICATIONS_ENABLED_KEY, String(enabled));
-    }
-    catch (_a) { }
+    } catch (_a) {}
 }
 
 /**
@@ -103,13 +101,11 @@ export function showOSNotification(title, options) {
         if (readNotificationsEnabled() && Notification.permission === 'granted') {
             try {
                 return new Notification(String(title || ''), options || {});
-            }
-            catch (_a) {
+            } catch (_a) {
                 return null;
             }
         }
-    }
-    catch (_b) { }
+    } catch (_b) {}
     return null;
 }
 /**
@@ -118,11 +114,9 @@ export function showOSNotification(title, options) {
  */
 export function removeToastContainer() {
     _toastId = 0;
-    if (typeof document === 'undefined')
-        return;
+    if (typeof document === 'undefined') return;
     const container = document.getElementById('toast-container');
-    if (container)
-        container.remove();
+    if (container) container.remove();
 }
 /**
  * Trigger a browser download from a string or Blob.
@@ -132,20 +126,17 @@ export function removeToastContainer() {
  * @returns {void}
  */
 function isIdeEmbedDownloadBridge() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     try {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar'))
-            return true;
-        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base'))
-            return true;
+        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar')) return true;
+        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base')) return true;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     try {
         return window.self !== window.top;
-    }
-    catch (_b) {
+    } catch (_b) {
         return false;
     }
 }
@@ -156,17 +147,19 @@ function wouldBeMixedOrLocalBridge(baseUrl) {
         if (base.protocol === 'http:' && typeof window !== 'undefined' && window.location.protocol === 'https:')
             return true;
         // Remote hosted page should not call a localhost/loopback bridge.
-        if (typeof window !== 'undefined' &&
+        if (
+            typeof window !== 'undefined' &&
             !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
-            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname))
+            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname)
+        )
             return true;
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     return false;
 }
 function getExtensionBridgeNotifyUrl() {
-    if (typeof window === 'undefined')
-        return '/api/download/notify';
+    if (typeof window === 'undefined') return '/api/download/notify';
     try {
         const params = new URLSearchParams(window.location.search);
         let base = params.get('sb_api_base') || params.get('sb_notify_base');
@@ -174,17 +167,18 @@ function getExtensionBridgeNotifyUrl() {
             base = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
         }
         if (base) {
-            const clean = String(base).replace(/\/api\/?$/, '').trim();
-            if (clean && !wouldBeMixedOrLocalBridge(clean))
-                return `${clean}/api/download/notify`;
+            const clean = String(base)
+                .replace(/\/api\/?$/, '')
+                .trim();
+            if (clean && !wouldBeMixedOrLocalBridge(clean)) return `${clean}/api/download/notify`;
         }
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     return '/api/download/notify';
 }
 function notifyExtensionDownload(blob, filename) {
-    if (!(blob instanceof Blob) || typeof window === 'undefined')
-        return;
+    if (!(blob instanceof Blob) || typeof window === 'undefined') return;
     const safeName = String(filename || 'download');
     const reader = new FileReader();
     reader.onload = () => {
@@ -193,29 +187,33 @@ function notifyExtensionDownload(blob, filename) {
         const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
         try {
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    command: 'downloadFile',
-                    filename: safeName,
-                    mimeType: blob.type || 'application/octet-stream',
-                    base64
-                }, '*');
+                window.parent.postMessage(
+                    {
+                        command: 'downloadFile',
+                        filename: safeName,
+                        mimeType: blob.type || 'application/octet-stream',
+                        base64
+                    },
+                    '*'
+                );
             }
+        } catch (_a) {
+            /* ignore */
         }
-        catch (_a) { /* ignore */ }
         try {
             fetch(getExtensionBridgeNotifyUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: safeName, content: base64 })
-            }).catch(() => { });
+            }).catch(() => {});
+        } catch (_b) {
+            /* ignore */
         }
-        catch (_b) { /* ignore */ }
     };
     reader.readAsDataURL(blob);
 }
 export function downloadFile(content, filename, mimeType = 'text/plain') {
-    if (typeof document === 'undefined')
-        return;
+    if (typeof document === 'undefined') return;
     const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -240,9 +238,10 @@ export function downloadJson(data, filename) {
     let json;
     try {
         json = JSON.stringify(data, null, 2);
-    }
-    catch (err) {
-        throw new Error(`Failed to serialize data to JSON: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`);
+    } catch (err) {
+        throw new Error(
+            `Failed to serialize data to JSON: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`
+        );
     }
     const blob = new Blob([json], { type: 'application/json' });
     downloadBlob(blob, filename);
@@ -268,21 +267,26 @@ export function downloadBlob(blob, filename) {
                 const result = String(reader.result || '');
                 const commaIdx = result.indexOf(',');
                 const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
-                vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
+                vscode.postMessage({
+                    command: 'downloadFile',
+                    filename: filename || 'download',
+                    mimeType: blob.type,
+                    base64
+                });
             };
             reader.onerror = () => {
-                window["console"]["error"](
+                window['console']['error'](
                     'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
                 );
                 try {
                     normalDownload(blob, filename);
+                } catch (/* both methods failed */ _a) {
+                    /* both methods failed */
                 }
-                catch ( /* both methods failed */_a) { /* both methods failed */ }
             };
             reader.readAsDataURL(blob);
             return;
-        }
-        catch (_a) {
+        } catch (_a) {
             // fall through to normal download
         }
     }
@@ -309,16 +313,14 @@ function normalDownload(blob, filename) {
     document.body.appendChild(a);
     try {
         a.click();
-    }
-    finally {
+    } finally {
         a.remove();
         // revoke on next tick — download starts synchronously from click()
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
     if (isIdeEmbedDownloadBridge()) {
         notifyExtensionDownload(blob, filename || 'download');
-    }
-    else {
+    } else {
         notifyDownloadComplete(filename || 'download');
     }
 }
@@ -350,7 +352,7 @@ export function downloadCsv(rows, filename, headers) {
         throw new Error('CSV download requires a non-empty array of rows.');
     }
     const cols = Array.isArray(headers) && headers.length > 0 ? headers : Object.keys(rows[0]);
-    const escape = (val) => {
+    const escape = val => {
         const s = val == null ? '' : String(val);
         if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
             return '"' + s.replace(/"/g, '""') + '"';
@@ -368,8 +370,7 @@ export function downloadCsv(rows, filename, headers) {
  * @returns {boolean}
  */
 export function hasClass(el, className) {
-    if (!el || !className || typeof el.classList === 'undefined')
-        return false;
+    if (!el || !className || typeof el.classList === 'undefined') return false;
     return el.classList.contains(className);
 }
 /**
@@ -379,11 +380,9 @@ export function hasClass(el, className) {
  * @returns {void}
  */
 export function addClass(el, className) {
-    if (!el || !className || typeof el.classList === 'undefined')
-        return;
+    if (!el || !className || typeof el.classList === 'undefined') return;
     const classes = String(className).trim().split(/\s+/).filter(Boolean);
-    for (const c of classes)
-        el.classList.add(c);
+    for (const c of classes) el.classList.add(c);
 }
 /**
  * Remove one or more CSS classes from an element.
@@ -392,11 +391,9 @@ export function addClass(el, className) {
  * @returns {void}
  */
 export function removeClass(el, className) {
-    if (!el || !className || typeof el.classList === 'undefined')
-        return;
+    if (!el || !className || typeof el.classList === 'undefined') return;
     const classes = String(className).trim().split(/\s+/).filter(Boolean);
-    for (const c of classes)
-        el.classList.remove(c);
+    for (const c of classes) el.classList.remove(c);
 }
 /**
  * Toggle a CSS class on an element.
@@ -406,8 +403,7 @@ export function removeClass(el, className) {
  * @returns {boolean}
  */
 export function toggleClass(el, className, force) {
-    if (!el || !className || typeof el.classList === 'undefined')
-        return false;
+    if (!el || !className || typeof el.classList === 'undefined') return false;
     if (typeof force === 'boolean') {
         el.classList.toggle(className, force);
         return force;
@@ -421,14 +417,11 @@ export function toggleClass(el, className, force) {
  */
 export function getFocusableElements(container) {
     const root = container || (typeof document !== 'undefined' ? document : null);
-    if (!root)
-        return [];
+    if (!root) return [];
     const selector = 'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])';
-    return Array.from(root.querySelectorAll(selector)).filter((el) => {
-        if (el.hasAttribute('disabled'))
-            return false;
-        if (el.getAttribute('tabindex') === '-1')
-            return false;
+    return Array.from(root.querySelectorAll(selector)).filter(el => {
+        if (el.hasAttribute('disabled')) return false;
+        if (el.getAttribute('tabindex') === '-1') return false;
         return true;
     });
 }
@@ -439,13 +432,11 @@ export function getFocusableElements(container) {
  */
 export function focusFirst(container) {
     const candidates = getFocusableElements(container);
-    if (candidates.length === 0)
-        return false;
+    if (candidates.length === 0) return false;
     try {
         candidates[0].focus();
         return document.activeElement === candidates[0];
-    }
-    catch (_a) {
+    } catch (_a) {
         return false;
     }
 }
@@ -460,25 +451,34 @@ if (typeof window !== 'undefined') {
             const container = createElement('div', { className: 'empty-state card' });
             const iconWrapperEl = createElement('div', { className: 'empty-state-icon-wrapper' });
             if (iconWrapper === 'emoji') {
-                iconWrapperEl.appendChild(createElement('div', { className: 'empty-state-icon', style: 'font-size:3rem;background:none;width:auto;height:auto;' }, [String(icon || '')]));
-            }
-            else {
+                iconWrapperEl.appendChild(
+                    createElement(
+                        'div',
+                        {
+                            className: 'empty-state-icon',
+                            style: 'font-size:3rem;background:none;width:auto;height:auto;'
+                        },
+                        [String(icon || '')]
+                    )
+                );
+            } else {
                 const svgWrap = createElement('div', { className: 'empty-state-icon' });
                 svgWrap.innerHTML = String(icon || '');
                 iconWrapperEl.appendChild(svgWrap);
             }
             container.appendChild(iconWrapperEl);
             container.appendChild(createElement('h3', { className: 'empty-state-title' }, [String(title || '')]));
-            if (body)
-                container.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
+            if (body) container.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
             if (actions.length) {
                 const actionsEl = createElement('div', { className: 'empty-state-actions' });
-                actions.forEach((a) => {
-                    const btn = createElement('button', { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined }, [String(a.label || '')]);
-                    if (typeof a.onClick === 'function')
-                        btn.addEventListener('click', a.onClick);
-                    if (typeof a.handler === 'function')
-                        btn.addEventListener('click', a.handler);
+                actions.forEach(a => {
+                    const btn = createElement(
+                        'button',
+                        { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined },
+                        [String(a.label || '')]
+                    );
+                    if (typeof a.onClick === 'function') btn.addEventListener('click', a.onClick);
+                    if (typeof a.handler === 'function') btn.addEventListener('click', a.handler);
                     actionsEl.appendChild(btn);
                 });
                 container.appendChild(actionsEl);
@@ -494,26 +494,21 @@ if (typeof window !== 'undefined') {
  * @returns {HTMLElement}
  */
 export function createElement(tag, attrs = {}, children = []) {
-    if (typeof document === 'undefined')
-        return null;
+    if (typeof document === 'undefined') return null;
     const el = document.createElement(tag);
     for (const [key, val] of Object.entries(attrs)) {
         if (key === 'className') {
             el.className = val;
-        }
-        else if (key === 'style' && typeof val === 'object') {
+        } else if (key === 'style' && typeof val === 'object') {
             Object.assign(el.style, val);
-        }
-        else if (key.startsWith('on') && typeof val === 'function') {
+        } else if (key.startsWith('on') && typeof val === 'function') {
             el.addEventListener(key.slice(2).toLowerCase(), val);
-        }
-        else {
+        } else {
             el.setAttribute(key, val);
         }
     }
     for (const child of children) {
-        if (child == null)
-            continue;
+        if (child == null) continue;
         el.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
     }
     return el;
@@ -524,8 +519,7 @@ export function createElement(tag, attrs = {}, children = []) {
  * @returns {void}
  */
 export function removeAllChildren(el) {
-    if (!el || typeof el.removeChild !== 'function')
-        return;
+    if (!el || typeof el.removeChild !== 'function') return;
     while (el.firstChild) {
         el.removeChild(el.firstChild);
     }
@@ -537,8 +531,7 @@ export function removeAllChildren(el) {
  * @returns {boolean} True if the element was found.
  */
 export function scrollToElement(selector, behavior = 'smooth') {
-    if (typeof document === 'undefined')
-        return false;
+    if (typeof document === 'undefined') return false;
     const el = document.querySelector(selector);
     if (el && typeof el.scrollIntoView === 'function') {
         requestAnimationFrame(() => el.scrollIntoView({ behavior, block: 'start' }));
@@ -552,11 +545,15 @@ export function scrollToElement(selector, behavior = 'smooth') {
  * @returns {boolean}
  */
 export function elementInViewport(el) {
-    if (!el || typeof el.getBoundingClientRect !== 'function')
-        return false;
+    if (!el || typeof el.getBoundingClientRect !== 'function') return false;
     const rect = _getCachedRect(el) || el.getBoundingClientRect();
     if (!rect) return false;
-    return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
 }
 /**
  * Observe when an element enters the viewport via IntersectionObserver.
@@ -566,9 +563,8 @@ export function elementInViewport(el) {
  * @returns {IntersectionObserver|null}
  */
 export function observeIntersection(el, callback, options = {}) {
-    if (typeof window === 'undefined' || !window.IntersectionObserver || !el)
-        return null;
-    const observer = new IntersectionObserver((entries) => {
+    if (typeof window === 'undefined' || !window.IntersectionObserver || !el) return null;
+    const observer = new IntersectionObserver(entries => {
         for (const entry of entries) {
             callback(entry);
         }
@@ -594,14 +590,12 @@ export function preloadImage(src) {
     });
 }
 export async function copyToClipboard(text) {
-    if (text == null)
-        throw new Error('Cannot copy null or undefined to clipboard.');
+    if (text == null) throw new Error('Cannot copy null or undefined to clipboard.');
     const str = String(text);
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
         try {
             return await navigator.clipboard.writeText(str);
-        }
-        catch (_a) {
+        } catch (_a) {
             // Non-secure context or permission denied — fall through to execCommand
         }
     }
@@ -616,24 +610,22 @@ export async function copyToClipboard(text) {
     ta.select();
     try {
         const ok = document.execCommand('copy');
-        if (!ok)
-            throw new Error('execCommand(copy) returned false');
-    }
-    finally {
+        if (!ok) throw new Error('execCommand(copy) returned false');
+    } finally {
         ta.remove();
     }
 }
 /** @returns {string | {html:string, attach:(container:HTMLElement)=>void}} HTML string, or object with html + attach when actions have onClick handlers
  */
 export function renderEmptyState(opts) {
-    if (!opts || typeof opts !== 'object' || Array.isArray(opts))
-        return '';
+    if (!opts || typeof opts !== 'object' || Array.isArray(opts)) return '';
     const { icon, title, body = '', actions: rawActions = [], iconWrapper = 'svg' } = opts;
     const actions = Array.isArray(rawActions) ? rawActions.filter(a => a && typeof a === 'object') : [];
     const safeIcon = String(icon || '');
-    const iconHtml = iconWrapper === 'emoji'
-        ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
-        : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
+    const iconHtml =
+        iconWrapper === 'emoji'
+            ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
+            : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
     const unsafeBody = opts.unsafeBody === true;
     const bodyHtml = body ? `<p class="empty-state-body">${unsafeBody ? body : escapeHtml(body)}</p>` : '';
     const actionsHtml = actions.length
@@ -651,7 +643,10 @@ export function renderEmptyState(opts) {
         return {
             html,
             attach(container) {
-                const builder = (typeof window !== 'undefined' && window.__SB_createEmptyStateElement) ? window.__SB_createEmptyStateElement : null;
+                const builder =
+                    typeof window !== 'undefined' && window.__SB_createEmptyStateElement
+                        ? window.__SB_createEmptyStateElement
+                        : null;
                 const el = builder ? builder({ icon, title, body, actions: rawActions, iconWrapper }) : null;
                 // replace container contents rather than relying on innerHTML elsewhere
                 if (el && container && typeof container.appendChild === 'function') container.appendChild(el);
@@ -668,14 +663,11 @@ export function renderEmptyState(opts) {
  * mean we're embedded — the page could be in a top-level browser tab opened from the IDE.
  */
 export function isEmbeddedDashboardFrame() {
-    if (typeof window === 'undefined')
-        return false;
+    if (typeof window === 'undefined') return false;
     // Primary check: actually inside a subframe.
-    if (window.self !== window.top)
-        return true;
+    if (window.self !== window.top) return true;
     // Secondary check: IDE embed flag set by index.html (only set when inIframe).
-    if (window.__SB_PARENT_URL_BAR__)
-        return true;
+    if (window.__SB_PARENT_URL_BAR__) return true;
     return false;
 }
 
@@ -684,46 +676,41 @@ export function isEmbeddedDashboardFrame() {
  * with sb_parent_urlbar + extension bridge params). Extension sidebar owns navigation.
  */
 export function isIdeDashboardSurface() {
-    if (typeof window === 'undefined')
-        return false;
-    if (window.__SB_IDE_EMBED__)
-        return true;
+    if (typeof window === 'undefined') return false;
+    if (window.__SB_IDE_EMBED__) return true;
     try {
-        if (document.documentElement.hasAttribute('data-ide-embed'))
-            return true;
+        if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     // Also consider VS Code / Cursor webviews where `acquireVsCodeApi` is exposed.
     try {
         if (typeof window.acquireVsCodeApi === 'function') return true;
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     return window.self !== window.top;
 }
 
 /** True when opened from VS Code / Cursor with sb_* bridge or parent-urlbar params (Simple Browser or iframe). */
 export function isExtensionHostedTab() {
-    if (typeof window === 'undefined')
-        return false;
-    if (window.__SB_PARENT_URL_BAR__ || window.__SB_IDE_EMBED__)
-        return true;
+    if (typeof window === 'undefined') return false;
+    if (window.__SB_PARENT_URL_BAR__ || window.__SB_IDE_EMBED__) return true;
     try {
         const params = new URLSearchParams(window.location.search || '');
-        if (params.get('sb_parent_urlbar') === '1')
-            return true;
-        if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode'))
-            return true;
+        if (params.get('sb_parent_urlbar') === '1') return true;
+        if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode')) return true;
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     try {
         if (typeof sessionStorage !== 'undefined') {
-            if (sessionStorage.getItem('sb_parent_urlbar') === '1')
-                return true;
-            if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
-                return true;
+            if (sessionStorage.getItem('sb_parent_urlbar') === '1') return true;
+            if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')) return true;
         }
+    } catch (_c) {
+        /* ignore */
     }
-    catch (_c) { /* ignore */ }
     return false;
 }
 
@@ -736,8 +723,7 @@ export function isCrossOriginEmbeddedFrame() {
  * Whether the File System Access directory picker can be invoked from this context.
  */
 export function canUseDirectoryPicker() {
-    if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function')
-        return false;
+    if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') return false;
     return !isEmbeddedDashboardFrame();
 }
 
@@ -749,14 +735,15 @@ export function filePickerBlockedMessage() {
 /** True when a thrown error indicates the browser blocked showDirectoryPicker in a subframe. */
 export function isFilePickerBlockedError(err) {
     const msg = String((err && err.message) || err || '');
-    return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
+    return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(
+        msg
+    );
 }
 
 /** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
 export function isLikelyWebkitDirectoryFileCap(fileCount) {
     const n = Number(fileCount) || 0;
-    if (n < 2000)
-        return false;
+    if (n < 2000) return false;
     const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
     return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
 }
@@ -769,7 +756,10 @@ export function isLikelyWebkitDirectoryFileCap(fileCount) {
  */
 export function setHtml(el, html) {
     if (!el) return;
-    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    if (typeof html !== 'string') {
+        el.replaceChildren();
+        return;
+    }
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     el.replaceChildren(...doc.body.childNodes);
@@ -784,30 +774,35 @@ export function setHtml(el, html) {
  */
 export function setSafeHTML(el, html) {
     if (!el) return;
-    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    if (typeof html !== 'string') {
+        el.replaceChildren();
+        return;
+    }
     // Try to use a DOMPurify instance if available (window.DOMPurify or bundled).
     try {
         let purifier = null;
         if (typeof window !== 'undefined' && window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
             purifier = window.DOMPurify;
-        }
-        else {
+        } else {
             try {
                 // Try CommonJS/ESM resolution at build/runtime (bundlers will resolve this).
                 const dp = typeof require === 'function' ? require('dompurify') : null;
                 if (dp) {
                     if (typeof dp.sanitize === 'function') {
                         purifier = dp;
-                    }
-                    else if (typeof dp.default === 'function') {
-                        try { purifier = dp.default(window); } catch (e) { purifier = dp.default; }
-                    }
-                    else if (typeof dp === 'function') {
+                    } else if (typeof dp.default === 'function') {
+                        try {
+                            purifier = dp.default(window);
+                        } catch (e) {
+                            purifier = dp.default;
+                        }
+                    } else if (typeof dp === 'function') {
                         purifier = dp(window);
                     }
                 }
+            } catch (_b) {
+                /* ignore */
             }
-            catch (_b) { /* ignore */ }
         }
 
         if (purifier && typeof purifier.sanitize === 'function') {
@@ -815,8 +810,7 @@ export function setSafeHTML(el, html) {
             el.innerHTML = safe;
             return;
         }
-    }
-    catch (_a) {
+    } catch (_a) {
         // fall through to parser fallback
     }
     // Fallback: parse and replace children (no innerHTML used).
@@ -824,30 +818,34 @@ export function setSafeHTML(el, html) {
 }
 
 if (typeof window !== 'undefined') {
-    try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
+    try {
+        window.setSafeHTML = setSafeHTML;
+    } catch (e) {
+        /* ignore */
+    }
 }
 
 let _vsCodeApiCache = null;
 let _vsCodeProxyCache = null;
 export function getVsCodeApi() {
-    if (_vsCodeApiCache)
-        return _vsCodeApiCache;
-    if (typeof window === 'undefined')
-        return null;
+    if (_vsCodeApiCache) return _vsCodeApiCache;
+    if (typeof window === 'undefined') return null;
     if (typeof window.acquireVsCodeApi === 'function') {
         try {
             _vsCodeApiCache = window.acquireVsCodeApi();
             return _vsCodeApiCache;
-        }
-        catch (_a) {
+        } catch (_a) {
             /* fall through to iframe proxy */
         }
     }
     if (window.parent && window.parent !== window && !_vsCodeProxyCache) {
         _vsCodeProxyCache = {
             postMessage(msg) {
-                try { window.parent.postMessage(msg, '*'); }
-                catch (_b) { /* ignore */ }
+                try {
+                    window.parent.postMessage(msg, '*');
+                } catch (_b) {
+                    /* ignore */
+                }
             }
         };
     }
@@ -873,9 +871,11 @@ export function renderSkeletonChips(count = 5) {
 
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
-  const n = Number(fileCount) || 0;
-  return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
-    + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+    const n = Number(fileCount) || 0;
+    return (
+        `Your browser may have limited folder selection to ${n.toLocaleString()} files. ` +
+        'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.'
+    );
 }
 
 /**
@@ -886,27 +886,31 @@ export function browserFolderCapMessage(fileCount) {
  * @param {{ isDirectoryDrop?: boolean, hasRelativePath?: boolean }} [opts]
  */
 export function isIncompleteFolderDrop(fileCount, opts = {}) {
-  if (!opts.isDirectoryDrop) return false;
-  const n = Number(fileCount) || 0;
-  if (n > 2) return false;
-  // 1-2 files is always incomplete for a directory drop, even if
-  // webkitRelativePath is present (e.g., OS Explorer drop of a protected
-  // directory like C:\Windows that only exposes 1 file).
-  return n > 0;
+    if (!opts.isDirectoryDrop) return false;
+    const n = Number(fileCount) || 0;
+    if (n > 2) return false;
+    // 1-2 files is always incomplete for a directory drop, even if
+    // webkitRelativePath is present (e.g., OS Explorer drop of a protected
+    // directory like C:\Windows that only exposes 1 file).
+    return n > 0;
 }
 
 /** Copy when refusing a false full-repo PASS from an incomplete folder drop. */
 export function incompleteFolderDropMessage(folderName) {
-  const label = folderName ? `"${folderName}"` : 'This folder';
-  return `${label} only exposed 1–2 files in the browser (incomplete access — common for OS/system directories). `
-    + 'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: '
-    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+    const label = folderName ? `"${folderName}"` : 'This folder';
+    return (
+        `${label} only exposed 1–2 files in the browser (incomplete access — common for OS/system directories). ` +
+        'No full-repo PASS was recorded. Use Select Folder on a project tree, or run: ' +
+        'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json'
+    );
 }
 
 /** Copy when browser local scan hits the inventory cap. */
 export function browserLocalScanCapMessage(maxFiles) {
-  const n = Number(maxFiles) || 0;
-  return `Browser local scan inventory is capped at ${n.toLocaleString()} files. `
-    + 'Results may be truncated. For full coverage run: '
-    + 'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json';
+    const n = Number(maxFiles) || 0;
+    return (
+        `Browser local scan inventory is capped at ${n.toLocaleString()} files. ` +
+        'Results may be truncated. For full coverage run: ' +
+        'npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json'
+    );
 }

@@ -21,14 +21,8 @@
       "status": "completed",
       "progress": 100,
       "description": "Canonical server entry and optional JWT auth",
-      "features": [
-        "Root server delegate",
-        "Phase 2 JWT auth"
-      ],
-      "milestones": [
-        "Single server entry",
-        "Auth routes live"
-      ]
+      "features": ["Root server delegate", "Phase 2 JWT auth"],
+      "milestones": ["Single server entry", "Auth routes live"]
     },
     {
       "phase": "Sprint 2: Stub APIs & Tests",
@@ -39,10 +33,7 @@
         "Tier-1 stub API routes",
         "17 test files on disk (run Jest for live suite count)"
       ],
-      "milestones": [
-        "dashboard-stub-api.js",
-        "17 tests"
-      ]
+      "milestones": ["dashboard-stub-api.js", "17 tests"]
     },
     {
       "phase": "Sprint 3: Honest Dashboard Data",
@@ -55,10 +46,7 @@
         "Mock scanner pending",
         "File merger reduction scanner"
       ],
-      "milestones": [
-        "Repository-audit samples",
-        "Mock-data + merger scanners"
-      ]
+      "milestones": ["Repository-audit samples", "Mock-data + merger scanners"]
     },
     {
       "phase": "Sprint 4: Production Profile",
@@ -71,10 +59,7 @@
         "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
         "REQUIRE_AUTH production profile ready"
       ],
-      "milestones": [
-        "phase2-smoke CI job",
-        "Production runbook"
-      ]
+      "milestones": ["phase2-smoke CI job", "Production runbook"]
     }
   ],
   "recommendations": {
@@ -86,9 +71,7 @@
       "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
       "Security posture to 80/100 — run npm audit fix on deploy host"
     ],
-    "longTerm": [
-      "Define enterprise scope only after v1.0-internal"
-    ],
+    "longTerm": ["Define enterprise scope only after v1.0-internal"],
     "priorities": {
       "high": [
         "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
@@ -98,9 +81,7 @@
         "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
         "Security posture to 80/100 — run npm audit fix on deploy host"
       ],
-      "low": [
-        "Optional GGUF semantic feature extraction"
-      ]
+      "low": ["Optional GGUF semantic feature extraction"]
     }
   },
   "predictions": [

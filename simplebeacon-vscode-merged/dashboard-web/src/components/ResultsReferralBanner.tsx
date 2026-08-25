@@ -13,10 +13,7 @@ interface ResultsReferralBannerProps {
 /**
  * High-visibility referral banner shown after a B-or-better scan result.
  */
-export function ResultsReferralBanner({
-  userEmail,
-  currentScanGrade,
-}: ResultsReferralBannerProps) {
+export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsReferralBannerProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,8 +47,7 @@ export function ResultsReferralBanner({
   if (!isPassingReferralGrade(currentScanGrade)) return null;
 
   const computedTrackingUrl =
-    shareUrl ||
-    `https://simplebeacon.ai/?ref=${encodeURIComponent(userEmail ? 'pending' : 'dev-token')}`;
+    shareUrl || `https://simplebeacon.ai/?ref=${encodeURIComponent(userEmail ? 'pending' : 'dev-token')}`;
 
   const handleCopyAction = async () => {
     try {
@@ -93,9 +89,9 @@ export function ResultsReferralBanner({
             </h4>
             <p className="text-foreground-muted text-sm mt-1 leading-relaxed">
               Your repository achieved a secure{' '}
-              <span className="text-emerald-400 font-bold font-mono">[{currentScanGrade}]</span>.
-              Share SimpleBeacon with another engineering manager. When they execute a private local
-              code debt scan, you both instantly unlock{' '}
+              <span className="text-emerald-400 font-bold font-mono">[{currentScanGrade}]</span>. Share SimpleBeacon
+              with another engineering manager. When they execute a private local code debt scan, you both instantly
+              unlock{' '}
               <span className="text-foreground font-semibold">
                 Unlimited SOC 2 Compliance PDF Certificate Generation
               </span>{' '}

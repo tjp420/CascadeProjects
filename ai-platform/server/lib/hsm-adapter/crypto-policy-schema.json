@@ -92,7 +92,9 @@
     },
     "enclave": {
       "allowedEnclaveTypes": ["mock", "intel-sgx", "aws-nitro"],
-      "requiredMRENCLAVEHashes": ["MOCK_MRENCLAVE_00000000000000000000000000000000"],
+      "requiredMRENCLAVEHashes": [
+        "MOCK_MRENCLAVE_00000000000000000000000000000000"
+      ],
       "allowedAttestationAuthorities": ["mock-authority"],
       "requireRemoteAttestation": true,
       "minAttestationTtlSeconds": 300,
@@ -100,7 +102,11 @@
       "allowedEnclaveCiphers": ["aes-256-gcm"]
     },
     "resharding": {
-      "allowedThresholdWindows": [[2, 3], [3, 5], [5, 7]],
+      "allowedThresholdWindows": [
+        [2, 3],
+        [3, 5],
+        [5, 7]
+      ],
       "maxCommitteeExpansionFactor": 2.0,
       "maxCommitteeSize": 11,
       "requireNewNodeAttestation": true,
@@ -303,7 +309,14 @@
     "confidentialSandbox": {
       "maxExecutionTimeSeconds": 30,
       "maxConcurrentSandboxes": 100,
-      "allowedOperations": ["sign", "verify", "encrypt", "decrypt", "derive", "hash"],
+      "allowedOperations": [
+        "sign",
+        "verify",
+        "encrypt",
+        "decrypt",
+        "derive",
+        "hash"
+      ],
       "requireAttestation": true,
       "allowedAttestationAuthorities": ["mock-authority"],
       "requireZeroization": true,
@@ -769,7 +782,13 @@
       "maxNodes": 64,
       "maxHops": 8,
       "maxQuerySize": 65536,
-      "supportedSchemes": ["additive", "multiplicative", "paillier", "bfv", "ckks"],
+      "supportedSchemes": [
+        "additive",
+        "multiplicative",
+        "paillier",
+        "bfv",
+        "ckks"
+      ],
       "defaultScheme": "additive",
       "requireAttestation": false,
       "queryTimeoutMs": 30000,

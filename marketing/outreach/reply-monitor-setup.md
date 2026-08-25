@@ -58,6 +58,7 @@ node marketing/outreach/reply-monitor.js --watch --interval 30
 
 **Recommended channel:** `#sales-alerts` or `#outbound-replies`
 **Notification format:**
+
 ```
 🚨 SimpleBeacon Reply Alert
 
@@ -111,16 +112,16 @@ IMAP_PORT=993
 
 The monitor automatically classifies replies by intent:
 
-| Intent | Trigger Keywords | Priority | SLA |
-|--------|-----------------|----------|-----|
-| demo-request | demo, call, meeting, schedule, interested, yes | HIGH | 2 hours |
-| pricing-request | pricing, cost, quote, budget | HIGH | 2 hours |
-| technical-question | question, how, what, why, technical | MEDIUM | 4 hours |
-| prospect-reply | Any reply from a known prospect email | HIGH | 2 hours |
-| unsubscribe | unsubscribe, remove, stop | LOW | Same day |
-| auto-reply | out of office, OOO, auto-reply | LOW | Auto-skip |
-| not-interested | not interested, no thanks, pass | LOW | Same day |
-| unknown | Any other reply | MEDIUM | 4 hours |
+| Intent             | Trigger Keywords                               | Priority | SLA       |
+| ------------------ | ---------------------------------------------- | -------- | --------- |
+| demo-request       | demo, call, meeting, schedule, interested, yes | HIGH     | 2 hours   |
+| pricing-request    | pricing, cost, quote, budget                   | HIGH     | 2 hours   |
+| technical-question | question, how, what, why, technical            | MEDIUM   | 4 hours   |
+| prospect-reply     | Any reply from a known prospect email          | HIGH     | 2 hours   |
+| unsubscribe        | unsubscribe, remove, stop                      | LOW      | Same day  |
+| auto-reply         | out of office, OOO, auto-reply                 | LOW      | Auto-skip |
+| not-interested     | not interested, no thanks, pass                | LOW      | Same day  |
+| unknown            | Any other reply                                | MEDIUM   | 4 hours   |
 
 ---
 
@@ -167,6 +168,7 @@ screen -r reply-monitor
 ## State Management
 
 The monitor tracks seen message IDs in `.reply-monitor-state.json` to avoid duplicate notifications. This file:
+
 - Is created automatically on first run
 - Stores up to 1000 message IDs
 - Is trimmed automatically when it exceeds 1000 entries
@@ -176,14 +178,14 @@ The monitor tracks seen message IDs in `.reply-monitor-state.json` to avoid dupl
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|---------|
-| "imapflow not installed" | Run `npm install -g imapflow` |
-| "Missing IMAP env vars" | Set IMAP_HOST, IMAP_USER, IMAP_PASS |
-| "Webhook failed: 401" | Check your Slack/Discord webhook URL |
-| No messages found | Check IMAP_LABEL (try "INBOX" or "All Mail") |
-| Duplicate notifications | Delete `.reply-monitor-state.json` and restart |
-| Zoho IMAP connection refused | Verify IMAP is enabled in Zoho Mail settings |
+| Issue                        | Solution                                       |
+| ---------------------------- | ---------------------------------------------- |
+| "imapflow not installed"     | Run `npm install -g imapflow`                  |
+| "Missing IMAP env vars"      | Set IMAP_HOST, IMAP_USER, IMAP_PASS            |
+| "Webhook failed: 401"        | Check your Slack/Discord webhook URL           |
+| No messages found            | Check IMAP_LABEL (try "INBOX" or "All Mail")   |
+| Duplicate notifications      | Delete `.reply-monitor-state.json` and restart |
+| Zoho IMAP connection refused | Verify IMAP is enabled in Zoho Mail settings   |
 
 ---
 

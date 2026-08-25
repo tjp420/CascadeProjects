@@ -7,21 +7,25 @@ The Enhanced AI Analyzer significantly improves the SimpleBeacon AI analysis cap
 ## Key Features
 
 ### 1. Enhanced AI Orchestration
+
 - **Progressive Analysis**: Multi-layer analysis with static, semantic, contextual, and AI-powered insights
 - **Intelligent Model Selection**: Automatic model selection based on analysis requirements and performance
 - **Adaptive Fallback**: Graceful degradation when preferred models are unavailable
 
 ### 2. Real-time Analysis Streaming
+
 - **WebSocket Support**: Real-time analysis updates via WebSocket connections
 - **Incremental Processing**: Analyze code chunks as they're provided
 - **Session Management**: Persistent analysis sessions with automatic cleanup
 
 ### 3. Enhanced Model Management
+
 - **Circuit Breaker Pattern**: Automatic failover when models become unresponsive
 - **Health Monitoring**: Track model performance and availability
 - **Intelligent Routing**: Route requests to optimal models based on requirements
 
 ### 4. ML Pattern Detection
+
 - **Statistical Analysis**: Pattern detection using statistical methods
 - **Multiple Categories**: Architecture, security, performance, maintainability, testing patterns
 - **Confidence Scoring**: Pattern confidence assessment with detailed insights
@@ -31,117 +35,134 @@ The Enhanced AI Analyzer significantly improves the SimpleBeacon AI analysis cap
 ### Basic Enhanced Analysis
 
 ```javascript
-const { progressiveAnalysis, ANALYSIS_PROFILES } = require('./server/lib/enhanced-ai-orchestrator.cjs');
+const {
+  progressiveAnalysis,
+  ANALYSIS_PROFILES,
+} = require("./server/lib/enhanced-ai-orchestrator.cjs");
 
 // Perform balanced analysis
-const result = await progressiveAnalysis(codeContent, {
-    filePath: 'src/components/UserForm.js',
-    projectPath: '/path/to/project',
-    analysisType: 'general'
-}, {
-    profile: 'balanced',
-    baseDir: __dirname
-});
+const result = await progressiveAnalysis(
+  codeContent,
+  {
+    filePath: "src/components/UserForm.js",
+    projectPath: "/path/to/project",
+    analysisType: "general",
+  },
+  {
+    profile: "balanced",
+    baseDir: __dirname,
+  },
+);
 
-console.log('Analysis result:', result);
+console.log("Analysis result:", result);
 ```
 
 ### Real-time Streaming Analysis
 
 ```javascript
 // Create analysis session
-const sessionResponse = await fetch('/api/realtime/session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        profile: 'realtime',
-        analysisType: 'security'
-    })
+const sessionResponse = await fetch("/api/realtime/session", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    profile: "realtime",
+    analysisType: "security",
+  }),
 });
 
 const { sessionId } = await sessionResponse.json();
 
 // Analyze code chunks
 await fetch(`/api/realtime/analyze/${sessionId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        chunkId: 'chunk-1',
-        content: 'function validateInput(input) { return input.trim(); }',
-        context: { filePath: 'utils/validation.js' }
-    })
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    chunkId: "chunk-1",
+    content: "function validateInput(input) { return input.trim(); }",
+    context: { filePath: "utils/validation.js" },
+  }),
 });
 
 // Get results
-const resultsResponse = await fetch(`/api/realtime/session/${sessionId}/results`);
+const resultsResponse = await fetch(
+  `/api/realtime/session/${sessionId}/results`,
+);
 const results = await resultsResponse.json();
 ```
 
 ### WebSocket Real-time Analysis
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8082/api/realtime/stream?sessionId=your-session-id');
+const ws = new WebSocket(
+  "ws://localhost:8082/api/realtime/stream?sessionId=your-session-id",
+);
 
 ws.onopen = () => {
-    console.log('Connected to real-time analysis');
+  console.log("Connected to real-time analysis");
 };
 
 ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'analysis_result') {
-        console.log('Real-time analysis result:', data.result);
-    }
+  const data = JSON.parse(event.data);
+  if (data.type === "analysis_result") {
+    console.log("Real-time analysis result:", data.result);
+  }
 };
 
 // Send analysis request
-ws.send(JSON.stringify({
-    type: 'analyze',
-    chunkId: 'chunk-1',
-    content: 'your code here',
-    context: { filePath: 'example.js' }
-}));
+ws.send(
+  JSON.stringify({
+    type: "analyze",
+    chunkId: "chunk-1",
+    content: "your code here",
+    context: { filePath: "example.js" },
+  }),
+);
 ```
 
 ### Enhanced Model Management
 
 ```javascript
-const { getModelManager } = require('./server/services/enhanced-model-manager.cjs');
+const {
+  getModelManager,
+} = require("./server/services/enhanced-model-manager.cjs");
 
 const modelManager = getModelManager(__dirname);
 
 // Get optimal model for analysis
 const model = await modelManager.getOptimalModel({
-    preferredProvider: 'openai',
-    analysisType: 'security',
-    complexity: 'high',
-    maxResponseTime: 30000
+  preferredProvider: "openai",
+  analysisType: "security",
+  complexity: "high",
+  maxResponseTime: 30000,
 });
 
 // Execute analysis with automatic retry and fallback
 const result = await modelManager.executeAnalysis(model.id, prompt, {
-    timeout: 60000,
-    maxRetries: 2,
-    requirements: {
-        analysisType: 'security',
-        complexity: 'high'
-    }
+  timeout: 60000,
+  maxRetries: 2,
+  requirements: {
+    analysisType: "security",
+    complexity: "high",
+  },
 });
 ```
 
 ### ML Pattern Detection
 
 ```javascript
-const { detectMLPatterns } = require('./server/lib/code-understanding/ml-pattern-detector.cjs');
+const {
+  detectMLPatterns,
+} = require("./server/lib/code-understanding/ml-pattern-detector.cjs");
 
 const patterns = detectMLPatterns(codeContent, {
-    filePath: 'src/controllers/UserController.js',
-    projectPath: '/path/to/project',
-    language: 'javascript'
+  filePath: "src/controllers/UserController.js",
+  projectPath: "/path/to/project",
+  language: "javascript",
 });
 
-console.log('Detected patterns:', patterns.patterns);
-console.log('Pattern summary:', patterns.summary);
-console.log('Insights:', patterns.insights);
+console.log("Detected patterns:", patterns.patterns);
+console.log("Pattern summary:", patterns.summary);
+console.log("Insights:", patterns.insights);
 ```
 
 ## API Endpoints
@@ -163,21 +184,25 @@ console.log('Insights:', patterns.insights);
 ## Analysis Profiles
 
 ### Quick Profile
+
 - **Use Case**: Fast feedback during development
 - **Features**: Basic static analysis, 30-second timeout
 - **Model Preference**: Local models preferred
 
 ### Balanced Profile
+
 - **Use Case**: General purpose analysis
 - **Features**: Static + semantic analysis, 60-second timeout
 - **Model Preference**: Hybrid approach
 
 ### Comprehensive Profile
+
 - **Use Case**: Deep analysis for code reviews
 - **Features**: All analysis layers including expert reviews, 120-second timeout
 - **Model Preference**: Cloud models preferred
 
 ### Realtime Profile
+
 - **Use Case**: Live code analysis
 - **Features**: Incremental analysis, 15-second timeout
 - **Model Preference**: Local models for speed
@@ -185,21 +210,25 @@ console.log('Insights:', patterns.insights);
 ## Pattern Categories
 
 ### Architecture Patterns
+
 - MVC (Model-View-Controller)
 - Repository Pattern
 - Dependency Injection
 
 ### Security Patterns
+
 - Input Validation
 - Authentication Flow
 - Error Handling
 
 ### Performance Patterns
+
 - Caching
 - Async Operations
 - Data Pipelines
 
 ### Maintainability Patterns
+
 - Code Structure
 - Testing Patterns
 - Documentation
@@ -242,16 +271,19 @@ The enhanced analyzer includes comprehensive error handling:
 ## Performance Considerations
 
 ### Caching
+
 - Model availability cached for 30 seconds
 - Analysis sessions auto-expire after 30 minutes
 - Pattern detection results cached per session
 
 ### Resource Management
+
 - WebSocket connections limited and monitored
 - Memory usage tracked for large analyses
 - Automatic cleanup of inactive sessions
 
 ### Optimization Tips
+
 1. Use appropriate analysis profiles for your use case
 2. Prefer local models for real-time analysis
 3. Configure timeouts based on your requirements
@@ -264,19 +296,19 @@ The enhanced analyzer includes comprehensive error handling:
 ```javascript
 // Enhanced analysis in VS Code extension
 async function analyzeDocument(document) {
-    const response = await fetch('/api/analyze/flexible', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            projectPath: workspace.rootPath,
-            analysisType: 'codebase',
-            profile: 'balanced',
-            understandingMode: 'enhanced',
-            includePaths: [document.uri.fsPath]
-        })
-    });
-    
-    return await response.json();
+  const response = await fetch("/api/analyze/flexible", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectPath: workspace.rootPath,
+      analysisType: "codebase",
+      profile: "balanced",
+      understandingMode: "enhanced",
+      includePaths: [document.uri.fsPath],
+    }),
+  });
+
+  return await response.json();
 }
 ```
 
@@ -285,29 +317,29 @@ async function analyzeDocument(document) {
 ```javascript
 // Enhanced analysis in CI/CD
 async function runEnhancedAnalysis(projectPath) {
-    const response = await fetch('/api/analyze/flexible', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            projectPath,
-            analysisType: 'complete',
-            profile: 'comprehensive',
-            understandingMode: 'enhanced'
-        })
-    });
-    
-    const result = await response.json();
-    
-    // Check for security patterns
-    const securityPatterns = result.report.patterns?.filter(
-        p => p.category === 'security'
-    );
-    
-    if (securityPatterns.length === 0) {
-        console.warn('No security patterns detected');
-    }
-    
-    return result;
+  const response = await fetch("/api/analyze/flexible", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectPath,
+      analysisType: "complete",
+      profile: "comprehensive",
+      understandingMode: "enhanced",
+    }),
+  });
+
+  const result = await response.json();
+
+  // Check for security patterns
+  const securityPatterns = result.report.patterns?.filter(
+    (p) => p.category === "security",
+  );
+
+  if (securityPatterns.length === 0) {
+    console.warn("No security patterns detected");
+  }
+
+  return result;
 }
 ```
 
@@ -340,6 +372,7 @@ export RUNTIME_DEBUG=true
 ```
 
 This will provide detailed logs for:
+
 - Model selection process
 - Circuit breaker state changes
 - Analysis layer progress

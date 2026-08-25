@@ -33,13 +33,15 @@ window.ScanUtils = {
         try {
             await scanService.fetchReport();
             return {
-                issues: ((_a = scanService.report) === null || _a === void 0 ? void 0 : _a.rawIssues) || ((_b = scanService.report) === null || _b === void 0 ? void 0 : _b.detectedIssues) || [],
+                issues:
+                    ((_a = scanService.report) === null || _a === void 0 ? void 0 : _a.rawIssues) ||
+                    ((_b = scanService.report) === null || _b === void 0 ? void 0 : _b.detectedIssues) ||
+                    [],
                 projectPath: ((_c = scanService.report) === null || _c === void 0 ? void 0 : _c.projectRoot) || null,
                 timestamp: ((_d = scanService.report) === null || _d === void 0 ? void 0 : _d.timestamp) || null,
                 gateFailed: ((_e = scanService.report) === null || _e === void 0 ? void 0 : _e.gateFailed) || false
             };
-        }
-        catch (_f) {
+        } catch (_f) {
             return { issues: [] };
         }
     },

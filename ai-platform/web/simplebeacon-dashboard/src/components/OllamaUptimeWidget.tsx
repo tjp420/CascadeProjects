@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Cpu,
   Wifi,
@@ -12,9 +18,9 @@ import {
   Clock,
   HardDrive,
   Zap,
-} from 'lucide-react';
+} from "lucide-react";
 
-const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+const BROWSER_OLLAMA_URL = "http://127.0.0.1:11434";
 
 interface OllamaHealthData {
   ok: boolean;
@@ -28,13 +34,13 @@ interface OllamaHealthData {
   cached?: boolean;
 }
 
-type ConnectionStatus = 'connected' | 'disconnected' | 'checking' | 'error';
+type ConnectionStatus = "connected" | "disconnected" | "checking" | "error";
 
 function deriveStatus(data: OllamaHealthData | null): ConnectionStatus {
-  if (!data) return 'checking';
-  if (data.ok) return 'connected';
-  if (data.error) return 'error';
-  return 'disconnected';
+  if (!data) return "checking";
+  if (data.ok) return "connected";
+  if (data.error) return "error";
+  return "disconnected";
 }
 
 function formatLatency(ms: number): string {
@@ -46,7 +52,7 @@ function formatUptime(checkedAt: string): string {
   const now = Date.now();
   const checked = new Date(checkedAt).getTime();
   const diff = now - checked;
-  if (diff < 5000) return 'just now';
+  if (diff < 5000) return "just now";
   if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   return `${Math.floor(diff / 3600000)}h ago`;
@@ -57,14 +63,17 @@ function formatUptime(checkedAt: string): string {
  * cannot reach the user's local Ollama (127.0.0.1:11434), so we check from
  * the browser instead. This avoids the 404 on /api/ollama/health.
  */
-async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<OllamaHealthData> {
+async function probeBrowserOllama(
+  baseUrl: string,
+  timeoutMs = 3000,
+): Promise<OllamaHealthData> {
   const start = performance.now();
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+    const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/tags`, {
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
     clearTimeout(timer);
     const latencyMs = Math.round(performance.now() - start);
@@ -72,12 +81,14 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<Ol
     if (res.ok) {
       const data = await res.json();
       const models: string[] = Array.isArray(data.models)
-        ? data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim())
+        ? data.models
+            .map((m: any) => m.name)
+            .filter((n: string) => typeof n === "string" && n.trim())
         : [];
       return {
         ok: true,
         baseUrl,
-        endpoint: '/api/tags',
+        endpoint: "/api/tags",
         latencyMs,
         models,
         modelCount: models.length,
@@ -96,7 +107,7 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<Ol
     };
   } catch (err: any) {
     const latencyMs = Math.round(performance.now() - start);
-    if (err?.name === 'AbortError') {
+    if (err?.name === "AbortError") {
       return {
         ok: false,
         baseUrl,
@@ -105,11 +116,14 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<Ol
         models: [],
         modelCount: 0,
         checkedAt: new Date().toISOString(),
-        error: 'Ollama not responding (timeout)',
+        error: "Ollama not responding (timeout)",
       };
     }
     // TypeError: Failed to fetch — could be CORS or not running
-    const isHosted = typeof window !== 'undefined' && window.location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    const isHosted =
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:" &&
+      !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
     return {
       ok: false,
       baseUrl,
@@ -119,8 +133,8 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 3000): Promise<Ol
       modelCount: 0,
       checkedAt: new Date().toISOString(),
       error: isHosted
-        ? 'Cannot reach local Ollama. Ensure Ollama is running and OLLAMA_ORIGINS allows this site.'
-        : 'Cannot reach Ollama. Ensure `ollama serve` is running.',
+        ? "Cannot reach local Ollama. Ensure Ollama is running and OLLAMA_ORIGINS allows this site."
+        : "Cannot reach Ollama. Ensure `ollama serve` is running.",
     };
   }
 }
@@ -129,7 +143,9 @@ export function OllamaUptimeWidget() {
   const [data, setData] = useState<OllamaHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [pollInterval, setPollInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
 
   const fetchHealth = useCallback(async () => {
     // Probe Ollama directly from the browser — the hosted server cannot
@@ -157,53 +173,59 @@ export function OllamaUptimeWidget() {
   const statusConfig = {
     connected: {
       icon: Wifi,
-      color: 'text-success',
-      bg: 'bg-success/10',
-      border: 'border-success/30',
-      label: 'Connected',
-      badge: 'success' as const,
+      color: "text-success",
+      bg: "bg-success/10",
+      border: "border-success/30",
+      label: "Connected",
+      badge: "success" as const,
     },
     disconnected: {
       icon: WifiOff,
-      color: 'text-muted-foreground',
-      bg: 'bg-muted',
-      border: 'border-border',
-      label: 'Offline',
-      badge: 'secondary' as const,
+      color: "text-muted-foreground",
+      bg: "bg-muted",
+      border: "border-border",
+      label: "Offline",
+      badge: "secondary" as const,
     },
     checking: {
       icon: Loader2,
-      color: 'text-info',
-      bg: 'bg-info/10',
-      border: 'border-info/30',
-      label: 'Checking…',
-      badge: 'outline' as const,
+      color: "text-info",
+      bg: "bg-info/10",
+      border: "border-info/30",
+      label: "Checking…",
+      badge: "outline" as const,
     },
     error: {
       icon: WifiOff,
-      color: 'text-destructive',
-      bg: 'bg-destructive/10',
-      border: 'border-destructive/30',
-      label: 'Error',
-      badge: 'destructive' as const,
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+      border: "border-destructive/30",
+      label: "Error",
+      badge: "destructive" as const,
     },
   };
 
   const cfg = statusConfig[status];
   const StatusIcon = cfg.icon;
-  const isSpinning = status === 'checking';
+  const isSpinning = status === "checking";
 
   return (
     <Card className={`border ${cfg.border}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-md ${cfg.bg} ${cfg.color}`}>
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-md ${cfg.bg} ${cfg.color}`}
+            >
               <Cpu className="h-4 w-4" />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold">Ollama Status</CardTitle>
-              <CardDescription className="text-xs">Local LLM connection</CardDescription>
+              <CardTitle className="text-sm font-semibold">
+                Ollama Status
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Local LLM connection
+              </CardDescription>
             </div>
           </div>
           <Button
@@ -226,49 +248,69 @@ export function OllamaUptimeWidget() {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Status indicator */}
-        <div className={`flex items-center gap-2 rounded-md ${cfg.bg} px-3 py-2`}>
-          <StatusIcon className={`h-4 w-4 ${cfg.color} ${isSpinning ? 'animate-spin' : ''}`} />
-          <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
+        <div
+          className={`flex items-center gap-2 rounded-md ${cfg.bg} px-3 py-2`}
+        >
+          <StatusIcon
+            className={`h-4 w-4 ${cfg.color} ${isSpinning ? "animate-spin" : ""}`}
+          />
+          <span className={`text-sm font-medium ${cfg.color}`}>
+            {cfg.label}
+          </span>
           {data?.cached && (
-            <span className="text-xs text-muted-foreground ml-auto">cached</span>
+            <span className="text-xs text-muted-foreground ml-auto">
+              cached
+            </span>
           )}
         </div>
 
         {/* Metrics grid */}
-        {data && status === 'connected' && (
+        {data && status === "connected" && (
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center gap-1.5">
               <Activity className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">Latency</span>
-              <span className="font-mono font-medium ml-auto">{formatLatency(data.latencyMs)}</span>
+              <span className="font-mono font-medium ml-auto">
+                {formatLatency(data.latencyMs)}
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">Models</span>
-              <span className="font-mono font-medium ml-auto">{data.modelCount}</span>
+              <span className="font-mono font-medium ml-auto">
+                {data.modelCount}
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">Endpoint</span>
               <span className="font-mono font-medium ml-auto truncate max-w-[100px]">
-                {data.endpoint || '/api/status'}
+                {data.endpoint || "/api/status"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">Checked</span>
-              <span className="font-mono font-medium ml-auto">{formatUptime(data.checkedAt)}</span>
+              <span className="font-mono font-medium ml-auto">
+                {formatUptime(data.checkedAt)}
+              </span>
             </div>
           </div>
         )}
 
         {/* Model list */}
-        {data && status === 'connected' && data.models.length > 0 && (
+        {data && status === "connected" && data.models.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Available Models</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Available Models
+            </p>
             <div className="flex flex-wrap gap-1">
               {data.models.slice(0, 6).map((model) => (
-                <Badge key={model} variant="outline" className="text-xs font-mono">
+                <Badge
+                  key={model}
+                  variant="outline"
+                  className="text-xs font-mono"
+                >
                   {model}
                 </Badge>
               ))}
@@ -289,20 +331,19 @@ export function OllamaUptimeWidget() {
         )}
 
         {/* Error message */}
-        {error && status !== 'connected' && (
+        {error && status !== "connected" && (
           <p className="text-xs text-destructive">{error}</p>
         )}
 
         {/* Disconnected hint */}
-        {status === 'disconnected' && !error && (
+        {status === "disconnected" && !error && (
           <p className="text-xs text-muted-foreground">
-            Run <code className="font-mono">ollama serve</code> locally to enable AI-powered features.
+            Run <code className="font-mono">ollama serve</code> locally to
+            enable AI-powered features.
           </p>
         )}
-        {status === 'disconnected' && error && (
-          <p className="text-xs text-muted-foreground">
-            {error}
-          </p>
+        {status === "disconnected" && error && (
+          <p className="text-xs text-muted-foreground">{error}</p>
         )}
       </CardContent>
     </Card>

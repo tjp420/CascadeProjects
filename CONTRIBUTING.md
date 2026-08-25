@@ -33,30 +33,30 @@ The [Matrix Release Pipeline](https://github.com/tjp420/CascadeProjects/blob/mai
 
 ### Bump Type Labels (apply exactly one)
 
-| Label | Bump | Example | Use When |
-|-------|------|---------|----------|
+| Label           | Bump  | Example           | Use When                                    |
+| --------------- | ----- | ----------------- | ------------------------------------------- |
 | `release:patch` | patch | `1.1.2` → `1.1.3` | Bug fixes, small tweaks, dependency updates |
-| `release:minor` | minor | `1.1.2` → `1.2.0` | New features, no breaking changes |
-| `release:major` | major | `1.1.2` → `2.0.0` | Breaking changes that require user action |
-| _(no label)_ | — | — | Documentation, CI tweaks, chores |
+| `release:minor` | minor | `1.1.2` → `1.2.0` | New features, no breaking changes           |
+| `release:major` | major | `1.1.2` → `2.0.0` | Breaking changes that require user action   |
+| _(no label)_    | —     | —                 | Documentation, CI tweaks, chores            |
 
 ### Scope Labels (optional — defaults to both)
 
-| Label | Scope | Packages Released |
-|-------|-------|-------------------|
-| `release:cli-only` | CLI only | `simplebeacon` on npm |
+| Label                 | Scope        | Packages Released                    |
+| --------------------- | ------------ | ------------------------------------ |
+| `release:cli-only`    | CLI only     | `simplebeacon` on npm                |
 | `release:vscode-only` | VS Code only | `simplebeacon-vscode` on Marketplace |
-| _(no scope label)_ | Both | CLI + VS Code extension in parallel |
+| _(no scope label)_    | Both         | CLI + VS Code extension in parallel  |
 
 ### Fallback: Commit Message Conventions
 
 If no release label is applied, the pipeline falls back to commit message conventions:
 
-| Pattern | Bump |
-|---------|------|
-| `breaking:` or `BREAKING CHANGE` | major |
-| `feat:` or `feature:` | minor |
-| `fix:` or `bugfix:` or `resolve:` | patch |
+| Pattern                                   | Bump       |
+| ----------------------------------------- | ---------- |
+| `breaking:` or `BREAKING CHANGE`          | major      |
+| `feat:` or `feature:`                     | minor      |
+| `fix:` or `bugfix:` or `resolve:`         | patch      |
 | only `chore:` / `docs:` / `test:` / `ci:` | no release |
 
 ### Dry-Run the Bump Resolution

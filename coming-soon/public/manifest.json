@@ -1,19 +1,19 @@
 {
-  "name": "SimpleBeacon",
-  "short_name": "SimpleBeacon",
-  "description": "Catch AI code debt that traditional linting misses. 48 analyzers + 25 scan engines scan locally, in seconds, before CI.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0B0F19",
-  "theme_color": "#0d1117",
-  "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["developer", "security", "testing"],
-  "lang": "en"
+    "name": "SimpleBeacon",
+    "short_name": "SimpleBeacon",
+    "description": "Catch AI code debt that traditional linting misses. 48 analyzers + 25 scan engines scan locally, in seconds, before CI.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0B0F19",
+    "theme_color": "#0d1117",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["developer", "security", "testing"],
+    "lang": "en"
 }

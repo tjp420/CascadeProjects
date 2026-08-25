@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
 | Feature / change | Track 50: Confidential Federated Learning and ZK Model Aggregation |
-| Author (Builder) | Devin |
-| Date | 2026-08-03 |
-| Branch | `feature/track50-confidential-federated-learning` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                              |
+| Date             | 2026-08-03                                                         |
+| Branch           | `feature/track50-confidential-federated-learning`                  |
+| Packages touched | ai-platform                                                        |
 
 ## Scope
 
@@ -82,43 +82,43 @@
 
 ## 3. Test Inventory
 
-| Test ID | Describe Block | Test Name | Assertions |
-|---------|---------------|-----------|------------|
-| FL-01a | initiateRound | initiates a round with valid participants | roundId, roundNumber, phase, participantIds |
-| FL-01b | initiateRound | rejects insufficient participants | HsmAdapterError |
-| FL-01c | initiateRound | rejects too many participants | HsmAdapterError |
-| FL-01d | initiateRound | rejects duplicate participants | HsmAdapterError |
-| FL-01e | initiateRound | rejects null config | HsmAdapterError |
-| FL-01f | initiateRound | auto-increments round number | r2.roundNumber = r1.roundNumber + 1 |
-| FL-02a | submitGradient | submits a valid gradient | submitted, totalSubmissions |
-| FL-02b | submitGradient | rejects unknown participant | HsmAdapterError |
-| FL-02c | submitGradient | rejects duplicate submission | HsmAdapterError |
-| FL-02d | submitGradient | rejects empty gradient | HsmAdapterError |
-| FL-02e | submitGradient | rejects missing ZK proof when required | HsmAdapterError |
-| FL-02f | submitGradient | rejects short ZK proof | HsmAdapterError |
-| FL-02g | submitGradient | rejects gradient too large | HsmAdapterError |
-| FL-02h | submitGradient | rejects unknown round | HsmAdapterError |
-| FL-02i | submitGradient | rejects attestation requirement when enabled | HsmAdapterError |
-| FL-02j | submitGradient | accepts submission with attestation | submitted = true |
-| FL-03a | verifyGradients | verifies all valid gradients | verifiedCount, phase = AGGREGATING |
-| FL-03b | verifyGradients | rejects verification before all submissions | HsmAdapterError |
-| FL-03c | verifyGradients | rejects verification in wrong phase | HsmAdapterError |
-| FL-03d | verifyGradients | fails on invalid proof | verifiedCount = 1, phase = FAILED |
-| FL-03e | aggregateGradients | aggregates verified gradients into new model | phase = COMPLETED, aggregatedWeights, participantCount |
-| FL-03f | aggregateGradients | rejects aggregation before verification | HsmAdapterError |
-| FL-03g | aggregateGradients | updates global model version | model.version = roundNumber |
-| FL-03h | full training round | complete initiate -> submit -> verify -> aggregate flow | verifiedCount = 3, phase = COMPLETED |
-| FL-03i | getRound | returns active round state | round not null, roundId matches |
-| FL-03j | getRound | returns completed round from history | round not null, roundNumber matches |
-| FL-03k | getRound | returns null for unknown round | null |
-| FL-03l | getActiveRounds | returns all active rounds | length = 2 |
-| FL-03m | getCompletedRounds | returns completed rounds history | length = 1 |
-| FL-01g | checkExpiredRounds | expires rounds past timeout | expired length = 1, roundId matches |
-| FL-03n | getStats | returns summary statistics | activeRounds, completedRounds, aggregationAlgorithm |
-| FL-03o | getGlobalModel | returns initial model state | version = 0, weights = null |
-| FL-03p | getGlobalModel | returns updated model after aggregation | version = 1, weights length = 2 |
-| FL-03q | reset | clears all state | activeRounds = 0, completedRounds = 0, version = 0 |
-| FL-02k | no ZK proof mode | allows submission without ZK proof | submitted = true |
+| Test ID | Describe Block      | Test Name                                               | Assertions                                             |
+| ------- | ------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| FL-01a  | initiateRound       | initiates a round with valid participants               | roundId, roundNumber, phase, participantIds            |
+| FL-01b  | initiateRound       | rejects insufficient participants                       | HsmAdapterError                                        |
+| FL-01c  | initiateRound       | rejects too many participants                           | HsmAdapterError                                        |
+| FL-01d  | initiateRound       | rejects duplicate participants                          | HsmAdapterError                                        |
+| FL-01e  | initiateRound       | rejects null config                                     | HsmAdapterError                                        |
+| FL-01f  | initiateRound       | auto-increments round number                            | r2.roundNumber = r1.roundNumber + 1                    |
+| FL-02a  | submitGradient      | submits a valid gradient                                | submitted, totalSubmissions                            |
+| FL-02b  | submitGradient      | rejects unknown participant                             | HsmAdapterError                                        |
+| FL-02c  | submitGradient      | rejects duplicate submission                            | HsmAdapterError                                        |
+| FL-02d  | submitGradient      | rejects empty gradient                                  | HsmAdapterError                                        |
+| FL-02e  | submitGradient      | rejects missing ZK proof when required                  | HsmAdapterError                                        |
+| FL-02f  | submitGradient      | rejects short ZK proof                                  | HsmAdapterError                                        |
+| FL-02g  | submitGradient      | rejects gradient too large                              | HsmAdapterError                                        |
+| FL-02h  | submitGradient      | rejects unknown round                                   | HsmAdapterError                                        |
+| FL-02i  | submitGradient      | rejects attestation requirement when enabled            | HsmAdapterError                                        |
+| FL-02j  | submitGradient      | accepts submission with attestation                     | submitted = true                                       |
+| FL-03a  | verifyGradients     | verifies all valid gradients                            | verifiedCount, phase = AGGREGATING                     |
+| FL-03b  | verifyGradients     | rejects verification before all submissions             | HsmAdapterError                                        |
+| FL-03c  | verifyGradients     | rejects verification in wrong phase                     | HsmAdapterError                                        |
+| FL-03d  | verifyGradients     | fails on invalid proof                                  | verifiedCount = 1, phase = FAILED                      |
+| FL-03e  | aggregateGradients  | aggregates verified gradients into new model            | phase = COMPLETED, aggregatedWeights, participantCount |
+| FL-03f  | aggregateGradients  | rejects aggregation before verification                 | HsmAdapterError                                        |
+| FL-03g  | aggregateGradients  | updates global model version                            | model.version = roundNumber                            |
+| FL-03h  | full training round | complete initiate -> submit -> verify -> aggregate flow | verifiedCount = 3, phase = COMPLETED                   |
+| FL-03i  | getRound            | returns active round state                              | round not null, roundId matches                        |
+| FL-03j  | getRound            | returns completed round from history                    | round not null, roundNumber matches                    |
+| FL-03k  | getRound            | returns null for unknown round                          | null                                                   |
+| FL-03l  | getActiveRounds     | returns all active rounds                               | length = 2                                             |
+| FL-03m  | getCompletedRounds  | returns completed rounds history                        | length = 1                                             |
+| FL-01g  | checkExpiredRounds  | expires rounds past timeout                             | expired length = 1, roundId matches                    |
+| FL-03n  | getStats            | returns summary statistics                              | activeRounds, completedRounds, aggregationAlgorithm    |
+| FL-03o  | getGlobalModel      | returns initial model state                             | version = 0, weights = null                            |
+| FL-03p  | getGlobalModel      | returns updated model after aggregation                 | version = 1, weights length = 2                        |
+| FL-03q  | reset               | clears all state                                        | activeRounds = 0, completedRounds = 0, version = 0     |
+| FL-02k  | no ZK proof mode    | allows submission without ZK proof                      | submitted = true                                       |
 
 ## 4. Level 1 Gates
 
@@ -129,9 +129,9 @@
 
 ## 5. Risk Assessment
 
-| Risk | Mitigation |
-|------|------------|
-| Timer-based expiration test flaky under load | Uses 50ms timeout with 100ms wait — generous margin |
-| ZK proof validation assumes hex encoding | Test uses `pid.charCodeAt(0).toString(16)` for valid hex generation |
-| Gradient size boundary edge cases | Explicit `maxGradientSize: 10` test with 20-element array |
-| Attestation-gated mode bypass | Separate `requireAttestation: true` instance with attestation object check |
+| Risk                                         | Mitigation                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| Timer-based expiration test flaky under load | Uses 50ms timeout with 100ms wait — generous margin                        |
+| ZK proof validation assumes hex encoding     | Test uses `pid.charCodeAt(0).toString(16)` for valid hex generation        |
+| Gradient size boundary edge cases            | Explicit `maxGradientSize: 10` test with 20-element array                  |
+| Attestation-gated mode bypass                | Separate `requireAttestation: true` instance with attestation object check |

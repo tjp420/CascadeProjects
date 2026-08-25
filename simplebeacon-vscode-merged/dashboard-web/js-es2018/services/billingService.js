@@ -6,24 +6,24 @@ import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverabl
  * the optional dashboard runs without Stripe or subscription gates.
  */
 const COMMUNITY_PLAN = {
-    enabled: false,
-    internalDashboard: true,
-    tiers: {
-        community: {
-            priceLabel: '$0',
-            features: [
-                'Unlimited local scans',
-                'JSON + text reports',
-                'Gate policy (--gate)',
-                'GitHub Action + pre-commit hooks'
-            ]
-        }
-    }
+  enabled: false,
+  internalDashboard: true,
+  tiers: {
+    community: {
+      priceLabel: '$0',
+      features: [
+        'Unlimited local scans',
+        'JSON + text reports',
+        'Gate policy (--gate)',
+        'GitHub Action + pre-commit hooks',
+      ],
+    },
+  },
 };
 const COMMUNITY_STATUS = {
-    tier: 'community',
-    subscriptionActive: false,
-    bypass: true
+  tier: 'community',
+  subscriptionActive: false,
+  bypass: true,
 };
 const EMAIL_KEY = 'simplebeacon_billing_email';
 const TOKEN_KEY = 'simplebeacon_billing_api_token';
@@ -31,209 +31,224 @@ const TOKEN_KEY = 'simplebeacon_billing_api_token';
  * Billing service.
  */
 function safeStripeRedirect(url) {
-        try {
-                const parsed = new URL(url);
-                if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
-                        window.open(parsed.href, '_self');
-                        return true;
-                }
-                return false;
-        } catch {
-                return false;
-        }
+  try {
+    const parsed = new URL(url);
+    if (
+      parsed.hostname === 'checkout.stripe.com' ||
+      parsed.hostname === 'billing.stripe.com' ||
+      parsed.hostname.endsWith('.stripe.com')
+    ) {
+      window.open(parsed.href, '_self');
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
-
 export class BillingService {
-    constructor() {
-        this.plan = COMMUNITY_PLAN;
-        this.status = COMMUNITY_STATUS;
+  constructor() {
+    this.plan = COMMUNITY_PLAN;
+    this.status = COMMUNITY_STATUS;
+  }
+  getEmail() {
+    return localStorage.getItem(EMAIL_KEY) || '';
+  }
+  setEmail(email) {
+    const normalized = String(email || '')
+      .trim()
+      .toLowerCase();
+    if (normalized) {
+      localStorage.setItem(EMAIL_KEY, normalized);
+    } else {
+      localStorage.removeItem(EMAIL_KEY);
     }
-    getEmail() {
-        return localStorage.getItem(EMAIL_KEY) || '';
+    return normalized;
+  }
+  getApiToken() {
+    return localStorage.getItem(TOKEN_KEY) || '';
+  }
+  setApiToken(token) {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
     }
-    setEmail(email) {
-        const normalized = String(email || '').trim().toLowerCase();
-        if (normalized) {
-            localStorage.setItem(EMAIL_KEY, normalized);
-        }
-        else {
-            localStorage.removeItem(EMAIL_KEY);
-        }
-        return normalized;
-    }
-    getApiToken() {
-        return localStorage.getItem(TOKEN_KEY) || '';
-    }
-    setApiToken(token) {
-        if (token) {
-            localStorage.setItem(TOKEN_KEY, token);
-        }
-        else {
-            localStorage.removeItem(TOKEN_KEY);
-        }
-    }
-    getAuthHeaders() {
-        return {};
-    }
-    getRequestHeaders(extra = {}) {
-        return {
-            ...authService.getAuthHeaders(),
-            ...extra
-        };
-    }
-    isSubscribed() {
-        return false;
-    }
-    hasCloudTeamsAccess(plan = this.plan, status = this.status) {
-        return Boolean((plan === null || plan === void 0 ? void 0 : plan.internalDashboard) || (status === null || status === void 0 ? void 0 : status.bypass));
-    }
-    async resolveEntitlement(_email = this.getEmail() || '') {
-        const entitlementPayload = await withRecoverableFallback('billing entitlements fetch', async () => {
-            const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
-                headers: this.getRequestHeaders()
-            });
-            if (!entitlementResponse.ok) {
-                throw new Error(`Entitlements unavailable (${entitlementResponse.status})`);
-            }
-            return readJsonResponseBody(entitlementResponse, null);
-        }, null);
-        if (entitlementPayload) {
-            this.plan = {
-                ...COMMUNITY_PLAN,
-                auditCheckoutUrl: entitlementPayload.auditCheckoutUrl,
-                auditPriceLabel: entitlementPayload.auditPriceLabel || '$499'
-            };
-            this.status = {
-                ...COMMUNITY_STATUS,
-                publicGateLocked: Boolean(entitlementPayload.publicGateLocked),
-                hasAuditDeliverableAccess: Boolean(entitlementPayload.hasAuditDeliverableAccess),
-                bypass: Boolean(entitlementPayload.hasAuditDeliverableAccess)
-            };
-            return { plan: this.plan, status: this.status, allowed: this.hasCloudTeamsAccess(this.plan, this.status) };
-        }
-        this.plan = COMMUNITY_PLAN;
-        this.status = COMMUNITY_STATUS;
-        return {
-            plan: this.plan,
-            status: this.status,
-            allowed: this.hasCloudTeamsAccess(this.plan, this.status)
-        };
-    }
-    hasAuditDeliverableAccess(status = this.status) {
-        return Boolean((status === null || status === void 0 ? void 0 : status.hasAuditDeliverableAccess) || (status === null || status === void 0 ? void 0 : status.bypass));
-    }
-    getAuditCheckoutUrl(plan = this.plan) {
-        return (plan === null || plan === void 0 ? void 0 : plan.auditCheckoutUrl)
-            || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
-    }
-    async fetchEntitlements() {
-        const resolved = await this.resolveEntitlement();
-        return resolved.status;
-    }
-    async fetchPlan() {
-        const resolved = await this.resolveEntitlement();
-        return resolved.plan;
-    }
-    async fetchStatus() {
-        const resolved = await this.resolveEntitlement();
-        return resolved.status;
-    }
-    async startCheckout(product = 'startup_monthly', email = '') {
-        const normalizedEmail = this.setEmail(email || this.getEmail());
-        if (!normalizedEmail) {
-            const err = new Error('Email is required for checkout');
-            err.code = 'email_required';
-            throw err;
-        }
-        const response = await fetch('/api/simplebeacon/billing/checkout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...this.getRequestHeaders()
-            },
-            body: JSON.stringify({ email: normalizedEmail, product })
+  }
+  getAuthHeaders() {
+    return {};
+  }
+  getRequestHeaders(extra = {}) {
+    return {
+      ...authService.getAuthHeaders(),
+      ...extra,
+    };
+  }
+  isSubscribed() {
+    return false;
+  }
+  hasCloudTeamsAccess(plan = this.plan, status = this.status) {
+    return Boolean(
+      (plan === null || plan === void 0 ? void 0 : plan.internalDashboard) ||
+      (status === null || status === void 0 ? void 0 : status.bypass)
+    );
+  }
+  async resolveEntitlement(_email = this.getEmail() || '') {
+    const entitlementPayload = await withRecoverableFallback(
+      'billing entitlements fetch',
+      async () => {
+        const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
+          headers: this.getRequestHeaders(),
         });
-        const data = await readJsonResponseBody(response, {});
-        if (!response.ok) {
-            const err = new Error(data.message || data.error || 'Checkout failed');
-            err.code = data.error || 'checkout_failed';
-            throw err;
+        if (!entitlementResponse.ok) {
+          throw new Error(`Entitlements unavailable (${entitlementResponse.status})`);
         }
-        if (data.url) {
-            if (!safeStripeRedirect(data.url)) {
-                const err = new Error('Invalid redirect URL received from billing service');
-                err.code = 'invalid_redirect';
-                throw err;
-            }
-            return data;
-        }
-        throw new Error('Stripe checkout URL missing — set STRIPE_PRICE_ID_STARTUP_MONTHLY on server');
+        return readJsonResponseBody(entitlementResponse, null);
+      },
+      null
+    );
+    if (entitlementPayload) {
+      this.plan = {
+        ...COMMUNITY_PLAN,
+        auditCheckoutUrl: entitlementPayload.auditCheckoutUrl,
+        auditPriceLabel: entitlementPayload.auditPriceLabel || '$499',
+      };
+      this.status = {
+        ...COMMUNITY_STATUS,
+        publicGateLocked: Boolean(entitlementPayload.publicGateLocked),
+        hasAuditDeliverableAccess: Boolean(entitlementPayload.hasAuditDeliverableAccess),
+        bypass: Boolean(entitlementPayload.hasAuditDeliverableAccess),
+      };
+      return { plan: this.plan, status: this.status, allowed: this.hasCloudTeamsAccess(this.plan, this.status) };
     }
-
-    async fetchCheckoutSession(sessionId) {
-        const response = await fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`, {
-            headers: {
-                Accept: 'application/json',
-                ...this.getRequestHeaders()
-            }
-        });
-        const data = await readJsonResponseBody(response, {});
-        if (!response.ok) {
-            const err = new Error(data.message || data.error || 'Session lookup failed');
-            err.code = data.error || 'session_lookup_failed';
-            throw err;
-        }
-        return data;
+    this.plan = COMMUNITY_PLAN;
+    this.status = COMMUNITY_STATUS;
+    return {
+      plan: this.plan,
+      status: this.status,
+      allowed: this.hasCloudTeamsAccess(this.plan, this.status),
+    };
+  }
+  hasAuditDeliverableAccess(status = this.status) {
+    return Boolean(
+      (status === null || status === void 0 ? void 0 : status.hasAuditDeliverableAccess) ||
+      (status === null || status === void 0 ? void 0 : status.bypass)
+    );
+  }
+  getAuditCheckoutUrl(plan = this.plan) {
+    return (
+      (plan === null || plan === void 0 ? void 0 : plan.auditCheckoutUrl) ||
+      'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report'
+    );
+  }
+  async fetchEntitlements() {
+    const resolved = await this.resolveEntitlement();
+    return resolved.status;
+  }
+  async fetchPlan() {
+    const resolved = await this.resolveEntitlement();
+    return resolved.plan;
+  }
+  async fetchStatus() {
+    const resolved = await this.resolveEntitlement();
+    return resolved.status;
+  }
+  async startCheckout(product = 'startup_monthly', email = '') {
+    const normalizedEmail = this.setEmail(email || this.getEmail());
+    if (!normalizedEmail) {
+      const err = new Error('Email is required for checkout');
+      err.code = 'email_required';
+      throw err;
     }
-
-    async confirmSession(sessionId) {
-        if (!sessionId) {
-            return { subscription: this.status };
-        }
-        const data = await this.fetchCheckoutSession(sessionId);
-        const token = data?.token || data?.licenseToken;
-        if (token) {
-            this.setApiToken(token);
-            if (data.email) {
-                this.setEmail(data.email);
-            }
-            this.status = {
-                ...COMMUNITY_STATUS,
-                tier: data.tier || data.subscription?.tier || 'team',
-                subscriptionActive: true,
-                bypass: false
-            };
-        }
-        return { subscription: this.status, ...data };
+    const response = await fetch('/api/simplebeacon/billing/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getRequestHeaders(),
+      },
+      body: JSON.stringify({ email: normalizedEmail, product }),
+    });
+    const data = await readJsonResponseBody(response, {});
+    if (!response.ok) {
+      const err = new Error(data.message || data.error || 'Checkout failed');
+      err.code = data.error || 'checkout_failed';
+      throw err;
     }
-
-    async openPortal() {
-        const email = this.getEmail();
-        if (!email) {
-            const err = new Error('Email is required to open the billing portal.');
-            err.code = 'email_required';
-            throw err;
-        }
-        const response = await fetch('/api/simplebeacon/billing/portal', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...this.getRequestHeaders() },
-            body: JSON.stringify({ email })
-        });
-        const data = await readJsonResponseBody(response, null);
-        if (response.ok && data?.url) {
-            if (!safeStripeRedirect(data.url)) {
-                const err = new Error('Invalid redirect URL received from billing service');
-                err.code = 'invalid_redirect';
-                throw err;
-            }
-            return data;
-        }
-        const err = new Error(data?.error || data?.message || `Billing portal unavailable (${response.status})`);
-        err.code = data?.error || 'billing_unavailable';
-        err.statusCode = response.status;
+    if (data.url) {
+      if (!safeStripeRedirect(data.url)) {
+        const err = new Error('Invalid redirect URL received from billing service');
+        err.code = 'invalid_redirect';
         throw err;
+      }
+      return data;
     }
+    throw new Error('Stripe checkout URL missing — set STRIPE_PRICE_ID_STARTUP_MONTHLY on server');
+  }
+
+  async fetchCheckoutSession(sessionId) {
+    const response = await fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`, {
+      headers: {
+        Accept: 'application/json',
+        ...this.getRequestHeaders(),
+      },
+    });
+    const data = await readJsonResponseBody(response, {});
+    if (!response.ok) {
+      const err = new Error(data.message || data.error || 'Session lookup failed');
+      err.code = data.error || 'session_lookup_failed';
+      throw err;
+    }
+    return data;
+  }
+
+  async confirmSession(sessionId) {
+    if (!sessionId) {
+      return { subscription: this.status };
+    }
+    const data = await this.fetchCheckoutSession(sessionId);
+    const token = data?.token || data?.licenseToken;
+    if (token) {
+      this.setApiToken(token);
+      if (data.email) {
+        this.setEmail(data.email);
+      }
+      this.status = {
+        ...COMMUNITY_STATUS,
+        tier: data.tier || data.subscription?.tier || 'team',
+        subscriptionActive: true,
+        bypass: false,
+      };
+    }
+    return { subscription: this.status, ...data };
+  }
+
+  async openPortal() {
+    const email = this.getEmail();
+    if (!email) {
+      const err = new Error('Email is required to open the billing portal.');
+      err.code = 'email_required';
+      throw err;
+    }
+    const response = await fetch('/api/simplebeacon/billing/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getRequestHeaders() },
+      body: JSON.stringify({ email }),
+    });
+    const data = await readJsonResponseBody(response, null);
+    if (response.ok && data?.url) {
+      if (!safeStripeRedirect(data.url)) {
+        const err = new Error('Invalid redirect URL received from billing service');
+        err.code = 'invalid_redirect';
+        throw err;
+      }
+      return data;
+    }
+    const err = new Error(data?.error || data?.message || `Billing portal unavailable (${response.status})`);
+    err.code = data?.error || 'billing_unavailable';
+    err.statusCode = response.status;
+    throw err;
+  }
 }
 /**
  * Billing service.

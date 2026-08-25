@@ -15,6 +15,7 @@ SimpleBeacon's default mode is **zero-upload**: your source code never leaves yo
 ### 1. Default: No LLM (Deterministic Scanning)
 
 By default, SimpleBeacon uses only deterministic rule engines:
+
 - Regex pattern matching
 - AST structural analysis
 - JSON schema validation
@@ -23,6 +24,7 @@ By default, SimpleBeacon uses only deterministic rule engines:
 **No LLM is called. No network request is made.**
 
 This is the mode used by:
+
 - `simplebeacon scan --offline`
 - VS Code extension default scans
 - GitHub Action runs
@@ -56,13 +58,13 @@ simplebeacon scan --fix --fix-provider ollama
 
 #### Recommended Models
 
-| Model | Size | Speed | Quality | Best For |
-|-------|------|-------|---------|----------|
-| **llama3.2:latest** | 3B | Very Fast | Good | Default recommendation; balances speed and quality |
-| **llama3.1:8b** | 8B | Fast | Very Good | Larger codebase analysis; better reasoning |
-| **codellama:7b** | 7B | Fast | Good | Code-specific remediation suggestions |
-| **mistral:7b** | 7B | Fast | Very Good | General remediation; good instruction following |
-| **qwen2.5:7b** | 7B | Fast | Excellent | Multilingual codebases; strong reasoning |
+| Model               | Size | Speed     | Quality   | Best For                                           |
+| ------------------- | ---- | --------- | --------- | -------------------------------------------------- |
+| **llama3.2:latest** | 3B   | Very Fast | Good      | Default recommendation; balances speed and quality |
+| **llama3.1:8b**     | 8B   | Fast      | Very Good | Larger codebase analysis; better reasoning         |
+| **codellama:7b**    | 7B   | Fast      | Good      | Code-specific remediation suggestions              |
+| **mistral:7b**      | 7B   | Fast      | Very Good | General remediation; good instruction following    |
+| **qwen2.5:7b**      | 7B   | Fast      | Excellent | Multilingual codebases; strong reasoning           |
 
 **Minimum recommended:** 3B parameter model (llama3.2). Anything smaller produces unreliable remediation suggestions.
 
@@ -83,13 +85,14 @@ SimpleBeacon sends file snippets and rule context to the LLM. Default context is
 }
 ```
 
-| Setting | Default | Range | Effect |
-|---------|---------|-------|--------|
-| `contextWindow` | 4096 | 2048–32768 | Larger = more file context per suggestion; requires more RAM |
-| `temperature` | 0.2 | 0.0–1.0 | Lower = more deterministic, focused suggestions |
-| `maxTokens` | 1024 | 256–2048 | Longer = more detailed remediation steps |
+| Setting         | Default | Range      | Effect                                                       |
+| --------------- | ------- | ---------- | ------------------------------------------------------------ |
+| `contextWindow` | 4096    | 2048–32768 | Larger = more file context per suggestion; requires more RAM |
+| `temperature`   | 0.2     | 0.0–1.0    | Lower = more deterministic, focused suggestions              |
+| `maxTokens`     | 1024    | 256–2048   | Longer = more detailed remediation steps                     |
 
 **RAM guidance:**
+
 - 3B model: ~4 GB RAM total (including OS overhead)
 - 7B model: ~8 GB RAM total
 - 13B model: ~16 GB RAM total
@@ -107,13 +110,13 @@ SimpleBeacon sends file snippets and rule context to the LLM. Default context is
 
 #### Troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| "Ollama connection refused" | Ollama not running | `ollama serve` or restart Ollama app |
-| "Model not found" | Model not pulled | `ollama pull <model>` |
-| Slow remediation (>5s per finding) | Model too large or CPU-only | Use smaller model (3B) or GPU-accelerated Ollama |
-| Generic/irrelevant suggestions | Temperature too high or model too small | Lower temperature to 0.1; use 7B+ model |
-| High RAM usage | Multiple models loaded | `ollama ps` to see active models; `ollama stop <model>` to free RAM |
+| Symptom                            | Cause                                   | Fix                                                                 |
+| ---------------------------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| "Ollama connection refused"        | Ollama not running                      | `ollama serve` or restart Ollama app                                |
+| "Model not found"                  | Model not pulled                        | `ollama pull <model>`                                               |
+| Slow remediation (>5s per finding) | Model too large or CPU-only             | Use smaller model (3B) or GPU-accelerated Ollama                    |
+| Generic/irrelevant suggestions     | Temperature too high or model too small | Lower temperature to 0.1; use 7B+ model                             |
+| High RAM usage                     | Multiple models loaded                  | `ollama ps` to see active models; `ollama stop <model>` to free RAM |
 
 ### 3. Optional: Enterprise API (Zero-Data-Retention)
 
@@ -124,6 +127,7 @@ simplebeacon scan --enhance --enhance-model <endpoint>
 ```
 
 **Requirements:**
+
 - Endpoint must be configured in `.simplebeacon/config.json`
 - Must support zero-data-retention terms
 - Only metadata (issue counts, file paths) is sent — never file contents
@@ -132,21 +136,21 @@ simplebeacon scan --enhance --enhance-model <endpoint>
 
 ## What Never Leaves Your Machine
 
-| Data Type | Default Behavior | With `--upload` |
-|-----------|---------------|-----------------|
-| Source code | Never uploaded | Never uploaded |
-| File contents | Never uploaded | Never uploaded |
-| AST extracts | Never uploaded | Never uploaded |
-| Scan report JSON | Written locally only | Sanitized summary only |
-| Credentials found | Logged locally only | Never included in upload |
+| Data Type         | Default Behavior     | With `--upload`          |
+| ----------------- | -------------------- | ------------------------ |
+| Source code       | Never uploaded       | Never uploaded           |
+| File contents     | Never uploaded       | Never uploaded           |
+| AST extracts      | Never uploaded       | Never uploaded           |
+| Scan report JSON  | Written locally only | Sanitized summary only   |
+| Credentials found | Logged locally only  | Never included in upload |
 
 ## What Can Leave Your Machine (Explicit Opt-In Only)
 
-| Action | Data Sent | How to Opt In |
-|--------|-----------|---------------|
-| Cloud scan report | Sanitized metadata (issue counts, quality score) | `--upload <url> --api-token <token>` |
-| License validation | License token only | `simplebeacon buy-clearance` |
-| Telemetry | Anonymous usage counts | `SIMPLEBEACON_TELEMETRY=1` env var |
+| Action             | Data Sent                                        | How to Opt In                        |
+| ------------------ | ------------------------------------------------ | ------------------------------------ |
+| Cloud scan report  | Sanitized metadata (issue counts, quality score) | `--upload <url> --api-token <token>` |
+| License validation | License token only                               | `simplebeacon buy-clearance`         |
+| Telemetry          | Anonymous usage counts                           | `SIMPLEBEACON_TELEMETRY=1` env var   |
 
 ## Trust Verification
 

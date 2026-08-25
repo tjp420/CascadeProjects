@@ -14,25 +14,25 @@ SimpleBeacon is a local-first code scanner that detects AI-generated code defect
 
 ## Verified Capabilities
 
-| Capability | Status | Evidence |
-|-----------|--------|----------|
-| 48 AI Problem Analyzers (A-01 through A-48) | Verified | `ai-problem-analyzer-suite.js` |
-| 25 scan engine categories | Verified | CLI scan report |
-| Zero source-code upload | Verified | Certify endpoint sends only SHA-256 hash + aggregate counts |
-| Offline mode (`--offline`) | Verified | Scan fails if any network activity is detected |
-| Cryptographic report signing | Verified | ECDSA signature via `/api/v1/certify` |
-| JWT license tokens (HS256) | Verified | Local validation, no network required after activation |
-| Stripe live checkout (5 tiers) | Verified | Live Stripe checkout URLs confirmed for all tiers |
-| Webhook signature verification | Verified | HMAC-SHA256, 5-minute replay window |
-| Webhook idempotency | Verified | KV-based dedup + file-based event store |
-| Email delivery (Resend + SMTP fallback) | Verified | Health check confirmed both providers active |
-| CI/CD gate integration | Verified | GitHub Actions, pre-commit hooks, CLI gate |
-| VS Code extension | Verified | v3.0.517, 17.9 MB VSIX |
-| MCP server (Cursor, Claude Desktop) | Verified | `src/mcp/` with handler suite |
-| AST scanning (JavaScript/TypeScript) | Verified | `javascript-ast-scanner.js` via @babel/parser (4 structural rules, optional) |
-| Custom rules via config | Verified | `.simplebeacon/config.json` with allowlist + rules schema |
-| SSO/SAML | Roadmap | Not yet implemented — scoped as Phase 1 for enterprise contracts |
-| Docker image | Roadmap | CLI is containerizable; Docker image provided during enterprise onboarding |
+| Capability                                  | Status   | Evidence                                                                     |
+| ------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| 48 AI Problem Analyzers (A-01 through A-48) | Verified | `ai-problem-analyzer-suite.js`                                               |
+| 25 scan engine categories                   | Verified | CLI scan report                                                              |
+| Zero source-code upload                     | Verified | Certify endpoint sends only SHA-256 hash + aggregate counts                  |
+| Offline mode (`--offline`)                  | Verified | Scan fails if any network activity is detected                               |
+| Cryptographic report signing                | Verified | ECDSA signature via `/api/v1/certify`                                        |
+| JWT license tokens (HS256)                  | Verified | Local validation, no network required after activation                       |
+| Stripe live checkout (5 tiers)              | Verified | Live Stripe checkout URLs confirmed for all tiers                            |
+| Webhook signature verification              | Verified | HMAC-SHA256, 5-minute replay window                                          |
+| Webhook idempotency                         | Verified | KV-based dedup + file-based event store                                      |
+| Email delivery (Resend + SMTP fallback)     | Verified | Health check confirmed both providers active                                 |
+| CI/CD gate integration                      | Verified | GitHub Actions, pre-commit hooks, CLI gate                                   |
+| VS Code extension                           | Verified | v3.0.517, 17.9 MB VSIX                                                       |
+| MCP server (Cursor, Claude Desktop)         | Verified | `src/mcp/` with handler suite                                                |
+| AST scanning (JavaScript/TypeScript)        | Verified | `javascript-ast-scanner.js` via @babel/parser (4 structural rules, optional) |
+| Custom rules via config                     | Verified | `.simplebeacon/config.json` with allowlist + rules schema                    |
+| SSO/SAML                                    | Roadmap  | Not yet implemented — scoped as Phase 1 for enterprise contracts             |
+| Docker image                                | Roadmap  | CLI is containerizable; Docker image provided during enterprise onboarding   |
 
 ## Security Architecture
 
@@ -63,29 +63,32 @@ SimpleBeacon is a local-first code scanner that detects AI-generated code defect
 ## Compliance Positioning
 
 ### EU AI Act
+
 - SimpleBeacon generates **technical attestation evidence** for EU AI Act Article 13 (documentation) and Annex III (high-risk AI system requirements)
 - Reports map findings to specific EU AI Act articles
 - **This is a technical attestation, not a legal certification.** For full legal conformity, engage a qualified EU legal firm.
 
 ### SOC 2
+
 - SimpleBeacon produces evidence-based audit artifacts for SOC 2 Trust Services Criteria
 - Reports include severity scoring, remediation roadmaps, and SHA-256 integrity seals
 - **SimpleBeacon is not SOC 2 Type II certified itself.** Reports are tooling evidence, not auditor sign-off.
 
 ### Privacy
+
 - Zero-upload architecture verified: no source code, file paths, or issue descriptions transmitted
 - GDPR-compatible: no personal data processed during scanning
 - DPA available: https://simplebeacon.ai/dpa
 
 ## Pricing (Verified)
 
-| Tier | Price | Key Features |
-|------|-------|-------------|
-| Free | $0 | Local scans, limited analyzers, community use |
-| Developer | $49/mo or $490/yr | Unlimited scans, CI gate, 48 analyzers |
-| Team Pro | $149/mo or $1,490/yr | EU AI Act gap reports, SOC 2 artifacts, 5 seats |
+| Tier             | Price                | Key Features                                               |
+| ---------------- | -------------------- | ---------------------------------------------------------- |
+| Free             | $0                   | Local scans, limited analyzers, community use              |
+| Developer        | $49/mo or $490/yr    | Unlimited scans, CI gate, 48 analyzers                     |
+| Team Pro         | $149/mo or $1,490/yr | EU AI Act gap reports, SOC 2 artifacts, 5 seats            |
 | Compliance Suite | $399/mo or $3,990/yr | Full compliance suite, quarterly reviews, priority support |
-| Enterprise | Custom | Air-gapped, SSO/SAML, dedicated analyst |
+| Enterprise       | Custom               | Air-gapped, SSO/SAML, dedicated analyst                    |
 
 ## Technical Specifications
 

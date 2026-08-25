@@ -5,57 +5,87 @@
  * inside async contexts or request handlers.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.rb'
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".ts",
+  ".tsx",
+  ".jsx",
+  ".py",
+  ".go",
+  ".rb",
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'bin', 'scripts', 'cli'
+  "node_modules",
+  ".git",
+  "coverage",
+  "dist",
+  "build",
+  "archive",
+  ".simplebeacon",
+  "fixtures",
+  "docs",
+  "coming-soon",
+  "reports",
+  "simplebeacon-rule-tests",
+  "simplebeacon-toxic-fixtures",
+  "bin",
+  "scripts",
+  "cli",
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
 
 const RULES = [
   {
-    id: 'SB-PERF-001',
-    name: 'Sync File I/O in Async Path',
-    regex: /\b(fs\.)?readFileSync|writeFileSync|appendFileSync|copyFileSync|mkdirSync|readdirSync|statSync|accessSync|existsSync|unlinkSync|rmdirSync\b/g, // simplebeacon-ignore redos — scanner rule definition
-    severity: 'medium',
-    description: 'Synchronous file system call in what appears to be an async context — blocks the event loop',
+    id: "SB-PERF-001",
+    name: "Sync File I/O in Async Path",
+    regex:
+      /\b(fs\.)?readFileSync|writeFileSync|appendFileSync|copyFileSync|mkdirSync|readdirSync|statSync|accessSync|existsSync|unlinkSync|rmdirSync\b/g, // simplebeacon-ignore redos — scanner rule definition
+    severity: "medium",
+    description:
+      "Synchronous file system call in what appears to be an async context — blocks the event loop",
     contextPatterns: [
-      /\b(?:async\s+function|async\s*\(|\.then\s*\(|new\s+Promise|exports\.|module\.exports\s*=|app\.(get|post|put|delete|patch|use)|router\.|handler|controller)/i
-    ]
+      /\b(?:async\s+function|async\s*\(|\.then\s*\(|new\s+Promise|exports\.|module\.exports\s*=|app\.(get|post|put|delete|patch|use)|router\.|handler|controller)/i,
+    ],
   },
   {
-    id: 'SB-PERF-001b',
-    name: 'Sync Child Process in Async Path',
-    regex: new RegExp('\\b(?:child_process\\.)?execSync|spawnSync|execFileSync\\b', 'g'), // simplebeacon-ignore redos — scanner rule definition
-    severity: 'medium',
-    description: 'Synchronous child process spawn in async context — blocks the event loop and hangs on long commands',
+    id: "SB-PERF-001b",
+    name: "Sync Child Process in Async Path",
+    regex: new RegExp(
+      "\\b(?:child_process\\.)?execSync|spawnSync|execFileSync\\b",
+      "g",
+    ), // simplebeacon-ignore redos — scanner rule definition
+    severity: "medium",
+    description:
+      "Synchronous child process spawn in async context — blocks the event loop and hangs on long commands",
     contextPatterns: [
-      /\b(?:async\s+function|async\s*\(|\.then\s*\(|new\s+Promise|exports\.|module\.exports\s*=|app\.|router\.)/i
-    ]
+      /\b(?:async\s+function|async\s*\(|\.then\s*\(|new\s+Promise|exports\.|module\.exports\s*=|app\.|router\.)/i,
+    ],
   },
   {
-    id: 'SB-PERF-001c',
-    name: 'Sync I/O in Request Handler',
-    regex: new RegExp('\\b(fs\\.)?readFileSync|writeFileSync|readdirSync|statSync|existsSync|execSync|spawnSync\\b', 'g'), // simplebeacon-ignore sync-io — scanner rule definition
-    severity: 'high',
-    description: 'Synchronous I/O inside an HTTP request handler — blocks all concurrent requests',
+    id: "SB-PERF-001c",
+    name: "Sync I/O in Request Handler",
+    regex: new RegExp(
+      "\\b(fs\\.)?readFileSync|writeFileSync|readdirSync|statSync|existsSync|execSync|spawnSync\\b",
+      "g",
+    ), // simplebeacon-ignore sync-io — scanner rule definition
+    severity: "high",
+    description:
+      "Synchronous I/O inside an HTTP request handler — blocks all concurrent requests",
     handlerPatterns: [
       /\b(req,\s*res|request,\s*response|req\s*[,)]|res\.(send|json|status|render|redirect))/i,
       /\bapp\.(get|post|put|delete|patch)\s*\(/i,
-      /\brouter\.(get|post|put|delete|patch)\s*\(/i
-    ]
-  }
+      /\brouter\.(get|post|put|delete|patch)\s*\(/i,
+    ],
+  },
 ];
 
 function isScannable(filePath) {
@@ -66,7 +96,7 @@ function isScannable(filePath) {
 }
 
 function isExcludedPath(filePath, rootDir) {
-  const rel = filePath.replace(rootDir, '').replace(/^[/\\]+/, '');
+  const rel = filePath.replace(rootDir, "").replace(/^[/\\]+/, "");
   const firstDir = rel.split(/[/\\]/)[0];
   if (SKIP_DIRS.has(firstDir)) return true;
   if (/simplebeacon-cli[/\\]src[/\\](rules|lib)/.test(rel)) return true;
@@ -77,18 +107,22 @@ const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+sync-io/i;
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
   try {
-    content = await fs.promises.readFile(filePath, 'utf8');
+    content = await fs.promises.readFile(filePath, "utf8");
   } catch {
     return null;
   }
 
   const findings = [];
-  const lines = content.split('\n');
+  const lines = content.split("\n");
 
   // File-level suppression: skip entire file if simplebeacon-ignore sync-io appears anywhere
   if (lines.some((line) => SUPPRESS_PATTERN.test(line))) return null;
@@ -102,7 +136,7 @@ async function scanFile(filePath) {
 
       // Check context: look at previous 5 lines for async context indicators
       const contextStart = Math.max(0, i - 5);
-      const contextBlock = lines.slice(contextStart, i + 1).join('\n');
+      const contextBlock = lines.slice(contextStart, i + 1).join("\n");
 
       let hasContext = false;
       if (rule.contextPatterns) {
@@ -120,7 +154,7 @@ async function scanFile(filePath) {
         severity: rule.severity,
         line: i + 1,
         match: line.trim().slice(0, 80),
-        snippet: line.replace(/\s+/g, ' ').trim().slice(0, 120)
+        snippet: line.replace(/\s+/g, " ").trim().slice(0, 120),
       });
     }
   }
@@ -164,21 +198,21 @@ async function scanSyncIo(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
   }
 
   return {
-    rule: 'SYNC_IO_ASYNC_PATH',
-    severity: results.length ? 'medium' : 'none',
+    rule: "SYNC_IO_ASYNC_PATH",
+    severity: results.length ? "medium" : "none",
     count: results.reduce((sum, r) => sum + r.findings.length, 0),
     fileCount: results.length,
     results,
     humanReadable: results.length
       ? `Synchronous I/O calls in async paths found in ${results.length} file(s). Use async equivalents (e.g., fs.promises.readFile) to avoid blocking the event loop.`
-      : 'No synchronous I/O in async paths detected.'
+      : "No synchronous I/O in async paths detected.",
   };
 }
 

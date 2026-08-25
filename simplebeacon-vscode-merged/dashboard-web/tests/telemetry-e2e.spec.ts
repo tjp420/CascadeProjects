@@ -116,11 +116,14 @@ async function injectAuth(page: Page, opts: InjectOptions) {
     const token = `${header}.${payload}.dummy-signature`;
 
     localStorage.setItem('sb_token', token);
-    localStorage.setItem('sb_user', JSON.stringify({
-      plan: args.plan,
-      role: 'user',
-      email: 'test@simplebeacon.ai',
-    }));
+    localStorage.setItem(
+      'sb_user',
+      JSON.stringify({
+        plan: args.plan,
+        role: 'user',
+        email: 'test@simplebeacon.ai',
+      })
+    );
 
     if (args.batchHistory) {
       localStorage.setItem('sb_telemetry_batches', JSON.stringify(args.batchHistory));

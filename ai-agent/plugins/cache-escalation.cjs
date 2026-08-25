@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /**
  * SimpleBeacon Cache + Escalation Manager
  *
@@ -9,7 +9,7 @@
  *    larger remote model with only the distilled context + reasoning trace.
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 // ─── Response Cache (LRU) ───────────────────────────────────────────────────
 
@@ -23,10 +23,18 @@ const cache = new Map();
  * @returns {string}
  */
 function cacheKey(filePaths, prompt) {
-    const pathStr = (filePaths || []).sort().join('|');
-    const promptHash = crypto.createHash('sha256').update(prompt).digest('hex').slice(0, 16);
-    const pathHash = crypto.createHash('sha256').update(pathStr).digest('hex').slice(0, 16);
-    return `${pathHash}:${promptHash}`;
+  const pathStr = (filePaths || []).sort().join("|");
+  const promptHash = crypto
+    .createHash("sha256")
+    .update(prompt)
+    .digest("hex")
+    .slice(0, 16);
+  const pathHash = crypto
+    .createHash("sha256")
+    .update(pathStr)
+    .digest("hex")
+    .slice(0, 16);
+  return `${pathHash}:${promptHash}`;
 }
 
 /**
@@ -35,12 +43,12 @@ function cacheKey(filePaths, prompt) {
  * @returns {object|null}
  */
 function getCached(key) {
-    if (!cache.has(key)) return null;
-    const value = cache.get(key);
-    // LRU: move to end (most recently used)
-    cache.delete(key);
-    cache.set(key, value);
-    return value;
+  if (!cache.has(key)) return null;
+  const value = cache.get(key);
+  // LRU: move to end (most recently used)
+  cache.delete(key);
+  cache.set(key, value);
+  return value;
 }
 
 /**
@@ -49,23 +57,23 @@ function getCached(key) {
  * @param {object} response
  */
 function setCached(key, response) {
-    if (cache.size >= MAX_CACHE_SIZE) {
-        // Evict oldest entry (first in Map)
-        const oldestKey = cache.keys().next().value;
-        cache.delete(oldestKey);
-    }
-    cache.set(key, response);
+  if (cache.size >= MAX_CACHE_SIZE) {
+    // Evict oldest entry (first in Map)
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+  cache.set(key, response);
 }
 
 /**
  * Get cache stats.
  */
 function getCacheStats() {
-    return {
-        size: cache.size,
-        maxSize: MAX_CACHE_SIZE,
-        hitRate: cacheHits / Math.max(cacheLookups, 1),
-    };
+  return {
+    size: cache.size,
+    maxSize: MAX_CACHE_SIZE,
+    hitRate: cacheHits / Math.max(cacheLookups, 1),
+  };
 }
 
 let cacheHits = 0;
@@ -75,21 +83,21 @@ let cacheLookups = 0;
  * Try to get a cached response, tracking hit/miss stats.
  */
 function tryCache(filePaths, prompt) {
-    cacheLookups++;
-    const key = cacheKey(filePaths, prompt);
-    const cached = getCached(key);
-    if (cached) {
-        cacheHits++;
-        return { hit: true, key, response: cached };
-    }
-    return { hit: false, key };
+  cacheLookups++;
+  const key = cacheKey(filePaths, prompt);
+  const cached = getCached(key);
+  if (cached) {
+    cacheHits++;
+    return { hit: true, key, response: cached };
+  }
+  return { hit: false, key };
 }
 
 /**
  * Store a response in cache.
  */
 function storeCache(key, response) {
-    setCached(key, response);
+  setCached(key, response);
 }
 
 // ─── Escalation Manager ─────────────────────────────────────────────────────
@@ -110,85 +118,94 @@ const MAX_ESCALATION_LOG = 100;
  * @returns {string}
  */
 function buildEscalationPrompt(params) {
-    const parts = [];
+  const parts = [];
 
-    parts.push('# Escalation: Local model could not resolve this task');
-    parts.push('');
-    parts.push(`## Original intent`);
-    parts.push(params.intent);
-    parts.push('');
+  parts.push("# Escalation: Local model could not resolve this task");
+  parts.push("");
+  parts.push(`## Original intent`);
+  parts.push(params.intent);
+  parts.push("");
 
-    parts.push('## Context (compact summaries)');
-    parts.push(params.summaryText || '(no summaries provided)');
-    parts.push('');
+  parts.push("## Context (compact summaries)");
+  parts.push(params.summaryText || "(no summaries provided)");
+  parts.push("");
 
-    if (params.attemptedPatches && params.attemptedPatches.length > 0) {
-        parts.push(`## Previous attempts (${params.attemptedPatches.length})`);
-        params.attemptedPatches.forEach((patch, i) => {
-            parts.push(`### Attempt ${i + 1}`);
-            parts.push('```diff');
-            parts.push(patch.slice(0, 500)); // truncate to save tokens
-            parts.push('```');
-        });
-        parts.push('');
-    }
+  if (params.attemptedPatches && params.attemptedPatches.length > 0) {
+    parts.push(`## Previous attempts (${params.attemptedPatches.length})`);
+    params.attemptedPatches.forEach((patch, i) => {
+      parts.push(`### Attempt ${i + 1}`);
+      parts.push("```diff");
+      parts.push(patch.slice(0, 500)); // truncate to save tokens
+      parts.push("```");
+    });
+    parts.push("");
+  }
 
-    if (params.lastTestOutput) {
-        parts.push('## Last test output (truncated)');
-        parts.push('```');
-        parts.push(params.lastTestOutput.slice(-2000)); // last 2k chars
-        parts.push('```');
-        parts.push('');
-    }
+  if (params.lastTestOutput) {
+    parts.push("## Last test output (truncated)");
+    parts.push("```");
+    parts.push(params.lastTestOutput.slice(-2000)); // last 2k chars
+    parts.push("```");
+    parts.push("");
+  }
 
-    if (params.reasoningTrace) {
-        parts.push('## Local model reasoning trace');
-        parts.push(params.reasoningTrace.slice(0, 1000));
-        parts.push('');
-    }
+  if (params.reasoningTrace) {
+    parts.push("## Local model reasoning trace");
+    parts.push(params.reasoningTrace.slice(0, 1000));
+    parts.push("");
+  }
 
-    parts.push('## Request');
-    parts.push('Provide a minimal patch that resolves the task. Use unified diff format.');
-    parts.push('Include file path and line numbers. Do not modify unrelated code.');
+  parts.push("## Request");
+  parts.push(
+    "Provide a minimal patch that resolves the task. Use unified diff format.",
+  );
+  parts.push(
+    "Include file path and line numbers. Do not modify unrelated code.",
+  );
 
-    return parts.join('\n');
+  return parts.join("\n");
 }
 
 /**
  * Log an escalation event.
  */
 function logEscalation(entry) {
-    const record = {
-        timestamp: new Date().toISOString(),
-        intent: entry.intent,
-        attempts: entry.attempts || 0,
-        model: entry.model || 'unknown',
-        tokensUsed: entry.tokensUsed || 0,
-        success: entry.success || false,
-    };
-    escalationLog.push(record);
-    if (escalationLog.length > MAX_ESCALATION_LOG) escalationLog.shift();
-    return record;
+  const record = {
+    timestamp: new Date().toISOString(),
+    intent: entry.intent,
+    attempts: entry.attempts || 0,
+    model: entry.model || "unknown",
+    tokensUsed: entry.tokensUsed || 0,
+    success: entry.success || false,
+  };
+  escalationLog.push(record);
+  if (escalationLog.length > MAX_ESCALATION_LOG) escalationLog.shift();
+  return record;
 }
 
 /**
  * Get escalation summary stats.
  */
 function getEscalationSummary() {
-    if (escalationLog.length === 0) {
-        return { totalEscalations: 0, successRate: 0, avgAttempts: 0, avgTokens: 0 };
-    }
-    const total = escalationLog.length;
-    const successes = escalationLog.filter(e => e.success).length;
-    const totalAttempts = escalationLog.reduce((s, e) => s + e.attempts, 0);
-    const totalTokens = escalationLog.reduce((s, e) => s + e.tokensUsed, 0);
+  if (escalationLog.length === 0) {
     return {
-        totalEscalations: total,
-        successRate: successes / total,
-        avgAttempts: Math.round(totalAttempts / total * 10) / 10,
-        avgTokens: Math.round(totalTokens / total),
-        recent: escalationLog.slice(-10),
+      totalEscalations: 0,
+      successRate: 0,
+      avgAttempts: 0,
+      avgTokens: 0,
     };
+  }
+  const total = escalationLog.length;
+  const successes = escalationLog.filter((e) => e.success).length;
+  const totalAttempts = escalationLog.reduce((s, e) => s + e.attempts, 0);
+  const totalTokens = escalationLog.reduce((s, e) => s + e.tokensUsed, 0);
+  return {
+    totalEscalations: total,
+    successRate: successes / total,
+    avgAttempts: Math.round((totalAttempts / total) * 10) / 10,
+    avgTokens: Math.round(totalTokens / total),
+    recent: escalationLog.slice(-10),
+  };
 }
 
 /**
@@ -197,35 +214,38 @@ function getEscalationSummary() {
  * @returns {boolean}
  */
 function shouldEscalate(params) {
-    const attempts = params.attempts || 0;
-    const maxAttempts = params.maxAttempts || 3;
-    const complexity = params.taskComplexity || 'medium';
+  const attempts = params.attempts || 0;
+  const maxAttempts = params.maxAttempts || 3;
+  const complexity = params.taskComplexity || "medium";
 
-    // Always escalate if we've hit max attempts
-    if (attempts >= maxAttempts) return true;
+  // Always escalate if we've hit max attempts
+  if (attempts >= maxAttempts) return true;
 
-    // Escalate early for complex tasks
-    if (complexity === 'high' && attempts >= 1) return true;
+  // Escalate early for complex tasks
+  if (complexity === "high" && attempts >= 1) return true;
 
-    // Escalate if the error suggests the local model is stuck
-    if (params.lastError && /syntax error|parse error|unexpected token/i.test(params.lastError)) {
-        return attempts >= 2;
-    }
+  // Escalate if the error suggests the local model is stuck
+  if (
+    params.lastError &&
+    /syntax error|parse error|unexpected token/i.test(params.lastError)
+  ) {
+    return attempts >= 2;
+  }
 
-    return false;
+  return false;
 }
 
 module.exports = {
-    // Cache
-    cacheKey,
-    tryCache,
-    storeCache,
-    getCacheStats,
-    getCached,
-    setCached,
-    // Escalation
-    buildEscalationPrompt,
-    logEscalation,
-    getEscalationSummary,
-    shouldEscalate,
+  // Cache
+  cacheKey,
+  tryCache,
+  storeCache,
+  getCacheStats,
+  getCached,
+  setCached,
+  // Escalation
+  buildEscalationPrompt,
+  logEscalation,
+  getEscalationSummary,
+  shouldEscalate,
 };

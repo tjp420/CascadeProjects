@@ -19,11 +19,8 @@ export function isSecurityIssue(issue) {
  * @returns {any}
  */
 export function normalizeSecurityFinding(issue, index = 0) {
-  const filePath = issue.filePath
-    || issue.filePaths?.[0]
-    || issue.metadata?.duplicatePaths?.[0]
-    || issue.affectedFiles?.[0]
-    || null;
+  const filePath =
+    issue.filePath || issue.filePaths?.[0] || issue.metadata?.duplicatePaths?.[0] || issue.affectedFiles?.[0] || null;
 
   return {
     id: issue.id || `${issue.severity}|${issue.type}|${index}`,
@@ -32,7 +29,7 @@ export function normalizeSecurityFinding(issue, index = 0) {
     file: filePath,
     description: issue.description || '',
     recommendation: issue.recommendedAction || issue.recommendation || 'Review and remediate before merge',
-    count: issue.count ?? 1
+    count: issue.count ?? 1,
   };
 }
 
@@ -64,10 +61,12 @@ export function buildSecuritySummary(report, findings = []) {
     else severityCounts.low += increment;
   }
 
-  const credentialFindings = report?.credentialFindings
-    ?? findings.filter((f) => /credential/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
-  const productionLeakFindings = report?.productionLeakFindings
-    ?? findings.filter((f) => /production leak/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
+  const credentialFindings =
+    report?.credentialFindings ??
+    findings.filter((f) => /credential/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
+  const productionLeakFindings =
+    report?.productionLeakFindings ??
+    findings.filter((f) => /production leak/i.test(f.type)).reduce((sum, f) => sum + (f.count ?? 1), 0);
 
   return {
     credentialScanned: report?.credentialScanned ?? null,
@@ -77,7 +76,7 @@ export function buildSecuritySummary(report, findings = []) {
     totalFindings: findings.reduce((sum, f) => sum + (f.count ?? 1), 0),
     severityCounts,
     gatePass: report?.gate?.pass ?? null,
-    generatedAt: report?.generatedAt ?? null
+    generatedAt: report?.generatedAt ?? null,
   };
 }
 
@@ -97,10 +96,10 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
       ? {
           securityScore: compliance.securityScore ?? null,
           gatePass: compliance.gatePass ?? null,
-          optimizationCompliance: compliance.optimizationCompliance ?? null
+          optimizationCompliance: compliance.optimizationCompliance ?? null,
         }
       : null,
-    findings
+    findings,
   };
 }
 
@@ -110,7 +109,7 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
  */
 export async function fetchComplianceHeadline() {
   const complianceHttpResponse = await fetch('/api/optimization/compliance', {
-    headers: { Accept: 'application/json' }
+    headers: { Accept: 'application/json' },
   });
   if (!complianceHttpResponse.ok) {
     throw new Error('Compliance API unavailable');

@@ -18,5 +18,6 @@ npm run test:bitpacking
 ```
 
 Notes:
+
 - The script is intentionally self-contained and has no external dependencies.
 - It performs a deterministic pack/unpack benchmark and prints throughput.

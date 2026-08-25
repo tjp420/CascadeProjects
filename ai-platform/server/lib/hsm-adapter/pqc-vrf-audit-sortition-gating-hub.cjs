@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 80: PQC VRF Audit Sortition Gating Hub.
@@ -15,8 +15,8 @@
  * @module hsm-adapter/pqc-vrf-audit-sortition-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 class PqcVrfAuditSortitionGatingHub {
   /**
@@ -39,32 +39,76 @@ class PqcVrfAuditSortitionGatingHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
-    if (this.policy.requireSortitionAuthorityInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requireSortitionAuthorityInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.sortitionAuthorityInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.sortitionAuthorityInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SORTGATE_AUTHORITY_INITIALIZER_UNATTESTED', 'sortition authority initializer attestation invalid');
+          throw new HsmAdapterError(
+            "SORTGATE_AUTHORITY_INITIALIZER_UNATTESTED",
+            "sortition authority initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SORTGATE_AUTHORITY_INITIALIZER_UNATTESTED', 'sortition authority initializer attestation invalid');
+        throw new HsmAdapterError(
+          "SORTGATE_AUTHORITY_INITIALIZER_UNATTESTED",
+          "sortition authority initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('SORTGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SORTGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('SORTGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "SORTGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.sortitionEpochSeconds === 'number' && request.sortitionEpochSeconds > (this.policy.maxSortitionEpochSeconds || 2592000)) {
-      throw new HsmAdapterError('SORTGATE_EPOCH_EXCEEDED', `sortition epoch seconds ${request.sortitionEpochSeconds} exceeds maximum ${this.policy.maxSortitionEpochSeconds}`);
+    if (
+      typeof request.sortitionEpochSeconds === "number" &&
+      request.sortitionEpochSeconds >
+        (this.policy.maxSortitionEpochSeconds || 2592000)
+    ) {
+      throw new HsmAdapterError(
+        "SORTGATE_EPOCH_EXCEEDED",
+        `sortition epoch seconds ${request.sortitionEpochSeconds} exceeds maximum ${this.policy.maxSortitionEpochSeconds}`,
+      );
     }
-    if (typeof request.entropyDepth === 'number' && request.entropyDepth > (this.policy.maxEntropyDepth || 16)) {
-      throw new HsmAdapterError('SORTGATE_ENTROPY_DEPTH_EXCEEDED', `entropy depth ${request.entropyDepth} exceeds maximum ${this.policy.maxEntropyDepth}`);
+    if (
+      typeof request.entropyDepth === "number" &&
+      request.entropyDepth > (this.policy.maxEntropyDepth || 16)
+    ) {
+      throw new HsmAdapterError(
+        "SORTGATE_ENTROPY_DEPTH_EXCEEDED",
+        `entropy depth ${request.entropyDepth} exceeds maximum ${this.policy.maxEntropyDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('SORTGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "SORTGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -78,13 +122,13 @@ class PqcVrfAuditSortitionGatingHub {
       entropyDepth: request.entropyDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: "open",
       sortitionClaimVerified: false,
       validatorAccreditationCompletedAt: null,
     };
     this._pools.set(poolId, pool);
     if (this._audit) {
-      this._audit('SORTITION_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("SORTITION_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -106,7 +150,10 @@ class PqcVrfAuditSortitionGatingHub {
   markSortitionClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('SORTGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "SORTGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.sortitionClaimVerified = true;
     return pool;
@@ -121,30 +168,52 @@ class PqcVrfAuditSortitionGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('SORTGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "SORTGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.sortitionClaimVerified) {
-      throw new HsmAdapterError('SORTGATE_SORTITION_CLAIM_NOT_VERIFIED', `pool ${request.poolId} sortition claim not verified`);
+      throw new HsmAdapterError(
+        "SORTGATE_SORTITION_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} sortition claim not verified`,
+      );
     }
-    if (this.policy.requireAuditCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireAuditCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.auditCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.auditCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('SORTGATE_AUDIT_COMMITTEE_UNATTESTED', 'audit committee attestation invalid');
+          throw new HsmAdapterError(
+            "SORTGATE_AUDIT_COMMITTEE_UNATTESTED",
+            "audit committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('SORTGATE_AUDIT_COMMITTEE_UNATTESTED', 'audit committee attestation invalid');
+        throw new HsmAdapterError(
+          "SORTGATE_AUDIT_COMMITTEE_UNATTESTED",
+          "audit committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minSortitionQuorum || 3)) {
-      throw new HsmAdapterError('SORTGATE_QUORUM_INSUFFICIENT', `sortition signatures ${signatures.length} below minimum ${this.policy.minSortitionQuorum}`);
+      throw new HsmAdapterError(
+        "SORTGATE_QUORUM_INSUFFICIENT",
+        `sortition signatures ${signatures.length} below minimum ${this.policy.minSortitionQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = "accredited";
     pool.validatorAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -152,7 +221,7 @@ class PqcVrfAuditSortitionGatingHub {
       completedAt: now,
     };
     if (this._audit) {
-      this._audit('VALIDATOR_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("VALIDATOR_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -168,28 +237,59 @@ class PqcVrfAuditSortitionGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('SORTGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "SORTGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedStakeHashCommitment || !request.blindedSortitionSeedCommitment || !request.blindedEntropyHashCommitment) {
-    throw new HsmAdapterError('SORTGATE_FIELDS_MISSING', 'blindedStakeHashCommitment, blindedSortitionSeedCommitment, and blindedEntropyHashCommitment are required');
+  if (
+    !request.blindedStakeHashCommitment ||
+    !request.blindedSortitionSeedCommitment ||
+    !request.blindedEntropyHashCommitment
+  ) {
+    throw new HsmAdapterError(
+      "SORTGATE_FIELDS_MISSING",
+      "blindedStakeHashCommitment, blindedSortitionSeedCommitment, and blindedEntropyHashCommitment are required",
+    );
   }
-  if (typeof request.sortitionEpochSeconds !== 'number') {
-    throw new HsmAdapterError('SORTGATE_FIELDS_MISSING', 'sortitionEpochSeconds is required');
+  if (typeof request.sortitionEpochSeconds !== "number") {
+    throw new HsmAdapterError(
+      "SORTGATE_FIELDS_MISSING",
+      "sortitionEpochSeconds is required",
+    );
   }
-  if (typeof request.entropyDepth !== 'number') {
-    throw new HsmAdapterError('SORTGATE_FIELDS_MISSING', 'entropyDepth is required');
+  if (typeof request.entropyDepth !== "number") {
+    throw new HsmAdapterError(
+      "SORTGATE_FIELDS_MISSING",
+      "entropyDepth is required",
+    );
   }
-  if (policy.requireSortitionAuthorityInitializerAttestation && !request.sortitionAuthorityInitializerAttestation) {
-    throw new HsmAdapterError('SORTGATE_AUTHORITY_ATTESTATION_MISSING', 'sortition authority initializer attestation is required');
+  if (
+    policy.requireSortitionAuthorityInitializerAttestation &&
+    !request.sortitionAuthorityInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SORTGATE_AUTHORITY_ATTESTATION_MISSING",
+      "sortition authority initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('SORTGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "SORTGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireAuditCommitteeAttestation && !request.auditCommitteeAttestation) {
-    throw new HsmAdapterError('SORTGATE_AUDIT_ATTESTATION_MISSING', 'audit committee attestation is required');
+  if (
+    policy.requireAuditCommitteeAttestation &&
+    !request.auditCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "SORTGATE_AUDIT_ATTESTATION_MISSING",
+      "audit committee attestation is required",
+    );
   }
 }
 

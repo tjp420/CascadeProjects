@@ -31,18 +31,21 @@ const TOKEN_KEY = 'simplebeacon_billing_api_token';
  * Billing service.
  */
 function safeStripeRedirect(url) {
-        try {
-                const parsed = new URL(url);
-                if (parsed.hostname === 'checkout.stripe.com' || parsed.hostname === 'billing.stripe.com' || parsed.hostname.endsWith('.stripe.com')) {
-                        window.open(parsed.href, '_self');
-                        return true;
-                }
-                return false;
-        } catch {
-                return false;
+    try {
+        const parsed = new URL(url);
+        if (
+            parsed.hostname === 'checkout.stripe.com' ||
+            parsed.hostname === 'billing.stripe.com' ||
+            parsed.hostname.endsWith('.stripe.com')
+        ) {
+            window.open(parsed.href, '_self');
+            return true;
         }
+        return false;
+    } catch {
+        return false;
+    }
 }
-
 
 export class BillingService {
     constructor() {
@@ -53,11 +56,12 @@ export class BillingService {
         return localStorage.getItem(EMAIL_KEY) || '';
     }
     setEmail(email) {
-        const normalized = String(email || '').trim().toLowerCase();
+        const normalized = String(email || '')
+            .trim()
+            .toLowerCase();
         if (normalized) {
             localStorage.setItem(EMAIL_KEY, normalized);
-        }
-        else {
+        } else {
             localStorage.removeItem(EMAIL_KEY);
         }
         return normalized;
@@ -68,8 +72,7 @@ export class BillingService {
     setApiToken(token) {
         if (token) {
             localStorage.setItem(TOKEN_KEY, token);
-        }
-        else {
+        } else {
             localStorage.removeItem(TOKEN_KEY);
         }
     }
@@ -86,18 +89,25 @@ export class BillingService {
         return false;
     }
     hasCloudTeamsAccess(plan = this.plan, status = this.status) {
-        return Boolean((plan === null || plan === void 0 ? void 0 : plan.internalDashboard) || (status === null || status === void 0 ? void 0 : status.bypass));
+        return Boolean(
+            (plan === null || plan === void 0 ? void 0 : plan.internalDashboard) ||
+            (status === null || status === void 0 ? void 0 : status.bypass)
+        );
     }
     async resolveEntitlement(_email = this.getEmail() || '') {
-        const entitlementPayload = await withRecoverableFallback('billing entitlements fetch', async () => {
-            const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
-                headers: this.getRequestHeaders()
-            });
-            if (!entitlementResponse.ok) {
-                throw new Error(`Entitlements unavailable (${entitlementResponse.status})`);
-            }
-            return readJsonResponseBody(entitlementResponse, null);
-        }, null);
+        const entitlementPayload = await withRecoverableFallback(
+            'billing entitlements fetch',
+            async () => {
+                const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
+                    headers: this.getRequestHeaders()
+                });
+                if (!entitlementResponse.ok) {
+                    throw new Error(`Entitlements unavailable (${entitlementResponse.status})`);
+                }
+                return readJsonResponseBody(entitlementResponse, null);
+            },
+            null
+        );
         if (entitlementPayload) {
             this.plan = {
                 ...COMMUNITY_PLAN,
@@ -121,11 +131,16 @@ export class BillingService {
         };
     }
     hasAuditDeliverableAccess(status = this.status) {
-        return Boolean((status === null || status === void 0 ? void 0 : status.hasAuditDeliverableAccess) || (status === null || status === void 0 ? void 0 : status.bypass));
+        return Boolean(
+            (status === null || status === void 0 ? void 0 : status.hasAuditDeliverableAccess) ||
+            (status === null || status === void 0 ? void 0 : status.bypass)
+        );
     }
     getAuditCheckoutUrl(plan = this.plan) {
-        return (plan === null || plan === void 0 ? void 0 : plan.auditCheckoutUrl)
-            || 'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+        return (
+            (plan === null || plan === void 0 ? void 0 : plan.auditCheckoutUrl) ||
+            'mailto:admin@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report'
+        );
     }
     async fetchEntitlements() {
         const resolved = await this.resolveEntitlement();

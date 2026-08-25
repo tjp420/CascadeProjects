@@ -3,19 +3,9 @@
   "overview": {
     "totalTools": 5
   },
-  "tools": [
-    {}
-  ],
-  "usageByCategory": [
-    {}
-  ],
-  "performanceMetrics": [
-    {}
-  ],
-  "insights": [
-    {}
-  ],
-  "activity": [
-    {}
-  ]
+  "tools": [{}],
+  "usageByCategory": [{}],
+  "performanceMetrics": [{}],
+  "insights": [{}],
+  "activity": [{}]
 }

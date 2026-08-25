@@ -33,7 +33,9 @@ export function redactPathForDisplay(projectPath) {
   if (unixHome) return unixHome[1] ? `…${unixHome[1]}` : '…';
   const unixHome2 = normalized.match(/^\/home\/[^/]+(\/.+)?$/);
   if (unixHome2) return unixHome2[1] ? `…${unixHome2[1]}` : '…';
-  const unixLikeUserRoot = normalized.match(/^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i);
+  const unixLikeUserRoot = normalized.match(
+    /^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i
+  );
   if (unixLikeUserRoot) return `…${unixLikeUserRoot[2]}`;
   if (/(?:^|\/)(?:…|\.{3})\/[^/]+\//.test(normalized)) {
     return normalized.replace(/((?:^|\/)(?:…|\.{3}))\/[^/]+(\/)/, '$1$2');
@@ -90,7 +92,11 @@ export function formatScanPathForDisplay(scanPath, projectRoot) {
  */
 export function formatPathLabel(projectPath) {
   if (typeof projectPath !== 'string') {
-    try { return String(projectPath ?? ''); } catch { return ''; }
+    try {
+      return String(projectPath ?? '');
+    } catch {
+      return '';
+    }
   }
   const redacted = redactPathForDisplay(projectPath);
   if (redacted && redacted !== projectPath) return redacted;

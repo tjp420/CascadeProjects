@@ -2,16 +2,26 @@
   const vscode = acquireVsCodeApi();
   const iframe = document.getElementById('dash');
   const overlay = document.getElementById('drag-overlay');
-  window.addEventListener('message', function(ev) {
+  window.addEventListener('message', function (ev) {
     if (!ev.data || !ev.data.command) return;
     // The embedded dashboard comes from an http(s) origin; the extension host does not.
     const fromIframe = typeof ev.origin === 'string' && ev.origin.length > 0 && ev.origin.startsWith('http');
     if (fromIframe) {
       // iframe (or nested dashboard) -> extension
-      if (ev.data.command === 'setAuthState' || ev.data.command === 'getAuthState' || ev.data.command === 'dashboardRouteChanged' || ev.data.command === 'scanWorkspace' || ev.data.command === 'downloadComplete') {
+      if (
+        ev.data.command === 'setAuthState' ||
+        ev.data.command === 'getAuthState' ||
+        ev.data.command === 'dashboardRouteChanged' ||
+        ev.data.command === 'scanWorkspace' ||
+        ev.data.command === 'downloadComplete'
+      ) {
         vscode.postMessage(ev.data);
       }
-    } else if (ev.data.command === 'setAuthState' || ev.data.command === 'setTheme' || ev.data.command === 'getAuthState') {
+    } else if (
+      ev.data.command === 'setAuthState' ||
+      ev.data.command === 'setTheme' ||
+      ev.data.command === 'getAuthState'
+    ) {
       // Extension/webview host -> iframe
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage(ev.data, '*');
@@ -20,12 +30,12 @@
   });
   // Poll the dashboard for its current auth state after load so the extension/sidebar sync
   // even if the initial sign-in message was missed (e.g. due to timing or source-reference issues).
-  setTimeout(function() {
+  setTimeout(function () {
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ command: 'getAuthState' }, '*');
     }
   }, 500);
-  setInterval(function() {
+  setInterval(function () {
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ command: 'getAuthState' }, '*');
     }
@@ -49,7 +59,9 @@
   function parseFileUri(uri) {
     if (!uri || !uri.startsWith('file:///')) return '';
     let p = uri.slice(8).replace(/\/$/, '');
-    try { p = decodeURIComponent(p); } catch (e) {}
+    try {
+      p = decodeURIComponent(p);
+    } catch (e) {}
     return p;
   }
   function extractDropPath(dt) {
@@ -60,7 +72,9 @@
       const item = dt.items && dt.items[0];
       if (item && typeof item.webkitGetAsEntry === 'function') {
         const entry = item.webkitGetAsEntry();
-        if (entry) { entryName = entry.name || ''; }
+        if (entry) {
+          entryName = entry.name || '';
+        }
       }
     } catch (e) {}
     const files = dt.files;
@@ -69,22 +83,42 @@
       const name = entryName || files[0].name || '';
       if (name) {
         const idx = fp.indexOf('/' + name + '/');
-        if (idx >= 0) { return { path: fp.slice(0, idx + name.length + 1), name }; }
+        if (idx >= 0) {
+          return { path: fp.slice(0, idx + name.length + 1), name };
+        }
         const endIdx = fp.lastIndexOf('/' + name);
-        if (endIdx >= 0) { return { path: fp.slice(0, endIdx + name.length + 1), name }; }
+        if (endIdx >= 0) {
+          return { path: fp.slice(0, endIdx + name.length + 1), name };
+        }
       }
       return { path: fp.substring(0, fp.lastIndexOf('/')), name: files[0].name };
     }
     // Fall back to standard file URI / plain text drop data.
-    const uriList = (() => { try { return dt.getData('text/uri-list') || ''; } catch (e) { return ''; } })();
+    const uriList = (() => {
+      try {
+        return dt.getData('text/uri-list') || '';
+      } catch (e) {
+        return '';
+      }
+    })();
     if (uriList) {
       const uri = uriList.trim().split('\\n')[0]?.trim();
       const p = parseFileUri(uri);
       if (p) return { path: p, name: p.split('/').pop() || '' };
     }
-    const plain = (() => { try { return dt.getData('text/plain') || ''; } catch (e) { return ''; } })();
+    const plain = (() => {
+      try {
+        return dt.getData('text/plain') || '';
+      } catch (e) {
+        return '';
+      }
+    })();
     if (plain) {
-      const p = plain.trim().split('\\n')[0]?.trim().replace(/^["']|["']$/g, '');
+      const p = plain
+        .trim()
+        .split('\\n')[0]
+        ?.trim()
+        .replace(/^["']|["']$/g, '');
       if (p && /^[a-zA-Z]:[\\\/]/.test(p)) {
         const normalized = p.replace(/[\\\/]+$/, '').replace(/\\/g, '/');
         return { path: normalized, name: normalized.split('/').pop() || '' };
@@ -92,20 +126,34 @@
     }
     return { path: '', name: '' };
   }
-  window.addEventListener('dragenter', function(ev) { ev.preventDefault(); showOverlay(); });
-  window.addEventListener('dragover', function(ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; });
-  window.addEventListener('dragleave', function(ev) { hideOverlay(); });
-  overlay.addEventListener('dragover', function(ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; });
-  overlay.addEventListener('drop', function(ev) {
+  window.addEventListener('dragenter', function (ev) {
+    ev.preventDefault();
+    showOverlay();
+  });
+  window.addEventListener('dragover', function (ev) {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+  });
+  window.addEventListener('dragleave', function (ev) {
+    hideOverlay();
+  });
+  overlay.addEventListener('dragover', function (ev) {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+  });
+  overlay.addEventListener('drop', function (ev) {
     ev.preventDefault();
     dragDepth = 0;
     overlay.style.display = 'none';
     const dt = ev.dataTransfer;
     const { path, name } = extractDropPath(dt);
     if (path && iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ command: 'ideDropPath', path: path.replace(/\\//g, '\\\\'), name }, '*');
+      iframe.contentWindow.postMessage({ command: 'ideDropPath', path: path.replace(/\\/ / g, '\\\\'), name }, '*');
     } else if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ command: 'ideDropFailed', reason: 'Could not read dropped path. Use Browse Folder or type the path.' }, '*');
+      iframe.contentWindow.postMessage(
+        { command: 'ideDropFailed', reason: 'Could not read dropped path. Use Browse Folder or type the path.' },
+        '*'
+      );
     }
   });
 </script>

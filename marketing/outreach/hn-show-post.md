@@ -5,6 +5,7 @@
 ## Why I built it
 
 After reviewing a codebase that had been heavily touched by Cursor/Copilot, I found:
+
 - Hardcoded `sk-...` API keys in 3 "finished" files
 - A `TODO: replace with real data` comment in production
 - Fake KPIs that looked real enough to ship
@@ -22,13 +23,13 @@ The worst part: the existing "enterprise" scanning tools wanted me to upload the
 
 ## How it's different
 
-| | SimpleBeacon | SonarQube | Snyk |
-|---|---|---|---|
-| **Uploads source?** | Never (default) | Optional (cloud or on-prem) | Yes (cloud) |
-| **AI slop detection** | Yes | No | No |
-| **EU AI Act mapping** | Yes | No | No |
-| **Price** | Free / $49 Developer / $399 Compliance Suite | Enterprise $$$ | Enterprise $$$ |
-| **Local LLM support** | Yes (Ollama) | No | No |
+|                       | SimpleBeacon                                 | SonarQube                   | Snyk           |
+| --------------------- | -------------------------------------------- | --------------------------- | -------------- |
+| **Uploads source?**   | Never (default)                              | Optional (cloud or on-prem) | Yes (cloud)    |
+| **AI slop detection** | Yes                                          | No                          | No             |
+| **EU AI Act mapping** | Yes                                          | No                          | No             |
+| **Price**             | Free / $49 Developer / $399 Compliance Suite | Enterprise $$$              | Enterprise $$$ |
+| **Local LLM support** | Yes (Ollama)                                 | No                          | No             |
 
 ## Pricing
 

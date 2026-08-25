@@ -1,8 +1,8 @@
-const adminApi = require('../routes/admin-api.cjs');
+const adminApi = require("../routes/admin-api.cjs");
 
-describe('admin-api routes', () => {
-  test('exports setupAdminAPI', () => {
-    expect(adminApi).toHaveProperty('setupAdminAPI');
-    expect(typeof adminApi.setupAdminAPI).toBe('function');
+describe("admin-api routes", () => {
+  test("exports setupAdminAPI", () => {
+    expect(adminApi).toHaveProperty("setupAdminAPI");
+    expect(typeof adminApi.setupAdminAPI).toBe("function");
   });
 });

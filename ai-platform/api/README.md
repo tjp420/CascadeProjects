@@ -4,6 +4,7 @@ ai-platform API — Developer Quickstart
 This folder contains the OpenAPI spec and a ready-to-run Prism mock server to exercise the `PolicyService` and `VRFExecutionService` endpoints locally.
 
 Quick choices made for this scaffold:
+
 - Prism mock server configured to bind to port `4010`.
 - Mock config and compose file are scoped to the `ai-platform` directory.
 - Docker Compose includes a simple `HEALTHCHECK` against the mock root.
@@ -32,6 +33,7 @@ curl -v http://localhost:4010/
 ```
 
 Notes about auth and the mock:
+
 - The mock returns example responses defined in `openapi.yaml` and does not enforce OAuth2 token validation. Include an `Authorization: Bearer <token>` header when testing to mirror production calls; Prism will still return the example payloads.
 
 Example `curl` requests

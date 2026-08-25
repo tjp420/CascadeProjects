@@ -16,46 +16,16 @@
   "testGapCount": 50,
   "governanceCount": 40,
   "topFiles": [
-    [
-      "simplebeacon-vscode-merged/src/enhancedAIProvider.ts",
-      4
-    ],
-    [
-      "simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts",
-      4
-    ],
-    [
-      "ai-platform/server/routes/flexible-analyze-api.cjs",
-      3
-    ],
-    [
-      "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js",
-      3
-    ],
-    [
-      "packages/simplebeacon-cli/src/lib/runtime-sentinel.js",
-      3
-    ],
-    [
-      "simplebeacon-vscode-merged/src/dashboardDataExtractor.ts",
-      3
-    ],
-    [
-      "simplebeacon-vscode-merged/src/dataServer.ts",
-      3
-    ],
-    [
-      "simplebeacon-vscode-merged/src/enhancedScanProvider.ts",
-      3
-    ],
-    [
-      "simplebeacon-vscode-merged/src/welcomeDashboard.ts",
-      3
-    ],
-    [
-      "simplebeacon-vscode-merged/src/aiPlatform/dashboardPanel.ts",
-      3
-    ]
+    ["simplebeacon-vscode-merged/src/enhancedAIProvider.ts", 4],
+    ["simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts", 4],
+    ["ai-platform/server/routes/flexible-analyze-api.cjs", 3],
+    ["packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js", 3],
+    ["packages/simplebeacon-cli/src/lib/runtime-sentinel.js", 3],
+    ["simplebeacon-vscode-merged/src/dashboardDataExtractor.ts", 3],
+    ["simplebeacon-vscode-merged/src/dataServer.ts", 3],
+    ["simplebeacon-vscode-merged/src/enhancedScanProvider.ts", 3],
+    ["simplebeacon-vscode-merged/src/welcomeDashboard.ts", 3],
+    ["simplebeacon-vscode-merged/src/aiPlatform/dashboardPanel.ts", 3]
   ],
   "estimatedEffortHours": 52,
   "actionableFindings": [

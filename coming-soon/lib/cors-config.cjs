@@ -18,7 +18,7 @@
 function parseOriginList(raw) {
     return String(raw || '')
         .split(',')
-        .map((entry) => entry.trim())
+        .map(entry => entry.trim())
         .filter(Boolean);
 }
 
@@ -43,12 +43,13 @@ const NETLIFY_REGEX = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
  * @returns {string[]} Array of allowed origin strings.
  */
 function resolveAllowedOrigins(overrides = {}) {
-    const raw = process.env.CORS_ORIGINS
-        || process.env.CORS_ORIGIN
-        || process.env.ALLOWED_ORIGIN
-        || overrides.devFallbackOrigin
-        || overrides.defaultOrigin
-        || '';
+    const raw =
+        process.env.CORS_ORIGINS ||
+        process.env.CORS_ORIGIN ||
+        process.env.ALLOWED_ORIGIN ||
+        overrides.devFallbackOrigin ||
+        overrides.defaultOrigin ||
+        '';
     const origins = parseOriginList(raw);
 
     // Add PUBLIC_URL as an allowed origin if set
@@ -79,9 +80,7 @@ function isAllowedOrigin(origin, overrides = {}) {
     if (origins.includes(origin)) return true;
     if (origins.includes('*')) return false; // reject wide-open wildcard in production
 
-    return PAGES_PREVIEW_REGEX.test(origin)
-        || RENDER_REGEX.test(origin)
-        || NETLIFY_REGEX.test(origin);
+    return PAGES_PREVIEW_REGEX.test(origin) || RENDER_REGEX.test(origin) || NETLIFY_REGEX.test(origin);
 }
 
 /**

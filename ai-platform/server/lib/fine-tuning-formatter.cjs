@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Fine-tuning dataset formatters.
@@ -18,26 +18,26 @@
  * @returns {string} JSON stringified row
  */
 function formatRow(entry, format) {
-  if (format === 'alpaca') {
+  if (format === "alpaca") {
     return JSON.stringify({
-      instruction: 'Respond to the following user message.',
+      instruction: "Respond to the following user message.",
       input: entry.input,
       output: entry.output,
     });
   }
-  if (format === 'chatml') {
+  if (format === "chatml") {
     return JSON.stringify({
       messages: [
-        { role: 'user', content: entry.input },
-        { role: 'assistant', content: entry.output },
+        { role: "user", content: entry.input },
+        { role: "assistant", content: entry.output },
       ],
     });
   }
   // default jsonl
   return JSON.stringify({
     messages: [
-      { role: 'user', content: entry.input },
-      { role: 'assistant', content: entry.output },
+      { role: "user", content: entry.input },
+      { role: "assistant", content: entry.output },
     ],
     score: entry.score,
     turns: entry.turns,

@@ -2,19 +2,21 @@
  * Lightweight CI telemetry store for Team tier dashboards.
  * Metadata only — no source code, file paths, or issue descriptions.
  */
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 function getStorePath() {
-  return process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
-    || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+  return (
+    process.env.SIMPLEBEACON_CI_TELEMETRY_STORE ||
+    path.join(__dirname, "../../.simplebeacon", "ci-telemetry.json")
+  );
 }
 const MAX_EVENTS = Number(process.env.SIMPLEBEACON_CI_TELEMETRY_MAX || 50000);
 
 /** Rolling retention for team telemetry events (Phase 1 constant). */
 const TEAM_TELEMETRY_RETENTION_DAYS = Number(
-  process.env.SIMPLEBEACON_TEAM_TELEMETRY_RETENTION_DAYS || 90
+  process.env.SIMPLEBEACON_TEAM_TELEMETRY_RETENTION_DAYS || 90,
 );
 
 /**
@@ -22,26 +24,64 @@ const TEAM_TELEMETRY_RETENTION_DAYS = Number(
  * Documented here so ingest and rollup share the same default.
  */
 const K_ANONYMITY_MIN_WORKSPACES = Number(
-  process.env.SIMPLEBEACON_TEAM_TELEMETRY_K_MIN || 3
+  process.env.SIMPLEBEACON_TEAM_TELEMETRY_K_MIN || 3,
 );
 
 const TEAM_TELEMETRY_ALLOWED_FIELDS = [
-  'event', 'timestamp', 'tier', 'scan_source', 'workspace_fingerprint',
-  'gate_pass', 'gates_tripped', 'blocking_count', 'critical_blocked',
-  'high_blocked', 'medium_count', 'files_scanned', 'diff_only', 'diff_files',
-  'quality_score', 'severity_rollup', 'category_rollup', 'rules_fingerprint'
+  "event",
+  "timestamp",
+  "tier",
+  "scan_source",
+  "workspace_fingerprint",
+  "gate_pass",
+  "gates_tripped",
+  "blocking_count",
+  "critical_blocked",
+  "high_blocked",
+  "medium_count",
+  "files_scanned",
+  "diff_only",
+  "diff_files",
+  "quality_score",
+  "severity_rollup",
+  "category_rollup",
+  "rules_fingerprint",
 ];
 
 const TEAM_TELEMETRY_LEGACY_FIELDS = [
-  'repository', 'workflow', 'run_id', 'ref', 'pull_request'
+  "repository",
+  "workflow",
+  "run_id",
+  "ref",
+  "pull_request",
 ];
 
 const TEAM_TELEMETRY_FORBIDDEN_FIELDS = [
-  'projectRoot', 'project_path', 'repo_path', 'file_path', 'filePath',
-  'file_paths', 'snippet', 'snippets', 'description', 'descriptions',
-  'branch', 'branch_name', 'commit_sha', 'commitSha', 'sha', 'pr_number',
-  'pull_request_number', 'issues', 'rawIssues', 'detectedIssues',
-  'org_fingerprint', 'orgKey', 'email', 'user', 'display_name'
+  "projectRoot",
+  "project_path",
+  "repo_path",
+  "file_path",
+  "filePath",
+  "file_paths",
+  "snippet",
+  "snippets",
+  "description",
+  "descriptions",
+  "branch",
+  "branch_name",
+  "commit_sha",
+  "commitSha",
+  "sha",
+  "pr_number",
+  "pull_request_number",
+  "issues",
+  "rawIssues",
+  "detectedIssues",
+  "org_fingerprint",
+  "orgKey",
+  "email",
+  "user",
+  "display_name",
 ];
 
 const PATH_LIKE = /(?:^|[/\\])[A-Za-z0-9._-]+(?:[/\\][A-Za-z0-9._-]+)+/;
@@ -51,7 +91,7 @@ const WORKSPACE_FINGERPRINT = /^[0-9a-f]{24}$/i;
 function readStore() {
   const STORE_PATH = getStorePath();
   try {
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed.events) ? parsed : { events: [] };
   } catch {
@@ -62,30 +102,51 @@ function readStore() {
 function writeStore(store) {
   const STORE_PATH = getStorePath();
   // Debug: log where we are attempting to write during tests
-  console.log('[ci-telemetry] writeStore ->', STORE_PATH);
+  console.log("[ci-telemetry] writeStore ->", STORE_PATH);
   fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
   try {
-    console.error('[ci-telemetry] debug: storePath', STORE_PATH);
-    console.error('[ci-telemetry] debug: storeDir listing ->', fs.readdirSync(path.dirname(STORE_PATH)));
+    console.error("[ci-telemetry] debug: storePath", STORE_PATH);
+    console.error(
+      "[ci-telemetry] debug: storeDir listing ->",
+      fs.readdirSync(path.dirname(STORE_PATH)),
+    );
   } catch (e) {
-    console.error('[ci-telemetry] debug: listing failed:', e && e.message);
+    console.error("[ci-telemetry] debug: listing failed:", e && e.message);
   }
   const tmp = `${STORE_PATH}.tmp`;
   const content = `${JSON.stringify(store, null, 2)}\n`;
-  fs.writeFileSync(tmp, content, 'utf8');
-  console.error('[ci-telemetry] debug: wrote tmp', tmp, 'tmpExists', fs.existsSync(tmp));
+  fs.writeFileSync(tmp, content, "utf8");
+  console.error(
+    "[ci-telemetry] debug: wrote tmp",
+    tmp,
+    "tmpExists",
+    fs.existsSync(tmp),
+  );
   try {
     fs.renameSync(tmp, STORE_PATH);
-    console.error('[ci-telemetry] debug: renameSync ok, exists', fs.existsSync(STORE_PATH));
+    console.error(
+      "[ci-telemetry] debug: renameSync ok, exists",
+      fs.existsSync(STORE_PATH),
+    );
   } catch (e) {
-    console.error('[ci-telemetry] rename failed, falling back to direct write:', e && e.message);
+    console.error(
+      "[ci-telemetry] rename failed, falling back to direct write:",
+      e && e.message,
+    );
     // On some Windows environments rename can fail if the target is locked.
     // Fall back to a direct write to ensure tests relying on the file do not fail.
     try {
-      fs.writeFileSync(STORE_PATH, content, 'utf8');
-      try { fs.unlinkSync(tmp); } catch (e2) { console.error('ci-telemetry-store.cjs error:', e2); /* best-effort cleanup of tmp */ }
+      fs.writeFileSync(STORE_PATH, content, "utf8");
+      try {
+        fs.unlinkSync(tmp);
+      } catch (e2) {
+        console.error(
+          "ci-telemetry-store.cjs error:",
+          e2,
+        ); /* best-effort cleanup of tmp */
+      }
     } catch (e2) {
-      console.error('[ci-telemetry] fallback write failed:', e2 && e2.message);
+      console.error("[ci-telemetry] fallback write failed:", e2 && e2.message);
       // If fallback also fails, rethrow the original error for visibility.
       throw e;
     }
@@ -102,7 +163,9 @@ function writeStore(store) {
           Atomics.wait(sab, 0, 0, ms);
         } catch (e) {
           const end = Date.now() + ms;
-          while (Date.now() < end) { /* busy-wait fallback */ }
+          while (Date.now() < end) {
+            /* busy-wait fallback */
+          }
         }
       };
       let attempts = 0;
@@ -110,17 +173,29 @@ function writeStore(store) {
         attempts += 1;
         sleep(50);
         try {
-          fs.writeFileSync(STORE_PATH, content, 'utf8');
-        } catch (e) { console.error('ci-telemetry-store.cjs error:', e); /* best-effort retry within visibility loop */ }
+          fs.writeFileSync(STORE_PATH, content, "utf8");
+        } catch (e) {
+          console.error(
+            "ci-telemetry-store.cjs error:",
+            e,
+          ); /* best-effort retry within visibility loop */
+        }
       }
     }
   } catch (e) {
-    console.error('[ci-telemetry] post-write visibility check failed:', e && e.message);
+    console.error(
+      "[ci-telemetry] post-write visibility check failed:",
+      e && e.message,
+    );
   }
 }
 
 function accountKey(email) {
-  return crypto.createHash('sha256').update(String(email || '').toLowerCase()).digest('hex').slice(0, 16);
+  return crypto
+    .createHash("sha256")
+    .update(String(email || "").toLowerCase())
+    .digest("hex")
+    .slice(0, 16);
 }
 
 /**
@@ -130,13 +205,15 @@ function accountKey(email) {
  * @returns {string}
  */
 function resolveOrgKey(email, subscription = null) {
-  const salt = process.env.SIMPLEBEACON_ANON_SALT || 'simplebeacon-anon-v1';
-  const subject = subscription?.certOrgId
-    || subscription?.stripeCustomerId
-    || String(email || '').toLowerCase();
-  return crypto.createHash('sha256')
+  const salt = process.env.SIMPLEBEACON_ANON_SALT || "simplebeacon-anon-v1";
+  const subject =
+    subscription?.certOrgId ||
+    subscription?.stripeCustomerId ||
+    String(email || "").toLowerCase();
+  return crypto
+    .createHash("sha256")
     .update(`${salt}:${String(subject)}`)
-    .digest('hex')
+    .digest("hex")
     .slice(0, 16);
 }
 
@@ -146,10 +223,11 @@ function resolveOrgKey(email, subscription = null) {
  * @returns {string}
  */
 function hashWorkspaceFingerprint(rawRepo) {
-  const salt = process.env.SIMPLEBEACON_ANON_SALT || 'simplebeacon-anon-v1';
-  return crypto.createHash('sha256')
-    .update(`${salt}:${String(rawRepo || '').replace(/\\/g, '/')}`)
-    .digest('hex')
+  const salt = process.env.SIMPLEBEACON_ANON_SALT || "simplebeacon-anon-v1";
+  return crypto
+    .createHash("sha256")
+    .update(`${salt}:${String(rawRepo || "").replace(/\\/g, "/")}`)
+    .digest("hex")
     .slice(0, 24);
 }
 
@@ -174,11 +252,11 @@ function isForbiddenScalar(value) {
  * @returns {{ payload: Object, stripped: string[], rejected: string[] }}
  */
 function sanitizeTeamTelemetryPayload(input, options = {}) {
-  const body = input && typeof input === 'object' ? input : {};
+  const body = input && typeof input === "object" ? input : {};
   const legacyFields = options.legacyFields === true;
   const allowed = new Set([
     ...TEAM_TELEMETRY_ALLOWED_FIELDS,
-    ...(legacyFields ? TEAM_TELEMETRY_LEGACY_FIELDS : [])
+    ...(legacyFields ? TEAM_TELEMETRY_LEGACY_FIELDS : []),
   ]);
   const stripped = [];
   const rejected = [];
@@ -194,7 +272,11 @@ function sanitizeTeamTelemetryPayload(input, options = {}) {
       continue;
     }
     const value = body[key];
-    if (key !== 'workspace_fingerprint' && key !== 'rules_fingerprint' && isForbiddenScalar(value)) {
+    if (
+      key !== "workspace_fingerprint" &&
+      key !== "rules_fingerprint" &&
+      isForbiddenScalar(value)
+    ) {
       rejected.push(key);
       continue;
     }
@@ -202,18 +284,23 @@ function sanitizeTeamTelemetryPayload(input, options = {}) {
   }
 
   if (!payload.workspace_fingerprint) {
-    const rawRepo = body.projectRoot || body.project_path || body.repo_path
-      || (legacyFields ? body.repository : null);
+    const rawRepo =
+      body.projectRoot ||
+      body.project_path ||
+      body.repo_path ||
+      (legacyFields ? body.repository : null);
     if (rawRepo) {
       payload.workspace_fingerprint = hashWorkspaceFingerprint(rawRepo);
     } else if (body.repository && !legacyFields) {
       payload.workspace_fingerprint = hashWorkspaceFingerprint(body.repository);
-      if (!stripped.includes('repository')) {
-        stripped.push('repository');
+      if (!stripped.includes("repository")) {
+        stripped.push("repository");
       }
     }
-  } else if (!WORKSPACE_FINGERPRINT.test(String(payload.workspace_fingerprint))) {
-    rejected.push('workspace_fingerprint');
+  } else if (
+    !WORKSPACE_FINGERPRINT.test(String(payload.workspace_fingerprint))
+  ) {
+    rejected.push("workspace_fingerprint");
     delete payload.workspace_fingerprint;
   }
 
@@ -232,9 +319,10 @@ function sanitizeTeamTelemetryPayload(input, options = {}) {
 }
 
 function purgeExpiredEvents(events) {
-  const cutoff = Date.now() - (TEAM_TELEMETRY_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff =
+    Date.now() - TEAM_TELEMETRY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   return events.filter((ev) => {
-    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || "");
     return Number.isFinite(ts) && ts >= cutoff;
   });
 }
@@ -246,19 +334,21 @@ function purgeExpiredEvents(events) {
  */
 function recordCiTelemetryEvent(email, payload, options = {}) {
   const { payload: sanitized } = sanitizeTeamTelemetryPayload(payload, {
-    legacyFields: process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === '1'
-      || process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === 'true'
+    legacyFields:
+      process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === "1" ||
+      process.env.SIMPLEBEACON_CI_TELEMETRY_LEGACY_FIELDS === "true",
   });
   const store = readStore();
   const event = {
-    id: `ci_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+    id: `ci_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`,
     accountKey: accountKey(email),
-    orgKey: options.orgKey || resolveOrgKey(email, options.subscription || null),
+    orgKey:
+      options.orgKey || resolveOrgKey(email, options.subscription || null),
     recordedAt: new Date().toISOString(),
-    ...sanitized
+    ...sanitized,
   };
   // Privacy (D-03): never persist raw email — accountKey + orgKey only.
-  if (Object.prototype.hasOwnProperty.call(event, 'email')) {
+  if (Object.prototype.hasOwnProperty.call(event, "email")) {
     delete event.email;
   }
   store.events.push(event);
@@ -276,11 +366,11 @@ function recordCiTelemetryEvent(email, payload, options = {}) {
  */
 function summarizeCiTelemetry(email, options = {}) {
   const days = Number(options.days) || 7;
-  const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
   const key = accountKey(email);
   const events = readStore().events.filter((ev) => {
     if (ev.accountKey !== key) return false;
-    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || "");
     return Number.isFinite(ts) && ts >= since;
   });
 
@@ -292,7 +382,8 @@ function summarizeCiTelemetry(email, options = {}) {
   for (const ev of events) {
     if (ev.workspace_fingerprint) repos.add(ev.workspace_fingerprint);
     else if (ev.repository) repos.add(ev.repository);
-    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0) gatesTripped += 1;
+    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0)
+      gatesTripped += 1;
     criticalsBlocked += Number(ev.critical_blocked || 0);
     diffsAnalyzed += Number(ev.diff_files || ev.files_scanned || 0);
   }
@@ -305,7 +396,7 @@ function summarizeCiTelemetry(email, options = {}) {
     gates_tripped: gatesTripped,
     criticals_blocked: criticalsBlocked,
     merges_blocked_this_week: gatesTripped,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -316,11 +407,11 @@ function summarizeCiTelemetry(email, options = {}) {
  */
 function filterOrgEvents(orgKey, days) {
   const windowDays = Number(days) || 7;
-  const since = Date.now() - (windowDays * 24 * 60 * 60 * 1000);
-  const key = String(orgKey || '');
+  const since = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const key = String(orgKey || "");
   return readStore().events.filter((ev) => {
     if (ev.orgKey !== key) return false;
-    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || "");
     return Number.isFinite(ts) && ts >= since;
   });
 }
@@ -353,7 +444,8 @@ function computeQualityDistribution(events) {
     .map((score) => Number(score))
     .sort((a, b) => a - b);
 
-  const round = (value) => (value == null ? null : Math.round(value * 1000) / 1000);
+  const round = (value) =>
+    value == null ? null : Math.round(value * 1000) / 1000;
 
   return {
     p10: round(percentileLinear(scores, 10)),
@@ -361,7 +453,7 @@ function computeQualityDistribution(events) {
     p50: round(percentileLinear(scores, 50)),
     p75: round(percentileLinear(scores, 75)),
     p90: round(percentileLinear(scores, 90)),
-    sampleSize: scores.length
+    sampleSize: scores.length,
   };
 }
 
@@ -372,9 +464,10 @@ function computeQualityDistribution(events) {
 function aggregateSeverityTotals(events) {
   const totals = { critical: 0, high: 0, medium: 0, low: 0 };
   for (const ev of events) {
-    const rollup = ev.severity_rollup && typeof ev.severity_rollup === 'object'
-      ? ev.severity_rollup
-      : null;
+    const rollup =
+      ev.severity_rollup && typeof ev.severity_rollup === "object"
+        ? ev.severity_rollup
+        : null;
     if (rollup) {
       totals.critical += Number(rollup.critical || 0);
       totals.high += Number(rollup.high || 0);
@@ -396,9 +489,9 @@ function aggregateSeverityTotals(events) {
 function aggregateScanSources(events) {
   const sources = { ci: 0, ide: 0, dashboard: 0 };
   for (const ev of events) {
-    const source = String(ev.scan_source || 'ci').toLowerCase();
-    if (source === 'ide') sources.ide += 1;
-    else if (source === 'dashboard') sources.dashboard += 1;
+    const source = String(ev.scan_source || "ci").toLowerCase();
+    if (source === "ide") sources.ide += 1;
+    else if (source === "dashboard") sources.dashboard += 1;
     else sources.ci += 1;
   }
   return sources;
@@ -411,7 +504,8 @@ function aggregateScanSources(events) {
 function collectDistinctWorkspaces(events) {
   const workspaces = new Set();
   for (const ev of events) {
-    if (ev.workspace_fingerprint) workspaces.add(String(ev.workspace_fingerprint));
+    if (ev.workspace_fingerprint)
+      workspaces.add(String(ev.workspace_fingerprint));
     else if (ev.repository) workspaces.add(String(ev.repository));
   }
   return workspaces;
@@ -423,7 +517,8 @@ function collectDistinctWorkspaces(events) {
  */
 function summarizeTeamTelemetry(orgKey, options = {}) {
   const days = Number(options.days) || 7;
-  const minWorkspaces = Number(options.minWorkspaces) || K_ANONYMITY_MIN_WORKSPACES;
+  const minWorkspaces =
+    Number(options.minWorkspaces) || K_ANONYMITY_MIN_WORKSPACES;
   const events = filterOrgEvents(orgKey, days);
   const workspaces = collectDistinctWorkspaces(events);
 
@@ -432,15 +527,15 @@ function summarizeTeamTelemetry(orgKey, options = {}) {
   let gatePassCount = 0;
 
   for (const ev of events) {
-    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0) gatesTripped += 1;
+    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0)
+      gatesTripped += 1;
     if (ev.gate_pass === true) gatePassCount += 1;
     criticalsBlocked += Number(ev.critical_blocked || 0);
   }
 
   const totalScans = events.length;
-  const gatePassRate = totalScans > 0
-    ? Math.round((gatePassCount / totalScans) * 1000) / 1000
-    : 0;
+  const gatePassRate =
+    totalScans > 0 ? Math.round((gatePassCount / totalScans) * 1000) / 1000 : 0;
 
   const kAnonymityMet = workspaces.size >= minWorkspaces;
   const summary = {
@@ -453,16 +548,17 @@ function summarizeTeamTelemetry(orgKey, options = {}) {
     severity_totals: aggregateSeverityTotals(events),
     scan_sources: aggregateScanSources(events),
     distinct_workspaces: workspaces.size,
-    k_anonymity_met: kAnonymityMet
+    k_anonymity_met: kAnonymityMet,
   };
 
   if (kAnonymityMet) {
     summary.workspace_breakdown = [...workspaces].sort().map((fingerprint) => ({
       workspace_fingerprint: fingerprint,
-      scan_count: events.filter((ev) => (
-        ev.workspace_fingerprint === fingerprint
-        || (!ev.workspace_fingerprint && ev.repository === fingerprint)
-      )).length
+      scan_count: events.filter(
+        (ev) =>
+          ev.workspace_fingerprint === fingerprint ||
+          (!ev.workspace_fingerprint && ev.repository === fingerprint),
+      ).length,
     }));
   }
 
@@ -476,16 +572,16 @@ function summarizeTeamTelemetry(orgKey, options = {}) {
  */
 function getTeamTrend(orgKey, options = {}) {
   const days = Number(options.days) || 7;
-  const granularity = options.granularity === 'day' ? 'day' : 'day';
-  if (granularity !== 'day') {
-    throw new Error('Only day granularity is supported');
+  const granularity = options.granularity === "day" ? "day" : "day";
+  if (granularity !== "day") {
+    throw new Error("Only day granularity is supported");
   }
 
   const events = filterOrgEvents(orgKey, days);
   const buckets = new Map();
 
   for (const ev of events) {
-    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || "");
     if (!Number.isFinite(ts)) continue;
     const date = new Date(ts).toISOString().slice(0, 10);
     const bucket = buckets.get(date) || { scan_count: 0, gate_pass_count: 0 };
@@ -498,17 +594,18 @@ function getTeamTrend(orgKey, options = {}) {
   end.setUTCHours(0, 0, 0, 0);
   const trend = [];
   for (let offset = days - 1; offset >= 0; offset -= 1) {
-    const day = new Date(end.getTime() - (offset * 24 * 60 * 60 * 1000));
+    const day = new Date(end.getTime() - offset * 24 * 60 * 60 * 1000);
     const date = day.toISOString().slice(0, 10);
     const bucket = buckets.get(date) || { scan_count: 0, gate_pass_count: 0 };
-    const gatePassRate = bucket.scan_count > 0
-      ? Math.round((bucket.gate_pass_count / bucket.scan_count) * 1000) / 1000
-      : 0;
+    const gatePassRate =
+      bucket.scan_count > 0
+        ? Math.round((bucket.gate_pass_count / bucket.scan_count) * 1000) / 1000
+        : 0;
     trend.push({
       date,
       scan_count: bucket.scan_count,
       gate_pass_count: bucket.gate_pass_count,
-      gate_pass_rate: gatePassRate
+      gate_pass_rate: gatePassRate,
     });
   }
 
@@ -532,9 +629,10 @@ function getQualityDistribution(orgKey, options = {}) {
 function aggregateCategoryTotals(events) {
   const totals = {};
   for (const ev of events) {
-    const rollup = ev.category_rollup && typeof ev.category_rollup === 'object'
-      ? ev.category_rollup
-      : null;
+    const rollup =
+      ev.category_rollup && typeof ev.category_rollup === "object"
+        ? ev.category_rollup
+        : null;
     if (rollup) {
       for (const cat of Object.keys(rollup)) {
         totals[cat] = (totals[cat] || 0) + Number(rollup[cat] || 0);
@@ -570,11 +668,12 @@ function collectDistinctOrgs(events) {
  */
 function summarizeAllTelemetry(options = {}) {
   const days = Number(options.days) || 30;
-  const minWorkspaces = Number(options.minWorkspaces) || K_ANONYMITY_MIN_WORKSPACES;
-  const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+  const minWorkspaces =
+    Number(options.minWorkspaces) || K_ANONYMITY_MIN_WORKSPACES;
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
   const allEvents = readStore().events.filter((ev) => {
-    const ts = Date.parse(ev.recordedAt || ev.timestamp || '');
+    const ts = Date.parse(ev.recordedAt || ev.timestamp || "");
     return Number.isFinite(ts) && ts >= since;
   });
 
@@ -586,15 +685,15 @@ function summarizeAllTelemetry(options = {}) {
   let gatePassCount = 0;
 
   for (const ev of allEvents) {
-    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0) gatesTripped += 1;
+    if (ev.gate_pass === false || (ev.gates_tripped || 0) > 0)
+      gatesTripped += 1;
     if (ev.gate_pass === true) gatePassCount += 1;
     criticalsBlocked += Number(ev.critical_blocked || 0);
   }
 
   const totalScans = allEvents.length;
-  const gatePassRate = totalScans > 0
-    ? Math.round((gatePassCount / totalScans) * 1000) / 1000
-    : 0;
+  const gatePassRate =
+    totalScans > 0 ? Math.round((gatePassCount / totalScans) * 1000) / 1000 : 0;
 
   const kAnonymityMet = workspaces.size >= minWorkspaces;
 
@@ -611,16 +710,17 @@ function summarizeAllTelemetry(options = {}) {
     distinct_workspaces: workspaces.size,
     distinct_orgs: orgs.size,
     k_anonymity_met: kAnonymityMet,
-    k_anonymity_min: minWorkspaces
+    k_anonymity_min: minWorkspaces,
   };
 
   if (kAnonymityMet) {
     summary.workspace_breakdown = [...workspaces].sort().map((fingerprint) => ({
       workspace_fingerprint: fingerprint,
-      scan_count: allEvents.filter((ev) => (
-        ev.workspace_fingerprint === fingerprint
-        || (!ev.workspace_fingerprint && ev.repository === fingerprint)
-      )).length
+      scan_count: allEvents.filter(
+        (ev) =>
+          ev.workspace_fingerprint === fingerprint ||
+          (!ev.workspace_fingerprint && ev.repository === fingerprint),
+      ).length,
     }));
   }
 
@@ -645,5 +745,5 @@ module.exports = {
   TEAM_TELEMETRY_RETENTION_DAYS,
   K_ANONYMITY_MIN_WORKSPACES,
   TEAM_TELEMETRY_ALLOWED_FIELDS,
-  TEAM_TELEMETRY_FORBIDDEN_FIELDS
+  TEAM_TELEMETRY_FORBIDDEN_FIELDS,
 };

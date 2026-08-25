@@ -5,11 +5,11 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| Validator | |
-| Date | |
-| Branch | |
+| Field             | Value             |
+| ----------------- | ----------------- |
+| Validator         |                   |
+| Date              |                   |
+| Branch            |                   |
 | test_plan version | (date or git sha) |
 
 ## Executive summary
@@ -24,33 +24,33 @@
 
 ## 1. Defects (fix immediately)
 
-| ID | test_plan ref | Description | Severity | Owner |
-|----|---------------|-------------|----------|-------|
-| D-01 | | | critical / high / medium | |
+| ID   | test_plan ref | Description | Severity                 | Owner |
+| ---- | ------------- | ----------- | ------------------------ | ----- |
+| D-01 |               |             | critical / high / medium |       |
 
 ---
 
 ## 2. Unimplemented (spec gaps)
 
-| ID | test_plan ref | Missing capability | Notes |
-|----|---------------|-------------------|-------|
-| U-01 | | | |
+| ID   | test_plan ref | Missing capability | Notes |
+| ---- | ------------- | ------------------ | ----- |
+| U-01 |               |                    |       |
 
 ---
 
 ## 3. Enhancements (debt / perf / UX)
 
-| ID | Area | Suggestion | Effort |
-|----|------|------------|--------|
-| E-01 | | | S / M / L |
+| ID   | Area | Suggestion | Effort    |
+| ---- | ---- | ---------- | --------- |
+| E-01 |      |            | S / M / L |
 
 ---
 
 ## 4. Future roadmap
 
-| ID | Feature | Rationale |
-|----|---------|-----------|
-| R-01 | | |
+| ID   | Feature | Rationale |
+| ---- | ------- | --------- |
+| R-01 |         |           |
 
 ---
 
@@ -67,4 +67,4 @@
 - [ ] All Level 1 checks executed
 - [ ] Failures documented in Defects (not hidden)
 - [ ] No feature code written except test fixes
-- Validator: __________  Date: __________
+- Validator: __________ Date: __________

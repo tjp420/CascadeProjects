@@ -10,7 +10,9 @@ import { redactProjectPathForExport } from './quality-export.browser.js?v=202607
  * @returns {any}
  */
 function normalizeRel(filePath) {
-  return String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  return String(filePath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
 }
 
 /**
@@ -59,14 +61,15 @@ function redactNpmAuditExportPaths(audit, projectPath = '') {
   return {
     projectPath: redactProjectPathForExport(raw, label),
     auditRoot: redactProjectPathForExport(audit.auditRoot || raw, label),
-    packageJsonPath: packageJsonRaw && /package\.json$/i.test(packageJsonRaw)
-      ? `${label}/package.json`
-      : (audit.packageJsonPath
-        ? redactProjectPathForExport(audit.packageJsonPath, label)
-        : undefined),
+    packageJsonPath:
+      packageJsonRaw && /package\.json$/i.test(packageJsonRaw)
+        ? `${label}/package.json`
+        : audit.packageJsonPath
+          ? redactProjectPathForExport(audit.packageJsonPath, label)
+          : undefined,
     productPlatformRoot: audit.productPlatformRoot
       ? redactProjectPathForExport(audit.productPlatformRoot, projectLabelFromPath(audit.productPlatformRoot))
-      : undefined
+      : undefined,
   };
 }
 
@@ -97,40 +100,37 @@ function resolveNpmAuditGateContext(audit, options = {}) {
   const gateReport = options.gateReport || {};
   const hygiene = audit?.hygieneSummary || {};
   const scanScope = audit?.scanScope || {};
-  const repositoryFilesTotal = options.repositoryFilesTotal
-    ?? gateReport.repositoryFilesTotal
-    ?? gateReport.repositoryInventory?.totalFiles
-    ?? scanScope.gateRepositoryFilesTotal
-    ?? hygiene.gateRepositoryFilesTotal
-    ?? null;
-  const credentialScanned = gateReport.credentialScanned
-    ?? gateReport.productionLeakScanned
-    ?? hygiene.contentFilesScanned
-    ?? null;
-  const contentScanned = gateReport.scanScope?.fullDirectoryStats?.contentScanned
-    ?? gateReport.scanScope?.fullDirectoryStats?.filesContentScanned
-    ?? gateReport.credentialScanned
-    ?? gateReport.productionLeakScanned
-    ?? hygiene.contentFilesScanned
-    ?? null;
-  const gateProfile = gateReport.scanScope?.profile
-    ?? scanScope.gateRuleBundleProfile
-    ?? hygiene.gateRuleBundleProfile
-    ?? null;
-  const fictionJsonFilesScanned = gateReport.fictionJsonFilesScanned
-    ?? gateReport.scanScope?.fictionJsonFilesScanned
-    ?? hygiene.fictionJsonFilesScanned
-    ?? null;
-  const fictionSampleFilesScanned = gateReport.fictionSampleFilesScanned
-    ?? gateReport.mockSampleFiles
-    ?? gateReport.scanScope?.fictionSampleFilesScanned
-    ?? hygiene.fictionSampleFilesScanned
-    ?? null;
+  const repositoryFilesTotal =
+    options.repositoryFilesTotal ??
+    gateReport.repositoryFilesTotal ??
+    gateReport.repositoryInventory?.totalFiles ??
+    scanScope.gateRepositoryFilesTotal ??
+    hygiene.gateRepositoryFilesTotal ??
+    null;
+  const credentialScanned =
+    gateReport.credentialScanned ?? gateReport.productionLeakScanned ?? hygiene.contentFilesScanned ?? null;
+  const contentScanned =
+    gateReport.scanScope?.fullDirectoryStats?.contentScanned ??
+    gateReport.scanScope?.fullDirectoryStats?.filesContentScanned ??
+    gateReport.credentialScanned ??
+    gateReport.productionLeakScanned ??
+    hygiene.contentFilesScanned ??
+    null;
+  const gateProfile =
+    gateReport.scanScope?.profile ?? scanScope.gateRuleBundleProfile ?? hygiene.gateRuleBundleProfile ?? null;
+  const fictionJsonFilesScanned =
+    gateReport.fictionJsonFilesScanned ??
+    gateReport.scanScope?.fictionJsonFilesScanned ??
+    hygiene.fictionJsonFilesScanned ??
+    null;
+  const fictionSampleFilesScanned =
+    gateReport.fictionSampleFilesScanned ??
+    gateReport.mockSampleFiles ??
+    gateReport.scanScope?.fictionSampleFilesScanned ??
+    hygiene.fictionSampleFilesScanned ??
+    null;
   const gatePass = gateReport.gate?.pass ?? hygiene.gatePass ?? null;
-  const blockingCount = gateReport.gate?.blockingCount
-    ?? gateReport.issueCount
-    ?? hygiene.blockingCount
-    ?? null;
+  const blockingCount = gateReport.gate?.blockingCount ?? gateReport.issueCount ?? hygiene.blockingCount ?? null;
   return {
     gateReport,
     repositoryFilesTotal,
@@ -140,7 +140,7 @@ function resolveNpmAuditGateContext(audit, options = {}) {
     fictionJsonFilesScanned,
     fictionSampleFilesScanned,
     gatePass,
-    blockingCount
+    blockingCount,
   };
 }
 
@@ -152,8 +152,17 @@ function resolveNpmAuditGateContext(audit, options = {}) {
  */
 function buildNpmAuditHygieneSummary(audit, context = {}) {
   const gateContext = resolveNpmAuditGateContext(audit, context);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
-    fictionJsonFilesScanned, fictionSampleFilesScanned, gatePass, blockingCount } = gateContext;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    contentScanned,
+    gateProfile,
+    gateReport,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+    gatePass,
+    blockingCount,
+  } = gateContext;
   const summary = audit.summary || {};
   const deps = summary.dependencies ?? audit.dependencies?.total ?? null;
   return {
@@ -180,7 +189,7 @@ function buildNpmAuditHygieneSummary(audit, context = {}) {
     ...(gateReport.jestBaselineChecked === false || audit.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff certification.'
+    attestationNote: 'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff certification.',
   };
 }
 
@@ -200,8 +209,9 @@ function buildProductNpmAuditScanScope(audit, options = {}) {
     securityHandoffEligible: false,
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    supplyChainNote: audit.scanScope?.supplyChainNote
-      || 'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff clearance.'
+    supplyChainNote:
+      audit.scanScope?.supplyChainNote ||
+      'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff clearance.',
   };
 }
 
@@ -215,13 +225,20 @@ function buildNpmAuditExportNotes(audit, context = {}) {
   const { benchmarkScan, skipped, supplyChainStatus, deps, summary = {} } = context;
   const gateContext = resolveNpmAuditGateContext(audit, {
     gateReport: context.gateReport,
-    repositoryFilesTotal: context.repositoryFilesTotal
+    repositoryFilesTotal: context.repositoryFilesTotal,
   });
-  const { repositoryFilesTotal: gateTotal, credentialScanned, gateProfile, gatePass, blockingCount,
-    fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    gateProfile,
+    gatePass,
+    blockingCount,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+  } = gateContext;
   const notes = [
     'Absolute scan paths are redacted to project label in operator exports.',
-    'securityHandoffEligible is false — npm audit pass is supply-chain hygiene only, not vendor security handoff.'
+    'securityHandoffEligible is false — npm audit pass is supply-chain hygiene only, not vendor security handoff.',
   ];
 
   if (skipped) {
@@ -241,7 +258,9 @@ function buildNpmAuditExportNotes(audit, context = {}) {
         : 'Supply-chain gate: no critical or high npm audit findings at audit root.'
     );
     if (!benchmarkScan && !skipped) {
-      notes.push('handoffEligible reflects SUPPLY-001 automation pass — not SimpleBeacon vendor security handoff clearance.');
+      notes.push(
+        'handoffEligible reflects SUPPLY-001 automation pass — not SimpleBeacon vendor security handoff clearance.'
+      );
       notes.push(
         'Single-root npm audit — dependency tree reflects audit-root lockfile and npm workspaces only; standalone nested package.json directories are not included.'
       );
@@ -262,7 +281,9 @@ function buildNpmAuditExportNotes(audit, context = {}) {
         );
       }
       if (gateProfile) {
-        notes.push(`Gate rule bundle profile: ${gateProfile} — pair npm audit with json/simplebeacon-gate.json for handoff evidence.`);
+        notes.push(
+          `Gate rule bundle profile: ${gateProfile} — pair npm audit with json/simplebeacon-gate.json for handoff evidence.`
+        );
       }
       if (gatePass === false && (blockingCount ?? 0) > 0) {
         notes.push(
@@ -318,13 +339,9 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
     exportNormalized: true,
     exportSanitized: true,
     supplyChainStatus,
-    scanTargetProfile: benchmarkScan
-      ? 'benchmark-cache'
-      : (skipped ? 'non-npm-project' : 'product'),
+    scanTargetProfile: benchmarkScan ? 'benchmark-cache' : skipped ? 'non-npm-project' : 'product',
     securityHandoffEligible: false,
-    handoffEligible: !benchmarkScan
-      && !skipped
-      && supplyChainStatus === 'pass'
+    handoffEligible: !benchmarkScan && !skipped && supplyChainStatus === 'pass',
   };
 
   if (!skipped) {
@@ -337,9 +354,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
   if (benchmarkScan) {
     next.benchmarkScan = true;
     next.handoffEligible = false;
-    next.productPlatformRoot = paths.productPlatformRoot
-      || resolveProductPlatformRoot(rawPath)
-      || undefined;
+    next.productPlatformRoot = paths.productPlatformRoot || resolveProductPlatformRoot(rawPath) || undefined;
     if (next.productPlatformRoot) {
       next.productPlatformRoot = redactProjectPathForExport(
         next.productPlatformRoot,
@@ -347,7 +362,8 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
       );
     }
     if (!next.scopeNote && skipped) {
-      next.scopeNote = 'OSS clone under github-cache/ has no package.json — npm audit was not run (npm would otherwise audit the parent ai-platform lockfile).';
+      next.scopeNote =
+        'OSS clone under github-cache/ has no package.json — npm audit was not run (npm would otherwise audit the parent ai-platform lockfile).';
     }
   }
 
@@ -364,7 +380,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
       dependencies: null,
       prodDependencies: null,
       devDependencies: null,
-      ...summary
+      ...summary,
     };
     next.exportNotes = buildNpmAuditExportNotes(audit, {
       benchmarkScan,
@@ -372,7 +388,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
       supplyChainStatus,
       scopeNote: next.scopeNote,
       gateReport: options.gateReport,
-      repositoryFilesTotal: options.repositoryFilesTotal
+      repositoryFilesTotal: options.repositoryFilesTotal,
     });
     return next;
   }
@@ -384,8 +400,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
     deps,
     summary,
     gateReport: options.gateReport,
-    repositoryFilesTotal: options.repositoryFilesTotal
-      ?? options.gateReport?.repositoryFilesTotal
+    repositoryFilesTotal: options.repositoryFilesTotal ?? options.gateReport?.repositoryFilesTotal,
   };
 
   next.exportNotes = buildNpmAuditExportNotes(audit, noteContext);
@@ -400,8 +415,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
       supplyChainStatus,
       packageJsonPath: next.packageJsonPath,
       gateReport: options.gateReport,
-      repositoryFilesTotal: options.repositoryFilesTotal
-        ?? options.gateReport?.repositoryFilesTotal
+      repositoryFilesTotal: options.repositoryFilesTotal ?? options.gateReport?.repositoryFilesTotal,
     });
   }
 
@@ -409,7 +423,7 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
     ...summary,
     total: summary.total ?? summary.vulnerabilityTotal ?? 0,
     vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? 0,
-    dependencies: deps
+    dependencies: deps,
   };
 
   return next;

@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - run: npm ci
         working-directory: ai-platform
       - run: npm run simplebeacon:report
@@ -67,15 +67,15 @@ jobs:
 
 ## Environment variables
 
-| Variable | Purpose |
-|----------|---------|
-| `GITHUB_TOKEN` | Post PR comments |
-| `GITHUB_REPOSITORY` | `owner/repo` slug |
-| `GITHUB_EVENT_PULL_REQUEST_NUMBER` | PR number for comments |
-| `NO_COLOR` | Disable colored CLI output |
-| `CI=true` | Standard CI mode for Jest baseline |
-| `SIMPLEBEACON_DASHBOARD_URL` | Optional webhook for live dashboard sync (see [DOCKER.md](./DOCKER.md)) |
-| `SIMPLEBEACON_DASHBOARD_TOKEN` | Bearer token for dashboard webhook |
+| Variable                           | Purpose                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `GITHUB_TOKEN`                     | Post PR comments                                                        |
+| `GITHUB_REPOSITORY`                | `owner/repo` slug                                                       |
+| `GITHUB_EVENT_PULL_REQUEST_NUMBER` | PR number for comments                                                  |
+| `NO_COLOR`                         | Disable colored CLI output                                              |
+| `CI=true`                          | Standard CI mode for Jest baseline                                      |
+| `SIMPLEBEACON_DASHBOARD_URL`       | Optional webhook for live dashboard sync (see [DOCKER.md](./DOCKER.md)) |
+| `SIMPLEBEACON_DASHBOARD_TOKEN`     | Bearer token for dashboard webhook                                      |
 
 ## Docker local stack
 

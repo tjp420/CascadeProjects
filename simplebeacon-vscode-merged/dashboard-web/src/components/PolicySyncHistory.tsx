@@ -3,13 +3,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import {
-  RefreshCw, Loader2, Activity, TrendingUp, GitMerge, Replace,
-  Copy, SkipForward, Trash2, Clock, Building2, History,
+  RefreshCw,
+  Loader2,
+  Activity,
+  TrendingUp,
+  GitMerge,
+  Replace,
+  Copy,
+  SkipForward,
+  Trash2,
+  Clock,
+  Building2,
+  History,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 
@@ -86,10 +108,10 @@ export function PolicySyncHistory() {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await fetch(
-        apiUrl('/api/audit/pii/sync-history?days=' + days + '&limit=50'),
-        { headers: authHeaders(), credentials: 'include' }
-      );
+      const resp = await fetch(apiUrl('/api/audit/pii/sync-history?days=' + days + '&limit=50'), {
+        headers: authHeaders(),
+        credentials: 'include',
+      });
       if (!resp.ok) {
         const b = await resp.json().catch(() => ({}));
         throw new Error(b.message || 'HTTP ' + resp.status);
@@ -103,12 +125,16 @@ export function PolicySyncHistory() {
     }
   }, [days]);
 
-  useEffect(() => { void fetchHistory(); }, [fetchHistory]);
+  useEffect(() => {
+    void fetchHistory();
+  }, [fetchHistory]);
 
-  const modeData = data ? [
-    { name: 'Merge', value: data.mergeCount, color: '#3b82f6' },
-    { name: 'Replace', value: data.replaceCount, color: '#ef4444' },
-  ].filter((d) => d.value > 0) : [];
+  const modeData = data
+    ? [
+        { name: 'Merge', value: data.mergeCount, color: '#3b82f6' },
+        { name: 'Replace', value: data.replaceCount, color: '#ef4444' },
+      ].filter((d) => d.value > 0)
+    : [];
 
   return (
     <Card>
@@ -119,9 +145,7 @@ export function PolicySyncHistory() {
               <History className="h-5 w-5" />
               Policy Sync History
             </CardTitle>
-            <CardDescription className="mt-1">
-              Synchronization telemetry and audit trail
-            </CardDescription>
+            <CardDescription className="mt-1">Synchronization telemetry and audit trail</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -141,7 +165,6 @@ export function PolicySyncHistory() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-
         {loading ? (
           <div className="flex flex-col items-center gap-3 py-12">
             <Loader2 className="h-6 w-6 text-foreground-muted animate-spin" />
@@ -210,7 +233,13 @@ export function PolicySyncHistory() {
                       />
                       <Legend wrapperStyle={{ fontSize: '12px' }} />
                       <Area type="monotone" dataKey="cloned" stroke="#10b981" fill="url(#clonedGrad)" name="Cloned" />
-                      <Area type="monotone" dataKey="removed" stroke="#ef4444" fill="url(#removedGrad)" name="Removed" />
+                      <Area
+                        type="monotone"
+                        dataKey="removed"
+                        stroke="#ef4444"
+                        fill="url(#removedGrad)"
+                        name="Removed"
+                      />
                       <Area type="monotone" dataKey="skipped" stroke="#f59e0b" fill="none" name="Skipped" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -271,10 +300,15 @@ export function PolicySyncHistory() {
                   <h4 className="text-sm font-semibold">Top Operators</h4>
                   <div className="space-y-1.5">
                     {data.actors.map((a) => (
-                      <div key={a.actor} className="flex items-center justify-between text-xs border-b pb-1.5 last:border-0">
+                      <div
+                        key={a.actor}
+                        className="flex items-center justify-between text-xs border-b pb-1.5 last:border-0"
+                      >
                         <span className="font-mono truncate flex-1">{a.actor}</span>
                         <div className="flex items-center gap-3 ml-2">
-                          <Badge variant="outline" className="text-[10px]">{a.syncs} syncs</Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {a.syncs} syncs
+                          </Badge>
                           <span className="text-green-500">{a.cloned} cloned</span>
                         </div>
                       </div>
@@ -290,10 +324,15 @@ export function PolicySyncHistory() {
                   </h4>
                   <div className="space-y-1.5">
                     {data.sourceOrgs.map((s) => (
-                      <div key={s.sourceOrg} className="flex items-center justify-between text-xs border-b pb-1.5 last:border-0">
+                      <div
+                        key={s.sourceOrg}
+                        className="flex items-center justify-between text-xs border-b pb-1.5 last:border-0"
+                      >
                         <span className="font-mono truncate flex-1">{s.sourceOrg}</span>
                         <div className="flex items-center gap-3 ml-2">
-                          <Badge variant="outline" className="text-[10px]">{s.syncs} syncs</Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {s.syncs} syncs
+                          </Badge>
                           <span className="text-green-500">{s.cloned} cloned</span>
                         </div>
                       </div>
@@ -321,8 +360,13 @@ export function PolicySyncHistory() {
                         <span className="text-foreground-muted">{e.mode}</span>
                       </div>
                       <span className="font-mono text-foreground-muted truncate flex-1">{e.sourceOrgId}</span>
-                      <span className="text-foreground-muted">{"->"} {e.targetCount} targets</span>
-                      <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">
+                      <span className="text-foreground-muted">
+                        {'->'} {e.targetCount} targets
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]"
+                      >
                         +{e.totalCloned}
                       </Badge>
                       {e.totalRemoved > 0 && (

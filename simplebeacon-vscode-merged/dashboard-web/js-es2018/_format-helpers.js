@@ -1,11 +1,10 @@
-
 /**
  * Split a string into an array of words.
  * @param {string} str
  * @returns {string[]}
  */
 export function words(str) {
-    return String(str ?? '').match(/\w+/g) || [];
+  return String(str ?? '').match(/\w+/g) || [];
 }
 
 /**
@@ -15,9 +14,9 @@ export function words(str) {
  * @returns {string}
  */
 export function repeat(str, count) {
-    const s = String(str ?? '');
-    const n = Math.max(0, Math.floor(Number(count) || 0));
-    return s.repeat(n);
+  const s = String(str ?? '');
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  return s.repeat(n);
 }
 
 /**
@@ -26,9 +25,9 @@ export function repeat(str, count) {
  * @returns {string}
  */
 export function titleCase(str) {
-    return String(str ?? '')
-        .toLowerCase()
-        .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
+  return String(str ?? '')
+    .toLowerCase()
+    .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
 }
 
 /**
@@ -37,12 +36,12 @@ export function titleCase(str) {
  * @returns {string}
  */
 export function slugify(str) {
-    return String(str ?? '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  return String(str ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**
@@ -53,13 +52,13 @@ export function slugify(str) {
  * @returns {boolean}
  */
 export function inRange(value, start, end) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return false;
-    const s = Number(start);
-    const e = end === undefined ? s : Number(end);
-    const lo = Math.min(s, e);
-    const hi = Math.max(s, e);
-    return n >= lo && n < hi;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return false;
+  const s = Number(start);
+  const e = end === undefined ? s : Number(end);
+  const lo = Math.min(s, e);
+  const hi = Math.max(s, e);
+  return n >= lo && n < hi;
 }
 
 /**
@@ -69,9 +68,9 @@ export function inRange(value, start, end) {
  * @returns {number}
  */
 export function roundTo(value, decimals) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return NaN;
-    const d = Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)));
-    const mult = Math.pow(10, d);
-    return Math.round((n + Number.EPSILON) * mult) / mult;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return NaN;
+  const d = Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)));
+  const mult = Math.pow(10, d);
+  return Math.round((n + Number.EPSILON) * mult) / mult;
 }

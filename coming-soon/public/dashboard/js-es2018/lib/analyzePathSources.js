@@ -16,26 +16,21 @@ export const REMOTE_REPO_HOSTS = [
  */
 export function isRemoteRepoUrl(value) {
     const raw = String(value || '').trim();
-    if (!raw)
-        return false;
-    if (/^git@[^:]+:[\w.\-/]+/i.test(raw))
-        return true;
+    if (!raw) return false;
+    if (/^git@[^:]+:[\w.\-/]+/i.test(raw)) return true;
     if (raw.startsWith('ssh://git@') || raw.startsWith('ssh://')) {
         try {
             const host = new URL(raw).hostname.toLowerCase();
             return REMOTE_REPO_HOSTS.includes(host);
-        }
-        catch (_a) {
+        } catch (_a) {
             return false;
         }
     }
     try {
         const parsed = new URL(raw);
-        if (parsed.protocol !== 'https:')
-            return false;
+        if (parsed.protocol !== 'https:') return false;
         return REMOTE_REPO_HOSTS.includes(parsed.hostname.toLowerCase());
-    }
-    catch (_b) {
+    } catch (_b) {
         return false;
     }
 }
@@ -50,6 +45,11 @@ export function isGithubRepoUrl(value) {
  */
 export function sourceChipTitle(source) {
     const hint = (source === null || source === void 0 ? void 0 : source.hint) ? ` — ${source.hint}` : '';
-    const kind = (source === null || source === void 0 ? void 0 : source.kind) === 'remote' ? 'HTTPS clone' : (source === null || source === void 0 ? void 0 : source.kind) === 'cached' ? 'Cached clone' : 'Local folder';
+    const kind =
+        (source === null || source === void 0 ? void 0 : source.kind) === 'remote'
+            ? 'HTTPS clone'
+            : (source === null || source === void 0 ? void 0 : source.kind) === 'cached'
+              ? 'Cached clone'
+              : 'Local folder';
     return `${kind}${hint}`;
 }

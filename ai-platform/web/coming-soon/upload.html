@@ -1,1215 +1,2253 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="-1">
-  <title>Upload & Validate — Simplebeacon</title>
-  <script>
-    // Aggressively clear any stale cached scripts (old dashboard main.js etc.)
-    (function() {
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          names.forEach(function(name) { caches.delete(name); });
-        });
-      }
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          regs.forEach(function(r) { r.unregister(); });
-        });
-      }
-      // Block any fetch to the old deleted main.js path
-      const _fetch = window.fetch;
-      if (_fetch) {
-        window.fetch = function(url) {
-          var u = String(url || '');
-          if (u.indexOf('coming-soon/js/dashboard/main.js') !== -1) {
-            console.warn('[SB] Blocked stale cached script:', u);
-            return Promise.resolve(new Response('/* blocked stale cache */', { status: 200 }));
-          }
-          return _fetch.apply(this, arguments);
-        };
-      }
-      // Block DOM injection of old main.js
-      const badPath = 'coming-soon/js/dashboard/main.js';
-      const _createElement = document.createElement;
-      document.createElement = function(tag) {
-        var el = _createElement.apply(document, arguments);
-        if (tag && String(tag).toLowerCase() === 'script') {
-          var orig = el.setAttribute;
-          el.setAttribute = function(name, value) {
-            if (String(name).toLowerCase() === 'src' && String(value).indexOf(badPath) !== -1) {
-              console.warn('[SB] Blocked stale script injection:', value);
-              return;
-            }
-            return orig.apply(el, arguments);
-          };
-          Object.defineProperty(el, 'src', {
-            set: function(v) {
-              if (String(v).indexOf(badPath) !== -1) {
-                console.warn('[SB] Blocked stale script src:', v);
-                return;
-              }
-              el.setAttribute('src', v);
-            },
-            get: function() { return el.getAttribute('src') || ''; }
-          });
-        }
-        return el;
-      };
-      // Remove any already-present stale scripts
-      document.querySelectorAll('script[src*="coming-soon/js/dashboard/main.js"]').forEach(function(s) {
-        console.warn('[SB] Removed stale script:', s.src);
-        s.remove();
-      });
-      // MutationObserver to catch dynamically injected stale scripts
-      if (window.MutationObserver) {
-        new MutationObserver(function(mutations) {
-          mutations.forEach(function(m) {
-            m.addedNodes.forEach(function(node) {
-              if (node.tagName === 'SCRIPT' && String(node.src || '').indexOf(badPath) !== -1) {
-                console.warn('[SB] Removed dynamically injected stale script:', node.src);
-                node.remove();
-              }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate, max-age=0"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
+    <title>Upload & Validate — Simplebeacon</title>
+    <script>
+      // Aggressively clear any stale cached scripts (old dashboard main.js etc.)
+      (function () {
+        if ("caches" in window) {
+          caches.keys().then(function (names) {
+            names.forEach(function (name) {
+              caches.delete(name);
             });
           });
-        }).observe(document.documentElement, { childList: true, subtree: true });
+        }
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        // Block any fetch to the old deleted main.js path
+        const _fetch = window.fetch;
+        if (_fetch) {
+          window.fetch = function (url) {
+            var u = String(url || "");
+            if (u.indexOf("coming-soon/js/dashboard/main.js") !== -1) {
+              console.warn("[SB] Blocked stale cached script:", u);
+              return Promise.resolve(
+                new Response("/* blocked stale cache */", { status: 200 }),
+              );
+            }
+            return _fetch.apply(this, arguments);
+          };
+        }
+        // Block DOM injection of old main.js
+        const badPath = "coming-soon/js/dashboard/main.js";
+        const _createElement = document.createElement;
+        document.createElement = function (tag) {
+          var el = _createElement.apply(document, arguments);
+          if (tag && String(tag).toLowerCase() === "script") {
+            var orig = el.setAttribute;
+            el.setAttribute = function (name, value) {
+              if (
+                String(name).toLowerCase() === "src" &&
+                String(value).indexOf(badPath) !== -1
+              ) {
+                console.warn("[SB] Blocked stale script injection:", value);
+                return;
+              }
+              return orig.apply(el, arguments);
+            };
+            Object.defineProperty(el, "src", {
+              set: function (v) {
+                if (String(v).indexOf(badPath) !== -1) {
+                  console.warn("[SB] Blocked stale script src:", v);
+                  return;
+                }
+                el.setAttribute("src", v);
+              },
+              get: function () {
+                return el.getAttribute("src") || "";
+              },
+            });
+          }
+          return el;
+        };
+        // Remove any already-present stale scripts
+        document
+          .querySelectorAll('script[src*="coming-soon/js/dashboard/main.js"]')
+          .forEach(function (s) {
+            console.warn("[SB] Removed stale script:", s.src);
+            s.remove();
+          });
+        // MutationObserver to catch dynamically injected stale scripts
+        if (window.MutationObserver) {
+          new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+              m.addedNodes.forEach(function (node) {
+                if (
+                  node.tagName === "SCRIPT" &&
+                  String(node.src || "").indexOf(badPath) !== -1
+                ) {
+                  console.warn(
+                    "[SB] Removed dynamically injected stale script:",
+                    node.src,
+                  );
+                  node.remove();
+                }
+              });
+            });
+          }).observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+          });
+        }
+      })();
+    </script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📁%3C/text%3E%3C/svg%3E"
+    />
+    <script>
+      // BLOCK browser extension noise ASAP (coupon finders, etc.)
+      (function () {
+        const bad = /free-token|provision sandbox|sandbox|config\/pricing/i;
+        const f = window.fetch;
+        if (f)
+          window.fetch = function () {
+            var u = String(arguments[0] || "");
+            if (bad.test(u)) {
+              console.warn("[SB] blocked ext:", u);
+              return Promise.resolve(
+                new Response("{}", {
+                  status: 200,
+                  headers: { "content-type": "application/json" },
+                }),
+              );
+            }
+            return f.apply(this, arguments);
+          };
+        const x = window.XMLHttpRequest;
+        if (x) {
+          window.XMLHttpRequest = function () {
+            var r = new x(),
+              o = r.open;
+            r.open = function (m, u) {
+              if (bad.test(String(u))) {
+                console.warn("[SB] blocked ext XHR:", u);
+                r.send = function () {};
+                Object.defineProperty(r, "readyState", {
+                  get: function () {
+                    return 4;
+                  },
+                });
+                Object.defineProperty(r, "status", {
+                  get: function () {
+                    return 200;
+                  },
+                });
+                Object.defineProperty(r, "responseText", {
+                  get: function () {
+                    return "{}";
+                  },
+                });
+                setTimeout(function () {
+                  if (r.onreadystatechange) r.onreadystatechange();
+                }, 0);
+                return;
+              }
+              return o.apply(r, arguments);
+            };
+            return r;
+          };
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* upload-specific theme variables */
+      :root {
+        --primary: #0ea5e9;
+        --primary-hover: #38bdf8;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        --background: #0a0a0a;
+        --surface: #141414;
+        --surface-elevated: #1a1a1a;
+        --surface-hover: #262626;
+        --border: #262626;
+        --text-primary: #fafafa;
+        --text-secondary: #a3a3a3;
+        --text-muted: #737373;
+        --font-family: "Inter", system-ui, sans-serif;
+        --font-mono: ui-monospace, monospace;
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        --space-10: 2.5rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --upload-accent: #0ea5e9;
       }
-    })();
-  </script>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📁%3C/text%3E%3C/svg%3E">
-  <script>
-    // BLOCK browser extension noise ASAP (coupon finders, etc.)
-    (function() {
-      const bad = /free-token|provision sandbox|sandbox|config\/pricing/i;
-      const f = window.fetch;
-      if (f) window.fetch = function() { var u=String(arguments[0]||''); if(bad.test(u)){console.warn('[SB] blocked ext:',u);return Promise.resolve(new Response('{}',{status:200,headers:{'content-type':'application/json'}}));} return f.apply(this,arguments); };
-      const x = window.XMLHttpRequest;
-      if (x) { window.XMLHttpRequest = function(){ var r=new x(),o=r.open;r.open=function(m,u){if(bad.test(String(u))){console.warn('[SB] blocked ext XHR:',u);r.send=function(){};Object.defineProperty(r,'readyState',{get:function(){return 4}});Object.defineProperty(r,'status',{get:function(){return 200}});Object.defineProperty(r,'responseText',{get:function(){return '{}'}});setTimeout(function(){if(r.onreadystatechange)r.onreadystatechange()},0);return;}return o.apply(r,arguments);};return r;}; }
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* upload-specific theme variables */
-    :root {
-      --primary: #0ea5e9;
-      --primary-hover: #38bdf8;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --info: #3b82f6;
-      --background: #0a0a0a;
-      --surface: #141414;
-      --surface-elevated: #1a1a1a;
-      --surface-hover: #262626;
-      --border: #262626;
-      --text-primary: #fafafa;
-      --text-secondary: #a3a3a3;
-      --text-muted: #737373;
-      --font-family: 'Inter', system-ui, sans-serif;
-      --font-mono: ui-monospace, monospace;
-      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
-      --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
-      --space-8: 2rem; --space-10: 2.5rem;
-      --radius-md: 0.5rem; --radius-lg: 0.75rem;
-      --upload-accent: #0ea5e9;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: var(--font-family);
-      background: var(--background);
-      color: var(--text-primary);
-      line-height: 1.5;
-    }
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: var(--space-6);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-      margin-bottom: var(--space-6);
-      flex-wrap: wrap;
-    }
-    h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
-    .subtitle { color: var(--text-muted); font-size: 0.875rem; margin: 0; }
-
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-10);
-      text-align: center;
-      background: var(--surface);
-      transition: all 150ms;
-      cursor: pointer;
-    }
-    .dropzone:hover, .dropzone.drag-active {
-      border-color: var(--primary);
-      background: rgba(99,102,241,0.05);
-    }
-    .dropzone .icon { font-size: 2.5rem; margin-bottom: var(--space-4); }
-    .dropzone p { color: var(--text-secondary); margin: 0; }
-    .dropzone .hint { color: var(--text-muted); font-size: 0.75rem; margin-top: var(--space-2); }
-
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-5);
-      background: var(--surface);
-      margin-bottom: var(--space-4);
-    }
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-3);
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-    .panel-title { font-weight: 600; font-size: 1rem; margin: 0; }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-1);
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .badge-success { background: rgba(34,197,94,0.15); color: var(--success); }
-    .badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); }
-    .badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .badge-info { background: rgba(59,130,246,0.15); color: var(--info); }
-
-    .validation-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2);
-    }
-    .validation-item {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3);
-      padding: var(--space-3);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border);
-      background: var(--surface-elevated);
-    }
-    .validation-item.ok { border-color: rgba(34,197,94,0.25); }
-    .validation-item.warn { border-color: rgba(245,158,11,0.25); }
-    .validation-item.err { border-color: rgba(239,68,68,0.25); }
-    .validation-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-    .validation-text { flex: 1; min-width: 0; }
-    .validation-title { font-size: 0.875rem; font-weight: 500; }
-    .validation-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: var(--space-3);
-    }
-    .metric-box {
-      padding: var(--space-3);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--surface-elevated);
-    }
-    .metric-value { font-size: 1.25rem; font-weight: 700; }
-    .metric-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      border-radius: var(--radius-md);
-      font-weight: 500;
-      font-size: 0.875rem;
-      cursor: pointer;
-      border: none;
-      background: var(--primary);
-      color: #fff;
-      transition: filter 150ms;
-    }
-    .btn:hover { filter: brightness(1.1); }
-    .btn-secondary {
-      background: var(--surface-elevated);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover { background: var(--surface-hover); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    pre {
-      margin: 0;
-      padding: var(--space-3);
-      background: var(--background);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      overflow-x: auto;
-      max-height: 300px;
-    }
-
-    .empty { text-align: center; padding: var(--space-10); color: var(--text-muted); }
-
-    /* Issue panel enhancements */
-    .issue-toolbar {
-      display: flex;
-      gap: var(--space-2);
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: var(--space-3);
-    }
-    .issue-search {
-      flex: 1;
-      min-width: 200px;
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--background);
-      color: var(--text-primary);
-      font-size: 0.8rem;
-    }
-    .severity-filters {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .severity-filter {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--surface-elevated);
-      color: var(--text-secondary);
-      transition: all 150ms;
-    }
-    .severity-filter.active { border-color: var(--primary); color: var(--text-primary); }
-    .severity-filter.critical.active { background: rgba(239,68,68,0.15); color: var(--danger); border-color: var(--danger); }
-    .severity-filter.high.active { background: rgba(239,68,68,0.15); color: var(--danger); border-color: var(--danger); }
-    .severity-filter.medium.active { background: rgba(245,158,11,0.15); color: var(--warning); border-color: var(--warning); }
-    .severity-filter.low.active { background: rgba(59,130,246,0.15); color: var(--info); border-color: var(--info); }
-    .severity-filter.info.active { background: rgba(107,114,128,0.15); color: var(--text-muted); border-color: var(--text-muted); }
-
-    .issue-list { display: flex; flex-direction: column; gap: 8px; }
-    .issue-item {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      background: var(--background);
-      overflow: hidden;
-    }
-    .issue-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      cursor: pointer;
-      transition: background 150ms;
-    }
-    .issue-header:hover { background: var(--surface-hover); }
-    .issue-severity {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
-    .severity-critical { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .severity-high { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .severity-medium { background: rgba(245,158,11,0.15); color: var(--warning); }
-    .severity-low { background: rgba(59,130,246,0.15); color: var(--info); }
-    .severity-info { background: rgba(107,114,128,0.15); color: var(--text-muted); }
-    .issue-title { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 500; }
-    .issue-file { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
-    .issue-chevron { font-size: 0.7rem; color: var(--text-muted); transition: transform 200ms; }
-    .issue-item.expanded .issue-chevron { transform: rotate(90deg); }
-    .issue-details {
-      display: none;
-      padding: 0 12px 12px 12px;
-      border-top: 1px solid var(--border);
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
-    .issue-item.expanded .issue-details { display: block; }
-    .issue-detail-row { display: flex; gap: 8px; margin-top: 8px; }
-    .issue-detail-row strong { color: var(--text-primary); min-width: 80px; }
-    .issue-detail-row code { background: var(--surface); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }
-    .issue-actions { display: flex; gap: 8px; margin-top: 12px; }
-    .issue-actions button { padding: 4px 10px; font-size: 0.75rem; }
-
-    /* Project header */
-    .project-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-      margin-bottom: var(--space-3);
-      padding-bottom: var(--space-3);
-      border-bottom: 1px solid var(--border);
-    }
-    .project-name { font-weight: 700; font-size: 1.1rem; }
-    .project-meta { font-size: 0.75rem; color: var(--text-muted); }
-
-    /* Collapsible raw preview */
-    .collapsible-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      user-select: none;
-    }
-    .collapsible-header .chevron { transition: transform 200ms; font-size: 0.8rem; }
-    .collapsible-header.expanded .chevron { transform: rotate(90deg); }
-    .collapsible-body { display: none; }
-    .collapsible-body.expanded { display: block; }
-
-    @media (max-width: 640px) {
-      .container { padding: var(--space-4); }
-      header { flex-direction: column; align-items: flex-start; }
-      .issue-toolbar { flex-direction: column; align-items: stretch; }
-      .severity-filters { justify-content: center; }
-    }
-
-    /* ===== Audit Page Redesign ===== */
-    .audit-hero {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-      padding: var(--space-3) 0 var(--space-1);
-      flex-wrap: wrap;
-      margin-bottom: var(--space-4);
-    }
-    .audit-hero-text { display: flex; flex-direction: column; gap: 4px; }
-    .audit-hero h1 { font-size: 1.5rem; margin: 0; }
-    .audit-hero-sub { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
-    .audit-hero-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 0.7rem; font-weight: 600; color: var(--success);
-      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
-      border-radius: 999px; padding: 2px 10px; width: fit-content; margin-top: 4px;
-    }
-
-    /* Token gate — non-coercive */
-    .audit-token-gate {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      background: var(--surface);
-      padding: var(--space-5);
-      margin-bottom: var(--space-4);
-    }
-    .audit-token-gate-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);
-    }
-    .audit-token-gate-title { font-weight: 700; font-size: 0.95rem; margin: 0; }
-    .audit-token-gate-body { display: flex; flex-direction: column; gap: var(--space-3); }
-    .audit-token-gate-primary {
-      display: flex; gap: var(--space-2); align-items: stretch; flex-wrap: wrap;
-    }
-    .audit-token-gate-primary .btn { flex: 1; min-width: 160px; justify-content: center; padding: var(--space-3) var(--space-4); font-size: 0.9rem; }
-    .audit-token-gate-secondary {
-      display: flex; align-items: center; gap: var(--space-2);
-      font-size: 0.75rem; color: var(--text-muted);
-    }
-    .audit-token-gate-secondary a, .audit-token-gate-secondary button {
-      color: var(--primary); cursor: pointer; background: none; border: none;
-      font-size: 0.75rem; font-weight: 500; text-decoration: underline; padding: 0;
-    }
-    .audit-token-gate-secondary a:hover, .audit-token-gate-secondary button:hover {
-      color: var(--primary-hover);
-    }
-    .audit-token-gate-paste {
-      display: none; flex-direction: column; gap: var(--space-2);
-      padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md);
-      background: var(--surface-elevated);
-    }
-    .audit-token-gate-paste.expanded { display: flex; }
-    .audit-token-gate-paste input {
-      padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
-      background: var(--background); color: var(--text-primary); font-size: 0.875rem;
-      transition: border-color 150ms, box-shadow 150ms;
-    }
-    .audit-token-gate-paste input:focus {
-      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
-    }
-    .audit-token-gate-paste .btn { align-self: flex-start; }
-    .audit-token-gate-email {
-      display: none; flex-direction: column; gap: var(--space-2);
-      padding: var(--space-3); border: 1px solid rgba(14,165,233,0.2); border-radius: var(--radius-md);
-      background: rgba(14,165,233,0.04);
-    }
-    .audit-token-gate-email.expanded { display: flex; }
-    .audit-token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; }
-    .audit-token-gate-email-row { display: flex; gap: var(--space-2); }
-    .audit-token-gate-email-row input {
-      flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
-      background: var(--background); color: var(--text-primary); font-size: 0.8rem;
-    }
-    .audit-token-gate-email-row input:focus {
-      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
-    }
-    .audit-token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
-    .audit-token-error { color: var(--danger); font-size: 0.75rem; margin: 0; display: none; }
-
-    /* Scan section card */
-    .audit-scan-card {
-      border: 1px solid var(--border); border-radius: var(--radius-lg);
-      background: var(--surface); margin-bottom: var(--space-4); overflow: hidden;
-    }
-    .audit-scan-card-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);
-      flex-wrap: wrap; gap: var(--space-2);
-    }
-    .audit-scan-card-title { font-weight: 700; font-size: 0.95rem; margin: 0; }
-    .audit-privacy-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 0.7rem; font-weight: 600; color: var(--success);
-      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
-      border-radius: 999px; padding: 2px 10px;
-    }
-    .audit-scan-card-body { padding: var(--space-5); }
-    .audit-dropzone {
-      border: 2px dashed var(--border); border-radius: var(--radius-lg);
-      padding: var(--space-8); text-align: center; background: var(--surface-elevated);
-      transition: all 150ms; cursor: pointer;
-    }
-    .audit-dropzone:hover, .audit-dropzone.drag-active {
-      border-color: var(--primary); background: rgba(14,165,233,0.05);
-    }
-    .audit-dropzone .icon { font-size: 2rem; margin-bottom: var(--space-3); }
-    .audit-dropzone p { color: var(--text-secondary); margin: 0; }
-    .audit-dropzone .hint { color: var(--text-muted); font-size: 0.75rem; margin-top: var(--space-2); }
-    .audit-dropzone-actions {
-      display: flex; gap: var(--space-2); justify-content: center;
-      margin-top: var(--space-4); flex-wrap: wrap;
-    }
-
-    /* Auth modal redesign */
-    .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-    .auth-modal-overlay.active { display: flex; }
-    .auth-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 420px; margin: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
-    .auth-modal-header { padding: 20px 24px 0; text-align: center; }
-    .auth-modal-header h3 { margin: 0 0 4px; font-size: 1.1rem; }
-    .auth-modal-header p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-    .auth-modal-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 16px; }
-    .auth-modal-tab { flex: 1; padding: 10px 8px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 150ms; }
-    .auth-modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-    .auth-modal-body { padding: 20px 24px 24px; }
-    .auth-modal-panel { display: none; }
-    .auth-modal-panel.active { display: block; }
-    .auth-modal-field { margin-bottom: 16px; }
-    .auth-modal-field label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-    .auth-modal-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); color: var(--text-primary); font-size: 0.9rem; }
-    .auth-modal-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
-    .auth-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-    .auth-modal-actions .btn { flex: 1; }
-    .auth-modal-footer { text-align: center; padding: 0 24px 20px; font-size: 0.75rem; color: var(--text-muted); }
-    .auth-modal-footer a { color: var(--primary); text-decoration: none; }
-
-    @media (max-width: 640px) {
-      .audit-hero { flex-direction: column; align-items: flex-start; }
-      .audit-token-gate-primary { flex-direction: column; }
-      .audit-token-gate-primary .btn { width: 100%; }
-      .audit-dropzone { padding: var(--space-5); }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Hero -->
-    <div class="audit-hero">
-      <div class="audit-hero-text">
-        <h1>Audit</h1>
-        <p class="audit-hero-sub">Scan your project for security issues, quality gates, and compliance.</p>
-        <span class="audit-hero-badge"><span aria-hidden="true">🔒</span> Private — files stay in your browser</span>
-      </div>
-      <button type="button" id="signout-btn" class="btn btn-secondary btn-sm" style="display:none;white-space:nowrap;">Sign out</button>
-    </div>
-
-    <div id="ext-warning" style="display:none;margin-bottom:var(--space-4);padding:var(--space-3);border:1px solid var(--warning);border-radius:var(--radius-md);background:rgba(245,158,11,0.08);font-size:0.8rem;color:var(--text-secondary);">
-      <strong>⚠️ Browser extension detected</strong> — Errors like "free-token" or "sandbox" are injected by a browser extension, not by SimpleBeacon. Disable extensions if they interfere.
-    </div>
-
-    <!-- Token gate — non-coercive -->
-    <div class="audit-token-gate" id="audit-token-gate">
-      <div class="audit-token-gate-header">
-        <p class="audit-token-gate-title">Get started — no signup required</p>
-      </div>
-      <div class="audit-token-gate-body">
-        <div class="audit-token-gate-primary">
-          <button type="button" class="btn" id="start-sandbox-btn">Start Scanning</button>
-          <button type="button" class="btn btn-secondary" id="have-token-btn">I have a token</button>
-        </div>
-        <div class="audit-token-gate-secondary">
-          <span>Want to save and manage your tokens?</span>
-          <button type="button" id="link-email-btn">Link email (optional)</button>
-        </div>
-        <div class="audit-token-gate-paste" id="token-paste-section">
-          <input type="text" id="licenseToken" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" />
-          <button type="button" class="btn btn-secondary" id="token-submit-btn">Unlock</button>
-        </div>
-        <div class="audit-token-gate-email" id="email-link-section">
-          <p class="audit-token-gate-email-label">Enter your email to associate this token with your account</p>
-          <div class="audit-token-gate-email-row">
-            <input type="email" id="email-link-input" autocomplete="email" placeholder="you@example.com" />
-            <button type="button" class="btn" id="email-link-submit">Link</button>
-          </div>
-          <p class="audit-token-gate-email-help">Your token will be saved to your account so you can upgrade tiers, manage tokens, and access the dashboard. No password needed — we'll email you a login link.</p>
-        </div>
-        <p class="audit-token-error" id="tokenError" role="alert"></p>
-      </div>
-    </div>
-
-    <!-- Auth modal -->
-    <div class="auth-modal-overlay" id="auth-modal-overlay">
-      <div class="auth-modal">
-        <div class="auth-modal-header">
-          <h3>Sign in to your account</h3>
-          <p>Optional — scanning works without signing in.</p>
-        </div>
-        <div class="auth-modal-tabs">
-          <button type="button" class="auth-modal-tab active" data-auth-tab="email">Email + Password</button>
-          <button type="button" class="auth-modal-tab" data-auth-tab="token">Token + Password</button>
-        </div>
-        <div class="auth-modal-body">
-          <div class="auth-modal-panel active" id="auth-panel-email">
-            <form id="auth-email-form">
-              <div class="auth-modal-field">
-                <label for="auth-email-input">Email</label>
-                <input type="email" id="auth-email-input" autocomplete="email" required placeholder="you@example.com" />
-              </div>
-              <div class="auth-modal-field">
-                <label for="auth-email-password">Password</label>
-                <input type="password" id="auth-email-password" autocomplete="current-password" required placeholder="Enter your password…" />
-              </div>
-              <p id="auth-email-error" style="color:var(--danger);font-size:0.8rem;margin:0 0 8px;" hidden></p>
-              <div class="auth-modal-actions">
-                <button type="button" class="btn btn-secondary" id="auth-modal-cancel">Cancel</button>
-                <button type="submit" class="btn">Sign In</button>
-              </div>
-            </form>
-          </div>
-          <div class="auth-modal-panel" id="auth-panel-token">
-            <form id="auth-token-form">
-              <div class="auth-modal-field">
-                <label for="auth-token-display">License Token</label>
-                <input type="text" id="auth-token-display" readonly style="background:var(--background);color:var(--text-muted);" />
-              </div>
-              <div class="auth-modal-field">
-                <label for="auth-token-password">Token Password</label>
-                <input type="password" id="auth-token-password" autocomplete="off" placeholder="Enter token password…" />
-              </div>
-              <p id="auth-token-error" style="color:var(--danger);font-size:0.8rem;margin:0 0 8px;" hidden></p>
-              <div class="auth-modal-actions">
-                <button type="button" class="btn btn-secondary" id="auth-modal-cancel-2">Cancel</button>
-                <button type="submit" class="btn">Unlock Dashboard</button>
-              </div>
-            </form>
-          </div>
-        </div>
-        <div class="auth-modal-footer">
-          New here? <a href="/#/register">Create an account</a> · <a href="/#/dashboard">View read-only demo</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Scan section -->
-    <div class="audit-scan-card">
-      <div class="audit-scan-card-header">
-        <span class="audit-scan-card-title">Choose project</span>
-        <span class="audit-privacy-badge"><span aria-hidden="true">🔒</span> Private</span>
-      </div>
-      <div class="audit-scan-card-body">
-        <input type="file" id="file-input" accept=".json" style="display:none;">
-        <div class="audit-dropzone" id="dropzone">
-          <div class="icon">📁</div>
-          <p>Drop a JSON report here or click to browse</p>
-          <p class="hint">Supports: gate scans, complete scans, consolidation, cleanup, codebase, roadmap, fiction digest</p>
-          <div class="audit-dropzone-actions">
-            <button type="button" class="btn" id="browse-report-btn">Choose Report File</button>
-            <button type="button" class="btn btn-secondary" id="open-dashboard-btn">Open Full Dashboard →</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="results"></div>
-  </div>
-
-  <script>
-    const $ = (sel) => document.querySelector(sel);
-    const dropzone = $('#dropzone');
-    const fileInput = $('#file-input');
-    const results = $('#results');
-
-    // Simple toast helper
-    function showToast(message, type) {
-      const existing = document.querySelector('.toast-message');
-      if (existing) existing.remove();
-      const el = document.createElement('div');
-      el.className = 'toast-message';
-      el.textContent = message;
-      el.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
-      if (type === 'success') {
-        el.style.background = 'var(--success, #22c55e)';
-        el.style.color = '#fff';
-      } else if (type === 'error') {
-        el.style.background = 'var(--danger, #ef4444)';
-        el.style.color = '#fff';
-      } else {
-        el.style.background = 'var(--surface-elevated, #1a1a1a)';
-        el.style.color = 'var(--text-primary, #fafafa)';
-        el.style.border = '1px solid var(--border, #262626)';
+      * {
+        box-sizing: border-box;
       }
-      document.body.appendChild(el);
-      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
-    }
+      body {
+        margin: 0;
+        font-family: var(--font-family);
+        background: var(--background);
+        color: var(--text-primary);
+        line-height: 1.5;
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: var(--space-6);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+        flex-wrap: wrap;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin: 0;
+      }
 
-    // Clear stale dashboard caches on load so old reports don't persist across sessions
-    (function clearStaleCaches() {
-      const STALE_KEYS = ['sb-remediation-imported', 'sb-remediation-imported-at', 'sb-remediation-completed'];
-      const importedAt = localStorage.getItem('sb-remediation-imported-at');
-      if (importedAt) {
-        const ageHours = (Date.now() - new Date(importedAt).getTime()) / (1000 * 60 * 60);
-        if (ageHours > 2) {
-          STALE_KEYS.forEach(k => localStorage.removeItem(k));
-          console.info('[SB] Cleared stale remediation cache (>2h)');
+      .dropzone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-10);
+        text-align: center;
+        background: var(--surface);
+        transition: all 150ms;
+        cursor: pointer;
+      }
+      .dropzone:hover,
+      .dropzone.drag-active {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+      }
+      .dropzone .icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--space-4);
+      }
+      .dropzone p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+      .dropzone .hint {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-top: var(--space-2);
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+        background: var(--surface);
+        margin-bottom: var(--space-4);
+      }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3);
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+      .panel-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin: 0;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .badge-success {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+      }
+      .badge-warning {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+      }
+      .badge-danger {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .badge-info {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info);
+      }
+
+      .validation-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      .validation-item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        background: var(--surface-elevated);
+      }
+      .validation-item.ok {
+        border-color: rgba(34, 197, 94, 0.25);
+      }
+      .validation-item.warn {
+        border-color: rgba(245, 158, 11, 0.25);
+      }
+      .validation-item.err {
+        border-color: rgba(239, 68, 68, 0.25);
+      }
+      .validation-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .validation-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .validation-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .validation-desc {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--space-3);
+      }
+      .metric-box {
+        padding: var(--space-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-elevated);
+      }
+      .metric-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+      .metric-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        transition: filter 150ms;
+      }
+      .btn:hover {
+        filter: brightness(1.1);
+      }
+      .btn-secondary {
+        background: var(--surface-elevated);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: var(--surface-hover);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      pre {
+        margin: 0;
+        padding: var(--space-3);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        overflow-x: auto;
+        max-height: 300px;
+      }
+
+      .empty {
+        text-align: center;
+        padding: var(--space-10);
+        color: var(--text-muted);
+      }
+
+      /* Issue panel enhancements */
+      .issue-toolbar {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: var(--space-3);
+      }
+      .issue-search {
+        flex: 1;
+        min-width: 200px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+      }
+      .severity-filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .severity-filter {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--surface-elevated);
+        color: var(--text-secondary);
+        transition: all 150ms;
+      }
+      .severity-filter.active {
+        border-color: var(--primary);
+        color: var(--text-primary);
+      }
+      .severity-filter.critical.active {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border-color: var(--danger);
+      }
+      .severity-filter.high.active {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border-color: var(--danger);
+      }
+      .severity-filter.medium.active {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        border-color: var(--warning);
+      }
+      .severity-filter.low.active {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info);
+        border-color: var(--info);
+      }
+      .severity-filter.info.active {
+        background: rgba(107, 114, 128, 0.15);
+        color: var(--text-muted);
+        border-color: var(--text-muted);
+      }
+
+      .issue-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .issue-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--background);
+        overflow: hidden;
+      }
+      .issue-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: background 150ms;
+      }
+      .issue-header:hover {
+        background: var(--surface-hover);
+      }
+      .issue-severity {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+      .severity-critical {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .severity-high {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .severity-medium {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+      }
+      .severity-low {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info);
+      }
+      .severity-info {
+        background: rgba(107, 114, 128, 0.15);
+        color: var(--text-muted);
+      }
+      .issue-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      .issue-file {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      .issue-chevron {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        transition: transform 200ms;
+      }
+      .issue-item.expanded .issue-chevron {
+        transform: rotate(90deg);
+      }
+      .issue-details {
+        display: none;
+        padding: 0 12px 12px 12px;
+        border-top: 1px solid var(--border);
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+      .issue-item.expanded .issue-details {
+        display: block;
+      }
+      .issue-detail-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .issue-detail-row strong {
+        color: var(--text-primary);
+        min-width: 80px;
+      }
+      .issue-detail-row code {
+        background: var(--surface);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+      }
+      .issue-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .issue-actions button {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+      }
+
+      /* Project header */
+      .project-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+        padding-bottom: var(--space-3);
+        border-bottom: 1px solid var(--border);
+      }
+      .project-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      .project-meta {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      /* Collapsible raw preview */
+      .collapsible-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+      }
+      .collapsible-header .chevron {
+        transition: transform 200ms;
+        font-size: 0.8rem;
+      }
+      .collapsible-header.expanded .chevron {
+        transform: rotate(90deg);
+      }
+      .collapsible-body {
+        display: none;
+      }
+      .collapsible-body.expanded {
+        display: block;
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: var(--space-4);
+        }
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .issue-toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .severity-filters {
+          justify-content: center;
         }
       }
-    })();
 
-    // Signout button logic
-    (function initSignout() {
-      const btn = $('#signout-btn');
-      if (!btn) return;
-      function update() {
-        const hasToken = !!localStorage.getItem('sb-token');
-        btn.style.display = hasToken ? '' : 'none';
+      /* ===== Audit Page Redesign ===== */
+      .audit-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-3) 0 var(--space-1);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-4);
       }
-      btn.addEventListener('click', () => {
-        localStorage.removeItem('sb-token');
-        localStorage.removeItem('sb-user');
-        localStorage.removeItem('sb-token-vault');
-        update();
-        showToast('Signed out successfully', 'success');
-      });
-      update();
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'sb-token') update();
-      });
-    })();
+      .audit-hero-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .audit-hero h1 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      .audit-hero-sub {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      .audit-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--success);
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+        border-radius: 999px;
+        padding: 2px 10px;
+        width: fit-content;
+        margin-top: 4px;
+      }
 
-    dropzone.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return;
-      fileInput.click();
-    });
+      /* Token gate — non-coercive */
+      .audit-token-gate {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        padding: var(--space-5);
+        margin-bottom: var(--space-4);
+      }
+      .audit-token-gate-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3);
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+      .audit-token-gate-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin: 0;
+      }
+      .audit-token-gate-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+      .audit-token-gate-primary {
+        display: flex;
+        gap: var(--space-2);
+        align-items: stretch;
+        flex-wrap: wrap;
+      }
+      .audit-token-gate-primary .btn {
+        flex: 1;
+        min-width: 160px;
+        justify-content: center;
+        padding: var(--space-3) var(--space-4);
+        font-size: 0.9rem;
+      }
+      .audit-token-gate-secondary {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .audit-token-gate-secondary a,
+      .audit-token-gate-secondary button {
+        color: var(--primary);
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: underline;
+        padding: 0;
+      }
+      .audit-token-gate-secondary a:hover,
+      .audit-token-gate-secondary button:hover {
+        color: var(--primary-hover);
+      }
+      .audit-token-gate-paste {
+        display: none;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-elevated);
+      }
+      .audit-token-gate-paste.expanded {
+        display: flex;
+      }
+      .audit-token-gate-paste input {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        transition:
+          border-color 150ms,
+          box-shadow 150ms;
+      }
+      .audit-token-gate-paste input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+      }
+      .audit-token-gate-paste .btn {
+        align-self: flex-start;
+      }
+      .audit-token-gate-email {
+        display: none;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        border: 1px solid rgba(14, 165, 233, 0.2);
+        border-radius: var(--radius-md);
+        background: rgba(14, 165, 233, 0.04);
+      }
+      .audit-token-gate-email.expanded {
+        display: flex;
+      }
+      .audit-token-gate-email-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .audit-token-gate-email-row {
+        display: flex;
+        gap: var(--space-2);
+      }
+      .audit-token-gate-email-row input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+      }
+      .audit-token-gate-email-row input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+      .audit-token-gate-email-help {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      .audit-token-error {
+        color: var(--danger);
+        font-size: 0.75rem;
+        margin: 0;
+        display: none;
+      }
 
-    ['dragenter','dragover'].forEach(e => {
-      dropzone.addEventListener(e, (ev) => { ev.preventDefault(); dropzone.classList.add('drag-active'); });
-    });
-    ['dragleave','drop'].forEach(e => {
-      dropzone.addEventListener(e, (ev) => { ev.preventDefault(); dropzone.classList.remove('drag-active'); });
-    });
-    dropzone.addEventListener('drop', (ev) => {
-      const f = ev.dataTransfer?.files?.[0];
-      if (f) processFile(f);
-    });
-    fileInput.addEventListener('change', (ev) => {
-      const f = ev.target.files?.[0];
-      if (f) processFile(f);
-      ev.target.value = '';
-    });
+      /* Scan section card */
+      .audit-scan-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        margin-bottom: var(--space-4);
+        overflow: hidden;
+      }
+      .audit-scan-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+      .audit-scan-card-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin: 0;
+      }
+      .audit-privacy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--success);
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+        border-radius: 999px;
+        padding: 2px 10px;
+      }
+      .audit-scan-card-body {
+        padding: var(--space-5);
+      }
+      .audit-dropzone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-8);
+        text-align: center;
+        background: var(--surface-elevated);
+        transition: all 150ms;
+        cursor: pointer;
+      }
+      .audit-dropzone:hover,
+      .audit-dropzone.drag-active {
+        border-color: var(--primary);
+        background: rgba(14, 165, 233, 0.05);
+      }
+      .audit-dropzone .icon {
+        font-size: 2rem;
+        margin-bottom: var(--space-3);
+      }
+      .audit-dropzone p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+      .audit-dropzone .hint {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-top: var(--space-2);
+      }
+      .audit-dropzone-actions {
+        display: flex;
+        gap: var(--space-2);
+        justify-content: center;
+        margin-top: var(--space-4);
+        flex-wrap: wrap;
+      }
 
-    function escape(s) {
-      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]);
-    }
+      /* Auth modal redesign */
+      .auth-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+      }
+      .auth-modal-overlay.active {
+        display: flex;
+      }
+      .auth-modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        width: 100%;
+        max-width: 420px;
+        margin: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      }
+      .auth-modal-header {
+        padding: 20px 24px 0;
+        text-align: center;
+      }
+      .auth-modal-header h3 {
+        margin: 0 0 4px;
+        font-size: 1.1rem;
+      }
+      .auth-modal-header p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .auth-modal-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        padding: 0 24px;
+        margin-top: 16px;
+      }
+      .auth-modal-tab {
+        flex: 1;
+        padding: 10px 8px;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 150ms;
+      }
+      .auth-modal-tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+      .auth-modal-body {
+        padding: 20px 24px 24px;
+      }
+      .auth-modal-panel {
+        display: none;
+      }
+      .auth-modal-panel.active {
+        display: block;
+      }
+      .auth-modal-field {
+        margin-bottom: 16px;
+      }
+      .auth-modal-field label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+      }
+      .auth-modal-field input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+      }
+      .auth-modal-field input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+      .auth-modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .auth-modal-actions .btn {
+        flex: 1;
+      }
+      .auth-modal-footer {
+        text-align: center;
+        padding: 0 24px 20px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .auth-modal-footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
 
-    function parseJsonWithDiagnostics(text) {
-      try {
-        return { ok: true, data: JSON.parse(text), error: null, line: null, col: null };
-      } catch (err) {
-        const m = err.message.match(/position (\d+)/);
-        let line = 1, col = 1;
-        if (m) {
-          const pos = parseInt(m[1], 10);
-          let idx = 0;
-          for (let i = 0; i < text.length && idx < pos; i++) {
-            if (text[i] === '\n') { line++; col = 0; }
-            col++;
-            idx++;
+      @media (max-width: 640px) {
+        .audit-hero {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .audit-token-gate-primary {
+          flex-direction: column;
+        }
+        .audit-token-gate-primary .btn {
+          width: 100%;
+        }
+        .audit-dropzone {
+          padding: var(--space-5);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Hero -->
+      <div class="audit-hero">
+        <div class="audit-hero-text">
+          <h1>Audit</h1>
+          <p class="audit-hero-sub">
+            Scan your project for security issues, quality gates, and
+            compliance.
+          </p>
+          <span class="audit-hero-badge"
+            ><span aria-hidden="true">🔒</span> Private — files stay in your
+            browser</span
+          >
+        </div>
+        <button
+          type="button"
+          id="signout-btn"
+          class="btn btn-secondary btn-sm"
+          style="display: none; white-space: nowrap"
+        >
+          Sign out
+        </button>
+      </div>
+
+      <div
+        id="ext-warning"
+        style="
+          display: none;
+          margin-bottom: var(--space-4);
+          padding: var(--space-3);
+          border: 1px solid var(--warning);
+          border-radius: var(--radius-md);
+          background: rgba(245, 158, 11, 0.08);
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        "
+      >
+        <strong>⚠️ Browser extension detected</strong> — Errors like
+        "free-token" or "sandbox" are injected by a browser extension, not by
+        SimpleBeacon. Disable extensions if they interfere.
+      </div>
+
+      <!-- Token gate — non-coercive -->
+      <div class="audit-token-gate" id="audit-token-gate">
+        <div class="audit-token-gate-header">
+          <p class="audit-token-gate-title">Get started — no signup required</p>
+        </div>
+        <div class="audit-token-gate-body">
+          <div class="audit-token-gate-primary">
+            <button type="button" class="btn" id="start-sandbox-btn">
+              Start Scanning
+            </button>
+            <button type="button" class="btn btn-secondary" id="have-token-btn">
+              I have a token
+            </button>
+          </div>
+          <div class="audit-token-gate-secondary">
+            <span>Want to save and manage your tokens?</span>
+            <button type="button" id="link-email-btn">
+              Link email (optional)
+            </button>
+          </div>
+          <div class="audit-token-gate-paste" id="token-paste-section">
+            <input
+              type="text"
+              id="licenseToken"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Paste your license token here…"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="token-submit-btn"
+            >
+              Unlock
+            </button>
+          </div>
+          <div class="audit-token-gate-email" id="email-link-section">
+            <p class="audit-token-gate-email-label">
+              Enter your email to associate this token with your account
+            </p>
+            <div class="audit-token-gate-email-row">
+              <input
+                type="email"
+                id="email-link-input"
+                autocomplete="email"
+                placeholder="you@example.com"
+              />
+              <button type="button" class="btn" id="email-link-submit">
+                Link
+              </button>
+            </div>
+            <p class="audit-token-gate-email-help">
+              Your token will be saved to your account so you can upgrade tiers,
+              manage tokens, and access the dashboard. No password needed —
+              we'll email you a login link.
+            </p>
+          </div>
+          <p class="audit-token-error" id="tokenError" role="alert"></p>
+        </div>
+      </div>
+
+      <!-- Auth modal -->
+      <div class="auth-modal-overlay" id="auth-modal-overlay">
+        <div class="auth-modal">
+          <div class="auth-modal-header">
+            <h3>Sign in to your account</h3>
+            <p>Optional — scanning works without signing in.</p>
+          </div>
+          <div class="auth-modal-tabs">
+            <button
+              type="button"
+              class="auth-modal-tab active"
+              data-auth-tab="email"
+            >
+              Email + Password
+            </button>
+            <button type="button" class="auth-modal-tab" data-auth-tab="token">
+              Token + Password
+            </button>
+          </div>
+          <div class="auth-modal-body">
+            <div class="auth-modal-panel active" id="auth-panel-email">
+              <form id="auth-email-form">
+                <div class="auth-modal-field">
+                  <label for="auth-email-input">Email</label>
+                  <input
+                    type="email"
+                    id="auth-email-input"
+                    autocomplete="email"
+                    required
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div class="auth-modal-field">
+                  <label for="auth-email-password">Password</label>
+                  <input
+                    type="password"
+                    id="auth-email-password"
+                    autocomplete="current-password"
+                    required
+                    placeholder="Enter your password…"
+                  />
+                </div>
+                <p
+                  id="auth-email-error"
+                  style="
+                    color: var(--danger);
+                    font-size: 0.8rem;
+                    margin: 0 0 8px;
+                  "
+                  hidden
+                ></p>
+                <div class="auth-modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="auth-modal-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn">Sign In</button>
+                </div>
+              </form>
+            </div>
+            <div class="auth-modal-panel" id="auth-panel-token">
+              <form id="auth-token-form">
+                <div class="auth-modal-field">
+                  <label for="auth-token-display">License Token</label>
+                  <input
+                    type="text"
+                    id="auth-token-display"
+                    readonly
+                    style="
+                      background: var(--background);
+                      color: var(--text-muted);
+                    "
+                  />
+                </div>
+                <div class="auth-modal-field">
+                  <label for="auth-token-password">Token Password</label>
+                  <input
+                    type="password"
+                    id="auth-token-password"
+                    autocomplete="off"
+                    placeholder="Enter token password…"
+                  />
+                </div>
+                <p
+                  id="auth-token-error"
+                  style="
+                    color: var(--danger);
+                    font-size: 0.8rem;
+                    margin: 0 0 8px;
+                  "
+                  hidden
+                ></p>
+                <div class="auth-modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="auth-modal-cancel-2"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn">Unlock Dashboard</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="auth-modal-footer">
+            New here? <a href="/#/register">Create an account</a> ·
+            <a href="/#/dashboard">View read-only demo</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scan section -->
+      <div class="audit-scan-card">
+        <div class="audit-scan-card-header">
+          <span class="audit-scan-card-title">Choose project</span>
+          <span class="audit-privacy-badge"
+            ><span aria-hidden="true">🔒</span> Private</span
+          >
+        </div>
+        <div class="audit-scan-card-body">
+          <input
+            type="file"
+            id="file-input"
+            accept=".json"
+            style="display: none"
+          />
+          <div class="audit-dropzone" id="dropzone">
+            <div class="icon">📁</div>
+            <p>Drop a JSON report here or click to browse</p>
+            <p class="hint">
+              Supports: gate scans, complete scans, consolidation, cleanup,
+              codebase, roadmap, fiction digest
+            </p>
+            <div class="audit-dropzone-actions">
+              <button type="button" class="btn" id="browse-report-btn">
+                Choose Report File
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="open-dashboard-btn"
+              >
+                Open Full Dashboard →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      const $ = (sel) => document.querySelector(sel);
+      const dropzone = $("#dropzone");
+      const fileInput = $("#file-input");
+      const results = $("#results");
+
+      // Simple toast helper
+      function showToast(message, type) {
+        const existing = document.querySelector(".toast-message");
+        if (existing) existing.remove();
+        const el = document.createElement("div");
+        el.className = "toast-message";
+        el.textContent = message;
+        el.style.cssText =
+          "position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:0.875rem;z-index:9999;transition:opacity 300ms;";
+        if (type === "success") {
+          el.style.background = "var(--success, #22c55e)";
+          el.style.color = "#fff";
+        } else if (type === "error") {
+          el.style.background = "var(--danger, #ef4444)";
+          el.style.color = "#fff";
+        } else {
+          el.style.background = "var(--surface-elevated, #1a1a1a)";
+          el.style.color = "var(--text-primary, #fafafa)";
+          el.style.border = "1px solid var(--border, #262626)";
+        }
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = "0";
+          setTimeout(() => el.remove(), 300);
+        }, 3000);
+      }
+
+      // Clear stale dashboard caches on load so old reports don't persist across sessions
+      (function clearStaleCaches() {
+        const STALE_KEYS = [
+          "sb-remediation-imported",
+          "sb-remediation-imported-at",
+          "sb-remediation-completed",
+        ];
+        const importedAt = localStorage.getItem("sb-remediation-imported-at");
+        if (importedAt) {
+          const ageHours =
+            (Date.now() - new Date(importedAt).getTime()) / (1000 * 60 * 60);
+          if (ageHours > 2) {
+            STALE_KEYS.forEach((k) => localStorage.removeItem(k));
+            console.info("[SB] Cleared stale remediation cache (>2h)");
           }
         }
-        return { ok: false, data: null, error: err.message, line, col };
+      })();
+
+      // Signout button logic
+      (function initSignout() {
+        const btn = $("#signout-btn");
+        if (!btn) return;
+        function update() {
+          const hasToken = !!localStorage.getItem("sb-token");
+          btn.style.display = hasToken ? "" : "none";
+        }
+        btn.addEventListener("click", () => {
+          localStorage.removeItem("sb-token");
+          localStorage.removeItem("sb-user");
+          localStorage.removeItem("sb-token-vault");
+          update();
+          showToast("Signed out successfully", "success");
+        });
+        update();
+        window.addEventListener("storage", (e) => {
+          if (e.key === "sb-token") update();
+        });
+      })();
+
+      dropzone.addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        fileInput.click();
+      });
+
+      ["dragenter", "dragover"].forEach((e) => {
+        dropzone.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          dropzone.classList.add("drag-active");
+        });
+      });
+      ["dragleave", "drop"].forEach((e) => {
+        dropzone.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          dropzone.classList.remove("drag-active");
+        });
+      });
+      dropzone.addEventListener("drop", (ev) => {
+        const f = ev.dataTransfer?.files?.[0];
+        if (f) processFile(f);
+      });
+      fileInput.addEventListener("change", (ev) => {
+        const f = ev.target.files?.[0];
+        if (f) processFile(f);
+        ev.target.value = "";
+      });
+
+      function escape(s) {
+        return String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
       }
-    }
 
-    function detectReportType(data) {
-      if (!data || typeof data !== 'object') return { type: 'unknown', confidence: 0 };
-      const typeField = data.type || '';
-      if (typeField === 'simplebeacon-complete-scan' && data.results) return { type: 'complete-scan', confidence: 1 };
-      if (typeField === 'simplebeacon-gate-scan' || (data.detectedIssues && data.severityCounts)) return { type: 'gate-scan', confidence: 0.95 };
-      if (typeField === 'file-merger-reduction-report') return { type: 'consolidation', confidence: 1 };
-      if (typeField === 'data-cleanup-report') return { type: 'cleanup', confidence: 1 };
-      if (typeField === 'codebase-analysis') return { type: 'codebase', confidence: 1 };
-      if (typeField === 'dynamic-project-roadmap-analysis' || data.codeAnalysis?.structure) return { type: 'roadmap', confidence: 0.9 };
-      if (typeField === 'fiction-digest' || (data.fictionIssues && data.sourceReport)) return { type: 'fiction-digest', confidence: 0.95 };
-      if (typeField === 'compliance-audit' || (data.checklist && data.complianceScore)) return { type: 'compliance', confidence: 0.95 };
-      if (typeField === 'eu-ai-act-assessment' || data.article50Disclosure) return { type: 'eu-ai-act', confidence: 0.9 };
-      if (data.phases && Array.isArray(data.phases)) return { type: 'phases-roadmap', confidence: 0.9 };
-      if (data.issues && Array.isArray(data.issues)) return { type: 'issue-list', confidence: 0.7 };
-      if (data.files && typeof data.files === 'object') return { type: 'scanner-cache', confidence: 0.6 };
-      return { type: 'unknown', confidence: 0 };
-    }
+      function parseJsonWithDiagnostics(text) {
+        try {
+          return {
+            ok: true,
+            data: JSON.parse(text),
+            error: null,
+            line: null,
+            col: null,
+          };
+        } catch (err) {
+          const m = err.message.match(/position (\d+)/);
+          let line = 1,
+            col = 1;
+          if (m) {
+            const pos = parseInt(m[1], 10);
+            let idx = 0;
+            for (let i = 0; i < text.length && idx < pos; i++) {
+              if (text[i] === "\n") {
+                line++;
+                col = 0;
+              }
+              col++;
+              idx++;
+            }
+          }
+          return { ok: false, data: null, error: err.message, line, col };
+        }
+      }
 
-    function validateReport(data, type) {
-      const checks = [];
-      const push = (ok, title, desc) => checks.push({ ok, title, desc });
+      function detectReportType(data) {
+        if (!data || typeof data !== "object")
+          return { type: "unknown", confidence: 0 };
+        const typeField = data.type || "";
+        if (typeField === "simplebeacon-complete-scan" && data.results)
+          return { type: "complete-scan", confidence: 1 };
+        if (
+          typeField === "simplebeacon-gate-scan" ||
+          (data.detectedIssues && data.severityCounts)
+        )
+          return { type: "gate-scan", confidence: 0.95 };
+        if (typeField === "file-merger-reduction-report")
+          return { type: "consolidation", confidence: 1 };
+        if (typeField === "data-cleanup-report")
+          return { type: "cleanup", confidence: 1 };
+        if (typeField === "codebase-analysis")
+          return { type: "codebase", confidence: 1 };
+        if (
+          typeField === "dynamic-project-roadmap-analysis" ||
+          data.codeAnalysis?.structure
+        )
+          return { type: "roadmap", confidence: 0.9 };
+        if (
+          typeField === "fiction-digest" ||
+          (data.fictionIssues && data.sourceReport)
+        )
+          return { type: "fiction-digest", confidence: 0.95 };
+        if (
+          typeField === "compliance-audit" ||
+          (data.checklist && data.complianceScore)
+        )
+          return { type: "compliance", confidence: 0.95 };
+        if (typeField === "eu-ai-act-assessment" || data.article50Disclosure)
+          return { type: "eu-ai-act", confidence: 0.9 };
+        if (data.phases && Array.isArray(data.phases))
+          return { type: "phases-roadmap", confidence: 0.9 };
+        if (data.issues && Array.isArray(data.issues))
+          return { type: "issue-list", confidence: 0.7 };
+        if (data.files && typeof data.files === "object")
+          return { type: "scanner-cache", confidence: 0.6 };
+        return { type: "unknown", confidence: 0 };
+      }
 
-      if (!data || typeof data !== 'object') {
-        push(false, 'Root type', 'Top-level value is not an object');
+      function validateReport(data, type) {
+        const checks = [];
+        const push = (ok, title, desc) => checks.push({ ok, title, desc });
+
+        if (!data || typeof data !== "object") {
+          push(false, "Root type", "Top-level value is not an object");
+          return checks;
+        }
+
+        // Schema checks per type
+        if (type === "gate-scan" || type === "complete-scan") {
+          const sev = data.severityCounts || {};
+          const total =
+            (sev.critical || 0) +
+            (sev.high || 0) +
+            (sev.medium || 0) +
+            (sev.low || 0) +
+            (sev.info || 0);
+          const issues = data.detectedIssues || data.rawIssues || [];
+          push(
+            typeof data.projectRoot === "string" ||
+              typeof data.projectPath === "string",
+            "Project path",
+            data.projectRoot || data.projectPath || "MISSING",
+          );
+          push(
+            Array.isArray(issues),
+            "Issues array",
+            Array.isArray(issues) ? `${issues.length} items` : "not an array",
+          );
+          push(
+            typeof sev === "object",
+            "Severity counts",
+            typeof sev === "object" ? JSON.stringify(sev) : "missing",
+          );
+          if (Array.isArray(issues) && typeof sev === "object") {
+            const counted = total;
+            const actual = issues.length;
+            push(
+              counted === actual,
+              "Count integrity",
+              `severityCounts sum=${counted}, issues.length=${actual}`,
+            );
+          }
+          if (Array.isArray(issues)) {
+            const bad = issues.filter((i) => !i.severity || !i.type).length;
+            push(
+              bad === 0,
+              "Issue shape",
+              bad === 0
+                ? "all have severity + type"
+                : `${bad}/${issues.length} missing severity or type`,
+            );
+          }
+        }
+
+        if (type === "complete-scan") {
+          const r = data.results || {};
+          push(
+            typeof data.results === "object",
+            "Results object",
+            data.results ? "present" : "MISSING",
+          );
+          if (data.results) {
+            const hasGate = !!(r.simplebeacon || r.gate);
+            push(hasGate, "Gate report", hasGate ? "present" : "MISSING");
+            if (r.roadmap)
+              push(
+                Array.isArray(r.roadmap.phases) ||
+                  Array.isArray(r.roadmap.issues),
+                "Roadmap",
+                "present",
+              );
+            if (r.npmAudit)
+              push(
+                Array.isArray(r.npmAudit.packages),
+                "npm audit",
+                `packages: ${(r.npmAudit.packages || []).length}`,
+              );
+          }
+        }
+
+        if (type === "consolidation") {
+          push(
+            typeof data.summary === "object",
+            "Summary object",
+            data.summary ? "present" : "MISSING",
+          );
+          if (data.summary) {
+            const f = data.summary.fileGroups || 0;
+            const g = Array.isArray(data.groups) ? data.groups.length : 0;
+            push(
+              f === g,
+              "Group count integrity",
+              `summary.fileGroups=${f}, groups.length=${g}`,
+            );
+          }
+          push(
+            Array.isArray(data.groups),
+            "Groups array",
+            Array.isArray(data.groups)
+              ? `${data.groups.length} items`
+              : "not an array",
+          );
+        }
+
+        if (type === "cleanup") {
+          const profile = data.scanProfile || "file-reduction";
+          push(!!data.scanProfile, "Scan profile", profile);
+          push(
+            Array.isArray(data.findings),
+            "Findings array",
+            Array.isArray(data.findings)
+              ? `${data.findings.length} items`
+              : "not an array",
+          );
+        }
+
+        if (type === "roadmap" || type === "phases-roadmap") {
+          if (data.phases) {
+            push(
+              Array.isArray(data.phases),
+              "Phases array",
+              Array.isArray(data.phases)
+                ? `${data.phases.length} phases`
+                : "not an array",
+            );
+            if (Array.isArray(data.phases)) {
+              let taskCount = 0;
+              data.phases.forEach((p) => {
+                taskCount += (p.tasks || []).length;
+              });
+              const summaryTasks = data.summary?.tasks?.total ?? null;
+              push(
+                summaryTasks === null || summaryTasks === taskCount,
+                "Task count integrity",
+                summaryTasks !== null
+                  ? `summary=${summaryTasks}, computed=${taskCount}`
+                  : `computed=${taskCount} (no summary)`,
+              );
+            }
+          }
+          if (data.issues) {
+            push(
+              Array.isArray(data.issues),
+              "Issues array",
+              Array.isArray(data.issues)
+                ? `${data.issues.length} items`
+                : "not an array",
+            );
+          }
+        }
+
+        if (type === "fiction-digest") {
+          push(
+            !!data.sourceReport,
+            "Source report",
+            data.sourceReport ? "present" : "MISSING",
+          );
+          push(
+            Array.isArray(data.fictionIssues),
+            "Fiction issues",
+            Array.isArray(data.fictionIssues)
+              ? `${data.fictionIssues.length} items`
+              : "not an array",
+          );
+          push(
+            Array.isArray(data.nonFictionIssues),
+            "Non-fiction issues",
+            Array.isArray(data.nonFictionIssues)
+              ? `${data.nonFictionIssues.length} items`
+              : "not an array",
+          );
+        }
+
+        if (type === "codebase") {
+          push(
+            Array.isArray(data.fileTypes),
+            "File types",
+            Array.isArray(data.fileTypes)
+              ? `${data.fileTypes.length} items`
+              : "not an array",
+          );
+          push(
+            typeof data.totalFiles === "number",
+            "Total files",
+            typeof data.totalFiles === "number" ? data.totalFiles : "MISSING",
+          );
+        }
+
+        if (type === "compliance") {
+          push(
+            typeof data.complianceScore === "number",
+            "Compliance score",
+            typeof data.complianceScore === "number"
+              ? data.complianceScore
+              : "MISSING",
+          );
+          push(
+            Array.isArray(data.checklist),
+            "Checklist array",
+            Array.isArray(data.checklist)
+              ? `${data.checklist.length} items`
+              : "not an array",
+          );
+          if (Array.isArray(data.checklist)) {
+            const passed = data.checklist.filter((c) => c.passed).length;
+            push(
+              data.complianceScore ===
+                Math.round((passed / data.checklist.length) * 100),
+              "Score integrity",
+              `score=${data.complianceScore}, computed=${Math.round((passed / data.checklist.length) * 100)}`,
+            );
+          }
+        }
+
+        if (type === "eu-ai-act") {
+          push(
+            !!data.article50Disclosure,
+            "Article 50 disclosure",
+            data.article50Disclosure ? "present" : "MISSING",
+          );
+          push(
+            Array.isArray(data.riskCategories),
+            "Risk categories",
+            Array.isArray(data.riskCategories)
+              ? `${data.riskCategories.length} items`
+              : "not an array",
+          );
+          push(
+            typeof data.riskLevel === "string",
+            "Risk level",
+            data.riskLevel || "MISSING",
+          );
+        }
+
+        // Cross-reference checks
+        checks.push(...validateCrossReferences(data, type));
+
+        // Universal checks
+        push(
+          !!data.generatedAt || !!data.exportedAt || !!data.scannedAt,
+          "Timestamp",
+          data.generatedAt || data.exportedAt || data.scannedAt || "MISSING",
+        );
+        push(
+          !!data.version || !!data.schemaVersion,
+          "Schema version",
+          data.version || data.schemaVersion || "MISSING (legacy report)",
+        );
+
         return checks;
       }
 
-      // Schema checks per type
-      if (type === 'gate-scan' || type === 'complete-scan') {
-        const sev = data.severityCounts || {};
-        const total = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
-        const issues = data.detectedIssues || data.rawIssues || [];
-        push(typeof data.projectRoot === 'string' || typeof data.projectPath === 'string', 'Project path', data.projectRoot || data.projectPath || 'MISSING');
-        push(Array.isArray(issues), 'Issues array', Array.isArray(issues) ? `${issues.length} items` : 'not an array');
-        push(typeof sev === 'object', 'Severity counts', typeof sev === 'object' ? JSON.stringify(sev) : 'missing');
-        if (Array.isArray(issues) && typeof sev === 'object') {
-          const counted = total;
-          const actual = issues.length;
-          push(counted === actual, 'Count integrity', `severityCounts sum=${counted}, issues.length=${actual}`);
-        }
-        if (Array.isArray(issues)) {
-          const bad = issues.filter(i => !i.severity || !i.type).length;
-          push(bad === 0, 'Issue shape', bad === 0 ? 'all have severity + type' : `${bad}/${issues.length} missing severity or type`);
-        }
+      function computeIntegrityScore(checks) {
+        const total = checks.length;
+        const passed = checks.filter((c) => c.ok).length;
+        return total ? Math.round((passed / total) * 100) : 0;
       }
 
-      if (type === 'complete-scan') {
-        const r = data.results || {};
-        push(typeof data.results === 'object', 'Results object', data.results ? 'present' : 'MISSING');
-        if (data.results) {
-          const hasGate = !!(r.simplebeacon || r.gate);
-          push(hasGate, 'Gate report', hasGate ? 'present' : 'MISSING');
-          if (r.roadmap) push(Array.isArray(r.roadmap.phases) || Array.isArray(r.roadmap.issues), 'Roadmap', 'present');
-          if (r.npmAudit) push(Array.isArray(r.npmAudit.packages), 'npm audit', `packages: ${(r.npmAudit.packages||[]).length}`);
-        }
-      }
-
-      if (type === 'consolidation') {
-        push(typeof data.summary === 'object', 'Summary object', data.summary ? 'present' : 'MISSING');
-        if (data.summary) {
-          const f = data.summary.fileGroups || 0;
-          const g = Array.isArray(data.groups) ? data.groups.length : 0;
-          push(f === g, 'Group count integrity', `summary.fileGroups=${f}, groups.length=${g}`);
-        }
-        push(Array.isArray(data.groups), 'Groups array', Array.isArray(data.groups) ? `${data.groups.length} items` : 'not an array');
-      }
-
-      if (type === 'cleanup') {
-        const profile = data.scanProfile || 'file-reduction';
-        push(!!data.scanProfile, 'Scan profile', profile);
-        push(Array.isArray(data.findings), 'Findings array', Array.isArray(data.findings) ? `${data.findings.length} items` : 'not an array');
-      }
-
-      if (type === 'roadmap' || type === 'phases-roadmap') {
-        if (data.phases) {
-          push(Array.isArray(data.phases), 'Phases array', Array.isArray(data.phases) ? `${data.phases.length} phases` : 'not an array');
-          if (Array.isArray(data.phases)) {
-            let taskCount = 0;
-            data.phases.forEach(p => { taskCount += (p.tasks || []).length; });
-            const summaryTasks = data.summary?.tasks?.total ?? null;
-            push(summaryTasks === null || summaryTasks === taskCount, 'Task count integrity',
-              summaryTasks !== null ? `summary=${summaryTasks}, computed=${taskCount}` : `computed=${taskCount} (no summary)`);
-          }
-        }
-        if (data.issues) {
-          push(Array.isArray(data.issues), 'Issues array', Array.isArray(data.issues) ? `${data.issues.length} items` : 'not an array');
-        }
-      }
-
-      if (type === 'fiction-digest') {
-        push(!!data.sourceReport, 'Source report', data.sourceReport ? 'present' : 'MISSING');
-        push(Array.isArray(data.fictionIssues), 'Fiction issues', Array.isArray(data.fictionIssues) ? `${data.fictionIssues.length} items` : 'not an array');
-        push(Array.isArray(data.nonFictionIssues), 'Non-fiction issues', Array.isArray(data.nonFictionIssues) ? `${data.nonFictionIssues.length} items` : 'not an array');
-      }
-
-      if (type === 'codebase') {
-        push(Array.isArray(data.fileTypes), 'File types', Array.isArray(data.fileTypes) ? `${data.fileTypes.length} items` : 'not an array');
-        push(typeof data.totalFiles === 'number', 'Total files', typeof data.totalFiles === 'number' ? data.totalFiles : 'MISSING');
-      }
-
-      if (type === 'compliance') {
-        push(typeof data.complianceScore === 'number', 'Compliance score', typeof data.complianceScore === 'number' ? data.complianceScore : 'MISSING');
-        push(Array.isArray(data.checklist), 'Checklist array', Array.isArray(data.checklist) ? `${data.checklist.length} items` : 'not an array');
-        if (Array.isArray(data.checklist)) {
-          const passed = data.checklist.filter(c => c.passed).length;
-          push(data.complianceScore === Math.round((passed / data.checklist.length) * 100), 'Score integrity', `score=${data.complianceScore}, computed=${Math.round((passed / data.checklist.length) * 100)}`);
-        }
-      }
-
-      if (type === 'eu-ai-act') {
-        push(!!data.article50Disclosure, 'Article 50 disclosure', data.article50Disclosure ? 'present' : 'MISSING');
-        push(Array.isArray(data.riskCategories), 'Risk categories', Array.isArray(data.riskCategories) ? `${data.riskCategories.length} items` : 'not an array');
-        push(typeof data.riskLevel === 'string', 'Risk level', data.riskLevel || 'MISSING');
-      }
-
-      // Cross-reference checks
-      checks.push(...validateCrossReferences(data, type));
-
-      // Universal checks
-      push(!!data.generatedAt || !!data.exportedAt || !!data.scannedAt, 'Timestamp', data.generatedAt || data.exportedAt || data.scannedAt || 'MISSING');
-      push(!!data.version || !!data.schemaVersion, 'Schema version', data.version || data.schemaVersion || 'MISSING (legacy report)');
-
-      return checks;
-    }
-
-    function computeIntegrityScore(checks) {
-      const total = checks.length;
-      const passed = checks.filter(c => c.ok).length;
-      return total ? Math.round((passed / total) * 100) : 0;
-    }
-
-    function renderChecks(checks) {
-      return checks.map(c => `
-        <div class="validation-item ${c.ok ? 'ok' : 'err'}">
-          <span class="validation-icon">${c.ok ? '✅' : '❌'}</span>
+      function renderChecks(checks) {
+        return checks
+          .map(
+            (c) => `
+        <div class="validation-item ${c.ok ? "ok" : "err"}">
+          <span class="validation-icon">${c.ok ? "✅" : "❌"}</span>
           <div class="validation-text">
             <div class="validation-title">${escape(c.title)}</div>
             <div class="validation-desc">${escape(c.desc)}</div>
           </div>
         </div>
-      `).join('');
-    }
+      `,
+          )
+          .join("");
+      }
 
-    function renderMetrics(data, type, checks) {
-      const score = computeIntegrityScore(checks);
-      const items = [];
-      if (type === 'gate-scan' || type === 'complete-scan') {
-        const sev = data.severityCounts || {};
-        items.push({ label: 'Critical', value: sev.critical || 0, color: 'var(--danger)' });
-        items.push({ label: 'High', value: sev.high || 0, color: 'var(--danger)' });
-        items.push({ label: 'Medium', value: sev.medium || 0, color: 'var(--warning)' });
-        items.push({ label: 'Low', value: sev.low || 0, color: 'var(--info)' });
-        const issues = data.detectedIssues || data.rawIssues || [];
-        items.push({ label: 'Issues', value: issues.length });
-      }
-      if (type === 'complete-scan' && data.results) {
-        const r = data.results;
-        if (r.roadmap) items.push({ label: 'Roadmap phases', value: (r.roadmap.phases || []).length || (r.roadmap.issues || []).length });
-        if (r.npmAudit) items.push({ label: 'Packages', value: (r.npmAudit.packages || []).length });
-      }
-      if (type === 'consolidation') {
-        items.push({ label: 'Groups', value: (data.groups || []).length });
-        items.push({ label: 'Duplicates', value: data.summary?.duplicateFiles || 0 });
-      }
-      if (type === 'cleanup') {
-        items.push({ label: 'Findings', value: (data.findings || []).length });
-      }
-      if (type === 'roadmap' || type === 'phases-roadmap') {
-        if (data.phases) items.push({ label: 'Phases', value: data.phases.length });
-        if (data.issues) items.push({ label: 'Issues', value: data.issues.length });
-      }
-      if (type === 'fiction-digest') {
-        items.push({ label: 'Fiction', value: (data.fictionIssues || []).length });
-        items.push({ label: 'Non-fiction', value: (data.nonFictionIssues || []).length });
-      }
-      if (type === 'codebase') {
-        items.push({ label: 'Files', value: data.totalFiles || 0 });
-        items.push({ label: 'Types', value: (data.fileTypes || []).length });
-      }
-      if (type === 'compliance') {
-        items.push({ label: 'Score', value: (data.complianceScore || 0) + '%', color: (data.complianceScore || 0) >= 80 ? 'var(--success)' : 'var(--warning)' });
-        items.push({ label: 'Checks', value: (data.checklist || []).length });
-        items.push({ label: 'Passed', value: (data.checklist || []).filter(c => c.passed).length, color: 'var(--success)' });
-        items.push({ label: 'Failed', value: (data.checklist || []).filter(c => !c.passed).length, color: 'var(--danger)' });
-      }
-      if (type === 'eu-ai-act') {
-        items.push({ label: 'Risk level', value: data.riskLevel || '—', color: data.riskLevel === 'high' ? 'var(--danger)' : data.riskLevel === 'limited' ? 'var(--warning)' : 'var(--success)' });
-        items.push({ label: 'Categories', value: (data.riskCategories || []).length });
-        items.push({ label: 'Disclosures', value: (data.article50Disclosure || []).length || (data.article50Disclosure ? 1 : 0) });
-      }
-      items.push({ label: 'Integrity', value: score + '%', color: score === 100 ? 'var(--success)' : score >= 80 ? 'var(--warning)' : 'var(--danger)' });
+      function renderMetrics(data, type, checks) {
+        const score = computeIntegrityScore(checks);
+        const items = [];
+        if (type === "gate-scan" || type === "complete-scan") {
+          const sev = data.severityCounts || {};
+          items.push({
+            label: "Critical",
+            value: sev.critical || 0,
+            color: "var(--danger)",
+          });
+          items.push({
+            label: "High",
+            value: sev.high || 0,
+            color: "var(--danger)",
+          });
+          items.push({
+            label: "Medium",
+            value: sev.medium || 0,
+            color: "var(--warning)",
+          });
+          items.push({
+            label: "Low",
+            value: sev.low || 0,
+            color: "var(--info)",
+          });
+          const issues = data.detectedIssues || data.rawIssues || [];
+          items.push({ label: "Issues", value: issues.length });
+        }
+        if (type === "complete-scan" && data.results) {
+          const r = data.results;
+          if (r.roadmap)
+            items.push({
+              label: "Roadmap phases",
+              value:
+                (r.roadmap.phases || []).length ||
+                (r.roadmap.issues || []).length,
+            });
+          if (r.npmAudit)
+            items.push({
+              label: "Packages",
+              value: (r.npmAudit.packages || []).length,
+            });
+        }
+        if (type === "consolidation") {
+          items.push({ label: "Groups", value: (data.groups || []).length });
+          items.push({
+            label: "Duplicates",
+            value: data.summary?.duplicateFiles || 0,
+          });
+        }
+        if (type === "cleanup") {
+          items.push({
+            label: "Findings",
+            value: (data.findings || []).length,
+          });
+        }
+        if (type === "roadmap" || type === "phases-roadmap") {
+          if (data.phases)
+            items.push({ label: "Phases", value: data.phases.length });
+          if (data.issues)
+            items.push({ label: "Issues", value: data.issues.length });
+        }
+        if (type === "fiction-digest") {
+          items.push({
+            label: "Fiction",
+            value: (data.fictionIssues || []).length,
+          });
+          items.push({
+            label: "Non-fiction",
+            value: (data.nonFictionIssues || []).length,
+          });
+        }
+        if (type === "codebase") {
+          items.push({ label: "Files", value: data.totalFiles || 0 });
+          items.push({ label: "Types", value: (data.fileTypes || []).length });
+        }
+        if (type === "compliance") {
+          items.push({
+            label: "Score",
+            value: (data.complianceScore || 0) + "%",
+            color:
+              (data.complianceScore || 0) >= 80
+                ? "var(--success)"
+                : "var(--warning)",
+          });
+          items.push({ label: "Checks", value: (data.checklist || []).length });
+          items.push({
+            label: "Passed",
+            value: (data.checklist || []).filter((c) => c.passed).length,
+            color: "var(--success)",
+          });
+          items.push({
+            label: "Failed",
+            value: (data.checklist || []).filter((c) => !c.passed).length,
+            color: "var(--danger)",
+          });
+        }
+        if (type === "eu-ai-act") {
+          items.push({
+            label: "Risk level",
+            value: data.riskLevel || "—",
+            color:
+              data.riskLevel === "high"
+                ? "var(--danger)"
+                : data.riskLevel === "limited"
+                  ? "var(--warning)"
+                  : "var(--success)",
+          });
+          items.push({
+            label: "Categories",
+            value: (data.riskCategories || []).length,
+          });
+          items.push({
+            label: "Disclosures",
+            value:
+              (data.article50Disclosure || []).length ||
+              (data.article50Disclosure ? 1 : 0),
+          });
+        }
+        items.push({
+          label: "Integrity",
+          value: score + "%",
+          color:
+            score === 100
+              ? "var(--success)"
+              : score >= 80
+                ? "var(--warning)"
+                : "var(--danger)",
+        });
 
-      return `
+        return `
         <div class="metric-grid">
-          ${items.map(i => `
+          ${items
+            .map(
+              (i) => `
             <div class="metric-box">
-              <div class="metric-value" style="color:${i.color || 'inherit'}">${escape(String(i.value))}</div>
+              <div class="metric-value" style="color:${i.color || "inherit"}">${escape(String(i.value))}</div>
               <div class="metric-label">${escape(i.label)}</div>
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
       `;
-    }
+      }
 
-    function parseReportTimestamp(data) {
-      const ts = data.generatedAt || data.exportedAt || data.scannedAt || data.sourceReport || null;
-      if (!ts) return null;
-      const d = new Date(ts);
-      return isNaN(d.getTime()) ? null : d;
-    }
+      function parseReportTimestamp(data) {
+        const ts =
+          data.generatedAt ||
+          data.exportedAt ||
+          data.scannedAt ||
+          data.sourceReport ||
+          null;
+        if (!ts) return null;
+        const d = new Date(ts);
+        return isNaN(d.getTime()) ? null : d;
+      }
 
-    function detectStaleness(data) {
-      const ts = parseReportTimestamp(data);
-      if (!ts) return { stale: false, ageHours: null, reason: 'no timestamp' };
-      const ageMs = Date.now() - ts.getTime();
-      const ageHours = ageMs / (1000 * 60 * 60);
-      const stale = ageHours > 1;
-      const project = data.summary?.project || data.project || data.projectRoot || '';
-      const wrongProject = /ai-tools/i.test(project) && !/ai-platform/i.test(project);
-      return { stale: stale || wrongProject, ageHours, wrongProject, project };
-    }
+      function detectStaleness(data) {
+        const ts = parseReportTimestamp(data);
+        if (!ts)
+          return { stale: false, ageHours: null, reason: "no timestamp" };
+        const ageMs = Date.now() - ts.getTime();
+        const ageHours = ageMs / (1000 * 60 * 60);
+        const stale = ageHours > 1;
+        const project =
+          data.summary?.project || data.project || data.projectRoot || "";
+        const wrongProject =
+          /ai-tools/i.test(project) && !/ai-platform/i.test(project);
+        return {
+          stale: stale || wrongProject,
+          ageHours,
+          wrongProject,
+          project,
+        };
+      }
 
-    function renderStalenessWarning(staleInfo) {
-      if (!staleInfo.stale) return '';
-      const ageText = staleInfo.ageHours != null
-        ? `${Math.floor(staleInfo.ageHours)}h ${Math.floor((staleInfo.ageHours % 1) * 60)}m old`
-        : 'unknown age';
-      const reasons = [];
-      if (staleInfo.ageHours != null && staleInfo.ageHours > 1) reasons.push(`Report is ${ageText}`);
-      if (staleInfo.wrongProject) reasons.push(`Project name mismatch (${staleInfo.project})`);
-      return `
+      function renderStalenessWarning(staleInfo) {
+        if (!staleInfo.stale) return "";
+        const ageText =
+          staleInfo.ageHours != null
+            ? `${Math.floor(staleInfo.ageHours)}h ${Math.floor((staleInfo.ageHours % 1) * 60)}m old`
+            : "unknown age";
+        const reasons = [];
+        if (staleInfo.ageHours != null && staleInfo.ageHours > 1)
+          reasons.push(`Report is ${ageText}`);
+        if (staleInfo.wrongProject)
+          reasons.push(`Project name mismatch (${staleInfo.project})`);
+        return `
         <div class="panel" style="border-color:var(--danger);background:rgba(239,68,68,0.08);">
           <div class="panel-header">
             <span class="panel-title" style="color:var(--danger);">⚠️ Stale Report Detected</span>
             <span class="badge badge-danger">OUTDATED</span>
           </div>
-          <p style="color:var(--text-secondary);margin:0 0 var(--space-2);">${escape(reasons.join(' · '))}</p>
+          <p style="color:var(--text-secondary);margin:0 0 var(--space-2);">${escape(reasons.join(" · "))}</p>
           <p style="color:var(--text-muted);font-size:0.8rem;margin:0;">
             Run a fresh scan:
             <code style="background:var(--background);padding:2px 6px;border-radius:4px;">npx simplebeacon scan --gate --format json</code>
           </p>
         </div>
       `;
-    }
+      }
 
-    function renderProjectHeader(data, type) {
-      const project = data.projectRoot || data.projectPath || data.project || data.summary?.project || 'Unknown project';
-      const version = data.version || data.schemaVersion || data.scannerVersion || '';
-      const ts = parseReportTimestamp(data);
-      const dateStr = ts ? ts.toLocaleString() : 'Unknown date';
-      const engine = data.engine || data.scanner || 'SimpleBeacon';
-      return `
+      function renderProjectHeader(data, type) {
+        const project =
+          data.projectRoot ||
+          data.projectPath ||
+          data.project ||
+          data.summary?.project ||
+          "Unknown project";
+        const version =
+          data.version || data.schemaVersion || data.scannerVersion || "";
+        const ts = parseReportTimestamp(data);
+        const dateStr = ts ? ts.toLocaleString() : "Unknown date";
+        const engine = data.engine || data.scanner || "SimpleBeacon";
+        return `
         <div class="project-header">
           <div>
             <div class="project-name">${escape(String(project).split(/[\\/]/).pop())}</div>
-            <div class="project-meta">${escape(engine)}${version ? ' v' + escape(version) : ''} · ${escape(dateStr)} · ${escape(type)}</div>
+            <div class="project-meta">${escape(engine)}${version ? " v" + escape(version) : ""} · ${escape(dateStr)} · ${escape(type)}</div>
           </div>
-          ${ts ? `<div class="project-meta">${Math.floor((Date.now() - ts.getTime()) / (1000 * 60 * 60))}h ago</div>` : ''}
+          ${ts ? `<div class="project-meta">${Math.floor((Date.now() - ts.getTime()) / (1000 * 60 * 60))}h ago</div>` : ""}
         </div>
       `;
-    }
+      }
 
-    function validateCrossReferences(data, type) {
-      const checks = [];
-      const push = (ok, title, desc) => checks.push({ ok, title, desc });
+      function validateCrossReferences(data, type) {
+        const checks = [];
+        const push = (ok, title, desc) => checks.push({ ok, title, desc });
 
-      if (type === 'gate-scan' || type === 'complete-scan') {
-        const sev = data.severityCounts || {};
-        const issues = data.detectedIssues || data.rawIssues || [];
-        const counted = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
-        push(counted === issues.length, 'Cross-ref: issue count', `severityCounts sum=${counted}, issues.length=${issues.length}`);
-        if (data.summary && typeof data.summary.totalIssues === 'number') {
-          push(data.summary.totalIssues === issues.length, 'Cross-ref: summary total', `summary.totalIssues=${data.summary.totalIssues}, actual=${issues.length}`);
+        if (type === "gate-scan" || type === "complete-scan") {
+          const sev = data.severityCounts || {};
+          const issues = data.detectedIssues || data.rawIssues || [];
+          const counted =
+            (sev.critical || 0) +
+            (sev.high || 0) +
+            (sev.medium || 0) +
+            (sev.low || 0) +
+            (sev.info || 0);
+          push(
+            counted === issues.length,
+            "Cross-ref: issue count",
+            `severityCounts sum=${counted}, issues.length=${issues.length}`,
+          );
+          if (data.summary && typeof data.summary.totalIssues === "number") {
+            push(
+              data.summary.totalIssues === issues.length,
+              "Cross-ref: summary total",
+              `summary.totalIssues=${data.summary.totalIssues}, actual=${issues.length}`,
+            );
+          }
         }
-      }
 
-      if (type === 'complete-scan' && data.results) {
-        const r = data.results;
-        if (r.gate && r.gate.detectedIssues) {
-          const gateIssues = r.gate.detectedIssues.length;
-          const gateSev = r.gate.severityCounts || {};
-          const gateCounted = (gateSev.critical||0) + (gateSev.high||0) + (gateSev.medium||0) + (gateSev.low||0) + (gateSev.info||0);
-          push(gateCounted === gateIssues, 'Cross-ref: gate sub-report', `gate severity sum=${gateCounted}, gate issues=${gateIssues}`);
+        if (type === "complete-scan" && data.results) {
+          const r = data.results;
+          if (r.gate && r.gate.detectedIssues) {
+            const gateIssues = r.gate.detectedIssues.length;
+            const gateSev = r.gate.severityCounts || {};
+            const gateCounted =
+              (gateSev.critical || 0) +
+              (gateSev.high || 0) +
+              (gateSev.medium || 0) +
+              (gateSev.low || 0) +
+              (gateSev.info || 0);
+            push(
+              gateCounted === gateIssues,
+              "Cross-ref: gate sub-report",
+              `gate severity sum=${gateCounted}, gate issues=${gateIssues}`,
+            );
+          }
         }
+
+        if (type === "consolidation") {
+          const groups = data.groups || [];
+          const dupes = data.summary?.duplicateFiles || 0;
+          const computedDupes = groups.reduce(
+            (sum, g) => sum + ((g.files || []).length - 1),
+            0,
+          );
+          push(
+            dupes === computedDupes,
+            "Cross-ref: duplicates",
+            `summary.duplicateFiles=${dupes}, computed=${computedDupes}`,
+          );
+        }
+
+        if (type === "roadmap" && data.phases) {
+          const computedTasks = data.phases.reduce(
+            (sum, p) => sum + (p.tasks || []).length,
+            0,
+          );
+          const summaryTasks = data.summary?.tasks?.total ?? null;
+          push(
+            summaryTasks === null || summaryTasks === computedTasks,
+            "Cross-ref: task count",
+            `summary.tasks=${summaryTasks}, computed=${computedTasks}`,
+          );
+        }
+
+        return checks;
       }
 
-      if (type === 'consolidation') {
-        const groups = data.groups || [];
-        const dupes = data.summary?.duplicateFiles || 0;
-        const computedDupes = groups.reduce((sum, g) => sum + ((g.files || []).length - 1), 0);
-        push(dupes === computedDupes, 'Cross-ref: duplicates', `summary.duplicateFiles=${dupes}, computed=${computedDupes}`);
-      }
+      function renderIssuesPanel(issues, panelId) {
+        if (!issues || issues.length === 0) {
+          return `<div class="empty">No issues in this report.</div>`;
+        }
 
-      if (type === 'roadmap' && data.phases) {
-        const computedTasks = data.phases.reduce((sum, p) => sum + (p.tasks || []).length, 0);
-        const summaryTasks = data.summary?.tasks?.total ?? null;
-        push(summaryTasks === null || summaryTasks === computedTasks, 'Cross-ref: task count', `summary.tasks=${summaryTasks}, computed=${computedTasks}`);
-      }
+        const severityOrder = {
+          critical: 0,
+          high: 1,
+          medium: 2,
+          low: 3,
+          info: 4,
+        };
+        const sorted = [...issues].sort((a, b) => {
+          const sa = severityOrder[(a.severity || "low").toLowerCase()] || 4;
+          const sb = severityOrder[(b.severity || "low").toLowerCase()] || 4;
+          return sa - sb;
+        });
 
-      return checks;
-    }
+        const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+        for (const i of issues) {
+          counts[(i.severity || "low").toLowerCase()] =
+            (counts[(i.severity || "low").toLowerCase()] || 0) + 1;
+        }
 
-    function renderIssuesPanel(issues, panelId) {
-      if (!issues || issues.length === 0) {
-        return `<div class="empty">No issues in this report.</div>`;
-      }
-
-      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
-      const sorted = [...issues].sort((a, b) => {
-        const sa = severityOrder[(a.severity || 'low').toLowerCase()] || 4;
-        const sb = severityOrder[(b.severity || 'low').toLowerCase()] || 4;
-        return sa - sb;
-      });
-
-      const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-      for (const i of issues) { counts[(i.severity || 'low').toLowerCase()] = (counts[(i.severity || 'low').toLowerCase()] || 0) + 1; }
-
-      let html = `<div class="issue-toolbar">
+        let html = `<div class="issue-toolbar">
         <input type="text" class="issue-search" id="${panelId}-search" placeholder="Search issues...">
         <div class="severity-filters">
-          ${['critical','high','medium','low','info'].map(sev =>
-            `<button class="severity-filter ${sev} active" data-sev="${sev}" onclick="toggleSeverityFilter('${panelId}', '${sev}')">${sev} (${counts[sev] || 0})</button>`
-          ).join('')}
+          ${["critical", "high", "medium", "low", "info"]
+            .map(
+              (sev) =>
+                `<button class="severity-filter ${sev} active" data-sev="${sev}" onclick="toggleSeverityFilter('${panelId}', '${sev}')">${sev} (${counts[sev] || 0})</button>`,
+            )
+            .join("")}
         </div>
       </div>
       <div class="issue-list" id="${panelId}-list">`;
 
-      for (const issue of sorted) {
-        const sev = (issue.severity || 'low').toLowerCase();
-        const desc = escape(String(issue.description || issue.message || 'No description').slice(0, 120));
-        const file = issue.filePath || issue.file || '';
-        const fileName = file ? escape(file.split(/[\\/]/).pop() + (issue.line ? ':' + issue.line : '')) : '';
-        html += `<div class="issue-item" data-severity="${sev}" onclick="toggleIssueDetails(this)">
+        for (const issue of sorted) {
+          const sev = (issue.severity || "low").toLowerCase();
+          const desc = escape(
+            String(
+              issue.description || issue.message || "No description",
+            ).slice(0, 120),
+          );
+          const file = issue.filePath || issue.file || "";
+          const fileName = file
+            ? escape(
+                file.split(/[\\/]/).pop() +
+                  (issue.line ? ":" + issue.line : ""),
+              )
+            : "";
+          html += `<div class="issue-item" data-severity="${sev}" onclick="toggleIssueDetails(this)">
           <div class="issue-header">
             <span class="issue-severity severity-${sev}">${sev}</span>
-            <span class="issue-title">${desc}${String(issue.description || issue.message || '').length > 120 ? '...' : ''}</span>
-            ${fileName ? `<span class="issue-file">${fileName}</span>` : ''}
+            <span class="issue-title">${desc}${String(issue.description || issue.message || "").length > 120 ? "..." : ""}</span>
+            ${fileName ? `<span class="issue-file">${fileName}</span>` : ""}
             <span class="issue-chevron">▶</span>
           </div>
           <div class="issue-details">
-            <div class="issue-detail-row"><strong>ID:</strong> <code>${escape(issue.id || '—')}</code></div>
-            <div class="issue-detail-row"><strong>Type:</strong> <code>${escape(issue.type || '—')}</code></div>
-            <div class="issue-detail-row"><strong>Category:</strong> <code>${escape(issue.category || 'General')}</code></div>
-            ${issue.filePath ? `<div class="issue-detail-row"><strong>File:</strong> <code>${escape(issue.filePath)}${issue.line ? ':' + issue.line : ''}</code></div>` : ''}
-            ${issue.effort ? `<div class="issue-detail-row"><strong>Effort:</strong> <code>${escape(issue.effort)}</code></div>` : ''}
-            ${issue.action ? `<div class="issue-detail-row"><strong>Action:</strong> <span>${escape(issue.action)}</span></div>` : ''}
-            ${issue.remediation ? `<div class="issue-detail-row"><strong>Remediation:</strong> <span>${escape(issue.remediation)}</span></div>` : ''}
+            <div class="issue-detail-row"><strong>ID:</strong> <code>${escape(issue.id || "—")}</code></div>
+            <div class="issue-detail-row"><strong>Type:</strong> <code>${escape(issue.type || "—")}</code></div>
+            <div class="issue-detail-row"><strong>Category:</strong> <code>${escape(issue.category || "General")}</code></div>
+            ${issue.filePath ? `<div class="issue-detail-row"><strong>File:</strong> <code>${escape(issue.filePath)}${issue.line ? ":" + issue.line : ""}</code></div>` : ""}
+            ${issue.effort ? `<div class="issue-detail-row"><strong>Effort:</strong> <code>${escape(issue.effort)}</code></div>` : ""}
+            ${issue.action ? `<div class="issue-detail-row"><strong>Action:</strong> <span>${escape(issue.action)}</span></div>` : ""}
+            ${issue.remediation ? `<div class="issue-detail-row"><strong>Remediation:</strong> <span>${escape(issue.remediation)}</span></div>` : ""}
             <div class="issue-actions">
-              <button class="btn btn-secondary" onclick="event.stopPropagation(); copyIssueJson(this, ${JSON.stringify(issue).replace(/"/g, '&quot;')})">Copy JSON</button>
-              ${issue.filePath ? `<button class="btn" onclick="event.stopPropagation(); alert('Open file: ${escape(issue.filePath)}${issue.line ? ':' + issue.line : ''}')">Open File</button>` : ''}
+              <button class="btn btn-secondary" onclick="event.stopPropagation(); copyIssueJson(this, ${JSON.stringify(issue).replace(/"/g, "&quot;")})">Copy JSON</button>
+              ${issue.filePath ? `<button class="btn" onclick="event.stopPropagation(); alert('Open file: ${escape(issue.filePath)}${issue.line ? ":" + issue.line : ""}')">Open File</button>` : ""}
             </div>
           </div>
         </div>`;
-      }
-      html += '</div>';
-      return html;
-    }
-
-    function toggleIssueDetails(el) {
-      el.classList.toggle('expanded');
-    }
-
-    function toggleSeverityFilter(panelId, sev) {
-      const btn = document.querySelector(`#${panelId}-list`).parentElement.querySelector(`[data-sev="${sev}"]`);
-      btn.classList.toggle('active');
-      const activeSevs = new Set(Array.from(document.querySelectorAll(`#${panelId}-list`).parentElement.querySelectorAll('.severity-filter.active')).map(b => b.dataset.sev));
-      const items = document.querySelectorAll(`#${panelId}-list .issue-item`);
-      for (const item of items) {
-        item.style.display = activeSevs.has(item.dataset.severity) ? '' : 'none';
-      }
-    }
-
-    function filterIssuesBySearch(panelId, query) {
-      const q = query.toLowerCase();
-      const items = document.querySelectorAll(`#${panelId}-list .issue-item`);
-      for (const item of items) {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(q) ? '' : 'none';
-      }
-    }
-
-    function copyIssueJson(btn, issue) {
-      navigator.clipboard.writeText(JSON.stringify(issue, null, 2)).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = orig, 1500);
-      }).catch(() => {
-        alert('Could not copy to clipboard');
-      });
-    }
-
-    function downloadValidatedJson(data, fileName) {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName.replace(/\.json$/i, '-validated.json');
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    async function processFile(file) {
-      if (!file.name.toLowerCase().endsWith('.json')) {
-        results.innerHTML = `<div class="panel"><div class="badge badge-danger">Error</div><p>Only .json files are supported. Received: ${escape(file.name)}</p></div>`;
-        return;
+        }
+        html += "</div>";
+        return html;
       }
 
-      let text;
-      try {
-        text = await file.text();
-      } catch {
-        results.innerHTML = `<div class="panel"><div class="badge badge-danger">Read Error</div><p>Could not read ${escape(file.name)}</p></div>`;
-        return;
+      function toggleIssueDetails(el) {
+        el.classList.toggle("expanded");
       }
 
-      const parse = parseJsonWithDiagnostics(text);
-      if (!parse.ok) {
-        results.innerHTML = `
+      function toggleSeverityFilter(panelId, sev) {
+        const btn = document
+          .querySelector(`#${panelId}-list`)
+          .parentElement.querySelector(`[data-sev="${sev}"]`);
+        btn.classList.toggle("active");
+        const activeSevs = new Set(
+          Array.from(
+            document
+              .querySelectorAll(`#${panelId}-list`)
+              .parentElement.querySelectorAll(".severity-filter.active"),
+          ).map((b) => b.dataset.sev),
+        );
+        const items = document.querySelectorAll(`#${panelId}-list .issue-item`);
+        for (const item of items) {
+          item.style.display = activeSevs.has(item.dataset.severity)
+            ? ""
+            : "none";
+        }
+      }
+
+      function filterIssuesBySearch(panelId, query) {
+        const q = query.toLowerCase();
+        const items = document.querySelectorAll(`#${panelId}-list .issue-item`);
+        for (const item of items) {
+          const text = item.textContent.toLowerCase();
+          item.style.display = text.includes(q) ? "" : "none";
+        }
+      }
+
+      function copyIssueJson(btn, issue) {
+        navigator.clipboard
+          .writeText(JSON.stringify(issue, null, 2))
+          .then(() => {
+            const orig = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = orig), 1500);
+          })
+          .catch(() => {
+            alert("Could not copy to clipboard");
+          });
+      }
+
+      function downloadValidatedJson(data, fileName) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName.replace(/\.json$/i, "-validated.json");
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      async function processFile(file) {
+        if (!file.name.toLowerCase().endsWith(".json")) {
+          results.innerHTML = `<div class="panel"><div class="badge badge-danger">Error</div><p>Only .json files are supported. Received: ${escape(file.name)}</p></div>`;
+          return;
+        }
+
+        let text;
+        try {
+          text = await file.text();
+        } catch {
+          results.innerHTML = `<div class="panel"><div class="badge badge-danger">Read Error</div><p>Could not read ${escape(file.name)}</p></div>`;
+          return;
+        }
+
+        const parse = parseJsonWithDiagnostics(text);
+        if (!parse.ok) {
+          results.innerHTML = `
           <div class="panel">
             <div class="panel-header"><span class="panel-title">Parse Error</span><span class="badge badge-danger">Invalid JSON</span></div>
             <p style="color:var(--text-secondary);margin:0 0 var(--space-3);">${escape(parse.error)}</p>
             <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Line ${parse.line}, Column ${parse.col}</p>
-            <pre style="margin-top:var(--space-3);">${escape(text.split('\n').slice(Math.max(0, parse.line - 3), parse.line + 2).map((l, i) => `${Math.max(0, parse.line - 3) + i + 1}: ${l}`).join('\n'))}</pre>
+            <pre style="margin-top:var(--space-3);">${escape(
+              text
+                .split("\n")
+                .slice(Math.max(0, parse.line - 3), parse.line + 2)
+                .map((l, i) => `${Math.max(0, parse.line - 3) + i + 1}: ${l}`)
+                .join("\n"),
+            )}</pre>
           </div>`;
-        return;
-      }
+          return;
+        }
 
-      const data = parse.data;
-      const detection = detectReportType(data);
-      const checks = validateReport(data, detection.type);
-      const score = computeIntegrityScore(checks);
-      const allOk = checks.every(c => c.ok);
-      const staleInfo = detectStaleness(data);
+        const data = parse.data;
+        const detection = detectReportType(data);
+        const checks = validateReport(data, detection.type);
+        const score = computeIntegrityScore(checks);
+        const allOk = checks.every((c) => c.ok);
+        const staleInfo = detectStaleness(data);
 
-      const allIssues = data.detectedIssues || data.rawIssues || data.issues || data.fictionIssues || data.nonFictionIssues || data.findings || [];
+        const allIssues =
+          data.detectedIssues ||
+          data.rawIssues ||
+          data.issues ||
+          data.fictionIssues ||
+          data.nonFictionIssues ||
+          data.findings ||
+          [];
 
-      const projectPath = data.projectRoot || data.projectPath || '';
-      const vscodeDeepLink = (projectPath && allIssues.length > 0)
-        ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(projectPath)}" class="btn" style="margin-top:var(--space-3);width:100%;text-align:center;display:block;">Open in VS Code to Fix with AI</a>`
-        : '';
+        const projectPath = data.projectRoot || data.projectPath || "";
+        const vscodeDeepLink =
+          projectPath && allIssues.length > 0
+            ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(projectPath)}" class="btn" style="margin-top:var(--space-3);width:100%;text-align:center;display:block;">Open in VS Code to Fix with AI</a>`
+            : "";
 
-      results.innerHTML = `
+        results.innerHTML = `
         ${renderStalenessWarning(staleInfo)}
         <div class="panel">
           ${renderProjectHeader(data, detection.type)}
           <div class="panel-header">
             <span class="panel-title">${escape(file.name)}</span>
-            <span class="badge ${allOk ? 'badge-success' : score >= 80 ? 'badge-warning' : 'badge-danger'}">${escape(detection.type)} ${allOk ? '✓' : score + '%'}</span>
+            <span class="badge ${allOk ? "badge-success" : score >= 80 ? "badge-warning" : "badge-danger"}">${escape(detection.type)} ${allOk ? "✓" : score + "%"}</span>
           </div>
           ${renderMetrics(data, detection.type, checks)}
           ${vscodeDeepLink}
@@ -1229,11 +2267,11 @@
 
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Issues (${allIssues.length})</span></div>
-          ${renderIssuesPanel(allIssues, 'main-issues')}
+          ${renderIssuesPanel(allIssues, "main-issues")}
         </div>
 
         <div class="panel">
-          <div class="panel-header"><span class="panel-title">Validation Checks (${checks.filter(c=>c.ok).length}/${checks.length})</span></div>
+          <div class="panel-header"><span class="panel-title">Validation Checks (${checks.filter((c) => c.ok).length}/${checks.length})</span></div>
           <div class="validation-list">${renderChecks(checks)}</div>
         </div>
 
@@ -1243,7 +2281,7 @@
             <span class="chevron">▶</span>
           </div>
           <div class="collapsible-body">
-            <pre>${escape(JSON.stringify(data, null, 2).slice(0, 2000))}${JSON.stringify(data, null, 2).length > 2000 ? '\n\n... truncated' : ''}</pre>
+            <pre>${escape(JSON.stringify(data, null, 2).slice(0, 2000))}${JSON.stringify(data, null, 2).length > 2000 ? "\n\n... truncated" : ""}</pre>
           </div>
         </div>
 
@@ -1253,289 +2291,387 @@
         </div>
       `;
 
-      dropzone.style.display = 'none';
+        dropzone.style.display = "none";
 
-      // Wire up search
-      const searchInput = document.getElementById('main-issues-search');
-      if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-          filterIssuesBySearch('main-issues', e.target.value);
-        });
-      }
+        // Wire up search
+        const searchInput = document.getElementById("main-issues-search");
+        if (searchInput) {
+          searchInput.addEventListener("input", (e) => {
+            filterIssuesBySearch("main-issues", e.target.value);
+          });
+        }
 
-      $('#download-validated')?.addEventListener('click', () => downloadValidatedJson(data, file.name));
+        $("#download-validated")?.addEventListener("click", () =>
+          downloadValidatedJson(data, file.name),
+        );
 
-      // Wire up "Send to AI Agent" button
-      const sendAiBtn = document.getElementById('btn-send-ai');
-      const aiNotes = document.getElementById('ai-notes');
-      const aiStatus = document.getElementById('ai-send-status');
-      if (sendAiBtn) {
-        sendAiBtn.addEventListener('click', async () => {
-          sendAiBtn.disabled = true;
-          sendAiBtn.textContent = 'Sending...';
-          if (aiStatus) { aiStatus.style.display = 'block'; aiStatus.textContent = 'Writing context file...'; aiStatus.style.color = 'var(--text-muted)'; }
-
-          const reportSummary = {
-            gatePass: data.gate?.pass ?? data.gatePass ?? 'N/A',
-            qualityScore: data.qualityScore ?? data.gate?.score ?? 'N/A',
-            totalIssues: allIssues.length,
-            filesScanned: data.repositoryFilesTotal ?? data.totalFiles ?? data.filesAnalyzed ?? 'N/A',
-            reportType: detection.type
-          };
-
-          // If running inside a VS Code-family webview, message the extension directly
-          if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
-            try {
-              var vscode = window.acquireVsCodeApi();
-              vscode.postMessage({
-                command: 'sendToAI',
-                data: {
-                  projectPath: projectPath || window.location.origin,
-                  notes: aiNotes?.value || '',
-                  reportSummary: reportSummary,
-                  issues: allIssues
-                }
-              });
-              sendAiBtn.textContent = '\u2713 Sent to AI agent — check editor chat';
-              sendAiBtn.style.background = 'var(--success)';
-              if (aiStatus) { aiStatus.textContent = 'Context sent to AI agent'; aiStatus.style.color = 'var(--success)'; }
-              return;
-            } catch (err) {
-              console.warn('[AI-Send] vscode.postMessage failed:', err);
+        // Wire up "Send to AI Agent" button
+        const sendAiBtn = document.getElementById("btn-send-ai");
+        const aiNotes = document.getElementById("ai-notes");
+        const aiStatus = document.getElementById("ai-send-status");
+        if (sendAiBtn) {
+          sendAiBtn.addEventListener("click", async () => {
+            sendAiBtn.disabled = true;
+            sendAiBtn.textContent = "Sending...";
+            if (aiStatus) {
+              aiStatus.style.display = "block";
+              aiStatus.textContent = "Writing context file...";
+              aiStatus.style.color = "var(--text-muted)";
             }
-          }
 
-          try {
-            const res = await fetch('/api/ai-context', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                projectPath: projectPath || window.location.origin,
-                notes: aiNotes?.value || '',
-                reportSummary,
-                issues: allIssues
-              })
-            });
-            const json = await res.json();
-            if (json.success) {
-              if (json.content) {
-                try {
-                  await navigator.clipboard.writeText(json.content);
-                  sendAiBtn.textContent = '✓ Copied to clipboard — paste with Ctrl+V';
-                } catch (clipErr) {
-                  sendAiBtn.textContent = '✓ Saved — use sidebar 🤖 button to copy';
+            const reportSummary = {
+              gatePass: data.gate?.pass ?? data.gatePass ?? "N/A",
+              qualityScore: data.qualityScore ?? data.gate?.score ?? "N/A",
+              totalIssues: allIssues.length,
+              filesScanned:
+                data.repositoryFilesTotal ??
+                data.totalFiles ??
+                data.filesAnalyzed ??
+                "N/A",
+              reportType: detection.type,
+            };
+
+            // If running inside a VS Code-family webview, message the extension directly
+            if (
+              typeof window !== "undefined" &&
+              typeof window.acquireVsCodeApi === "function"
+            ) {
+              try {
+                var vscode = window.acquireVsCodeApi();
+                vscode.postMessage({
+                  command: "sendToAI",
+                  data: {
+                    projectPath: projectPath || window.location.origin,
+                    notes: aiNotes?.value || "",
+                    reportSummary: reportSummary,
+                    issues: allIssues,
+                  },
+                });
+                sendAiBtn.textContent =
+                  "\u2713 Sent to AI agent — check editor chat";
+                sendAiBtn.style.background = "var(--success)";
+                if (aiStatus) {
+                  aiStatus.textContent = "Context sent to AI agent";
+                  aiStatus.style.color = "var(--success)";
+                }
+                return;
+              } catch (err) {
+                console.warn("[AI-Send] vscode.postMessage failed:", err);
+              }
+            }
+
+            try {
+              const res = await fetch("/api/ai-context", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  projectPath: projectPath || window.location.origin,
+                  notes: aiNotes?.value || "",
+                  reportSummary,
+                  issues: allIssues,
+                }),
+              });
+              const json = await res.json();
+              if (json.success) {
+                if (json.content) {
+                  try {
+                    await navigator.clipboard.writeText(json.content);
+                    sendAiBtn.textContent =
+                      "✓ Copied to clipboard — paste with Ctrl+V";
+                  } catch (clipErr) {
+                    sendAiBtn.textContent =
+                      "✓ Saved — use sidebar 🤖 button to copy";
+                  }
+                } else {
+                  sendAiBtn.textContent =
+                    "✓ Sent — check .simplebeacon/ai-context.md";
+                }
+                sendAiBtn.style.background = "var(--success)";
+                if (aiStatus) {
+                  aiStatus.textContent = "Saved to " + json.path;
+                  aiStatus.style.color = "var(--success)";
                 }
               } else {
-                sendAiBtn.textContent = '✓ Sent — check .simplebeacon/ai-context.md';
+                sendAiBtn.disabled = false;
+                sendAiBtn.innerHTML =
+                  '<span style="margin-right:6px;">🤖</span> Retry Send to AI Agent';
+                if (aiStatus) {
+                  aiStatus.textContent = "Error: " + (json.error || "Unknown");
+                  aiStatus.style.color = "var(--danger)";
+                }
               }
-              sendAiBtn.style.background = 'var(--success)';
-              if (aiStatus) { aiStatus.textContent = 'Saved to ' + json.path; aiStatus.style.color = 'var(--success)'; }
-            } else {
+            } catch (err) {
               sendAiBtn.disabled = false;
-              sendAiBtn.innerHTML = '<span style="margin-right:6px;">🤖</span> Retry Send to AI Agent';
-              if (aiStatus) { aiStatus.textContent = 'Error: ' + (json.error || 'Unknown'); aiStatus.style.color = 'var(--danger)'; }
+              sendAiBtn.innerHTML =
+                '<span style="margin-right:6px;">🤖</span> Retry Send to AI Agent';
+              if (aiStatus) {
+                aiStatus.textContent = "Network error: " + err.message;
+                aiStatus.style.color = "var(--danger)";
+              }
             }
-          } catch (err) {
-            sendAiBtn.disabled = false;
-            sendAiBtn.innerHTML = '<span style="margin-right:6px;">🤖</span> Retry Send to AI Agent';
-            if (aiStatus) { aiStatus.textContent = 'Network error: ' + err.message; aiStatus.style.color = 'var(--danger)'; }
+          });
+        }
+      }
+
+      // Token gate + auth modal — non-coercive
+      (function initTokenGate() {
+        const tokenInput = $("#licenseToken");
+        const errorEl = $("#tokenError");
+        const overlay = $("#auth-modal-overlay");
+        const tokenDisplay = $("#auth-token-display");
+        const pasteSection = $("#token-paste-section");
+        const emailSection = $("#email-link-section");
+
+        const showError = (msg) => {
+          if (errorEl) {
+            errorEl.textContent = msg;
+            errorEl.style.display = "block";
+          }
+        };
+        const clearError = () => {
+          if (errorEl) {
+            errorEl.textContent = "";
+            errorEl.style.display = "none";
+          }
+        };
+        const closeModal = () => {
+          if (overlay) overlay.classList.remove("active");
+          const e1 = $("#auth-email-error");
+          if (e1) {
+            e1.hidden = true;
+            e1.textContent = "";
+          }
+          const e2 = $("#auth-token-error");
+          if (e2) {
+            e2.hidden = true;
+            e2.textContent = "";
+          }
+        };
+        const openModal = (token) => {
+          if (tokenDisplay)
+            tokenDisplay.value =
+              token.slice(0, 28) + (token.length > 28 ? "…" : "");
+          if (overlay) overlay.classList.add("active");
+          const ef = $("#auth-email-form");
+          if (ef) ef.reset();
+          const tf = $("#auth-token-form");
+          if (tf) tf.reset();
+        };
+        const openTab = (tabName) => {
+          document.querySelectorAll(".auth-modal-tab").forEach((t) => {
+            t.classList.toggle("active", t.dataset.authTab === tabName);
+          });
+          document.querySelectorAll(".auth-modal-panel").forEach((p) => {
+            p.classList.toggle("active", p.id === "auth-panel-" + tabName);
+          });
+        };
+
+        // Generate anonymous sandbox token (no email required)
+        function generateSandboxToken(email) {
+          const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+          const now = Math.floor(Date.now() / 1000);
+          const sub =
+            email || "anonymous-" + Math.random().toString(36).slice(2, 10);
+          const payload = btoa(
+            JSON.stringify({
+              sub: sub,
+              plan: email ? "community" : "sandbox",
+              tier: email ? "community" : "sandbox",
+              iat: now,
+              exp: now + 86400 * 14,
+            }),
+          );
+          const sig = btoa(
+            "demo-sig-" + Math.random().toString(36).slice(2, 10),
+          );
+          return `${header}.${payload}.${sig}`;
+        }
+
+        // "Start Scanning" — instantly generate anonymous sandbox token
+        $("#start-sandbox-btn")?.addEventListener("click", () => {
+          clearError();
+          const token = generateSandboxToken(null);
+          localStorage.setItem("sb-token", token);
+          localStorage.setItem(
+            "sb-user",
+            JSON.stringify({ plan: "sandbox", tier: "sandbox" }),
+          );
+          window.dispatchEvent(
+            new StorageEvent("storage", { key: "sb-token" }),
+          );
+          showToast("Sandbox ready — you can scan now", "success");
+          // Hide the token gate, show the scan section
+          const gate = $("#audit-token-gate");
+          if (gate) gate.style.display = "none";
+        });
+
+        // "I have a token" — toggle the paste section
+        $("#have-token-btn")?.addEventListener("click", () => {
+          clearError();
+          if (pasteSection) pasteSection.classList.toggle("expanded");
+          if (emailSection) emailSection.classList.remove("expanded");
+          if (pasteSection?.classList.contains("expanded") && tokenInput)
+            tokenInput.focus();
+        });
+
+        // "Link email (optional)" — toggle the email section
+        $("#link-email-btn")?.addEventListener("click", () => {
+          clearError();
+          if (emailSection) emailSection.classList.toggle("expanded");
+          if (pasteSection) pasteSection.classList.remove("expanded");
+          if (emailSection?.classList.contains("expanded")) {
+            const emailInput = $("#email-link-input");
+            if (emailInput) emailInput.focus();
           }
         });
-      }
-    }
 
-    // Token gate + auth modal — non-coercive
-    (function initTokenGate() {
-      const tokenInput = $('#licenseToken');
-      const errorEl = $('#tokenError');
-      const overlay = $('#auth-modal-overlay');
-      const tokenDisplay = $('#auth-token-display');
-      const pasteSection = $('#token-paste-section');
-      const emailSection = $('#email-link-section');
-
-      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
-      const clearError = () => { if (errorEl) { errorEl.textContent = ''; errorEl.style.display = 'none'; } };
-      const closeModal = () => {
-        if (overlay) overlay.classList.remove('active');
-        const e1 = $('#auth-email-error'); if (e1) { e1.hidden = true; e1.textContent = ''; }
-        const e2 = $('#auth-token-error'); if (e2) { e2.hidden = true; e2.textContent = ''; }
-      };
-      const openModal = (token) => {
-        if (tokenDisplay) tokenDisplay.value = token.slice(0, 28) + (token.length > 28 ? '…' : '');
-        if (overlay) overlay.classList.add('active');
-        const ef = $('#auth-email-form'); if (ef) ef.reset();
-        const tf = $('#auth-token-form'); if (tf) tf.reset();
-      };
-      const openTab = (tabName) => {
-        document.querySelectorAll('.auth-modal-tab').forEach((t) => {
-          t.classList.toggle('active', t.dataset.authTab === tabName);
-        });
-        document.querySelectorAll('.auth-modal-panel').forEach((p) => {
-          p.classList.toggle('active', p.id === 'auth-panel-' + tabName);
-        });
-      };
-
-      // Generate anonymous sandbox token (no email required)
-      function generateSandboxToken(email) {
-        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const now = Math.floor(Date.now() / 1000);
-        const sub = email || ('anonymous-' + Math.random().toString(36).slice(2, 10));
-        const payload = btoa(JSON.stringify({
-          sub: sub,
-          plan: email ? 'community' : 'sandbox',
-          tier: email ? 'community' : 'sandbox',
-          iat: now,
-          exp: now + 86400 * 14
-        }));
-        const sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
-        return `${header}.${payload}.${sig}`;
-      }
-
-      // "Start Scanning" — instantly generate anonymous sandbox token
-      $('#start-sandbox-btn')?.addEventListener('click', () => {
-        clearError();
-        const token = generateSandboxToken(null);
-        localStorage.setItem('sb-token', token);
-        localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
-        window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
-        showToast('Sandbox ready — you can scan now', 'success');
-        // Hide the token gate, show the scan section
-        const gate = $('#audit-token-gate');
-        if (gate) gate.style.display = 'none';
-      });
-
-      // "I have a token" — toggle the paste section
-      $('#have-token-btn')?.addEventListener('click', () => {
-        clearError();
-        if (pasteSection) pasteSection.classList.toggle('expanded');
-        if (emailSection) emailSection.classList.remove('expanded');
-        if (pasteSection?.classList.contains('expanded') && tokenInput) tokenInput.focus();
-      });
-
-      // "Link email (optional)" — toggle the email section
-      $('#link-email-btn')?.addEventListener('click', () => {
-        clearError();
-        if (emailSection) emailSection.classList.toggle('expanded');
-        if (pasteSection) pasteSection.classList.remove('expanded');
-        if (emailSection?.classList.contains('expanded')) {
-          const emailInput = $('#email-link-input');
-          if (emailInput) emailInput.focus();
-        }
-      });
-
-      // Token submit button
-      $('#token-submit-btn')?.addEventListener('click', () => {
-        const token = tokenInput?.value?.trim();
-        if (!token) { showError('Please paste your license token.'); return; }
-        clearError();
-        openTab('token');
-        openModal(token);
-      });
-
-      // Enter key on token input
-      if (tokenInput) {
-        tokenInput.addEventListener('keydown', (e) => {
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-          const token = tokenInput.value.trim();
-          if (!token) { showError('Please enter a license token.'); return; }
+        // Token submit button
+        $("#token-submit-btn")?.addEventListener("click", () => {
+          const token = tokenInput?.value?.trim();
+          if (!token) {
+            showError("Please paste your license token.");
+            return;
+          }
           clearError();
-          openTab('token');
+          openTab("token");
           openModal(token);
         });
-      }
 
-      // Email link submit — associate token with email
-      $('#email-link-submit')?.addEventListener('click', async () => {
-        const emailInput = $('#email-link-input');
-        const email = emailInput?.value?.trim();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          showError('Please enter a valid email address.');
-          return;
-        }
-        clearError();
-        const token = generateSandboxToken(email);
-        localStorage.setItem('sb-token', token);
-        localStorage.setItem('sb-user', JSON.stringify({ email, plan: 'community', tier: 'community' }));
-        window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
-        showToast('Token linked to ' + email + ' — redirecting to dashboard', 'success');
-        setTimeout(() => { window.location.href = '/#/dashboard'; }, 800);
-      });
-
-      // Enter key on email link input
-      $('#email-link-input')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          $('#email-link-submit')?.click();
-        }
-      });
-
-      // Modal tab switching
-      document.querySelectorAll('.auth-modal-tab').forEach((tab) => {
-        tab.addEventListener('click', () => openTab(tab.dataset.authTab));
-      });
-
-      // Cancel buttons + overlay click
-      $('#auth-modal-cancel')?.addEventListener('click', closeModal);
-      $('#auth-modal-cancel-2')?.addEventListener('click', closeModal);
-      overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-
-      // Email form in modal
-      $('#auth-email-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = $('#auth-email-input').value.trim();
-        const password = $('#auth-email-password').value;
-        const error = $('#auth-email-error');
-        error.hidden = true;
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+        // Enter key on token input
+        if (tokenInput) {
+          tokenInput.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const token = tokenInput.value.trim();
+            if (!token) {
+              showError("Please enter a license token.");
+              return;
+            }
+            clearError();
+            openTab("token");
+            openModal(token);
           });
-          const data = await res.json();
-          if (!res.ok || !data.token) throw new Error(data.message || data.error || 'Login failed');
-          localStorage.setItem('sb-token', data.token);
-          if (data.user) localStorage.setItem('sb-user', JSON.stringify(data.user));
-          window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
-          showToast('Signed in successfully', 'success');
-          setTimeout(() => { window.location.href = '/#/dashboard'; }, 600);
-        } catch (err) {
-          error.textContent = err.message || 'Sign in failed';
-          error.hidden = false;
         }
-      });
 
-      // Token form in modal
-      $('#auth-token-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const token = tokenInput?.value?.trim() || '';
-        const password = $('#auth-token-password').value;
-        const error = $('#auth-token-error');
-        error.hidden = true;
-        try {
-          localStorage.setItem('sb-token', token);
-          localStorage.setItem('sb-user', JSON.stringify({ email: 'token-user@simplebeacon.ai', plan: 'pro' }));
-          window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
-          showToast('Dashboard unlocked', 'success');
-          setTimeout(() => { window.location.href = '/#/dashboard'; }, 600);
-        } catch (err) {
-          error.textContent = err.message || 'Token validation failed';
-          error.hidden = false;
-        }
-      });
+        // Email link submit — associate token with email
+        $("#email-link-submit")?.addEventListener("click", async () => {
+          const emailInput = $("#email-link-input");
+          const email = emailInput?.value?.trim();
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showError("Please enter a valid email address.");
+            return;
+          }
+          clearError();
+          const token = generateSandboxToken(email);
+          localStorage.setItem("sb-token", token);
+          localStorage.setItem(
+            "sb-user",
+            JSON.stringify({ email, plan: "community", tier: "community" }),
+          );
+          window.dispatchEvent(
+            new StorageEvent("storage", { key: "sb-token" }),
+          );
+          showToast(
+            "Token linked to " + email + " — redirecting to dashboard",
+            "success",
+          );
+          setTimeout(() => {
+            window.location.href = "/#/dashboard";
+          }, 800);
+        });
 
-      // "Open Full Dashboard" button
-      $('#open-dashboard-btn')?.addEventListener('click', () => {
-        window.location.href = '/#/dashboard';
-      });
+        // Enter key on email link input
+        $("#email-link-input")?.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            $("#email-link-submit")?.click();
+          }
+        });
 
-      // "Choose Report File" button
-      $('#browse-report-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput.click();
-      });
-    })();
-  </script>
-</body>
+        // Modal tab switching
+        document.querySelectorAll(".auth-modal-tab").forEach((tab) => {
+          tab.addEventListener("click", () => openTab(tab.dataset.authTab));
+        });
+
+        // Cancel buttons + overlay click
+        $("#auth-modal-cancel")?.addEventListener("click", closeModal);
+        $("#auth-modal-cancel-2")?.addEventListener("click", closeModal);
+        overlay?.addEventListener("click", (e) => {
+          if (e.target === overlay) closeModal();
+        });
+
+        // Email form in modal
+        $("#auth-email-form")?.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = $("#auth-email-input").value.trim();
+          const password = $("#auth-email-password").value;
+          const error = $("#auth-email-error");
+          error.hidden = true;
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.token)
+              throw new Error(data.message || data.error || "Login failed");
+            localStorage.setItem("sb-token", data.token);
+            if (data.user)
+              localStorage.setItem("sb-user", JSON.stringify(data.user));
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "sb-token" }),
+            );
+            showToast("Signed in successfully", "success");
+            setTimeout(() => {
+              window.location.href = "/#/dashboard";
+            }, 600);
+          } catch (err) {
+            error.textContent = err.message || "Sign in failed";
+            error.hidden = false;
+          }
+        });
+
+        // Token form in modal
+        $("#auth-token-form")?.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const token = tokenInput?.value?.trim() || "";
+          const password = $("#auth-token-password").value;
+          const error = $("#auth-token-error");
+          error.hidden = true;
+          try {
+            localStorage.setItem("sb-token", token);
+            localStorage.setItem(
+              "sb-user",
+              JSON.stringify({
+                email: "token-user@simplebeacon.ai",
+                plan: "pro",
+              }),
+            );
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "sb-token" }),
+            );
+            showToast("Dashboard unlocked", "success");
+            setTimeout(() => {
+              window.location.href = "/#/dashboard";
+            }, 600);
+          } catch (err) {
+            error.textContent = err.message || "Token validation failed";
+            error.hidden = false;
+          }
+        });
+
+        // "Open Full Dashboard" button
+        $("#open-dashboard-btn")?.addEventListener("click", () => {
+          window.location.href = "/#/dashboard";
+        });
+
+        // "Choose Report File" button
+        $("#browse-report-btn")?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          fileInput.click();
+        });
+      })();
+    </script>
+  </body>
 </html>

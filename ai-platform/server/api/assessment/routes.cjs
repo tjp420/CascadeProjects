@@ -5,16 +5,16 @@
  * @license MIT
  */
 
-const helmet = require('helmet');
-const assessmentRouter = require('./index.cjs');
-const controller = require('./AssessmentController.cjs');
+const helmet = require("helmet");
+const assessmentRouter = require("./index.cjs");
+const controller = require("./AssessmentController.cjs");
 
 /**
  * Register assessment routes on an Express app (simplebeacon-server bootstrap).
  * @param {import('express').Application} app - Express application instance.
  */
 function setupAssessmentRoutes(app) {
-  app.use('/api/assessment', helmet(), assessmentRouter);
+  app.use("/api/assessment", helmet(), assessmentRouter);
 }
 
 module.exports = { setupAssessmentRoutes };

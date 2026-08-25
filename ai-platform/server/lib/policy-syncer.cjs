@@ -1,9 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Stateful in-memory repository cache: orgId -> policyJSON
 const policyCache = new Map();
-const POLICY_STORE_DIR = path.resolve(__dirname, '../../.simplebeacon/policies');
+const POLICY_STORE_DIR = path.resolve(
+  __dirname,
+  "../../.simplebeacon/policies",
+);
 
 /**
  * Initializes physical persistence folders for tenant policy profiles.
@@ -23,7 +26,11 @@ async function reconcilePolicy(orgId, externalPolicySource = null) {
 
   // If an external payload is supplied, persist it locally to simulate central synchronization
   if (externalPolicySource) {
-    fs.writeFileSync(targetFilePath, JSON.stringify(externalPolicySource, null, 2), 'utf-8');
+    fs.writeFileSync(
+      targetFilePath,
+      JSON.stringify(externalPolicySource, null, 2),
+      "utf-8",
+    );
     policyCache.set(orgId, externalPolicySource);
     return externalPolicySource;
   }
@@ -31,12 +38,12 @@ async function reconcilePolicy(orgId, externalPolicySource = null) {
   // Fallback: load pre-cached disk file if it exists, otherwise mount a permissive default schema
   if (fs.existsSync(targetFilePath)) {
     try {
-      const data = fs.readFileSync(targetFilePath, 'utf-8');
+      const data = fs.readFileSync(targetFilePath, "utf-8");
       const parsed = JSON.parse(data);
       policyCache.set(orgId, parsed);
       return parsed;
     } catch (err) {
-      console.error('policy-syncer.cjs error:', err);
+      console.error("policy-syncer.cjs error:", err);
       // Graceful error isolation: return a secure fallback pattern on parse exceptions
       return getPermissiveFallback(orgId);
     }
@@ -56,7 +63,7 @@ function getPermissiveFallback(orgId) {
   return {
     policyId: `pol_default_${orgId}`,
     version: "1.0.0",
-    rules: []
+    rules: [],
   };
 }
 
@@ -68,5 +75,5 @@ module.exports = {
   reconcilePolicy,
   getActivePolicy,
   clearCache,
-  POLICY_STORE_DIR
+  POLICY_STORE_DIR,
 };

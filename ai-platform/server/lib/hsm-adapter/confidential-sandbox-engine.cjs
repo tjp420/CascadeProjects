@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 28: Confidential Computing Sandboxing.
@@ -17,32 +17,35 @@
  * @module hsm-adapter/confidential-sandbox-engine
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
-const { HardwareAttestationVerifier, ATTESTATION_MAX_AGE_SECONDS } = require('./hardware-attestation-verify.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
+const {
+  HardwareAttestationVerifier,
+  ATTESTATION_MAX_AGE_SECONDS,
+} = require("./hardware-attestation-verify.cjs");
 
 const SANDBOX_STATES = {
-  CREATED: 'created',
-  ATTESTED: 'attested',
-  EXECUTING: 'executing',
-  COMPLETED: 'completed',
-  ZEROIZED: 'zeroized',
-  DESTROYED: 'destroyed',
+  CREATED: "created",
+  ATTESTED: "attested",
+  EXECUTING: "executing",
+  COMPLETED: "completed",
+  ZEROIZED: "zeroized",
+  DESTROYED: "destroyed",
 };
 
 const DEFAULT_ALLOWED_OPERATIONS = new Set([
-  'sign',
-  'verify',
-  'encrypt',
-  'decrypt',
-  'derive',
-  'hash',
+  "sign",
+  "verify",
+  "encrypt",
+  "decrypt",
+  "derive",
+  "hash",
 ]);
 
 // Memory lifecycle limits
-const MAX_MEMORY_ENTRY_BYTES = 64 * 1024;  // 64 KB per entry
-const MAX_MEMORY_ENTRIES = 16;              // max entries per sandbox
-const MAX_AUDIT_ENTRIES = 50;               // ring buffer for memory audit log
+const MAX_MEMORY_ENTRY_BYTES = 64 * 1024; // 64 KB per entry
+const MAX_MEMORY_ENTRIES = 16; // max entries per sandbox
+const MAX_AUDIT_ENTRIES = 50; // ring buffer for memory audit log
 
 /**
  * Securely zeroize a Buffer.
@@ -57,7 +60,7 @@ function _secureZeroize(buf) {
  * @returns {string}
  */
 function _generateSandboxId() {
-  return 'sbx-' + crypto.randomBytes(16).toString('hex');
+  return "sbx-" + crypto.randomBytes(16).toString("hex");
 }
 
 /**
@@ -73,9 +76,13 @@ class Sandbox {
    */
   constructor(id, options = {}) {
     this.id = id;
-    this.tenantId = options.tenantId || 'default';
-    this.allowedOperations = options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS;
-    this.maxExecutionTimeSeconds = options.maxExecutionTimeSeconds != null ? options.maxExecutionTimeSeconds : 30;
+    this.tenantId = options.tenantId || "default";
+    this.allowedOperations =
+      options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS;
+    this.maxExecutionTimeSeconds =
+      options.maxExecutionTimeSeconds != null
+        ? options.maxExecutionTimeSeconds
+        : 30;
     this.state = SANDBOX_STATES.CREATED;
     this.createdAt = Date.now();
     this.attestedAt = null;
@@ -97,20 +104,32 @@ class Sandbox {
    */
   setMemory(key, data) {
     if (!Buffer.isBuffer(data)) {
-      throw new HsmAdapterError('INVALID_MEMORY_TYPE', 'data must be a Buffer');
+      throw new HsmAdapterError("INVALID_MEMORY_TYPE", "data must be a Buffer");
     }
     if (data.length > MAX_MEMORY_ENTRY_BYTES) {
-      throw new HsmAdapterError('MEMORY_ENTRY_TOO_LARGE', `entry size ${data.length} exceeds max ${MAX_MEMORY_ENTRY_BYTES}`);
+      throw new HsmAdapterError(
+        "MEMORY_ENTRY_TOO_LARGE",
+        `entry size ${data.length} exceeds max ${MAX_MEMORY_ENTRY_BYTES}`,
+      );
     }
     if (!this._memory.has(key) && this._memory.size >= MAX_MEMORY_ENTRIES) {
-      throw new HsmAdapterError('MEMORY_ENTRIES_FULL', `memory entries limit ${MAX_MEMORY_ENTRIES} reached`);
+      throw new HsmAdapterError(
+        "MEMORY_ENTRIES_FULL",
+        `memory entries limit ${MAX_MEMORY_ENTRIES} reached`,
+      );
     }
     // Copy buffer to prevent external mutation
     const copy = Buffer.allocUnsafe(data.length);
     data.copy(copy);
     this._memory.set(key, copy);
-    this._memoryAuditLog.push({ op: 'set', key, size: copy.length, timestamp: Date.now() });
-    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES) this._memoryAuditLog.shift();
+    this._memoryAuditLog.push({
+      op: "set",
+      key,
+      size: copy.length,
+      timestamp: Date.now(),
+    });
+    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES)
+      this._memoryAuditLog.shift();
   }
 
   /**
@@ -120,8 +139,9 @@ class Sandbox {
    */
   getMemory(key) {
     const val = this._memory.get(key);
-    this._memoryAuditLog.push({ op: 'get', key, timestamp: Date.now() });
-    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES) this._memoryAuditLog.shift();
+    this._memoryAuditLog.push({ op: "get", key, timestamp: Date.now() });
+    if (this._memoryAuditLog.length > MAX_AUDIT_ENTRIES)
+      this._memoryAuditLog.shift();
     return val;
   }
 
@@ -231,14 +251,22 @@ class ConfidentialSandboxEngine {
     const id = _generateSandboxId();
     const mergedOptions = {
       tenantId,
-      allowedOperations: options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS,
-      maxExecutionTimeSeconds: options.maxExecutionTimeSeconds != null ? options.maxExecutionTimeSeconds : 30,
+      allowedOperations:
+        options.allowedOperations || DEFAULT_ALLOWED_OPERATIONS,
+      maxExecutionTimeSeconds:
+        options.maxExecutionTimeSeconds != null
+          ? options.maxExecutionTimeSeconds
+          : 30,
     };
 
     if (this._policy) {
-      if (this._policy.maxExecutionTimeSeconds && mergedOptions.maxExecutionTimeSeconds > this._policy.maxExecutionTimeSeconds) {
+      if (
+        this._policy.maxExecutionTimeSeconds &&
+        mergedOptions.maxExecutionTimeSeconds >
+          this._policy.maxExecutionTimeSeconds
+      ) {
         throw new HsmAdapterError(
-          'POLICY_VIOLATION_BLOCKED',
+          "POLICY_VIOLATION_BLOCKED",
           `maxExecutionTimeSeconds ${mergedOptions.maxExecutionTimeSeconds} exceeds policy maximum ${this._policy.maxExecutionTimeSeconds}`,
         );
       }
@@ -247,7 +275,7 @@ class ConfidentialSandboxEngine {
         for (const op of mergedOptions.allowedOperations) {
           if (!policyAllowed.has(op)) {
             throw new HsmAdapterError(
-              'POLICY_VIOLATION_BLOCKED',
+              "POLICY_VIOLATION_BLOCKED",
               `operation '${op}' is not allowed by policy`,
             );
           }
@@ -257,7 +285,7 @@ class ConfidentialSandboxEngine {
 
     const sandbox = new Sandbox(id, mergedOptions);
     this._sandboxes.set(id, sandbox);
-    this._emitAudit('SANDBOX_CREATED', { sandboxId: id, tenantId });
+    this._emitAudit("SANDBOX_CREATED", { sandboxId: id, tenantId });
     return sandbox;
   }
 
@@ -276,12 +304,15 @@ class ConfidentialSandboxEngine {
     const sandbox = this._getSandbox(sandboxId);
     if (sandbox.state !== SANDBOX_STATES.CREATED) {
       throw new HsmAdapterError(
-        'SANDBOX_INVALID_STATE',
+        "SANDBOX_INVALID_STATE",
         `sandbox ${sandboxId} is in state ${sandbox.state}, expected ${SANDBOX_STATES.CREATED}`,
       );
     }
     if (!this._hwVerifier) {
-      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'hardware attestation verifier not configured');
+      throw new HsmAdapterError(
+        "ATTESTATION_NOT_CONFIGURED",
+        "hardware attestation verifier not configured",
+      );
     }
     return this._hwVerifier.issueChallenge(sandboxId);
   }
@@ -290,16 +321,28 @@ class ConfidentialSandboxEngine {
     const sandbox = this._getSandbox(sandboxId);
     if (sandbox.state !== SANDBOX_STATES.CREATED) {
       throw new HsmAdapterError(
-        'SANDBOX_INVALID_STATE',
+        "SANDBOX_INVALID_STATE",
         `sandbox ${sandboxId} is in state ${sandbox.state}, expected ${SANDBOX_STATES.CREATED}`,
       );
     }
 
     // Check attestation age before verification
-    if (attestation && typeof attestation === 'object' && typeof attestation.attestationAgeSeconds === 'number') {
+    if (
+      attestation &&
+      typeof attestation === "object" &&
+      typeof attestation.attestationAgeSeconds === "number"
+    ) {
       if (attestation.attestationAgeSeconds > ATTESTATION_MAX_AGE_SECONDS) {
-        this._emitAudit('ATTESTATION_EXPIRED', { sandboxId, ageSeconds: attestation.attestationAgeSeconds, siemSeverity: 'high', siemCategory: 'attestation_expired' });
-        throw new HsmAdapterError('ATTESTATION_EXPIRED', `attestation age ${attestation.attestationAgeSeconds}s exceeds maximum ${ATTESTATION_MAX_AGE_SECONDS}s`);
+        this._emitAudit("ATTESTATION_EXPIRED", {
+          sandboxId,
+          ageSeconds: attestation.attestationAgeSeconds,
+          siemSeverity: "high",
+          siemCategory: "attestation_expired",
+        });
+        throw new HsmAdapterError(
+          "ATTESTATION_EXPIRED",
+          `attestation age ${attestation.attestationAgeSeconds}s exceeds maximum ${ATTESTATION_MAX_AGE_SECONDS}s`,
+        );
       }
     }
 
@@ -307,7 +350,11 @@ class ConfidentialSandboxEngine {
     if (this._hwVerifier) {
       const result = this._hwVerifier.verify(sandboxId, attestation);
       sandbox._attestation = result;
-      this._emitAudit('SANDBOX_ATTESTED', { sandboxId, measurement: result.measurement, authority: result.authority });
+      this._emitAudit("SANDBOX_ATTESTED", {
+        sandboxId,
+        measurement: result.measurement,
+        authority: result.authority,
+      });
       sandbox.state = SANDBOX_STATES.ATTESTED;
       sandbox.attestedAt = Date.now();
       return sandbox._attestation;
@@ -317,19 +364,36 @@ class ConfidentialSandboxEngine {
     if (this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (result && result.verified === false) {
-        this._emitAudit('ATTESTATION_REJECTED', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_rejected' });
-        throw new HsmAdapterError('ATTESTATION_REJECTED', 'attestation verification failed');
+        this._emitAudit("ATTESTATION_REJECTED", {
+          sandboxId,
+          siemSeverity: "high",
+          siemCategory: "attestation_rejected",
+        });
+        throw new HsmAdapterError(
+          "ATTESTATION_REJECTED",
+          "attestation verification failed",
+        );
       }
       sandbox._attestation = result;
       sandbox.state = SANDBOX_STATES.ATTESTED;
       sandbox.attestedAt = Date.now();
-      this._emitAudit('SANDBOX_ATTESTED', { sandboxId, measurement: sandbox._attestation.measurement });
+      this._emitAudit("SANDBOX_ATTESTED", {
+        sandboxId,
+        measurement: sandbox._attestation.measurement,
+      });
       return sandbox._attestation;
     }
 
     // No verifier configured — fail closed (no more mock fallback)
-    this._emitAudit('ATTESTATION_NOT_CONFIGURED', { sandboxId, siemSeverity: 'high', siemCategory: 'attestation_not_configured' });
-    throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'no attestation verifier configured — cannot attest sandbox');
+    this._emitAudit("ATTESTATION_NOT_CONFIGURED", {
+      sandboxId,
+      siemSeverity: "high",
+      siemCategory: "attestation_not_configured",
+    });
+    throw new HsmAdapterError(
+      "ATTESTATION_NOT_CONFIGURED",
+      "no attestation verifier configured — cannot attest sandbox",
+    );
   }
 
   /**
@@ -342,16 +406,19 @@ class ConfidentialSandboxEngine {
   execute(sandboxId, operation, params = {}) {
     const sandbox = this._getSandbox(sandboxId);
 
-    if (sandbox.state !== SANDBOX_STATES.ATTESTED && sandbox.state !== SANDBOX_STATES.COMPLETED) {
+    if (
+      sandbox.state !== SANDBOX_STATES.ATTESTED &&
+      sandbox.state !== SANDBOX_STATES.COMPLETED
+    ) {
       throw new HsmAdapterError(
-        'SANDBOX_INVALID_STATE',
+        "SANDBOX_INVALID_STATE",
         `sandbox ${sandboxId} is in state ${sandbox.state}, must be attested before execution`,
       );
     }
 
     if (!sandbox.isOperationAllowed(operation)) {
       throw new HsmAdapterError(
-        'SANDBOX_OPERATION_DENIED',
+        "SANDBOX_OPERATION_DENIED",
         `operation '${operation}' is not allowed in sandbox ${sandboxId}`,
       );
     }
@@ -367,19 +434,27 @@ class ConfidentialSandboxEngine {
       const result = this._executeOperation(sandbox, operation, params);
       const elapsed = Date.now() - sandbox.executedAt;
       if (elapsed > timeoutMs || timeoutMs === 0) {
-        this._emitAudit('SANDBOX_EXECUTION_TIMEOUT', {
-          sandboxId, operation, elapsedMs: elapsed, timeoutMs,
-          siemSeverity: 'high', siemCategory: 'sandbox_timeout',
+        this._emitAudit("SANDBOX_EXECUTION_TIMEOUT", {
+          sandboxId,
+          operation,
+          elapsedMs: elapsed,
+          timeoutMs,
+          siemSeverity: "high",
+          siemCategory: "sandbox_timeout",
         });
         throw new HsmAdapterError(
-          'SANDBOX_EXECUTION_TIMEOUT',
+          "SANDBOX_EXECUTION_TIMEOUT",
           `execution took ${elapsed}ms, exceeded limit ${timeoutMs}ms`,
         );
       }
       sandbox._executionResult = result;
       sandbox.state = SANDBOX_STATES.COMPLETED;
       sandbox.completedAt = Date.now();
-      this._emitAudit('SANDBOX_EXECUTED', { sandboxId, operation, durationMs: sandbox.completedAt - sandbox.executedAt });
+      this._emitAudit("SANDBOX_EXECUTED", {
+        sandboxId,
+        operation,
+        durationMs: sandbox.completedAt - sandbox.executedAt,
+      });
       return result;
     } catch (err) {
       sandbox.state = SANDBOX_STATES.COMPLETED;
@@ -397,52 +472,72 @@ class ConfidentialSandboxEngine {
    */
   _executeOperation(sandbox, operation, params) {
     switch (operation) {
-      case 'sign': {
+      case "sign": {
         const data = params.data || Buffer.alloc(0);
-        const key = sandbox.getMemory('signingKey') || crypto.randomBytes(32);
-        const signature = crypto.createHmac('sha256', key).update(data).digest();
-        return { operation, signature, dataHash: crypto.createHash('sha256').update(data).digest('hex') };
+        const key = sandbox.getMemory("signingKey") || crypto.randomBytes(32);
+        const signature = crypto
+          .createHmac("sha256", key)
+          .update(data)
+          .digest();
+        return {
+          operation,
+          signature,
+          dataHash: crypto.createHash("sha256").update(data).digest("hex"),
+        };
       }
-      case 'verify': {
+      case "verify": {
         const data = params.data || Buffer.alloc(0);
         const signature = params.signature || Buffer.alloc(0);
-        const key = sandbox.getMemory('signingKey') || crypto.randomBytes(32);
-        const expected = crypto.createHmac('sha256', key).update(data).digest();
+        const key = sandbox.getMemory("signingKey") || crypto.randomBytes(32);
+        const expected = crypto.createHmac("sha256", key).update(data).digest();
         return { operation, valid: signature.equals(expected) };
       }
-      case 'encrypt': {
+      case "encrypt": {
         const plaintext = params.plaintext || Buffer.alloc(0);
-        const key = sandbox.getMemory('encryptionKey') || crypto.randomBytes(32);
+        const key =
+          sandbox.getMemory("encryptionKey") || crypto.randomBytes(32);
         const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-        const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+        const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+        const ciphertext = Buffer.concat([
+          cipher.update(plaintext),
+          cipher.final(),
+        ]);
         const tag = cipher.getAuthTag();
         return { operation, ciphertext, iv, tag };
       }
-      case 'decrypt': {
+      case "decrypt": {
         const ciphertext = params.ciphertext || Buffer.alloc(0);
         const iv = params.iv || Buffer.alloc(0);
         const tag = params.tag || Buffer.alloc(0);
-        const key = sandbox.getMemory('encryptionKey') || crypto.randomBytes(32);
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+        const key =
+          sandbox.getMemory("encryptionKey") || crypto.randomBytes(32);
+        const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
         decipher.setAuthTag(tag);
-        const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+        const plaintext = Buffer.concat([
+          decipher.update(ciphertext),
+          decipher.final(),
+        ]);
         return { operation, plaintext };
       }
-      case 'derive': {
+      case "derive": {
         const ikm = params.ikm || crypto.randomBytes(32);
         const salt = params.salt || Buffer.alloc(0);
-        const info = params.info || 'SimpleBeacon:Track28:derive';
-        const derivedKey = Buffer.from(crypto.hkdfSync('sha256', ikm, salt, info, 32));
+        const info = params.info || "SimpleBeacon:Track28:derive";
+        const derivedKey = Buffer.from(
+          crypto.hkdfSync("sha256", ikm, salt, info, 32),
+        );
         return { operation, derivedKey };
       }
-      case 'hash': {
+      case "hash": {
         const data = params.data || Buffer.alloc(0);
-        const digest = crypto.createHash('sha256').update(data).digest();
-        return { operation, digest, digestHex: digest.toString('hex') };
+        const digest = crypto.createHash("sha256").update(data).digest();
+        return { operation, digest, digestHex: digest.toString("hex") };
       }
       default:
-        throw new HsmAdapterError('SANDBOX_OPERATION_UNKNOWN', `unknown operation '${operation}'`);
+        throw new HsmAdapterError(
+          "SANDBOX_OPERATION_UNKNOWN",
+          `unknown operation '${operation}'`,
+        );
     }
   }
 
@@ -453,7 +548,7 @@ class ConfidentialSandboxEngine {
   zeroize(sandboxId) {
     const sandbox = this._getSandbox(sandboxId);
     sandbox.zeroize();
-    this._emitAudit('SANDBOX_ZEROIZED', { sandboxId });
+    this._emitAudit("SANDBOX_ZEROIZED", { sandboxId });
   }
 
   /**
@@ -468,7 +563,7 @@ class ConfidentialSandboxEngine {
     sandbox.state = SANDBOX_STATES.DESTROYED;
     sandbox.destroyedAt = Date.now();
     this._sandboxes.delete(sandboxId);
-    this._emitAudit('SANDBOX_DESTROYED', { sandboxId });
+    this._emitAudit("SANDBOX_DESTROYED", { sandboxId });
   }
 
   /**
@@ -479,7 +574,10 @@ class ConfidentialSandboxEngine {
   _getSandbox(sandboxId) {
     const sandbox = this._sandboxes.get(sandboxId);
     if (!sandbox) {
-      throw new HsmAdapterError('SANDBOX_NOT_FOUND', `sandbox ${sandboxId} not found`);
+      throw new HsmAdapterError(
+        "SANDBOX_NOT_FOUND",
+        `sandbox ${sandboxId} not found`,
+      );
     }
     return sandbox;
   }

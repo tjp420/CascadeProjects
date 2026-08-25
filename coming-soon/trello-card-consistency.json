@@ -1,41 +1,39 @@
 {
-  "name": "Phase: Phase 2: Consistency & Deduplication",
-  "desc": "Eliminate redundancy: 8 duplicate group(s): 60% consistency.\n\nSeverity: high\nEffort: 3-5 days\nProgress: 55%",
-  "idList": "list_todo",
-  "pos": 1024,
-  "idLabels": [
-    "label_high"
-  ],
-  "checklists": [
-    {
-      "id": "check_0",
-      "name": "Tasks",
-      "checkItems": [
+    "name": "Phase: Phase 2: Consistency & Deduplication",
+    "desc": "Eliminate redundancy: 8 duplicate group(s): 60% consistency.\n\nSeverity: high\nEffort: 3-5 days\nProgress: 55%",
+    "idList": "list_todo",
+    "pos": 1024,
+    "idLabels": ["label_high"],
+    "checklists": [
         {
-          "id": "item_0_0",
-          "name": "Consolidate 8 duplicate group(s)",
-          "pos": 0,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_0_1",
-          "name": "Review consistency check failures",
-          "pos": 1024,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_0_2",
-          "name": "Standardize naming conventions",
-          "pos": 2048,
-          "state": "incomplete"
-        },
-        {
-          "id": "item_0_3",
-          "name": "Document canonical file locations",
-          "pos": 3072,
-          "state": "incomplete"
+            "id": "check_0",
+            "name": "Tasks",
+            "checkItems": [
+                {
+                    "id": "item_0_0",
+                    "name": "Consolidate 8 duplicate group(s)",
+                    "pos": 0,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_1",
+                    "name": "Review consistency check failures",
+                    "pos": 1024,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_2",
+                    "name": "Standardize naming conventions",
+                    "pos": 2048,
+                    "state": "incomplete"
+                },
+                {
+                    "id": "item_0_3",
+                    "name": "Document canonical file locations",
+                    "pos": 3072,
+                    "state": "incomplete"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }

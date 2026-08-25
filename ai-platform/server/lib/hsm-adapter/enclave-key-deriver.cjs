@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 47: Enclave key deriver.
@@ -10,8 +10,8 @@
  * @module hsm-adapter/enclave-key-deriver
  */
 
-const crypto = require('crypto');
-const { secureZeroize } = require('./secure-zeroize.cjs');
+const crypto = require("crypto");
+const { secureZeroize } = require("./secure-zeroize.cjs");
 
 class EnclaveKeyDeriver {
   /**
@@ -29,15 +29,24 @@ class EnclaveKeyDeriver {
    */
   derive(seed) {
     const input = Buffer.isBuffer(seed) ? seed : Buffer.from(String(seed));
-    const privateKey = crypto.createHmac('sha384', 'enclave-master-key-derivation').update(input).digest();
-    const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
+    const privateKey = crypto
+      .createHmac("sha384", "enclave-master-key-derivation")
+      .update(input)
+      .digest();
+    const publicKey = crypto
+      .createHash("sha256")
+      .update(privateKey)
+      .digest("hex");
     const result = {
       public: `PK-${publicKey.slice(0, 32)}`,
       private: privateKey,
     };
-    secureZeroize(input, { strategy: 'both' });
+    secureZeroize(input, { strategy: "both" });
     if (this._audit) {
-      this._audit('ENCLAVE_KEY_DERIVED', { public: result.public, timestamp: Math.floor(Date.now() / 1000) });
+      this._audit("ENCLAVE_KEY_DERIVED", {
+        public: result.public,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
     }
     return result;
   }
@@ -49,7 +58,7 @@ class EnclaveKeyDeriver {
    */
   destroy(keyPair) {
     if (keyPair && keyPair.private) {
-      secureZeroize(keyPair.private, { strategy: 'both' });
+      secureZeroize(keyPair.private, { strategy: "both" });
     }
   }
 }

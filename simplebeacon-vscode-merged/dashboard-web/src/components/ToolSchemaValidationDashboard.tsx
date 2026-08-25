@@ -131,7 +131,10 @@ export function ToolSchemaValidationDashboard() {
   };
 
   const saveSchema = async () => {
-    if (!selectedTool) { toast.error('Select a tool first'); return; }
+    if (!selectedTool) {
+      toast.error('Select a tool first');
+      return;
+    }
     try {
       const parsed = JSON.parse(schemaEditorText);
       const body: any = { strictMode };
@@ -142,22 +145,39 @@ export function ToolSchemaValidationDashboard() {
         body: JSON.stringify(body),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.success) { toast.error(data.error?.message || 'Failed to save schema'); return; }
+      if (!resp.ok || !data.success) {
+        toast.error(data.error?.message || 'Failed to save schema');
+        return;
+      }
       toast.success('Schema saved for ' + selectedTool);
       fetchAll();
-    } catch (e) { toast.error('Invalid JSON: ' + (e as Error).message); }
+    } catch (e) {
+      toast.error('Invalid JSON: ' + (e as Error).message);
+    }
   };
 
   const deleteSchema = async (toolId: string) => {
     try {
       const resp = await fetch(apiUrl(`/tool-schemas/${toolId}`), { method: 'DELETE', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Schema deleted'); if (selectedTool === toolId) { setSelectedTool(''); setSchemaEditorText(''); } fetchAll(); }
-    } catch { toast.error('Failed to delete schema'); }
+      if (data.success) {
+        toast.success('Schema deleted');
+        if (selectedTool === toolId) {
+          setSelectedTool('');
+          setSchemaEditorText('');
+        }
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to delete schema');
+    }
   };
 
   const runValidation = async () => {
-    if (!selectedTool) { toast.error('Select a tool first'); return; }
+    if (!selectedTool) {
+      toast.error('Select a tool first');
+      return;
+    }
     try {
       const payload = JSON.parse(validatePayload);
       const resp = await fetch(apiUrl(`/tool-schemas/${selectedTool}/validate`), {
@@ -167,7 +187,9 @@ export function ToolSchemaValidationDashboard() {
       });
       const data = await resp.json();
       if (data.success) setValidateResult(data.result);
-    } catch (e) { toast.error('Invalid JSON payload: ' + (e as Error).message); }
+    } catch (e) {
+      toast.error('Invalid JSON payload: ' + (e as Error).message);
+    }
   };
 
   const runInfer = async () => {
@@ -179,8 +201,13 @@ export function ToolSchemaValidationDashboard() {
         body: JSON.stringify({ payload }),
       });
       const data = await resp.json();
-      if (data.success) { setInferredSchema(data.schema); toast.success('Schema inferred'); }
-    } catch (e) { toast.error('Invalid JSON: ' + (e as Error).message); }
+      if (data.success) {
+        setInferredSchema(data.schema);
+        toast.success('Schema inferred');
+      }
+    } catch (e) {
+      toast.error('Invalid JSON: ' + (e as Error).message);
+    }
   };
 
   const toggleGlobalStrict = async () => {
@@ -191,16 +218,26 @@ export function ToolSchemaValidationDashboard() {
         body: JSON.stringify({ strictMode: !globalStrict }),
       });
       const data = await resp.json();
-      if (data.success) { setGlobalStrict(!globalStrict); toast.success('Global strict mode ' + (!globalStrict ? 'enabled' : 'disabled')); }
-    } catch { toast.error('Failed to update config'); }
+      if (data.success) {
+        setGlobalStrict(!globalStrict);
+        toast.success('Global strict mode ' + (!globalStrict ? 'enabled' : 'disabled'));
+      }
+    } catch {
+      toast.error('Failed to update config');
+    }
   };
 
   const clearViolations = async () => {
     try {
       const resp = await fetch(apiUrl('/tool-schemas/violations/clear'), { method: 'POST', headers: authHeaders() });
       const data = await resp.json();
-      if (data.success) { toast.success('Violations cleared'); fetchAll(); }
-    } catch { toast.error('Failed to clear violations'); }
+      if (data.success) {
+        toast.success('Violations cleared');
+        fetchAll();
+      }
+    } catch {
+      toast.error('Failed to clear violations');
+    }
   };
 
   if (loading && !stats) {
@@ -225,7 +262,8 @@ export function ToolSchemaValidationDashboard() {
                 Tool Payload Validation
               </CardTitle>
               <CardDescription>
-                JSON schema enforcement for agent tool execution responses — validates tool outputs before passing to inference pipeline
+                JSON schema enforcement for agent tool execution responses — validates tool outputs before passing to
+                inference pipeline
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchAll}>
@@ -247,7 +285,9 @@ export function ToolSchemaValidationDashboard() {
                 <Sparkles className="h-4 w-4 text-purple-600" />
                 <p className="text-xs text-foreground-muted">Builtin / Custom</p>
               </div>
-              <p className="text-lg font-semibold">{builtinCount} / {customCount}</p>
+              <p className="text-lg font-semibold">
+                {builtinCount} / {customCount}
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
@@ -271,9 +311,15 @@ export function ToolSchemaValidationDashboard() {
           </div>
           {stats?.violationStats && stats.violationStats.totalErrors > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-xs">Request Violations: {stats.violationStats.byDirection.request}</Badge>
-              <Badge variant="outline" className="text-xs">Response Violations: {stats.violationStats.byDirection.response}</Badge>
-              <Badge variant="outline" className="text-xs">Total Errors: {stats.violationStats.totalErrors}</Badge>
+              <Badge variant="outline" className="text-xs">
+                Request Violations: {stats.violationStats.byDirection.request}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                Response Violations: {stats.violationStats.byDirection.response}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                Total Errors: {stats.violationStats.totalErrors}
+              </Badge>
             </div>
           )}
         </CardContent>
@@ -295,7 +341,9 @@ export function ToolSchemaValidationDashboard() {
               >
                 <option value="">\u2014 Select a tool \u2014</option>
                 {Object.keys(allSchemas).map((id) => (
-                  <option key={id} value={id}>{id}</option>
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
                 ))}
               </select>
             </div>
@@ -384,7 +432,9 @@ export function ToolSchemaValidationDashboard() {
                     {validateResult.errors.map((err, i) => (
                       <div key={i} className="text-[10px] text-destructive flex items-start gap-1">
                         <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        <span><span className="font-mono">{err.path}</span>: {err.message}</span>
+                        <span>
+                          <span className="font-mono">{err.path}</span>: {err.message}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -419,7 +469,9 @@ export function ToolSchemaValidationDashboard() {
             </Button>
             {inferredSchema && (
               <div className="rounded-md border border-border bg-muted/10 p-2">
-                <pre className="text-[10px] font-mono overflow-x-auto max-h-[150px]">{JSON.stringify(inferredSchema, null, 2)}</pre>
+                <pre className="text-[10px] font-mono overflow-x-auto max-h-[150px]">
+                  {JSON.stringify(inferredSchema, null, 2)}
+                </pre>
               </div>
             )}
           </CardContent>
@@ -450,15 +502,24 @@ export function ToolSchemaValidationDashboard() {
                         {v.direction}
                       </Badge>
                       <span className="font-medium text-[10px]">{v.toolId}</span>
-                      <Badge variant="outline" className="text-[9px]">{v.errorCount} errors</Badge>
+                      <Badge variant="outline" className="text-[9px]">
+                        {v.errorCount} errors
+                      </Badge>
                       <span className="text-[10px] text-foreground-muted ml-auto">
-                        {new Date(v.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(v.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
                     {v.errors.slice(0, 3).map((err, i) => (
                       <div key={i} className="text-[10px] text-destructive flex items-start gap-1">
                         <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        <span><span className="font-mono">{err.path}</span>: {err.message}</span>
+                        <span>
+                          <span className="font-mono">{err.path}</span>: {err.message}
+                        </span>
                       </div>
                     ))}
                     {v.errors.length > 3 && (
@@ -476,6 +537,15 @@ export function ToolSchemaValidationDashboard() {
 }
 
 function BUILTIN_TOOLS_HAS(toolId: string): boolean {
-  const builtin = ['code_search', 'file_read', 'web_search', 'code_execution', 'data_analysis', 'api_call', 'summarize', 'translate'];
+  const builtin = [
+    'code_search',
+    'file_read',
+    'web_search',
+    'code_execution',
+    'data_analysis',
+    'api_call',
+    'summarize',
+    'translate',
+  ];
   return builtin.indexOf(toolId) !== -1;
 }

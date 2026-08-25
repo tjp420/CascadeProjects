@@ -1,10 +1,11 @@
-const { parentPort } = require('worker_threads');
-const fs = require('fs');
+const { parentPort } = require("worker_threads");
+const fs = require("fs");
 
-parentPort.on('message', (msg) => {
+parentPort.on("message", (msg) => {
   const paths = msg.paths || [];
   // Accept either a SharedArrayBuffer or an Int32Array view named sharedIntArray
-  const sharedBuffer = msg.sharedBuffer || (msg.sharedIntArray && msg.sharedIntArray.buffer);
+  const sharedBuffer =
+    msg.sharedBuffer || (msg.sharedIntArray && msg.sharedIntArray.buffer);
   const sharedIntArray = sharedBuffer ? new Int32Array(sharedBuffer) : null;
 
   let filesProcessed = 0;
@@ -15,12 +16,12 @@ parentPort.on('message', (msg) => {
       const stats = fs.statSync(targetPath);
       if (stats.isFile()) {
         filesProcessed++;
-        const content = fs.readFileSync(targetPath, 'utf8');
+        const content = fs.readFileSync(targetPath, "utf8");
         // simple line count
-        linesCounted += content.split('\n').length;
+        linesCounted += content.split("\n").length;
       }
     } catch (err) {
-      console.error('optimized-worker.js error:', err);
+      console.error("optimized-worker.js error:", err);
       // Track unreadable files in slot 2 if shared buffer is present
       if (sharedIntArray) Atomics.add(sharedIntArray, 2, 1);
     }
@@ -34,5 +35,5 @@ parentPort.on('message', (msg) => {
     Atomics.add(sharedIntArray, 1, linesCounted);
   }
 
-  parentPort.postMessage({ status: 'done' });
+  parentPort.postMessage({ status: "done" });
 });

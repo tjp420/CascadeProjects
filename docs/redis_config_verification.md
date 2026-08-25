@@ -9,10 +9,10 @@
 
 ## Container Images
 
-| Environment | Compose file | Image | RedisBloom module loaded? | Auth | `maxmemory` bound |
-|-------------|--------------|-------|---------------------------|------|-------------------|
-| Test | `docker-compose.redis.yml` | `redis:7.2-alpine` | No | None | Not set |
-| Staging / Phase 2 | `docker-compose.phase2.yml` | `redis:7-alpine` | No | `--requirepass` via `REDIS_PASSWORD` | Not set |
+| Environment       | Compose file                | Image              | RedisBloom module loaded? | Auth                                 | `maxmemory` bound |
+| ----------------- | --------------------------- | ------------------ | ------------------------- | ------------------------------------ | ----------------- |
+| Test              | `docker-compose.redis.yml`  | `redis:7.2-alpine` | No                        | None                                 | Not set           |
+| Staging / Phase 2 | `docker-compose.phase2.yml` | `redis:7-alpine`   | No                        | `--requirepass` via `REDIS_PASSWORD` | Not set           |
 
 ## Findings
 
@@ -45,7 +45,7 @@ command:
   - --maxmemory 1gb
   - --maxmemory-policy allkeys-lru
   - --requirepass ${REDIS_PASSWORD}
-  - --loadmodule /usr/lib/redis/modules/redisbloom.so  # if native bloom is desired
+  - --loadmodule /usr/lib/redis/modules/redisbloom.so # if native bloom is desired
 ```
 
 If native RedisBloom is not used, the current `SADD/SISMEMBER` fallback is safe but should be monitored for memory growth because the `hybrid:ticket-nonces` set will grow until the per-key TTL expires.

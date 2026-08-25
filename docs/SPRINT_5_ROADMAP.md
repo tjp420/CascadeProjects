@@ -3,12 +3,14 @@
 Building upon the 462ms/10k files memory-mapped worker pool prototype validated in Sprint 4, this milestone details how we will scale the core directory walker engine to handle 100,000+ files with sub-second latency.
 
 ## 🧠 Core Pillar 1: Zero-Copy Shared Memory Expansion
+
 Passing strings or JSON across thread boundaries introduces heavy memory allocation and garbage collection overhead during massive tree walks.
 
 - **Path ID Interning Table**: Implement an integer-indexed lookup map. Filenames and paths are registered once into a shared string-pool index, allowing worker threads to pass lightweight integers instead of raw path strings.
 - **Bit-Packed Finding Vectors**: Encode security scan metadata (Severity, Category, Line Number) into fixed-width bit patterns inside a shared `Int32Array` buffer. The main orchestrator thread reads finding counts atomically without string decoding costs.
 
 ## 🌊 Core Pillar 2: Dynamic Backpressure & I/O Guards
+
 When scraping heavy or deep file trees, concurrent thread execution can hit system file-descriptor limits or starve slower disks.
 
 - **Sliding-Window Batch Allocator**: Implement an adaptive task-slicing engine that measures disk seek times. The orchestrator will dynamically scale task batch sizes up for fast local NVMe drives and down for slow network-attached mounts.
@@ -41,4 +43,5 @@ When scraping heavy or deep file trees, concurrent thread execution can hit syst
 - [ ] Add benchmark harness for synthetic 100k node runs and configure as a GitHub Action.
 
 ---
+
 Keep this roadmap as the canonical Sprint 5 document; iterate with small PRs and attach benchmark artifacts to PRs for visibility.

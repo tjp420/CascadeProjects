@@ -3,16 +3,8 @@
   "stats": {
     "totalGenerated": "value"
   },
-  "templates": [
-    {}
-  ],
-  "history": [
-    {}
-  ],
-  "languages": [
-    {}
-  ],
-  "insights": [
-    {}
-  ]
+  "templates": [{}],
+  "history": [{}],
+  "languages": [{}],
+  "insights": [{}]
 }

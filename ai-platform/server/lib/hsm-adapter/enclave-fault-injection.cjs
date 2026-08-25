@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 48: Enclave Fault Injection and Byzantine Chaos Testing.
@@ -18,8 +18,8 @@
  * @module hsm-adapter/enclave-fault-injection
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const DEFAULT_OPTIONS = {
   maxConcurrentFaults: 10,
@@ -44,33 +44,33 @@ const DEFAULT_OPTIONS = {
 };
 
 const FAULT_TYPE = {
-  BYZANTINE_EQUIVOCATION: 'byzantine-equivocation',
-  BYZANTINE_OMISSION: 'byzantine-omission',
-  NETWORK_PARTITION: 'network-partition',
-  ENCLAVE_CRASH: 'enclave-crash',
-  KEY_CORRUPTION: 'key-corruption',
-  TIMING_ATTACK: 'timing-attack',
-  HEARTBEAT_LOSS: 'heartbeat-loss',
-  STATE_DIVERGENCE: 'state-divergence',
+  BYZANTINE_EQUIVOCATION: "byzantine-equivocation",
+  BYZANTINE_OMISSION: "byzantine-omission",
+  NETWORK_PARTITION: "network-partition",
+  ENCLAVE_CRASH: "enclave-crash",
+  KEY_CORRUPTION: "key-corruption",
+  TIMING_ATTACK: "timing-attack",
+  HEARTBEAT_LOSS: "heartbeat-loss",
+  STATE_DIVERGENCE: "state-divergence",
   // Track 127: Chaos & Mesh Partition Fuzzing fault types
-  GOSSIP_PACKET_DROP: 'gossip-packet-drop',
-  SPLIT_BRAIN_PARTITION: 'split-brain-partition',
-  NETWORK_JITTER: 'network-jitter',
+  GOSSIP_PACKET_DROP: "gossip-packet-drop",
+  SPLIT_BRAIN_PARTITION: "split-brain-partition",
+  NETWORK_JITTER: "network-jitter",
 };
 
 const FAULT_STATUS = {
-  INJECTED: 'injected',
-  ACTIVE: 'active',
-  RESOLVED: 'resolved',
-  EXPIRED: 'expired',
-  CANCELLED: 'cancelled',
+  INJECTED: "injected",
+  ACTIVE: "active",
+  RESOLVED: "resolved",
+  EXPIRED: "expired",
+  CANCELLED: "cancelled",
 };
 
 const SCENARIO_STATUS = {
-  PENDING: 'pending',
-  RUNNING: 'running',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
+  PENDING: "pending",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
 };
 
 /**
@@ -116,11 +116,14 @@ class EnclaveFaultInjection {
    */
   _createPrng() {
     if (this.deterministicSeed !== null) {
-      let state = crypto.createHash('sha256').update(String(this.deterministicSeed)).digest();
+      let state = crypto
+        .createHash("sha256")
+        .update(String(this.deterministicSeed))
+        .digest();
       return {
         next: () => {
-          state = crypto.createHash('sha256').update(state).digest();
-          return state.readUInt32BE(0) / 0xFFFFFFFF;
+          state = crypto.createHash("sha256").update(state).digest();
+          return state.readUInt32BE(0) / 0xffffffff;
         },
         nextInt: (max) => Math.floor(this._prng.next() * max),
       };
@@ -141,22 +144,41 @@ class EnclaveFaultInjection {
    * @returns {object} Injected fault state
    */
   injectFault(config) {
-    if (!config || typeof config !== 'object') {
-      throw new HsmAdapterError('INVALID_CONFIG', 'fault config is required');
+    if (!config || typeof config !== "object") {
+      throw new HsmAdapterError("INVALID_CONFIG", "fault config is required");
     }
-    if (!config.faultType || !Object.values(FAULT_TYPE).includes(config.faultType)) {
-      throw new HsmAdapterError('INVALID_FAULT_TYPE', `faultType must be one of: ${Object.values(FAULT_TYPE).join(', ')}`);
+    if (
+      !config.faultType ||
+      !Object.values(FAULT_TYPE).includes(config.faultType)
+    ) {
+      throw new HsmAdapterError(
+        "INVALID_FAULT_TYPE",
+        `faultType must be one of: ${Object.values(FAULT_TYPE).join(", ")}`,
+      );
     }
-    if (!config.targetEnclaveId || typeof config.targetEnclaveId !== 'string') {
-      throw new HsmAdapterError('INVALID_TARGET', 'targetEnclaveId must be a non-empty string');
+    if (!config.targetEnclaveId || typeof config.targetEnclaveId !== "string") {
+      throw new HsmAdapterError(
+        "INVALID_TARGET",
+        "targetEnclaveId must be a non-empty string",
+      );
     }
     this._validateFaultEnabled(config.faultType);
     if (this._activeFaults.size >= this.maxConcurrentFaults) {
-      throw new HsmAdapterError('MAX_CONCURRENT_FAULTS',
-        `maximum ${this.maxConcurrentFaults} concurrent faults reached`);
+      throw new HsmAdapterError(
+        "MAX_CONCURRENT_FAULTS",
+        `maximum ${this.maxConcurrentFaults} concurrent faults reached`,
+      );
     }
-    const durationMs = Math.min(config.durationMs || this.defaultFaultDurationMs, this.maxFaultDurationMs);
-    const faultId = _generateId('fault', config.faultType, Date.now(), this._prng);
+    const durationMs = Math.min(
+      config.durationMs || this.defaultFaultDurationMs,
+      this.maxFaultDurationMs,
+    );
+    const faultId = _generateId(
+      "fault",
+      config.faultType,
+      Date.now(),
+      this._prng,
+    );
     const now = Date.now();
     const fault = {
       faultId,
@@ -172,8 +194,8 @@ class EnclaveFaultInjection {
     };
     fault.status = FAULT_STATUS.ACTIVE;
     this._activeFaults.set(faultId, fault);
-    if (typeof this._audit === 'function') {
-      this._audit('FAULT_INJECTED', {
+    if (typeof this._audit === "function") {
+      this._audit("FAULT_INJECTED", {
         faultId,
         faultType: fault.faultType,
         targetEnclaveId: fault.targetEnclaveId,
@@ -209,8 +231,10 @@ class EnclaveFaultInjection {
       [FAULT_TYPE.NETWORK_JITTER]: this.enableNetworkJitter,
     };
     if (checks[faultType] === false) {
-      throw new HsmAdapterError('FAULT_TYPE_DISABLED',
-        `fault type ${faultType} is disabled`);
+      throw new HsmAdapterError(
+        "FAULT_TYPE_DISABLED",
+        `fault type ${faultType} is disabled`,
+      );
     }
   }
 
@@ -222,14 +246,17 @@ class EnclaveFaultInjection {
   cancelFault(faultId) {
     const fault = this._activeFaults.get(faultId);
     if (!fault) {
-      throw new HsmAdapterError('FAULT_NOT_FOUND', `fault ${faultId} not found`);
+      throw new HsmAdapterError(
+        "FAULT_NOT_FOUND",
+        `fault ${faultId} not found`,
+      );
     }
     fault.status = FAULT_STATUS.CANCELLED;
     fault.resolvedAt = Date.now();
     this._activeFaults.delete(faultId);
     this._addToHistory(fault);
-    if (typeof this._audit === 'function') {
-      this._audit('FAULT_CANCELLED', { faultId, faultType: fault.faultType });
+    if (typeof this._audit === "function") {
+      this._audit("FAULT_CANCELLED", { faultId, faultType: fault.faultType });
     }
     return { faultId, cancelled: true };
   }
@@ -242,14 +269,17 @@ class EnclaveFaultInjection {
   resolveFault(faultId) {
     const fault = this._activeFaults.get(faultId);
     if (!fault) {
-      throw new HsmAdapterError('FAULT_NOT_FOUND', `fault ${faultId} not found`);
+      throw new HsmAdapterError(
+        "FAULT_NOT_FOUND",
+        `fault ${faultId} not found`,
+      );
     }
     fault.status = FAULT_STATUS.RESOLVED;
     fault.resolvedAt = Date.now();
     this._activeFaults.delete(faultId);
     this._addToHistory(fault);
-    if (typeof this._audit === 'function') {
-      this._audit('FAULT_RESOLVED', { faultId, faultType: fault.faultType });
+    if (typeof this._audit === "function") {
+      this._audit("FAULT_RESOLVED", { faultId, faultType: fault.faultType });
     }
     return { faultId, resolved: true };
   }
@@ -268,8 +298,8 @@ class EnclaveFaultInjection {
         this._activeFaults.delete(faultId);
         this._addToHistory(fault);
         expired.push(faultId);
-        if (typeof this._audit === 'function') {
-          this._audit('FAULT_EXPIRED', { faultId, faultType: fault.faultType });
+        if (typeof this._audit === "function") {
+          this._audit("FAULT_EXPIRED", { faultId, faultType: fault.faultType });
         }
       }
     }
@@ -304,7 +334,7 @@ class EnclaveFaultInjection {
           });
           injected.push(result);
         } catch (e) {
-          console.error('enclave-fault-injection.cjs error:', e);
+          console.error("enclave-fault-injection.cjs error:", e);
           // Skip if max concurrent reached
         }
       }
@@ -325,9 +355,17 @@ class EnclaveFaultInjection {
    */
   runScenario(scenario) {
     if (!scenario || !scenario.name || !Array.isArray(scenario.steps)) {
-      throw new HsmAdapterError('INVALID_SCENARIO', 'scenario must have name and steps');
+      throw new HsmAdapterError(
+        "INVALID_SCENARIO",
+        "scenario must have name and steps",
+      );
     }
-    const scenarioId = _generateId('scenario', scenario.name, Date.now(), this._prng);
+    const scenarioId = _generateId(
+      "scenario",
+      scenario.name,
+      Date.now(),
+      this._prng,
+    );
     const state = {
       scenarioId,
       name: scenario.name,
@@ -356,10 +394,13 @@ class EnclaveFaultInjection {
         state.errors.push({ step: i, error: e.message });
       }
     }
-    state.status = state.errors.length > 0 ? SCENARIO_STATUS.FAILED : SCENARIO_STATUS.COMPLETED;
+    state.status =
+      state.errors.length > 0
+        ? SCENARIO_STATUS.FAILED
+        : SCENARIO_STATUS.COMPLETED;
     state.finishedAt = Date.now();
-    if (typeof this._audit === 'function') {
-      this._audit('SCENARIO_COMPLETED', {
+    if (typeof this._audit === "function") {
+      this._audit("SCENARIO_COMPLETED", {
         scenarioId,
         name: scenario.name,
         status: state.status,
@@ -383,9 +424,15 @@ class EnclaveFaultInjection {
    */
   validateRecovery() {
     const activeCount = this._activeFaults.size;
-    const resolvedCount = this._faultHistory.filter(f => f.status === FAULT_STATUS.RESOLVED).length;
-    const expiredCount = this._faultHistory.filter(f => f.status === FAULT_STATUS.EXPIRED).length;
-    const cancelledCount = this._faultHistory.filter(f => f.status === FAULT_STATUS.CANCELLED).length;
+    const resolvedCount = this._faultHistory.filter(
+      (f) => f.status === FAULT_STATUS.RESOLVED,
+    ).length;
+    const expiredCount = this._faultHistory.filter(
+      (f) => f.status === FAULT_STATUS.EXPIRED,
+    ).length;
+    const cancelledCount = this._faultHistory.filter(
+      (f) => f.status === FAULT_STATUS.CANCELLED,
+    ).length;
     const isRecovered = activeCount === 0;
     return {
       recovered: isRecovered,
@@ -405,7 +452,7 @@ class EnclaveFaultInjection {
   getFault(faultId) {
     const fault = this._activeFaults.get(faultId);
     if (fault) return { ...fault };
-    const historical = this._faultHistory.find(f => f.faultId === faultId);
+    const historical = this._faultHistory.find((f) => f.faultId === faultId);
     return historical ? { ...historical } : null;
   }
 
@@ -414,7 +461,7 @@ class EnclaveFaultInjection {
    * @returns {object[]}
    */
   getActiveFaults() {
-    return Array.from(this._activeFaults.values()).map(f => ({
+    return Array.from(this._activeFaults.values()).map((f) => ({
       faultId: f.faultId,
       faultType: f.faultType,
       targetEnclaveId: f.targetEnclaveId,
@@ -431,8 +478,8 @@ class EnclaveFaultInjection {
    * @returns {object[]}
    */
   getFaultHistory(limit) {
-    const n = typeof limit === 'number' ? limit : 50;
-    return this._faultHistory.slice(-n).map(f => ({
+    const n = typeof limit === "number" ? limit : 50;
+    return this._faultHistory.slice(-n).map((f) => ({
       faultId: f.faultId,
       faultType: f.faultType,
       targetEnclaveId: f.targetEnclaveId,
@@ -511,51 +558,84 @@ class EnclaveFaultInjection {
 }
 
 function _generateId(prefix, type, timestamp, prng) {
-  const rand = prng ? prng.nextInt(1000000) : Math.floor(Math.random() * 1000000);
+  const rand = prng
+    ? prng.nextInt(1000000)
+    : Math.floor(Math.random() * 1000000);
   return `${prefix}-${type}-${timestamp}-${rand}`;
 }
 
 function _getFaultEffects(faultType, params) {
   const effects = {
-    [FAULT_TYPE.BYZANTINE_EQUIVOCATION]: ['conflicting-responses', 'quorum-disruption'],
-    [FAULT_TYPE.BYZANTINE_OMISSION]: ['dropped-messages', 'silent-failure'],
-    [FAULT_TYPE.NETWORK_PARTITION]: ['isolation', 'communication-loss'],
-    [FAULT_TYPE.ENCLAVE_CRASH]: ['process-termination', 'state-loss'],
-    [FAULT_TYPE.KEY_CORRUPTION]: ['key-material-altered', 'signature-invalid'],
-    [FAULT_TYPE.TIMING_ATTACK]: ['timing-leak', 'side-channel'],
-    [FAULT_TYPE.HEARTBEAT_LOSS]: ['heartbeat-timeout', 'quarantine-trigger'],
-    [FAULT_TYPE.STATE_DIVERGENCE]: ['inconsistent-state', 'sync-conflict'],
-    [FAULT_TYPE.GOSSIP_PACKET_DROP]: ['dropped-gossip', 'delayed-sync', 'stale-quorum'],
-    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: ['dual-leader', 'quorum-split', 'divergent-logs'],
-    [FAULT_TYPE.NETWORK_JITTER]: ['latency-spike', 'timeout-flap', 'heartbeat-jitter'],
+    [FAULT_TYPE.BYZANTINE_EQUIVOCATION]: [
+      "conflicting-responses",
+      "quorum-disruption",
+    ],
+    [FAULT_TYPE.BYZANTINE_OMISSION]: ["dropped-messages", "silent-failure"],
+    [FAULT_TYPE.NETWORK_PARTITION]: ["isolation", "communication-loss"],
+    [FAULT_TYPE.ENCLAVE_CRASH]: ["process-termination", "state-loss"],
+    [FAULT_TYPE.KEY_CORRUPTION]: ["key-material-altered", "signature-invalid"],
+    [FAULT_TYPE.TIMING_ATTACK]: ["timing-leak", "side-channel"],
+    [FAULT_TYPE.HEARTBEAT_LOSS]: ["heartbeat-timeout", "quarantine-trigger"],
+    [FAULT_TYPE.STATE_DIVERGENCE]: ["inconsistent-state", "sync-conflict"],
+    [FAULT_TYPE.GOSSIP_PACKET_DROP]: [
+      "dropped-gossip",
+      "delayed-sync",
+      "stale-quorum",
+    ],
+    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: [
+      "dual-leader",
+      "quorum-split",
+      "divergent-logs",
+    ],
+    [FAULT_TYPE.NETWORK_JITTER]: [
+      "latency-spike",
+      "timeout-flap",
+      "heartbeat-jitter",
+    ],
   };
-  return effects[faultType] || ['unknown-effect'];
+  return effects[faultType] || ["unknown-effect"];
 }
 
 function _getRecoveryActions(faultType) {
   const actions = {
-    [FAULT_TYPE.BYZANTINE_EQUIVOCATION]: ['quarantine-node', 're-sync-state'],
-    [FAULT_TYPE.BYZANTINE_OMISSION]: ['retry-messages', 'check-liveness'],
-    [FAULT_TYPE.NETWORK_PARTITION]: ['heal-partition', 'reconcile-state'],
-    [FAULT_TYPE.ENCLAVE_CRASH]: ['restart-enclave', 'restore-from-backup'],
-    [FAULT_TYPE.KEY_CORRUPTION]: ['rotate-key', 're-attest-enclave'],
-    [FAULT_TYPE.TIMING_ATTACK]: ['add-jitter', 'constant-time-ops'],
-    [FAULT_TYPE.HEARTBEAT_LOSS]: ['force-heartbeat', 'check-quarantine'],
-    [FAULT_TYPE.STATE_DIVERGENCE]: ['force-sync', 'resolve-conflicts'],
-    [FAULT_TYPE.GOSSIP_PACKET_DROP]: ['retry-gossip', 'increase-timeout', 'reconcile-state'],
-    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: ['force-quorum-revote', 'merge-divergent-logs', 'heal-partition'],
-    [FAULT_TYPE.NETWORK_JITTER]: ['stabilize-timers', 'adjust-heartbeat-interval'],
+    [FAULT_TYPE.BYZANTINE_EQUIVOCATION]: ["quarantine-node", "re-sync-state"],
+    [FAULT_TYPE.BYZANTINE_OMISSION]: ["retry-messages", "check-liveness"],
+    [FAULT_TYPE.NETWORK_PARTITION]: ["heal-partition", "reconcile-state"],
+    [FAULT_TYPE.ENCLAVE_CRASH]: ["restart-enclave", "restore-from-backup"],
+    [FAULT_TYPE.KEY_CORRUPTION]: ["rotate-key", "re-attest-enclave"],
+    [FAULT_TYPE.TIMING_ATTACK]: ["add-jitter", "constant-time-ops"],
+    [FAULT_TYPE.HEARTBEAT_LOSS]: ["force-heartbeat", "check-quarantine"],
+    [FAULT_TYPE.STATE_DIVERGENCE]: ["force-sync", "resolve-conflicts"],
+    [FAULT_TYPE.GOSSIP_PACKET_DROP]: [
+      "retry-gossip",
+      "increase-timeout",
+      "reconcile-state",
+    ],
+    [FAULT_TYPE.SPLIT_BRAIN_PARTITION]: [
+      "force-quorum-revote",
+      "merge-divergent-logs",
+      "heal-partition",
+    ],
+    [FAULT_TYPE.NETWORK_JITTER]: [
+      "stabilize-timers",
+      "adjust-heartbeat-interval",
+    ],
   };
-  return actions[faultType] || ['unknown-recovery'];
+  return actions[faultType] || ["unknown-recovery"];
 }
 
 function _pickRandomFaultType(prng, enabled) {
   const types = [];
   if (enabled.byzantine) {
-    types.push(FAULT_TYPE.BYZANTINE_EQUIVOCATION, FAULT_TYPE.BYZANTINE_OMISSION, FAULT_TYPE.STATE_DIVERGENCE);
+    types.push(
+      FAULT_TYPE.BYZANTINE_EQUIVOCATION,
+      FAULT_TYPE.BYZANTINE_OMISSION,
+      FAULT_TYPE.STATE_DIVERGENCE,
+    );
   }
   if (enabled.network) types.push(FAULT_TYPE.NETWORK_PARTITION);
-  if (enabled.crash) types.push(FAULT_TYPE.ENCLAVE_CRASH, FAULT_TYPE.HEARTBEAT_LOSS);
+  if (enabled.crash)
+    types.push(FAULT_TYPE.ENCLAVE_CRASH, FAULT_TYPE.HEARTBEAT_LOSS);
   if (enabled.keyCorruption) types.push(FAULT_TYPE.KEY_CORRUPTION);
   if (enabled.timing) types.push(FAULT_TYPE.TIMING_ATTACK);
   if (enabled.gossipDrop) types.push(FAULT_TYPE.GOSSIP_PACKET_DROP);

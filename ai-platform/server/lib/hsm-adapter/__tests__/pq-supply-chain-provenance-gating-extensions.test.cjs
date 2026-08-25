@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 76: PQC Supply Chain Provenance Gating & ZK Provenance
@@ -15,20 +15,24 @@ const {
   PqcSupplyChainProvenanceGatingHub,
   POOL_STATUS,
   REBALANCE_DIRECTION,
-} = require('../pqc-supply-chain-provenance-gating-hub.cjs');
+} = require("../pqc-supply-chain-provenance-gating-hub.cjs");
 const {
   ZkProvenanceClaimValidator,
   CLAIM_STATUS,
   SLASH_REASON,
   HW_ACCEL_TYPES,
-} = require('../zk-provenance-claim-validator.cjs');
-const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
-const { HsmAdapterError } = require('../base-adapter.cjs');
+} = require("../zk-provenance-claim-validator.cjs");
+const {
+  EnclaveAttestationClient,
+} = require("../enclave-attestation-client.cjs");
+const { HsmAdapterError } = require("../base-adapter.cjs");
 
 class MockAttestationClient {
   verify(attestation) {
-    if (!attestation || typeof attestation !== 'object') return { verified: false };
-    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (!attestation || typeof attestation !== "object")
+      return { verified: false };
+    if (!attestation.authority || attestation.authority !== "mock-authority")
+      return { verified: false };
     return { verified: true };
   }
 }
@@ -37,10 +41,10 @@ const POLICY = {
   minSupplierCheckpointQuorum: 3,
   maxTranscriptExpirationSeconds: 7776000,
   maxComponentLineageDepth: 24,
-  allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+  allowedPqcSignatureSchemes: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
   requireFactoryEndpointInitializerAttestation: true,
   requireClearingCommitteeAttestation: true,
-  allowedAttestationAuthorities: ['mock-authority'],
+  allowedAttestationAuthorities: ["mock-authority"],
   banMalformedOrOutOfOrderProvenanceClaims: true,
   requireCanonicalPayloadLayout: true,
 };
@@ -48,51 +52,51 @@ const POLICY = {
 function mockAttestation() {
   return {
     version: 1,
-    enclaveType: 'mock',
-    measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
-    mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+    enclaveType: "mock",
+    measurement: "MOCK_MEASUREMENT_00000000000000000000000000000000",
+    mrenclave: "MOCK_MRENCLAVE_00000000000000000000000000000000",
     timestamp: Math.floor(Date.now() / 1000),
     attestationAgeSeconds: 0,
-    authority: 'mock-authority',
-    signature: 'mock-signature-placeholder',
+    authority: "mock-authority",
+    signature: "mock-signature-placeholder",
   };
 }
 
 function baseInitRequest() {
   return {
-    sourceTenantId: 'tenant-a',
-    targetChainId: 'chain-b',
-    blindedLineageCommitment: 'pedersen-lineage-001',
-    blindedManufacturingMetricCommitment: 'pedersen-mfg-001',
-    blindedSupplierHashCommitment: 'pedersen-supplier-001',
+    sourceTenantId: "tenant-a",
+    targetChainId: "chain-b",
+    blindedLineageCommitment: "pedersen-lineage-001",
+    blindedManufacturingMetricCommitment: "pedersen-mfg-001",
+    blindedSupplierHashCommitment: "pedersen-supplier-001",
     transitExpirationSeconds: 3888000,
     componentLineageDepth: 12,
-    pqcSignatureScheme: 'ML-DSA-65',
+    pqcSignatureScheme: "ML-DSA-65",
     factoryEndpointInitializerAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
+    attestationAuthority: "mock-authority",
   };
 }
 
 function baseClaimRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
-    blindedManufacturingMetricCommitment: 'pedersen-mfg-001',
-    blindedClaimValueCommitment: 'pedersen-claimval-001',
-    zkProvenanceRangeProofHash: 'zk-provenance-proof-001',
+    poolId: poolId || "pool-001",
+    blindedManufacturingMetricCommitment: "pedersen-mfg-001",
+    blindedClaimValueCommitment: "pedersen-claimval-001",
+    zkProvenanceRangeProofHash: "zk-provenance-proof-001",
     clearingCommitteeAttestation: mockAttestation(),
-    clearingCommitteeAttestationHash: 'committee-hash-001',
-    attestationAuthority: 'mock-authority',
-    partialSignature: 'partial-sig-001',
+    clearingCommitteeAttestationHash: "committee-hash-001",
+    attestationAuthority: "mock-authority",
+    partialSignature: "partial-sig-001",
     transitExpirationSeconds: 3888000,
   };
 }
 
 function baseCompleteRequest(poolId) {
   return {
-    poolId: poolId || 'pool-001',
+    poolId: poolId || "pool-001",
     clearingCommitteeAttestation: mockAttestation(),
-    attestationAuthority: 'mock-authority',
-    committeeSignatures: ['sig-a', 'sig-b', 'sig-c'],
+    attestationAuthority: "mock-authority",
+    committeeSignatures: ["sig-a", "sig-b", "sig-c"],
   };
 }
 
@@ -121,13 +125,15 @@ function setupAndInitPool() {
 
 function setupInitAndClaim() {
   const ctx = setupAndInitPool();
-  const claim = ctx.validator.verifyProvenanceClaim(baseClaimRequest(ctx.pool.poolId));
+  const claim = ctx.validator.verifyProvenanceClaim(
+    baseClaimRequest(ctx.pool.poolId),
+  );
   return { ...ctx, claim };
 }
 
-describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
-  describe('PqcSupplyChainProvenanceGatingHub — component lineage depth rebalancing', () => {
-    test('rebalances component lineage depth with increase direction', () => {
+describe("Track 76 PQC Supply Chain Provenance Gating extensions", () => {
+  describe("PqcSupplyChainProvenanceGatingHub — component lineage depth rebalancing", () => {
+    test("rebalances component lineage depth with increase direction", () => {
       const ctx = setupAndInitPool();
       const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
@@ -139,7 +145,7 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(rebalance.rebalanceEpoch).toBe(1);
     });
 
-    test('rebalances component lineage depth with decrease direction', () => {
+    test("rebalances component lineage depth with decrease direction", () => {
       const ctx = setupAndInitPool();
       const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
@@ -149,7 +155,7 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(rebalance.direction).toBe(REBALANCE_DIRECTION.DECREASE);
     });
 
-    test('updates componentLineageDepth on rebalance when newComponentLineageDepth provided', () => {
+    test("updates componentLineageDepth on rebalance when newComponentLineageDepth provided", () => {
       const ctx = setupAndInitPool();
       ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
@@ -162,40 +168,48 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(pool.rebalanceEpoch).toBe(1);
     });
 
-    test('rejects rebalance with invalid direction', () => {
+    test("rejects rebalance with invalid direction", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.rebalanceComponentLineageDepth({
-        poolId: ctx.pool.poolId,
-        direction: 'invalid',
-        rebalanceAmount: 3,
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.rebalanceComponentLineageDepth({
+          poolId: ctx.pool.poolId,
+          direction: "invalid",
+          rebalanceAmount: 3,
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects rebalance with non-positive amount', () => {
+    test("rejects rebalance with non-positive amount", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.rebalanceComponentLineageDepth({
-        poolId: ctx.pool.poolId,
-        direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 0,
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.rebalanceComponentLineageDepth({
+          poolId: ctx.pool.poolId,
+          direction: REBALANCE_DIRECTION.INCREASE,
+          rebalanceAmount: 0,
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects rebalance with missing poolId', () => {
+    test("rejects rebalance with missing poolId", () => {
       const { hub } = setupHubAndValidator();
-      expect(() => hub.rebalanceComponentLineageDepth({})).toThrow(HsmAdapterError);
+      expect(() => hub.rebalanceComponentLineageDepth({})).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects rebalance on accredited pool', () => {
+    test("rejects rebalance on accredited pool", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
-      expect(() => ctx.hub.rebalanceComponentLineageDepth({
-        poolId: ctx.pool.poolId,
-        direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 3,
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.rebalanceComponentLineageDepth({
+          poolId: ctx.pool.poolId,
+          direction: REBALANCE_DIRECTION.INCREASE,
+          rebalanceAmount: 3,
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('returns rebalance record via getRebalance', () => {
+    test("returns rebalance record via getRebalance", () => {
       const ctx = setupAndInitPool();
       const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
@@ -207,19 +221,19 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(retrieved.rebalanceId).toBe(rebalance.rebalanceId);
     });
 
-    test('POOL_STATUS and REBALANCE_DIRECTION constants are exported', () => {
-      expect(POOL_STATUS.OPEN).toBe('open');
-      expect(POOL_STATUS.REBALANCING).toBe('rebalancing');
-      expect(POOL_STATUS.ACCREDITED).toBe('accredited');
-      expect(POOL_STATUS.SETTLED).toBe('settled');
-      expect(POOL_STATUS.CANCELLED).toBe('cancelled');
-      expect(REBALANCE_DIRECTION.INCREASE).toBe('increase');
-      expect(REBALANCE_DIRECTION.DECREASE).toBe('decrease');
+    test("POOL_STATUS and REBALANCE_DIRECTION constants are exported", () => {
+      expect(POOL_STATUS.OPEN).toBe("open");
+      expect(POOL_STATUS.REBALANCING).toBe("rebalancing");
+      expect(POOL_STATUS.ACCREDITED).toBe("accredited");
+      expect(POOL_STATUS.SETTLED).toBe("settled");
+      expect(POOL_STATUS.CANCELLED).toBe("cancelled");
+      expect(REBALANCE_DIRECTION.INCREASE).toBe("increase");
+      expect(REBALANCE_DIRECTION.DECREASE).toBe("decrease");
     });
   });
 
-  describe('PqcSupplyChainProvenanceGatingHub — batch initialization', () => {
-    test('batch initializes multiple pools', () => {
+  describe("PqcSupplyChainProvenanceGatingHub — batch initialization", () => {
+    test("batch initializes multiple pools", () => {
       const { hub } = setupHubAndValidator();
       const reqs = [];
       for (let i = 0; i < 3; i++) {
@@ -232,124 +246,135 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(result.failedCount).toBe(0);
     });
 
-    test('batch init handles mixed valid/invalid', () => {
+    test("batch init handles mixed valid/invalid", () => {
       const { hub } = setupHubAndValidator();
       const r1 = baseInitRequest();
-      r1.poolId = 'pool-ok';
+      r1.poolId = "pool-ok";
       const r2 = baseInitRequest();
-      r2.poolId = 'pool-ok';
+      r2.poolId = "pool-ok";
       const r3 = baseInitRequest();
-      r3.poolId = 'pool-ok2';
+      r3.poolId = "pool-ok2";
       r3.componentLineageDepth = 999;
       const result = hub.batchInitializePools([r1, r2, r3]);
       expect(result.successCount).toBe(1);
       expect(result.failedCount).toBe(2);
     });
 
-    test('rejects empty batch', () => {
+    test("rejects empty batch", () => {
       const { hub } = setupHubAndValidator();
       expect(() => hub.batchInitializePools([])).toThrow(HsmAdapterError);
     });
 
-    test('rejects batch exceeding max size', () => {
+    test("rejects batch exceeding max size", () => {
       const { hub } = setupHubAndValidator();
       const bigBatch = Array.from({ length: 51 }, () => baseInitRequest());
       expect(() => hub.batchInitializePools(bigBatch)).toThrow(HsmAdapterError);
     });
   });
 
-  describe('PqcSupplyChainProvenanceGatingHub — cross-chain settlement', () => {
-    test('settles an accredited pool cross-chain', () => {
+  describe("PqcSupplyChainProvenanceGatingHub — cross-chain settlement", () => {
+    test("settles an accredited pool cross-chain", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
       const settlement = ctx.hub.settlePool({
         poolId: ctx.pool.poolId,
-        targetChainId: 'chain-b',
+        targetChainId: "chain-b",
       });
       expect(settlement.settlementId).toBeDefined();
-      expect(settlement.targetChainId).toBe('chain-b');
+      expect(settlement.targetChainId).toBe("chain-b");
     });
 
-    test('rejects settlement of non-accredited pool', () => {
+    test("rejects settlement of non-accredited pool", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.settlePool({
-        poolId: ctx.pool.poolId,
-        targetChainId: 'chain-b',
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.settlePool({
+          poolId: ctx.pool.poolId,
+          targetChainId: "chain-b",
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects settlement with mismatched chain', () => {
+    test("rejects settlement with mismatched chain", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
-      expect(() => ctx.hub.settlePool({
-        poolId: ctx.pool.poolId,
-        targetChainId: 'wrong-chain',
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.settlePool({
+          poolId: ctx.pool.poolId,
+          targetChainId: "wrong-chain",
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects settlement with missing poolId', () => {
+    test("rejects settlement with missing poolId", () => {
       const { hub } = setupHubAndValidator();
-      expect(() => hub.settlePool({ targetChainId: 'chain-b' }))
-        .toThrow(HsmAdapterError);
+      expect(() => hub.settlePool({ targetChainId: "chain-b" })).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects settlement with missing targetChainId', () => {
+    test("rejects settlement with missing targetChainId", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
-      expect(() => ctx.hub.settlePool({ poolId: ctx.pool.poolId }))
-        .toThrow(HsmAdapterError);
+      expect(() => ctx.hub.settlePool({ poolId: ctx.pool.poolId })).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('returns settlement record via getSettlement', () => {
+    test("returns settlement record via getSettlement", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
       ctx.hub.settlePool({
         poolId: ctx.pool.poolId,
-        targetChainId: 'chain-b',
+        targetChainId: "chain-b",
       });
       const s = ctx.hub.getSettlement(ctx.pool.poolId);
       expect(s).not.toBeNull();
-      expect(s.targetChainId).toBe('chain-b');
+      expect(s.targetChainId).toBe("chain-b");
     });
   });
 
-  describe('PqcSupplyChainProvenanceGatingHub — committee aggregation', () => {
-    test('aggregates committee signatures', () => {
+  describe("PqcSupplyChainProvenanceGatingHub — committee aggregation", () => {
+    test("aggregates committee signatures", () => {
       const ctx = setupAndInitPool();
       const result = ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, [
-        { peerId: 'p1', signature: 'sig-1' },
-        { peerId: 'p2', signature: 'sig-2' },
-        { peerId: 'p3', signature: 'sig-3' },
+        { peerId: "p1", signature: "sig-1" },
+        { peerId: "p2", signature: "sig-2" },
+        { peerId: "p3", signature: "sig-3" },
       ]);
       expect(result.signatureCount).toBe(3);
       expect(result.aggregatedSignature).toBeDefined();
     });
 
-    test('rejects aggregation with insufficient signatures', () => {
+    test("rejects aggregation with insufficient signatures", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, [
-        { peerId: 'p1', signature: 'sig-1' },
-      ])).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, [
+          { peerId: "p1", signature: "sig-1" },
+        ]),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects aggregation with no signatures', () => {
+    test("rejects aggregation with no signatures", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, []))
-        .toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, []),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects aggregation for unknown pool', () => {
+    test("rejects aggregation for unknown pool", () => {
       const { hub } = setupHubAndValidator();
-      expect(() => hub.aggregateCommitteeSignatures('unknown', [
-        { peerId: 'p1', signature: 's1' },
-        { peerId: 'p2', signature: 's2' },
-        { peerId: 'p3', signature: 's3' },
-      ])).toThrow(HsmAdapterError);
+      expect(() =>
+        hub.aggregateCommitteeSignatures("unknown", [
+          { peerId: "p1", signature: "s1" },
+          { peerId: "p2", signature: "s2" },
+          { peerId: "p3", signature: "s3" },
+        ]),
+      ).toThrow(HsmAdapterError);
     });
   });
 
-  describe('PqcSupplyChainProvenanceGatingHub — cancellation', () => {
-    test('cancels an open pool', () => {
+  describe("PqcSupplyChainProvenanceGatingHub — cancellation", () => {
+    test("cancels an open pool", () => {
       const ctx = setupAndInitPool();
       const result = ctx.hub.cancelPool(ctx.pool.poolId);
       expect(result.cancelled).toBe(true);
@@ -357,33 +382,35 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(pool.status).toBe(POOL_STATUS.CANCELLED);
     });
 
-    test('rejects cancelling accredited pool', () => {
+    test("rejects cancelling accredited pool", () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
-      expect(() => ctx.hub.cancelPool(ctx.pool.poolId))
-        .toThrow(HsmAdapterError);
+      expect(() => ctx.hub.cancelPool(ctx.pool.poolId)).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects double cancellation', () => {
+    test("rejects double cancellation", () => {
       const ctx = setupAndInitPool();
       ctx.hub.cancelPool(ctx.pool.poolId);
-      expect(() => ctx.hub.cancelPool(ctx.pool.poolId))
-        .toThrow(HsmAdapterError);
+      expect(() => ctx.hub.cancelPool(ctx.pool.poolId)).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects cancelling unknown pool', () => {
+    test("rejects cancelling unknown pool", () => {
       const { hub } = setupHubAndValidator();
-      expect(() => hub.cancelPool('unknown')).toThrow(HsmAdapterError);
+      expect(() => hub.cancelPool("unknown")).toThrow(HsmAdapterError);
     });
   });
 
-  describe('PqcSupplyChainProvenanceGatingHub — queries and stats', () => {
-    test('returns pools list', () => {
+  describe("PqcSupplyChainProvenanceGatingHub — queries and stats", () => {
+    test("returns pools list", () => {
       const ctx = setupAndInitPool();
       expect(ctx.hub.getPools().length).toBe(1);
     });
 
-    test('returns summary stats', () => {
+    test("returns summary stats", () => {
       const ctx = setupAndInitPool();
       const stats = ctx.hub.getStats();
       expect(stats.totalPools).toBe(1);
@@ -392,8 +419,8 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
     });
   });
 
-  describe('ZkProvenanceClaimValidator — HW-SNARK proof generation', () => {
-    test('generates a hardware-accelerated SNARK proof', () => {
+  describe("ZkProvenanceClaimValidator — HW-SNARK proof generation", () => {
+    test("generates a hardware-accelerated SNARK proof", () => {
       const ctx = setupAndInitPool();
       const proof = ctx.validator.generateHwSnarkProof({
         poolId: ctx.pool.poolId,
@@ -402,33 +429,40 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       });
       expect(proof.zkProvenanceRangeProofHash).toBeDefined();
       expect(proof.hwAccelType).toBeDefined();
-      expect(proof.proofSystem).toBe('groth16');
+      expect(proof.proofSystem).toBe("groth16");
     });
 
-    test('rejects proof generation with missing poolId', () => {
+    test("rejects proof generation with missing poolId", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.generateHwSnarkProof({ manufacturingMetric: 100, claimValue: 50 }))
-        .toThrow(HsmAdapterError);
+      expect(() =>
+        validator.generateHwSnarkProof({
+          manufacturingMetric: 100,
+          claimValue: 50,
+        }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects proof generation with missing values', () => {
+    test("rejects proof generation with missing values", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.validator.generateHwSnarkProof({ poolId: ctx.pool.poolId }))
-        .toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.validator.generateHwSnarkProof({ poolId: ctx.pool.poolId }),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects proof generation for unknown pool', () => {
+    test("rejects proof generation for unknown pool", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.generateHwSnarkProof({
-        poolId: 'unknown',
-        manufacturingMetric: 100,
-        claimValue: 50,
-      })).toThrow(HsmAdapterError);
+      expect(() =>
+        validator.generateHwSnarkProof({
+          poolId: "unknown",
+          manufacturingMetric: 100,
+          claimValue: 50,
+        }),
+      ).toThrow(HsmAdapterError);
     });
   });
 
-  describe('ZkProvenanceClaimValidator — batch provenance claim verification', () => {
-    test('batch verifies multiple provenance claims', () => {
+  describe("ZkProvenanceClaimValidator — batch provenance claim verification", () => {
+    test("batch verifies multiple provenance claims", () => {
       const ctx = setupHubAndValidator();
       const pools = [];
       for (let i = 0; i < 3; i++) {
@@ -447,189 +481,242 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       expect(result.failedCount).toBe(0);
     });
 
-    test('batch verification handles mixed valid/invalid', () => {
+    test("batch verification handles mixed valid/invalid", () => {
       const ctx = setupHubAndValidator();
       const req = baseInitRequest();
-      req.poolId = 'pool-mix';
+      req.poolId = "pool-mix";
       ctx.hub.initializePool(req);
       const batch = [
-        (() => { const r = baseClaimRequest('pool-mix'); r.peerId = 'p1'; return r; })(),
-        (() => { const r = baseClaimRequest('pool-mix'); r.peerId = 'p2'; return r; })(),
-        (() => { const r = baseClaimRequest('unknown-pool'); r.peerId = 'p3'; return r; })(),
+        (() => {
+          const r = baseClaimRequest("pool-mix");
+          r.peerId = "p1";
+          return r;
+        })(),
+        (() => {
+          const r = baseClaimRequest("pool-mix");
+          r.peerId = "p2";
+          return r;
+        })(),
+        (() => {
+          const r = baseClaimRequest("unknown-pool");
+          r.peerId = "p3";
+          return r;
+        })(),
       ];
       const result = ctx.validator.batchVerifyProvenanceClaims(batch);
       expect(result.verifiedCount).toBe(2);
       expect(result.failedCount).toBe(1);
     });
 
-    test('rejects empty batch', () => {
+    test("rejects empty batch", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.batchVerifyProvenanceClaims([])).toThrow(HsmAdapterError);
+      expect(() => validator.batchVerifyProvenanceClaims([])).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects batch exceeding max size', () => {
+    test("rejects batch exceeding max size", () => {
       const { validator } = setupHubAndValidator();
-      const bigBatch = Array.from({ length: 101 }, () => baseClaimRequest('x'));
-      expect(() => validator.batchVerifyProvenanceClaims(bigBatch)).toThrow(HsmAdapterError);
+      const bigBatch = Array.from({ length: 101 }, () => baseClaimRequest("x"));
+      expect(() => validator.batchVerifyProvenanceClaims(bigBatch)).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('records batch history', () => {
+    test("records batch history", () => {
       const ctx = setupHubAndValidator();
       const req = baseInitRequest();
-      req.poolId = 'pool-bh';
+      req.poolId = "pool-bh";
       ctx.hub.initializePool(req);
-      const r = baseClaimRequest('pool-bh');
-      r.peerId = 'p-bh';
+      const r = baseClaimRequest("pool-bh");
+      r.peerId = "p-bh";
       ctx.validator.batchVerifyProvenanceClaims([r]);
       expect(ctx.validator.getBatchHistory().length).toBe(1);
     });
   });
 
-  describe('ZkProvenanceClaimValidator — partial signature aggregation', () => {
-    test('aggregates partial signatures', () => {
+  describe("ZkProvenanceClaimValidator — partial signature aggregation", () => {
+    test("aggregates partial signatures", () => {
       const ctx = setupAndInitPool();
       const result = ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
-        { peerId: 'p1', signature: 'sig-1' },
-        { peerId: 'p2', signature: 'sig-2' },
-        { peerId: 'p3', signature: 'sig-3' },
+        { peerId: "p1", signature: "sig-1" },
+        { peerId: "p2", signature: "sig-2" },
+        { peerId: "p3", signature: "sig-3" },
       ]);
       expect(result.signatureCount).toBe(3);
       expect(result.aggregatedSignature).toBeDefined();
     });
 
-    test('rejects aggregation with banned peer', () => {
+    test("rejects aggregation with banned peer", () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
       cReq.zkProvenanceRangeProofHash = null;
-      cReq.peerId = 'bad-peer';
-      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
-      expect(ctx.validator.isPeerBanned('bad-peer')).toBe(true);
-      expect(() => ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
-        { peerId: 'bad-peer', signature: 'sig-1' },
-        { peerId: 'p2', signature: 'sig-2' },
-        { peerId: 'p3', signature: 'sig-3' },
-      ])).toThrow(HsmAdapterError);
+      cReq.peerId = "bad-peer";
+      try {
+        ctx.validator.verifyProvenanceClaim(cReq);
+      } catch (e) {
+        /* expected */
+      }
+      expect(ctx.validator.isPeerBanned("bad-peer")).toBe(true);
+      expect(() =>
+        ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
+          { peerId: "bad-peer", signature: "sig-1" },
+          { peerId: "p2", signature: "sig-2" },
+          { peerId: "p3", signature: "sig-3" },
+        ]),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects aggregation with insufficient signatures', () => {
+    test("rejects aggregation with insufficient signatures", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
-        { peerId: 'p1', signature: 'sig-1' },
-      ])).toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
+          { peerId: "p1", signature: "sig-1" },
+        ]),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects aggregation with missing poolId', () => {
+    test("rejects aggregation with missing poolId", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.aggregatePartialSignatures('', [
-        { peerId: 'p1', signature: 's1' },
-      ])).toThrow(HsmAdapterError);
+      expect(() =>
+        validator.aggregatePartialSignatures("", [
+          { peerId: "p1", signature: "s1" },
+        ]),
+      ).toThrow(HsmAdapterError);
     });
   });
 
-  describe('ZkProvenanceClaimValidator — slashing window validation', () => {
-    test('validates claim within slashing window', () => {
+  describe("ZkProvenanceClaimValidator — slashing window validation", () => {
+    test("validates claim within slashing window", () => {
       const ctx = setupAndInitPool();
       const claimTs = Math.floor(Date.now() / 1000);
-      const result = ctx.validator.validateSlashingWindow(ctx.pool.poolId, claimTs);
+      const result = ctx.validator.validateSlashingWindow(
+        ctx.pool.poolId,
+        claimTs,
+      );
       expect(result.withinWindow).toBe(true);
     });
 
-    test('detects claim outside slashing window', () => {
+    test("detects claim outside slashing window", () => {
       const ctx = setupAndInitPool();
       const claimTs = Math.floor(Date.now() / 1000) + 100000000;
-      const result = ctx.validator.validateSlashingWindow(ctx.pool.poolId, claimTs);
+      const result = ctx.validator.validateSlashingWindow(
+        ctx.pool.poolId,
+        claimTs,
+      );
       expect(result.withinWindow).toBe(false);
     });
 
-    test('rejects validation for unknown pool', () => {
+    test("rejects validation for unknown pool", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.validateSlashingWindow('unknown', 1000))
-        .toThrow(HsmAdapterError);
+      expect(() => validator.validateSlashingWindow("unknown", 1000)).toThrow(
+        HsmAdapterError,
+      );
     });
 
-    test('rejects validation with invalid timestamp', () => {
+    test("rejects validation with invalid timestamp", () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.validator.validateSlashingWindow(ctx.pool.poolId, 'bad'))
-        .toThrow(HsmAdapterError);
+      expect(() =>
+        ctx.validator.validateSlashingWindow(ctx.pool.poolId, "bad"),
+      ).toThrow(HsmAdapterError);
     });
 
-    test('rejects validation with missing poolId', () => {
+    test("rejects validation with missing poolId", () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.validateSlashingWindow('', 1000))
-        .toThrow(HsmAdapterError);
+      expect(() => validator.validateSlashingWindow("", 1000)).toThrow(
+        HsmAdapterError,
+      );
     });
   });
 
-  describe('ZkProvenanceClaimValidator — slashing and stats', () => {
-    test('records slashes for malformed claims', () => {
+  describe("ZkProvenanceClaimValidator — slashing and stats", () => {
+    test("records slashes for malformed claims", () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
       cReq.zkProvenanceRangeProofHash = null;
-      cReq.peerId = 'peer-slash';
-      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
+      cReq.peerId = "peer-slash";
+      try {
+        ctx.validator.verifyProvenanceClaim(cReq);
+      } catch (e) {
+        /* expected */
+      }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
 
-    test('records slashes for out-of-bounds transcript expiration', () => {
+    test("records slashes for out-of-bounds transcript expiration", () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
-      cReq.peerId = 'peer-oob';
+      cReq.peerId = "peer-oob";
       cReq.transitExpirationSeconds = 999999999;
-      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
+      try {
+        ctx.validator.verifyProvenanceClaim(cReq);
+      } catch (e) {
+        /* expected */
+      }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
 
-    test('records slashes for duplicate claims', () => {
+    test("records slashes for duplicate claims", () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
-      cReq.peerId = 'peer-dup';
+      cReq.peerId = "peer-dup";
       ctx.validator.verifyProvenanceClaim(cReq);
-      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
+      try {
+        ctx.validator.verifyProvenanceClaim(cReq);
+      } catch (e) {
+        /* expected */
+      }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
 
-    test('returns slashed claims list', () => {
+    test("returns slashed claims list", () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
       cReq.zkProvenanceRangeProofHash = null;
-      cReq.peerId = 'peer-slash-2';
-      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
+      cReq.peerId = "peer-slash-2";
+      try {
+        ctx.validator.verifyProvenanceClaim(cReq);
+      } catch (e) {
+        /* expected */
+      }
       expect(ctx.validator.getSlashedClaims().length).toBeGreaterThan(0);
     });
 
-    test('returns summary stats', () => {
+    test("returns summary stats", () => {
       const ctx = setupInitAndClaim();
       const stats = ctx.validator.getStats();
       expect(stats.totalVerified).toBeGreaterThan(0);
       expect(stats.hwAccelType).toBeDefined();
     });
 
-    test('CLAIM_STATUS, SLASH_REASON, and HW_ACCEL_TYPES constants are exported', () => {
-      expect(CLAIM_STATUS.VERIFIED).toBe('verified');
-      expect(CLAIM_STATUS.SLASHED).toBe('slashed');
-      expect(SLASH_REASON.MALFORMED).toBe('malformed_claim');
-      expect(SLASH_REASON.DUPLICATE).toBe('duplicate_claim');
-      expect(SLASH_REASON.TRANSIT_EXPIRATION_OUT_OF_BOUNDS).toBe('transit_expiration_out_of_bounds');
-      expect(SLASH_REASON.POOL_NOT_FOUND).toBe('pool_not_found');
-      expect(SLASH_REASON.BANNED_PEER).toBe('banned_peer');
-      expect(SLASH_REASON.OUT_OF_WINDOW).toBe('out_of_window');
-      expect(HW_ACCEL_TYPES.GPU_CUDA).toBe('gpu_cuda');
-      expect(HW_ACCEL_TYPES.FPGA).toBe('fpga');
-      expect(HW_ACCEL_TYPES.ASIC).toBe('asic');
-      expect(HW_ACCEL_TYPES.SIMULATED).toBe('simulated');
+    test("CLAIM_STATUS, SLASH_REASON, and HW_ACCEL_TYPES constants are exported", () => {
+      expect(CLAIM_STATUS.VERIFIED).toBe("verified");
+      expect(CLAIM_STATUS.SLASHED).toBe("slashed");
+      expect(SLASH_REASON.MALFORMED).toBe("malformed_claim");
+      expect(SLASH_REASON.DUPLICATE).toBe("duplicate_claim");
+      expect(SLASH_REASON.TRANSIT_EXPIRATION_OUT_OF_BOUNDS).toBe(
+        "transit_expiration_out_of_bounds",
+      );
+      expect(SLASH_REASON.POOL_NOT_FOUND).toBe("pool_not_found");
+      expect(SLASH_REASON.BANNED_PEER).toBe("banned_peer");
+      expect(SLASH_REASON.OUT_OF_WINDOW).toBe("out_of_window");
+      expect(HW_ACCEL_TYPES.GPU_CUDA).toBe("gpu_cuda");
+      expect(HW_ACCEL_TYPES.FPGA).toBe("fpga");
+      expect(HW_ACCEL_TYPES.ASIC).toBe("asic");
+      expect(HW_ACCEL_TYPES.SIMULATED).toBe("simulated");
     });
   });
 
-  describe('full Track 76 extended flow', () => {
-    test('complete init → rebalance → claim → accredit → settle flow', () => {
+  describe("full Track 76 extended flow", () => {
+    test("complete init → rebalance → claim → accredit → settle flow", () => {
       const ctx = setupHubAndValidator();
       const req = baseInitRequest();
-      req.poolId = 'pool-full-flow';
+      req.poolId = "pool-full-flow";
       const pool = ctx.hub.initializePool(req);
-      expect(pool.poolId).toBe('pool-full-flow');
+      expect(pool.poolId).toBe("pool-full-flow");
       const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
@@ -644,21 +731,23 @@ describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
       });
       expect(snarkProof.zkProvenanceRangeProofHash).toBeDefined();
       const cReq = baseClaimRequest(pool.poolId);
-      cReq.peerId = 'peer-claim';
+      cReq.peerId = "peer-claim";
       cReq.zkProvenanceRangeProofHash = snarkProof.zkProvenanceRangeProofHash;
       const claim = ctx.validator.verifyProvenanceClaim(cReq);
       expect(claim.status).toBe(CLAIM_STATUS.VERIFIED);
       const sigResult = ctx.hub.aggregateCommitteeSignatures(pool.poolId, [
-        { peerId: 'peer-0', signature: 'sig-0' },
-        { peerId: 'peer-1', signature: 'sig-1' },
-        { peerId: 'peer-2', signature: 'sig-2' },
+        { peerId: "peer-0", signature: "sig-0" },
+        { peerId: "peer-1", signature: "sig-1" },
+        { peerId: "peer-2", signature: "sig-2" },
       ]);
       expect(sigResult.signatureCount).toBe(3);
-      const completion = ctx.hub.completeAccreditation(baseCompleteRequest(pool.poolId));
+      const completion = ctx.hub.completeAccreditation(
+        baseCompleteRequest(pool.poolId),
+      );
       expect(completion.completionId).toBeDefined();
       const settlement = ctx.hub.settlePool({
         poolId: pool.poolId,
-        targetChainId: 'chain-b',
+        targetChainId: "chain-b",
       });
       expect(settlement.settlementId).toBeDefined();
       const windowResult = ctx.validator.validateSlashingWindow(

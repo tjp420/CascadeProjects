@@ -235,14 +235,9 @@ function deriveAuditLayers(report: FullReport): AuditLayers {
   const gate = report.gate || { pass: true, blockingCount: 0, warningCount: 0 };
   const issueCount = report.issueCount || rawIssues.length;
 
-  const credIssues = rawIssues.filter(
-    (i) => i.type === 'credential' || i.patternId === 'credential'
-  );
+  const credIssues = rawIssues.filter((i) => i.type === 'credential' || i.patternId === 'credential');
   const leakIssues = rawIssues.filter(
-    (i) =>
-      i.type === 'production-leak' ||
-      i.patternId === 'production-leak' ||
-      i.type === 'productionLeak'
+    (i) => i.type === 'production-leak' || i.patternId === 'production-leak' || i.type === 'productionLeak'
   );
   const fictionIssues = rawIssues.filter(
     (i) => i.type === 'fiction' || i.patternId === 'fiction' || i.type === 'fictionKpi'
@@ -344,13 +339,7 @@ function MetricCard({
   );
 }
 
-function LayerCard({
-  layerKey,
-  layer,
-}: {
-  layerKey: string;
-  layer: AuditLayer;
-}) {
+function LayerCard({ layerKey, layer }: { layerKey: string; layer: AuditLayer }) {
   const Icon = LAYER_ICONS[layerKey] || Layers;
   const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
   const findings = layer.findings ?? '—';
@@ -515,9 +504,7 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   const checklist = assessment.complianceChecklist || {};
   const rules = checklist.rules || [];
   const summary = checklist.summary || {};
-  const generatedAt = assessment.generatedAt
-    ? new Date(assessment.generatedAt).toLocaleString()
-    : null;
+  const generatedAt = assessment.generatedAt ? new Date(assessment.generatedAt).toLocaleString() : null;
 
   if (!exec) return null;
 
@@ -574,11 +561,7 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
                         <td className="px-3 py-1.5">
                           <Badge
                             variant={
-                              rule.status === 'pass'
-                                ? 'success'
-                                : rule.status === 'fail'
-                                  ? 'danger'
-                                  : 'secondary'
+                              rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : 'secondary'
                             }
                             className="text-xs"
                           >
@@ -622,11 +605,7 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   );
 }
 
-function ImportReportSection({
-  onLoad,
-}: {
-  onLoad: (data: any) => void;
-}) {
+function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
   const [pasteMode, setPasteMode] = useState(false);
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -672,9 +651,7 @@ function ImportReportSection({
         <CardTitle className="flex items-center gap-2 text-base">
           <Upload className="h-4 w-4" /> Import Existing Report
         </CardTitle>
-        <CardDescription>
-          Load a pre-generated report.json from the CLI for offline audit review
-        </CardDescription>
+        <CardDescription>Load a pre-generated report.json from the CLI for offline audit review</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Tabs value={pasteMode ? 'paste' : 'file'} onValueChange={(v) => setPasteMode(v === 'paste')}>
@@ -692,20 +669,17 @@ function ImportReportSection({
                 Click to select a <code className="text-xs">report.json</code> file
               </p>
               <p className="text-xs text-foreground-muted">
-                Generate with: <code className="text-xs">npx simplebeacon scan --gate --offline --format json --output=report.json</code>
+                Generate with:{' '}
+                <code className="text-xs">
+                  npx simplebeacon scan --gate --offline --format json --output=report.json
+                </code>
               </p>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              hidden
-              onChange={handleFile}
-            />
+            <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleFile} />
           </TabsContent>
           <TabsContent value="paste" className="space-y-3">
             <Textarea
-              placeholder='Paste report JSON here...'
+              placeholder="Paste report JSON here..."
               className="min-h-[120px] font-mono text-xs"
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
@@ -742,15 +716,13 @@ function FictionCatalogSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 text-warning" />
-        <h2 className="text-lg font-semibold">
-          Fiction detection catalog ({catalog.length} baseline patterns)
-        </h2>
+        <h2 className="text-lg font-semibold">Fiction detection catalog ({catalog.length} baseline patterns)</h2>
       </div>
       <Card>
         <CardContent className="space-y-3">
           <p className="text-sm text-foreground-muted">
-            These {catalog.length} baseline patterns are banned KPI values Simplebeacon detects and
-            rejects. They are not scan failures by themselves. {statusLine}
+            These {catalog.length} baseline patterns are banned KPI values Simplebeacon detects and rejects. They are
+            not scan failures by themselves. {statusLine}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -830,10 +802,7 @@ function ThroughputBar({
       <div className="relative h-6 rounded-md bg-muted overflow-hidden">
         {/* Throttle threshold zone */}
         {throttlePct > 0 && (
-          <div
-            className="absolute inset-y-0 left-0 bg-danger/10"
-            style={{ width: `${throttlePct}%` }}
-          />
+          <div className="absolute inset-y-0 left-0 bg-danger/10" style={{ width: `${throttlePct}%` }} />
         )}
         {/* Profile minimum line */}
         <div
@@ -848,10 +817,7 @@ function ThroughputBar({
           title={`Profile max: ${profileMax} tok/s`}
         />
         {/* Actual throughput bar */}
-        <div
-          className={`h-full ${barColor} transition-all duration-500`}
-          style={{ width: `${widthPct}%` }}
-        />
+        <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${widthPct}%` }} />
       </div>
     </div>
   );
@@ -903,14 +869,20 @@ function TelemetrySection({
 }: {
   benchmark: BenchmarkData;
   onRunBenchmark?: () => Promise<BenchmarkData | null>;
-  onApplyProfile?: (profile: string) => Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }>;
+  onApplyProfile?: (
+    profile: string
+  ) => Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }>;
 }) {
   const [liveBenchmark, setLiveBenchmark] = useState<BenchmarkData | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [runElapsed, setRunElapsed] = useState<number | null>(null);
   const [isTuning, setIsTuning] = useState(false);
-  const [tuneResult, setTuneResult] = useState<{ oldProfile: string; newProfile: string; containerRestarted: boolean } | null>(null);
+  const [tuneResult, setTuneResult] = useState<{
+    oldProfile: string;
+    newProfile: string;
+    containerRestarted: boolean;
+  } | null>(null);
   const [tuneError, setTuneError] = useState<string | null>(null);
 
   const benchmark = liveBenchmark || initialBenchmark;
@@ -991,22 +963,13 @@ function TelemetrySection({
 
   const gpuActive = numGpu !== 0;
   const gpuThroughputOk = gpuActive && avg >= profileMin * 2;
-  const gpuStatus: 'success' | 'warning' | 'info' = !gpuActive
-    ? 'info'
-    : gpuThroughputOk
-      ? 'success'
-      : 'warning';
+  const gpuStatus: 'success' | 'warning' | 'info' = !gpuActive ? 'info' : gpuThroughputOk ? 'success' : 'warning';
 
   const varianceStatus: 'success' | 'warning' | 'danger' =
     variance > 20 ? 'danger' : variance > 10 ? 'warning' : 'success';
 
-  const thermalStatus: 'success' | 'warning' | 'danger' | 'info' = cpuTemp == null
-    ? 'info'
-    : cpuTemp > 85
-      ? 'danger'
-      : cpuTemp > 75
-        ? 'warning'
-        : 'success';
+  const thermalStatus: 'success' | 'warning' | 'danger' | 'info' =
+    cpuTemp == null ? 'info' : cpuTemp > 85 ? 'danger' : cpuTemp > 75 ? 'warning' : 'success';
 
   return (
     <div className="space-y-3">
@@ -1017,7 +980,9 @@ function TelemetrySection({
           {profile} profile
         </Badge>
         {liveBenchmark && (
-          <Badge variant="info" className="text-xs">Live</Badge>
+          <Badge variant="info" className="text-xs">
+            Live
+          </Badge>
         )}
       </div>
 
@@ -1032,12 +997,7 @@ function TelemetrySection({
             </div>
             <div className="flex items-center gap-2">
               {onRunBenchmark && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRunBenchmark}
-                  disabled={isRunning}
-                >
+                <Button variant="outline" size="sm" onClick={handleRunBenchmark} disabled={isRunning}>
                   {isRunning ? (
                     <>
                       <Activity className="h-4 w-4 animate-pulse" />
@@ -1052,7 +1012,9 @@ function TelemetrySection({
                 </Button>
               )}
               <Badge
-                variant={throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'}
+                variant={
+                  throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'
+                }
                 className="text-sm"
               >
                 {throughputStatus === 'success'
@@ -1079,9 +1041,7 @@ function TelemetrySection({
             <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-3 text-sm">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
               <span className="text-success font-semibold">Live benchmark data loaded</span>
-              <span className="text-xs text-foreground-muted ml-auto">
-                {new Date(runElapsed).toLocaleTimeString()}
-              </span>
+              <span className="text-xs text-foreground-muted ml-auto">{new Date(runElapsed).toLocaleTimeString()}</span>
             </div>
           )}
           {/* Throughput bars */}
@@ -1122,7 +1082,13 @@ function TelemetrySection({
             />
             <StatusGauge
               label="GPU Offload"
-              value={numGpu === 0 ? 'CPU only' : numGpu === -1 || numGpu > 900 ? 'All layers' : `${numGpu} layer${numGpu !== 1 ? 's' : ''}`}
+              value={
+                numGpu === 0
+                  ? 'CPU only'
+                  : numGpu === -1 || numGpu > 900
+                    ? 'All layers'
+                    : `${numGpu} layer${numGpu !== 1 ? 's' : ''}`
+              }
               icon={Cpu}
               status={gpuStatus}
             />
@@ -1177,8 +1143,9 @@ function TelemetrySection({
               <div className="flex-1">
                 <p className="font-semibold text-danger">Throughput below throttle threshold</p>
                 <p className="text-xs text-foreground-muted mt-0.5">
-                  Average {avg.toFixed(1)} tok/s is below 80% of {profile} minimum ({throttleThreshold ?? profileMin * 0.8} tok/s).
-                  Check for thermal throttling, GPU offload failure, or resource contention.
+                  Average {avg.toFixed(1)} tok/s is below 80% of {profile} minimum (
+                  {throttleThreshold ?? profileMin * 0.8} tok/s). Check for thermal throttling, GPU offload failure, or
+                  resource contention.
                 </p>
                 {onApplyProfile && profile !== 'minimal' && (
                   <Button
@@ -1222,8 +1189,8 @@ function TelemetrySection({
               <div>
                 <p className="font-semibold text-warning">High variance across runs</p>
                 <p className="text-xs text-foreground-muted mt-0.5">
-                  Coefficient of variation is {variance.toFixed(1)}% (threshold: 20%).
-                  Possible thread contention, thermal instability, or background processes.
+                  Coefficient of variation is {variance.toFixed(1)}% (threshold: 20%). Possible thread contention,
+                  thermal instability, or background processes.
                 </p>
               </div>
             </div>
@@ -1234,8 +1201,8 @@ function TelemetrySection({
               <div className="flex-1">
                 <p className="font-semibold text-danger">CPU thermal throttling likely</p>
                 <p className="text-xs text-foreground-muted mt-0.5">
-                  CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C).
-                  Reduce workload, improve cooling, or switch to a lower quantization profile.
+                  CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C). Reduce workload, improve cooling, or
+                  switch to a lower quantization profile.
                 </p>
                 {onApplyProfile && profile !== 'minimal' && (
                   <Button
@@ -1492,17 +1459,13 @@ export function AuditView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Audit Report</h1>
-          <p className="text-foreground-muted">
-            Compliance audit with gate status, audit layers, and export options
-          </p>
+          <p className="text-foreground-muted">Compliance audit with gate status, audit layers, and export options</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">No scan results loaded</p>
-            <p className="text-xs text-foreground-muted">
-              Run a scan from the Analyze page or import a report below
-            </p>
+            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page or import a report below</p>
             <Button className="mt-2" onClick={() => navigate('analyze')}>
               <Play className="h-4 w-4" /> Go to Analyze
             </Button>
@@ -1529,7 +1492,11 @@ export function AuditView() {
         <p className="text-foreground-muted">
           {activeResult?.projectPath || '—'}
           {scanTime && <span className="ml-2 text-xs">— {scanTime}</span>}
-          {importedReport && <Badge variant="info" className="ml-2 text-xs">Imported</Badge>}
+          {importedReport && (
+            <Badge variant="info" className="ml-2 text-xs">
+              Imported
+            </Badge>
+          )}
         </p>
       </div>
 
@@ -1545,16 +1512,10 @@ export function AuditView() {
           icon={ClipboardCheck}
           label="Quality Score"
           value={
-            activeResult?.qualityScore != null
-              ? `${activeResult.qualityScore}% (${letterGrade})`
-              : `— (${letterGrade})`
+            activeResult?.qualityScore != null ? `${activeResult.qualityScore}% (${letterGrade})` : `— (${letterGrade})`
           }
         />
-        <MetricCard
-          icon={FileCode}
-          label="Files Scanned"
-          value={formatNumber(activeResult?.totalFiles)}
-        />
+        <MetricCard icon={FileCode} label="Files Scanned" value={formatNumber(activeResult?.totalFiles)} />
         <MetricCard
           icon={AlertTriangle}
           label="Issues Found"
@@ -1718,9 +1679,7 @@ export function AuditView() {
       )}
 
       {/* Import section (always available at bottom for loading alternative reports) */}
-      {!importedReport && (
-        <ImportReportSection onLoad={handleImport} />
-      )}
+      {!importedReport && <ImportReportSection onLoad={handleImport} />}
     </div>
   );
 }

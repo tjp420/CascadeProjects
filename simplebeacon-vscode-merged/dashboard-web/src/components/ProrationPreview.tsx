@@ -123,18 +123,10 @@ export function ProrationPreview() {
         <CardContent className="space-y-4">
           {/* Billing cycle toggle */}
           <div className="flex items-center gap-2">
-            <Button
-              variant={!isAnnual ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setIsAnnual(false)}
-            >
+            <Button variant={!isAnnual ? 'default' : 'outline'} size="sm" onClick={() => setIsAnnual(false)}>
               Monthly
             </Button>
-            <Button
-              variant={isAnnual ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setIsAnnual(true)}
-            >
+            <Button variant={isAnnual ? 'default' : 'outline'} size="sm" onClick={() => setIsAnnual(true)}>
               Annual
             </Button>
           </div>
@@ -149,9 +141,7 @@ export function ProrationPreview() {
                     key={tier.id}
                     onClick={() => setFromTier(tier.id)}
                     className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
-                      fromTier === tier.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
+                      fromTier === tier.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <div>
@@ -162,7 +152,9 @@ export function ProrationPreview() {
                       </span>
                     </div>
                     {fromTier === tier.id && (
-                      <Badge variant="default" className="text-xs">Current</Badge>
+                      <Badge variant="default" className="text-xs">
+                        Current
+                      </Badge>
                     )}
                   </button>
                 ))}
@@ -178,9 +170,7 @@ export function ProrationPreview() {
                     onClick={() => setToTier(tier.id)}
                     disabled={tier.id === fromTier}
                     className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
-                      toTier === tier.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
+                      toTier === tier.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
                     } ${tier.id === fromTier ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     <div>
@@ -191,7 +181,9 @@ export function ProrationPreview() {
                       </span>
                     </div>
                     {toTier === tier.id && (
-                      <Badge variant="default" className="text-xs">Selected</Badge>
+                      <Badge variant="default" className="text-xs">
+                        Selected
+                      </Badge>
                     )}
                   </button>
                 ))}
@@ -200,22 +192,12 @@ export function ProrationPreview() {
           </div>
 
           {/* Calculate button */}
-          <Button
-            onClick={calculatePreview}
-            disabled={loading || sameTier || tiersLoading}
-            className="w-full"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Calculator className="h-4 w-4 mr-2" />
-            )}
+          <Button onClick={calculatePreview} disabled={loading || sameTier || tiersLoading} className="w-full">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Calculator className="h-4 w-4 mr-2" />}
             {sameTier ? 'Select different tiers to compare' : 'Calculate Proration'}
           </Button>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
 
@@ -246,9 +228,7 @@ export function ProrationPreview() {
                     : 'bg-muted border border-border'
               }`}
             >
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Net Adjustment
-              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Net Adjustment</p>
               <p
                 className={`text-3xl font-bold ${
                   result.netAdjustmentCents > 0
@@ -292,7 +272,9 @@ export function ProrationPreview() {
                 <div className="h-3 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-blue-500/70"
-                    style={{ width: `${Math.min(100, (result.chargeCents / Math.max(1, result.creditCents + result.chargeCents)) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, (result.chargeCents / Math.max(1, result.creditCents + result.chargeCents)) * 100)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -325,16 +307,12 @@ export function ProrationPreview() {
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground mb-1">From</p>
                 <p className="text-sm font-medium">{result.fromTierName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatRate(result.oldDailyRateCents)}/day
-                </p>
+                <p className="text-xs text-muted-foreground">{formatRate(result.oldDailyRateCents)}/day</p>
               </div>
               <div className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground mb-1">To</p>
                 <p className="text-sm font-medium">{result.toTierName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatRate(result.newDailyRateCents)}/day
-                </p>
+                <p className="text-xs text-muted-foreground">{formatRate(result.newDailyRateCents)}/day</p>
               </div>
             </div>
 

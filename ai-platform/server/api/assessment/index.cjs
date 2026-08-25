@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-'use strict';
+"use strict";
 
 /**
  * @module assessment
@@ -27,11 +27,11 @@
  * @license MIT
  */
 
-const express = require('express');
-const rateLimit = require('express-rate-limit');
-const controller = require('./AssessmentController.cjs');
+const express = require("express");
+const rateLimit = require("express-rate-limit");
+const controller = require("./AssessmentController.cjs");
 
-const constants = require('../../config/constants.cjs');
+const constants = require("../../config/constants.cjs");
 const router = express.Router();
 
 const RATE_LIMIT_WINDOW_MS = constants.RATE_LIMIT_WINDOW_MS; // 15 minutes
@@ -42,12 +42,12 @@ const assessmentRateLimit = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
   max: RATE_LIMIT_MAX_REQUESTS,
   message: {
-    error: 'Too many requests',
-    message: 'Assessment API rate limit exceeded. Please try again later.',
-    retryAfter: RATE_LIMIT_RETRY_SECONDS
+    error: "Too many requests",
+    message: "Assessment API rate limit exceeded. Please try again later.",
+    retryAfter: RATE_LIMIT_RETRY_SECONDS,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /** Wrap async route handlers so rejected promises are forwarded to the error handler. */
@@ -61,14 +61,29 @@ function asyncHandler(fn) {
 function validateScanBody(req, res, next) {
   const { repoUrl, projectPath, email } = req.body || {};
   const errors = [];
-  if (repoUrl !== undefined && (typeof repoUrl !== 'string' || !repoUrl.startsWith('http'))) {
-    errors.push({ field: 'repoUrl', message: 'repoUrl must be a valid HTTP/HTTPS URL string' });
+  if (
+    repoUrl !== undefined &&
+    (typeof repoUrl !== "string" || !repoUrl.startsWith("http"))
+  ) {
+    errors.push({
+      field: "repoUrl",
+      message: "repoUrl must be a valid HTTP/HTTPS URL string",
+    });
   }
-  if (projectPath !== undefined && (typeof projectPath !== 'string' || !projectPath.trim())) {
-    errors.push({ field: 'projectPath', message: 'projectPath must be a non-empty string' });
+  if (
+    projectPath !== undefined &&
+    (typeof projectPath !== "string" || !projectPath.trim())
+  ) {
+    errors.push({
+      field: "projectPath",
+      message: "projectPath must be a non-empty string",
+    });
   }
   if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push({ field: 'email', message: 'email must be a valid email address' });
+    errors.push({
+      field: "email",
+      message: "email must be a valid email address",
+    });
   }
   if (errors.length) {
     return res.status(400).json({ success: false, errors });
@@ -80,7 +95,9 @@ function validateScanBody(req, res, next) {
 function validateReportId(req, res, next) {
   const id = req.params.id || req.params.assessmentId;
   if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return res.status(400).json({ success: false, error: 'Invalid report ID format' });
+    return res
+      .status(400)
+      .json({ success: false, error: "Invalid report ID format" });
   }
   next();
 }
@@ -89,13 +106,15 @@ function validateReportId(req, res, next) {
 function validateDownloadParams(req, res, next) {
   const id = req.params.id || req.params.assessmentId;
   if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return res.status(400).json({ success: false, error: 'Invalid report ID format' });
+    return res
+      .status(400)
+      .json({ success: false, error: "Invalid report ID format" });
   }
-  const allowedFormats = ['json', 'pdf', 'html'];
+  const allowedFormats = ["json", "pdf", "html"];
   if (!allowedFormats.includes(req.params.format)) {
     return res.status(400).json({
       success: false,
-      error: `Invalid format. Must be one of: ${allowedFormats.join(', ')}`
+      error: `Invalid format. Must be one of: ${allowedFormats.join(", ")}`,
     });
   }
   next();
@@ -106,27 +125,42 @@ function assessmentErrorHandler(err, _req, res, _next) {
   const status = err.status || err.statusCode || 500;
   res.status(status).json({
     success: false,
-    error: err.name || 'Error',
-    message: err.message || 'Internal server error'
+    error: err.name || "Error",
+    message: err.message || "Internal server error",
   });
 }
 
-router.get('/health', (_req, res) => {
+router.get("/health", (_req, res) => {
   res.json({
     success: true,
-    service: 'assessment-api',
+    service: "assessment-api",
     routes: [
-      'POST /api/assessment/scan',
-      'GET /api/assessment/report/:id',
-      'GET /api/assessment/report/:id/download/:format'
+      "POST /api/assessment/scan",
+      "GET /api/assessment/report/:id",
+      "GET /api/assessment/report/:id/download/:format",
     ],
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-router.post('/scan', assessmentRateLimit, validateScanBody, asyncHandler((req, res) => controller.triggerScan(req, res)));
-router.get('/report/:id', assessmentRateLimit, validateReportId, asyncHandler((req, res) => controller.getReport(req, res)));
-router.get('/report/:id/download/:format', assessmentRateLimit, validateDownloadParams, asyncHandler((req, res) => controller.downloadReport(req, res)));
+router.post(
+  "/scan",
+  assessmentRateLimit,
+  validateScanBody,
+  asyncHandler((req, res) => controller.triggerScan(req, res)),
+);
+router.get(
+  "/report/:id",
+  assessmentRateLimit,
+  validateReportId,
+  asyncHandler((req, res) => controller.getReport(req, res)),
+);
+router.get(
+  "/report/:id/download/:format",
+  assessmentRateLimit,
+  validateDownloadParams,
+  asyncHandler((req, res) => controller.downloadReport(req, res)),
+);
 
 router.use(assessmentErrorHandler);
 

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Regional Replication Routes
@@ -15,10 +15,13 @@
  * @module replication-routes
  */
 
-const express = require('express');
-const { authenticate } = require('../middleware/auth.cjs');
-const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
-const { RegionalReplicationRouter, CONFLICT_STRATEGIES } = require('../lib/regional-replication-router.cjs');
+const express = require("express");
+const { authenticate } = require("../middleware/auth.cjs");
+const { sendError, sendSuccess } = require("../lib/response-helpers.cjs");
+const {
+  RegionalReplicationRouter,
+  CONFLICT_STRATEGIES,
+} = require("../lib/regional-replication-router.cjs");
 
 const router = express.Router();
 
@@ -44,11 +47,13 @@ router.use(authenticate);
  * Body: { zone?: string, payload: { type, data, version?, timestamp? } }
  * If zone is omitted, syncs to all zones.
  */
-router.post('/sync', async (req, res) => {
+router.post("/sync", async (req, res) => {
   try {
     const { zone, payload } = req.body || {};
     if (!payload) {
-      return sendError(res, 400, 'missing_payload', { message: 'Request body must include a payload object' });
+      return sendError(res, 400, "missing_payload", {
+        message: "Request body must include a payload object",
+      });
     }
     const replicationRouter = getReplicationRouter();
     if (zone) {
@@ -58,7 +63,7 @@ router.post('/sync', async (req, res) => {
     const results = await replicationRouter.syncAll(payload);
     return sendSuccess(res, { results });
   } catch (err) {
-    return sendError(res, 500, 'sync_failed', { message: err.message });
+    return sendError(res, 500, "sync_failed", { message: err.message });
   }
 });
 
@@ -66,7 +71,7 @@ router.post('/sync', async (req, res) => {
  * GET /api/replication/status
  * Returns status for all zones.
  */
-router.get('/status', (req, res) => {
+router.get("/status", (req, res) => {
   const replicationRouter = getReplicationRouter();
   const status = replicationRouter.getStatus();
   return sendSuccess(res, { zones: status });
@@ -76,12 +81,14 @@ router.get('/status', (req, res) => {
  * GET /api/replication/status/:zone
  * Returns status for a specific zone.
  */
-router.get('/status/:zone', (req, res) => {
+router.get("/status/:zone", (req, res) => {
   const { zone } = req.params;
   const replicationRouter = getReplicationRouter();
   const status = replicationRouter.getZoneStatus(zone);
   if (!status) {
-    return sendError(res, 404, 'zone_not_found', { message: `Zone not found: ${zone}` });
+    return sendError(res, 404, "zone_not_found", {
+      message: `Zone not found: ${zone}`,
+    });
   }
   return sendSuccess(res, { zone: status });
 });
@@ -90,7 +97,7 @@ router.get('/status/:zone', (req, res) => {
  * GET /api/replication/conflicts
  * Lists all pending conflicts.
  */
-router.get('/conflicts', (req, res) => {
+router.get("/conflicts", (req, res) => {
   const replicationRouter = getReplicationRouter();
   const conflicts = replicationRouter.getConflicts();
   return sendSuccess(res, { conflicts, count: conflicts.length });
@@ -100,20 +107,28 @@ router.get('/conflicts', (req, res) => {
  * POST /api/replication/resolve-conflict
  * Body: { conflictId, strategy, manualPayload? }
  */
-router.post('/resolve-conflict', (req, res) => {
+router.post("/resolve-conflict", (req, res) => {
   try {
     const { conflictId, strategy, manualPayload } = req.body || {};
     if (!conflictId) {
-      return sendError(res, 400, 'missing_conflict_id', { message: 'conflictId is required' });
+      return sendError(res, 400, "missing_conflict_id", {
+        message: "conflictId is required",
+      });
     }
     if (!strategy) {
-      return sendError(res, 400, 'missing_strategy', { message: 'strategy is required (latest-wins or manual)' });
+      return sendError(res, 400, "missing_strategy", {
+        message: "strategy is required (latest-wins or manual)",
+      });
     }
     const replicationRouter = getReplicationRouter();
-    const result = replicationRouter.resolveConflict(conflictId, strategy, manualPayload);
+    const result = replicationRouter.resolveConflict(
+      conflictId,
+      strategy,
+      manualPayload,
+    );
     return sendSuccess(res, { result });
   } catch (err) {
-    return sendError(res, 500, 'resolution_failed', { message: err.message });
+    return sendError(res, 500, "resolution_failed", { message: err.message });
   }
 });
 

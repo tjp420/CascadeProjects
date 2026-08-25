@@ -1,4 +1,3 @@
-
 /**
  * Return a random element from an array.
  * @template T
@@ -6,8 +5,8 @@
  * @returns {T | undefined}
  */
 export function sample(arr) {
-    if (!Array.isArray(arr) || arr.length === 0) return undefined;
-    return arr[Math.floor(Math.random() * arr.length)];
+  if (!Array.isArray(arr) || arr.length === 0) return undefined;
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 /**
@@ -17,13 +16,13 @@ export function sample(arr) {
  * @returns {T[]}
  */
 export function shuffle(arr) {
-    if (!Array.isArray(arr)) return [];
-    const result = [...arr];
-    for (let i = result.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
+  if (!Array.isArray(arr)) return [];
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 /**
@@ -33,14 +32,14 @@ export function shuffle(arr) {
  * @returns {number}
  */
 export function sum(arr, keyFn) {
-    if (!Array.isArray(arr)) return 0;
-    let total = 0;
-    for (const item of arr) {
-        const val = typeof keyFn === 'function' ? keyFn(item) : item;
-        const n = Number(val);
-        if (Number.isFinite(n)) total += n;
-    }
-    return total;
+  if (!Array.isArray(arr)) return 0;
+  let total = 0;
+  for (const item of arr) {
+    const val = typeof keyFn === "function" ? keyFn(item) : item;
+    const n = Number(val);
+    if (Number.isFinite(n)) total += n;
+  }
+  return total;
 }
 
 /**
@@ -50,8 +49,8 @@ export function sum(arr, keyFn) {
  * @returns {number}
  */
 export function mean(arr, keyFn) {
-    if (!Array.isArray(arr) || arr.length === 0) return 0;
-    return sum(arr, keyFn) / arr.length;
+  if (!Array.isArray(arr) || arr.length === 0) return 0;
+  return sum(arr, keyFn) / arr.length;
 }
 
 /**
@@ -62,14 +61,18 @@ export function mean(arr, keyFn) {
  * @returns {T | undefined}
  */
 export function maxBy(arr, keyFn) {
-    if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== 'function') return undefined;
-    let maxItem = arr[0];
-    let maxVal = keyFn(maxItem);
-    for (let i = 1; i < arr.length; i++) {
-        const val = keyFn(arr[i]);
-        if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== "function")
+    return undefined;
+  let maxItem = arr[0];
+  let maxVal = keyFn(maxItem);
+  for (let i = 1; i < arr.length; i++) {
+    const val = keyFn(arr[i]);
+    if (val > maxVal) {
+      maxVal = val;
+      maxItem = arr[i];
     }
-    return maxItem;
+  }
+  return maxItem;
 }
 
 /**
@@ -80,14 +83,18 @@ export function maxBy(arr, keyFn) {
  * @returns {T | undefined}
  */
 export function minBy(arr, keyFn) {
-    if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== 'function') return undefined;
-    let minItem = arr[0];
-    let minVal = keyFn(minItem);
-    for (let i = 1; i < arr.length; i++) {
-        const val = keyFn(arr[i]);
-        if (val < minVal) { minVal = val; minItem = arr[i]; }
+  if (!Array.isArray(arr) || arr.length === 0 || typeof keyFn !== "function")
+    return undefined;
+  let minItem = arr[0];
+  let minVal = keyFn(minItem);
+  for (let i = 1; i < arr.length; i++) {
+    const val = keyFn(arr[i]);
+    if (val < minVal) {
+      minVal = val;
+      minItem = arr[i];
     }
-    return minItem;
+  }
+  return minItem;
 }
 
 /**
@@ -97,8 +104,8 @@ export function minBy(arr, keyFn) {
  * @returns {T[]}
  */
 export function reverse(arr) {
-    if (!Array.isArray(arr)) return [];
-    return [...arr].reverse();
+  if (!Array.isArray(arr)) return [];
+  return [...arr].reverse();
 }
 
 /**
@@ -109,8 +116,8 @@ export function reverse(arr) {
  * @returns {T[]}
  */
 export function union(a, b) {
-    if (!Array.isArray(a) || !Array.isArray(b)) return [];
-    return [...new Set([...a, ...b])];
+  if (!Array.isArray(a) || !Array.isArray(b)) return [];
+  return [...new Set([...a, ...b])];
 }
 
 /**
@@ -120,12 +127,12 @@ export function union(a, b) {
  * @returns {Object}
  */
 export function mapValues(obj, fn) {
-    if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
-    const result = {};
-    for (const [key, val] of Object.entries(obj)) {
-        result[key] = fn(val, key);
-    }
-    return result;
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
+  const result = {};
+  for (const [key, val] of Object.entries(obj)) {
+    result[key] = fn(val, key);
+  }
+  return result;
 }
 
 /**
@@ -135,12 +142,12 @@ export function mapValues(obj, fn) {
  * @returns {Object}
  */
 export function mapKeys(obj, fn) {
-    if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
-    const result = {};
-    for (const [key, val] of Object.entries(obj)) {
-        result[fn(key, val)] = val;
-    }
-    return result;
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
+  const result = {};
+  for (const [key, val] of Object.entries(obj)) {
+    result[fn(key, val)] = val;
+  }
+  return result;
 }
 
 /**
@@ -149,12 +156,12 @@ export function mapKeys(obj, fn) {
  * @returns {Object}
  */
 export function invert(obj) {
-    if (!obj || typeof obj !== 'object') return {};
-    const result = {};
-    for (const [key, val] of Object.entries(obj)) {
-        result[String(val)] = key;
-    }
-    return result;
+  if (!obj || typeof obj !== "object") return {};
+  const result = {};
+  for (const [key, val] of Object.entries(obj)) {
+    result[String(val)] = key;
+  }
+  return result;
 }
 
 /**
@@ -164,9 +171,9 @@ export function invert(obj) {
  * @returns {T}
  */
 export function clone(obj) {
-    if (obj == null || typeof obj !== 'object') return obj;
-    if (Array.isArray(obj)) return [...obj];
-    return { ...obj };
+  if (obj == null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return [...obj];
+  return { ...obj };
 }
 
 /**
@@ -176,23 +183,30 @@ export function clone(obj) {
  * @returns {Object}
  */
 export function defaultsDeep(target, ...sources) {
-    if (!target || typeof target !== 'object') return {};
-    const result = { ...target };
-    for (const src of sources) {
-        if (!src || typeof src !== 'object') continue;
-        for (const key of Object.keys(src)) {
-            if (result[key] === undefined) {
-                const val = src[key];
-                result[key] = (val && typeof val === 'object' && !Array.isArray(val))
-                    ? defaultsDeep({}, val)
-                    : val;
-            } else if (result[key] && typeof result[key] === 'object' && !Array.isArray(result[key]) &&
-                       src[key] && typeof src[key] === 'object' && !Array.isArray(src[key])) {
-                result[key] = defaultsDeep(result[key], src[key]);
-            }
-        }
+  if (!target || typeof target !== "object") return {};
+  const result = { ...target };
+  for (const src of sources) {
+    if (!src || typeof src !== "object") continue;
+    for (const key of Object.keys(src)) {
+      if (result[key] === undefined) {
+        const val = src[key];
+        result[key] =
+          val && typeof val === "object" && !Array.isArray(val)
+            ? defaultsDeep({}, val)
+            : val;
+      } else if (
+        result[key] &&
+        typeof result[key] === "object" &&
+        !Array.isArray(result[key]) &&
+        src[key] &&
+        typeof src[key] === "object" &&
+        !Array.isArray(src[key])
+      ) {
+        result[key] = defaultsDeep(result[key], src[key]);
+      }
     }
-    return result;
+  }
+  return result;
 }
 
 /**
@@ -202,8 +216,8 @@ export function defaultsDeep(target, ...sources) {
  * @returns {any[]}
  */
 export function at(obj, paths) {
-    if (!obj || typeof obj !== 'object' || !Array.isArray(paths)) return [];
-    return paths.map((path) => get(obj, path));
+  if (!obj || typeof obj !== "object" || !Array.isArray(paths)) return [];
+  return paths.map((path) => get(obj, path));
 }
 
 /**
@@ -213,20 +227,20 @@ export function at(obj, paths) {
  * @returns {boolean}
  */
 export function unset(obj, path) {
-    if (!obj || typeof obj !== 'object' || typeof path !== 'string') return false;
-    const keys = path.split('.');
-    let current = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (current[key] == null || typeof current[key] !== 'object') return false;
-        current = current[key];
-    }
-    const lastKey = keys[keys.length - 1];
-    if (Object.prototype.hasOwnProperty.call(current, lastKey)) {
-        delete current[lastKey];
-        return true;
-    }
-    return false;
+  if (!obj || typeof obj !== "object" || typeof path !== "string") return false;
+  const keys = path.split(".");
+  let current = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (current[key] == null || typeof current[key] !== "object") return false;
+    current = current[key];
+  }
+  const lastKey = keys[keys.length - 1];
+  if (Object.prototype.hasOwnProperty.call(current, lastKey)) {
+    delete current[lastKey];
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -235,7 +249,7 @@ export function unset(obj, path) {
  * @returns {Function}
  */
 export function flow(...fns) {
-    return (value) => fns.reduceRight((v, fn) => fn(v), value);
+  return (value) => fns.reduceRight((v, fn) => fn(v), value);
 }
 
 /**
@@ -244,10 +258,11 @@ export function flow(...fns) {
  * @returns {Function}
  */
 export function negate(predicate) {
-    if (typeof predicate !== 'function') throw new TypeError('negate requires a function');
-    return function (...args) {
-        return !predicate.apply(this, args);
-    };
+  if (typeof predicate !== "function")
+    throw new TypeError("negate requires a function");
+  return function (...args) {
+    return !predicate.apply(this, args);
+  };
 }
 
 /**
@@ -258,13 +273,13 @@ export function negate(predicate) {
  * @returns {Record<string, number>}
  */
 export function countBy(arr, iteratee) {
-    if (!Array.isArray(arr) || typeof iteratee !== 'function') return {};
-    const map = new Map();
-    for (const item of arr) {
-        const key = iteratee(item);
-        map.set(key, (map.get(key) || 0) + 1);
-    }
-    return Object.fromEntries(map);
+  if (!Array.isArray(arr) || typeof iteratee !== "function") return {};
+  const map = new Map();
+  for (const item of arr) {
+    const key = iteratee(item);
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+  return Object.fromEntries(map);
 }
 
 /**
@@ -275,11 +290,11 @@ export function countBy(arr, iteratee) {
  * @returns {number} Index or -1 if not found.
  */
 export function findIndex(arr, predicate) {
-    if (!Array.isArray(arr) || typeof predicate !== 'function') return -1;
-    for (let i = 0; i < arr.length; i++) {
-        if (predicate(arr[i])) return i;
-    }
-    return -1;
+  if (!Array.isArray(arr) || typeof predicate !== "function") return -1;
+  for (let i = 0; i < arr.length; i++) {
+    if (predicate(arr[i])) return i;
+  }
+  return -1;
 }
 
 /** Type guard: value is null.
@@ -287,7 +302,7 @@ export function findIndex(arr, predicate) {
  * @returns {boolean}
  */
 export function isNull(value) {
-    return value === null;
+  return value === null;
 }
 
 /** Type guard: value is undefined.
@@ -295,7 +310,7 @@ export function isNull(value) {
  * @returns {boolean}
  */
 export function isUndefined(value) {
-    return value === undefined;
+  return value === undefined;
 }
 
 /** Type guard: value is null or undefined.
@@ -303,7 +318,7 @@ export function isUndefined(value) {
  * @returns {boolean}
  */
 export function isNil(value) {
-    return value == null;
+  return value == null;
 }
 
 /** Type guard: value is a symbol.
@@ -311,7 +326,7 @@ export function isNil(value) {
  * @returns {boolean}
  */
 export function isSymbol(value) {
-    return typeof value === 'symbol';
+  return typeof value === "symbol";
 }
 
 /** Type guard: value is a Map.
@@ -319,7 +334,7 @@ export function isSymbol(value) {
  * @returns {boolean}
  */
 export function isMap(value) {
-    return value instanceof Map;
+  return value instanceof Map;
 }
 
 /** Type guard: value is a Set.
@@ -327,5 +342,5 @@ export function isMap(value) {
  * @returns {boolean}
  */
 export function isSet(value) {
-    return value instanceof Set;
+  return value instanceof Set;
 }

@@ -12,7 +12,13 @@ export function AboutView() {
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <svg viewBox="0 0 24 24" className="h-7 w-7 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7 text-primary-foreground"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <polyline points="9 12 12 15 16 10" />
               </svg>
@@ -23,10 +29,9 @@ export function AboutView() {
             </div>
           </div>
           <p className="text-sm text-foreground-secondary">
-            SimpleBeacon is a deterministic AI safety scanner that checks repositories for
-            credentials, mock paths, production leak directories, and compliance gate rules.
-            It provides pattern-matching scans (not semantic code review) scoped to configured
-            scanPaths and production directories.
+            SimpleBeacon is a deterministic AI safety scanner that checks repositories for credentials, mock paths,
+            production leak directories, and compliance gate rules. It provides pattern-matching scans (not semantic
+            code review) scoped to configured scanPaths and production directories.
           </p>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Whitelabel Sub-Domain Routing Middleware — intercepts incoming requests,
@@ -17,16 +17,14 @@
  * @module whitelabel-middleware
  */
 
-const logger = require('./app-logger.cjs');
-const wlStore = require('./whitelabel-config-store.cjs');
+const logger = require("./app-logger.cjs");
+const wlStore = require("./whitelabel-config-store.cjs");
 
 // Domains that should never trigger whitelabel resolution
-const SKIP_HOSTS = new Set([
-  'localhost', '127.0.0.1', '::1', '0.0.0.0',
-]);
+const SKIP_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
 
 // Base domain for subdomain extraction (e.g., "simplebeacon.ai")
-const BASE_DOMAIN = process.env.WHITELABEL_BASE_DOMAIN || 'simplebeacon.ai';
+const BASE_DOMAIN = process.env.WHITELABEL_BASE_DOMAIN || "simplebeacon.ai";
 
 /**
  * Extract the subdomain prefix from a hostname.
@@ -37,10 +35,11 @@ const BASE_DOMAIN = process.env.WHITELABEL_BASE_DOMAIN || 'simplebeacon.ai';
 function extractSubdomain(hostname) {
   if (!hostname) return null;
   const normalized = hostname.toLowerCase().trim();
-  if (normalized === BASE_DOMAIN || normalized === 'www.' + BASE_DOMAIN) return null;
-  if (!normalized.endsWith('.' + BASE_DOMAIN)) return null;
+  if (normalized === BASE_DOMAIN || normalized === "www." + BASE_DOMAIN)
+    return null;
+  if (!normalized.endsWith("." + BASE_DOMAIN)) return null;
   const prefix = normalized.slice(0, -(BASE_DOMAIN.length + 1));
-  if (!prefix || prefix === 'www') return null;
+  if (!prefix || prefix === "www") return null;
   return prefix;
 }
 
@@ -58,7 +57,9 @@ function resolvePartner(hostname) {
   // 1. Exact domain match (also handles wildcard suffix via resolveByDomain)
   const byDomain = wlStore.resolveByDomain(normalized);
   if (byDomain) {
-    logger.info(`[Whitelabel] Resolved partner ${byDomain.partnerId} via domain: ${normalized}`);
+    logger.info(
+      `[Whitelabel] Resolved partner ${byDomain.partnerId} via domain: ${normalized}`,
+    );
     return byDomain;
   }
 
@@ -68,15 +69,19 @@ function resolvePartner(hostname) {
     // Try the full subdomain first (e.g., "app.acme")
     const byFullSubdomain = wlStore.resolveBySubdomain(subdomain);
     if (byFullSubdomain) {
-      logger.info(`[Whitelabel] Resolved partner ${byFullSubdomain.partnerId} via subdomain: ${subdomain}`);
+      logger.info(
+        `[Whitelabel] Resolved partner ${byFullSubdomain.partnerId} via subdomain: ${subdomain}`,
+      );
       return byFullSubdomain;
     }
     // Try just the first segment (e.g., "acme" from "app.acme")
-    const firstSegment = subdomain.split('.')[0];
+    const firstSegment = subdomain.split(".")[0];
     if (firstSegment !== subdomain) {
       const bySegment = wlStore.resolveBySubdomain(firstSegment);
       if (bySegment) {
-        logger.info(`[Whitelabel] Resolved partner ${bySegment.partnerId} via subdomain segment: ${firstSegment}`);
+        logger.info(
+          `[Whitelabel] Resolved partner ${bySegment.partnerId} via subdomain segment: ${firstSegment}`,
+        );
         return bySegment;
       }
     }
@@ -95,21 +100,21 @@ function resolvePartner(hostname) {
  */
 function whitelabelMiddleware(req, res, next) {
   try {
-    const hostname = req.hostname || req.get('host') || '';
+    const hostname = req.hostname || req.get("host") || "";
     const partner = resolvePartner(hostname);
 
     if (partner) {
       req.whitelabelPartner = partner;
       req.brand = partner.brand;
-      res.setHeader('X-Whitelabel-Partner', partner.partnerId);
+      res.setHeader("X-Whitelabel-Partner", partner.partnerId);
     } else {
       req.whitelabelPartner = null;
       req.brand = wlStore.DEFAULT_BRAND;
     }
   } catch (err) {
-    console.error('whitelabel-middleware.cjs error:', err);
+    console.error("whitelabel-middleware.cjs error:", err);
     // Never block the request due to whitelabel resolution failure
-    logger.error('[Whitelabel] Middleware error:', err.message);
+    logger.error("[Whitelabel] Middleware error:", err.message);
     req.whitelabelPartner = null;
     req.brand = wlStore.DEFAULT_BRAND;
   }
@@ -136,7 +141,7 @@ function buildBrandInjection(brand, partnerId) {
   const styleBlock = `<style id="whitelabel-brand-css">\n${css}\n</style>`;
   const scriptBlock = `<script>window.__SIMPLEBEACON_BRAND__=${brandJson};</script>`;
 
-  return styleBlock + '\n' + scriptBlock;
+  return styleBlock + "\n" + scriptBlock;
 }
 
 module.exports = {

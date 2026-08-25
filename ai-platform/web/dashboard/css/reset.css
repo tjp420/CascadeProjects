@@ -21,7 +21,8 @@ body {
 }
 
 /* Ensure document root uses percentage heights so embedded iframes/webviews size correctly */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -69,7 +70,9 @@ ol {
 
 /* Smooth theme transitions */
 html {
-  transition: background-color var(--transition-slow) ease, color var(--transition-slow) ease;
+  transition:
+    background-color var(--transition-slow) ease,
+    color var(--transition-slow) ease;
 }
 
 /* Scrollbar theming */

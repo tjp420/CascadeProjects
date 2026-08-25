@@ -1,8 +1,7 @@
 // SimpleBeacon Dashboard Utilities
 // Pure helper functions extracted from main.js
 function escapeHtml(str) {
-    if (!str)
-        return '';
+    if (!str) return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -15,7 +14,7 @@ if (typeof window !== 'undefined' && !window.simpleHash) {
     window.simpleHash = async function (text) {
         let hash = 5381;
         for (let i = 0; i < text.length; i++) {
-            hash = ((hash << 5) + hash) + text.charCodeAt(i);
+            hash = (hash << 5) + hash + text.charCodeAt(i);
         }
         return String(hash >>> 0);
     };
@@ -44,7 +43,7 @@ function showHashRibbon(elementId, valueId, text) {
     const ribbon = document.getElementById(elementId);
     const value = document.getElementById(valueId);
     if (ribbon && value) {
-        value.textContent = "sha256-" + text;
+        value.textContent = 'sha256-' + text;
         ribbon.style.display = 'flex';
     }
 }

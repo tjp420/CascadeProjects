@@ -14,33 +14,36 @@
  *   node ai-platform/tools/cleanup-email-queue.cjs --max-age-days 3
  */
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
 // Resolve project root so we can import the email service
-const projectRoot = path.resolve(__dirname, '..');
-const { sendEmail, QUEUE_DIR } = require(path.join(projectRoot, 'server', 'lib', 'email-service.cjs'));
+const projectRoot = path.resolve(__dirname, "..");
+const { sendEmail, QUEUE_DIR } = require(
+  path.join(projectRoot, "server", "lib", "email-service.cjs"),
+);
 
 const args = process.argv.slice(2);
-const dryRun = args.includes('--dry-run');
-const maxAgeArg = args.find((a) => a.startsWith('--max-age-days='));
-const MAX_AGE_DAYS = maxAgeArg ? parseInt(maxAgeArg.split('=')[1], 10) : 7;
+const dryRun = args.includes("--dry-run");
+const maxAgeArg = args.find((a) => a.startsWith("--max-age-days="));
+const MAX_AGE_DAYS = maxAgeArg ? parseInt(maxAgeArg.split("=")[1], 10) : 7;
 const MAX_AGE_MS = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
 function log(...msgs) {
-  console.log('[Cleanup]', ...msgs);
+  console.log("[Cleanup]", ...msgs);
 }
 
 function listQueueFiles() {
   if (!fs.existsSync(QUEUE_DIR)) return [];
-  return fs.readdirSync(QUEUE_DIR)
-    .filter((name) => name.endsWith('.json'))
+  return fs
+    .readdirSync(QUEUE_DIR)
+    .filter((name) => name.endsWith(".json"))
     .map((name) => path.join(QUEUE_DIR, name));
 }
 
 function parseQueueFile(filePath) {
   try {
-    const raw = fs.readFileSync(filePath, 'utf8');
+    const raw = fs.readFileSync(filePath, "utf8");
     return JSON.parse(raw);
   } catch (err) {
     return { _parseError: err.message };
@@ -56,7 +59,7 @@ function isStale(queuedAt) {
 async function processQueue() {
   const files = listQueueFiles();
   if (files.length === 0) {
-    log('Queue directory empty — nothing to process.');
+    log("Queue directory empty — nothing to process.");
     return { processed: 0, sent: 0, failed: 0, purged: 0 };
   }
 
@@ -69,38 +72,55 @@ async function processQueue() {
   for (const filePath of files) {
     const payload = parseQueueFile(filePath);
     if (payload._parseError) {
-      log('Skipping corrupt file:', path.basename(filePath), '-', payload._parseError);
+      log(
+        "Skipping corrupt file:",
+        path.basename(filePath),
+        "-",
+        payload._parseError,
+      );
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
     }
 
-    const id = payload.id || path.basename(filePath, '.json');
+    const id = payload.id || path.basename(filePath, ".json");
     const to = payload.to;
     const subject = payload.subject;
 
     if (!to || !subject) {
-      log('Skipping incomplete payload:', id);
+      log("Skipping incomplete payload:", id);
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
     }
 
     if (isStale(payload.queuedAt)) {
-      log('Purging stale queue item');
+      log("Purging stale queue item");
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
     }
 
     if (dryRun) {
-      log('[DRY-RUN] Would attempt to send:', id, '→', to);
+      log("[DRY-RUN] Would attempt to send:", id, "→", to);
       continue;
     }
 
@@ -108,43 +128,59 @@ async function processQueue() {
       const result = await sendEmail({
         to,
         subject,
-        text: payload.text || '',
+        text: payload.text || "",
         html: payload.html || undefined,
         attachments: (payload.attachments || []).map((a) => ({
           filename: a.filename,
-          content: a.content
-        }))
+          content: a.content,
+        })),
       });
 
       if (result.sent) {
-        log('Sent and removed from queue:', id, '→', to);
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        log("Sent and removed from queue:", id, "→", to);
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
         sentCount++;
       } else if (result.queued) {
-        log('Re-queued to disk (no live transport):', id, '→', to);
+        log("Re-queued to disk (no live transport):", id, "→", to);
         failCount++;
       } else {
-        log('Failed to send:', id, '→', to, '-', result.error || 'unknown error');
+        log(
+          "Failed to send:",
+          id,
+          "→",
+          to,
+          "-",
+          result.error || "unknown error",
+        );
         failCount++;
       }
     } catch (err) {
-      log('Exception sending:', id, '→', to, '-', err.message);
+      log("Exception sending:", id, "→", to, "-", err.message);
       failCount++;
     }
   }
 
-  return { processed: files.length, sent: sentCount, failed: failCount, purged: purgeCount };
+  return {
+    processed: files.length,
+    sent: sentCount,
+    failed: failCount,
+    purged: purgeCount,
+  };
 }
 
 (async () => {
-  log('Starting queue cleanup...');
-  log('Queue directory:', QUEUE_DIR);
-  log('Max age threshold:', MAX_AGE_DAYS, 'days');
-  if (dryRun) log('DRY-RUN mode — no files will be deleted or sent.');
+  log("Starting queue cleanup...");
+  log("Queue directory:", QUEUE_DIR);
+  log("Max age threshold:", MAX_AGE_DAYS, "days");
+  if (dryRun) log("DRY-RUN mode — no files will be deleted or sent.");
 
   const stats = await processQueue();
 
-  log('Cleanup complete.');
+  log("Cleanup complete.");
   log(`  Total processed: ${stats.processed}`);
   log(`  Successfully sent: ${stats.sent}`);
   log(`  Delivery failed:   ${stats.failed}`);

@@ -95,10 +95,7 @@ export function useFeatureAccess() {
   const { user } = useAuth();
   const capabilities = useMemo(() => resolveCapabilities(user), [user]);
 
-  const hasFeature = useCallback(
-    (feature: FeatureFlag) => Boolean(capabilities[feature]),
-    [capabilities],
-  );
+  const hasFeature = useCallback((feature: FeatureFlag) => Boolean(capabilities[feature]), [capabilities]);
 
   return { hasFeature, capabilities, tier: capabilities.tier, maxScans: capabilities.maxScans };
 }

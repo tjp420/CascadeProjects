@@ -5,7 +5,11 @@
     "totalFiles": 0
   },
   "mockDataCategories": [
-    { "category": "sample-data", "fileCount": 0, "description": "Placeholder category" }
+    {
+      "category": "sample-data",
+      "fileCount": 0,
+      "description": "Placeholder category"
+    }
   ],
   "detectedIssues": [],
   "qualityMetrics": {},

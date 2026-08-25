@@ -6,11 +6,15 @@
     'use strict';
     var DOMAIN_KEY = 'sb_ai_domain_profile';
     var DOMAIN_HINTS = {
-        generic: 'General software. Extend existing handlers inline; match file naming and module system already in the repo.',
+        generic:
+            'General software. Extend existing handlers inline; match file naming and module system already in the repo.',
         game: 'Game/interactive software. Respect frame/update loops, asset pipeline paths, and platform SDK patterns. Avoid blocking I/O on the main thread.',
-        government: 'Government/regulated software. No external telemetry in production paths, env-based secrets only, audit logging, data minimization, fail-closed auth.',
-        enterprise: 'Enterprise SaaS. Tenant isolation, idempotent webhooks, billing tier awareness, SOC2-friendly logging (no secrets/PII in logs).',
-        healthcare: 'Healthcare-adjacent. PHI minimization, access logging, no patient identifiers in fixtures, encrypt data at rest/in transit.'
+        government:
+            'Government/regulated software. No external telemetry in production paths, env-based secrets only, audit logging, data minimization, fail-closed auth.',
+        enterprise:
+            'Enterprise SaaS. Tenant isolation, idempotent webhooks, billing tier awareness, SOC2-friendly logging (no secrets/PII in logs).',
+        healthcare:
+            'Healthcare-adjacent. PHI minimization, access logging, no patient identifiers in fixtures, encrypt data at rest/in transit.'
     };
     var UNIVERSAL_RULES = [
         'Read agent-supercharge.md, agent-brief.md, and ai-context.md before editing.',
@@ -21,21 +25,21 @@
         'Fix gate-blocking (critical/high) findings before refactors or new features.',
         'When SimpleBeacon MCP is available: supercharge_agent at session start, scan_snippet before apply, scan_file after save, handoff_check before done.'
     ];
-    var MCP_RULE_SNIPPET = '---\n'
-        + 'description: SimpleBeacon Agent Supercharge — any coding agent plugin (local-only)\n'
-        + 'alwaysApply: true\n'
-        + '---\n\n'
-        + '# SimpleBeacon Agent Supercharge\n\n'
-        + 'Start every session with **`supercharge_agent`** — mission, gate, code suggestions, plugin status.\n\n'
-        + '1. **`supercharge_agent`** — one-call mission briefing\n'
-        + '2. **`scan_snippet`** before applying edits\n'
-        + '3. **`code_suggestions`** for before/after fix hints\n'
-        + '4. **`handoff_check`** before claiming done\n\n'
-        + 'Wire plugins: **`install_agent_plugin`** or `npx simplebeacon init --starter --hosts all`\n'
-        + 'Read `.simplebeacon/agent-supercharge.md` when present. Do not upload source.\n';
+    var MCP_RULE_SNIPPET =
+        '---\n' +
+        'description: SimpleBeacon Agent Supercharge — any coding agent plugin (local-only)\n' +
+        'alwaysApply: true\n' +
+        '---\n\n' +
+        '# SimpleBeacon Agent Supercharge\n\n' +
+        'Start every session with **`supercharge_agent`** — mission, gate, code suggestions, plugin status.\n\n' +
+        '1. **`supercharge_agent`** — one-call mission briefing\n' +
+        '2. **`scan_snippet`** before applying edits\n' +
+        '3. **`code_suggestions`** for before/after fix hints\n' +
+        '4. **`handoff_check`** before claiming done\n\n' +
+        'Wire plugins: **`install_agent_plugin`** or `npx simplebeacon init --starter --hosts all`\n' +
+        'Read `.simplebeacon/agent-supercharge.md` when present. Do not upload source.\n';
     function pickIssues(report) {
-        if (!report || typeof report !== 'object')
-            return [];
+        if (!report || typeof report !== 'object') return [];
         var raw = report.detectedIssues || report.rawIssues || report.findings || report.issues || [];
         return Array.isArray(raw) ? raw : [];
     }
@@ -43,20 +47,19 @@
         return report.projectRoot || report.projectPath || report.scanTargetRoot || 'browser-local';
     }
     function getDomainProfile(explicit) {
-        if (explicit)
-            return explicit;
+        if (explicit) return explicit;
         try {
             return localStorage.getItem(DOMAIN_KEY) || 'generic';
-        }
-        catch (_) {
+        } catch (_) {
             return 'generic';
         }
     }
     function saveDomainProfile(domain) {
         try {
             localStorage.setItem(DOMAIN_KEY, domain);
+        } catch (_) {
+            /* ignore */
         }
-        catch (_) { /* ignore */ }
     }
     function extractCollectedInsights(report) {
         var issues = pickIssues(report);
@@ -100,8 +103,7 @@
         };
     }
     function enrichReportForAi(report, domainProfile) {
-        if (!report || typeof report !== 'object')
-            return report;
+        if (!report || typeof report !== 'object') return report;
         var domain = getDomainProfile(domainProfile);
         var insights = extractCollectedInsights(report);
         report.aiContext = report.aiContext || {};
@@ -135,8 +137,8 @@
                 qualityScore: report.qualityScore,
                 issueCount: report.issueCount
             },
-            suggestedFixes: (report.aiContext && report.aiContext.suggestedFixes)
-                ? report.aiContext.suggestedFixes.slice(0, 30) : [],
+            suggestedFixes:
+                report.aiContext && report.aiContext.suggestedFixes ? report.aiContext.suggestedFixes.slice(0, 30) : [],
             detectedIssues: pickIssues(report).slice(0, 40),
             moduleDependencies: (report.aiContext && report.aiContext.moduleDependencies) || [],
             completionCriteria: (report.aiContext && report.aiContext.completionCriteria) || []
@@ -145,13 +147,13 @@
     function isPaidUser() {
         try {
             if (typeof global.SbAuth !== 'undefined') {
-                if (typeof global.SbAuth.isPaidTier === 'function' && global.SbAuth.isPaidTier())
-                    return true;
+                if (typeof global.SbAuth.isPaidTier === 'function' && global.SbAuth.isPaidTier()) return true;
                 if (typeof global.SbAuth.isAccountSignedIn === 'function' && global.SbAuth.isAccountSignedIn())
                     return true;
             }
+        } catch (_) {
+            /* ignore */
         }
-        catch (_) { /* ignore */ }
         return false;
     }
     function formatAgentBrief(report, projectRoot) {
@@ -160,10 +162,8 @@
         var gate = data.gate || {};
         var pass = gate.pass === true;
         var score = data.qualityScore;
-        if (score == null && data.summary)
-            score = data.summary.qualityScore;
-        if (score == null)
-            score = 'N/A';
+        if (score == null && data.summary) score = data.summary.qualityScore;
+        if (score == null) score = 'N/A';
         var issues = pickIssues(data);
         var blocking = issues.filter(function (i) {
             var sev = String(i.severity || i.sev || '').toLowerCase();
@@ -182,7 +182,9 @@
                 ''
             ];
             if (teaser.length) {
-                freeLines.push('- Sample: [' + (teaser[0].severity || 'high') + '] issue (details redacted on free tier)');
+                freeLines.push(
+                    '- Sample: [' + (teaser[0].severity || 'high') + '] issue (details redacted on free tier)'
+                );
                 freeLines.push('');
             }
             return freeLines.join('\n');
@@ -205,14 +207,10 @@
         if (pc.dominantLanguage || pc.buildTool || pc.domainProfile) {
             lines.push('## Project context');
             lines.push('');
-            if (pc.dominantLanguage)
-                lines.push('- **Language:** ' + pc.dominantLanguage);
-            if (pc.buildTool)
-                lines.push('- **Build:** ' + pc.buildTool);
-            if (pc.domainProfile)
-                lines.push('- **Domain:** ' + pc.domainProfile);
-            if (pc.domainGuidance)
-                lines.push('- **Guidance:** ' + pc.domainGuidance);
+            if (pc.dominantLanguage) lines.push('- **Language:** ' + pc.dominantLanguage);
+            if (pc.buildTool) lines.push('- **Build:** ' + pc.buildTool);
+            if (pc.domainProfile) lines.push('- **Domain:** ' + pc.domainProfile);
+            if (pc.domainGuidance) lines.push('- **Guidance:** ' + pc.domainGuidance);
             lines.push('');
         }
         if (top.length > 0) {
@@ -227,8 +225,7 @@
                 lines.push('- [' + sev + '] ' + type + (fileStr ? ' @ ' + fileStr : '') + (desc ? ': ' + desc : ''));
             });
             lines.push('');
-        }
-        else {
+        } else {
             lines.push('_No findings in the latest report._');
             lines.push('');
         }
@@ -241,7 +238,9 @@
         var blocking = gate.blockingCount != null ? gate.blockingCount : 0;
         var mission = gate.pass
             ? 'Gate passed — run handoff_check before claiming done'
-            : (blocking > 0 ? ('Fix ' + blocking + ' gate blocker(s)') : 'Run scan_project with gate:true');
+            : blocking > 0
+              ? 'Fix ' + blocking + ' gate blocker(s)'
+              : 'Run scan_project with gate:true';
         return [
             '# SimpleBeacon Agent Supercharge',
             '',
@@ -285,7 +284,9 @@
             '### Coding rules (from scan data)',
             ''
         ];
-        UNIVERSAL_RULES.forEach(function (r) { lines.push('- ' + r); });
+        UNIVERSAL_RULES.forEach(function (r) {
+            lines.push('- ' + r);
+        });
         lines.push('');
         if (aiCtx.readerGuide && aiCtx.readerGuide.howToUse) {
             lines.push('### How to use the scan report');
@@ -298,9 +299,16 @@
             lines.push('### Priority fixes (' + Math.min(cleanFixes.length, 15) + ')');
             lines.push('');
             cleanFixes.slice(0, 15).forEach(function (f, idx) {
-                lines.push((idx + 1) + '. **' + (f.file || '?') + '**' + (f.line ? ':' + f.line : '')
-                    + (f.autoFixable ? ' _(auto-fixable)_' : '')
-                    + (f.verificationCommand ? ' — `' + f.verificationCommand + '`' : ''));
+                lines.push(
+                    idx +
+                        1 +
+                        '. **' +
+                        (f.file || '?') +
+                        '**' +
+                        (f.line ? ':' + f.line : '') +
+                        (f.autoFixable ? ' _(auto-fixable)_' : '') +
+                        (f.verificationCommand ? ' — `' + f.verificationCommand + '`' : '')
+                );
                 lines.push('   ' + fixGuidanceText(f));
             });
             lines.push('');
@@ -334,23 +342,35 @@
         return [
             'You are the coding assistant for **' + insights.project + '**.',
             '',
-            'SimpleBeacon scan: gate **' + (insights.gatePass ? 'PASS' : 'FAIL') + '**, score **'
-                + (insights.qualityScore != null ? insights.qualityScore : 'N/A') + '**, '
-                + insights.issueCount + ' issues (' + insights.blockingCount + ' blocking/high).',
+            'SimpleBeacon scan: gate **' +
+                (insights.gatePass ? 'PASS' : 'FAIL') +
+                '**, score **' +
+                (insights.qualityScore != null ? insights.qualityScore : 'N/A') +
+                '**, ' +
+                insights.issueCount +
+                ' issues (' +
+                insights.blockingCount +
+                ' blocking/high).',
             '',
             '**Domain (' + domain + '):** ' + (DOMAIN_HINTS[domain] || DOMAIN_HINTS.generic),
             '',
             '**Rules:**',
-            UNIVERSAL_RULES.map(function (r) { return '- ' + r; }).join('\n'),
+            UNIVERSAL_RULES.map(function (r) {
+                return '- ' + r;
+            }).join('\n'),
             '',
             insights.suggestedFixCount
-                ? ('**Start with ' + insights.suggestedFixCount + ' suggested fixes** in the scan report (security first).')
+                ? '**Start with ' +
+                  insights.suggestedFixCount +
+                  ' suggested fixes** in the scan report (security first).'
                 : '',
             '',
             '---',
             '',
             brief
-        ].filter(Boolean).join('\n');
+        ]
+            .filter(Boolean)
+            .join('\n');
     }
     function buildCopilotInstructions(report, domainProfile) {
         var domain = getDomainProfile(domainProfile);
@@ -359,21 +379,36 @@
             '# GitHub Copilot / VS Code custom instructions',
             '',
             'Project: ' + insights.project,
-            'Gate: ' + (insights.gatePass ? 'PASS' : 'FAIL') + ' | Quality: ' + (insights.qualityScore != null ? insights.qualityScore : 'N/A'),
+            'Gate: ' +
+                (insights.gatePass ? 'PASS' : 'FAIL') +
+                ' | Quality: ' +
+                (insights.qualityScore != null ? insights.qualityScore : 'N/A'),
             '',
             'When generating code for this repository:',
             '',
             DOMAIN_HINTS[domain] || DOMAIN_HINTS.generic,
             '',
-            UNIVERSAL_RULES.map(function (r, i) { return (i + 1) + '. ' + r; }).join('\n'),
-            '',
-            insights.topBlocking.length ? 'Priority issues to avoid repeating:' : '',
-            insights.topBlocking.map(function (b) {
-                return '- [' + b.severity + '] ' + b.type + (b.filePath ? ' in ' + JSON.stringify(b.filePath).slice(0, 80) : '');
+            UNIVERSAL_RULES.map(function (r, i) {
+                return i + 1 + '. ' + r;
             }).join('\n'),
             '',
+            insights.topBlocking.length ? 'Priority issues to avoid repeating:' : '',
+            insights.topBlocking
+                .map(function (b) {
+                    return (
+                        '- [' +
+                        b.severity +
+                        '] ' +
+                        b.type +
+                        (b.filePath ? ' in ' + JSON.stringify(b.filePath).slice(0, 80) : '')
+                    );
+                })
+                .join('\n'),
+            '',
             'Install SimpleBeacon VSIX for live scan feedback in the editor.'
-        ].filter(Boolean).join('\n');
+        ]
+            .filter(Boolean)
+            .join('\n');
     }
     function buildAgentsMdSection(report, domainProfile) {
         var domain = getDomainProfile(domainProfile);
@@ -389,7 +424,9 @@
             '',
             DOMAIN_HINTS[domain] || DOMAIN_HINTS.generic,
             '',
-            UNIVERSAL_RULES.map(function (r) { return '- ' + r; }).join('\n'),
+            UNIVERSAL_RULES.map(function (r) {
+                return '- ' + r;
+            }).join('\n'),
             '',
             '### Scan artifacts',
             '',
@@ -423,50 +460,48 @@
         aiResidue: 'AI residue & quality'
     };
     function isGenericAutoFixSnippet(text) {
-        if (!text)
-            return false;
+        if (!text) return false;
         var s = String(text);
-        return /AUTO_FIX:\s*ai_residue|\[Auto-Generated Issue\]|Auto-generated stub:\s*replace implementation|throw new Error\('Auto-generated stub/i.test(s);
+        return /AUTO_FIX:\s*ai_residue|\[Auto-Generated Issue\]|Auto-generated stub:\s*replace implementation|throw new Error\('Auto-generated stub/i.test(
+            s
+        );
     }
     function sanitizeSuggestedFixes(fixes) {
-        if (!Array.isArray(fixes))
-            return [];
+        if (!Array.isArray(fixes)) return [];
         return fixes.filter(function (f) {
-            if (!f || typeof f !== 'object')
-                return false;
-            if (isGenericAutoFixSnippet(f.replacement))
-                return false;
-            if (isGenericAutoFixSnippet(f.suggestedPatch))
-                return false;
+            if (!f || typeof f !== 'object') return false;
+            if (isGenericAutoFixSnippet(f.replacement)) return false;
+            if (isGenericAutoFixSnippet(f.suggestedPatch)) return false;
             return !!(f.file || f.line || f.type || f.rule);
         });
     }
     function fixGuidanceText(fix) {
         var parts = [];
-        if (fix.type)
-            parts.push(String(fix.type));
-        if (fix.rule)
-            parts.push('rule ' + fix.rule);
-        if (fix.impact)
-            parts.push(String(fix.impact).slice(0, 160));
-        if (fix.detail)
-            parts.push(String(fix.detail).slice(0, 160));
-        if (fix.suggestion)
-            parts.push('Suggestion: ' + String(fix.suggestion).slice(0, 120));
+        if (fix.type) parts.push(String(fix.type));
+        if (fix.rule) parts.push('rule ' + fix.rule);
+        if (fix.impact) parts.push(String(fix.impact).slice(0, 160));
+        if (fix.detail) parts.push(String(fix.detail).slice(0, 160));
+        if (fix.suggestion) parts.push('Suggestion: ' + String(fix.suggestion).slice(0, 120));
         if (!parts.length && fix.replacement && !isGenericAutoFixSnippet(fix.replacement)) {
             parts.push('Replace flagged snippet — inspect file context before applying.');
         }
-        if (!parts.length)
-            parts.push('Review flagged pattern in file; do not apply generic scanner stubs blindly.');
+        if (!parts.length) parts.push('Review flagged pattern in file; do not apply generic scanner stubs blindly.');
         return parts.join(' — ');
     }
     function issueMatchesFocus(issue, focus) {
-        if (!focus || focus === 'all')
-            return true;
+        if (!focus || focus === 'all') return true;
         var blob = [
-            issue.type, issue.category, issue.pattern, issue.rule,
-            issue.description, issue.message, issue.title, issue.impact
-        ].join(' ').toLowerCase();
+            issue.type,
+            issue.category,
+            issue.pattern,
+            issue.rule,
+            issue.description,
+            issue.message,
+            issue.title,
+            issue.impact
+        ]
+            .join(' ')
+            .toLowerCase();
         var sev = String(issue.severity || issue.sev || '').toLowerCase();
         if (focus === 'blocking') {
             return sev === 'critical' || sev === 'high' || issue.blocking === true;
@@ -475,17 +510,27 @@
             return /credential|secret|token|security|production|leak|auth|password|api.?key/.test(blob);
         }
         if (focus === 'aiResidue') {
-            return /ai residue|error swallow|stub|architecture drift|llm slop|debug|placeholder|roadmap|fiction|maintainability|complexity/.test(blob);
+            return /ai residue|error swallow|stub|architecture drift|llm slop|debug|placeholder|roadmap|fiction|maintainability|complexity/.test(
+                blob
+            );
         }
         return true;
     }
     function browserDiscoveryNote(report, insights) {
         var n = Number(insights.filesScanned) || 0;
         if (report && report._browserPartialDiscovery) {
-            return 'Browser audit indexed a **partial** folder tree (~' + n.toLocaleString() + ' files). For monorepo-wide fixes run `npx simplebeacon scan . --full --gate` locally and re-handoff.';
+            return (
+                'Browser audit indexed a **partial** folder tree (~' +
+                n.toLocaleString() +
+                ' files). For monorepo-wide fixes run `npx simplebeacon scan . --full --gate` locally and re-handoff.'
+            );
         }
         if (insights.scanEnvironment === 'browser-sandbox' && n >= 7000 && n <= 8500) {
-            return 'Discovery count (~' + n.toLocaleString() + ') is near Chrome\'s ~8k folder cap — findings may omit sibling packages. Use CLI scan for full coverage.';
+            return (
+                'Discovery count (~' +
+                n.toLocaleString() +
+                ") is near Chrome's ~8k folder cap — findings may omit sibling packages. Use CLI scan for full coverage."
+            );
         }
         return '';
     }
@@ -497,7 +542,9 @@
         var domain = getDomainProfile(options.domainProfile);
         var insights = extractCollectedInsights(report);
         var fixes = sanitizeSuggestedFixes((report.aiContext && report.aiContext.suggestedFixes) || []);
-        var issues = pickIssues(report).filter(function (i) { return issueMatchesFocus(i, focus); });
+        var issues = pickIssues(report).filter(function (i) {
+            return issueMatchesFocus(i, focus);
+        });
         var blocking = issues.filter(function (i) {
             var s = String(i.severity || i.sev || '').toLowerCase();
             return s === 'critical' || s === 'high' || i.blocking === true;
@@ -536,8 +583,12 @@
         lines.push('1. Fix **critical/high** findings first, then medium.');
         lines.push('2. **Extend existing files** — match repo naming, module system, and error-handling style.');
         lines.push('3. After each file edit: `node -c path/to/file.js` (or equivalent syntax check).');
-        lines.push('4. Before claiming done: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`');
-        lines.push('5. **Do not** paste generic `throw new Error(\'Auto-generated stub\')` replacements from scanner templates — fix the real issue.');
+        lines.push(
+            '4. Before claiming done: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`'
+        );
+        lines.push(
+            "5. **Do not** paste generic `throw new Error('Auto-generated stub')` replacements from scanner templates — fix the real issue."
+        );
         lines.push('');
         lines.push('**Domain guidance (' + domain + '):** ' + (DOMAIN_HINTS[domain] || DOMAIN_HINTS.generic));
         lines.push('');
@@ -546,7 +597,7 @@
             lines.push('');
             fixes.slice(0, 12).forEach(function (f, idx) {
                 var loc = '**' + (f.file || '?') + '**' + (f.line ? ':' + f.line : '');
-                lines.push((idx + 1) + '. ' + loc);
+                lines.push(idx + 1 + '. ' + loc);
                 lines.push('   - ' + fixGuidanceText(f));
                 if (f.verificationCommand) {
                     lines.push('   - Verify: `' + f.verificationCommand + '`');
@@ -563,11 +614,18 @@
                 var file = i.filePath || i.file || i.path || '';
                 var fileStr = Array.isArray(file) ? file.slice(0, 2).join(', ') : String(file || '');
                 var desc = String(i.description || i.message || i.title || '').slice(0, 140);
-                lines.push('- [' + sev + '] **' + type + '**' + (fileStr ? ' @ `' + fileStr + '`' : '') + (desc ? ' — ' + desc : ''));
+                lines.push(
+                    '- [' +
+                        sev +
+                        '] **' +
+                        type +
+                        '**' +
+                        (fileStr ? ' @ `' + fileStr + '`' : '') +
+                        (desc ? ' — ' + desc : '')
+                );
             });
             lines.push('');
-        }
-        else if (issues.length) {
+        } else if (issues.length) {
             lines.push('## Findings (sample)');
             lines.push('');
             issues.slice(0, 20).forEach(function (i) {
@@ -587,7 +645,11 @@
             lines.push('');
         }
         lines.push('---');
-        lines.push('_Generated ' + new Date().toISOString() + ' by [SimpleBeacon Audit](https://simplebeacon.ai/audit) — local scan, no source upload._');
+        lines.push(
+            '_Generated ' +
+                new Date().toISOString() +
+                ' by [SimpleBeacon Audit](https://simplebeacon.ai/audit) — local scan, no source upload._'
+        );
         return lines.join('\n');
     }
     function buildSendToAiPayload(report, notes, domainProfile) {
@@ -623,15 +685,12 @@
         };
     }
     function getVsCodeApiCached() {
-        if (global.__vscodeApiCached)
-            return global.__vscodeApiCached;
-        if (typeof global.acquireVsCodeApi !== 'function')
-            return null;
+        if (global.__vscodeApiCached) return global.__vscodeApiCached;
+        if (typeof global.acquireVsCodeApi !== 'function') return null;
         try {
             global.__vscodeApiCached = global.acquireVsCodeApi();
             return global.__vscodeApiCached;
-        }
-        catch (_) {
+        } catch (_) {
             return null;
         }
     }
@@ -649,7 +708,7 @@
             assistant: options.assistant || 'generic'
         });
         var vscode = getVsCodeApiCached();
-        if (vscode && (options.preferVsCode !== false)) {
+        if (vscode && options.preferVsCode !== false) {
             try {
                 vscode.postMessage({ command: 'sendToAI', data: payload });
                 return Promise.resolve({
@@ -657,20 +716,20 @@
                     method: 'vscode',
                     message: 'Sent to SimpleBeacon VS Code extension'
                 });
-            }
-            catch (err) {
+            } catch (err) {
                 console.warn('[SbAiContextPack] vscode.postMessage failed:', err);
             }
         }
         return copyText(payload.handoffPrompt).then(function () {
-            var isLocal = typeof location !== 'undefined'
-                && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+            var isLocal =
+                typeof location !== 'undefined' &&
+                (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
             if (isLocal && options.tryLocalApi !== false) {
                 fetch('/api/ai-context', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
-                }).catch(function () { });
+                }).catch(function () {});
             }
             return {
                 ok: true,
@@ -697,27 +756,21 @@
     }
     function formatBytesShort(bytes) {
         var n = Number(bytes) || 0;
-        if (n < 1024)
-            return n + ' B';
-        if (n < 1024 * 1024)
-            return (n / 1024).toFixed(1) + ' KB';
-        if (n < 1024 * 1024 * 1024)
-            return (n / (1024 * 1024)).toFixed(1) + ' MB';
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+        if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
         return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
     }
     function extractFileReductionScan(report) {
-        if (!report || typeof report !== 'object')
-            return null;
-        if (report.fileReductionPlan || report.type === 'data-cleanup-report')
-            return report;
-        if (report.results && report.results.fileReduction)
-            return report.results.fileReduction;
-        if (report.fileReduction)
-            return report.fileReduction;
+        if (!report || typeof report !== 'object') return null;
+        if (report.fileReductionPlan || report.type === 'data-cleanup-report') return report;
+        if (report.results && report.results.fileReduction) return report.results.fileReduction;
+        if (report.fileReduction) return report.fileReduction;
         if (Array.isArray(report.steps)) {
-            var frStep = report.steps.filter(function (s) { return s && s.id === 'file-reduction' && s.scan; })[0];
-            if (frStep)
-                return frStep.scan;
+            var frStep = report.steps.filter(function (s) {
+                return s && s.id === 'file-reduction' && s.scan;
+            })[0];
+            if (frStep) return frStep.scan;
         }
         if (report.completeScanAnalysis && report.completeScanAnalysis.fileReduction) {
             return report.completeScanAnalysis.fileReduction;
@@ -725,8 +778,7 @@
         return null;
     }
     function buildFileReductionContextMarkdown(scan) {
-        if (!scan)
-            return '';
+        if (!scan) return '';
         var scope = scan.scanScope || {};
         var plan = scan.fileReductionPlan || {};
         var totals = plan.totals || {};
@@ -742,8 +794,12 @@
             '## Reclaim summary',
             '',
             '- **Safe to delete:** ' + formatBytesShort(totals.safeToDeleteBytes || 0),
-            '- **Review before delete:** ' + formatBytesShort(totals.reviewBeforeDeleteBytes || summary.reclaimableBytes || 0),
-            '- **Unused file candidates:** ' + (plan.unusedFiles && plan.unusedFiles.candidates != null ? plan.unusedFiles.candidates : (summary.unusedFileCandidates || '—')),
+            '- **Review before delete:** ' +
+                formatBytesShort(totals.reviewBeforeDeleteBytes || summary.reclaimableBytes || 0),
+            '- **Unused file candidates:** ' +
+                (plan.unusedFiles && plan.unusedFiles.candidates != null
+                    ? plan.unusedFiles.candidates
+                    : summary.unusedFileCandidates || '—'),
             '- **Inventory:** ' + (inv.totalFiles != null ? inv.totalFiles : '—') + ' files',
             ''
         ];
@@ -764,8 +820,7 @@
         return lines.filter(Boolean).join('\n');
     }
     function buildFileReductionContextJson(scan) {
-        if (!scan)
-            return null;
+        if (!scan) return null;
         var plan = scan.fileReductionPlan || {};
         var scope = scan.scanScope || {};
         return {
@@ -831,23 +886,29 @@
             zip.file('AGENTS-snippet.md', agents);
             zip.file('cursor-prompt.md', universal);
             zip.file('.cursor/rules/simplebeacon-agent.mdc', MCP_RULE_SNIPPET);
-            zip.file('README-AI-CONTEXT.txt', [
-                'SimpleBeacon AI Context Pack — works with ALL coding assistants',
-                '',
-                'Cursor: paste universal-prompt.md or @-mention .simplebeacon/*.md',
-                'GitHub Copilot: paste copilot-instructions.md into custom instructions',
-                'Claude / ChatGPT: paste universal-prompt.md at start of session',
-                'Windsurf / Codex: use ai-context.json or AGENTS-snippet.md',
-                '',
-                '1. Copy .simplebeacon/*.md into your repo',
-                '2. Optional: append AGENTS-snippet.md to AGENTS.md',
-                '3. After file-reduction scan: use cleanup-ai-notes.json for cleanup agents',
-                '4. MCP Agent Supercharge: npx simplebeacon init --starter --hosts all',
-                '',
-                'All data from local scan — no source uploaded.'
-            ].join('\n'));
+            zip.file(
+                'README-AI-CONTEXT.txt',
+                [
+                    'SimpleBeacon AI Context Pack — works with ALL coding assistants',
+                    '',
+                    'Cursor: paste universal-prompt.md or @-mention .simplebeacon/*.md',
+                    'GitHub Copilot: paste copilot-instructions.md into custom instructions',
+                    'Claude / ChatGPT: paste universal-prompt.md at start of session',
+                    'Windsurf / Codex: use ai-context.json or AGENTS-snippet.md',
+                    '',
+                    '1. Copy .simplebeacon/*.md into your repo',
+                    '2. Optional: append AGENTS-snippet.md to AGENTS.md',
+                    '3. After file-reduction scan: use cleanup-ai-notes.json for cleanup agents',
+                    '4. MCP Agent Supercharge: npx simplebeacon init --starter --hosts all',
+                    '',
+                    'All data from local scan — no source uploaded.'
+                ].join('\n')
+            );
             return zip.generateAsync({ type: 'blob' }).then(function (blob) {
-                var root = String(projectLabel(report)).replace(/[^\w.-]+/g, '_').slice(0, 40) || 'project';
+                var root =
+                    String(projectLabel(report))
+                        .replace(/[^\w.-]+/g, '_')
+                        .slice(0, 40) || 'project';
                 downloadBlob('simplebeacon-ai-context-' + root + '.zip', blob, 'application/zip');
             });
         }
@@ -871,27 +932,30 @@
                 document.execCommand('copy');
                 ta.remove();
                 resolve();
-            }
-            catch (e) {
+            } catch (e) {
                 reject(e);
             }
         });
     }
     function flashButton(btn, doneLabel, defaultLabel) {
-        if (!btn)
-            return;
+        if (!btn) return;
         btn.textContent = doneLabel;
-        setTimeout(function () { btn.textContent = defaultLabel; }, 2000);
+        setTimeout(function () {
+            btn.textContent = defaultLabel;
+        }, 2000);
     }
     function renderSuggestedFixes(container, report, limit) {
-        if (!container)
-            return;
+        if (!container) return;
         limit = limit || 10;
-        var fixes = sanitizeSuggestedFixes((report && report.aiContext && Array.isArray(report.aiContext.suggestedFixes))
-            ? report.aiContext.suggestedFixes : []);
+        var fixes = sanitizeSuggestedFixes(
+            report && report.aiContext && Array.isArray(report.aiContext.suggestedFixes)
+                ? report.aiContext.suggestedFixes
+                : []
+        );
         container.innerHTML = '';
         if (!fixes.length) {
-            container.innerHTML = '<li class="sb-ai-fix-empty">No structured fixes — use <strong>Send to AI Assistant</strong> for a handoff prompt, or run a deeper scan.</li>';
+            container.innerHTML =
+                '<li class="sb-ai-fix-empty">No structured fixes — use <strong>Send to AI Assistant</strong> for a handoff prompt, or run a deeper scan.</li>';
             return;
         }
         fixes.slice(0, limit).forEach(function (f) {
@@ -899,12 +963,11 @@
             li.className = 'sb-ai-fix-item';
             var title = document.createElement('div');
             title.className = 'sb-ai-fix-title';
-            title.textContent = (f.file || 'unknown') + (f.line ? ':' + f.line : '')
-                + (f.type ? ' · ' + f.type : '');
+            title.textContent = (f.file || 'unknown') + (f.line ? ':' + f.line : '') + (f.type ? ' · ' + f.type : '');
             var meta = document.createElement('div');
             meta.className = 'sb-ai-fix-meta';
-            meta.textContent = fixGuidanceText(f)
-                + (f.verificationCommand ? ' · verify: ' + f.verificationCommand : '');
+            meta.textContent =
+                fixGuidanceText(f) + (f.verificationCommand ? ' · verify: ' + f.verificationCommand : '');
             li.appendChild(title);
             li.appendChild(meta);
             container.appendChild(li);
@@ -917,21 +980,30 @@
         }
     }
     function renderCollectedSummary(container, report, domainProfile) {
-        if (!container)
-            return;
+        if (!container) return;
         var ins = extractCollectedInsights(report);
         var domain = getDomainProfile(domainProfile);
-        container.innerHTML = ''
-            + '<span class="sb-ai-chip">Gate: ' + (ins.gatePass ? 'PASS' : 'FAIL') + '</span>'
-            + '<span class="sb-ai-chip">' + (ins.filesScanned || '?') + ' files</span>'
-            + '<span class="sb-ai-chip">' + ins.issueCount + ' issues</span>'
-            + '<span class="sb-ai-chip">' + ins.suggestedFixCount + ' fixes</span>'
-            + '<span class="sb-ai-chip">' + domain + '</span>'
-            + '<span class="sb-ai-chip sb-ai-chip--muted">Cursor · Copilot · Claude · Windsurf</span>';
+        container.innerHTML =
+            '' +
+            '<span class="sb-ai-chip">Gate: ' +
+            (ins.gatePass ? 'PASS' : 'FAIL') +
+            '</span>' +
+            '<span class="sb-ai-chip">' +
+            (ins.filesScanned || '?') +
+            ' files</span>' +
+            '<span class="sb-ai-chip">' +
+            ins.issueCount +
+            ' issues</span>' +
+            '<span class="sb-ai-chip">' +
+            ins.suggestedFixCount +
+            ' fixes</span>' +
+            '<span class="sb-ai-chip">' +
+            domain +
+            '</span>' +
+            '<span class="sb-ai-chip sb-ai-chip--muted">Cursor · Copilot · Claude · Windsurf</span>';
     }
     function sbRenderAiContextPack(data, domainProfile) {
-        if (!data)
-            return;
+        if (!data) return;
         var domain = getDomainProfile(domainProfile);
         var enriched = enrichReportForAi(data, domain);
         global.currentReport = enriched;
@@ -941,30 +1013,25 @@
             global.__simplebeaconSetReportForAI(enriched);
         }
         var panel = document.getElementById('aiContextPackPanel');
-        if (panel)
-            panel.style.display = 'block';
+        if (panel) panel.style.display = 'block';
         var tokenRow = document.getElementById('tokenActionRow');
-        if (tokenRow)
-            tokenRow.style.display = 'block';
+        if (tokenRow) tokenRow.style.display = 'block';
         var sendBtn = document.getElementById('upload-send-ai-btn');
-        if (sendBtn)
-            sendBtn.style.display = 'block';
+        if (sendBtn) sendBtn.style.display = 'block';
         var domainSelect = document.getElementById('aiDomainProfile');
-        if (domainSelect && domainSelect.value !== domain)
-            domainSelect.value = domain;
+        if (domainSelect && domainSelect.value !== domain) domainSelect.value = domain;
         renderCollectedSummary(document.getElementById('aiCollectedSummary'), enriched, domain);
         renderSuggestedFixes(document.getElementById('aiSuggestedFixes'), enriched, 10);
         var certEmpty = document.getElementById('certEmptyState');
-        if (certEmpty)
-            certEmpty.style.display = 'none';
+        if (certEmpty) certEmpty.style.display = 'none';
         try {
             document.body.classList.add('audit-page--has-results');
+        } catch (_) {
+            /* ignore */
         }
-        catch (_) { /* ignore */ }
     }
     function wireAuditAiContextPackUi() {
-        if (global.__sbAiContextPackWired)
-            return;
+        if (global.__sbAiContextPackWired) return;
         global.__sbAiContextPackWired = true;
         var downloadBtn = document.getElementById('aiDownloadPackBtn');
         var copyUniversalBtn = document.getElementById('aiCopyUniversalPromptBtn');
@@ -978,13 +1045,11 @@
         var openSendBtn = document.getElementById('aiOpenSendPanelBtn');
         if (domainSelect) {
             var saved = getDomainProfile();
-            if (saved)
-                domainSelect.value = saved;
+            if (saved) domainSelect.value = saved;
             domainSelect.addEventListener('change', function () {
                 saveDomainProfile(domainSelect.value);
                 var report = global.currentReport || global.lastScanReport;
-                if (report)
-                    sbRenderAiContextPack(report, domainSelect.value);
+                if (report) sbRenderAiContextPack(report, domainSelect.value);
             });
         }
         function getReport() {
@@ -996,8 +1061,7 @@
         if (downloadBtn) {
             downloadBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('Run a scan or import a report first.');
+                if (!report) return alert('Run a scan or import a report first.');
                 downloadBtn.disabled = true;
                 downloadBtn.textContent = 'Building…';
                 downloadContextPack(report, { domainProfile: getDomain() }).finally(function () {
@@ -1009,8 +1073,7 @@
         if (copyUniversalBtn) {
             copyUniversalBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(buildUniversalPrompt(report, getDomain())).then(function () {
                     flashButton(copyUniversalBtn, 'Copied ✓', 'Universal prompt');
                 });
@@ -1019,8 +1082,7 @@
         if (copyCopilotBtn) {
             copyCopilotBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(buildCopilotInstructions(report, getDomain())).then(function () {
                     flashButton(copyCopilotBtn, 'Copied ✓', 'Copilot instructions');
                 });
@@ -1029,8 +1091,7 @@
         if (copyAgentsBtn) {
             copyAgentsBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(buildAgentsMdSection(report, getDomain())).then(function () {
                     flashButton(copyAgentsBtn, 'Copied ✓', 'AGENTS.md section');
                 });
@@ -1039,8 +1100,7 @@
         if (copyBriefBtn) {
             copyBriefBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(formatAgentBrief(report)).then(function () {
                     flashButton(copyBriefBtn, 'Copied ✓', 'agent-brief.md');
                 });
@@ -1049,8 +1109,7 @@
         if (copySuperchargeBtn) {
             copySuperchargeBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(buildSuperchargeBrief(report)).then(function () {
                     flashButton(copySuperchargeBtn, 'Copied ✓', 'agent-supercharge.md');
                 });
@@ -1059,8 +1118,7 @@
         if (copyContextBtn) {
             copyContextBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(buildAiContextMarkdown(report, '', getDomain())).then(function () {
                     flashButton(copyContextBtn, 'Copied ✓', 'ai-context.md');
                 });
@@ -1069,8 +1127,7 @@
         if (copyJsonBtn) {
             copyJsonBtn.addEventListener('click', function () {
                 var report = getReport();
-                if (!report)
-                    return alert('No report loaded.');
+                if (!report) return alert('No report loaded.');
                 copyText(JSON.stringify(buildAiContextJson(report, getDomain()), null, 2)).then(function () {
                     flashButton(copyJsonBtn, 'Copied ✓', 'ai-context.json');
                 });
@@ -1097,11 +1154,16 @@
     function refreshHandoffPreview() {
         var preview = document.getElementById('sbAiHandoffPreview');
         var report = global.currentReport || global.lastScanReport || global.reportData;
-        if (!preview || !report)
-            return;
+        if (!preview || !report) return;
         var opts = getHandoffOptionsFromUi();
         var prompt = buildHandoffChatPrompt(report, opts);
-        preview.textContent = prompt.length > 3200 ? prompt.slice(0, 3200) + '\n\n… (' + prompt.length.toLocaleString() + ' chars total — full text copied on send)' : prompt;
+        preview.textContent =
+            prompt.length > 3200
+                ? prompt.slice(0, 3200) +
+                  '\n\n… (' +
+                  prompt.length.toLocaleString() +
+                  ' chars total — full text copied on send)'
+                : prompt;
     }
     function openHandoffModal() {
         var modal = document.getElementById('sbAiHandoffModal');
@@ -1115,8 +1177,7 @@
             if (legacy) {
                 legacy.style.display = 'block';
                 var notes = document.getElementById('upload-ai-notes');
-                if (notes)
-                    notes.focus();
+                if (notes) notes.focus();
             }
             return;
         }
@@ -1124,13 +1185,11 @@
         document.body.classList.add('sb-ai-handoff-open');
         refreshHandoffPreview();
         var notesEl = document.getElementById('sbAiHandoffNotes');
-        if (notesEl)
-            notesEl.focus();
+        if (notesEl) notesEl.focus();
     }
     function closeHandoffModal() {
         var modal = document.getElementById('sbAiHandoffModal');
-        if (modal)
-            modal.hidden = true;
+        if (modal) modal.hidden = true;
         document.body.classList.remove('sb-ai-handoff-open');
         var status = document.getElementById('upload-ai-status') || document.getElementById('sbAiHandoffStatus');
         if (status) {
@@ -1139,12 +1198,10 @@
         }
     }
     function wireHandoffModal() {
-        if (global.__sbHandoffModalWired)
-            return;
+        if (global.__sbHandoffModalWired) return;
         global.__sbHandoffModalWired = true;
         var modal = document.getElementById('sbAiHandoffModal');
-        if (!modal)
-            return;
+        if (!modal) return;
         var assistantEl = document.getElementById('sbAiHandoffAssistant');
         var focusEl = document.getElementById('sbAiHandoffFocus');
         var notesEl = document.getElementById('sbAiHandoffNotes');
@@ -1155,14 +1212,11 @@
         var statusEl = document.getElementById('sbAiHandoffStatus');
         var backdrop = modal.querySelector('.sb-ai-handoff-modal__backdrop');
         [assistantEl, focusEl, notesEl].forEach(function (el) {
-            if (el)
-                el.addEventListener('input', refreshHandoffPreview);
-            if (el && el.tagName === 'SELECT')
-                el.addEventListener('change', refreshHandoffPreview);
+            if (el) el.addEventListener('input', refreshHandoffPreview);
+            if (el && el.tagName === 'SELECT') el.addEventListener('change', refreshHandoffPreview);
         });
         function setStatus(msg, ok) {
-            if (!statusEl)
-                return;
+            if (!statusEl) return;
             statusEl.textContent = msg;
             statusEl.style.color = ok ? 'var(--success, #10b981)' : 'var(--error, #ef4444)';
         }
@@ -1175,21 +1229,25 @@
                 }
                 copyBtn.disabled = true;
                 copyBtn.textContent = 'Copying…';
-                executeSendToAiAssistant(report, getHandoffOptionsFromUi()).then(function (res) {
-                    copyBtn.disabled = false;
-                    copyBtn.textContent = 'Copy handoff prompt';
-                    if (res.ok) {
-                        setStatus(res.message + (res.charCount ? ' (' + res.charCount.toLocaleString() + ' chars)' : ''), true);
-                        flashButton(copyBtn, 'Copied ✓', 'Copy handoff prompt');
-                    }
-                    else {
-                        setStatus(res.error || 'Copy failed', false);
-                    }
-                }).catch(function (err) {
-                    copyBtn.disabled = false;
-                    copyBtn.textContent = 'Copy handoff prompt';
-                    setStatus(err.message || 'Copy failed', false);
-                });
+                executeSendToAiAssistant(report, getHandoffOptionsFromUi())
+                    .then(function (res) {
+                        copyBtn.disabled = false;
+                        copyBtn.textContent = 'Copy handoff prompt';
+                        if (res.ok) {
+                            setStatus(
+                                res.message + (res.charCount ? ' (' + res.charCount.toLocaleString() + ' chars)' : ''),
+                                true
+                            );
+                            flashButton(copyBtn, 'Copied ✓', 'Copy handoff prompt');
+                        } else {
+                            setStatus(res.error || 'Copy failed', false);
+                        }
+                    })
+                    .catch(function (err) {
+                        copyBtn.disabled = false;
+                        copyBtn.textContent = 'Copy handoff prompt';
+                        setStatus(err.message || 'Copy failed', false);
+                    });
             });
         }
         if (downloadBtn) {
@@ -1201,26 +1259,23 @@
                 }
                 var opts = getHandoffOptionsFromUi();
                 downloadBtn.disabled = true;
-                downloadContextPack(report, { domainProfile: opts.domainProfile, notes: opts.notes }).finally(function () {
-                    downloadBtn.disabled = false;
-                    setStatus('Context pack downloaded — add .simplebeacon/*.md to your repo', true);
-                });
+                downloadContextPack(report, { domainProfile: opts.domainProfile, notes: opts.notes }).finally(
+                    function () {
+                        downloadBtn.disabled = false;
+                        setStatus('Context pack downloaded — add .simplebeacon/*.md to your repo', true);
+                    }
+                );
             });
         }
-        if (closeBtn)
-            closeBtn.addEventListener('click', closeHandoffModal);
-        if (cancelBtn)
-            cancelBtn.addEventListener('click', closeHandoffModal);
-        if (backdrop)
-            backdrop.addEventListener('click', closeHandoffModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeHandoffModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeHandoffModal);
+        if (backdrop) backdrop.addEventListener('click', closeHandoffModal);
         document.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Escape' && modal && !modal.hidden)
-                closeHandoffModal();
+            if (ev.key === 'Escape' && modal && !modal.hidden) closeHandoffModal();
         });
     }
     function wireSendToAiButtons() {
-        if (global.__sbSendToAiWired)
-            return;
+        if (global.__sbSendToAiWired) return;
         global.__sbSendToAiWired = true;
         global.__simplebeaconSetReportForAI = function (report) {
             global.currentReport = report;
@@ -1236,15 +1291,16 @@
             var observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (m) {
                     if (m.type === 'attributes' && m.attributeName === 'style') {
-                        if (tokenRow.style.display !== 'none')
-                            sendBtn.style.display = 'block';
+                        if (tokenRow.style.display !== 'none') sendBtn.style.display = 'block';
                     }
                 });
             });
             observer.observe(tokenRow, { attributes: true, attributeFilter: ['style'] });
         }
         if (sendBtn) {
-            sendBtn.addEventListener('click', function () { openHandoffModal(); });
+            sendBtn.addEventListener('click', function () {
+                openHandoffModal();
+            });
         }
         if (analyzeSendBtn) {
             analyzeSendBtn.addEventListener('click', function () {
@@ -1258,7 +1314,9 @@
                     executeSendToAiAssistant(report, { preferVsCode: true }).then(function (res) {
                         if (res.ok) {
                             analyzeSendBtn.textContent = 'Sent ✓';
-                            setTimeout(function () { analyzeSendBtn.textContent = '🤖 Send to AI Slop Cop'; }, 2000);
+                            setTimeout(function () {
+                                analyzeSendBtn.textContent = '🤖 Send to AI Slop Cop';
+                            }, 2000);
                         }
                     });
                     return;
@@ -1284,8 +1342,7 @@
                     if (res.ok && aiStatus) {
                         aiStatus.textContent = res.message;
                         aiStatus.style.color = 'var(--success)';
-                    }
-                    else if (aiStatus) {
+                    } else if (aiStatus) {
                         aiStatus.textContent = res.error || 'Failed';
                         aiStatus.style.color = 'var(--error)';
                     }
@@ -1327,8 +1384,7 @@
             wireHandoffModal();
             wireSendToAiButtons();
         });
-    }
-    else {
+    } else {
         wireAuditAiContextPackUi();
         wireHandoffModal();
         wireSendToAiButtons();

@@ -229,29 +229,27 @@ export function StreamInterdictionDashboard() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={enabled ? 'bg-green-500/15 text-green-500 border-green-500/30' : 'bg-gray-500/15 text-gray-500 border-gray-500/30'}>
+            <Badge
+              variant="outline"
+              className={
+                enabled
+                  ? 'bg-green-500/15 text-green-500 border-green-500/30'
+                  : 'bg-gray-500/15 text-gray-500 border-gray-500/30'
+              }
+            >
               {enabled ? 'ACTIVE' : 'DISABLED'}
             </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setAutoRefresh((v) => !v)}
-            >
+            <Button size="sm" variant="outline" onClick={() => setAutoRefresh((v) => !v)}>
               <RefreshCw className={`h-4 w-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
               {autoRefresh ? 'Auto' : 'Manual'}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void fetchStatus()}
-            >
+            <Button size="sm" variant="outline" onClick={() => void fetchStatus()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-
         {/* ── Top KPI Cards (4) ────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="rounded-lg border p-3 text-center">
@@ -285,17 +283,12 @@ export function StreamInterdictionDashboard() {
               const count = status.stats.byType[axis.type] || 0;
               const threshold = status.thresholds[axis.type] || '—';
               return (
-                <div
-                  key={axis.type}
-                  className="flex items-center justify-between rounded-lg border p-2.5"
-                >
+                <div key={axis.type} className="flex items-center justify-between rounded-lg border p-2.5">
                   <div className="flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${axis.color}`} />
                     <div>
                       <p className="text-xs font-medium">{axis.label}</p>
-                      <p className="text-[10px] text-foreground-muted">
-                        threshold: {threshold}
-                      </p>
+                      <p className="text-[10px] text-foreground-muted">threshold: {threshold}</p>
                     </div>
                   </div>
                   <Badge
@@ -304,8 +297,8 @@ export function StreamInterdictionDashboard() {
                       count >= (status.thresholds[axis.type] || Infinity)
                         ? 'bg-red-500/15 text-red-500 border-red-500/30'
                         : count > 0
-                        ? 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30'
-                        : 'bg-gray-500/15 text-gray-500 border-gray-500/30'
+                          ? 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30'
+                          : 'bg-gray-500/15 text-gray-500 border-gray-500/30'
                     }
                   >
                     {count}
@@ -341,7 +334,13 @@ export function StreamInterdictionDashboard() {
                         return (
                           <td key={a.type} className="text-center p-2">
                             {c > 0 ? (
-                              <span className={c >= (status.thresholds[a.type] || Infinity) ? 'text-red-500 font-bold' : 'text-yellow-500'}>
+                              <span
+                                className={
+                                  c >= (status.thresholds[a.type] || Infinity)
+                                    ? 'text-red-500 font-bold'
+                                    : 'text-yellow-500'
+                                }
+                              >
                                 {c}
                               </span>
                             ) : (
@@ -370,7 +369,9 @@ export function StreamInterdictionDashboard() {
                   <div key={i} className="flex items-center gap-2 text-xs py-1 border-b last:border-0">
                     <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${axis?.color || 'text-foreground-muted'}`} />
                     <span className="font-mono text-foreground-muted flex-shrink-0">{f.apiKey}</span>
-                    <Badge variant="outline" className="text-[10px] py-0">{f.type}</Badge>
+                    <Badge variant="outline" className="text-[10px] py-0">
+                      {f.type}
+                    </Badge>
                     {f.detail && <span className="text-foreground-muted truncate">{f.detail}</span>}
                     <span className="ml-auto text-foreground-muted flex-shrink-0">{formatTimeAgo(f.at)}</span>
                   </div>
@@ -399,7 +400,9 @@ export function StreamInterdictionDashboard() {
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
               {FAILURE_AXES.map((a) => (
-                <option key={a.type} value={a.type}>{a.label}</option>
+                <option key={a.type} value={a.type}>
+                  {a.label}
+                </option>
               ))}
             </select>
             <Input
@@ -408,11 +411,7 @@ export function StreamInterdictionDashboard() {
               onChange={(e) => setRecordingDetail(e.target.value)}
               className="flex-1 min-w-[120px]"
             />
-            <Button
-              size="sm"
-              onClick={() => void handleRecord()}
-              disabled={recording || !recordingKey.trim()}
-            >
+            <Button size="sm" onClick={() => void handleRecord()} disabled={recording || !recordingKey.trim()}>
               {recording ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Record'}
             </Button>
           </div>

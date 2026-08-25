@@ -5,6 +5,7 @@
 **Core thesis:** Cloud-based code analysis tools create a paradox — you pay a vendor to increase your attack surface. SimpleBeacon eliminates that risk by running entirely locally.
 
 **Rules:**
+
 - No unverified claims about specific competitors
 - Frame cloud data transfer as a risk category, not a proven fact about named vendors
 - Every number is verified: 38 CLI analyzers, 35 IDE patterns, 14-day trial

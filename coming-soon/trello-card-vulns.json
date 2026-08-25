@@ -1,35 +1,33 @@
 {
-  "name": "Phase: Phase 9: Dependency Vulnerability Audit",
-  "desc": "0 vulnerable dependency(ies) detected.\n\nSeverity: low\nEffort: 1-3 days\nProgress: 100%",
-  "idList": "list_done",
-  "pos": 1024,
-  "idLabels": [
-    "label_low"
-  ],
-  "checklists": [
-    {
-      "id": "check_0",
-      "name": "Tasks",
-      "checkItems": [
+    "name": "Phase: Phase 9: Dependency Vulnerability Audit",
+    "desc": "0 vulnerable dependency(ies) detected.\n\nSeverity: low\nEffort: 1-3 days\nProgress: 100%",
+    "idList": "list_done",
+    "pos": 1024,
+    "idLabels": ["label_low"],
+    "checklists": [
         {
-          "id": "item_0_0",
-          "name": "Run npm audit fix",
-          "pos": 0,
-          "state": "complete"
-        },
-        {
-          "id": "item_0_1",
-          "name": "Review dependency update policy",
-          "pos": 1024,
-          "state": "complete"
-        },
-        {
-          "id": "item_0_2",
-          "name": "Enable Dependabot or Snyx",
-          "pos": 2048,
-          "state": "complete"
+            "id": "check_0",
+            "name": "Tasks",
+            "checkItems": [
+                {
+                    "id": "item_0_0",
+                    "name": "Run npm audit fix",
+                    "pos": 0,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_0_1",
+                    "name": "Review dependency update policy",
+                    "pos": 1024,
+                    "state": "complete"
+                },
+                {
+                    "id": "item_0_2",
+                    "name": "Enable Dependabot or Snyx",
+                    "pos": 2048,
+                    "state": "complete"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }

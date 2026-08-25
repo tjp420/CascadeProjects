@@ -8,7 +8,7 @@ import { authService } from './authService.js?v=20260716cachefix1';
  * @returns {any}
  */
 function isAuthenticated() {
-    return authService.isAuthenticated();
+  return authService.isAuthenticated();
 }
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
@@ -23,10 +23,10 @@ const AUTH_FAILURE_COOLDOWN_MS = 30000;
  * @returns {any}
  */
 function hasValidUserJwt() {
-    const token = authService.getToken?.() || '';
-    // User endpoints need a real JWT (3 dot-separated segments).
-    // License keys and legacy tokens are not valid here.
-    return token && token.split('.').length === 3;
+  const token = authService.getToken?.() || '';
+  // User endpoints need a real JWT (3 dot-separated segments).
+  // License keys and legacy tokens are not valid here.
+  return token && token.split('.').length === 3;
 }
 
 /**
@@ -41,7 +41,7 @@ export function normalizeAiKeysRecord(keysRecord = null) {
       providers: {},
       ollamaBaseUrl: '',
       ollamaModel: '',
-      updatedAt: null
+      updatedAt: null,
     };
   }
   return {
@@ -49,7 +49,7 @@ export function normalizeAiKeysRecord(keysRecord = null) {
     providers: keysRecord.providers || {},
     ollamaBaseUrl: keysRecord.ollamaBaseUrl || '',
     ollamaModel: keysRecord.ollamaModel || '',
-    updatedAt: keysRecord.updatedAt || null
+    updatedAt: keysRecord.updatedAt || null,
   };
 }
 
@@ -93,9 +93,9 @@ export async function saveUserAiKeys(payload) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+      ...authService.getAuthHeaders(),
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
   const savePayload = await readJsonResponseBody(saveHttpResponse, {});
   if (!saveHttpResponse.ok || !savePayload.success) {
@@ -115,7 +115,7 @@ export async function saveUserAiKeys(payload) {
 export async function clearUserAiKeys() {
   const clearHttpResponse = await fetch(BASE, {
     method: 'DELETE',
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   const clearPayload = await readJsonResponseBody(clearHttpResponse, {});
   if (!clearHttpResponse.ok || !clearPayload.success) {
@@ -145,21 +145,28 @@ export function isLocalOllamaUrl(url) {
 }
 
 export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const baseUrl =
+    String(ollamaBaseUrl || OLLAMA_DEFAULT_URL)
+      .trim()
+      .replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
   return !(isHttpsPage && isLocalOllamaUrl(baseUrl));
 }
 
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const baseUrl =
+    String(ollamaBaseUrl || OLLAMA_DEFAULT_URL)
+      .trim()
+      .replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
   if (!shouldProbeOllamaModels(baseUrl)) {
     return {
       ok: false,
       models: [],
-      message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
-      source: 'blocked'
+      message:
+        'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
+      source: 'blocked',
     };
   }
 
@@ -170,7 +177,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       const response = await fetch(`${baseUrl}/api/tags`, {
         method: 'GET',
         signal: controller.signal,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
         throw new Error(`Ollama returned HTTP ${response.status}`);
@@ -181,7 +188,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         ok: true,
         models,
         message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
-        source: 'browser'
+        source: 'browser',
       };
     } finally {
       clearTimeout(timeout);
@@ -195,7 +202,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       const response = await fetch(`/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`, {
         method: 'GET',
         signal: controller.signal,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -206,7 +213,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         ok: true,
         models,
         message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
-        source: 'server'
+        source: 'server',
       };
     } finally {
       clearTimeout(timeout);
@@ -225,8 +232,9 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
   try {
     return await fetchDirect();
   } catch (browserErr) {
-    const isCors = String(browserErr.message).toLowerCase().includes('cors') ||
-                   String(browserErr.message).includes('Failed to fetch');
+    const isCors =
+      String(browserErr.message).toLowerCase().includes('cors') ||
+      String(browserErr.message).includes('Failed to fetch');
     try {
       return await fetchProxy();
     } catch (proxyErr) {
@@ -236,8 +244,8 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       if (isCors) {
         throw new Error(
           `Ollama is reachable from the browser but CORS is blocked. ` +
-          `Start Ollama with CORS enabled: OLLAMA_ORIGINS=* ollama serve. ` +
-          `Server proxy also failed: ${proxyErr.message}`
+            `Start Ollama with CORS enabled: OLLAMA_ORIGINS=* ollama serve. ` +
+            `Server proxy also failed: ${proxyErr.message}`
         );
       }
       throw new Error(

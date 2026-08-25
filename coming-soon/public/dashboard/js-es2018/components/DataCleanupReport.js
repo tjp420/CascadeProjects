@@ -6,12 +6,9 @@ import { escapeHtml, formatNumber } from '../utils.js';
  */
 function formatBytes(bytes) {
     const n = Number(bytes) || 0;
-    if (n < 1024)
-        return `${n} B`;
-    if (n < 1024 * 1024)
-        return `${(n / 1024).toFixed(1)} KB`;
-    if (n < 1024 * 1024 * 1024)
-        return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 const SCANNER_LABELS = {
@@ -40,10 +37,8 @@ const PRIORITY_LABELS = {
  * @returns {any}
  */
 function profileTitle(profile) {
-    if (profile === 'file-reduction')
-        return 'File reduction';
-    if (profile === 'data-quality')
-        return 'Data quality';
+    if (profile === 'file-reduction') return 'File reduction';
+    if (profile === 'data-quality') return 'Data quality';
     return 'Data cleanup';
 }
 /**
@@ -53,16 +48,27 @@ function profileTitle(profile) {
  * @returns {any}
  */
 function actionBadge(action, severity) {
-    const cls = action === 'safe-to-delete' ? 'safe'
-        : action === 'review-before-delete' ? 'review'
-            : action === 'consolidate-duplicates' ? 'consolidate'
-                : severity === 'critical' ? 'critical'
-                    : severity === 'high' ? 'high'
-                        : severity === 'medium' ? 'medium'
-                            : 'low';
-    const label = action === 'safe-to-delete' ? 'Safe to delete'
-        : action === 'review-before-delete' ? 'Review first'
-            : action === 'consolidate-duplicates' ? 'Consolidate'
+    const cls =
+        action === 'safe-to-delete'
+            ? 'safe'
+            : action === 'review-before-delete'
+              ? 'review'
+              : action === 'consolidate-duplicates'
+                ? 'consolidate'
+                : severity === 'critical'
+                  ? 'critical'
+                  : severity === 'high'
+                    ? 'high'
+                    : severity === 'medium'
+                      ? 'medium'
+                      : 'low';
+    const label =
+        action === 'safe-to-delete'
+            ? 'Safe to delete'
+            : action === 'review-before-delete'
+              ? 'Review first'
+              : action === 'consolidate-duplicates'
+                ? 'Consolidate'
                 : action || 'Review';
     return `<span class="severity-pill ${cls}">${label}</span>`;
 }
@@ -72,9 +78,7 @@ function actionBadge(action, severity) {
  * @returns {any}
  */
 function confidenceBadge(confidence) {
-    const cls = confidence === 'high' ? 'low'
-        : confidence === 'medium' ? 'medium'
-            : 'high';
+    const cls = confidence === 'high' ? 'low' : confidence === 'medium' ? 'medium' : 'high';
     return `<span class="severity-pill ${cls}">${confidence || 'unknown'}</span>`;
 }
 /**
@@ -84,11 +88,12 @@ function confidenceBadge(confidence) {
  */
 function renderBuildArtifactsSection(findings) {
     const items = (findings === null || findings === void 0 ? void 0 : findings.buildArtifacts) || [];
-    if (!items.length)
-        return '';
+    if (!items.length) return '';
     const dirs = items.filter(f => f.kind === 'directory');
     const files = items.filter(f => f.kind === 'file');
-    const dirRows = dirs.map(f => `
+    const dirRows = dirs
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
       <td>${escapeHtml(f.category || f.reason || '')}</td>
@@ -96,8 +101,12 @@ function renderBuildArtifactsSection(findings) {
       <td>${formatNumber(f.fileCount)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `).join('');
-    const fileRows = files.map(f => `
+  `
+        )
+        .join('');
+    const fileRows = files
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
       <td>${escapeHtml(f.category || f.reason || '')}</td>
@@ -105,12 +114,16 @@ function renderBuildArtifactsSection(findings) {
       <td>${formatNumber(f.fileCount)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4">
       <summary><strong>Build artifacts</strong> <span class="text-muted">(${items.length})</span></summary>
       <div class="mt-4">
-        ${dirs.length ? `
+        ${
+            dirs.length
+                ? `
           <h4 class="mb-2" style="font-size: var(--font-size-sm);">Directories</h4>
           <div class="table-wrapper mb-3">
             <table class="results-table" style="font-size: var(--font-size-sm);">
@@ -118,8 +131,12 @@ function renderBuildArtifactsSection(findings) {
               <tbody>${dirRows}</tbody>
             </table>
           </div>
-        ` : ''}
-        ${files.length ? `
+        `
+                : ''
+        }
+        ${
+            files.length
+                ? `
           <h4 class="mb-2" style="font-size: var(--font-size-sm);">Files</h4>
           <div class="table-wrapper mb-3">
             <table class="results-table" style="font-size: var(--font-size-sm);">
@@ -127,7 +144,9 @@ function renderBuildArtifactsSection(findings) {
               <tbody>${fileRows}</tbody>
             </table>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     </details>
   `;
@@ -139,9 +158,10 @@ function renderBuildArtifactsSection(findings) {
  */
 function renderDuplicateAssetsSection(findings) {
     const items = (findings === null || findings === void 0 ? void 0 : findings.assetConsolidation) || [];
-    if (!items.length)
-        return '';
-    const rows = items.map(f => `
+    if (!items.length) return '';
+    const rows = items
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.keeper)}</code></td>
       <td>
@@ -151,7 +171,9 @@ function renderDuplicateAssetsSection(findings) {
       <td>${formatBytes(f.sizeBytes)}</td>
       <td>${formatBytes(f.reclaimableBytes)}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4">
       <summary><strong>Duplicate assets</strong> <span class="text-muted">(${items.length} group${items.length !== 1 ? 's' : ''})</span></summary>
@@ -173,16 +195,19 @@ function renderDuplicateAssetsSection(findings) {
  */
 function renderUnusedFilesSection(findings) {
     const items = (findings === null || findings === void 0 ? void 0 : findings.unusedFiles) || [];
-    if (!items.length)
-        return '';
-    const rows = items.map(f => `
+    if (!items.length) return '';
+    const rows = items
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
       <td>${escapeHtml(f.reason || '')}</td>
       <td>${confidenceBadge(f.confidence)}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4">
       <summary><strong>Unused file candidates</strong> <span class="text-muted">(${items.length})</span></summary>
@@ -207,11 +232,12 @@ function renderUnusedFilesSection(findings) {
  */
 function renderDirectoryBloatSection(findings) {
     const items = (findings === null || findings === void 0 ? void 0 : findings.directoryBloat) || [];
-    if (!items.length)
-        return '';
+    if (!items.length) return '';
     const dirs = items.filter(f => f.kind === 'directory');
     const files = items.filter(f => f.kind === 'file');
-    const dirRows = dirs.map(f => `
+    const dirRows = dirs
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
       <td>${escapeHtml(f.category || f.reason || '')}</td>
@@ -219,8 +245,12 @@ function renderDirectoryBloatSection(findings) {
       <td>${formatNumber(f.fileCount || 0)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `).join('');
-    const fileRows = files.map(f => `
+  `
+        )
+        .join('');
+    const fileRows = files
+        .map(
+            f => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
       <td>${escapeHtml(f.category || f.reason || '')}</td>
@@ -228,12 +258,16 @@ function renderDirectoryBloatSection(findings) {
       <td>—</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4">
       <summary><strong>Directory bloat</strong> <span class="text-muted">(${items.length})</span></summary>
       <div class="mt-4">
-        ${dirs.length ? `
+        ${
+            dirs.length
+                ? `
           <h4 class="mb-2" style="font-size: var(--font-size-sm);">Directories</h4>
           <div class="table-wrapper mb-3">
             <table class="results-table" style="font-size: var(--font-size-sm);">
@@ -241,8 +275,12 @@ function renderDirectoryBloatSection(findings) {
               <tbody>${dirRows}</tbody>
             </table>
           </div>
-        ` : ''}
-        ${files.length ? `
+        `
+                : ''
+        }
+        ${
+            files.length
+                ? `
           <h4 class="mb-2" style="font-size: var(--font-size-sm);">Files</h4>
           <div class="table-wrapper mb-3">
             <table class="results-table" style="font-size: var(--font-size-sm);">
@@ -250,7 +288,9 @@ function renderDirectoryBloatSection(findings) {
               <tbody>${fileRows}</tbody>
             </table>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     </details>
   `;
@@ -261,9 +301,10 @@ function renderDirectoryBloatSection(findings) {
  * @returns {any}
  */
 function renderGenericFindings(allFindings) {
-    if (!allFindings.length)
-        return '';
-    const rows = allFindings.map((finding) => `
+    if (!allFindings.length) return '';
+    const rows = allFindings
+        .map(
+            finding => `
     <tr>
       <td><span class="severity-pill ${escapeHtml(finding.severity || 'low')}">${escapeHtml(finding.severity || 'low')}</span></td>
       <td>${escapeHtml(finding.type || finding.category || 'finding')}</td>
@@ -271,7 +312,9 @@ function renderGenericFindings(allFindings) {
       <td>${escapeHtml(finding.message || finding.description || finding.reason || finding.recommendation || finding.action || '')}</td>
       <td>${escapeHtml(finding.action || finding.recommendation || 'Review')}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4">
       <summary><strong>Other findings</strong> <span class="text-muted">(${allFindings.length})</span></summary>
@@ -294,11 +337,9 @@ function renderGenericFindings(allFindings) {
  */
 function renderFileReductionPlan(scan, profile) {
     const plan = scan.fileReductionPlan;
-    if (!plan)
-        return '';
+    if (!plan) return '';
     const effectiveProfile = profile || scan.scanProfile || 'all';
-    if (effectiveProfile !== 'file-reduction' && effectiveProfile !== 'all')
-        return '';
+    if (effectiveProfile !== 'file-reduction' && effectiveProfile !== 'all') return '';
     const totals = plan.totals || {};
     const safe = plan.safeToDelete || {};
     const review = plan.reviewBeforeDelete || {};
@@ -309,33 +350,45 @@ function renderFileReductionPlan(scan, profile) {
      * @param {string} safe.topDirectories || []
      * @returns {any}
      */
-    const topDirs = (safe.topDirectories || []).map((entry) => `
+    const topDirs = (safe.topDirectories || [])
+        .map(
+            entry => `
     <li>
       <code>${escapeHtml(entry.path)}</code>
       <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatNumber(entry.files)} file(s)</span>
     </li>
-  `).join('');
+  `
+        )
+        .join('');
     /**
      * Review logs.
      * @param {any} review.logs || []
      * @returns {any}
      */
-    const reviewLogs = (review.logs || []).map((entry) => `
+    const reviewLogs = (review.logs || [])
+        .map(
+            entry => `
     <li><code>${escapeHtml(entry.path)}</code> <span class="text-muted">· ${formatBytes(entry.bytes)}</span></li>
-  `).join('');
+  `
+        )
+        .join('');
     /**
      * Summary rows.
      * @param {any} plan.summaryTable || []
      * @returns {any}
      */
-    const summaryRows = (plan.summaryTable || []).map((row) => `
+    const summaryRows = (plan.summaryTable || [])
+        .map(
+            row => `
     <tr>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.files)}</td>
       <td>${row.bytes == null ? '—' : formatBytes(row.bytes)}</td>
       <td>${escapeHtml(row.action)}</td>
     </tr>
-  `).join('');
+  `
+        )
+        .join('');
     return `
     <details class="card mb-4" open>
       <summary><strong>Reduction plan</strong></summary>
@@ -354,19 +407,31 @@ function renderFileReductionPlan(scan, profile) {
           </thead>
           <tbody>${summaryRows}</tbody>
         </table>
-        ${topDirs ? `
+        ${
+            topDirs
+                ? `
           <h3 class="mb-2" style="font-size: var(--font-size-base);">Top safe-to-delete directories</h3>
           <ul class="mb-4" style="padding-left: 1.25rem;">${topDirs}</ul>
-        ` : ''}
-        ${reviewLogs ? `
+        `
+                : ''
+        }
+        ${
+            reviewLogs
+                ? `
           <h3 class="mb-2" style="font-size: var(--font-size-base);">Review before delete (logs)</h3>
           <ul class="mb-4" style="padding-left: 1.25rem;">${reviewLogs}</ul>
-        ` : ''}
-        ${(plan.recommendations || []).length ? `
+        `
+                : ''
+        }
+        ${
+            (plan.recommendations || []).length
+                ? `
           <p class="text-muted" style="font-size: var(--font-size-xs);">
-            ${plan.recommendations.map((item) => escapeHtml(item)).join(' · ')}
+            ${plan.recommendations.map(item => escapeHtml(item)).join(' · ')}
           </p>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     </details>
   `;
@@ -380,12 +445,10 @@ function renderFileReductionPlan(scan, profile) {
 function renderScannerStatistics(scan, profile) {
     var _a, _b, _c, _d;
     const stats = scan.scannerStatistics;
-    if (!(stats === null || stats === void 0 ? void 0 : stats.scanners))
-        return '';
+    if (!(stats === null || stats === void 0 ? void 0 : stats.scanners)) return '';
     const effectiveProfile = profile || scan.scanProfile || 'all';
     const isDataQuality = effectiveProfile === 'data-quality' || effectiveProfile === 'all';
-    if (!isDataQuality)
-        return '';
+    if (!isDataQuality) return '';
     const rows = [
         ['Config Management', stats.scanners['config-management']],
         ['Dependency Health', stats.scanners['dependency-health']],
@@ -396,35 +459,46 @@ function renderScannerStatistics(scan, profile) {
         ['Data Lineage', stats.scanners['data-lineage']],
         ['Data Consistency', stats.scanners['data-consistency']]
     ].filter(([, block]) => block);
-    const statLines = rows.map(([label, block]) => {
-        var _a;
-        const pairs = Object.entries(block.stats || {})
-            .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
-            .join(' · ');
-        const findingPairs = Object.entries(block.findings || {})
-            .filter(([key]) => key !== 'total')
-            .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
-            .join(' · ');
-        return `
+    const statLines = rows
+        .map(([label, block]) => {
+            var _a;
+            const pairs = Object.entries(block.stats || {})
+                .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
+                .join(' · ');
+            const findingPairs = Object.entries(block.findings || {})
+                .filter(([key]) => key !== 'total')
+                .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
+                .join(' · ');
+            return `
       <div class="consolidation-card card mb-2">
         <div class="consolidation-meta">${escapeHtml(label)} · ${formatNumber((_a = block.findings) === null || _a === void 0 ? void 0 : _a.total)} finding(s)</div>
         <p class="text-muted" style="font-size: var(--font-size-sm);">${escapeHtml(pairs)}</p>
         ${findingPairs ? `<p class="text-muted" style="font-size: var(--font-size-xs);">Findings: ${escapeHtml(findingPairs)}</p>` : ''}
       </div>
     `;
-    }).join('');
-    const piiCategories = ((_b = (_a = scan.executiveSummary) === null || _a === void 0 ? void 0 : _a.security) === null || _b === void 0 ? void 0 : _b.piiByCategory) || [];
-    const piiBlock = piiCategories.length ? `
+        })
+        .join('');
+    const piiCategories =
+        ((_b = (_a = scan.executiveSummary) === null || _a === void 0 ? void 0 : _a.security) === null || _b === void 0
+            ? void 0
+            : _b.piiByCategory) || [];
+    const piiBlock = piiCategories.length
+        ? `
     <h3 class="mb-2 mt-4" style="font-size: var(--font-size-base);">PII triage</h3>
     <div class="metrics-row mb-2">
-      ${piiCategories.map((entry) => `
+      ${piiCategories
+          .map(
+              entry => `
         <div class="metric-chip" title="${escapeHtml(entry.categoryLabel)}">
           <strong>${formatNumber(entry.count)}</strong> ${escapeHtml(entry.categoryLabel)}
         </div>
-      `).join('')}
+      `
+          )
+          .join('')}
       <div class="metric-chip"><strong>${formatNumber((_d = (_c = scan.executiveSummary) === null || _c === void 0 ? void 0 : _c.security) === null || _d === void 0 ? void 0 : _d.piiNeedingReview)}</strong> need review</div>
     </div>
-  ` : '';
+  `
+        : '';
     return `
     <details class="card mb-4">
       <summary><strong>Scanner statistics</strong> <span class="text-muted">(workspace-scoped)</span></summary>
@@ -445,8 +519,7 @@ function renderScannerStatistics(scan, profile) {
 function renderExecutiveSummary(scan, profile) {
     var _a, _b, _c, _d, _e;
     const summary = scan.executiveSummary;
-    if (!summary)
-        return '';
+    if (!summary) return '';
     const effectiveProfile = profile || scan.scanProfile || 'all';
     const showFileReduction = effectiveProfile === 'file-reduction' || effectiveProfile === 'all';
     const showDataQuality = effectiveProfile === 'data-quality' || effectiveProfile === 'all';
@@ -454,26 +527,35 @@ function renderExecutiveSummary(scan, profile) {
     const credentials = ((_a = summary.security) === null || _a === void 0 ? void 0 : _a.credentials) || [];
     const notes = summary.notes || [];
     const actionItems = actions.length
-        ? actions.map((action) => `
+        ? actions
+              .map(
+                  action => `
         <li>
           <span class="consolidation-meta">${escapeHtml(PRIORITY_LABELS[action.priority] || action.priority)}</span>
           <strong>${escapeHtml(action.title)}</strong>
           <span class="text-muted"> — ${escapeHtml(action.detail)}</span>
         </li>
-      `).join('')
+      `
+              )
+              .join('')
         : '<li class="text-muted">No immediate actions — review top findings below.</li>';
     const credentialItems = credentials.length
-        ? credentials.map((item) => `
+        ? credentials
+              .map(
+                  item => `
         <li>
           <code>${escapeHtml(item.path || '—')}${item.line ? `:${item.line}` : ''}</code>
           <span class="text-muted"> · ${escapeHtml(item.categoryLabel || item.category || 'Review required')}</span>
         </li>
-      `).join('')
+      `
+              )
+              .join('')
         : '';
     const workspace = summary.workspace || {};
     const data = summary.data || {};
     const fileReduction = summary.fileReduction || {};
-    const workspaceRows = showDataQuality ? `
+    const workspaceRows = showDataQuality
+        ? `
     <div class="metrics-row mb-2">
       <div class="metric-chip" title="Workspace package.json files only"><strong>${formatNumber(workspace.packageJsonFiles)}</strong> workspace packages</div>
       <div class="metric-chip"><strong>${formatNumber(workspace.unusedDependencies)}</strong> unused deps</div>
@@ -491,15 +573,18 @@ function renderExecutiveSummary(scan, profile) {
       <div class="metric-chip"><strong>${formatNumber(data.shapeDriftGroups)}</strong> shape drift</div>
       <div class="metric-chip"><strong>${formatNumber(data.syncIoPatterns)}</strong> sync I/O</div>
     </div>
-  ` : '';
-    const fileReductionRows = showFileReduction ? `
+  `
+        : '';
+    const fileReductionRows = showFileReduction
+        ? `
     <div class="metrics-row mb-2">
       <div class="metric-chip"><strong>${formatBytes(fileReduction.estimatedImmediateSavingsBytes || fileReduction.safeToDeleteBytes || fileReduction.reclaimableBytes)}</strong> immediate savings</div>
       <div class="metric-chip"><strong>${formatBytes(fileReduction.safeToDeleteBytes || 0)}</strong> safe to delete</div>
       <div class="metric-chip"><strong>${formatBytes(fileReduction.reviewBeforeDeleteBytes || 0)}</strong> review first</div>
       <div class="metric-chip"><strong>${formatNumber(fileReduction.unusedFileCandidates)}</strong> unused files</div>
     </div>
-  ` : '';
+  `
+        : '';
     return `
     <details class="card mb-4" open>
       <summary><strong>Executive summary</strong></summary>
@@ -510,17 +595,25 @@ function renderExecutiveSummary(scan, profile) {
         <ul class="mb-4" style="padding-left: 1.25rem;">
           ${actionItems}
         </ul>
-        ${credentialItems ? `
+        ${
+            credentialItems
+                ? `
           <h3 class="mb-2" style="font-size: var(--font-size-base);">Credential hits</h3>
           <ul class="mb-4" style="padding-left: 1.25rem;">
             ${credentialItems}
           </ul>
-        ` : ''}
-        ${notes.length ? `
+        `
+                : ''
+        }
+        ${
+            notes.length
+                ? `
           <p class="text-muted" style="font-size: var(--font-size-xs);">
-            ${notes.map((note) => escapeHtml(note)).join(' · ')}
+            ${notes.map(note => escapeHtml(note)).join(' · ')}
           </p>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     </details>
   `;
@@ -566,11 +659,12 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
         `<div class="metric-chip"><strong>${formatNumber(s.dataLineageFindings)}</strong> orphaned</div>`,
         `<div class="metric-chip"><strong>${formatNumber(s.dataConsistencyFindings)}</strong> shape drift</div>`
     ];
-    const metricChips = effectiveProfile === 'file-reduction'
-        ? fileReductionChips
-        : effectiveProfile === 'data-quality'
-            ? dataQualityChips
-            : [...fileReductionChips, ...dataQualityChips];
+    const metricChips =
+        effectiveProfile === 'file-reduction'
+            ? fileReductionChips
+            : effectiveProfile === 'data-quality'
+              ? dataQualityChips
+              : [...fileReductionChips, ...dataQualityChips];
     return `
     ${renderExecutiveSummary(scan, effectiveProfile)}
     ${renderFileReductionPlan(scan, effectiveProfile)}
@@ -589,7 +683,7 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
     </div>
     <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">
       ${escapeHtml(profileTitle(effectiveProfile))} · dry-run only · workspace-scoped dep/config counts · scanners:
-      ${enabled.map((id) => escapeHtml(SCANNER_LABELS[id] || id)).join(' · ')}
+      ${enabled.map(id => escapeHtml(SCANNER_LABELS[id] || id)).join(' · ')}
     </p>
     <div class="flex gap-2 mb-4">
       <button type="button" class="btn btn-secondary btn-sm data-cleanup-download-json" data-profile="${escapeHtml(effectiveProfile)}" title="Download all findings as JSON">Download JSON</button>
@@ -616,19 +710,36 @@ export function buildDataCleanupConclusion(scan, profile) {
     const inv = scan.inventory || {};
     const label = profileTitle(profile || scan.scanProfile || 'all');
     const sev = ((_a = scan.aggregation) === null || _a === void 0 ? void 0 : _a.bySeverity) || {};
-    const severityNote = (sev.critical || sev.high)
-        ? ` ${formatNumber(sev.critical)} critical, ${formatNumber(sev.high)} high severity.`
-        : '';
+    const severityNote =
+        sev.critical || sev.high
+            ? ` ${formatNumber(sev.critical)} critical, ${formatNumber(sev.high)} high severity.`
+            : '';
     const exec = scan.executiveSummary;
-    const reviewNote = ((_b = exec === null || exec === void 0 ? void 0 : exec.security) === null || _b === void 0 ? void 0 : _b.credentialsNeedingReview)
+    const reviewNote = (
+        (_b = exec === null || exec === void 0 ? void 0 : exec.security) === null || _b === void 0
+            ? void 0
+            : _b.credentialsNeedingReview
+    )
         ? ` ${formatNumber(exec.security.credentialsNeedingReview)} credential hit(s) need manual review.`
-        : ((_c = exec === null || exec === void 0 ? void 0 : exec.security) === null || _c === void 0 ? void 0 : _c.credentialHits)
-            ? ' Credential hits are documented examples or test fixtures.'
-            : '';
-    const piiNote = ((_d = exec === null || exec === void 0 ? void 0 : exec.security) === null || _d === void 0 ? void 0 : _d.piiNeedingReview)
+        : (
+                (_c = exec === null || exec === void 0 ? void 0 : exec.security) === null || _c === void 0
+                    ? void 0
+                    : _c.credentialHits
+            )
+          ? ' Credential hits are documented examples or test fixtures.'
+          : '';
+    const piiNote = (
+        (_d = exec === null || exec === void 0 ? void 0 : exec.security) === null || _d === void 0
+            ? void 0
+            : _d.piiNeedingReview
+    )
         ? ` ${formatNumber(exec.security.piiNeedingReview)} PII hit(s) need manual review.`
-        : ((_e = exec === null || exec === void 0 ? void 0 : exec.security) === null || _e === void 0 ? void 0 : _e.piiHits)
-            ? ' PII hits are in docs, reports, or mock/sample data.'
-            : '';
+        : (
+                (_e = exec === null || exec === void 0 ? void 0 : exec.security) === null || _e === void 0
+                    ? void 0
+                    : _e.piiHits
+            )
+          ? ' PII hits are in docs, reports, or mock/sample data.'
+          : '';
     return `${label}: ${formatNumber(s.totalFindings)} finding(s) across ${formatNumber(inv.totalFiles)} files — ${formatBytes(s.reclaimableBytes)} potentially reclaimable (dry-run).${severityNote}${reviewNote}${piiNote}`;
 }

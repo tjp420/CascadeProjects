@@ -88,11 +88,14 @@ async function injectAuth(page: Page, opts: InjectOptions) {
     const token = `${header}.${payload}.dummy-signature`;
 
     localStorage.setItem('sb_token', token);
-    localStorage.setItem('sb_user', JSON.stringify({
-      plan: args.plan,
-      role: 'user',
-      email: 'test@simplebeacon.ai',
-    }));
+    localStorage.setItem(
+      'sb_user',
+      JSON.stringify({
+        plan: args.plan,
+        role: 'user',
+        email: 'test@simplebeacon.ai',
+      })
+    );
 
     if (args.scanCount !== undefined) {
       localStorage.setItem('sb_scan_count', String(args.scanCount));
@@ -188,7 +191,9 @@ test.describe('Free-tier scan paywall', () => {
     await expect(page.getByText('1 of 3 free scans remaining this month')).toBeVisible();
   });
 
-  test('3. Free-tier user with 3 scans (limit reached) sees the "Free Scan Limit Reached" paywall overlay', async ({ page }) => {
+  test('3. Free-tier user with 3 scans (limit reached) sees the "Free Scan Limit Reached" paywall overlay', async ({
+    page,
+  }) => {
     await injectAuth(page, { plan: 'free', scanCount: 3 });
     await mockApiEndpoints(page, 3);
     await page.goto(ANALYZE_URL);
@@ -207,9 +212,7 @@ test.describe('Free-tier scan paywall', () => {
 
     // The upgrade CTA button should be visible inside the paywall card.
     // The button text includes a Sparkles icon + the CTA string.
-    await expect(
-      page.getByRole('button', { name: /Upgrade to Developer.*\$49\/mo/ })
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /Upgrade to Developer.*\$49\/mo/ })).toBeVisible();
   });
 });
 
@@ -232,7 +235,9 @@ test.describe('Free-tier feature paywalls', () => {
     await expect(page.getByText('CI/CD Integration is a Developer Feature')).toBeVisible();
   });
 
-  test('6. Assessment page EU AI Act section shows "EU AI Act Mapping is a Team Pro Feature" for free users', async ({ page }) => {
+  test('6. Assessment page EU AI Act section shows "EU AI Act Mapping is a Team Pro Feature" for free users', async ({
+    page,
+  }) => {
     // Inject a pre-existing scan result so AssessmentView renders checklists
     // (otherwise it shows "No assessment data available").
     await injectAuth(page, { plan: 'free', scanResult: MOCK_SCAN_RESULT });

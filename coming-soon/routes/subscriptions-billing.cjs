@@ -11,10 +11,14 @@ const db = require('../lib/db.cjs');
 const { buildReferralCheckoutMetadata, processStripeReferralAttribution } = require('../lib/referral-webhook.cjs');
 
 let stripe = null;
-try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
+try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+} catch {
+    stripe = null;
+}
 
 const DEFAULT_PORT = 3001;
-const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
+const PUBLIC_URL = process.env.PUBLIC_URL || 'http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT);
 // DASHBOARD_URL is the public-facing dashboard URL for email links (must be reachable from the user's browser).
 // Falls back to the production dashboard — never localhost, since users open these links on their own machines.
 const DASHBOARD_URL = process.env.DASHBOARD_URL || 'https://simplebeacon.ai/dashboard/';
@@ -36,9 +40,18 @@ const PRICE_EXTRA_SEAT_MONTHLY = 1500;
 const PRICE_EXTRA_SEAT_ANNUAL = 15000;
 
 const logger = {
-    error: (...a) => { const c = globalThis.console; c.error(...a); },
-    info:  (...a) => { const c = globalThis.console; c.log(...a); },
-    warn:  (...a) => { const c = globalThis.console; c.warn(...a); }
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    },
+    info: (...a) => {
+        const c = globalThis.console;
+        c.log(...a);
+    },
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    }
 };
 
 const { generateLicenseToken } = require('../lib/license-utils.cjs');
@@ -85,7 +98,10 @@ router.post('/api/create-subscription-session', async (req, res) => {
 
         // Sanitize string inputs: strip control characters, enforce length
         function sanitize(str, maxLen) {
-            return String(str || '').replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, maxLen);
+            return String(str || '')
+                .replace(/[\x00-\x1F\x7F]/g, '')
+                .trim()
+                .slice(0, maxLen);
         }
         const cleanProjectName = sanitize(projectName, 200);
         const cleanClientName = sanitize(clientName || email, 200);
@@ -96,7 +112,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
         }
 
         // Validate extraSeats for team_pro tier
-        const seatCount = (tier === 'team_pro' && extraSeats) ? Math.max(0, Math.min(50, parseInt(extraSeats, 10) || 0)) : 0;
+        const seatCount =
+            tier === 'team_pro' && extraSeats ? Math.max(0, Math.min(50, parseInt(extraSeats, 10) || 0)) : 0;
 
         const tierConfig = {
             developer: {
@@ -142,8 +159,32 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
         const interval = isAnnual ? 'year' : 'month';
         const displayPrice = isAnnual
-            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team_pro' ? '$1,490/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : tier === 'developer' ? '$490/yr' : '$490/yr')
-            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team_pro' ? '$149/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : tier === 'developer' ? '$49/mo' : '$49/mo');
+            ? tier === 'enterprise'
+                ? '$4,990/yr'
+                : tier === 'compliance'
+                  ? '$3,990/yr'
+                  : tier === 'team_pro'
+                    ? '$1,490/yr'
+                    : tier === 'team'
+                      ? '$990/yr'
+                      : tier === 'pro'
+                        ? '$90/yr'
+                        : tier === 'developer'
+                          ? '$490/yr'
+                          : '$490/yr'
+            : tier === 'enterprise'
+              ? '$499/mo'
+              : tier === 'compliance'
+                ? '$399/mo'
+                : tier === 'team_pro'
+                  ? '$149/mo'
+                  : tier === 'team'
+                    ? '$99/mo'
+                    : tier === 'pro'
+                      ? '$9/mo'
+                      : tier === 'developer'
+                        ? '$49/mo'
+                        : '$49/mo';
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -169,18 +210,20 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
         // Build line items: base subscription + optional extra seat add-on
-        const lineItems = [{
-            price_data: {
-                currency: 'usd',
-                product_data: {
-                    name: selectedTier.name,
-                    description: selectedTier.desc + ' — ' + displayPrice
+        const lineItems = [
+            {
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: selectedTier.name,
+                        description: selectedTier.desc + ' — ' + displayPrice
+                    },
+                    unit_amount: unitAmount,
+                    recurring: { interval: interval }
                 },
-                unit_amount: unitAmount,
-                recurring: { interval: interval }
-            },
-            quantity: 1
-        }];
+                quantity: 1
+            }
+        ];
 
         if (seatCount > 0) {
             const seatUnitAmount = isAnnual ? PRICE_EXTRA_SEAT_ANNUAL : PRICE_EXTRA_SEAT_MONTHLY;
@@ -190,7 +233,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
                     currency: 'usd',
                     product_data: {
                         name: 'Extra Team Seat',
-                        description: 'Additional seat beyond the 5 included in Team Pro — ' + seatDisplayPrice + ' per seat'
+                        description:
+                            'Additional seat beyond the 5 included in Team Pro — ' + seatDisplayPrice + ' per seat'
                     },
                     unit_amount: seatUnitAmount,
                     recurring: { interval: interval }
@@ -283,7 +327,11 @@ router.get('/api/team/reports', async (req, res) => {
         }
 
         const logs = (global.teamReportLog || []).filter(r => r.email === customer.email);
-        res.json({ success: true, reports: logs.slice(-100), subscription: { status: customer.subscription_status, tier: customer.tier } });
+        res.json({
+            success: true,
+            reports: logs.slice(-100),
+            subscription: { status: customer.subscription_status, tier: customer.tier }
+        });
     } catch (error) {
         logger.error('[TeamReportsGet] Error:', error.message);
         res.status(500).json({ error: 'Failed to retrieve reports.', message: error.message });
@@ -292,7 +340,8 @@ router.get('/api/team/reports', async (req, res) => {
 
 // Subscription webhook handler (mounted alongside checkout webhook)
 function setupSubscriptionWebhook(app) {
-    app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), async (req, res) => { // rateLimit applied
+    app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+        // rateLimit applied
         // Apply rate limiting to webhooks (generous: 30/min per IP)
         const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
         const now = Date.now();
@@ -350,18 +399,34 @@ function setupSubscriptionWebhook(app) {
 
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
-            if (session.mode === 'subscription' && (session.payment_status === 'paid' || session.status === 'complete')) {
+            if (
+                session.mode === 'subscription' &&
+                (session.payment_status === 'paid' || session.status === 'complete')
+            ) {
                 const customerId = session.customer;
                 if (customerId) {
-                    const customer = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').get(customerId);
+                    const customer = db
+                        .getDb()
+                        .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                        .get(customerId);
                     if (customer) {
                         db.updateCustomerSubscription(customer.email, 'active', customer.tier || 'team');
                         if (session.subscription) {
-                            const existingSub = db.getDb().prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?').get(session.subscription);
+                            const existingSub = db
+                                .getDb()
+                                .prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+                                .get(session.subscription);
                             if (existingSub) {
                                 db.updatePaidSubscriptionStatus(session.subscription, 'active');
                             } else {
-                                db.addPaidSubscription(customer.email, session.subscription, null, 'active', null, null);
+                                db.addPaidSubscription(
+                                    customer.email,
+                                    session.subscription,
+                                    null,
+                                    'active',
+                                    null,
+                                    null
+                                );
                             }
                         }
                     }
@@ -369,7 +434,11 @@ function setupSubscriptionWebhook(app) {
                 try {
                     const referralResult = processStripeReferralAttribution(session);
                     if (referralResult.converted) {
-                        logger.info('[SubscriptionWebhook] Referral conversion:', referralResult.attributionId, referralResult.rewardId);
+                        logger.info(
+                            '[SubscriptionWebhook] Referral conversion:',
+                            referralResult.attributionId,
+                            referralResult.rewardId
+                        );
                     }
                 } catch (referralErr) {
                     logger.error('[SubscriptionWebhook] Referral attribution failed:', referralErr.message);
@@ -382,10 +451,15 @@ function setupSubscriptionWebhook(app) {
             const customerId = sub.customer;
             const status = sub.status;
             const priceId = sub.items?.data?.[0]?.price?.id;
-            const periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null;
+            const periodStart = sub.current_period_start
+                ? new Date(sub.current_period_start * 1000).toISOString()
+                : null;
             const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
 
-            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            const allCustomers = db
+                .getDb()
+                .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                .all(customerId);
             if (allCustomers.length === 0) {
                 logger.error('[SubscriptionWebhook] Customer not found for stripe ID:', customerId);
                 return res.json({ received: true, status: 'customer_not_found' });
@@ -412,12 +486,31 @@ function setupSubscriptionWebhook(app) {
             };
             let detectedTier = PRICE_TIER_MAP[unitAmount] || 'developer';
             const finalTier = customer.tier && customer.tier !== 'community' ? customer.tier : detectedTier;
-            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team_pro' ? 'SimpleBeacon Team Pro' : finalTier === 'team' ? 'Continuous Shield Team' : finalTier === 'developer' ? 'SimpleBeacon Developer' : 'AI Slop Cop Pro';
-            const features = finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
-                ? ['continuous_shield', 'team_dashboard', 'ci_integration', 'compliance_certificate', 'eu_ai_act', 'analyst_support']
-                : finalTier === 'team'
-                    ? ['continuous_shield', 'team_dashboard', 'ci_integration']
-                    : ['continuous_shield', 'ci_integration', 'export_reports'];
+            const tierLabel =
+                finalTier === 'enterprise'
+                    ? 'Compliance Suite Enterprise'
+                    : finalTier === 'compliance'
+                      ? 'Compliance Suite'
+                      : finalTier === 'team_pro'
+                        ? 'SimpleBeacon Team Pro'
+                        : finalTier === 'team'
+                          ? 'Continuous Shield Team'
+                          : finalTier === 'developer'
+                            ? 'SimpleBeacon Developer'
+                            : 'AI Slop Cop Pro';
+            const features =
+                finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
+                    ? [
+                          'continuous_shield',
+                          'team_dashboard',
+                          'ci_integration',
+                          'compliance_certificate',
+                          'eu_ai_act',
+                          'analyst_support'
+                      ]
+                    : finalTier === 'team'
+                      ? ['continuous_shield', 'team_dashboard', 'ci_integration']
+                      : ['continuous_shield', 'ci_integration', 'export_reports'];
 
             db.updateCustomerSubscription(customer.email, status, finalTier);
             db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);
@@ -436,17 +529,27 @@ function setupSubscriptionWebhook(app) {
                         team: { monthly: 1500, annual: 15000 },
                         compliance: { monthly: 39900, annual: 399000 },
                         enterprise: { monthly: 49900, annual: 499000 },
-                        pro: { monthly: 900, annual: 9000 },
+                        pro: { monthly: 900, annual: 9000 }
                     };
-                    const oldPrice = TIER_PRICES[oldTier] ? (isAnnual ? TIER_PRICES[oldTier].annual : TIER_PRICES[oldTier].monthly) : 0;
-                    const newPrice = TIER_PRICES[finalTier] ? (isAnnual ? TIER_PRICES[finalTier].annual : TIER_PRICES[finalTier].monthly) : 0;
+                    const oldPrice = TIER_PRICES[oldTier]
+                        ? isAnnual
+                            ? TIER_PRICES[oldTier].annual
+                            : TIER_PRICES[oldTier].monthly
+                        : 0;
+                    const newPrice = TIER_PRICES[finalTier]
+                        ? isAnnual
+                            ? TIER_PRICES[finalTier].annual
+                            : TIER_PRICES[finalTier].monthly
+                        : 0;
                     const cycleDays = isAnnual ? 365 : 30;
                     const now = Date.now();
-                    const periodEndMs = sub.current_period_end ? sub.current_period_end * 1000 : now + cycleDays * 24 * 60 * 60 * 1000;
+                    const periodEndMs = sub.current_period_end
+                        ? sub.current_period_end * 1000
+                        : now + cycleDays * 24 * 60 * 60 * 1000;
                     const daysRemaining = Math.max(0, Math.round((periodEndMs - now) / (24 * 60 * 60 * 1000)));
                     const oldDaily = Math.round(oldPrice / cycleDays);
                     const newDaily = Math.round(newPrice / cycleDays);
-                    const netCents = (newDaily * daysRemaining) - (oldDaily * daysRemaining);
+                    const netCents = newDaily * daysRemaining - oldDaily * daysRemaining;
                     const absAmt = Math.abs(netCents);
                     const display = `$${(absAmt / 100).toFixed(2)} ${netCents > 0 ? 'charge' : 'credit'}`;
                     const isUpgrade = newPrice > oldPrice;
@@ -460,7 +563,7 @@ function setupSubscriptionWebhook(app) {
                         daysRemaining,
                         netAdjustmentCents: netCents,
                         netAdjustmentDisplay: display,
-                        isAnnual,
+                        isAnnual
                     });
                     await sendEmail({ to: customer.email, subject, text, html });
                     logger.info('[SubscriptionWebhook] Proration notice sent to', customer.email);
@@ -478,7 +581,9 @@ function setupSubscriptionWebhook(app) {
 
                     // Look up existing free token for this customer
                     const dbInstance = db.getDb();
-                    const freeTokenRecord = dbInstance.prepare('SELECT * FROM free_tokens WHERE email = ?').get(customer.email.trim().toLowerCase());
+                    const freeTokenRecord = dbInstance
+                        .prepare('SELECT * FROM free_tokens WHERE email = ?')
+                        .get(customer.email.trim().toLowerCase());
                     const previousToken = freeTokenRecord ? freeTokenRecord.token : null;
 
                     const tokenPayload = {
@@ -497,14 +602,18 @@ function setupSubscriptionWebhook(app) {
                         activateToken(hashToken(token), ttlMinutes);
                         // Revoke the old free token so it can no longer be used
                         if (freeTokenRecord) {
-                            dbInstance.prepare("UPDATE free_tokens SET revoked = 1 WHERE email = ?").run(customer.email.trim().toLowerCase());
+                            dbInstance
+                                .prepare('UPDATE free_tokens SET revoked = 1 WHERE email = ?')
+                                .run(customer.email.trim().toLowerCase());
                         }
                     } catch (chainErr) {
                         logger.error('[SubscriptionWebhook] Chain creation failed:', chainErr.message);
                     }
                     try {
                         const { sendEmail } = require('../services/email.cjs');
-                        const { renderLicenseConfirmation } = require('../services/email-templates/license-confirmation-email.cjs');
+                        const {
+                            renderLicenseConfirmation
+                        } = require('../services/email-templates/license-confirmation-email.cjs');
                         const emailContent = renderLicenseConfirmation({
                             tierLabel,
                             token,
@@ -526,7 +635,12 @@ function setupSubscriptionWebhook(app) {
                         } else if (!emailResult.sent) {
                             logger.warn('[SubscriptionWebhook] Email queued for retry. queueId:', emailResult.queueId);
                         } else {
-                            logger.info('[SubscriptionWebhook] Email sent via', emailResult.provider, 'queueId:', emailResult.queueId);
+                            logger.info(
+                                '[SubscriptionWebhook] Email sent via',
+                                emailResult.provider,
+                                'queueId:',
+                                emailResult.queueId
+                            );
                         }
                     } catch (emailErr) {
                         logger.error('[SubscriptionWebhook] Email failed:', emailErr.message);
@@ -539,7 +653,10 @@ function setupSubscriptionWebhook(app) {
         if (event.type === 'customer.subscription.deleted') {
             const sub = event.data.object;
             const customerId = sub.customer;
-            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            const allCustomers = db
+                .getDb()
+                .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                .all(customerId);
             if (allCustomers.length > 0) {
                 const customer = allCustomers[0];
                 db.updateCustomerSubscription(customer.email, 'canceled', customer.tier);
@@ -564,7 +681,10 @@ function setupSubscriptionWebhook(app) {
             logger.info('[SubscriptionWebhook] Payment succeeded for subscription:', subscriptionId);
             if (subscriptionId) {
                 db.updatePaidSubscriptionStatus(subscriptionId, 'active');
-                const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
+                const subRows = db
+                    .getDb()
+                    .prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+                    .all(subscriptionId);
                 if (subRows.length > 0) {
                     const email = subRows[0].customer_email;
                     const customer = db.getDb().prepare('SELECT tier FROM customers WHERE email = ?').get(email);
@@ -580,15 +700,30 @@ function setupSubscriptionWebhook(app) {
             const nextRetry = invoice.next_payment_attempt
                 ? new Date(invoice.next_payment_attempt * 1000).toISOString()
                 : null;
-            logger.warn('[SubscriptionWebhook] Payment FAILED for subscription:', subscriptionId, 'attempt:', attemptCount, 'nextRetry:', nextRetry || 'none');
+            logger.warn(
+                '[SubscriptionWebhook] Payment FAILED for subscription:',
+                subscriptionId,
+                'attempt:',
+                attemptCount,
+                'nextRetry:',
+                nextRetry || 'none'
+            );
             if (subscriptionId) {
                 db.updatePaidSubscriptionStatus(subscriptionId, 'past_due');
-                const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
+                const subRows = db
+                    .getDb()
+                    .prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+                    .all(subscriptionId);
                 if (subRows.length > 0) {
                     const email = subRows[0].customer_email;
                     const customer = db.getDb().prepare('SELECT tier FROM customers WHERE email = ?').get(email);
                     db.updateCustomerSubscription(email, 'past_due', customer?.tier || 'team');
-                    logger.warn('[SubscriptionWebhook] Subscription marked past_due for:', email, 'attempt:', attemptCount);
+                    logger.warn(
+                        '[SubscriptionWebhook] Subscription marked past_due for:',
+                        email,
+                        'attempt:',
+                        attemptCount
+                    );
                     try {
                         const { sendEmail } = require('../services/email.cjs');
                         const { renderPaymentFailed } = require('../services/billing-email-templates.cjs');
@@ -607,7 +742,10 @@ function setupSubscriptionWebhook(app) {
             const customerId = sub.customer;
             const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
             logger.info('[SubscriptionWebhook] Trial ending soon for customer:', customerId, 'trial ends:', trialEnd);
-            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            const allCustomers = db
+                .getDb()
+                .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                .all(customerId);
             if (allCustomers.length > 0) {
                 const customer = allCustomers[0];
                 try {
@@ -629,11 +767,27 @@ function setupSubscriptionWebhook(app) {
             const status = dispute.status || 'needs_response';
             const amount = dispute.amount ? (dispute.amount / 100).toFixed(2) : 'unknown';
             const currency = dispute.currency || 'usd';
-            logger.warn('[SubscriptionWebhook] Dispute CREATED — charge:', chargeId, 'reason:', reason, 'amount:', amount, currency.toUpperCase(), 'status:', status);
+            logger.warn(
+                '[SubscriptionWebhook] Dispute CREATED — charge:',
+                chargeId,
+                'reason:',
+                reason,
+                'amount:',
+                amount,
+                currency.toUpperCase(),
+                'status:',
+                status
+            );
             try {
                 const { sendEmail } = require('../services/email.cjs');
                 const { renderDisputeAlert } = require('../services/billing-email-templates.cjs');
-                const { subject, text, html } = renderDisputeAlert({ chargeId, reason, status, amountCents: dispute.amount, currency });
+                const { subject, text, html } = renderDisputeAlert({
+                    chargeId,
+                    reason,
+                    status,
+                    amountCents: dispute.amount,
+                    currency
+                });
                 await sendEmail({
                     to: process.env.DISPUTE_ALERT_EMAIL || 'support@simplebeacon.ai',
                     subject,
@@ -652,22 +806,37 @@ function setupSubscriptionWebhook(app) {
             if (!subscriptionId) {
                 logger.info('[SubscriptionWebhook] invoice.upcoming: no subscription on invoice', invoice.id);
             } else {
-                const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
+                const subRows = db
+                    .getDb()
+                    .prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+                    .all(subscriptionId);
                 if (subRows.length > 0) {
                     const email = subRows[0].customer_email;
                     const customer = db.getDb().prepare('SELECT tier FROM customers WHERE email = ?').get(email);
                     const tier = customer?.tier || 'pro';
                     const amountCents = invoice.amount_due || invoice.total;
                     const currency = invoice.currency || 'usd';
-                    const dueDate = invoice.due_date
-                        ? new Date(invoice.due_date * 1000).toISOString()
-                        : null;
+                    const dueDate = invoice.due_date ? new Date(invoice.due_date * 1000).toISOString() : null;
                     const invoiceNumber = invoice.number || invoice.id || null;
-                    logger.info('[SubscriptionWebhook] Invoice upcoming for:', email, 'amount:', amountCents, currency, 'due:', dueDate);
+                    logger.info(
+                        '[SubscriptionWebhook] Invoice upcoming for:',
+                        email,
+                        'amount:',
+                        amountCents,
+                        currency,
+                        'due:',
+                        dueDate
+                    );
                     try {
                         const { sendEmail } = require('../services/email.cjs');
                         const { renderInvoiceUpcoming } = require('../services/billing-email-templates.cjs');
-                        const { subject, text, html } = renderInvoiceUpcoming({ amountCents, currency, dueDate, tier, invoiceNumber });
+                        const { subject, text, html } = renderInvoiceUpcoming({
+                            amountCents,
+                            currency,
+                            dueDate,
+                            tier,
+                            invoiceNumber
+                        });
                         await sendEmail({ to: email, subject, text, html });
                         logger.info('[SubscriptionWebhook] Invoice upcoming email sent to', email);
                     } catch (emailErr) {
@@ -681,7 +850,10 @@ function setupSubscriptionWebhook(app) {
         if (event.type === 'customer.subscription.paused') {
             const sub = event.data.object;
             const customerId = sub.customer;
-            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            const allCustomers = db
+                .getDb()
+                .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                .all(customerId);
             if (allCustomers.length > 0) {
                 const customer = allCustomers[0];
                 db.updateCustomerSubscription(customer.email, 'paused', customer.tier || 'developer');
@@ -692,7 +864,10 @@ function setupSubscriptionWebhook(app) {
                 try {
                     const { sendEmail } = require('../services/email.cjs');
                     const { renderSubscriptionPaused } = require('../services/billing-email-templates.cjs');
-                    const { subject, text, html } = renderSubscriptionPaused({ tier: customer.tier || 'developer', resumeDate });
+                    const { subject, text, html } = renderSubscriptionPaused({
+                        tier: customer.tier || 'developer',
+                        resumeDate
+                    });
                     await sendEmail({ to: customer.email, subject, text, html });
                     logger.info('[SubscriptionWebhook] Paused email sent to', customer.email);
                 } catch (emailErr) {
@@ -705,7 +880,10 @@ function setupSubscriptionWebhook(app) {
         if (event.type === 'customer.subscription.resumed') {
             const sub = event.data.object;
             const customerId = sub.customer;
-            const allCustomers = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').all(customerId);
+            const allCustomers = db
+                .getDb()
+                .prepare('SELECT * FROM customers WHERE stripe_customer_id = ?')
+                .all(customerId);
             if (allCustomers.length > 0) {
                 const customer = allCustomers[0];
                 db.updateCustomerSubscription(customer.email, 'active', customer.tier || 'developer');

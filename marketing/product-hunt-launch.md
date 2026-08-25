@@ -23,7 +23,7 @@ SimpleBeacon is a privacy-first code scanner that detects AI-generated artifacts
 
 By mid-2026, 51% of GitHub commits are AI-assisted. That velocity is great. The slop is not.
 
-SimpleBeacon is the first tool built specifically to detect *machine-generated debris* — not replace your linter, but add a release-hygiene layer upstream of code review.
+SimpleBeacon is the first tool built specifically to detect _machine-generated debris_ — not replace your linter, but add a release-hygiene layer upstream of code review.
 
 ## Pricing
 
@@ -48,4 +48,4 @@ simplebeacon scan --gate --offline
 
 ---
 
-*Ask us anything in the comments. We're online for the next 48 hours.*
+_Ask us anything in the comments. We're online for the next 48 hours._

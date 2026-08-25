@@ -4,7 +4,19 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Map, RefreshCw, AlertCircle, CheckCircle2, Circle, Clock, AlertTriangle, ListTodo, TrendingUp, Zap, Download } from 'lucide-react';
+import {
+  Map,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Circle,
+  Clock,
+  AlertTriangle,
+  ListTodo,
+  TrendingUp,
+  Zap,
+  Download,
+} from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { navigate } from '@/router/HashRouter';
 
@@ -70,15 +82,18 @@ function statusIcon(status?: string) {
   const s = typeof status === 'string' && status ? status.toLowerCase() : 'pending';
   if (s === 'complete' || s === 'completed' || s === 'done') return <CheckCircle2 className="h-4 w-4 text-green-500" />;
   if (s === 'active' || s === 'in-progress' || s === 'in progress') return <Clock className="h-4 w-4 text-blue-500" />;
-  if (s === 'planned' || s === 'pending' || s === 'not-started') return <Circle className="h-4 w-4 text-foreground-muted" />;
+  if (s === 'planned' || s === 'pending' || s === 'not-started')
+    return <Circle className="h-4 w-4 text-foreground-muted" />;
   if (s === 'blocked') return <AlertTriangle className="h-4 w-4 text-red-500" />;
   return <Circle className="h-4 w-4 text-foreground-muted" />;
 }
 
 function statusColor(status?: string): string {
   const s = typeof status === 'string' && status ? status.toLowerCase() : 'pending';
-  if (s === 'complete' || s === 'completed' || s === 'done') return 'bg-green-500/15 text-green-500 border-green-500/30';
-  if (s === 'active' || s === 'in-progress' || s === 'in progress') return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
+  if (s === 'complete' || s === 'completed' || s === 'done')
+    return 'bg-green-500/15 text-green-500 border-green-500/30';
+  if (s === 'active' || s === 'in-progress' || s === 'in progress')
+    return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
   if (s === 'blocked') return 'bg-red-500/15 text-red-500 border-red-500/30';
   if (s === 'planned' || s === 'pending') return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
   return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
@@ -109,7 +124,9 @@ export function RemediationView() {
           const scan = JSON.parse(stored);
           if (scan?.projectPath) projectPath = scan.projectPath;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       const resp = await fetch(apiUrl('/analyze/flexible'), {
         method: 'POST',
@@ -144,11 +161,17 @@ export function RemediationView() {
   };
 
   // simplebeacon-ignore: framework-practices
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const fmtDate = (s?: string) => {
     if (!s) return '—';
-    try { return new Date(s).toLocaleString(); } catch { return s; }
+    try {
+      return new Date(s).toLocaleString();
+    } catch {
+      return s;
+    }
   };
 
   const exportRoadmap = () => {
@@ -214,7 +237,9 @@ export function RemediationView() {
           <CardContent className="flex flex-col items-center gap-3 py-8">
             <Map className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">No remediation roadmap available</p>
-            <Button onClick={() => navigate('analyze')} className="mt-2">Start a Scan</Button>
+            <Button onClick={() => navigate('analyze')} className="mt-2">
+              Start a Scan
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -235,7 +260,9 @@ export function RemediationView() {
           <h1 className="text-3xl font-bold tracking-tight">Remediation</h1>
           <p className="text-foreground-muted">Prioritized fix roadmap and remediation tracking</p>
           {data.sourceProjectPath && (
-            <p className="text-xs text-foreground-muted">{data.sourceProjectPath} — {fmtDate(data.generatedAt)}</p>
+            <p className="text-xs text-foreground-muted">
+              {data.sourceProjectPath} — {fmtDate(data.generatedAt)}
+            </p>
           )}
         </div>
         <div className="ml-4 flex items-center gap-2">
@@ -282,18 +309,21 @@ export function RemediationView() {
         <Card>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              {summary.projectHealth === 'Healthy'
-                ? <CheckCircle2 className="h-5 w-5 text-green-500" />
-                : summary.projectHealth === 'Blocked'
-                ? <AlertTriangle className="h-5 w-5 text-red-500" />
-                : <Clock className="h-5 w-5 text-yellow-500" />}
+              {summary.projectHealth === 'Healthy' ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : summary.projectHealth === 'Blocked' ? (
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Clock className="h-5 w-5 text-yellow-500" />
+              )}
               <div>
                 <p className="text-sm font-medium">Project Health: {summary.projectHealth}</p>
                 {summary.notes && <p className="text-xs text-foreground-muted">{summary.notes}</p>}
               </div>
             </div>
             <Button size="sm" variant="outline" onClick={() => triggerRescan()} disabled={rescanning}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${rescanning ? 'animate-spin' : ''}`} /> {rescanning ? 'Rescanning…' : 'Refresh'}
+              <RefreshCw className={`h-4 w-4 mr-2 ${rescanning ? 'animate-spin' : ''}`} />{' '}
+              {rescanning ? 'Rescanning…' : 'Refresh'}
             </Button>
           </CardContent>
         </Card>
@@ -310,11 +340,17 @@ export function RemediationView() {
               <div key={i} className="flex items-start gap-3 rounded-lg border p-3">
                 <div className="flex flex-col gap-1 flex-1">
                   <div className="flex items-center gap-2">
-                    {item.priority && <Badge className={priorityColor(item.priority)} variant="outline">{item.priority || ''}</Badge>}
+                    {item.priority && (
+                      <Badge className={priorityColor(item.priority)} variant="outline">
+                        {item.priority || ''}
+                      </Badge>
+                    )}
                     <span className="text-sm font-medium">{item.action || item.description || 'Action item'}</span>
                   </div>
                   {item.category && <span className="text-xs text-foreground-muted">Category: {item.category}</span>}
-                  {item.description && item.action && <span className="text-xs text-foreground-muted">{item.description}</span>}
+                  {item.description && item.action && (
+                    <span className="text-xs text-foreground-muted">{item.description}</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -334,7 +370,11 @@ export function RemediationView() {
                 <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" />
                 <div className="flex flex-col gap-1 flex-1">
                   <div className="flex items-center gap-2">
-                    {risk.severity && <Badge className={priorityColor(risk.severity)} variant="outline">{risk.severity || ''}</Badge>}
+                    {risk.severity && (
+                      <Badge className={priorityColor(risk.severity)} variant="outline">
+                        {risk.severity || ''}
+                      </Badge>
+                    )}
                     {risk.category && <span className="text-xs text-foreground-muted">{risk.category}</span>}
                   </div>
                   {risk.description && <span className="text-sm">{risk.description}</span>}
@@ -357,12 +397,18 @@ export function RemediationView() {
                 <div className="flex items-center gap-2 mb-2">
                   {statusIcon(phase.status || 'pending')}
                   <span className="text-sm font-medium">{phase.phase || phase.name || `Phase ${i + 1}`}</span>
-                  {phase.status && <Badge className={statusColor(phase.status || 'pending')} variant="outline">{phase.status || 'pending'}</Badge>}
+                  {phase.status && (
+                    <Badge className={statusColor(phase.status || 'pending')} variant="outline">
+                      {phase.status || 'pending'}
+                    </Badge>
+                  )}
                 </div>
                 {phase.items && phase.items.length > 0 && (
                   <ul className="ml-6 space-y-1">
                     {phase.items.map((item, j) => (
-                      <li key={j} className="text-xs text-foreground-muted">• {item}</li>
+                      <li key={j} className="text-xs text-foreground-muted">
+                        • {item}
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -372,7 +418,9 @@ export function RemediationView() {
                       <div key={j} className="flex items-center gap-2">
                         {statusIcon(feat.status || 'pending')}
                         <span className="text-xs">{feat.name}</span>
-                        <Badge className={statusColor(feat.status || 'pending')} variant="outline">{feat.status || 'pending'}</Badge>
+                        <Badge className={statusColor(feat.status || 'pending')} variant="outline">
+                          {feat.status || 'pending'}
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -395,7 +443,11 @@ export function RemediationView() {
                 <Zap className="h-4 w-4 text-foreground-muted mt-0.5" />
                 <div className="flex flex-col gap-1 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {rec.priority && <Badge className={priorityColor(rec.priority)} variant="outline">{rec.priority || ''}</Badge>}
+                    {rec.priority && (
+                      <Badge className={priorityColor(rec.priority)} variant="outline">
+                        {rec.priority || ''}
+                      </Badge>
+                    )}
                     {rec.action && <span className="text-sm font-medium">{rec.action}</span>}
                   </div>
                   {rec.description && <span className="text-xs text-foreground-muted">{rec.description}</span>}

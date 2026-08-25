@@ -4,13 +4,13 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
 | Feature / change | Track 12: Integrated Key Derivation & Hardware Attestation Mocking |
-| Author (Builder) | Devin |
-| Date | 2026-08-01 |
-| Branch | `feature/track12-groundwork` |
-| Packages touched | ai-platform |
+| Author (Builder) | Devin                                                              |
+| Date             | 2026-08-01                                                         |
+| Branch           | `feature/track12-groundwork`                                       |
+| Packages touched | ai-platform                                                        |
 
 ## Scope
 
@@ -59,54 +59,54 @@
 
 ## Level 1 — Deterministic (Validator MUST run all)
 
-| ID | Check | Command / method | Pass |
-|----|-------|------------------|------|
-| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | Attestation tests pass | `cd ai-platform && npx jest --config jest.config.cjs attestation` | [ ] |
-| L1-03 | Asymmetric adapter tests still pass with context | `cd ai-platform && npx jest --config jest.config.cjs asymmetric-adapter` | [ ] |
-| L1-04 | Full `ai-platform` test suite passes | `cd ai-platform && npm test` | [ ] |
-| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ] |
-| L1-06 | No secrets in diff | `git diff --cached` | [ ] |
+| ID    | Check                                            | Command / method                                                                      | Pass |
+| ----- | ------------------------------------------------ | ------------------------------------------------------------------------------------- | ---- |
+| L1-01 | Syntax on changed `.cjs` files                   | `node -c <file>`                                                                      | [ ]  |
+| L1-02 | Attestation tests pass                           | `cd ai-platform && npx jest --config jest.config.cjs attestation`                     | [ ]  |
+| L1-03 | Asymmetric adapter tests still pass with context | `cd ai-platform && npx jest --config jest.config.cjs asymmetric-adapter`              | [ ]  |
+| L1-04 | Full `ai-platform` test suite passes             | `cd ai-platform && npm test`                                                          | [ ]  |
+| L1-05 | SimpleBeacon full gate                           | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ]  |
+| L1-06 | No secrets in diff                               | `git diff --cached`                                                                   | [ ]  |
 
 ---
 
 ## Level 2 — Behavioral
 
-| ID | Scenario | Steps | Expected | Pass |
-|----|----------|-------|----------|------|
-| L2-01 | RSA-OAEP wrap/unwrap with context | Create RSA key, wrap with context `'user-123:epoch-1'`, unwrap with same context | Round-trip succeeds | [ ] |
-| L2-02 | ECDH wrap/unwrap with context | Create ECDH key, wrap with context, unwrap with same context | Round-trip succeeds | [ ] |
-| L2-03 | Context mismatch rejected | Wrap with context A, unwrap with context B | `UNWRAP_FAILED` | [ ] |
-| L2-04 | Mock attestation certificate generation | Call `Attestation.signPublicKey` with SPKI and `hardwareId` | Returns valid X.509 certificate | [ ] |
-| L2-05 | Attestation verification | Call `verifyAttestation` with valid certificate | Returns `true` | [ ] |
+| ID    | Scenario                                | Steps                                                                            | Expected                        | Pass |
+| ----- | --------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------- | ---- |
+| L2-01 | RSA-OAEP wrap/unwrap with context       | Create RSA key, wrap with context `'user-123:epoch-1'`, unwrap with same context | Round-trip succeeds             | [ ]  |
+| L2-02 | ECDH wrap/unwrap with context           | Create ECDH key, wrap with context, unwrap with same context                     | Round-trip succeeds             | [ ]  |
+| L2-03 | Context mismatch rejected               | Wrap with context A, unwrap with context B                                       | `UNWRAP_FAILED`                 | [ ]  |
+| L2-04 | Mock attestation certificate generation | Call `Attestation.signPublicKey` with SPKI and `hardwareId`                      | Returns valid X.509 certificate | [ ]  |
+| L2-05 | Attestation verification                | Call `verifyAttestation` with valid certificate                                  | Returns `true`                  | [ ]  |
 
 ---
 
 ## Level 3 — Edge cases & regression
 
-| ID | Case | Expected | Pass |
-|----|------|----------|------|
-| L3-01 | Certificate expired | `verifyAttestation` returns `false` or throws `ATTESTATION_INVALID` | [ ] |
-| L3-02 | Certificate signed by wrong root | `verifyAttestation` returns `false` | [ ] |
-| L3-03 | Certificate public key does not match `kekId` | `verifyAttestation` returns `false` | [ ] |
-| L3-04 | Missing context on wrap | Falls back to default context (`'AsymmetricHsmAdapter:default'`) | [ ] |
-| L3-05 | Empty context string | Treated as valid context | [ ] |
-| L3-06 | Long context strings (>1024 chars) | Accepted without error | [ ] |
+| ID    | Case                                          | Expected                                                            | Pass |
+| ----- | --------------------------------------------- | ------------------------------------------------------------------- | ---- |
+| L3-01 | Certificate expired                           | `verifyAttestation` returns `false` or throws `ATTESTATION_INVALID` | [ ]  |
+| L3-02 | Certificate signed by wrong root              | `verifyAttestation` returns `false`                                 | [ ]  |
+| L3-03 | Certificate public key does not match `kekId` | `verifyAttestation` returns `false`                                 | [ ]  |
+| L3-04 | Missing context on wrap                       | Falls back to default context (`'AsymmetricHsmAdapter:default'`)    | [ ]  |
+| L3-05 | Empty context string                          | Treated as valid context                                            | [ ]  |
+| L3-06 | Long context strings (>1024 chars)            | Accepted without error                                              | [ ]  |
 
 ---
 
 ## Security
 
-| ID | Requirement | Pass |
-|----|-------------|------|
-| S-01 | Mock root private key never leaves `Attestation` module | [ ] |
-| S-02 | HKDF context is mixed into the derived AES key | [ ] |
-| S-03 | X.509 certificate public key equals the adapter public key | [ ] |
-| S-04 | No raw private key material in attestation certificate | [ ] |
+| ID   | Requirement                                                | Pass |
+| ---- | ---------------------------------------------------------- | ---- |
+| S-01 | Mock root private key never leaves `Attestation` module    | [ ]  |
+| S-02 | HKDF context is mixed into the derived AES key             | [ ]  |
+| S-03 | X.509 certificate public key equals the adapter public key | [ ]  |
+| S-04 | No raw private key material in attestation certificate     | [ ]  |
 
 ---
 
 ## Approval
 
 - [ ] User approved this plan (or task included approved scope)
-- Approved by: __________  Date: __________
+- Approved by: __________ Date: __________

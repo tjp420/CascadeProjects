@@ -1,156 +1,345 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SimpleBeacon Scan Report</title>
-<style>
-  body { margin:0; padding:0; background:#f4f5f7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; color:#1a1a1a; }
-  .wrapper { max-width:640px; margin:0 auto; background:#ffffff; border-radius:0; }
-  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding:40px 32px 32px; text-align:center; }
-  .header img { width:48px; height:48px; margin-bottom:12px; }
-  .header h1 { color:#ffffff; font-size:24px; font-weight:700; margin:0 0 8px; }
-  .header p { color:rgba(255,255,255,.7); font-size:14px; margin:0; }
-  .score-ring { width:120px; height:120px; margin:24px auto 0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:800; color:#ffffff; border:6px solid rgba(255,255,255,.15); }
-  .score-ring.pass { background:#10b981; }
-  .score-ring.warn { background:#f59e0b; }
-  .score-ring.fail { background:#ef4444; }
-  .score-label { color:rgba(255,255,255,.85); font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-top:8px; }
-  .section { padding:28px 32px; border-bottom:1px solid #e5e7eb; }
-  .section:last-child { border-bottom:none; }
-  .section-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; margin:0 0 16px; }
-  .metrics { display:flex; gap:16px; flex-wrap:wrap; }
-  .metric { flex:1; min-width:120px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; text-align:center; }
-  .metric-value { font-size:24px; font-weight:800; color:#1a1a2e; }
-  .metric-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
-  .sev-bar { display:flex; gap:0; border-radius:6px; overflow:hidden; height:8px; margin:16px 0 8px; }
-  .sev-segment { height:100%; }
-  .sev-legend { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:12px; color:#6b7280; }
-  .sev-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
-  .finding { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:12px; }
-  .finding-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .finding-type { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
-  .finding-sev { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }
-  .sev-critical { background:#fef2f2; color:#991b1b; }
-  .sev-high { background:#fef2f2; color:#991b1b; }
-  .sev-medium { background:#fffbeb; color:#92400e; }
-  .sev-low { background:#f0fdf4; color:#166534; }
-  .finding-desc { font-size:14px; color:#374151; margin-bottom:8px; }
-  .finding-file { font-size:12px; color:#6b7280; font-family:'SF Mono',Monaco,monospace; background:#ffffff; padding:4px 8px; border-radius:4px; display:inline-block; }
-  .btn { display:inline-block; padding:12px 24px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:600; }
-  .btn-primary { background:#0f3460; color:#ffffff; }
-  .btn-primary:hover { background:#1a4a7a; }
-  .footer { padding:24px 32px; text-align:center; color:#9ca3af; font-size:12px; }
-  .footer a { color:#6b7280; text-decoration:underline; }
-  @media (max-width:480px) {
-    .header { padding:28px 20px 24px; }
-    .section { padding:20px 20px; }
-    .metric { min-width:100%; }
-  }
-</style>
-</head>
-<body>
-<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:24px 8px;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleBeacon Scan Report</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f4f5f7;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        color: #1a1a1a;
+      }
+      .wrapper {
+        max-width: 640px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 0;
+      }
+      .header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        padding: 40px 32px 32px;
+        text-align: center;
+      }
+      .header img {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+      }
+      .header h1 {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .header p {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        margin: 0;
+      }
+      .score-ring {
+        width: 120px;
+        height: 120px;
+        margin: 24px auto 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        font-weight: 800;
+        color: #ffffff;
+        border: 6px solid rgba(255, 255, 255, 0.15);
+      }
+      .score-ring.pass {
+        background: #10b981;
+      }
+      .score-ring.warn {
+        background: #f59e0b;
+      }
+      .score-ring.fail {
+        background: #ef4444;
+      }
+      .score-label {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 8px;
+      }
+      .section {
+        padding: 28px 32px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .section:last-child {
+        border-bottom: none;
+      }
+      .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        margin: 0 0 16px;
+      }
+      .metrics {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .metric {
+        flex: 1;
+        min-width: 120px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+      }
+      .metric-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: #1a1a2e;
+      }
+      .metric-label {
+        font-size: 11px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 4px;
+      }
+      .sev-bar {
+        display: flex;
+        gap: 0;
+        border-radius: 6px;
+        overflow: hidden;
+        height: 8px;
+        margin: 16px 0 8px;
+      }
+      .sev-segment {
+        height: 100%;
+      }
+      .sev-legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 12px;
+        color: #6b7280;
+      }
+      .sev-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 4px;
+      }
+      .finding {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .finding-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .finding-type {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .finding-sev {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .sev-critical {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+      .sev-high {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+      .sev-medium {
+        background: #fffbeb;
+        color: #92400e;
+      }
+      .sev-low {
+        background: #f0fdf4;
+        color: #166534;
+      }
+      .finding-desc {
+        font-size: 14px;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+      .finding-file {
+        font-size: 12px;
+        color: #6b7280;
+        font-family: 'SF Mono', Monaco, monospace;
+        background: #ffffff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .btn-primary {
+        background: #0f3460;
+        color: #ffffff;
+      }
+      .btn-primary:hover {
+        background: #1a4a7a;
+      }
+      .footer {
+        padding: 24px 32px;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 12px;
+      }
+      .footer a {
+        color: #6b7280;
+        text-decoration: underline;
+      }
+      @media (max-width: 480px) {
+        .header {
+          padding: 28px 20px 24px;
+        }
+        .section {
+          padding: 20px 20px;
+        }
+        .metric {
+          min-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center" style="padding: 24px 8px">
+          <div class="wrapper">
+            <div class="header">
+              <div style="font-size: 32px; margin-bottom: 8px">&#128737;</div>
+              <h1>SimpleBeacon Scan Report</h1>
+              <p>Project: <strong>My Project</strong> &mdash; June 18, 2026 at 3:45 PM</p>
+              <div class="score-ring fail">94</div>
+              <div class="score-label">FAIL</div>
+            </div>
 
-<div class="wrapper">
-  <div class="header">
-    <div style="font-size:32px; margin-bottom:8px;">&#128737;</div>
-    <h1>SimpleBeacon Scan Report</h1>
-    <p>Project: <strong>My Project</strong> &mdash; June 18, 2026 at 3:45 PM</p>
-    <div class="score-ring fail">94</div>
-    <div class="score-label">FAIL</div>
-  </div>
+            <div class="section">
+              <div class="section-title">Scan Summary</div>
+              <div class="metrics">
+                <div class="metric">
+                  <div class="metric-value">1,406</div>
+                  <div class="metric-label">Files Scanned</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">64</div>
+                  <div class="metric-label">Total Issues</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">0</div>
+                  <div class="metric-label">Critical</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-value">1</div>
+                  <div class="metric-label">High</div>
+                </div>
+              </div>
+              <div class="sev-bar">
+                <div class="sev-segment" style="width: 0%; background: #ef4444"></div>
+                <div class="sev-segment" style="width: 1.5%; background: #f97316"></div>
+                <div class="sev-segment" style="width: 3.1%; background: #f59e0b"></div>
+                <div class="sev-segment" style="width: 95.4%; background: #10b981"></div>
+              </div>
+              <div class="sev-legend">
+                <span><span class="sev-dot" style="background: #ef4444"></span>Critical 0</span>
+                <span><span class="sev-dot" style="background: #f97316"></span>High 1</span>
+                <span><span class="sev-dot" style="background: #f59e0b"></span>Medium 2</span>
+                <span><span class="sev-dot" style="background: #10b981"></span>Low 61</span>
+              </div>
+            </div>
 
-  <div class="section">
-    <div class="section-title">Scan Summary</div>
-    <div class="metrics">
-      <div class="metric">
-        <div class="metric-value">1,406</div>
-        <div class="metric-label">Files Scanned</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">64</div>
-        <div class="metric-label">Total Issues</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">0</div>
-        <div class="metric-label">Critical</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">1</div>
-        <div class="metric-label">High</div>
-      </div>
-    </div>
-    <div class="sev-bar">
-      <div class="sev-segment" style="width:0%; background:#ef4444;"></div>
-      <div class="sev-segment" style="width:1.5%; background:#f97316;"></div>
-      <div class="sev-segment" style="width:3.1%; background:#f59e0b;"></div>
-      <div class="sev-segment" style="width:95.4%; background:#10b981;"></div>
-    </div>
-    <div class="sev-legend">
-      <span><span class="sev-dot" style="background:#ef4444;"></span>Critical 0</span>
-      <span><span class="sev-dot" style="background:#f97316;"></span>High 1</span>
-      <span><span class="sev-dot" style="background:#f59e0b;"></span>Medium 2</span>
-      <span><span class="sev-dot" style="background:#10b981;"></span>Low 61</span>
-    </div>
-  </div>
+            <div class="section">
+              <div class="section-title">Top Findings</div>
+              <div class="finding">
+                <div class="finding-header">
+                  <span class="finding-type" style="color: #ef4444">Production Leak</span>
+                  <span class="finding-sev sev-high">high</span>
+                </div>
+                <div class="finding-desc">
+                  Production API URL detected in source code: https://api.production.example.com/v1/keys
+                </div>
+                <span class="finding-file">src/config.js:42</span>
+              </div>
+              <div class="finding">
+                <div class="finding-header">
+                  <span class="finding-type" style="color: #f59e0b">Orphaned Export</span>
+                  <span class="finding-sev sev-medium">medium</span>
+                </div>
+                <div class="finding-desc">
+                  Export 'handleAuth' is defined but never imported or used anywhere in the codebase
+                </div>
+                <span class="finding-file">src/auth/utils.ts:18</span>
+              </div>
+              <div class="finding">
+                <div class="finding-header">
+                  <span class="finding-type" style="color: #f59e0b">Duplicate Data</span>
+                  <span class="finding-sev sev-medium">medium</span>
+                </div>
+                <div class="finding-desc">
+                  2 files share identical JSON content - possible copy-paste or bundling artifact
+                </div>
+                <span class="finding-file">data/users.json / data/users-backup.json</span>
+              </div>
+              <div class="finding">
+                <div class="finding-header">
+                  <span class="finding-type" style="color: #10b981">Debug Marker</span>
+                  <span class="finding-sev sev-low">low</span>
+                </div>
+                <div class="finding-desc">console.log statement found in production code</div>
+                <span class="finding-file">src/utils/debug.js:7</span>
+              </div>
+              <div class="finding">
+                <div class="finding-header">
+                  <span class="finding-type" style="color: #10b981">Credential Pattern</span>
+                  <span class="finding-sev sev-low">low</span>
+                </div>
+                <div class="finding-desc">Potential hardcoded API key pattern detected in string literal</div>
+                <span class="finding-file">src/services/api.ts:55</span>
+              </div>
+            </div>
 
-  <div class="section">
-    <div class="section-title">Top Findings</div>
-    <div class="finding">
-      <div class="finding-header">
-        <span class="finding-type" style="color:#ef4444;">Production Leak</span>
-        <span class="finding-sev sev-high">high</span>
-      </div>
-      <div class="finding-desc">Production API URL detected in source code: https://api.production.example.com/v1/keys</div>
-      <span class="finding-file">src/config.js:42</span>
-    </div>
-    <div class="finding">
-      <div class="finding-header">
-        <span class="finding-type" style="color:#f59e0b;">Orphaned Export</span>
-        <span class="finding-sev sev-medium">medium</span>
-      </div>
-      <div class="finding-desc">Export 'handleAuth' is defined but never imported or used anywhere in the codebase</div>
-      <span class="finding-file">src/auth/utils.ts:18</span>
-    </div>
-    <div class="finding">
-      <div class="finding-header">
-        <span class="finding-type" style="color:#f59e0b;">Duplicate Data</span>
-        <span class="finding-sev sev-medium">medium</span>
-      </div>
-      <div class="finding-desc">2 files share identical JSON content - possible copy-paste or bundling artifact</div>
-      <span class="finding-file">data/users.json / data/users-backup.json</span>
-    </div>
-    <div class="finding">
-      <div class="finding-header">
-        <span class="finding-type" style="color:#10b981;">Debug Marker</span>
-        <span class="finding-sev sev-low">low</span>
-      </div>
-      <div class="finding-desc">console.log statement found in production code</div>
-      <span class="finding-file">src/utils/debug.js:7</span>
-    </div>
-    <div class="finding">
-      <div class="finding-header">
-        <span class="finding-type" style="color:#10b981;">Credential Pattern</span>
-        <span class="finding-sev sev-low">low</span>
-      </div>
-      <div class="finding-desc">Potential hardcoded API key pattern detected in string literal</div>
-      <span class="finding-file">src/services/api.ts:55</span>
-    </div>
-  </div>
+            <div class="section" style="text-align: center">
+              <div class="section-title">Next Steps</div>
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px">
+                Review the full report in your dashboard for detailed remediation steps.
+              </p>
+              <a href="#" class="btn btn-primary">Open Dashboard</a>
+            </div>
 
-  <div class="section" style="text-align:center;">
-    <div class="section-title">Next Steps</div>
-    <p style="color:#6b7280; font-size:14px; margin:0 0 16px;">Review the full report in your dashboard for detailed remediation steps.</p>
-    <a href="#" class="btn btn-primary">Open Dashboard</a>
-  </div>
-
-  <div class="footer">
-    Generated by <strong>SimpleBeacon</strong> &mdash; Your security, your way.<br>
-    <a href="https://simplebeacon.dev">simplebeacon.dev</a>
-  </div>
-</div>
-
-</td></tr></table>
-</body>
+            <div class="footer">
+              Generated by <strong>SimpleBeacon</strong> &mdash; Your security, your way.<br />
+              <a href="https://simplebeacon.dev">simplebeacon.dev</a>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

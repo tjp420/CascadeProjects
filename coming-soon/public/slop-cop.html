@@ -1,611 +1,1428 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-    <title>AI Slop Cop for VS Code — Scan Your Workspace for AI Slop, Leaks &amp; Compliance Gaps</title>
-    <meta name="description" content="SimpleBeacon AI Slop Cop is a VS Code extension that scans your workspace locally for AI slop, leaked credentials, and EU AI Act / SOC 2 gaps. 48 analyzer engines, zero source upload. Try the browser demo, then install the extension.">
-    <link rel="canonical" href="https://simplebeacon.ai/slop-cop.html">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally">
-    <meta property="og:description" content="VS Code extension: 48 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://simplebeacon.ai/slop-cop.html">
-    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally">
-    <meta name="twitter:description" content="VS Code extension: 48 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension.">
+    <head>
+        <meta charset="UTF-8" />
+        <title>AI Slop Cop for VS Code — Scan Your Workspace for AI Slop, Leaks &amp; Compliance Gaps</title>
+        <meta
+            name="description"
+            content="SimpleBeacon AI Slop Cop is a VS Code extension that scans your workspace locally for AI slop, leaked credentials, and EU AI Act / SOC 2 gaps. 48 analyzer engines, zero source upload. Try the browser demo, then install the extension."
+        />
+        <link rel="canonical" href="https://simplebeacon.ai/slop-cop.html" />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally" />
+        <meta
+            property="og:description"
+            content="VS Code extension: 48 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/slop-cop.html" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="AI Slop Cop for VS Code — Scan Your Workspace Locally" />
+        <meta
+            name="twitter:description"
+            content="VS Code extension: 48 analyzer engines, zero source upload, board-ready compliance reports. Try the browser demo, then install the extension."
+        />
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
 
-<style>
-:root {
-    --bg-main: #0B0F19;
-    --bg-card: #151D30;
-    --bg-deep: #0a0e18;
-    --surface: #111827;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --critical: #b91c1c;
-    --text-primary: #F3F4F6;
-    --text-secondary: #D1D5DB;
-    --text-muted: #9CA3AF;
-    --border: #1E293B;
-    --border-light: #30363d;
-    --code-bg: #0d1117;
-    --code-fg: #c9d1d9;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg-main);
-    color: var(--text-primary);
-    line-height: 1.6;
-    overflow-x: hidden;
-}
-.container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+        <style>
+            :root {
+                --bg-main: #0b0f19;
+                --bg-card: #151d30;
+                --bg-deep: #0a0e18;
+                --surface: #111827;
+                --accent: #6366f1;
+                --accent-hover: #4f46e5;
+                --success: #10b981;
+                --warning: #f59e0b;
+                --danger: #ef4444;
+                --critical: #b91c1c;
+                --text-primary: #f3f4f6;
+                --text-secondary: #d1d5db;
+                --text-muted: #9ca3af;
+                --border: #1e293b;
+                --border-light: #30363d;
+                --code-bg: #0d1117;
+                --code-fg: #c9d1d9;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family:
+                    'Inter',
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    'Segoe UI',
+                    Roboto,
+                    sans-serif;
+                background: var(--bg-main);
+                color: var(--text-primary);
+                line-height: 1.6;
+                overflow-x: hidden;
+            }
+            .container {
+                max-width: 1080px;
+                margin: 0 auto;
+                padding: 0 24px;
+            }
 
-/* ---- Nav (matches index.html) ---- */
-.sb-site-nav { background:#0B0F19; border-bottom:1px solid #1E293B; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
-.sb-site-nav a.logo { color:#F3F4F6; text-decoration:none; font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; }
-.sb-nav-links { display:flex; align-items:center; gap:4px; }
-.sb-nav-links a { color:#F3F4F6; text-decoration:none; margin-left:14px; font-size:0.9rem; font-weight:600; white-space:nowrap; padding:6px 12px; border-radius:8px; transition:background 0.2s; }
-.sb-nav-links a:hover { background:rgba(255,255,255,0.06); }
-.sb-nav-cta { margin-left:14px; padding:6px 14px; background:var(--accent); color:white; font-size:0.85rem; font-weight:600; cursor:pointer; border:none; border-radius:8px; text-decoration:none; display:inline-block; }
-.sb-nav-cta:hover { background:var(--accent-hover); }
+            /* ---- Nav (matches index.html) ---- */
+            .sb-site-nav {
+                background: #0b0f19;
+                border-bottom: 1px solid #1e293b;
+                padding: 14px 24px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+            .sb-site-nav a.logo {
+                color: #f3f4f6;
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 1.05rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .sb-nav-links {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .sb-nav-links a {
+                color: #f3f4f6;
+                text-decoration: none;
+                margin-left: 14px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                white-space: nowrap;
+                padding: 6px 12px;
+                border-radius: 8px;
+                transition: background 0.2s;
+            }
+            .sb-nav-links a:hover {
+                background: rgba(255, 255, 255, 0.06);
+            }
+            .sb-nav-cta {
+                margin-left: 14px;
+                padding: 6px 14px;
+                background: var(--accent);
+                color: white;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                border-radius: 8px;
+                text-decoration: none;
+                display: inline-block;
+            }
+            .sb-nav-cta:hover {
+                background: var(--accent-hover);
+            }
 
-/* ---- Hero ---- */
-.hero { text-align:center; padding: 64px 24px 40px; background: radial-gradient(ellipse at top, rgba(99,102,241,0.12), transparent 60%); }
-.hero-badge { display:inline-block; background:rgba(99,102,241,0.12); color:#a5b4fc; border:1px solid rgba(99,102,241,0.25); padding:6px 16px; border-radius:999px; font-size:0.78rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:20px; }
-.hero h1 { font-size:clamp(2rem, 5vw, 3rem); font-weight:800; letter-spacing:-0.025em; line-height:1.1; margin-bottom:16px; background:linear-gradient(135deg, #fff 0%, #9CA3AF 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-.hero p.sub { color:var(--text-secondary); font-size:1.1rem; max-width:640px; margin:0 auto 28px; }
-.hero .privacy-note { color:var(--text-muted); font-size:0.85rem; margin-top:12px; }
-.hero .privacy-note strong { color:var(--success); }
-.hero-ctas { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
-.btn-lg { padding:14px 28px; font-size:1rem; }
-.btn-ghost { background:transparent; border:1px solid var(--border-light); color:var(--text-secondary); }
-.btn-ghost:hover { background:rgba(255,255,255,0.06); color:var(--text-primary); border-color:var(--text-muted); }
+            /* ---- Hero ---- */
+            .hero {
+                text-align: center;
+                padding: 64px 24px 40px;
+                background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.12), transparent 60%);
+            }
+            .hero-badge {
+                display: inline-block;
+                background: rgba(99, 102, 241, 0.12);
+                color: #a5b4fc;
+                border: 1px solid rgba(99, 102, 241, 0.25);
+                padding: 6px 16px;
+                border-radius: 999px;
+                font-size: 0.78rem;
+                font-weight: 600;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                margin-bottom: 20px;
+            }
+            .hero h1 {
+                font-size: clamp(2rem, 5vw, 3rem);
+                font-weight: 800;
+                letter-spacing: -0.025em;
+                line-height: 1.1;
+                margin-bottom: 16px;
+                background: linear-gradient(135deg, #fff 0%, #9ca3af 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .hero p.sub {
+                color: var(--text-secondary);
+                font-size: 1.1rem;
+                max-width: 640px;
+                margin: 0 auto 28px;
+            }
+            .hero .privacy-note {
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                margin-top: 12px;
+            }
+            .hero .privacy-note strong {
+                color: var(--success);
+            }
+            .hero-ctas {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+                margin-top: 8px;
+            }
+            .btn-lg {
+                padding: 14px 28px;
+                font-size: 1rem;
+            }
+            .btn-ghost {
+                background: transparent;
+                border: 1px solid var(--border-light);
+                color: var(--text-secondary);
+            }
+            .btn-ghost:hover {
+                background: rgba(255, 255, 255, 0.06);
+                color: var(--text-primary);
+                border-color: var(--text-muted);
+            }
 
-/* ---- Extension feature strip ---- */
-.ext-features { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; max-width:920px; margin:32px auto 0; }
-.ext-feature { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
-.ext-feature-icon { font-size:1.4rem; margin-bottom:8px; }
-.ext-feature h4 { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
-.ext-feature p { color:var(--text-muted); font-size:0.82rem; line-height:1.5; }
-.ext-feature .cmd { display:inline-block; margin-top:6px; font-family:'SF Mono',Consolas,monospace; font-size:0.72rem; color:#a5b4fc; background:rgba(99,102,241,0.1); padding:2px 8px; border-radius:4px; }
+            /* ---- Extension feature strip ---- */
+            .ext-features {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+                max-width: 920px;
+                margin: 32px auto 0;
+            }
+            .ext-feature {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 18px 20px;
+            }
+            .ext-feature-icon {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .ext-feature h4 {
+                font-size: 0.95rem;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+            .ext-feature p {
+                color: var(--text-muted);
+                font-size: 0.82rem;
+                line-height: 1.5;
+            }
+            .ext-feature .cmd {
+                display: inline-block;
+                margin-top: 6px;
+                font-family: 'SF Mono', Consolas, monospace;
+                font-size: 0.72rem;
+                color: #a5b4fc;
+                background: rgba(99, 102, 241, 0.1);
+                padding: 2px 8px;
+                border-radius: 4px;
+            }
 
-/* ---- Section ---- */
-.section { padding: 56px 24px; }
-.section h2 { font-size:1.6rem; font-weight:700; margin-bottom:8px; text-align:center; }
-.section .section-sub { color:var(--text-muted); text-align:center; max-width:560px; margin:0 auto 36px; font-size:0.98rem; }
-.section.alt { background: var(--bg-deep); }
+            /* ---- Section ---- */
+            .section {
+                padding: 56px 24px;
+            }
+            .section h2 {
+                font-size: 1.6rem;
+                font-weight: 700;
+                margin-bottom: 8px;
+                text-align: center;
+            }
+            .section .section-sub {
+                color: var(--text-muted);
+                text-align: center;
+                max-width: 560px;
+                margin: 0 auto 36px;
+                font-size: 0.98rem;
+            }
+            .section.alt {
+                background: var(--bg-deep);
+            }
 
-/* ---- Preset cards ---- */
-.preset-grid { display:grid; grid-template-columns:1fr; gap:24px; }
-.preset-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
-.preset-card-head { padding:20px 24px; border-bottom:1px solid var(--border); }
-.preset-card-head h3 { font-size:1.15rem; font-weight:700; margin-bottom:6px; }
-.preset-card-head p { color:var(--text-muted); font-size:0.88rem; line-height:1.55; }
-.preset-toggle-row { display:flex; align-items:center; gap:8px; padding:12px 24px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); }
-.preset-toggle { position:relative; display:inline-flex; align-items:center; cursor:pointer; user-select:none; }
-.preset-toggle input { position:absolute; opacity:0; pointer-events:none; }
-.preset-toggle-track { width:54px; height:28px; background:#1f2937; border:1px solid var(--border-light); border-radius:999px; position:relative; transition:background 0.2s; }
-.preset-toggle-thumb { position:absolute; top:2px; left:2px; width:22px; height:22px; background:#6b7280; border-radius:50%; transition:transform 0.2s, background 0.2s; }
-.preset-toggle input:checked + .preset-toggle-track { background:rgba(16,185,129,0.2); border-color:var(--success); }
-.preset-toggle input:checked + .preset-toggle-track .preset-toggle-thumb { transform:translateX(26px); background:var(--success); }
-.preset-toggle-label { font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-left:8px; }
-.preset-toggle-label.slop { color:var(--danger); }
-.preset-toggle-label.fixed { color:var(--success); }
-.preset-toggle-state { margin-left:auto; font-size:0.78rem; font-weight:600; padding:3px 10px; border-radius:999px; }
-.preset-toggle-state.slop { background:rgba(239,68,68,0.15); color:var(--danger); }
-.preset-toggle-state.fixed { background:rgba(16,185,129,0.15); color:var(--success); }
+            /* ---- Preset cards ---- */
+            .preset-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            .preset-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+            }
+            .preset-card-head {
+                padding: 20px 24px;
+                border-bottom: 1px solid var(--border);
+            }
+            .preset-card-head h3 {
+                font-size: 1.15rem;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .preset-card-head p {
+                color: var(--text-muted);
+                font-size: 0.88rem;
+                line-height: 1.55;
+            }
+            .preset-toggle-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 24px;
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid var(--border);
+            }
+            .preset-toggle {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                cursor: pointer;
+                user-select: none;
+            }
+            .preset-toggle input {
+                position: absolute;
+                opacity: 0;
+                pointer-events: none;
+            }
+            .preset-toggle-track {
+                width: 54px;
+                height: 28px;
+                background: #1f2937;
+                border: 1px solid var(--border-light);
+                border-radius: 999px;
+                position: relative;
+                transition: background 0.2s;
+            }
+            .preset-toggle-thumb {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 22px;
+                height: 22px;
+                background: #6b7280;
+                border-radius: 50%;
+                transition:
+                    transform 0.2s,
+                    background 0.2s;
+            }
+            .preset-toggle input:checked + .preset-toggle-track {
+                background: rgba(16, 185, 129, 0.2);
+                border-color: var(--success);
+            }
+            .preset-toggle input:checked + .preset-toggle-track .preset-toggle-thumb {
+                transform: translateX(26px);
+                background: var(--success);
+            }
+            .preset-toggle-label {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: var(--text-secondary);
+                margin-left: 8px;
+            }
+            .preset-toggle-label.slop {
+                color: var(--danger);
+            }
+            .preset-toggle-label.fixed {
+                color: var(--success);
+            }
+            .preset-toggle-state {
+                margin-left: auto;
+                font-size: 0.78rem;
+                font-weight: 600;
+                padding: 3px 10px;
+                border-radius: 999px;
+            }
+            .preset-toggle-state.slop {
+                background: rgba(239, 68, 68, 0.15);
+                color: var(--danger);
+            }
+            .preset-toggle-state.fixed {
+                background: rgba(16, 185, 129, 0.15);
+                color: var(--success);
+            }
 
-/* ---- Code pane ---- */
-.code-pane { margin:0; padding:0; }
-.code-pane-header { display:flex; align-items:center; gap:8px; padding:10px 16px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); font-size:0.78rem; color:var(--text-muted); font-family:'SF Mono',Consolas,monospace; }
-.tw-dot { width:10px; height:10px; border-radius:50%; }
-.tw-dot.r { background:#f85149; } .tw-dot.y { background:#d29922; } .tw-dot.g { background:#3fb950; }
-.code-pane-body { padding:16px 20px; font-family:'SF Mono',Consolas,monospace; font-size:13px; line-height:1.7; color:var(--code-fg); background:var(--code-bg); white-space:pre; overflow-x:auto; }
-.code-line { display:block; min-height:1.7em; }
-.code-line.diff-removed { background:rgba(248,81,73,0.12); border-left:3px solid var(--danger); padding-left:8px; margin-left:-11px; }
-.code-line.diff-added { background:rgba(63,185,80,0.12); border-left:3px solid var(--success); padding-left:8px; margin-left:-11px; }
-.code-line.diff-same { color:var(--text-muted); }
+            /* ---- Code pane ---- */
+            .code-pane {
+                margin: 0;
+                padding: 0;
+            }
+            .code-pane-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 16px;
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid var(--border);
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                font-family: 'SF Mono', Consolas, monospace;
+            }
+            .tw-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+            }
+            .tw-dot.r {
+                background: #f85149;
+            }
+            .tw-dot.y {
+                background: #d29922;
+            }
+            .tw-dot.g {
+                background: #3fb950;
+            }
+            .code-pane-body {
+                padding: 16px 20px;
+                font-family: 'SF Mono', Consolas, monospace;
+                font-size: 13px;
+                line-height: 1.7;
+                color: var(--code-fg);
+                background: var(--code-bg);
+                white-space: pre;
+                overflow-x: auto;
+            }
+            .code-line {
+                display: block;
+                min-height: 1.7em;
+            }
+            .code-line.diff-removed {
+                background: rgba(248, 81, 73, 0.12);
+                border-left: 3px solid var(--danger);
+                padding-left: 8px;
+                margin-left: -11px;
+            }
+            .code-line.diff-added {
+                background: rgba(63, 185, 80, 0.12);
+                border-left: 3px solid var(--success);
+                padding-left: 8px;
+                margin-left: -11px;
+            }
+            .code-line.diff-same {
+                color: var(--text-muted);
+            }
 
-/* ---- Annotations ---- */
-.annotations { padding:16px 24px; border-top:1px solid var(--border); background:rgba(255,255,255,0.01); }
-.annotations-title { font-size:0.78rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px; }
-.annotation { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.85rem; }
-.annotation:last-child { border-bottom:none; }
-.annotation-line { flex-shrink:0; width:42px; font-family:monospace; font-size:0.78rem; color:var(--text-muted); padding-top:1px; }
-.annotation-body { flex:1; }
-.annotation-rule { font-family:monospace; font-size:0.75rem; font-weight:600; padding:1px 7px; border-radius:4px; margin-right:6px; }
-.annotation-rule.critical { background:rgba(185,28,28,0.2); color:#fca5a5; }
-.annotation-rule.high { background:rgba(239,68,68,0.18); color:#fca5a5; }
-.annotation-rule.medium { background:rgba(245,158,11,0.18); color:#fcd34d; }
-.annotation-rule.low { background:rgba(156,163,175,0.18); color:var(--text-muted); }
-.annotation-note { color:var(--text-secondary); display:block; margin-top:2px; }
-.annotation-exposure { display:inline-flex; align-items:center; gap:4px; margin-top:6px; padding:2px 8px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:6px; font-size:0.72rem; color:#a5b4fc; }
-.annotation-exposure strong { color:#c7d2fe; }
+            /* ---- Annotations ---- */
+            .annotations {
+                padding: 16px 24px;
+                border-top: 1px solid var(--border);
+                background: rgba(255, 255, 255, 0.01);
+            }
+            .annotations-title {
+                font-size: 0.78rem;
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin-bottom: 10px;
+            }
+            .annotation {
+                display: flex;
+                gap: 12px;
+                padding: 10px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                font-size: 0.85rem;
+            }
+            .annotation:last-child {
+                border-bottom: none;
+            }
+            .annotation-line {
+                flex-shrink: 0;
+                width: 42px;
+                font-family: monospace;
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                padding-top: 1px;
+            }
+            .annotation-body {
+                flex: 1;
+            }
+            .annotation-rule {
+                font-family: monospace;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 1px 7px;
+                border-radius: 4px;
+                margin-right: 6px;
+            }
+            .annotation-rule.critical {
+                background: rgba(185, 28, 28, 0.2);
+                color: #fca5a5;
+            }
+            .annotation-rule.high {
+                background: rgba(239, 68, 68, 0.18);
+                color: #fca5a5;
+            }
+            .annotation-rule.medium {
+                background: rgba(245, 158, 11, 0.18);
+                color: #fcd34d;
+            }
+            .annotation-rule.low {
+                background: rgba(156, 163, 175, 0.18);
+                color: var(--text-muted);
+            }
+            .annotation-note {
+                color: var(--text-secondary);
+                display: block;
+                margin-top: 2px;
+            }
+            .annotation-exposure {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 6px;
+                padding: 2px 8px;
+                background: rgba(99, 102, 241, 0.12);
+                border: 1px solid rgba(99, 102, 241, 0.25);
+                border-radius: 6px;
+                font-size: 0.72rem;
+                color: #a5b4fc;
+            }
+            .annotation-exposure strong {
+                color: #c7d2fe;
+            }
 
-/* ---- Playground ---- */
-.playground-wrap { max-width:880px; margin:0 auto; background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
-.playground-input { width:100%; min-height:180px; padding:18px 20px; background:var(--code-bg); border:none; border-bottom:1px solid var(--border); color:var(--code-fg); font-family:'SF Mono',Consolas,monospace; font-size:13px; line-height:1.7; resize:vertical; outline:none; }
-.playground-bar { display:flex; align-items:center; gap:10px; padding:12px 20px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); flex-wrap:wrap; }
-.playground-bar .pg-status { font-size:0.82rem; color:var(--text-muted); flex:1; min-width:200px; }
-.playground-bar .pg-status strong { color:var(--text-primary); }
-.btn { padding:8px 16px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:1px solid var(--border-light); background:transparent; color:var(--text-secondary); transition:all 0.15s; font-family:inherit; }
-.btn:hover { background:rgba(255,255,255,0.06); color:var(--text-primary); }
-.btn-primary { background:var(--accent); border-color:var(--accent); color:white; }
-.btn-primary:hover { background:var(--accent-hover); color:white; }
-.btn-success { background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:var(--success); }
-.btn-success:hover { background:rgba(16,185,129,0.25); color:var(--success); }
-.btn-success.active { background:var(--success); color:#0a0e18; }
-.playground-results { padding:20px; }
-.playground-results.empty { color:var(--text-muted); font-size:0.9rem; text-align:center; padding:40px 20px; }
+            /* ---- Playground ---- */
+            .playground-wrap {
+                max-width: 880px;
+                margin: 0 auto;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+            }
+            .playground-input {
+                width: 100%;
+                min-height: 180px;
+                padding: 18px 20px;
+                background: var(--code-bg);
+                border: none;
+                border-bottom: 1px solid var(--border);
+                color: var(--code-fg);
+                font-family: 'SF Mono', Consolas, monospace;
+                font-size: 13px;
+                line-height: 1.7;
+                resize: vertical;
+                outline: none;
+            }
+            .playground-bar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 20px;
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid var(--border);
+                flex-wrap: wrap;
+            }
+            .playground-bar .pg-status {
+                font-size: 0.82rem;
+                color: var(--text-muted);
+                flex: 1;
+                min-width: 200px;
+            }
+            .playground-bar .pg-status strong {
+                color: var(--text-primary);
+            }
+            .btn {
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                border: 1px solid var(--border-light);
+                background: transparent;
+                color: var(--text-secondary);
+                transition: all 0.15s;
+                font-family: inherit;
+            }
+            .btn:hover {
+                background: rgba(255, 255, 255, 0.06);
+                color: var(--text-primary);
+            }
+            .btn-primary {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: white;
+            }
+            .btn-primary:hover {
+                background: var(--accent-hover);
+                color: white;
+            }
+            .btn-success {
+                background: rgba(16, 185, 129, 0.15);
+                border-color: rgba(16, 185, 129, 0.4);
+                color: var(--success);
+            }
+            .btn-success:hover {
+                background: rgba(16, 185, 129, 0.25);
+                color: var(--success);
+            }
+            .btn-success.active {
+                background: var(--success);
+                color: #0a0e18;
+            }
+            .playground-results {
+                padding: 20px;
+            }
+            .playground-results.empty {
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                text-align: center;
+                padding: 40px 20px;
+            }
 
-/* ---- Findings list ---- */
-.findings-list { display:flex; flex-direction:column; gap:10px; }
-.finding { padding:14px 16px; background:var(--bg-deep); border:1px solid var(--border); border-radius:10px; }
-.finding-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
-.finding-name { font-weight:600; font-size:0.92rem; color:var(--text-primary); }
-.finding-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.finding-sev { padding:2px 10px; border-radius:999px; font-size:0.72rem; font-weight:600; }
-.finding-sev.critical { background:rgba(185,28,28,0.2); color:#fca5a5; }
-.finding-sev.high { background:rgba(239,68,68,0.18); color:#fca5a5; }
-.finding-sev.medium { background:rgba(245,158,11,0.18); color:#fcd34d; }
-.finding-sev.low { background:rgba(156,163,175,0.18); color:var(--text-muted); }
-.finding-rule { font-family:monospace; font-size:0.72rem; color:var(--text-muted); }
-.finding-line { font-family:monospace; font-size:0.72rem; color:var(--text-muted); }
-.finding-desc { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; }
-.finding-match { font-family:monospace; font-size:0.78rem; background:rgba(0,0,0,0.3); padding:6px 10px; border-radius:6px; color:var(--text-muted); margin-bottom:6px; word-break:break-all; }
-.finding-suggestion { font-size:0.8rem; color:#a5b4fc; }
-.finding-suggestion::before { content:"→ fix: "; color:var(--text-muted); }
-.finding-exposure { display:inline-flex; align-items:center; gap:4px; margin-top:8px; padding:3px 10px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); border-radius:6px; font-size:0.72rem; color:#a5b4fc; }
-.finding-exposure strong { color:#c7d2fe; }
-.finding-exposure em { font-style:normal; color:var(--text-muted); }
+            /* ---- Findings list ---- */
+            .findings-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .finding {
+                padding: 14px 16px;
+                background: var(--bg-deep);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+            }
+            .finding-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 6px;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .finding-name {
+                font-weight: 600;
+                font-size: 0.92rem;
+                color: var(--text-primary);
+            }
+            .finding-meta {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .finding-sev {
+                padding: 2px 10px;
+                border-radius: 999px;
+                font-size: 0.72rem;
+                font-weight: 600;
+            }
+            .finding-sev.critical {
+                background: rgba(185, 28, 28, 0.2);
+                color: #fca5a5;
+            }
+            .finding-sev.high {
+                background: rgba(239, 68, 68, 0.18);
+                color: #fca5a5;
+            }
+            .finding-sev.medium {
+                background: rgba(245, 158, 11, 0.18);
+                color: #fcd34d;
+            }
+            .finding-sev.low {
+                background: rgba(156, 163, 175, 0.18);
+                color: var(--text-muted);
+            }
+            .finding-rule {
+                font-family: monospace;
+                font-size: 0.72rem;
+                color: var(--text-muted);
+            }
+            .finding-line {
+                font-family: monospace;
+                font-size: 0.72rem;
+                color: var(--text-muted);
+            }
+            .finding-desc {
+                font-size: 0.82rem;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+            }
+            .finding-match {
+                font-family: monospace;
+                font-size: 0.78rem;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 6px 10px;
+                border-radius: 6px;
+                color: var(--text-muted);
+                margin-bottom: 6px;
+                word-break: break-all;
+            }
+            .finding-suggestion {
+                font-size: 0.8rem;
+                color: #a5b4fc;
+            }
+            .finding-suggestion::before {
+                content: '→ fix: ';
+                color: var(--text-muted);
+            }
+            .finding-exposure {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 8px;
+                padding: 3px 10px;
+                background: rgba(99, 102, 241, 0.12);
+                border: 1px solid rgba(99, 102, 241, 0.25);
+                border-radius: 6px;
+                font-size: 0.72rem;
+                color: #a5b4fc;
+            }
+            .finding-exposure strong {
+                color: #c7d2fe;
+            }
+            .finding-exposure em {
+                font-style: normal;
+                color: var(--text-muted);
+            }
 
-/* ---- Diff view ---- */
-.diff-view { margin-top:20px; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.diff-view-head { padding:10px 16px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:flex; align-items:center; gap:8px; }
-.diff-line { display:flex; font-family:'SF Mono',Consolas,monospace; font-size:12.5px; line-height:1.6; }
-.diff-line .ln { flex-shrink:0; width:42px; text-align:right; padding-right:10px; color:var(--text-muted); user-select:none; background:rgba(255,255,255,0.02); }
-.diff-line .content { flex:1; padding:0 12px; white-space:pre; overflow-x:auto; }
-.diff-line.same .content { color:var(--text-muted); }
-.diff-line.added { background:rgba(63,185,80,0.1); }
-.diff-line.added .content { color:#7ee78b; }
-.diff-line.added .ln { color:var(--success); }
-.diff-line.removed { background:rgba(248,81,73,0.1); }
-.diff-line.removed .content { color:#ffa198; }
-.diff-line.removed .ln { color:var(--danger); }
+            /* ---- Diff view ---- */
+            .diff-view {
+                margin-top: 20px;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .diff-view-head {
+                padding: 10px 16px;
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid var(--border);
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .diff-line {
+                display: flex;
+                font-family: 'SF Mono', Consolas, monospace;
+                font-size: 12.5px;
+                line-height: 1.6;
+            }
+            .diff-line .ln {
+                flex-shrink: 0;
+                width: 42px;
+                text-align: right;
+                padding-right: 10px;
+                color: var(--text-muted);
+                user-select: none;
+                background: rgba(255, 255, 255, 0.02);
+            }
+            .diff-line .content {
+                flex: 1;
+                padding: 0 12px;
+                white-space: pre;
+                overflow-x: auto;
+            }
+            .diff-line.same .content {
+                color: var(--text-muted);
+            }
+            .diff-line.added {
+                background: rgba(63, 185, 80, 0.1);
+            }
+            .diff-line.added .content {
+                color: #7ee78b;
+            }
+            .diff-line.added .ln {
+                color: var(--success);
+            }
+            .diff-line.removed {
+                background: rgba(248, 81, 73, 0.1);
+            }
+            .diff-line.removed .content {
+                color: #ffa198;
+            }
+            .diff-line.removed .ln {
+                color: var(--danger);
+            }
 
-/* ---- Value framing table ---- */
-.value-table { max-width:880px; margin:0 auto; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-.value-table-row { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; border-bottom:1px solid var(--border); }
-.value-table-row:last-child { border-bottom:none; }
-.value-table-row.head { background:rgba(255,255,255,0.03); }
-.value-table-cell { padding:14px 18px; font-size:0.88rem; border-right:1px solid var(--border); }
-.value-table-cell:last-child { border-right:none; }
-.value-table-cell.head { font-weight:700; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
-.value-table-cell.free { color:var(--text-secondary); }
-.value-table-cell.paid { color:#a5b4fc; font-weight:500; }
-.value-table-cell .check { color:var(--success); font-weight:700; }
-.value-table-cell .x { color:var(--text-muted); }
+            /* ---- Value framing table ---- */
+            .value-table {
+                max-width: 880px;
+                margin: 0 auto;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            .value-table-row {
+                display: grid;
+                grid-template-columns: 1.4fr 1fr 1fr 1fr;
+                border-bottom: 1px solid var(--border);
+            }
+            .value-table-row:last-child {
+                border-bottom: none;
+            }
+            .value-table-row.head {
+                background: rgba(255, 255, 255, 0.03);
+            }
+            .value-table-cell {
+                padding: 14px 18px;
+                font-size: 0.88rem;
+                border-right: 1px solid var(--border);
+            }
+            .value-table-cell:last-child {
+                border-right: none;
+            }
+            .value-table-cell.head {
+                font-weight: 700;
+                font-size: 0.82rem;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-muted);
+            }
+            .value-table-cell.free {
+                color: var(--text-secondary);
+            }
+            .value-table-cell.paid {
+                color: #a5b4fc;
+                font-weight: 500;
+            }
+            .value-table-cell .check {
+                color: var(--success);
+                font-weight: 700;
+            }
+            .value-table-cell .x {
+                color: var(--text-muted);
+            }
 
-/* ---- CTA banner ---- */
-.cta-banner { text-align:center; padding:56px 24px; background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(16,185,129,0.08)); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
-.cta-banner h2 { font-size:1.5rem; font-weight:700; margin-bottom:12px; }
-.cta-banner p { color:var(--text-secondary); max-width:560px; margin:0 auto 24px; font-size:1rem; }
-.cta-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-.cta-buttons .btn { padding:12px 24px; font-size:0.95rem; }
+            /* ---- CTA banner ---- */
+            .cta-banner {
+                text-align: center;
+                padding: 56px 24px;
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(16, 185, 129, 0.08));
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+            }
+            .cta-banner h2 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+            }
+            .cta-banner p {
+                color: var(--text-secondary);
+                max-width: 560px;
+                margin: 0 auto 24px;
+                font-size: 1rem;
+            }
+            .cta-buttons {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .cta-buttons .btn {
+                padding: 12px 24px;
+                font-size: 0.95rem;
+            }
 
-/* ---- Footer ---- */
-.footer { padding:32px 24px; text-align:center; color:var(--text-muted); font-size:0.82rem; }
-.footer a { color:var(--text-secondary); text-decoration:none; margin:0 6px; }
-.footer a:hover { color:var(--text-primary); text-decoration:underline; }
+            /* ---- Footer ---- */
+            .footer {
+                padding: 32px 24px;
+                text-align: center;
+                color: var(--text-muted);
+                font-size: 0.82rem;
+            }
+            .footer a {
+                color: var(--text-secondary);
+                text-decoration: none;
+                margin: 0 6px;
+            }
+            .footer a:hover {
+                color: var(--text-primary);
+                text-decoration: underline;
+            }
 
-/* ---- Responsive ---- */
-@media (max-width: 640px) {
-    .value-table-row { grid-template-columns:1fr; }
-    .value-table-cell { border-right:none; border-bottom:1px solid rgba(255,255,255,0.04); }
-    .value-table-cell:last-child { border-bottom:none; }
-    .sb-nav-links a:not(.sb-nav-cta) { display:none; }
-    .annotation-line { width:32px; }
-}
-</style>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="sb-site-nav">
-  <a href="/" class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
-  <div class="sb-nav-links">
-    <a href="/#demo">Demo</a>
-    <a href="/pricing">Pricing</a>
-    <a href="/community">Install</a>
-    <a href="/blog/case-study-ai-slop-1-25m">Case Study</a>
-    <a href="/downloads/simplebeacon-3.0.519.vsix" class="sb-nav-cta" download>Install Extension</a>
-  </div>
-</nav>
-
-<!-- Hero -->
-<section class="hero">
-    <span class="hero-badge">VS Code Extension · Local-First</span>
-    <h1>AI Slop Cop for VS Code</h1>
-    <p class="sub">Scan your workspace locally, surface repo issues, gate quality, and export reports &mdash; no source upload. 48 analyzer engines catch AI slop, leaked credentials, and EU AI Act / SOC 2 gaps before they reach your main branch.</p>
-    <div class="hero-ctas">
-        <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-primary btn-lg" download>Install VS Code Extension</a>
-        <a href="#playground" class="btn btn-lg">Try the browser demo</a>
-        <a href="/pricing" class="btn btn-ghost btn-lg">Pricing &amp; CI gate</a>
-    </div>
-    <div class="privacy-note"><strong>Zero source upload.</strong> The extension runs the SimpleBeacon engine locally in your IDE. The browser demo below runs the same rules in your browser &mdash; nothing leaves your machine.</div>
-
-    <!-- Extension feature strip -->
-    <div class="ext-features">
-        <div class="ext-feature">
-            <div class="ext-feature-icon">&#128269;</div>
-            <h4>Scan Workspace</h4>
-            <p>One-click scan from the sidebar or Command Palette. 38 deterministic engines run locally on your repo.</p>
-            <span class="cmd">SimpleBeacon: Scan Workspace</span>
-        </div>
-        <div class="ext-feature">
-            <div class="ext-feature-icon">&#128202;</div>
-            <h4>Report Dashboard</h4>
-            <p>Findings, gate status, and severity breakdowns render in a built-in dashboard view inside VS Code.</p>
-            <span class="cmd">SimpleBeacon: Show Report Dashboard</span>
-        </div>
-        <div class="ext-feature">
-            <div class="ext-feature-icon">&#128190;</div>
-            <h4>Export Report (JSON)</h4>
-            <p>Export a structured JSON report for CI, auditors, or your compliance pipeline. Generate board-ready certificates.</p>
-            <span class="cmd">SimpleBeacon: Export Report (JSON)</span>
-        </div>
-        <div class="ext-feature">
-            <div class="ext-feature-icon">&#128274;</div>
-            <h4>Zero Source Upload</h4>
-            <p>The extension runs the SimpleBeacon engine on your machine. No source code is ever sent to a server.</p>
-            <span class="cmd">Local-first by design</span>
-        </div>
-    </div>
-</section>
-
-<!-- Section A: Guided before/after presets -->
-<section class="section" id="presets">
-    <div class="container">
-        <h2>Before &amp; After: Real Samples</h2>
-        <p class="section-sub">Toggle each sample between the AI-slop version and the SimpleBeacon-cleaned version. These are the same patterns the VS Code extension catches across your whole workspace. Drawn from the <a href="/blog/case-study-ai-slop-1-25m" style="color:var(--accent);text-decoration:none;">$1.25M fintech case study</a> and common AI-assisted development patterns.</p>
-        <div class="preset-grid" id="presetGrid"></div>
-    </div>
-</section>
-
-<!-- Section B: Paste-your-own-code playground -->
-<section class="section alt" id="playground">
-    <div class="container">
-        <h2>Paste Your Own Code</h2>
-        <p class="section-sub">Drop in any code, config, or text. The Slop Cop runs the same 8 deterministic SB-FICTION engines plus 7 text-pattern rules &mdash; all in your browser. For the full 38-engine workspace scan, <a href="/downloads/simplebeacon-3.0.519.vsix" style="color:var(--accent);text-decoration:none;font-weight:600;">install the VS Code extension</a>.</p>
-        <div class="playground-wrap">
-            <textarea class="playground-input" id="pgInput" placeholder="Paste code, an email, a config file, or any text here...&#10;&#10;Example:&#10;const apiKey = &quot;sk-ant-api03-xxxxx&quot;;&#10;// TODO: implement as you requested in our call&#10;return true; // placeholder"></textarea>
-            <div class="playground-bar">
-                <div class="pg-status" id="pgStatus">Paste text above to begin scanning.</div>
-                <button class="btn" onclick="SlopCopUI.clearInput()">Clear</button>
-                <button class="btn btn-success" id="pgDiffBtn" onclick="SlopCopUI.toggleDiff()">Show cleaned version</button>
-                <button class="btn btn-primary" onclick="SlopCopUI.runScan()">Run Slop Cop</button>
-            </div>
-            <div class="playground-results empty" id="pgResults">Findings will appear here after you click <strong>Run Slop Cop</strong>.</div>
-        </div>
-        <p style="text-align:center;color:var(--text-muted);font-size:0.78rem;margin-top:16px;">Uses the same deterministic engines from the SimpleBeacon VS Code extension, ported to the browser. No text leaves your machine. <a href="/downloads/simplebeacon-3.0.519.vsix" style="color:var(--accent);text-decoration:none;font-weight:600;">Install the extension &rarr;</a></p>
-    </div>
-</section>
-
-<!-- Section C: Value framing -->
-<section class="section" id="value">
-    <div class="container">
-        <h2>Browser Demo vs. VS Code Extension vs. Paid Tiers</h2>
-        <p class="section-sub">The browser demo below is a teaser that runs on pasted snippets. The VS Code extension runs the same engines across your whole workspace. Paid tiers unlock unlimited scans, the CI gate, and board-ready certificates for teams and compliance.</p>
-        <div class="value-table">
-            <div class="value-table-row head">
-                <div class="value-table-cell head">Capability</div>
-                <div class="value-table-cell head" style="text-align:center;">Browser Demo</div>
-                <div class="value-table-cell head" style="text-align:center;">VS Code Extension</div>
-                <div class="value-table-cell head" style="text-align:center;">Paid Tiers ($49/mo+)</div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">15 deterministic slop + text engines</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span> snippets</div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span> whole workspace</div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span> whole repo</div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">38-rule full scanner (secrets, license, EU AI Act, SOC 2)</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">Sidebar, dashboard, JSON export, certificate generation</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">CI gate (blocks PRs on critical/high)</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">Board-ready Executive Risk Certificate</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">EU AI Act Article 99 + SOC 2 mapping</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="x">—</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">Zero source-code upload (runs locally)</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-            <div class="value-table-row">
-                <div class="value-table-cell">Unlimited scans (no quota)</div>
-                <div class="value-table-cell free" style="text-align:center;"><span class="check">✓</span></div>
-                <div class="value-table-cell free" style="text-align:center;">quota-limited</div>
-                <div class="value-table-cell paid" style="text-align:center;"><span class="check">✓</span></div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- CTA banner -->
-<section class="cta-banner">
-    <h2>Install the AI Slop Cop extension.</h2>
-    <p>The browser demo above runs on one snippet at a time. The VS Code extension runs the same 48 analyzers across your whole workspace &mdash; with a sidebar, dashboard, JSON export, and certificate generation. Paid tiers unlock the CI gate, unlimited scans, and board-ready compliance certificates.</p>
-    <div class="cta-buttons">
-        <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-primary" download>Install VS Code Extension</a>
-        <a href="/pricing" class="btn">Pricing &amp; CI gate</a>
-        <a href="/community" class="btn">Install the CLI</a>
-        <a href="/sample-report" class="btn">View a sample report</a>
-    </div>
-</section>
-
-<!-- Footer -->
-<footer class="footer">
-    <div><a href="/">Home</a> · <a href="/downloads/simplebeacon-3.0.519.vsix">Install Extension</a> · <a href="/pricing">Pricing</a> · <a href="/community">CLI</a> · <a href="/blog/case-study-ai-slop-1-25m">Case Study</a> · <a href="/sample-report">Sample Report</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a></div>
-    <div style="margin-top:10px;">&copy; 2026 SimpleBeacon. Zero source upload. Local-first.</div>
-</footer>
-
-<script src="/js-es2018/slop-cop-engine.js"></script>
-<script>
-// simplebeacon-ignore: UI rendering code references slop patterns as preset data — all findings are false positives
-(function () {
-    'use strict';
-    var SlopCop = window.SlopCop;
-    var sevLabel = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
-
-    function escapeHtml(s) {
-        return String(s == null ? '' : s)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    // ---- Render preset cards ----
-    function renderPresets() {
-        var grid = document.getElementById('presetGrid');
-        var html = '';
-        for (var i = 0; i < SlopCop.PRESETS.length; i++) {
-            var p = SlopCop.PRESETS[i];
-            var slopLines = p.slop.split('\n');
-            var fixedLines = p.fixed.split('\n');
-            html += '<div class="preset-card" data-preset-id="' + escapeHtml(p.id) + '">';
-            html += '<div class="preset-card-head"><h3>' + escapeHtml(p.title) + '</h3><p>' + escapeHtml(p.context) + '</p></div>';
-            html += '<div class="preset-toggle-row">';
-            html += '<label class="preset-toggle"><input type="checkbox" onchange="SlopCopUI.togglePreset(\'' + p.id + '\', this.checked)">';
-            html += '<span class="preset-toggle-track"><span class="preset-toggle-thumb"></span></span></label>';
-            html += '<span class="preset-toggle-label slop">Slop</span><span style="color:var(--text-muted);font-size:0.78rem;">/</span><span class="preset-toggle-label fixed">Fixed</span>';
-            html += '<span class="preset-toggle-state slop" id="preset-state-' + p.id + '">AI slop</span>';
-            html += '</div>';
-            html += '<div class="code-pane">';
-            html += '<div class="code-pane-header"><span class="tw-dot r"></span><span class="tw-dot y"></span><span class="tw-dot g"></span><span id="preset-fname-' + p.id + '">slop.ts — AI-generated</span></div>';
-            html += '<div class="code-pane-body" id="preset-code-' + p.id + '">' + renderCodeLines(slopLines, 'slop') + '</div>';
-            html += '</div>';
-            // Annotations
-            html += '<div class="annotations"><div class="annotations-title">What SimpleBeacon caught</div>';
-            for (var a = 0; a < p.annotations.length; a++) {
-                var ann = p.annotations[a];
-                var rule = ruleById(ann.ruleId);
-                var sev = rule ? rule.severity : 'medium';
-                var exp = SlopCop.EXPOSURE_MAP[ann.ruleId];
-                html += '<div class="annotation">';
-                html += '<div class="annotation-line">L' + ann.line + '</div>';
-                html += '<div class="annotation-body">';
-                html += '<span class="annotation-rule ' + sev + '">' + ann.ruleId + '</span>';
-                html += '<span style="font-weight:600;color:var(--text-primary);">' + escapeHtml(rule ? rule.name : ann.ruleId) + '</span>';
-                html += '<span class="annotation-note">' + escapeHtml(ann.note) + '</span>';
-                if (exp) {
-                    html += '<span class="annotation-exposure"><strong>' + escapeHtml(exp.figure) + '</strong> ' + escapeHtml(exp.label) + ' <em>· ' + escapeHtml(exp.source) + '</em></span>';
+            /* ---- Responsive ---- */
+            @media (max-width: 640px) {
+                .value-table-row {
+                    grid-template-columns: 1fr;
                 }
-                html += '</div></div>';
+                .value-table-cell {
+                    border-right: none;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                }
+                .value-table-cell:last-child {
+                    border-bottom: none;
+                }
+                .sb-nav-links a:not(.sb-nav-cta) {
+                    display: none;
+                }
+                .annotation-line {
+                    width: 32px;
+                }
             }
-            html += '</div>';
-            html += '</div>';
-        }
-        grid.innerHTML = html;
-    }
+        </style>
+    </head>
+    <body>
+        <!-- Nav -->
+        <nav class="sb-site-nav">
+            <a href="/" class="logo"
+                ><svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#6366f1"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v8M8 12h8" /></svg
+                >SimpleBeacon</a
+            >
+            <div class="sb-nav-links">
+                <a href="/#demo">Demo</a>
+                <a href="/pricing">Pricing</a>
+                <a href="/community">Install</a>
+                <a href="/blog/case-study-ai-slop-1-25m">Case Study</a>
+                <a href="/downloads/simplebeacon-3.0.519.vsix" class="sb-nav-cta" download>Install Extension</a>
+            </div>
+        </nav>
 
-    function renderCodeLines(lines, mode) {
-        var html = '';
-        for (var i = 0; i < lines.length; i++) {
-            var cls = 'code-line';
-            if (mode === 'slop') cls += ' diff-removed';
-            else if (mode === 'fixed') cls += ' diff-added';
-            else cls += ' diff-same';
-            html += '<span class="' + cls + '">' + escapeHtml(lines[i] || ' ') + '</span>';
-        }
-        return html;
-    }
+        <!-- Hero -->
+        <section class="hero">
+            <span class="hero-badge">VS Code Extension · Local-First</span>
+            <h1>AI Slop Cop for VS Code</h1>
+            <p class="sub">
+                Scan your workspace locally, surface repo issues, gate quality, and export reports &mdash; no source
+                upload. 48 analyzer engines catch AI slop, leaked credentials, and EU AI Act / SOC 2 gaps before they
+                reach your main branch.
+            </p>
+            <div class="hero-ctas">
+                <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-primary btn-lg" download
+                    >Install VS Code Extension</a
+                >
+                <a href="#playground" class="btn btn-lg">Try the browser demo</a>
+                <a href="/pricing" class="btn btn-ghost btn-lg">Pricing &amp; CI gate</a>
+            </div>
+            <div class="privacy-note">
+                <strong>Zero source upload.</strong> The extension runs the SimpleBeacon engine locally in your IDE. The
+                browser demo below runs the same rules in your browser &mdash; nothing leaves your machine.
+            </div>
 
-    function ruleById(id) {
-        for (var i = 0; i < SlopCop.RULES.length; i++) {
-            if (SlopCop.RULES[i].id === id) return SlopCop.RULES[i];
-        }
-        return null;
-    }
+            <!-- Extension feature strip -->
+            <div class="ext-features">
+                <div class="ext-feature">
+                    <div class="ext-feature-icon">&#128269;</div>
+                    <h4>Scan Workspace</h4>
+                    <p>
+                        One-click scan from the sidebar or Command Palette. 38 deterministic engines run locally on your
+                        repo.
+                    </p>
+                    <span class="cmd">SimpleBeacon: Scan Workspace</span>
+                </div>
+                <div class="ext-feature">
+                    <div class="ext-feature-icon">&#128202;</div>
+                    <h4>Report Dashboard</h4>
+                    <p>
+                        Findings, gate status, and severity breakdowns render in a built-in dashboard view inside VS
+                        Code.
+                    </p>
+                    <span class="cmd">SimpleBeacon: Show Report Dashboard</span>
+                </div>
+                <div class="ext-feature">
+                    <div class="ext-feature-icon">&#128190;</div>
+                    <h4>Export Report (JSON)</h4>
+                    <p>
+                        Export a structured JSON report for CI, auditors, or your compliance pipeline. Generate
+                        board-ready certificates.
+                    </p>
+                    <span class="cmd">SimpleBeacon: Export Report (JSON)</span>
+                </div>
+                <div class="ext-feature">
+                    <div class="ext-feature-icon">&#128274;</div>
+                    <h4>Zero Source Upload</h4>
+                    <p>
+                        The extension runs the SimpleBeacon engine on your machine. No source code is ever sent to a
+                        server.
+                    </p>
+                    <span class="cmd">Local-first by design</span>
+                </div>
+            </div>
+        </section>
 
-    function togglePreset(id, checked) {
-        var preset = null;
-        for (var i = 0; i < SlopCop.PRESETS.length; i++) {
-            if (SlopCop.PRESETS[i].id === id) { preset = SlopCop.PRESETS[i]; break; }
-        }
-        if (!preset) return;
-        var codeEl = document.getElementById('preset-code-' + id);
-        var stateEl = document.getElementById('preset-state-' + id);
-        var fnameEl = document.getElementById('preset-fname-' + id);
-        if (checked) {
-            codeEl.innerHTML = renderCodeLines(preset.fixed.split('\n'), 'fixed');
-            stateEl.textContent = 'SimpleBeacon-cleaned';
-            stateEl.className = 'preset-toggle-state fixed';
-            fnameEl.textContent = 'fixed.ts — reviewed';
-        } else {
-            codeEl.innerHTML = renderCodeLines(preset.slop.split('\n'), 'slop');
-            stateEl.textContent = 'AI slop';
-            stateEl.className = 'preset-toggle-state slop';
-            fnameEl.textContent = 'slop.ts — AI-generated';
-        }
-    }
+        <!-- Section A: Guided before/after presets -->
+        <section class="section" id="presets">
+            <div class="container">
+                <h2>Before &amp; After: Real Samples</h2>
+                <p class="section-sub">
+                    Toggle each sample between the AI-slop version and the SimpleBeacon-cleaned version. These are the
+                    same patterns the VS Code extension catches across your whole workspace. Drawn from the
+                    <a href="/blog/case-study-ai-slop-1-25m" style="color: var(--accent); text-decoration: none"
+                        >$1.25M fintech case study</a
+                    >
+                    and common AI-assisted development patterns.
+                </p>
+                <div class="preset-grid" id="presetGrid"></div>
+            </div>
+        </section>
 
-    // ---- Playground ----
-    var lastResult = null;
-    var diffVisible = false;
+        <!-- Section B: Paste-your-own-code playground -->
+        <section class="section alt" id="playground">
+            <div class="container">
+                <h2>Paste Your Own Code</h2>
+                <p class="section-sub">
+                    Drop in any code, config, or text. The Slop Cop runs the same 8 deterministic SB-FICTION engines
+                    plus 7 text-pattern rules &mdash; all in your browser. For the full 38-engine workspace scan,
+                    <a
+                        href="/downloads/simplebeacon-3.0.519.vsix"
+                        style="color: var(--accent); text-decoration: none; font-weight: 600"
+                        >install the VS Code extension</a
+                    >.
+                </p>
+                <div class="playground-wrap">
+                    <textarea
+                        class="playground-input"
+                        id="pgInput"
+                        placeholder='Paste code, an email, a config file, or any text here...&#10;&#10;Example:&#10;const apiKey = "sk-ant-api03-xxxxx";&#10;// TODO: implement as you requested in our call&#10;return true; // placeholder'
+                    ></textarea>
+                    <div class="playground-bar">
+                        <div class="pg-status" id="pgStatus">Paste text above to begin scanning.</div>
+                        <button class="btn" onclick="SlopCopUI.clearInput()">Clear</button>
+                        <button class="btn btn-success" id="pgDiffBtn" onclick="SlopCopUI.toggleDiff()">
+                            Show cleaned version
+                        </button>
+                        <button class="btn btn-primary" onclick="SlopCopUI.runScan()">Run Slop Cop</button>
+                    </div>
+                    <div class="playground-results empty" id="pgResults">
+                        Findings will appear here after you click <strong>Run Slop Cop</strong>.
+                    </div>
+                </div>
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.78rem; margin-top: 16px">
+                    Uses the same deterministic engines from the SimpleBeacon VS Code extension, ported to the browser.
+                    No text leaves your machine.
+                    <a
+                        href="/downloads/simplebeacon-3.0.519.vsix"
+                        style="color: var(--accent); text-decoration: none; font-weight: 600"
+                        >Install the extension &rarr;</a
+                    >
+                </p>
+            </div>
+        </section>
 
-    function runScan() {
-        var input = document.getElementById('pgInput');
-        var text = input.value;
-        if (!text.trim()) {
-            document.getElementById('pgStatus').textContent = 'Paste text above to begin scanning.';
-            document.getElementById('pgResults').className = 'playground-results empty';
-            document.getElementById('pgResults').innerHTML = 'Findings will appear here after you click <strong>Run Slop Cop</strong>.';
-            return;
-        }
-        var result = SlopCop.scan(text);
-        lastResult = result;
-        renderResults(result, false);
-        // Analytics — event only, no content
-        try { if (typeof gtag === 'function') gtag('event', 'slop_cop_scan', { 'event_category': 'engagement', 'findings': result.findings.length }); } catch (e) {}
-    }
+        <!-- Section C: Value framing -->
+        <section class="section" id="value">
+            <div class="container">
+                <h2>Browser Demo vs. VS Code Extension vs. Paid Tiers</h2>
+                <p class="section-sub">
+                    The browser demo below is a teaser that runs on pasted snippets. The VS Code extension runs the same
+                    engines across your whole workspace. Paid tiers unlock unlimited scans, the CI gate, and board-ready
+                    certificates for teams and compliance.
+                </p>
+                <div class="value-table">
+                    <div class="value-table-row head">
+                        <div class="value-table-cell head">Capability</div>
+                        <div class="value-table-cell head" style="text-align: center">Browser Demo</div>
+                        <div class="value-table-cell head" style="text-align: center">VS Code Extension</div>
+                        <div class="value-table-cell head" style="text-align: center">Paid Tiers ($49/mo+)</div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">15 deterministic slop + text engines</div>
+                        <div class="value-table-cell free" style="text-align: center">
+                            <span class="check">✓</span> snippets
+                        </div>
+                        <div class="value-table-cell paid" style="text-align: center">
+                            <span class="check">✓</span> whole workspace
+                        </div>
+                        <div class="value-table-cell paid" style="text-align: center">
+                            <span class="check">✓</span> whole repo
+                        </div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">38-rule full scanner (secrets, license, EU AI Act, SOC 2)</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">Sidebar, dashboard, JSON export, certificate generation</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">CI gate (blocks PRs on critical/high)</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">Board-ready Executive Risk Certificate</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">EU AI Act Article 99 + SOC 2 mapping</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="x">—</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">Zero source-code upload (runs locally)</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="check">✓</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                    <div class="value-table-row">
+                        <div class="value-table-cell">Unlimited scans (no quota)</div>
+                        <div class="value-table-cell free" style="text-align: center"><span class="check">✓</span></div>
+                        <div class="value-table-cell free" style="text-align: center">quota-limited</div>
+                        <div class="value-table-cell paid" style="text-align: center"><span class="check">✓</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    function renderResults(result, showDiff) {
-        var statusEl = document.getElementById('pgStatus');
-        var resultsEl = document.getElementById('pgResults');
-        var wordCount = result.cleanedText ? result.findings.length : 0;
-        var scoreColor = result.score >= 80 ? 'var(--success)' : result.score >= 50 ? 'var(--warning)' : 'var(--danger)';
-        statusEl.innerHTML = '<strong>' + result.findings.length + '</strong> finding(s) · <strong style="color:' + scoreColor + ';">Slop Score: ' + result.score + '/100</strong> — ' + escapeHtml(result.scoreLabel);
+        <!-- CTA banner -->
+        <section class="cta-banner">
+            <h2>Install the AI Slop Cop extension.</h2>
+            <p>
+                The browser demo above runs on one snippet at a time. The VS Code extension runs the same 48 analyzers
+                across your whole workspace &mdash; with a sidebar, dashboard, JSON export, and certificate generation.
+                Paid tiers unlock the CI gate, unlimited scans, and board-ready compliance certificates.
+            </p>
+            <div class="cta-buttons">
+                <a href="/downloads/simplebeacon-3.0.519.vsix" class="btn btn-primary" download
+                    >Install VS Code Extension</a
+                >
+                <a href="/pricing" class="btn">Pricing &amp; CI gate</a>
+                <a href="/community" class="btn">Install the CLI</a>
+                <a href="/sample-report" class="btn">View a sample report</a>
+            </div>
+        </section>
 
-        if (showDiff && result.diff && result.diff.length) {
-            resultsEl.className = 'playground-results';
-            var html = '<div class="diff-view"><div class="diff-view-head">Before → After (SimpleBeacon auto-fix)</div>';
-            for (var i = 0; i < result.diff.length; i++) {
-                var d = result.diff[i];
-                var cls = d.type;
-                var prefix = d.type === 'added' ? '+' : d.type === 'removed' ? '-' : ' ';
-                var content = d.type === 'added' ? d.after : d.before;
-                html += '<div class="diff-line ' + cls + '"><span class="ln">' + (i + 1) + '</span><span class="content">' + prefix + ' ' + escapeHtml(content || '') + '</span></div>';
-            }
-            html += '</div>';
-            resultsEl.innerHTML = html;
-            return;
-        }
+        <!-- Footer -->
+        <footer class="footer">
+            <div>
+                <a href="/">Home</a> · <a href="/downloads/simplebeacon-3.0.519.vsix">Install Extension</a> ·
+                <a href="/pricing">Pricing</a> · <a href="/community">CLI</a> ·
+                <a href="/blog/case-study-ai-slop-1-25m">Case Study</a> · <a href="/sample-report">Sample Report</a> ·
+                <a href="/faq">FAQ</a> · <a href="/contact">Contact</a>
+            </div>
+            <div style="margin-top: 10px">&copy; 2026 SimpleBeacon. Zero source upload. Local-first.</div>
+        </footer>
 
-        if (!result.findings.length) {
-            resultsEl.className = 'playground-results';
-            resultsEl.innerHTML = '<div style="padding:20px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;color:var(--success);font-size:0.92rem;">&#10003; No AI slop detected. The input appears to be human-edited and production-ready.</div>';
-            return;
-        }
+        <script src="/js-es2018/slop-cop-engine.js"></script>
+        <script>
+            // simplebeacon-ignore: UI rendering code references slop patterns as preset data — all findings are false positives
+            (function () {
+                'use strict';
+                var SlopCop = window.SlopCop;
+                var sevLabel = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
 
-        resultsEl.className = 'playground-results';
-        var html = '<div class="findings-list">';
-        for (var k = 0; k < result.findings.length; k++) {
-            var f = result.findings[k];
-            html += '<div class="finding">';
-            html += '<div class="finding-head">';
-            html += '<span class="finding-name">' + escapeHtml(f.name) + '</span>';
-            html += '<div class="finding-meta">';
-            html += '<span class="finding-sev ' + f.severity + '">' + sevLabel[f.severity] + '</span>';
-            html += '<span class="finding-rule">' + escapeHtml(f.ruleId) + '</span>';
-            html += '<span class="finding-line">L' + f.line + '</span>';
-            html += '</div></div>';
-            html += '<div class="finding-desc">' + escapeHtml(f.desc) + '</div>';
-            html += '<div class="finding-match">' + escapeHtml(f.matched.substring(0, 120)) + (f.matched.length > 120 ? '…' : '') + '</div>';
-            html += '<div class="finding-suggestion">' + escapeHtml(f.suggestion) + '</div>';
-            if (f.exposure) {
-                html += '<div class="finding-exposure"><strong>' + escapeHtml(f.exposure.figure) + '</strong> ' + escapeHtml(f.exposure.label) + ' <em>· ' + escapeHtml(f.exposure.source) + '</em></div>';
-            }
-            html += '</div>';
-        }
-        html += '</div>';
-        resultsEl.innerHTML = html;
-    }
+                function escapeHtml(s) {
+                    return String(s == null ? '' : s)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
 
-    function toggleDiff() {
-        if (!lastResult) {
-            // Run scan first if user hasn't
-            runScan();
-            if (!lastResult) return;
-        }
-        diffVisible = !diffVisible;
-        var btn = document.getElementById('pgDiffBtn');
-        if (diffVisible) {
-            btn.textContent = 'Show findings list';
-            btn.classList.add('active');
-        } else {
-            btn.textContent = 'Show cleaned version';
-            btn.classList.remove('active');
-        }
-        renderResults(lastResult, diffVisible);
-    }
+                // ---- Render preset cards ----
+                function renderPresets() {
+                    var grid = document.getElementById('presetGrid');
+                    var html = '';
+                    for (var i = 0; i < SlopCop.PRESETS.length; i++) {
+                        var p = SlopCop.PRESETS[i];
+                        var slopLines = p.slop.split('\n');
+                        var fixedLines = p.fixed.split('\n');
+                        html += '<div class="preset-card" data-preset-id="' + escapeHtml(p.id) + '">';
+                        html +=
+                            '<div class="preset-card-head"><h3>' +
+                            escapeHtml(p.title) +
+                            '</h3><p>' +
+                            escapeHtml(p.context) +
+                            '</p></div>';
+                        html += '<div class="preset-toggle-row">';
+                        html +=
+                            '<label class="preset-toggle"><input type="checkbox" onchange="SlopCopUI.togglePreset(\'' +
+                            p.id +
+                            '\', this.checked)">';
+                        html +=
+                            '<span class="preset-toggle-track"><span class="preset-toggle-thumb"></span></span></label>';
+                        html +=
+                            '<span class="preset-toggle-label slop">Slop</span><span style="color:var(--text-muted);font-size:0.78rem;">/</span><span class="preset-toggle-label fixed">Fixed</span>';
+                        html += '<span class="preset-toggle-state slop" id="preset-state-' + p.id + '">AI slop</span>';
+                        html += '</div>';
+                        html += '<div class="code-pane">';
+                        html +=
+                            '<div class="code-pane-header"><span class="tw-dot r"></span><span class="tw-dot y"></span><span class="tw-dot g"></span><span id="preset-fname-' +
+                            p.id +
+                            '">slop.ts — AI-generated</span></div>';
+                        html +=
+                            '<div class="code-pane-body" id="preset-code-' +
+                            p.id +
+                            '">' +
+                            renderCodeLines(slopLines, 'slop') +
+                            '</div>';
+                        html += '</div>';
+                        // Annotations
+                        html +=
+                            '<div class="annotations"><div class="annotations-title">What SimpleBeacon caught</div>';
+                        for (var a = 0; a < p.annotations.length; a++) {
+                            var ann = p.annotations[a];
+                            var rule = ruleById(ann.ruleId);
+                            var sev = rule ? rule.severity : 'medium';
+                            var exp = SlopCop.EXPOSURE_MAP[ann.ruleId];
+                            html += '<div class="annotation">';
+                            html += '<div class="annotation-line">L' + ann.line + '</div>';
+                            html += '<div class="annotation-body">';
+                            html += '<span class="annotation-rule ' + sev + '">' + ann.ruleId + '</span>';
+                            html +=
+                                '<span style="font-weight:600;color:var(--text-primary);">' +
+                                escapeHtml(rule ? rule.name : ann.ruleId) +
+                                '</span>';
+                            html += '<span class="annotation-note">' + escapeHtml(ann.note) + '</span>';
+                            if (exp) {
+                                html +=
+                                    '<span class="annotation-exposure"><strong>' +
+                                    escapeHtml(exp.figure) +
+                                    '</strong> ' +
+                                    escapeHtml(exp.label) +
+                                    ' <em>· ' +
+                                    escapeHtml(exp.source) +
+                                    '</em></span>';
+                            }
+                            html += '</div></div>';
+                        }
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    grid.innerHTML = html;
+                }
 
-    function clearInput() {
-        document.getElementById('pgInput').value = '';
-        lastResult = null;
-        diffVisible = false;
-        var btn = document.getElementById('pgDiffBtn');
-        btn.textContent = 'Show cleaned version';
-        btn.classList.remove('active');
-        document.getElementById('pgStatus').textContent = 'Paste text above to begin scanning.';
-        document.getElementById('pgResults').className = 'playground-results empty';
-        document.getElementById('pgResults').innerHTML = 'Findings will appear here after you click <strong>Run Slop Cop</strong>.';
-    }
+                function renderCodeLines(lines, mode) {
+                    var html = '';
+                    for (var i = 0; i < lines.length; i++) {
+                        var cls = 'code-line';
+                        if (mode === 'slop') cls += ' diff-removed';
+                        else if (mode === 'fixed') cls += ' diff-added';
+                        else cls += ' diff-same';
+                        html += '<span class="' + cls + '">' + escapeHtml(lines[i] || ' ') + '</span>';
+                    }
+                    return html;
+                }
 
-    // Public UI hooks
-    window.SlopCopUI = {
-        togglePreset: togglePreset,
-        runScan: runScan,
-        toggleDiff: toggleDiff,
-        clearInput: clearInput
-    };
+                function ruleById(id) {
+                    for (var i = 0; i < SlopCop.RULES.length; i++) {
+                        if (SlopCop.RULES[i].id === id) return SlopCop.RULES[i];
+                    }
+                    return null;
+                }
 
-    // Init
-    renderPresets();
-    // Auto-run scan on input (debounced) for instant feedback
-    var debounceTimer = null;
-    document.getElementById('pgInput').addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
-            if (document.getElementById('pgInput').value.trim().length > 5) {
-                runScan();
-            }
-        }, 400);
-    });
-})();
-</script>
-</body>
+                function togglePreset(id, checked) {
+                    var preset = null;
+                    for (var i = 0; i < SlopCop.PRESETS.length; i++) {
+                        if (SlopCop.PRESETS[i].id === id) {
+                            preset = SlopCop.PRESETS[i];
+                            break;
+                        }
+                    }
+                    if (!preset) return;
+                    var codeEl = document.getElementById('preset-code-' + id);
+                    var stateEl = document.getElementById('preset-state-' + id);
+                    var fnameEl = document.getElementById('preset-fname-' + id);
+                    if (checked) {
+                        codeEl.innerHTML = renderCodeLines(preset.fixed.split('\n'), 'fixed');
+                        stateEl.textContent = 'SimpleBeacon-cleaned';
+                        stateEl.className = 'preset-toggle-state fixed';
+                        fnameEl.textContent = 'fixed.ts — reviewed';
+                    } else {
+                        codeEl.innerHTML = renderCodeLines(preset.slop.split('\n'), 'slop');
+                        stateEl.textContent = 'AI slop';
+                        stateEl.className = 'preset-toggle-state slop';
+                        fnameEl.textContent = 'slop.ts — AI-generated';
+                    }
+                }
+
+                // ---- Playground ----
+                var lastResult = null;
+                var diffVisible = false;
+
+                function runScan() {
+                    var input = document.getElementById('pgInput');
+                    var text = input.value;
+                    if (!text.trim()) {
+                        document.getElementById('pgStatus').textContent = 'Paste text above to begin scanning.';
+                        document.getElementById('pgResults').className = 'playground-results empty';
+                        document.getElementById('pgResults').innerHTML =
+                            'Findings will appear here after you click <strong>Run Slop Cop</strong>.';
+                        return;
+                    }
+                    var result = SlopCop.scan(text);
+                    lastResult = result;
+                    renderResults(result, false);
+                    // Analytics — event only, no content
+                    try {
+                        if (typeof gtag === 'function')
+                            gtag('event', 'slop_cop_scan', {
+                                event_category: 'engagement',
+                                findings: result.findings.length
+                            });
+                    } catch (e) {}
+                }
+
+                function renderResults(result, showDiff) {
+                    var statusEl = document.getElementById('pgStatus');
+                    var resultsEl = document.getElementById('pgResults');
+                    var wordCount = result.cleanedText ? result.findings.length : 0;
+                    var scoreColor =
+                        result.score >= 80 ? 'var(--success)' : result.score >= 50 ? 'var(--warning)' : 'var(--danger)';
+                    statusEl.innerHTML =
+                        '<strong>' +
+                        result.findings.length +
+                        '</strong> finding(s) · <strong style="color:' +
+                        scoreColor +
+                        ';">Slop Score: ' +
+                        result.score +
+                        '/100</strong> — ' +
+                        escapeHtml(result.scoreLabel);
+
+                    if (showDiff && result.diff && result.diff.length) {
+                        resultsEl.className = 'playground-results';
+                        var html =
+                            '<div class="diff-view"><div class="diff-view-head">Before → After (SimpleBeacon auto-fix)</div>';
+                        for (var i = 0; i < result.diff.length; i++) {
+                            var d = result.diff[i];
+                            var cls = d.type;
+                            var prefix = d.type === 'added' ? '+' : d.type === 'removed' ? '-' : ' ';
+                            var content = d.type === 'added' ? d.after : d.before;
+                            html +=
+                                '<div class="diff-line ' +
+                                cls +
+                                '"><span class="ln">' +
+                                (i + 1) +
+                                '</span><span class="content">' +
+                                prefix +
+                                ' ' +
+                                escapeHtml(content || '') +
+                                '</span></div>';
+                        }
+                        html += '</div>';
+                        resultsEl.innerHTML = html;
+                        return;
+                    }
+
+                    if (!result.findings.length) {
+                        resultsEl.className = 'playground-results';
+                        resultsEl.innerHTML =
+                            '<div style="padding:20px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;color:var(--success);font-size:0.92rem;">&#10003; No AI slop detected. The input appears to be human-edited and production-ready.</div>';
+                        return;
+                    }
+
+                    resultsEl.className = 'playground-results';
+                    var html = '<div class="findings-list">';
+                    for (var k = 0; k < result.findings.length; k++) {
+                        var f = result.findings[k];
+                        html += '<div class="finding">';
+                        html += '<div class="finding-head">';
+                        html += '<span class="finding-name">' + escapeHtml(f.name) + '</span>';
+                        html += '<div class="finding-meta">';
+                        html += '<span class="finding-sev ' + f.severity + '">' + sevLabel[f.severity] + '</span>';
+                        html += '<span class="finding-rule">' + escapeHtml(f.ruleId) + '</span>';
+                        html += '<span class="finding-line">L' + f.line + '</span>';
+                        html += '</div></div>';
+                        html += '<div class="finding-desc">' + escapeHtml(f.desc) + '</div>';
+                        html +=
+                            '<div class="finding-match">' +
+                            escapeHtml(f.matched.substring(0, 120)) +
+                            (f.matched.length > 120 ? '…' : '') +
+                            '</div>';
+                        html += '<div class="finding-suggestion">' + escapeHtml(f.suggestion) + '</div>';
+                        if (f.exposure) {
+                            html +=
+                                '<div class="finding-exposure"><strong>' +
+                                escapeHtml(f.exposure.figure) +
+                                '</strong> ' +
+                                escapeHtml(f.exposure.label) +
+                                ' <em>· ' +
+                                escapeHtml(f.exposure.source) +
+                                '</em></div>';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    resultsEl.innerHTML = html;
+                }
+
+                function toggleDiff() {
+                    if (!lastResult) {
+                        // Run scan first if user hasn't
+                        runScan();
+                        if (!lastResult) return;
+                    }
+                    diffVisible = !diffVisible;
+                    var btn = document.getElementById('pgDiffBtn');
+                    if (diffVisible) {
+                        btn.textContent = 'Show findings list';
+                        btn.classList.add('active');
+                    } else {
+                        btn.textContent = 'Show cleaned version';
+                        btn.classList.remove('active');
+                    }
+                    renderResults(lastResult, diffVisible);
+                }
+
+                function clearInput() {
+                    document.getElementById('pgInput').value = '';
+                    lastResult = null;
+                    diffVisible = false;
+                    var btn = document.getElementById('pgDiffBtn');
+                    btn.textContent = 'Show cleaned version';
+                    btn.classList.remove('active');
+                    document.getElementById('pgStatus').textContent = 'Paste text above to begin scanning.';
+                    document.getElementById('pgResults').className = 'playground-results empty';
+                    document.getElementById('pgResults').innerHTML =
+                        'Findings will appear here after you click <strong>Run Slop Cop</strong>.';
+                }
+
+                // Public UI hooks
+                window.SlopCopUI = {
+                    togglePreset: togglePreset,
+                    runScan: runScan,
+                    toggleDiff: toggleDiff,
+                    clearInput: clearInput
+                };
+
+                // Init
+                renderPresets();
+                // Auto-run scan on input (debounced) for instant feedback
+                var debounceTimer = null;
+                document.getElementById('pgInput').addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(function () {
+                        if (document.getElementById('pgInput').value.trim().length > 5) {
+                            runScan();
+                        }
+                    }, 400);
+                });
+            })();
+        </script>
+    </body>
 </html>

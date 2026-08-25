@@ -3,14 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  TrendingUp, TrendingDown, RefreshCw, BarChart3, Shield, AlertTriangle,
-  CheckCircle2, XCircle, FileCode, Activity, Target, Zap,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+  BarChart3,
+  Shield,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  FileCode,
+  Activity,
+  Target,
+  Zap,
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { apiUrl, authHeaders } from '@/config';
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 interface ScanHistoryEntry {
@@ -69,8 +92,8 @@ function computeStats(history: ScanHistoryEntry[]) {
     };
   }
   const totalScans = history.length;
-  const scores = history.map(h => h.qualityScore ?? 0);
-  const passes = history.filter(h => h.gatePass).length;
+  const scores = history.map((h) => h.qualityScore ?? 0);
+  const passes = history.filter((h) => h.gatePass).length;
   const totalIssues = history.reduce((sum, h) => sum + (h.issueCount ?? 0), 0);
   const totalFiles = history.reduce((sum, h) => sum + (h.totalFilesScanned ?? 0), 0);
   const totalFiction = history.reduce((sum, h) => sum + (h.fictionPatternsFound ?? 0), 0);
@@ -108,7 +131,7 @@ export function TeamMetricsView() {
   });
 
   const loadData = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       // Try localStorage first (same pattern as ProfileView)
       let history: ScanHistoryEntry[] = [];
@@ -118,7 +141,9 @@ export function TeamMetricsView() {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) history = parsed;
         }
-      } catch { /* ignore parse errors */ }
+      } catch {
+        /* ignore parse errors */
+      }
 
       // Fallback to API if localStorage is empty
       if (history.length === 0) {
@@ -129,7 +154,9 @@ export function TeamMetricsView() {
             if (Array.isArray(body)) history = body;
             else if (body?.history && Array.isArray(body.history)) history = body.history;
           }
-        } catch { /* ignore network errors */ }
+        } catch {
+          /* ignore network errors */
+        }
       }
 
       setState({ history, loading: false, error: null });
@@ -147,7 +174,7 @@ export function TeamMetricsView() {
   const stats = computeStats(history);
 
   // Prepare chart data
-  const trendData = history.map(h => ({
+  const trendData = history.map((h) => ({
     date: formatDate(h.date),
     qualityScore: h.qualityScore ?? 0,
     issueCount: h.issueCount ?? 0,
@@ -161,13 +188,13 @@ export function TeamMetricsView() {
         { name: 'High', value: latestEntry.severityCounts?.high ?? 0, color: SEVERITY_COLORS.high },
         { name: 'Medium', value: latestEntry.severityCounts?.medium ?? 0, color: SEVERITY_COLORS.medium },
         { name: 'Low', value: latestEntry.severityCounts?.low ?? 0, color: SEVERITY_COLORS.low },
-      ].filter(d => d.value > 0)
+      ].filter((d) => d.value > 0)
     : [];
 
   const gateData = [
-    { name: 'Pass', value: history.filter(h => h.gatePass).length, color: GATE_PASS_COLOR },
-    { name: 'Fail', value: history.filter(h => !h.gatePass).length, color: GATE_FAIL_COLOR },
-  ].filter(d => d.value > 0);
+    { name: 'Pass', value: history.filter((h) => h.gatePass).length, color: GATE_PASS_COLOR },
+    { name: 'Fail', value: history.filter((h) => !h.gatePass).length, color: GATE_FAIL_COLOR },
+  ].filter((d) => d.value > 0);
 
   if (loading) {
     return (
@@ -260,7 +287,7 @@ export function TeamMetricsView() {
           icon={Shield}
           label="Gate Pass Rate"
           value={`${stats.gatePassRate}%`}
-          subtitle={`${history.filter(h => h.gatePass).length}/${stats.totalScans} scans passed`}
+          subtitle={`${history.filter((h) => h.gatePass).length}/${stats.totalScans} scans passed`}
           color={stats.gatePassRate >= 80 ? 'success' : stats.gatePassRate >= 50 ? 'warning' : 'danger'}
         />
         <StatCard
@@ -297,7 +324,12 @@ export function TeamMetricsView() {
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                  contentStyle={{
+                    backgroundColor: 'var(--color-card, #fff)',
+                    border: '1px solid var(--color-border, #e2e8f0)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  }}
                 />
                 <Line
                   type="monotone"
@@ -335,7 +367,12 @@ export function TeamMetricsView() {
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                  contentStyle={{
+                    backgroundColor: 'var(--color-card, #fff)',
+                    border: '1px solid var(--color-border, #e2e8f0)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  }}
                 />
                 <Area
                   type="monotone"
@@ -374,7 +411,12 @@ export function TeamMetricsView() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card, #fff)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                     {severityData.map((entry, index) => (
@@ -419,7 +461,12 @@ export function TeamMetricsView() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card, #fff)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   />
                   <Legend />
                 </PieChart>
@@ -452,23 +499,26 @@ export function TeamMetricsView() {
                 </tr>
               </thead>
               <tbody>
-                {[...history].reverse().slice(0, 10).map((entry) => (
-                  <tr key={entry.scanId} className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="py-2 pr-4 text-foreground-muted">{formatDate(entry.date)}</td>
-                    <td className="py-2 pr-4">
-                      <Badge variant={entry.gatePass ? 'success' : 'danger'} className="text-xs">
-                        {entry.gatePass ? 'PASS' : 'FAIL'}
-                      </Badge>
-                    </td>
-                    <td className="py-2 pr-4 font-medium">{entry.qualityScore ?? 0}%</td>
-                    <td className="py-2 pr-4">{entry.issueCount ?? 0}</td>
-                    <td className="py-2 pr-4 text-danger">{entry.severityCounts?.critical ?? 0}</td>
-                    <td className="py-2 pr-4 text-warning">{entry.severityCounts?.high ?? 0}</td>
-                    <td className="py-2 pr-4 text-foreground-muted">{entry.severityCounts?.medium ?? 0}</td>
-                    <td className="py-2 pr-4 text-info">{entry.severityCounts?.low ?? 0}</td>
-                    <td className="py-2 text-foreground-muted">{entry.totalFilesScanned ?? 0}</td>
-                  </tr>
-                ))}
+                {[...history]
+                  .reverse()
+                  .slice(0, 10)
+                  .map((entry) => (
+                    <tr key={entry.scanId} className="border-b border-border/50 hover:bg-muted/30">
+                      <td className="py-2 pr-4 text-foreground-muted">{formatDate(entry.date)}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant={entry.gatePass ? 'success' : 'danger'} className="text-xs">
+                          {entry.gatePass ? 'PASS' : 'FAIL'}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-4 font-medium">{entry.qualityScore ?? 0}%</td>
+                      <td className="py-2 pr-4">{entry.issueCount ?? 0}</td>
+                      <td className="py-2 pr-4 text-danger">{entry.severityCounts?.critical ?? 0}</td>
+                      <td className="py-2 pr-4 text-warning">{entry.severityCounts?.high ?? 0}</td>
+                      <td className="py-2 pr-4 text-foreground-muted">{entry.severityCounts?.medium ?? 0}</td>
+                      <td className="py-2 pr-4 text-info">{entry.severityCounts?.low ?? 0}</td>
+                      <td className="py-2 text-foreground-muted">{entry.totalFilesScanned ?? 0}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

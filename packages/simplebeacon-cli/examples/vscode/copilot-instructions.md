@@ -5,6 +5,7 @@ When the **simplebeacon** MCP server is available, follow this three-phase loop.
 ## 1. While coding (before accepting generated edits)
 
 Call **`scan_snippet`** with:
+
 - `content` — the proposed code block
 - `filePath` — target path (e.g. `src/api/handler.ts`)
 
@@ -13,6 +14,7 @@ If `blockingCount > 0` or high-severity findings appear, fix fiction KPIs, mock/
 ## 2. After editing a file (on save / end of edit)
 
 Call **`scan_file`** with:
+
 - `filePath` — path relative to project root
 
 Surface any new findings to the user. Tune allowlists in `.simplebeacon/config.json` only for confirmed false positives.

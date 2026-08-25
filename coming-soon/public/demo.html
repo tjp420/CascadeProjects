@@ -1,455 +1,627 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>SimpleBeacon — Live Demo</title>
-  <meta name="description" content="Try SimpleBeacon instantly. See how it catches AI code debt — fiction KPIs, mock paths, credentials, and LLM placeholder slop that traditional linters miss.">
-  <link rel="canonical" href="https://simplebeacon.ai/demo.html">
-  <meta name="robots" content="index, follow">
-  <meta property="og:title" content="SimpleBeacon — Live Demo">
-  <meta property="og:description" content="See how SimpleBeacon catches AI code debt that traditional linters miss.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://simplebeacon.ai/demo.html">
-  <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <style>
-    :root {
-      --primary: #0f172a;
-      --accent: #6366f1;
-      --success: #16a34a;
-      --warning: #ca8a04;
-      --danger: #dc2626;
-      --border: #e2e8f0;
-      --text-main: #334155;
-      --text-muted: #64748b;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--text-main);
-      line-height: 1.6;
-      margin: 0;
-      padding: 0;
-      background: var(--bg);
-    }
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 40px;
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
-    .nav-links a { color: var(--text-main); text-decoration: none; margin-left: 24px; font-size: 0.9rem; }
-    .nav-links a:hover { color: var(--accent); }
-    .hero {
-      text-align: center;
-      padding: 60px 40px 40px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .hero h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 12px; }
-    .hero p { font-size: 1.15rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 24px; }
-    .demo-container {
-      max-width: 900px;
-      margin: 0 auto 60px;
-      padding: 0 40px;
-    }
-    .demo-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px;
-      margin-bottom: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .demo-card h2 { margin-top: 0; color: var(--primary); font-size: 1.4rem; }
-    .code-input {
-      width: 100%;
-      min-height: 180px;
-      font-family: "SF Mono", Monaco, Consolas, "Courier New", monospace;
-      font-size: 0.85rem;
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      resize: vertical;
-      background: #1e293b;
-      color: #e2e8f0;
-      line-height: 1.5;
-    }
-    .scan-btn {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 12px 32px;
-      font-size: 1rem;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 16px 0;
-      transition: background 0.2s;
-    }
-    .scan-btn:hover { background: #4f46e5; }
-    .scan-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
-    .results { margin-top: 24px; }
-    .finding {
-      background: #fef2f2;
-      border-left: 4px solid var(--danger);
-      padding: 12px 16px;
-      margin-bottom: 12px;
-      border-radius: 0 8px 8px 0;
-    }
-    .finding.medium { background: #fffbeb; border-left-color: var(--warning); }
-    .finding.low { background: #f0fdf4; border-left-color: var(--success); }
-    .finding-type { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
-    .finding-severity {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-left: 8px;
-    }
-    .finding-severity.high { background: var(--danger); color: #fff; }
-    .finding-severity.medium { background: var(--warning); color: #fff; }
-    .finding-severity.low { background: var(--success); color: #fff; }
-    .finding-snippet {
-      font-family: monospace;
-      font-size: 0.8rem;
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin: 8px 0;
-      white-space: pre-wrap;
-    }
-    .finding-fix { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
-    .gate-badge {
-      display: inline-block;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    .gate-badge.pass { background: #dcfce7; color: #166534; }
-    .gate-badge.fail { background: #fee2e2; color: #991b1b; }
-    .cta-section {
-      text-align: center;
-      padding: 40px;
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-      border-radius: 12px;
-      color: #fff;
-      margin-bottom: 24px;
-    }
-    .cta-section h2 { font-size: 1.8rem; margin-bottom: 8px; }
-    .cta-section p { opacity: 0.9; margin-bottom: 20px; }
-    .cta-btn {
-      display: inline-block;
-      background: #fff;
-      color: var(--accent);
-      padding: 12px 32px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: transform 0.2s;
-    }
-    .cta-btn:hover { transform: translateY(-2px); }
-    .pricing-mini {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .pricing-mini-item {
-      background: rgba(255,255,255,0.15);
-      border-radius: 8px;
-      padding: 12px 20px;
-      text-align: center;
-    }
-    .pricing-mini-item .price { font-size: 1.5rem; font-weight: 700; }
-    .pricing-mini-item .label { font-size: 0.8rem; opacity: 0.8; }
-    .sample-code-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      padding: 6px 16px;
-      font-size: 0.85rem;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-bottom: 12px;
-    }
-    .sample-code-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .loading { text-align: center; padding: 20px; color: var(--text-muted); }
-    .footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.85rem; }
-    @media (max-width: 640px) {
-      .hero h1 { font-size: 1.8rem; }
-      .demo-card { padding: 20px; }
-      .pricing-mini { flex-direction: column; gap: 8px; }
-    }
-  </style>
-</head>
-<body>
-  <nav class="nav">
-    <a href="/" class="nav-logo">SimpleBeacon</a>
-    <div class="nav-links">
-      <a href="/pricing.html">Pricing</a>
-      <a href="/sample-report.html">Sample Report</a>
-      <a href="/demo.html">Demo</a>
-      <a href="https://github.com/tjp420/simplebeacon">GitHub</a>
-    </div>
-  </nav>
+    <head>
+        <meta charset="UTF-8" />
+        <title>SimpleBeacon — Live Demo</title>
+        <meta
+            name="description"
+            content="Try SimpleBeacon instantly. See how it catches AI code debt — fiction KPIs, mock paths, credentials, and LLM placeholder slop that traditional linters miss."
+        />
+        <link rel="canonical" href="https://simplebeacon.ai/demo.html" />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="SimpleBeacon — Live Demo" />
+        <meta
+            property="og:description"
+            content="See how SimpleBeacon catches AI code debt that traditional linters miss."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://simplebeacon.ai/demo.html" />
+        <meta property="og:image" content="https://simplebeacon.ai/favicon.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <style>
+            :root {
+                --primary: #0f172a;
+                --accent: #6366f1;
+                --success: #16a34a;
+                --warning: #ca8a04;
+                --danger: #dc2626;
+                --border: #e2e8f0;
+                --text-main: #334155;
+                --text-muted: #64748b;
+                --bg: #f8fafc;
+                --card-bg: #ffffff;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                color: var(--text-main);
+                line-height: 1.6;
+                margin: 0;
+                padding: 0;
+                background: var(--bg);
+            }
+            .nav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 40px;
+                background: var(--card-bg);
+                border-bottom: 1px solid var(--border);
+            }
+            .nav-logo {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--primary);
+                text-decoration: none;
+            }
+            .nav-links a {
+                color: var(--text-main);
+                text-decoration: none;
+                margin-left: 24px;
+                font-size: 0.9rem;
+            }
+            .nav-links a:hover {
+                color: var(--accent);
+            }
+            .hero {
+                text-align: center;
+                padding: 60px 40px 40px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            .hero h1 {
+                font-size: 2.5rem;
+                color: var(--primary);
+                margin-bottom: 12px;
+            }
+            .hero p {
+                font-size: 1.15rem;
+                color: var(--text-muted);
+                max-width: 600px;
+                margin: 0 auto 24px;
+            }
+            .demo-container {
+                max-width: 900px;
+                margin: 0 auto 60px;
+                padding: 0 40px;
+            }
+            .demo-card {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 32px;
+                margin-bottom: 24px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            }
+            .demo-card h2 {
+                margin-top: 0;
+                color: var(--primary);
+                font-size: 1.4rem;
+            }
+            .code-input {
+                width: 100%;
+                min-height: 180px;
+                font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+                font-size: 0.85rem;
+                padding: 16px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                resize: vertical;
+                background: #1e293b;
+                color: #e2e8f0;
+                line-height: 1.5;
+            }
+            .scan-btn {
+                display: inline-block;
+                background: var(--accent);
+                color: #fff;
+                border: none;
+                padding: 12px 32px;
+                font-size: 1rem;
+                font-weight: 600;
+                border-radius: 8px;
+                cursor: pointer;
+                margin: 16px 0;
+                transition: background 0.2s;
+            }
+            .scan-btn:hover {
+                background: #4f46e5;
+            }
+            .scan-btn:disabled {
+                background: var(--text-muted);
+                cursor: not-allowed;
+            }
+            .results {
+                margin-top: 24px;
+            }
+            .finding {
+                background: #fef2f2;
+                border-left: 4px solid var(--danger);
+                padding: 12px 16px;
+                margin-bottom: 12px;
+                border-radius: 0 8px 8px 0;
+            }
+            .finding.medium {
+                background: #fffbeb;
+                border-left-color: var(--warning);
+            }
+            .finding.low {
+                background: #f0fdf4;
+                border-left-color: var(--success);
+            }
+            .finding-type {
+                font-weight: 600;
+                color: var(--primary);
+                font-size: 0.9rem;
+            }
+            .finding-severity {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin-left: 8px;
+            }
+            .finding-severity.high {
+                background: var(--danger);
+                color: #fff;
+            }
+            .finding-severity.medium {
+                background: var(--warning);
+                color: #fff;
+            }
+            .finding-severity.low {
+                background: var(--success);
+                color: #fff;
+            }
+            .finding-snippet {
+                font-family: monospace;
+                font-size: 0.8rem;
+                background: #1e293b;
+                color: #e2e8f0;
+                padding: 8px 12px;
+                border-radius: 6px;
+                margin: 8px 0;
+                white-space: pre-wrap;
+            }
+            .finding-fix {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 4px;
+            }
+            .gate-badge {
+                display: inline-block;
+                padding: 6px 16px;
+                border-radius: 20px;
+                font-weight: 700;
+                font-size: 0.9rem;
+            }
+            .gate-badge.pass {
+                background: #dcfce7;
+                color: #166534;
+            }
+            .gate-badge.fail {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+            .cta-section {
+                text-align: center;
+                padding: 40px;
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                border-radius: 12px;
+                color: #fff;
+                margin-bottom: 24px;
+            }
+            .cta-section h2 {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+            .cta-section p {
+                opacity: 0.9;
+                margin-bottom: 20px;
+            }
+            .cta-btn {
+                display: inline-block;
+                background: #fff;
+                color: var(--accent);
+                padding: 12px 32px;
+                font-size: 1.1rem;
+                font-weight: 700;
+                border-radius: 8px;
+                text-decoration: none;
+                transition: transform 0.2s;
+            }
+            .cta-btn:hover {
+                transform: translateY(-2px);
+            }
+            .pricing-mini {
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            .pricing-mini-item {
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                padding: 12px 20px;
+                text-align: center;
+            }
+            .pricing-mini-item .price {
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+            .pricing-mini-item .label {
+                font-size: 0.8rem;
+                opacity: 0.8;
+            }
+            .sample-code-btn {
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text-main);
+                padding: 6px 16px;
+                font-size: 0.85rem;
+                border-radius: 6px;
+                cursor: pointer;
+                margin-bottom: 12px;
+            }
+            .sample-code-btn:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+            .loading {
+                text-align: center;
+                padding: 20px;
+                color: var(--text-muted);
+            }
+            .footer {
+                text-align: center;
+                padding: 24px;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+            }
+            @media (max-width: 640px) {
+                .hero h1 {
+                    font-size: 1.8rem;
+                }
+                .demo-card {
+                    padding: 20px;
+                }
+                .pricing-mini {
+                    flex-direction: column;
+                    gap: 8px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="nav">
+            <a href="/" class="nav-logo">SimpleBeacon</a>
+            <div class="nav-links">
+                <a href="/pricing.html">Pricing</a>
+                <a href="/sample-report.html">Sample Report</a>
+                <a href="/demo.html">Demo</a>
+                <a href="https://github.com/tjp420/simplebeacon">GitHub</a>
+            </div>
+        </nav>
 
-  <div class="hero">
-    <h1>See What Your AI Copilot Missed</h1>
-    <p>Paste any AI-generated code below. SimpleBeacon instantly detects fiction KPIs, mock paths leaked into production, hardcoded credentials, and LLM placeholder slop that traditional linters skip.</p>
-  </div>
-
-  <div class="demo-container">
-    <div class="demo-card">
-      <h2>Try It Now — Paste Your Code</h2>
-      <button class="sample-code-btn" onclick="loadSample()">Load Sample AI-Generated Code</button>
-      <textarea class="code-input" id="codeInput" placeholder="Paste AI-generated code here..."></textarea>
-      <button class="scan-btn" id="scanBtn" onclick="runScan()">Scan Code</button>
-      <div id="results" class="results"></div>
-    </div>
-
-    <div class="cta-section">
-      <h2>Ready to Scan Your Entire Repo?</h2>
-      <p>Run SimpleBeacon locally in 5 minutes. No source upload. CI/CD gate included.</p>
-      <a href="/pricing.html" class="cta-btn" id="ctaPricing">Start 14-Day Free Trial</a>
-      <div class="pricing-mini">
-        <div class="pricing-mini-item">
-          <div class="price">$49</div>
-          <div class="label">Developer / mo</div>
+        <div class="hero">
+            <h1>See What Your AI Copilot Missed</h1>
+            <p>
+                Paste any AI-generated code below. SimpleBeacon instantly detects fiction KPIs, mock paths leaked into
+                production, hardcoded credentials, and LLM placeholder slop that traditional linters skip.
+            </p>
         </div>
-        <div class="pricing-mini-item">
-          <div class="price">$149</div>
-          <div class="label">Team Pro / mo</div>
+
+        <div class="demo-container">
+            <div class="demo-card">
+                <h2>Try It Now — Paste Your Code</h2>
+                <button class="sample-code-btn" onclick="loadSample()">Load Sample AI-Generated Code</button>
+                <textarea class="code-input" id="codeInput" placeholder="Paste AI-generated code here..."></textarea>
+                <button class="scan-btn" id="scanBtn" onclick="runScan()">Scan Code</button>
+                <div id="results" class="results"></div>
+            </div>
+
+            <div class="cta-section">
+                <h2>Ready to Scan Your Entire Repo?</h2>
+                <p>Run SimpleBeacon locally in 5 minutes. No source upload. CI/CD gate included.</p>
+                <a href="/pricing.html" class="cta-btn" id="ctaPricing">Start 14-Day Free Trial</a>
+                <div class="pricing-mini">
+                    <div class="pricing-mini-item">
+                        <div class="price">$49</div>
+                        <div class="label">Developer / mo</div>
+                    </div>
+                    <div class="pricing-mini-item">
+                        <div class="price">$149</div>
+                        <div class="label">Team Pro / mo</div>
+                    </div>
+                    <div class="pricing-mini-item">
+                        <div class="price">Custom</div>
+                        <div class="label">Enterprise</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-card">
+                <h2>Or Run It Locally Right Now</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem">
+                    No signup required. Scan your repo in seconds:
+                </p>
+                <div class="finding-snippet" style="margin: 0">npx simplebeacon scan --gate --offline</div>
+                <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted)">
+                    Works with Cursor, VS Code Copilot, Claude, Windsurf, GitHub Copilot, and CI/CD pipelines.
+                </p>
+            </div>
+
+            <div class="demo-card">
+                <h2>Watch the Demo</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px">
+                    See SimpleBeacon in action — catching AI code debt in a real project.
+                </p>
+                <div
+                    style="
+                        max-width: 640px;
+                        margin: 0 auto;
+                        background: var(--card-bg);
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        overflow: hidden;
+                    "
+                >
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden">
+                        <iframe
+                            src="https://www.youtube.com/embed/t_YbhexyRpA"
+                            title="SimpleBeacon"
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0"
+                            allow="
+                                accelerometer;
+                                autoplay;
+                                clipboard-write;
+                                encrypted-media;
+                                gyroscope;
+                                picture-in-picture;
+                                web-share;
+                            "
+                            allowfullscreen
+                            loading="lazy"
+                        ></iframe>
+                    </div>
+                    <div style="padding: 12px">
+                        <strong style="font-size: 0.9rem">SimpleBeacon Demo</strong>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="pricing-mini-item">
-          <div class="price">Custom</div>
-          <div class="label">Enterprise</div>
+
+        <div class="footer">
+            SimpleBeacon — catch AI code debt that traditional linting misses. All scans run locally. No source upload.
         </div>
-      </div>
-    </div>
 
-    <div class="demo-card">
-      <h2>Or Run It Locally Right Now</h2>
-      <p style="color:var(--text-muted);font-size:0.9rem;">No signup required. Scan your repo in seconds:</p>
-      <div class="finding-snippet" style="margin:0;">npx simplebeacon scan --gate --offline</div>
-      <p style="margin-top:12px;font-size:0.85rem;color:var(--text-muted);">Works with Cursor, VS Code Copilot, Claude, Windsurf, GitHub Copilot, and CI/CD pipelines.</p>
-    </div>
+        <script src="/js/funnel-analytics.js"></script>
 
-    <div class="demo-card">
-      <h2>Watch the Demo</h2>
-      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">See SimpleBeacon in action — catching AI code debt in a real project.</p>
-      <div style="max-width:640px;margin:0 auto;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-        <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;">
-          <iframe src="https://www.youtube.com/embed/t_YbhexyRpA" title="SimpleBeacon" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
-        </div>
-        <div style="padding:12px;">
-          <strong style="font-size:0.9rem;">SimpleBeacon Demo</strong>
-        </div>
-      </div>
-    </div>
-  </div>
+        <script>
+            (function () {
+                'use strict';
 
-  <div class="footer">
-    SimpleBeacon — catch AI code debt that traditional linting misses. All scans run locally. No source upload.
-  </div>
+                // Capture UTM params for funnel tracking
+                var utmParams = {};
+                try {
+                    var url = new URL(window.location.href);
+                    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (key) {
+                        var val = url.searchParams.get(key);
+                        if (val) utmParams[key] = val;
+                    });
+                    if (Object.keys(utmParams).length > 0) {
+                        sessionStorage.setItem('sb_utm', JSON.stringify(utmParams));
+                    }
+                } catch (e) {
+                    /* ignore */
+                }
 
-  <script src="/js/funnel-analytics.js"></script>
+                // Track page view
+                function track(event, data) {
+                    var payload = Object.assign(
+                        { event: event, timestamp: new Date().toISOString(), page: 'demo' },
+                        data || {}
+                    );
+                    try {
+                        var stored = sessionStorage.getItem('sb_utm');
+                        if (stored) payload.utm = JSON.parse(stored);
+                    } catch (e) {
+                        /* ignore */
+                    }
+                    try {
+                        navigator.sendBeacon('/api/track', JSON.stringify(payload));
+                    } catch (e) {
+                        /* ignore - analytics is best-effort */
+                    }
+                    // Also log to console for dev visibility
+                    if (typeof console !== 'undefined' && console.debug) console.debug('[track]', event, payload);
+                }
 
-  <script>
-  (function () {
-    'use strict';
+                track('demo_page_view');
 
-    // Capture UTM params for funnel tracking
-    var utmParams = {};
-    try {
-      var url = new URL(window.location.href);
-      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (key) {
-        var val = url.searchParams.get(key);
-        if (val) utmParams[key] = val;
-      });
-      if (Object.keys(utmParams).length > 0) {
-        sessionStorage.setItem('sb_utm', JSON.stringify(utmParams));
-      }
-    } catch (e) { /* ignore */ }
+                // CTA tracking
+                document.getElementById('ctaPricing').addEventListener('click', function () {
+                    track('demo_cta_click', { target: 'pricing' });
+                });
 
-    // Track page view
-    function track(event, data) {
-      var payload = Object.assign({ event: event, timestamp: new Date().toISOString(), page: 'demo' }, data || {});
-      try {
-        var stored = sessionStorage.getItem('sb_utm');
-        if (stored) payload.utm = JSON.parse(stored);
-      } catch (e) { /* ignore */ }
-      try {
-        navigator.sendBeacon('/api/track', JSON.stringify(payload));
-      } catch (e) { /* ignore - analytics is best-effort */ }
-      // Also log to console for dev visibility
-      if (typeof console !== 'undefined' && console.debug) console.debug('[track]', event, payload);
-    }
+                var SAMPLE_CODE = [
+                    'const stripe = require("stripe")("your-secret-api-key-here");',
+                    '',
+                    'app.post("/api/checkout", async (req, res) => {',
+                    '  // TODO: implement payment logic here',
+                    '  const revenue = 1250000; // $1.25M ARR',
+                    '  const uptime = "99.99%";',
+                    '  const apiKey = "your-api-key-here";',
+                    '  // INSERT LLM GENERATED WEBHOOK HANDLER HERE',
+                    '  res.json({ success: true, revenue: revenue });',
+                    '});'
+                ].join('\n');
 
-    track('demo_page_view');
+                window.loadSample = function () {
+                    document.getElementById('codeInput').value = SAMPLE_CODE;
+                    track('demo_sample_loaded');
+                };
 
-    // CTA tracking
-    document.getElementById('ctaPricing').addEventListener('click', function () {
-      track('demo_cta_click', { target: 'pricing' });
-    });
+                window.runScan = function () {
+                    var code = document.getElementById('codeInput').value.trim();
+                    if (!code) {
+                        alert('Paste some code to scan, or click "Load Sample AI-Generated Code".');
+                        return;
+                    }
 
-    var SAMPLE_CODE = [
-      'const stripe = require("stripe")("your-secret-api-key-here");',
-      '',
-      'app.post("/api/checkout", async (req, res) => {',
-      '  // TODO: implement payment logic here',
-      '  const revenue = 1250000; // $1.25M ARR',
-      '  const uptime = "99.99%";',
-      '  const apiKey = "your-api-key-here";',
-      '  // INSERT LLM GENERATED WEBHOOK HANDLER HERE',
-      '  res.json({ success: true, revenue: revenue });',
-      '});'
-    ].join('\n');
+                    var btn = document.getElementById('scanBtn');
+                    btn.disabled = true;
+                    btn.textContent = 'Scanning...';
+                    var resultsDiv = document.getElementById('results');
+                    resultsDiv.innerHTML = '<div class="loading">Scanning for AI code debt...</div>';
 
-    window.loadSample = function () {
-      document.getElementById('codeInput').value = SAMPLE_CODE;
-      track('demo_sample_loaded');
-    };
+                    track('demo_scan_run', { codeLength: code.length });
 
-    window.runScan = function () {
-      var code = document.getElementById('codeInput').value.trim();
-      if (!code) {
-        alert('Paste some code to scan, or click "Load Sample AI-Generated Code".');
-        return;
-      }
+                    // Client-side demo scanner — pattern-matches common AI slop signatures
+                    var findings = scanCodeLocally(code);
+                    renderResults(findings);
 
-      var btn = document.getElementById('scanBtn');
-      btn.disabled = true;
-      btn.textContent = 'Scanning...';
-      var resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '<div class="loading">Scanning for AI code debt...</div>';
+                    btn.disabled = false;
+                    btn.textContent = 'Scan Code';
+                };
 
-      track('demo_scan_run', { codeLength: code.length });
+                function scanCodeLocally(code) {
+                    var findings = [];
+                    var lines = code.split('\n');
 
-      // Client-side demo scanner — pattern-matches common AI slop signatures
-      var findings = scanCodeLocally(code);
-      renderResults(findings);
+                    lines.forEach(function (line, i) {
+                        var lineNum = i + 1;
+                        var trimmed = line.trim();
 
-      btn.disabled = false;
-      btn.textContent = 'Scan Code';
-    };
+                        // Fiction KPI / hardcoded metrics
+                        if (
+                            /("\d{2}\.\d{2}%")|(\$\d[\d,]*\s*(?:ARR|MRR|revenue|mo\/yr))|(revenue\s*[:=]\s*\d{4,})/i.test(
+                                trimmed
+                            )
+                        ) {
+                            findings.push({
+                                type: 'Fiction KPI Pattern',
+                                severity: 'medium',
+                                line: lineNum,
+                                snippet: trimmed,
+                                fix: 'Replace hardcoded marketing metrics with measured runtime values or clearly label demo fixtures.'
+                            });
+                        }
 
-    function scanCodeLocally(code) {
-      var findings = [];
-      var lines = code.split('\n');
+                        // Hardcoded credentials
+                        if (
+                            /(sk_live_|sk_test_|AKIA|ghp_|gho_|your-secret-api-key-here|your-api-key-here|your-secret)/i.test(
+                                trimmed
+                            )
+                        ) {
+                            findings.push({
+                                type: 'Hardcoded Credential',
+                                severity: 'high',
+                                line: lineNum,
+                                snippet: trimmed,
+                                fix: 'Move secrets to environment variables. Never commit live API keys to source.'
+                            });
+                        }
 
-      lines.forEach(function (line, i) {
-        var lineNum = i + 1;
-        var trimmed = line.trim();
+                        // LLM placeholder slop
+                        if (
+                            /(TODO:\s*implement|INSERT LLM GENERATED|your-business-logic-here|INSERT.*HERE|placeholder)/i.test(
+                                trimmed
+                            )
+                        ) {
+                            findings.push({
+                                type: 'LLM Placeholder Slop',
+                                severity: 'medium',
+                                line: lineNum,
+                                snippet: trimmed,
+                                fix: 'Replace placeholder comments with actual implementation before shipping.'
+                            });
+                        }
 
-        // Fiction KPI / hardcoded metrics
-        if (/("\d{2}\.\d{2}%")|(\$\d[\d,]*\s*(?:ARR|MRR|revenue|mo\/yr))|(revenue\s*[:=]\s*\d{4,})/i.test(trimmed)) {
-          findings.push({
-            type: 'Fiction KPI Pattern',
-            severity: 'medium',
-            line: lineNum,
-            snippet: trimmed,
-            fix: 'Replace hardcoded marketing metrics with measured runtime values or clearly label demo fixtures.'
-          });
-        }
+                        // Mock/sample paths in production code
+                        if (
+                            /(mock-|sample-|test-|fixture-).*\.(js|ts|py|json)/i.test(trimmed) &&
+                            !/\/test\//.test(trimmed)
+                        ) {
+                            findings.push({
+                                type: 'Mock Path in Production',
+                                severity: 'high',
+                                line: lineNum,
+                                snippet: trimmed,
+                                fix: 'Remove mock/sample file references from production code paths.'
+                            });
+                        }
+                    });
 
-        // Hardcoded credentials
-        if (/(sk_live_|sk_test_|AKIA|ghp_|gho_|your-secret-api-key-here|your-api-key-here|your-secret)/i.test(trimmed)) {
-          findings.push({
-            type: 'Hardcoded Credential',
-            severity: 'high',
-            line: lineNum,
-            snippet: trimmed,
-            fix: 'Move secrets to environment variables. Never commit live API keys to source.'
-          });
-        }
+                    return findings;
+                }
 
-        // LLM placeholder slop
-        if (/(TODO:\s*implement|INSERT LLM GENERATED|your-business-logic-here|INSERT.*HERE|placeholder)/i.test(trimmed)) {
-          findings.push({
-            type: 'LLM Placeholder Slop',
-            severity: 'medium',
-            line: lineNum,
-            snippet: trimmed,
-            fix: 'Replace placeholder comments with actual implementation before shipping.'
-          });
-        }
+                function renderResults(findings) {
+                    var div = document.getElementById('results');
+                    var hasHigh = findings.some(function (f) {
+                        return f.severity === 'high';
+                    });
+                    var gatePass = !hasHigh;
 
-        // Mock/sample paths in production code
-        if (/(mock-|sample-|test-|fixture-).*\.(js|ts|py|json)/i.test(trimmed) && !/\/test\//.test(trimmed)) {
-          findings.push({
-            type: 'Mock Path in Production',
-            severity: 'high',
-            line: lineNum,
-            snippet: trimmed,
-            fix: 'Remove mock/sample file references from production code paths.'
-          });
-        }
-      });
+                    var html = '<div style="margin-bottom:16px;">';
+                    html += '<span class="gate-badge ' + (gatePass ? 'pass' : 'fail') + '">';
+                    html += 'GATE ' + (gatePass ? 'PASSED' : 'FAILED');
+                    html += '</span>';
+                    html += '<span style="margin-left:12px;color:var(--text-muted);font-size:0.9rem;">';
+                    html +=
+                        findings.length +
+                        ' finding' +
+                        (findings.length === 1 ? '' : 's') +
+                        ' (' +
+                        findings.filter(function (f) {
+                            return f.severity === 'high';
+                        }).length +
+                        ' high)';
+                    html += '</span></div>';
 
-      return findings;
-    }
+                    if (findings.length === 0) {
+                        html += '<p style="color:var(--success);">No AI code debt detected. Clean code.</p>';
+                    } else {
+                        findings.forEach(function (f) {
+                            html += '<div class="finding ' + f.severity + '">';
+                            html += '<span class="finding-type">' + escapeHtml(f.type) + '</span>';
+                            html += '<span class="finding-severity ' + f.severity + '">' + f.severity + '</span>';
+                            html +=
+                                ' <span style="color:var(--text-muted);font-size:0.8rem;">Line ' + f.line + '</span>';
+                            html += '<div class="finding-snippet">' + escapeHtml(f.snippet) + '</div>';
+                            html += '<div class="finding-fix">Fix: ' + escapeHtml(f.fix) + '</div>';
+                            html += '</div>';
+                        });
+                    }
 
-    function renderResults(findings) {
-      var div = document.getElementById('results');
-      var hasHigh = findings.some(function (f) { return f.severity === 'high'; });
-      var gatePass = !hasHigh;
+                    if (!gatePass) {
+                        html +=
+                            '<div style="margin-top:20px;padding:16px;background:#fef2f2;border-radius:8px;text-align:center;">';
+                        html += '<strong>Gate failed.</strong> These findings would block your PR in CI. ';
+                        html +=
+                            '<a href="/pricing.html" style="color:var(--accent);font-weight:600;">Get the full scanner →</a>';
+                        html += '</div>';
+                        track('demo_scan_result', { gatePass: false, findingCount: findings.length });
+                    } else {
+                        track('demo_scan_result', { gatePass: true, findingCount: findings.length });
+                    }
 
-      var html = '<div style="margin-bottom:16px;">';
-      html += '<span class="gate-badge ' + (gatePass ? 'pass' : 'fail') + '">';
-      html += 'GATE ' + (gatePass ? 'PASSED' : 'FAILED');
-      html += '</span>';
-      html += '<span style="margin-left:12px;color:var(--text-muted);font-size:0.9rem;">';
-      html += findings.length + ' finding' + (findings.length === 1 ? '' : 's') + ' (' + findings.filter(function(f){return f.severity==='high'}).length + ' high)';
-      html += '</span></div>';
+                    div.innerHTML = html;
+                }
 
-      if (findings.length === 0) {
-        html += '<p style="color:var(--success);">No AI code debt detected. Clean code.</p>';
-      } else {
-        findings.forEach(function (f) {
-          html += '<div class="finding ' + f.severity + '">';
-          html += '<span class="finding-type">' + escapeHtml(f.type) + '</span>';
-          html += '<span class="finding-severity ' + f.severity + '">' + f.severity + '</span>';
-          html += ' <span style="color:var(--text-muted);font-size:0.8rem;">Line ' + f.line + '</span>';
-          html += '<div class="finding-snippet">' + escapeHtml(f.snippet) + '</div>';
-          html += '<div class="finding-fix">Fix: ' + escapeHtml(f.fix) + '</div>';
-          html += '</div>';
-        });
-      }
-
-      if (!gatePass) {
-        html += '<div style="margin-top:20px;padding:16px;background:#fef2f2;border-radius:8px;text-align:center;">';
-        html += '<strong>Gate failed.</strong> These findings would block your PR in CI. ';
-        html += '<a href="/pricing.html" style="color:var(--accent);font-weight:600;">Get the full scanner →</a>';
-        html += '</div>';
-        track('demo_scan_result', { gatePass: false, findingCount: findings.length });
-      } else {
-        track('demo_scan_result', { gatePass: true, findingCount: findings.length });
-      }
-
-      div.innerHTML = html;
-    }
-
-    function escapeHtml(text) {
-      return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-  })();
-  </script>
-</body>
+                function escapeHtml(text) {
+                    return String(text)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;');
+                }
+            })();
+        </script>
+    </body>
 </html>

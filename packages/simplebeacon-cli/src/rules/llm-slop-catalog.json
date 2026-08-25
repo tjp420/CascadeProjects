@@ -10,7 +10,14 @@
     "message": "Unresolved LLM placeholder or conversational AI debris",
     "suggestion": "Replace placeholder copy with production-ready values before client handoff",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts"
+      ],
       "linePrefixes": ["// TODO", "// NOTE", "// FIXME"]
     }
   },
@@ -55,7 +62,14 @@
     "message": "Hallucinated SDK/API method call — verify this method exists in the target library",
     "suggestion": "Check the official documentation for the correct method name and signature",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".d.ts", ".example.js"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".d.ts",
+        ".example.js"
+      ],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
   },
@@ -85,7 +99,16 @@
     "message": "Hardcoded mock return value with placeholder comment — implement real logic",
     "suggestion": "Replace the mock return with actual business logic or move to a test fixture",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts", ".mock.js", ".mock.ts"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".example.js",
+        ".example.ts",
+        ".mock.js",
+        ".mock.ts"
+      ],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
   },
@@ -100,7 +123,15 @@
     "message": "Boilerplate comment restates function name — remove or replace with meaningful context",
     "suggestion": "Delete the obvious restatement or add architectural context (why, not what)",
     "contextExclusions": {
-      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".md", ".mdx", ".markdown"],
+      "ext": [
+        ".test.js",
+        ".test.ts",
+        ".spec.js",
+        ".spec.ts",
+        ".md",
+        ".mdx",
+        ".markdown"
+      ],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
   }

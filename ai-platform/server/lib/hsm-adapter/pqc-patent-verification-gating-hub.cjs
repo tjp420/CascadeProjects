@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Track 74: PQC Patent Verification Gating Hub.
@@ -19,20 +19,20 @@
  * @module hsm-adapter/pqc-patent-verification-gating-hub
  */
 
-const crypto = require('crypto');
-const { HsmAdapterError } = require('./base-adapter.cjs');
+const crypto = require("crypto");
+const { HsmAdapterError } = require("./base-adapter.cjs");
 
 const POOL_STATUS = {
-  OPEN: 'open',
-  REBALANCING: 'rebalancing',
-  ACCREDITED: 'accredited',
-  SETTLED: 'settled',
-  CANCELLED: 'cancelled',
+  OPEN: "open",
+  REBALANCING: "rebalancing",
+  ACCREDITED: "accredited",
+  SETTLED: "settled",
+  CANCELLED: "cancelled",
 };
 
 const REBALANCE_DIRECTION = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
+  INCREASE: "increase",
+  DECREASE: "decrease",
 };
 
 class PqcPatentVerificationGatingHub {
@@ -66,35 +66,81 @@ class PqcPatentVerificationGatingHub {
   initializePool(request) {
     _validateInitRequest(this.policy, request);
     if (this._pools.size >= this._maxPools) {
-      throw new HsmAdapterError('PATENTGATE_MAX_POOLS',
-        `maximum ${this._maxPools} pools reached`);
+      throw new HsmAdapterError(
+        "PATENTGATE_MAX_POOLS",
+        `maximum ${this._maxPools} pools reached`,
+      );
     }
-    if (this.policy.requirePatentOfficeInitializerAttestation && this._attestationClient) {
+    if (
+      this.policy.requirePatentOfficeInitializerAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.patentOfficeInitializerAttestation);
+        const result = this._attestationClient.verify(
+          request.patentOfficeInitializerAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('PATENTGATE_PATENT_OFFICE_INITIALIZER_UNATTESTED', 'patent office initializer attestation invalid');
+          throw new HsmAdapterError(
+            "PATENTGATE_PATENT_OFFICE_INITIALIZER_UNATTESTED",
+            "patent office initializer attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('PATENTGATE_PATENT_OFFICE_INITIALIZER_UNATTESTED', 'patent office initializer attestation invalid');
+        throw new HsmAdapterError(
+          "PATENTGATE_PATENT_OFFICE_INITIALIZER_UNATTESTED",
+          "patent office initializer attestation invalid",
+        );
       }
     }
-    if (typeof request.attestationAuthority === 'string' && !this.policy.allowedAttestationAuthorities.includes(request.attestationAuthority)) {
-      throw new HsmAdapterError('PATENTGATE_ATTESTATION_AUTHORITY_BLOCKED', `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(', ')}`);
+    if (
+      typeof request.attestationAuthority === "string" &&
+      !this.policy.allowedAttestationAuthorities.includes(
+        request.attestationAuthority,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_ATTESTATION_AUTHORITY_BLOCKED",
+        `attestation authority ${request.attestationAuthority} is not allowed; permitted: ${this.policy.allowedAttestationAuthorities.join(", ")}`,
+      );
     }
-    if (typeof request.pqcSignatureScheme === 'string' && !this.policy.allowedPqcSignatureSchemes.includes(request.pqcSignatureScheme)) {
-      throw new HsmAdapterError('PATENTGATE_PQC_SCHEME_BLOCKED', `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(', ')}`);
+    if (
+      typeof request.pqcSignatureScheme === "string" &&
+      !this.policy.allowedPqcSignatureSchemes.includes(
+        request.pqcSignatureScheme,
+      )
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_PQC_SCHEME_BLOCKED",
+        `PQC signature scheme ${request.pqcSignatureScheme} is not permitted; allowed: ${this.policy.allowedPqcSignatureSchemes.join(", ")}`,
+      );
     }
-    if (typeof request.patentExpirationSeconds === 'number' && request.patentExpirationSeconds > (this.policy.maxPatentExpirationSeconds || 47304000)) {
-      throw new HsmAdapterError('PATENTGATE_PATENT_EXPIRATION_EXCEEDED', `patent expiration seconds ${request.patentExpirationSeconds} exceeds maximum ${this.policy.maxPatentExpirationSeconds}`);
+    if (
+      typeof request.patentExpirationSeconds === "number" &&
+      request.patentExpirationSeconds >
+        (this.policy.maxPatentExpirationSeconds || 47304000)
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_PATENT_EXPIRATION_EXCEEDED",
+        `patent expiration seconds ${request.patentExpirationSeconds} exceeds maximum ${this.policy.maxPatentExpirationSeconds}`,
+      );
     }
-    if (typeof request.claimScopeDepth === 'number' && request.claimScopeDepth > (this.policy.maxClaimScopeDepth || 32)) {
-      throw new HsmAdapterError('PATENTGATE_CLAIM_SCOPE_DEPTH_EXCEEDED', `claim scope depth ${request.claimScopeDepth} exceeds maximum ${this.policy.maxClaimScopeDepth}`);
+    if (
+      typeof request.claimScopeDepth === "number" &&
+      request.claimScopeDepth > (this.policy.maxClaimScopeDepth || 32)
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_CLAIM_SCOPE_DEPTH_EXCEEDED",
+        `claim scope depth ${request.claimScopeDepth} exceeds maximum ${this.policy.maxClaimScopeDepth}`,
+      );
     }
-    const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
+    const poolId =
+      request.poolId || `pool-${crypto.randomBytes(4).toString("hex")}`;
     if (this._pools.has(poolId)) {
-      throw new HsmAdapterError('PATENTGATE_DUPLICATE', `pool ${poolId} already exists`);
+      throw new HsmAdapterError(
+        "PATENTGATE_DUPLICATE",
+        `pool ${poolId} already exists`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     const pool = {
@@ -102,7 +148,8 @@ class PqcPatentVerificationGatingHub {
       sourceTenantId: request.sourceTenantId,
       targetChainId: request.targetChainId,
       blindedPatentClaimCommitment: request.blindedPatentClaimCommitment,
-      blindedLicensingMetricCommitment: request.blindedLicensingMetricCommitment,
+      blindedLicensingMetricCommitment:
+        request.blindedLicensingMetricCommitment,
       blindedInventorHashCommitment: request.blindedInventorHashCommitment,
       patentExpirationSeconds: request.patentExpirationSeconds,
       claimScopeDepth: request.claimScopeDepth,
@@ -119,7 +166,7 @@ class PqcPatentVerificationGatingHub {
     this._pools.set(poolId, pool);
     this._initCount++;
     if (this._audit) {
-      this._audit('PATENT_GATING_POOL_INITIALIZED', { ...pool });
+      this._audit("PATENT_GATING_POOL_INITIALIZED", { ...pool });
     }
     return pool;
   }
@@ -131,11 +178,16 @@ class PqcPatentVerificationGatingHub {
    */
   batchInitializePools(requests) {
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new HsmAdapterError('PATENTGATE_BATCH_EMPTY', 'batch requests array is required');
+      throw new HsmAdapterError(
+        "PATENTGATE_BATCH_EMPTY",
+        "batch requests array is required",
+      );
     }
     if (requests.length > this._maxBatchSize) {
-      throw new HsmAdapterError('PATENTGATE_BATCH_TOO_LARGE',
-        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+      throw new HsmAdapterError(
+        "PATENTGATE_BATCH_TOO_LARGE",
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`,
+      );
     }
     const results = [];
     let successCount = 0;
@@ -147,17 +199,26 @@ class PqcPatentVerificationGatingHub {
         successCount++;
       } catch (err) {
         results.push({
-          poolId: req.poolId || 'auto',
+          poolId: req.poolId || "auto",
           initialized: false,
-          error: err.code || 'PATENTGATE_BATCH_ERROR',
+          error: err.code || "PATENTGATE_BATCH_ERROR",
         });
         failedCount++;
       }
     }
     if (this._audit) {
-      this._audit('PATENTGATE_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+      this._audit("PATENTGATE_BATCH_INITIALIZED", {
+        successCount,
+        failedCount,
+        batchSize: requests.length,
+      });
     }
-    return { totalRequests: requests.length, successCount, failedCount, results };
+    return {
+      totalRequests: requests.length,
+      successCount,
+      failedCount,
+      results,
+    };
   }
 
   /**
@@ -177,7 +238,10 @@ class PqcPatentVerificationGatingHub {
   markPatentClaimVerified(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     pool.patentClaimVerified = true;
     return pool;
@@ -190,49 +254,73 @@ class PqcPatentVerificationGatingHub {
    */
   rebalanceClaimScopeDepth(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('PATENTGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "PATENTGATE_REBALANCE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
-    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
-      throw new HsmAdapterError('PATENTGATE_NOT_REBALANCEABLE',
-        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    if (
+      pool.status !== POOL_STATUS.OPEN &&
+      pool.status !== POOL_STATUS.REBALANCING
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_REBALANCEABLE",
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`,
+      );
     }
     const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
     if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
-      throw new HsmAdapterError('PATENTGATE_REBALANCE_DIRECTION_INVALID',
-        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+      throw new HsmAdapterError(
+        "PATENTGATE_REBALANCE_DIRECTION_INVALID",
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(", ")}`,
+      );
     }
-    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
-      throw new HsmAdapterError('PATENTGATE_REBALANCE_AMOUNT_INVALID',
-        'rebalanceAmount must be a positive number');
+    if (
+      typeof request.rebalanceAmount !== "number" ||
+      request.rebalanceAmount <= 0
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_REBALANCE_AMOUNT_INVALID",
+        "rebalanceAmount must be a positive number",
+      );
     }
     const newEpoch = pool.rebalanceEpoch + 1;
     pool.rebalanceEpoch = newEpoch;
     pool.status = POOL_STATUS.REBALANCING;
-    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalanceId =
+      request.rebalanceId || `rebal-${crypto.randomBytes(4).toString("hex")}`;
     const rebalance = {
       rebalanceId,
       poolId: request.poolId,
       direction,
       rebalanceAmount: request.rebalanceAmount,
       rebalanceEpoch: newEpoch,
-      newClaimScopeDepth: request.newClaimScopeDepth !== undefined ? request.newClaimScopeDepth : pool.claimScopeDepth,
+      newClaimScopeDepth:
+        request.newClaimScopeDepth !== undefined
+          ? request.newClaimScopeDepth
+          : pool.claimScopeDepth,
       rebalancedAt: Math.floor(Date.now() / 1000),
     };
     this._rebalances.set(rebalanceId, rebalance);
     this._rebalanceCount++;
     if (request.newClaimScopeDepth !== undefined) {
       if (request.newClaimScopeDepth > (this.policy.maxClaimScopeDepth || 32)) {
-        throw new HsmAdapterError('PATENTGATE_CLAIM_SCOPE_DEPTH_EXCEEDED',
-          `new claim scope depth ${request.newClaimScopeDepth} exceeds maximum ${this.policy.maxClaimScopeDepth}`);
+        throw new HsmAdapterError(
+          "PATENTGATE_CLAIM_SCOPE_DEPTH_EXCEEDED",
+          `new claim scope depth ${request.newClaimScopeDepth} exceeds maximum ${this.policy.maxClaimScopeDepth}`,
+        );
       }
       pool.claimScopeDepth = request.newClaimScopeDepth;
     }
     if (this._audit) {
-      this._audit('PATENTGATE_CLAIM_SCOPE_DEPTH_REBALANCED', { ...rebalance });
+      this._audit("PATENTGATE_CLAIM_SCOPE_DEPTH_REBALANCED", { ...rebalance });
     }
     return rebalance;
   }
@@ -255,30 +343,52 @@ class PqcPatentVerificationGatingHub {
     _validateCompleteRequest(this.policy, request);
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (!pool.patentClaimVerified) {
-      throw new HsmAdapterError('PATENTGATE_PATENT_CLAIM_NOT_VERIFIED', `pool ${request.poolId} patent claim not verified`);
+      throw new HsmAdapterError(
+        "PATENTGATE_PATENT_CLAIM_NOT_VERIFIED",
+        `pool ${request.poolId} patent claim not verified`,
+      );
     }
-    if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
+    if (
+      this.policy.requireClearingCommitteeAttestation &&
+      this._attestationClient
+    ) {
       try {
-        const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
+        const result = this._attestationClient.verify(
+          request.clearingCommitteeAttestation,
+        );
         if (!result.verified) {
-          throw new HsmAdapterError('PATENTGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+          throw new HsmAdapterError(
+            "PATENTGATE_CLEARING_COMMITTEE_UNATTESTED",
+            "clearing committee attestation invalid",
+          );
         }
       } catch (err) {
         if (err instanceof HsmAdapterError) throw err;
-        throw new HsmAdapterError('PATENTGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
+        throw new HsmAdapterError(
+          "PATENTGATE_CLEARING_COMMITTEE_UNATTESTED",
+          "clearing committee attestation invalid",
+        );
       }
     }
     const signatures = request.committeeSignatures || [];
     if (signatures.length < (this.policy.minLicensingQuorum || 3)) {
-      throw new HsmAdapterError('PATENTGATE_LICENSING_QUORUM_INSUFFICIENT', `licensing signatures ${signatures.length} below minimum ${this.policy.minLicensingQuorum}`);
+      throw new HsmAdapterError(
+        "PATENTGATE_LICENSING_QUORUM_INSUFFICIENT",
+        `licensing signatures ${signatures.length} below minimum ${this.policy.minLicensingQuorum}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
     pool.status = POOL_STATUS.ACCREDITED;
     pool.licenseAccreditationCompletedAt = now;
-    const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
+    const completionId =
+      request.completionId ||
+      `completion-${crypto.randomBytes(4).toString("hex")}`;
     const completion = {
       completionId,
       poolId: request.poolId,
@@ -287,7 +397,7 @@ class PqcPatentVerificationGatingHub {
     };
     this._accreditCount++;
     if (this._audit) {
-      this._audit('PATENT_LICENSE_ACCREDITATION_COMPLETED', { ...completion });
+      this._audit("PATENT_LICENSE_ACCREDITATION_COMPLETED", { ...completion });
     }
     return completion;
   }
@@ -299,41 +409,58 @@ class PqcPatentVerificationGatingHub {
    */
   settlePool(request) {
     if (!request || !request.poolId) {
-      throw new HsmAdapterError('PATENTGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+      throw new HsmAdapterError(
+        "PATENTGATE_SETTLE_FIELDS_MISSING",
+        "poolId is required",
+      );
     }
     const pool = this._pools.get(request.poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${request.poolId} not found`,
+      );
     }
     if (pool.status !== POOL_STATUS.ACCREDITED) {
-      throw new HsmAdapterError('PATENTGATE_NOT_ACCREDITED',
-        `pool ${request.poolId} status is ${pool.status}, expected accredited`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_ACCREDITED",
+        `pool ${request.poolId} status is ${pool.status}, expected accredited`,
+      );
     }
-    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
-      throw new HsmAdapterError('PATENTGATE_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    if (!request.targetChainId || typeof request.targetChainId !== "string") {
+      throw new HsmAdapterError(
+        "PATENTGATE_SETTLE_CHAIN_MISSING",
+        "targetChainId is required for settlement",
+      );
     }
     if (request.targetChainId !== pool.targetChainId) {
-      throw new HsmAdapterError('PATENTGATE_SETTLE_CHAIN_MISMATCH',
-        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+      throw new HsmAdapterError(
+        "PATENTGATE_SETTLE_CHAIN_MISMATCH",
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`,
+      );
     }
     const now = Math.floor(Date.now() / 1000);
-    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlementId =
+      request.settlementId || `settle-${crypto.randomBytes(4).toString("hex")}`;
     const settlement = {
       settlementId,
       poolId: request.poolId,
       targetChainId: request.targetChainId,
-      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
-        .update(`${request.poolId}:${request.targetChainId}:${now}`)
-        .digest('hex'),
+      settlementProofHash:
+        request.settlementProofHash ||
+        crypto
+          .createHash("sha256")
+          .update(`${request.poolId}:${request.targetChainId}:${now}`)
+          .digest("hex"),
       settledAt: now,
     };
     pool.status = POOL_STATUS.SETTLED;
-    pool.settlementStatus = 'settled';
+    pool.settlementStatus = "settled";
     pool.settledAt = now;
     this._settlements.set(request.poolId, settlement);
     this._settleCount++;
     if (this._audit) {
-      this._audit('PATENTGATE_SETTLED', { ...settlement });
+      this._audit("PATENTGATE_SETTLED", { ...settlement });
     }
     return settlement;
   }
@@ -347,27 +474,39 @@ class PqcPatentVerificationGatingHub {
   aggregateCommitteeSignatures(poolId, partialSignatures) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
     if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
-      throw new HsmAdapterError('PATENTGATE_NO_SIGNATURES', 'partialSignatures array is required');
+      throw new HsmAdapterError(
+        "PATENTGATE_NO_SIGNATURES",
+        "partialSignatures array is required",
+      );
     }
     if (partialSignatures.length < (this.policy.minLicensingQuorum || 3)) {
-      throw new HsmAdapterError('PATENTGATE_LICENSING_QUORUM_INSUFFICIENT',
-        `${partialSignatures.length} signatures below minimum ${this.policy.minLicensingQuorum || 3}`);
+      throw new HsmAdapterError(
+        "PATENTGATE_LICENSING_QUORUM_INSUFFICIENT",
+        `${partialSignatures.length} signatures below minimum ${this.policy.minLicensingQuorum || 3}`,
+      );
     }
-    const aggregatedSig = crypto.createHash('sha256')
-      .update(partialSignatures.map(s => s.signature).join(':'))
-      .digest('hex');
+    const aggregatedSig = crypto
+      .createHash("sha256")
+      .update(partialSignatures.map((s) => s.signature).join(":"))
+      .digest("hex");
     const result = {
       poolId,
       signatureCount: partialSignatures.length,
       aggregatedSignature: aggregatedSig,
-      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      participantIds: partialSignatures.map((s) => s.peerId || "anonymous"),
       aggregatedAt: Math.floor(Date.now() / 1000),
     };
     if (this._audit) {
-      this._audit('PATENTGATE_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+      this._audit("PATENTGATE_SIGNATURES_AGGREGATED", {
+        poolId,
+        count: partialSignatures.length,
+      });
     }
     return result;
   }
@@ -380,21 +519,31 @@ class PqcPatentVerificationGatingHub {
   cancelPool(poolId) {
     const pool = this._pools.get(poolId);
     if (!pool) {
-      throw new HsmAdapterError('PATENTGATE_NOT_FOUND', `pool ${poolId} not found`);
+      throw new HsmAdapterError(
+        "PATENTGATE_NOT_FOUND",
+        `pool ${poolId} not found`,
+      );
     }
-    if (pool.status === POOL_STATUS.ACCREDITED || pool.status === POOL_STATUS.SETTLED) {
-      throw new HsmAdapterError('PATENTGATE_ALREADY_ACCREDITED',
-        `pool ${poolId} has been accredited/settled and cannot be cancelled`);
+    if (
+      pool.status === POOL_STATUS.ACCREDITED ||
+      pool.status === POOL_STATUS.SETTLED
+    ) {
+      throw new HsmAdapterError(
+        "PATENTGATE_ALREADY_ACCREDITED",
+        `pool ${poolId} has been accredited/settled and cannot be cancelled`,
+      );
     }
     if (pool.status === POOL_STATUS.CANCELLED) {
-      throw new HsmAdapterError('PATENTGATE_ALREADY_CANCELLED',
-        `pool ${poolId} is already cancelled`);
+      throw new HsmAdapterError(
+        "PATENTGATE_ALREADY_CANCELLED",
+        `pool ${poolId} is already cancelled`,
+      );
     }
     pool.status = POOL_STATUS.CANCELLED;
     pool.cancelledAt = Math.floor(Date.now() / 1000);
     this._cancelCount++;
     if (this._audit) {
-      this._audit('PATENTGATE_CANCELLED', { poolId });
+      this._audit("PATENTGATE_CANCELLED", { poolId });
     }
     return { poolId, cancelled: true };
   }
@@ -413,7 +562,7 @@ class PqcPatentVerificationGatingHub {
    * @returns {object[]}
    */
   getPools() {
-    return Array.from(this._pools.values()).map(p => ({
+    return Array.from(this._pools.values()).map((p) => ({
       poolId: p.poolId,
       sourceTenantId: p.sourceTenantId,
       targetChainId: p.targetChainId,
@@ -457,28 +606,59 @@ class PqcPatentVerificationGatingHub {
 
 function _validateInitRequest(policy, request) {
   if (!request.sourceTenantId || !request.targetChainId) {
-    throw new HsmAdapterError('PATENTGATE_FIELDS_MISSING', 'sourceTenantId and targetChainId are required');
+    throw new HsmAdapterError(
+      "PATENTGATE_FIELDS_MISSING",
+      "sourceTenantId and targetChainId are required",
+    );
   }
-  if (!request.blindedPatentClaimCommitment || !request.blindedLicensingMetricCommitment || !request.blindedInventorHashCommitment) {
-    throw new HsmAdapterError('PATENTGATE_FIELDS_MISSING', 'blindedPatentClaimCommitment, blindedLicensingMetricCommitment, and blindedInventorHashCommitment are required');
+  if (
+    !request.blindedPatentClaimCommitment ||
+    !request.blindedLicensingMetricCommitment ||
+    !request.blindedInventorHashCommitment
+  ) {
+    throw new HsmAdapterError(
+      "PATENTGATE_FIELDS_MISSING",
+      "blindedPatentClaimCommitment, blindedLicensingMetricCommitment, and blindedInventorHashCommitment are required",
+    );
   }
-  if (typeof request.patentExpirationSeconds !== 'number') {
-    throw new HsmAdapterError('PATENTGATE_FIELDS_MISSING', 'patentExpirationSeconds is required');
+  if (typeof request.patentExpirationSeconds !== "number") {
+    throw new HsmAdapterError(
+      "PATENTGATE_FIELDS_MISSING",
+      "patentExpirationSeconds is required",
+    );
   }
-  if (typeof request.claimScopeDepth !== 'number') {
-    throw new HsmAdapterError('PATENTGATE_FIELDS_MISSING', 'claimScopeDepth is required');
+  if (typeof request.claimScopeDepth !== "number") {
+    throw new HsmAdapterError(
+      "PATENTGATE_FIELDS_MISSING",
+      "claimScopeDepth is required",
+    );
   }
-  if (policy.requirePatentOfficeInitializerAttestation && !request.patentOfficeInitializerAttestation) {
-    throw new HsmAdapterError('PATENTGATE_PATENT_OFFICE_INITIALIZER_ATTESTATION_MISSING', 'patent office initializer attestation is required');
+  if (
+    policy.requirePatentOfficeInitializerAttestation &&
+    !request.patentOfficeInitializerAttestation
+  ) {
+    throw new HsmAdapterError(
+      "PATENTGATE_PATENT_OFFICE_INITIALIZER_ATTESTATION_MISSING",
+      "patent office initializer attestation is required",
+    );
   }
 }
 
 function _validateCompleteRequest(policy, request) {
   if (!request.poolId) {
-    throw new HsmAdapterError('PATENTGATE_COMPLETE_FIELDS_MISSING', 'poolId is required');
+    throw new HsmAdapterError(
+      "PATENTGATE_COMPLETE_FIELDS_MISSING",
+      "poolId is required",
+    );
   }
-  if (policy.requireClearingCommitteeAttestation && !request.clearingCommitteeAttestation) {
-    throw new HsmAdapterError('PATENTGATE_CLEARING_ATTESTATION_MISSING', 'clearing committee attestation is required');
+  if (
+    policy.requireClearingCommitteeAttestation &&
+    !request.clearingCommitteeAttestation
+  ) {
+    throw new HsmAdapterError(
+      "PATENTGATE_CLEARING_ATTESTATION_MISSING",
+      "clearing committee attestation is required",
+    );
   }
 }
 

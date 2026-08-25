@@ -17,10 +17,10 @@ A minimal, F5-launchable VS Code extension that wires the SimpleBeacon plugin in
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
+| Command                     | Description                                                          |
+| --------------------------- | -------------------------------------------------------------------- |
 | `simplebeacon.runQuickScan` | Runs a gate scan on the current workspace with progress notification |
-| `simplebeacon.gateStatus` | Reads gate pass/fail from the latest scan report |
+| `simplebeacon.gateStatus`   | Reads gate pass/fail from the latest scan report                     |
 
 ## How it works
 

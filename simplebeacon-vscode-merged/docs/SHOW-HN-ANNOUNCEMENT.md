@@ -1,7 +1,7 @@
 # Show HN: SimpleBeacon — Local-First AI Code Governance
 
 > **Launch-ready copy for Hacker News, Reddit, and LinkedIn distribution**  
-> *Last updated: June 20, 2026*
+> _Last updated: June 20, 2026_
 
 ---
 
@@ -303,7 +303,7 @@ The IDE extension funds development. Standard open-core model.
 
 ### "I ran it on my repo and got false positives"
 
-```
+````
 Sorry about that. Two things to try:
 
 1. Add false-positive patterns to `.simplebeacon/config.json`:
@@ -315,12 +315,13 @@ Sorry about that. Two things to try:
        }
      }
    }
-   ```
+````
 
 2. Run with `--profile minimal` for just credentials + production leaks
 
 3. File an issue with the file and expected vs actual finding — we fix
    false positives within 48 hours.
+
 ```
 
 ---
@@ -338,3 +339,4 @@ Sorry about that. Two things to try:
 ---
 
 *End of Launch Assets*
+```

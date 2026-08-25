@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Simple SIEM exporter: batches events and ships them to an HTTPS endpoint.
 // Non-blocking and fail-silent to avoid impacting request paths.
@@ -10,11 +10,11 @@
 // server verification. When any cert path is missing, the exporter gracefully
 // falls back to standard fetch() without an mTLS agent.
 
-const { setInterval } = require('timers');
-const fs = require('fs');
-const https = require('https');
-const fetch = global.fetch || require('node-fetch');
-const logger = require('./app-logger.cjs');
+const { setInterval } = require("timers");
+const fs = require("fs");
+const https = require("https");
+const fetch = global.fetch || require("node-fetch");
+const logger = require("./app-logger.cjs");
 
 const SIEM_ENDPOINT = process.env.SIEM_ENDPOINT || null;
 const SIEM_API_KEY = process.env.SIEM_API_KEY || null;
@@ -27,7 +27,8 @@ function getBatchSize() {
 const FLUSH_MS = parseInt(process.env.SIEM_FLUSH_MS, 10) || 5000;
 const RETRY_BASE_MS = parseInt(process.env.SIEM_RETRY_BASE_MS, 10) || 100;
 const RETRY_MAX_MS = parseInt(process.env.SIEM_RETRY_MAX_MS, 10) || 60 * 1000;
-const RETRY_MAX_ATTEMPTS = parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 5;
+const RETRY_MAX_ATTEMPTS =
+  parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 5;
 const MAX_QUEUE_DEPTH = parseInt(process.env.SIEM_MAX_QUEUE_DEPTH, 10) || 1000;
 
 // ── Bounded ring queue for O(1) enqueue / dequeue ─────────────────────
@@ -42,8 +43,12 @@ class BoundedQueue {
     this._dropped = 0;
   }
 
-  get length() { return this._count; }
-  get dropped() { return this._dropped; }
+  get length() {
+    return this._count;
+  }
+  get dropped() {
+    return this._dropped;
+  }
 
   push(event) {
     if (!event) return false;
@@ -113,11 +118,14 @@ let _shuttingDown = false;
     if (certPath || keyPath || caPath) {
       // Partial configuration — log a warning
       try {
-        logger.warn('[SIEM Exporter] mTLS certs partially configured, falling back to standard egress', {
-          hasCert: !!certPath,
-          hasKey: !!keyPath,
-          hasCa: !!caPath,
-        });
+        logger.warn(
+          "[SIEM Exporter] mTLS certs partially configured, falling back to standard egress",
+          {
+            hasCert: !!certPath,
+            hasKey: !!keyPath,
+            hasCa: !!caPath,
+          },
+        );
       } catch {}
     }
     _mtlsEnabled = false;
@@ -126,10 +134,11 @@ let _shuttingDown = false;
   }
 
   try {
-    const cert = fs.readFileSync(certPath, 'utf8');
-    const key = fs.readFileSync(keyPath, 'utf8');
-    const ca = fs.readFileSync(caPath, 'utf8');
-    const rejectUnauthorized = process.env.SIEM_TLS_REJECT_UNAUTHORIZED !== 'false';
+    const cert = fs.readFileSync(certPath, "utf8");
+    const key = fs.readFileSync(keyPath, "utf8");
+    const ca = fs.readFileSync(caPath, "utf8");
+    const rejectUnauthorized =
+      process.env.SIEM_TLS_REJECT_UNAUTHORIZED !== "false";
 
     _mtlsAgent = new https.Agent({
       cert,
@@ -139,7 +148,7 @@ let _shuttingDown = false;
     });
     _mtlsEnabled = true;
     try {
-      logger.info('[SIEM Exporter] mTLS transport enabled', {
+      logger.info("[SIEM Exporter] mTLS transport enabled", {
         rejectUnauthorized,
         certPath,
         keyPath,
@@ -147,12 +156,15 @@ let _shuttingDown = false;
       });
     } catch {}
   } catch (err) {
-    console.error('siem-exporter.cjs error:', err);
+    console.error("siem-exporter.cjs error:", err);
     // Cert files exist but can't be read — fall back gracefully
     try {
-      logger.warn('[SIEM Exporter] mTLS cert read failed, falling back to standard egress', {
-        error: err && err.message,
-      });
+      logger.warn(
+        "[SIEM Exporter] mTLS cert read failed, falling back to standard egress",
+        {
+          error: err && err.message,
+        },
+      );
     } catch {}
     _mtlsEnabled = false;
     _mtlsAgent = null;
@@ -175,7 +187,7 @@ const _metrics = {
 function enqueue(event) {
   try {
     if (_shuttingDown) return;
-    if (!event || typeof event !== 'object') return;
+    if (!event || typeof event !== "object") return;
     const droppedBefore = queue.dropped;
     queue.push(event);
     if (queue.dropped > droppedBefore) {
@@ -184,7 +196,7 @@ function enqueue(event) {
     _metrics.siem_queue_depth_current = queue.length;
     if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
-    console.error('siem-exporter.cjs error:', e);
+    console.error("siem-exporter.cjs error:", e);
     // swallow
   }
 }
@@ -211,21 +223,29 @@ async function sendBatch(batch, attempt = 0) {
   _totalSendAttempts++;
   try {
     const fetchOpts = {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...(SIEM_API_KEY ? { Authorization: `Bearer ${SIEM_API_KEY}` } : {}),
       },
-      body: JSON.stringify({ events: batch, source: 'ai-platform' }),
+      body: JSON.stringify({ events: batch, source: "ai-platform" }),
       timeout: 5000,
     };
 
     // Attach mTLS agent when configured
     if (_mtlsEnabled && _mtlsAgent) {
       // Node.js native fetch uses 'dispatcher'; node-fetch uses 'agent'
-      const isNodeFetch = typeof require === 'function' && require.resolve && (() => {
-        try { require.resolve('node-fetch'); return true; } catch { return false; }
-      })();
+      const isNodeFetch =
+        typeof require === "function" &&
+        require.resolve &&
+        (() => {
+          try {
+            require.resolve("node-fetch");
+            return true;
+          } catch {
+            return false;
+          }
+        })();
       if (isNodeFetch && !global.fetch) {
         fetchOpts.agent = _mtlsAgent;
       } else {
@@ -242,29 +262,50 @@ async function sendBatch(batch, attempt = 0) {
     if (_shuttingDown) return false;
     if (attempt < RETRY_MAX_ATTEMPTS) {
       // record a retry attempt for observability
-      try { _metrics.siem_delivery_retries_total += 1; } catch (mErr) { console.error('siem-exporter.cjs error:', mErr); }
-      const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * Math.pow(2, attempt));
       try {
-        logger.warn('[SIEM Exporter] sendBatch failed, scheduling retry', { attempt, delay, error: e && e.message });
+        _metrics.siem_delivery_retries_total += 1;
+      } catch (mErr) {
+        console.error("siem-exporter.cjs error:", mErr);
+      }
+      const delay = Math.min(
+        RETRY_MAX_MS,
+        RETRY_BASE_MS * Math.pow(2, attempt),
+      );
+      try {
+        logger.warn("[SIEM Exporter] sendBatch failed, scheduling retry", {
+          attempt,
+          delay,
+          error: e && e.message,
+        });
         setTimeout(() => {
           if (!_shuttingDown) sendBatch(batch, attempt + 1).catch(() => {});
         }, delay);
       } catch (s) {
-        console.error('siem-exporter.cjs error:', s);
+        console.error("siem-exporter.cjs error:", s);
         // ignore scheduling failure
       }
     } else {
       // Retries exhausted: re-enqueue to head; bounded queue drops oldest on overflow
       try {
-        logger.error('[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch', { attempts: attempt + 1, error: e && e.message });
+        logger.error(
+          "[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch",
+          { attempts: attempt + 1, error: e && e.message },
+        );
         const droppedBefore = queue.dropped;
         for (const e of batch) queue.push(e);
         const dropped = queue.dropped - droppedBefore;
         if (dropped > 0) {
-          try { _metrics.siem_delivery_dropped_total += dropped; } catch (mErr) { console.error('siem-exporter.cjs error:', mErr); }
+          try {
+            _metrics.siem_delivery_dropped_total += dropped;
+          } catch (mErr) {
+            console.error("siem-exporter.cjs error:", mErr);
+          }
         }
       } catch (err) {
-        logger.error('[SIEM Exporter] failed to re-enqueue batch after retries exhausted', { error: err && err.message });
+        logger.error(
+          "[SIEM Exporter] failed to re-enqueue batch after retries exhausted",
+          { error: err && err.message },
+        );
       }
     }
     return false;
@@ -273,26 +314,44 @@ async function sendBatch(batch, attempt = 0) {
 
 // Periodic flush
 const _timer = setInterval(() => {
-  try { flush().catch(() => {}); } catch {}
+  try {
+    flush().catch(() => {});
+  } catch {}
 }, FLUSH_MS);
 if (_timer.unref) _timer.unref();
 
 function close() {
-  try { clearInterval(_timer); } catch {}
+  try {
+    clearInterval(_timer);
+  } catch {}
   if (_brokerListener) {
-    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+    try {
+      _brokerListener.broker.removeListener(
+        "transport_batch_queue",
+        _brokerListener.fn,
+      );
+    } catch {}
     _brokerListener = null;
   }
 }
 
 async function shutdown() {
   _shuttingDown = true;
-  try { clearInterval(_timer); } catch {}
+  try {
+    clearInterval(_timer);
+  } catch {}
   if (_brokerListener) {
-    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+    try {
+      _brokerListener.broker.removeListener(
+        "transport_batch_queue",
+        _brokerListener.fn,
+      );
+    } catch {}
     _brokerListener = null;
   }
-  try { queue.reset(); } catch {}
+  try {
+    queue.reset();
+  } catch {}
   _mtlsAgent = null;
   _mtlsEnabled = false;
   flushing = false;
@@ -308,20 +367,29 @@ let _brokerListener = null;
  * @param {object} broker - SiemSecurityBroker instance
  */
 function connectBroker(broker) {
-  if (!broker || typeof broker.on !== 'function') return;
+  if (!broker || typeof broker.on !== "function") return;
   // Remove any previous listener
   if (_brokerListener) {
-    try { _brokerListener.broker.removeListener('transport_batch_queue', _brokerListener.fn); } catch {}
+    try {
+      _brokerListener.broker.removeListener(
+        "transport_batch_queue",
+        _brokerListener.fn,
+      );
+    } catch {}
   }
   const fn = (event) => {
     try {
       if (_shuttingDown) return;
       enqueue(event);
     } catch (e) {
-      try { logger.warn('[SIEM Exporter] broker enqueue failed', { error: e && e.message }); } catch {}
+      try {
+        logger.warn("[SIEM Exporter] broker enqueue failed", {
+          error: e && e.message,
+        });
+      } catch {}
     }
   };
-  broker.on('transport_batch_queue', fn);
+  broker.on("transport_batch_queue", fn);
   _brokerListener = { broker, fn };
 }
 
@@ -338,14 +406,18 @@ module.exports = {
       const snapshot = queue.toArray();
       return new Proxy(snapshot, {
         get(target, prop) {
-          if (prop === 'push') {
+          if (prop === "push") {
             return (event) => {
               queue.push(event);
               return target.push(event);
             };
           }
-          if (prop === 'length') return target.length;
-          if (prop === 'reset') return () => { queue.reset(); target.length = 0; };
+          if (prop === "length") return target.length;
+          if (prop === "reset")
+            return () => {
+              queue.reset();
+              target.length = 0;
+            };
           return target[prop];
         },
         set(target, prop, value) {
@@ -356,7 +428,10 @@ module.exports = {
     },
     isFlushing: () => flushing,
     getBatchSize,
-    resetQueue: () => { queue.reset(); flushing = false; },
+    resetQueue: () => {
+      queue.reset();
+      flushing = false;
+    },
     getTotalSendAttempts: () => _totalSendAttempts,
     getMetrics: () => ({ ..._metrics }),
     isMtlsEnabled: () => _mtlsEnabled,

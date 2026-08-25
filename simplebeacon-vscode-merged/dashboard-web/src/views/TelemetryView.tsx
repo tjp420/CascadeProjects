@@ -3,15 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Activity, RefreshCw, Clock, TrendingUp, TrendingDown, CheckCircle2,
-  XCircle, AlertTriangle, Zap, Gauge, Timer, FileCode, Layers, Shield,
+  Activity,
+  RefreshCw,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Zap,
+  Gauge,
+  Timer,
+  FileCode,
+  Layers,
+  Shield,
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { ScanPaywall } from '@/components/ScanPaywall';
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -31,10 +53,10 @@ interface BatchExecutionEntry {
 interface ComplianceTrendEntry {
   scanId: string;
   date: string;
-  euAiActScore: number;       // 0-100
-  soc2Score: number;          // 0-100
-  gateScore: number;          // 0-100
-  overallScore: number;       // 0-100
+  euAiActScore: number; // 0-100
+  soc2Score: number; // 0-100
+  gateScore: number; // 0-100
+  overallScore: number; // 0-100
 }
 
 interface IssueResolutionEntry {
@@ -110,7 +132,8 @@ function computeBatchStats(history: BatchExecutionEntry[]) {
   let durationTrend: 'up' | 'down' | 'flat' = 'flat';
   if (history.length >= 2) {
     const prev = history[history.length - 2]?.durationMs ?? 0;
-    if (latestDurationMs < prev * 0.9) durationTrend = 'down'; // faster = down = good
+    if (latestDurationMs < prev * 0.9)
+      durationTrend = 'down'; // faster = down = good
     else if (latestDurationMs > prev * 1.1) durationTrend = 'up'; // slower = up = bad
   }
 
@@ -205,7 +228,7 @@ export function TelemetryView() {
   });
 
   const loadData = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       let batchHistory: BatchExecutionEntry[] = [];
       let complianceHistory: ComplianceTrendEntry[] = [];
@@ -218,7 +241,9 @@ export function TelemetryView() {
           const parsed = JSON.parse(rawBatch);
           if (Array.isArray(parsed)) batchHistory = parsed;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       try {
         const rawCompliance = localStorage.getItem('sb_telemetry_compliance');
@@ -226,7 +251,9 @@ export function TelemetryView() {
           const parsed = JSON.parse(rawCompliance);
           if (Array.isArray(parsed)) complianceHistory = parsed;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       try {
         const rawResolution = localStorage.getItem('sb_telemetry_resolution');
@@ -234,7 +261,9 @@ export function TelemetryView() {
           const parsed = JSON.parse(rawResolution);
           if (Array.isArray(parsed)) resolutionHistory = parsed;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // Fallback: derive from scan history if telemetry keys are empty
       if (batchHistory.length === 0 || complianceHistory.length === 0 || resolutionHistory.length === 0) {
@@ -294,7 +323,9 @@ export function TelemetryView() {
               }
             }
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       setState({ batchHistory, complianceHistory, resolutionHistory, loading: false, error: null });
@@ -395,7 +426,8 @@ export function TelemetryView() {
             <div className="space-y-1">
               <p className="text-lg font-semibold">No telemetry data yet</p>
               <p className="text-sm text-foreground-muted">
-                Run multi-file scans to start tracking batch execution times, compliance trends, and issue resolution rates.
+                Run multi-file scans to start tracking batch execution times, compliance trends, and issue resolution
+                rates.
               </p>
             </div>
             <Button onClick={() => navigate('analyze')} className="gap-2">
@@ -413,7 +445,7 @@ export function TelemetryView() {
   const complianceStats = computeComplianceStats(complianceHistory);
   const resolutionStats = computeResolutionStats(resolutionHistory);
 
-  const batchTrendData = batchHistory.map(h => ({
+  const batchTrendData = batchHistory.map((h) => ({
     date: formatDate(h.date),
     durationMs: h.durationMs,
     files: h.totalFiles,
@@ -421,7 +453,7 @@ export function TelemetryView() {
     tokens: h.totalTokensEstimated,
   }));
 
-  const complianceTrendData = complianceHistory.map(h => ({
+  const complianceTrendData = complianceHistory.map((h) => ({
     date: formatDate(h.date),
     euAiAct: h.euAiActScore,
     soc2: h.soc2Score,
@@ -429,7 +461,7 @@ export function TelemetryView() {
     overall: h.overallScore,
   }));
 
-  const resolutionTrendData = resolutionHistory.map(h => ({
+  const resolutionTrendData = resolutionHistory.map((h) => ({
     date: formatDate(h.date),
     newIssues: h.newIssues,
     resolvedIssues: h.resolvedIssues,
@@ -469,7 +501,9 @@ export function TelemetryView() {
             value={formatDuration(batchStats.avgDurationMs)}
             subtitle={`Latest: ${formatDuration(batchStats.latestDurationMs)}`}
             trend={batchStats.durationTrend === 'down' ? 'up' : batchStats.durationTrend === 'up' ? 'down' : 'flat'}
-            color={batchStats.durationTrend === 'down' ? 'success' : batchStats.durationTrend === 'up' ? 'warning' : 'muted'}
+            color={
+              batchStats.durationTrend === 'down' ? 'success' : batchStats.durationTrend === 'up' ? 'warning' : 'muted'
+            }
           />
           <StatCard
             icon={FileCode}
@@ -512,7 +546,12 @@ export function TelemetryView() {
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatDuration(v)} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                      contentStyle={{
+                        backgroundColor: 'var(--color-card, #fff)',
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                      }}
                       formatter={(v) => formatDuration(Number(v))}
                     />
                     <Line
@@ -550,7 +589,12 @@ export function TelemetryView() {
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatTokens(v)} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                      contentStyle={{
+                        backgroundColor: 'var(--color-card, #fff)',
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                      }}
                       formatter={(v) => formatTokens(Number(v)) + ' tokens'}
                     />
                     <Area
@@ -590,23 +634,28 @@ export function TelemetryView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...batchHistory].reverse().slice(0, 10).map((entry) => (
-                      <tr key={entry.scanId} className="border-b border-border/50 hover:bg-muted/30">
-                        <td className="py-2 pr-4 text-foreground-muted">{formatDate(entry.date)}</td>
-                        <td className="py-2 pr-4">{entry.totalFiles.toLocaleString()}</td>
-                        <td className="py-2 pr-4">{entry.totalChunks.toLocaleString()}</td>
-                        <td className="py-2 pr-4">{entry.totalBatches}</td>
-                        <td className="py-2 pr-4 text-info">{formatTokens(entry.totalTokensEstimated)}</td>
-                        <td className="py-2 pr-4 font-medium">{formatDuration(entry.durationMs)}</td>
-                        <td className="py-2 pr-4">
-                          {entry.errors > 0 ? (
-                            <Badge variant="warning" className="text-xs">{entry.errors}</Badge>
-                          ) : (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {[...batchHistory]
+                      .reverse()
+                      .slice(0, 10)
+                      .map((entry) => (
+                        <tr key={entry.scanId} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 pr-4 text-foreground-muted">{formatDate(entry.date)}</td>
+                          <td className="py-2 pr-4">{entry.totalFiles.toLocaleString()}</td>
+                          <td className="py-2 pr-4">{entry.totalChunks.toLocaleString()}</td>
+                          <td className="py-2 pr-4">{entry.totalBatches}</td>
+                          <td className="py-2 pr-4 text-info">{formatTokens(entry.totalTokensEstimated)}</td>
+                          <td className="py-2 pr-4 font-medium">{formatDuration(entry.durationMs)}</td>
+                          <td className="py-2 pr-4">
+                            {entry.errors > 0 ? (
+                              <Badge variant="warning" className="text-xs">
+                                {entry.errors}
+                              </Badge>
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -630,7 +679,9 @@ export function TelemetryView() {
               value={`${complianceStats.avgOverall}%`}
               subtitle={`Latest: ${complianceStats.latestOverall}%`}
               trend={complianceStats.overallTrend}
-              color={complianceStats.avgOverall >= 80 ? 'success' : complianceStats.avgOverall >= 60 ? 'warning' : 'danger'}
+              color={
+                complianceStats.avgOverall >= 80 ? 'success' : complianceStats.avgOverall >= 60 ? 'warning' : 'danger'
+              }
             />
             <StatCard
               icon={CheckCircle2}
@@ -667,11 +718,30 @@ export function TelemetryView() {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card, #fff)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="overall" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Overall" />
-                  <Line type="monotone" dataKey="euAiAct" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} name="EU AI Act" />
+                  <Line
+                    type="monotone"
+                    dataKey="overall"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    name="Overall"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="euAiAct"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    name="EU AI Act"
+                  />
                   <Line type="monotone" dataKey="soc2" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} name="SOC 2" />
                   <Line type="monotone" dataKey="gate" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} name="Gate" />
                 </LineChart>
@@ -710,13 +780,21 @@ export function TelemetryView() {
               label="Resolution Rate"
               value={`${resolutionStats.resolutionRate}%`}
               subtitle="Resolved / New"
-              color={resolutionStats.resolutionRate >= 80 ? 'success' : resolutionStats.resolutionRate >= 50 ? 'warning' : 'danger'}
+              color={
+                resolutionStats.resolutionRate >= 80
+                  ? 'success'
+                  : resolutionStats.resolutionRate >= 50
+                    ? 'warning'
+                    : 'danger'
+              }
             />
             <StatCard
               icon={XCircle}
               label="Currently Open"
               value={resolutionStats.currentOpen.toLocaleString()}
-              subtitle={resolutionStats.netChange > 0 ? `+${resolutionStats.netChange} net` : `${resolutionStats.netChange} net`}
+              subtitle={
+                resolutionStats.netChange > 0 ? `+${resolutionStats.netChange} net` : `${resolutionStats.netChange} net`
+              }
               color={resolutionStats.currentOpen === 0 ? 'success' : 'warning'}
             />
           </div>
@@ -736,7 +814,12 @@ export function TelemetryView() {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card, #fff)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   />
                   <Legend />
                   <Bar dataKey="newIssues" fill="#f97316" radius={[4, 4, 0, 0]} name="New Issues" />
@@ -767,7 +850,12 @@ export function TelemetryView() {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px', fontSize: '13px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card, #fff)',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   />
                   <Area
                     type="monotone"

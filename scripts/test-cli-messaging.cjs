@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Tests for CLI messaging alignment with marketing framing
@@ -13,157 +13,164 @@
  * Run: node --test scripts/test-cli-messaging.cjs
  */
 
-const { test, describe } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('fs');
-const path = require('path');
+const { test, describe } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("fs");
+const path = require("path");
 
-const REPO_ROOT = path.join(__dirname, '..');
+const REPO_ROOT = path.join(__dirname, "..");
 
 function readFile(relPath) {
-    return fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
+  return fs.readFileSync(path.join(REPO_ROOT, relPath), "utf8");
 }
 
 // ═══════════════════════════════════════════════
 // 1. Help Text Header
 // ═══════════════════════════════════════════════
 
-describe('CLI help text header alignment', () => {
+describe("CLI help text header alignment", () => {
+  test('help text uses "AI code debt" framing (not "detect mock data")', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /catch AI code debt that traditional linting misses/);
+    assert.doesNotMatch(
+      cli,
+      /detect mock data, fiction KPIs, and credential leaks/,
+    );
+  });
 
-    test('help text uses "AI code debt" framing (not "detect mock data")', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /catch AI code debt that traditional linting misses/);
-        assert.doesNotMatch(cli, /detect mock data, fiction KPIs, and credential leaks/);
-    });
+  test('help text mentions "48 analyzers \+ 25 scan engines"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /48 analyzers \+ 25 scan engines/);
+  });
 
-    test('help text mentions "48 analyzers \+ 25 scan engines"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /48 analyzers \+ 25 scan engines/);
-    });
+  test('help text mentions "zero LLM dependency"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /zero LLM dependency/);
+  });
 
-    test('help text mentions "zero LLM dependency"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /zero LLM dependency/);
-    });
-
-    test('help text mentions "no upload required"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /no upload required/);
-    });
+  test('help text mentions "no upload required"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /no upload required/);
+  });
 });
 
 // ═══════════════════════════════════════════════
 // 2. --complete Flag Description
 // ═══════════════════════════════════════════════
 
-describe('--complete flag description alignment', () => {
+describe("--complete flag description alignment", () => {
+  test('does not reference "11 analyzers"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    // Should not have "11 analyzers" anywhere
+    assert.doesNotMatch(cli, /11 analyzers/);
+  });
 
-    test('does not reference "11 analyzers"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        // Should not have "11 analyzers" anywhere
-        assert.doesNotMatch(cli, /11 analyzers/);
-    });
+  test('references "48 analyzers \+ 25 scan engines"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    // The --complete flag should mention 48 analyzers \+ 25 scan engines
+    const completeMatches = cli.match(
+      /--complete[^]*?48 analyzers \+ 25 scan engines/g,
+    );
+    assert.ok(
+      completeMatches && completeMatches.length > 0,
+      '--complete flag should reference "48 analyzers \+ 25 scan engines"',
+    );
+  });
 
-    test('references "48 analyzers \+ 25 scan engines"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        // The --complete flag should mention 48 analyzers \+ 25 scan engines
-        const completeMatches = cli.match(/--complete[^]*?48 analyzers \+ 25 scan engines/g);
-        assert.ok(completeMatches && completeMatches.length > 0,
-            '--complete flag should reference "48 analyzers \+ 25 scan engines"');
-    });
-
-    test('verbose log uses "48 analyzers \+ 25 scan engines"', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /--complete enabled.*48 analyzers \+ 25 scan engines/);
-    });
+  test('verbose log uses "48 analyzers \+ 25 scan engines"', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /--complete enabled.*48 analyzers \+ 25 scan engines/);
+  });
 });
 
 // ═══════════════════════════════════════════════
 // 3. --deep-scan Flag Description
 // ═══════════════════════════════════════════════
 
-describe('--deep-scan flag description alignment', () => {
-
-    test('uses "Deep Scan" terminology', () => {
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(cli, /--deep-scan\s+Deep Scan mode/);
-    });
+describe("--deep-scan flag description alignment", () => {
+  test('uses "Deep Scan" terminology', () => {
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(cli, /--deep-scan\s+Deep Scan mode/);
+  });
 });
 
 // ═══════════════════════════════════════════════
 // 4. Text Reporter Banner
 // ═══════════════════════════════════════════════
 
-describe('text reporter banner alignment', () => {
+describe("text reporter banner alignment", () => {
+  test('banner includes "48 analyzers \+ 25 scan engines"', () => {
+    const text = readFile("packages/simplebeacon-cli/src/reporters/text.js");
+    assert.match(text, /48 analyzers \+ 25 scan engines/);
+  });
 
-    test('banner includes "48 analyzers \+ 25 scan engines"', () => {
-        const text = readFile('packages/simplebeacon-cli/src/reporters/text.js');
-        assert.match(text, /48 analyzers \+ 25 scan engines/);
-    });
+  test('banner includes "AI code debt" framing', () => {
+    const text = readFile("packages/simplebeacon-cli/src/reporters/text.js");
+    assert.match(text, /catch AI code debt traditional linting misses/);
+  });
 
-    test('banner includes "AI code debt" framing', () => {
-        const text = readFile('packages/simplebeacon-cli/src/reporters/text.js');
-        assert.match(text, /catch AI code debt traditional linting misses/);
-    });
-
-    test('banner does not use old "detect mock data" tagline', () => {
-        const text = readFile('packages/simplebeacon-cli/src/reporters/text.js');
-        // The text reporter should not have the old tagline as a header
-        const bannerSection = text.slice(0, 2000);
-        assert.doesNotMatch(bannerSection, /detect mock data, fiction KPIs/);
-    });
+  test('banner does not use old "detect mock data" tagline', () => {
+    const text = readFile("packages/simplebeacon-cli/src/reporters/text.js");
+    // The text reporter should not have the old tagline as a header
+    const bannerSection = text.slice(0, 2000);
+    assert.doesNotMatch(bannerSection, /detect mock data, fiction KPIs/);
+  });
 });
 
 // ═══════════════════════════════════════════════
 // 5. Syntax Validation
 // ═══════════════════════════════════════════════
 
-describe('syntax validation', () => {
+describe("syntax validation", () => {
+  test("bin/simplebeacon.js passes node syntax check", () => {
+    const { execSync } = require("child_process");
+    const filePath = path.join(
+      REPO_ROOT,
+      "packages/simplebeacon-cli/bin/simplebeacon.js",
+    );
+    execSync(`node -c "${filePath}"`, { stdio: "pipe" });
+  });
 
-    test('bin/simplebeacon.js passes node syntax check', () => {
-        const { execSync } = require('child_process');
-        const filePath = path.join(REPO_ROOT, 'packages/simplebeacon-cli/bin/simplebeacon.js');
-        execSync(`node -c "${filePath}"`, { stdio: 'pipe' });
-    });
-
-    test('src/reporters/text.js passes node syntax check', () => {
-        const { execSync } = require('child_process');
-        const filePath = path.join(REPO_ROOT, 'packages/simplebeacon-cli/src/reporters/text.js');
-        execSync(`node -c "${filePath}"`, { stdio: 'pipe' });
-    });
+  test("src/reporters/text.js passes node syntax check", () => {
+    const { execSync } = require("child_process");
+    const filePath = path.join(
+      REPO_ROOT,
+      "packages/simplebeacon-cli/src/reporters/text.js",
+    );
+    execSync(`node -c "${filePath}"`, { stdio: "pipe" });
+  });
 });
 
 // ═══════════════════════════════════════════════
 // 6. Cross-Page Messaging Consistency
 // ═══════════════════════════════════════════════
 
-describe('cross-page messaging consistency', () => {
+describe("cross-page messaging consistency", () => {
+  test('homepage and CLI both mention "48 analyzers \+ 25 scan engines"', () => {
+    const homepage = readFile("coming-soon/public/index.html");
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(homepage, /48 analyzers \+ 25 scan engines/i);
+    assert.match(cli, /48 analyzers \+ 25 scan engines/i);
+  });
 
-    test('homepage and CLI both mention "48 analyzers \+ 25 scan engines"', () => {
-        const homepage = readFile('coming-soon/public/index.html');
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(homepage, /48 analyzers \+ 25 scan engines/i);
-        assert.match(cli, /48 analyzers \+ 25 scan engines/i);
-    });
+  test('homepage and CLI both use "AI code debt" framing', () => {
+    const homepage = readFile("coming-soon/public/index.html");
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(homepage, /AI.code debt|code debt/i);
+    assert.match(cli, /AI code debt/i);
+  });
 
-    test('homepage and CLI both use "AI code debt" framing', () => {
-        const homepage = readFile('coming-soon/public/index.html');
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(homepage, /AI.code debt|code debt/i);
-        assert.match(cli, /AI code debt/i);
-    });
+  test('audit page and CLI both use "Deep Scan" terminology', () => {
+    const audit = readFile("coming-soon/public/audit.html");
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(audit, /Deep Scan/i);
+    assert.match(cli, /Deep Scan/i);
+  });
 
-    test('audit page and CLI both use "Deep Scan" terminology', () => {
-        const audit = readFile('coming-soon/public/audit.html');
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(audit, /Deep Scan/i);
-        assert.match(cli, /Deep Scan/i);
-    });
-
-    test('homepage and CLI both mention "traditional linting"', () => {
-        const homepage = readFile('coming-soon/public/index.html');
-        const cli = readFile('packages/simplebeacon-cli/bin/simplebeacon.js');
-        assert.match(homepage, /traditional linting/i);
-        assert.match(cli, /traditional linting/i);
-    });
+  test('homepage and CLI both mention "traditional linting"', () => {
+    const homepage = readFile("coming-soon/public/index.html");
+    const cli = readFile("packages/simplebeacon-cli/bin/simplebeacon.js");
+    assert.match(homepage, /traditional linting/i);
+    assert.match(cli, /traditional linting/i);
+  });
 });

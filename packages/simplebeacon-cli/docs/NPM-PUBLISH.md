@@ -52,10 +52,10 @@ Verify `files` in `package.json` includes `examples/` (MCP + CI templates).
 
 ## After publish
 
-1. Update README badge: npm published  
-2. Update `examples/github-action/simplebeacon.yml` to use `npx --yes simplebeacon` instead of `-p github:tjp420/simplebeacon`  
-3. Update GETTING-STARTED.md install lines  
-4. Tag release on GitHub  
+1. Update README badge: npm published
+2. Update `examples/github-action/simplebeacon.yml` to use `npx --yes simplebeacon` instead of `-p github:tjp420/simplebeacon`
+3. Update GETTING-STARTED.md install lines
+4. Tag release on GitHub
 5. Announce: `npx simplebeacon init --starter`
 
 ## Version bump
