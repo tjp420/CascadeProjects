@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.520] - 2026-08-25
+
+### VS Code Extension
+
+- **Published**: SimpleBeacon VS Code extension v3.0.520 to the VS Code Marketplace.
+- **Changed**: Replaced 200+ hardcoded severity/status colors with semantic CSS custom properties (`--sb-success`, `--sb-warning`, `--sb-danger`, `--sb-info`, `--sb-sev-*`) in the welcome dashboard.
+- **Changed**: Replaced 156 hardcoded border-radius values with design-token variables (`--sb-radius-sm/md/lg/xl/2xl/full`).
+- **Changed**: Aligned font-family fallback stack to the website design system (`system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`).
+- **Fixed**: IDE preview layout now includes `env(safe-area-inset-bottom)` spacing to prevent footer/action controls from being obscured by IDE panels or taskbars.
+
+### Security
+
+- **Fixed**: Issue #810 — Audited all `innerHTML` usages in `AnalyzeView.js`. All safe: `escapeHtml()` used for user-controlled content, `container.innerHTML = ''` for clears, numeric interpolation only. Audit comments added. Issue closed.
+- **Fixed**: 240 empty catch blocks across 122 files now log errors via `console.error` (SB-AI-004 remediation).
+- **Fixed**: 4 silent `except Exception: pass` blocks in `spa_fallback_server.py` now log errors via `logging.error`.
+- **Fixed**: Secret-logging patterns in marketing/sales/worker scripts — hardcoded emails and API key names replaced with env vars or generic placeholders.
+
+### Scanner Improvements
+
+- **Fixed**: SB-AI-009 false positives — scanner now skips shebang lines (`#!/usr/bin/env node`), eliminating 24 false "hardcoded filesystem path" findings.
+- **Improved**: Scan findings reduced from ~10,956 to 58 (99.5% reduction). Gate passes with 0 critical/high/medium. Remaining 58 are low-severity advisories (legitimate TODOs, hardcoded utility paths, edge-case catches, documented CORS fallback).
+
+### Website
+
+- **Changed**: All download links across 28 files in `coming-soon/` updated from direct VSIX downloads (`/downloads/simplebeacon-3.0.519.vsix`) to the VS Code Marketplace listing URL.
+- **Deployed**: Cloudflare Pages deployment completed.
+
+### Infrastructure
+
+- **Changed**: Added `.gitattributes` enforcing LF line endings across the repository. Normalized 4,385 tracked files from CRLF to LF.
+
 ## [1.1.5] - 2026-08-10
 
 ### Infrastructure
