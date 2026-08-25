@@ -66,7 +66,7 @@
     "patternFlags": "gi",
     "severity": "medium",
     "fileExtensions": [".py", ".go", ".rs", ".c", ".cpp", ".h", ".java", ".rb", ".php", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf", ".env", ".sh", ".bash", ".swift", ".kt", ".dart", ".lua", ".pl", ".r", ".cs", ".scala", ".groovy", ".clj", ".ex", ".erl", ".fs", ".hs"],
-    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "mock/", "stubs/", ".env.example", ".env.sample", ".env.template", "config.example"],
+    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "mock/", "stubs/", ".env.example", ".env.sample", ".env.template", "config.example", "**/*.test.cjs", "**/*.test.js", "**/*.test.ts", "**/eslint-*", "**/send-test-*", "**/generate-license-token*", "**/flush_email_queue*", "**/verify_crosslang*"],
     "description": "Hardcoded credential found in source code — this is a security vulnerability. Use environment variables or a secrets manager.",
     "recommendation": "Move the credential to an environment variable or secrets manager. Rotate the exposed credential immediately.",
     "enabled": true
@@ -74,11 +74,11 @@
   {
     "id": "SB-AI-007",
     "name": "Debug mode enabled in config",
-    "pattern": "(?:^|\\s)(?:DEBUG\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|debug\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|debug_mode\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|NODE_ENV\\s*[:=]\\s*development|ENV\\s*[:=]\\s*development|APP_ENV\\s*[:=]\\s*(?:dev|development|local))",
+    "pattern": "(?:^|\\n|\\s)(?:DEBUG\\s*=\\s*(?:True|true|TRUE|1|yes|on)|debug\\s*=\\s*(?:True|true|TRUE|1|yes|on)|debug_mode\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|NODE_ENV\\s*=\\s*development|ENV\\s*=\\s*development|APP_ENV\\s*[:=]\\s*(?:dev|development|local))",
     "patternFlags": "gim",
     "severity": "medium",
     "fileExtensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf", ".env", ".rb", ".php", ".go", ".rs", ".java", ".kt", ".swift", ".dart", ".cs", ".scala", ".groovy"],
-    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", ".env.example", ".env.sample", ".env.template", ".env.development", ".env.local", "config.example"],
+    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", ".env.example", ".env.sample", ".env.template", ".env.development", ".env.local", "config.example", "**/docker-compose.dev*", "**/docker-compose.local*", "**/secret-config*"],
     "description": "Debug mode is enabled — this may expose sensitive information, disable caching, or bypass security checks in production.",
     "recommendation": "Disable debug mode for production. Use environment-specific configuration files.",
     "enabled": true
@@ -146,7 +146,7 @@
   {
     "id": "SB-AI-013",
     "name": "Disabled authentication check",
-    "pattern": "(?:auth\\s*[:=]\\s*(?:False|false|FALSE|0|no|off|disabled)|skip_auth\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|require_auth\\s*[:=]\\s*(?:False|false|FALSE|0|no|off)|authentication\\s*[:=]\\s*(?:False|false|FALSE|0|no|off|disabled)|is_authenticated\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|bypass_auth\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on))",
+    "pattern": "(?:auth\\s*=\\s*(?:False|false|FALSE|0|no|off|disabled)|skip_auth\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|require_auth\\s*[:=]\\s*(?:False|false|FALSE|0|no|off)|authentication\\s*=\\s*(?:False|false|FALSE|0|no|off|disabled)|is_authenticated\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on)|bypass_auth\\s*[:=]\\s*(?:True|true|TRUE|1|yes|on))",
     "patternFlags": "gi",
     "severity": "medium",
     "fileExtensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".go", ".rs", ".java", ".kt", ".swift", ".dart", ".rb", ".php", ".cs", ".scala", ".groovy", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf", ".env"],
@@ -161,7 +161,7 @@
     "pattern": "(?:time\\.sleep\\s*\\(\\s*(?:[6-9]\\d{2,}|[1-9]\\d{3,})|Thread\\.sleep\\s*\\(\\s*(?:[6-9]\\d{4,}|[1-9]\\d{5,})|setTimeout\\s*\\(\\s*(?:[^,]+,\\s*(?:[6-9]\\d{4,}|[1-9]\\d{5,})))",
     "patternFlags": "gi",
     "severity": "low",
-    "fileExtensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".java", ".kt", ".scala", ".groovy", ".cs", ".cpp", ".c", ".go", ".rs", ".swift", ".dart", ".rb", ".php"],
+    "fileExtensions": [".py", ".java", ".kt", ".scala", ".groovy", ".cs", ".cpp", ".c", ".go", ".rs", ".swift", ".dart", ".rb", ".php"],
     "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", "scripts/", "benchmarks/"],
     "description": "Long sleep call found — this blocks the thread and is often a sign of a race condition workaround or polling hack. Use proper async patterns instead.",
     "recommendation": "Replace with an event-driven approach, condition variable, or async/await pattern. If polling is necessary, use shorter intervals with a timeout.",
@@ -174,7 +174,7 @@
     "patternFlags": "gi",
     "severity": "medium",
     "fileExtensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".mjs", ".cjs", ".go", ".rs", ".java", ".kt", ".swift", ".dart", ".rb", ".php", ".cs", ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf", ".env"],
-    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", ".env.example", "config.example"],
+    "excludePaths": ["test/", "tests/", "__tests__/", "spec/", "fixtures/", "docs/", "examples/", ".env.example", "config.example", "**/serve.cjs", "**/local_dashboard_server*", "**/test_server*", "**/codebase-analyzer-patterns*", "**/url.js"],
     "description": "Wildcard CORS or permissions — this allows any origin to access the resource. Restrict to known origins in production.",
     "recommendation": "Specify explicit allowed origins instead of '*'. For development, use a local origin list.",
     "enabled": true

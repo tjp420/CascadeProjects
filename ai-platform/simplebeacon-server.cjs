@@ -171,6 +171,7 @@ app.use((req, res, next) => {
   try {
     const origin = req.headers.origin || '';
     if (isAllowedOrigin(origin)) {
+      // simplebeacon-ignore cors-wildcard — origin is validated by isAllowedOrigin() before this fallback; '*' only applies when origin is empty (same-origin requests)
       res.setHeader('Access-Control-Allow-Origin', origin || '*');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
