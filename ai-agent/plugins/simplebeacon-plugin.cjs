@@ -63,7 +63,8 @@ module.exports = {
         registerHandler('simplebeacon.scan_project', handlerScanProject);
         registerHandler('simplebeacon.gate_status', handlerGateStatus);
       } catch (e) {
-        // Not fatal — fall back to helpers
+        // Not fatal — fall back to helpers, but log for debuggability
+        console.error('[simplebeacon-plugin] registerHandler failed, falling back to helpers:', e && e.message ? e.message : e);
         attachHelpers();
       }
     } else {

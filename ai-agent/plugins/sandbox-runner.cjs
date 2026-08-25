@@ -149,7 +149,8 @@ function cleanupSandbox(sandboxRoot) {
     try {
         fs.rmSync(sandboxRoot, { recursive: true, force: true });
     } catch (e) {
-        // Best-effort cleanup
+        // Best-effort cleanup — log so failures are debuggable
+        console.error(`[sandbox-runner] cleanupSandbox failed for ${sandboxRoot}:`, e && e.message ? e.message : e);
     }
 }
 

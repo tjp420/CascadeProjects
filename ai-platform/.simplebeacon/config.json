@@ -328,7 +328,9 @@
       "enabled": true,
       "ignoreGlobs": [
         "ai-platform/auto-processor.js",
-        "C:/Users/user/CascadeProjects/ai-platform/auto-processor.js"
+        "C:/Users/user/CascadeProjects/ai-platform/auto-processor.js",
+        "ai-agent/plugins/token-optimizer.cjs",
+        "C:/Users/user/CascadeProjects/ai-agent/plugins/token-optimizer.cjs"
       ]
     }
   },
