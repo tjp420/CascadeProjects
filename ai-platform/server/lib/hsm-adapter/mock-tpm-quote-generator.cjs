@@ -15,7 +15,7 @@
 
 const crypto = require('crypto');
 
-const MOCK_SIGNING_SECRET = 'mock-tpm-attestation-secret'; // simplebeacon-ignore credentials — intentional mock signing secret for test TPM quote generation
+const MOCK_SIGNING_SECRET = process.env.MOCK_TPM_SIGNING_SECRET || 'mock-tpm-attestation-secret'; // prefer env override in CI/secure environments; fallback kept for local tests
 
 /**
  * Default expected PCR values for testing.

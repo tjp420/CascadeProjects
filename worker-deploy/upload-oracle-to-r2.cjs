@@ -9,8 +9,8 @@
  *      Bucket: simplebeacon-models
  *
  *   2. Set environment variables (PowerShell):
- *      $env:R2_ACCESS_KEY_ID = "your-access-key-id" // simplebeacon-ignore credentials — placeholder in documentation comment
- *      $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key" // simplebeacon-ignore credentials — placeholder in documentation comment
+ *      $env:R2_ACCESS_KEY_ID = "<R2_ACCESS_KEY_ID>" // placeholder; do NOT commit real keys
+ *      $env:R2_SECRET_ACCESS_KEY = "<R2_SECRET_ACCESS_KEY>" // placeholder; do NOT commit real keys
  *      $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"
  *
  *   3. Run:
@@ -42,8 +42,8 @@ async function main() {
     console.error('ERROR: R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY environment variables required.');
     console.error('');
     console.error('Set them in PowerShell:');
-    console.error('  $env:R2_ACCESS_KEY_ID = "your-access-key-id"'); // simplebeacon-ignore credentials — placeholder in error message
-    console.error('  $env:R2_SECRET_ACCESS_KEY = "your-secret-access-key"'); // simplebeacon-ignore credentials — placeholder in error message
+    console.error('  $env:R2_ACCESS_KEY_ID = "<R2_ACCESS_KEY_ID>"'); // placeholder guidance, do not commit real keys
+    console.error('  $env:R2_SECRET_ACCESS_KEY = "<R2_SECRET_ACCESS_KEY>"'); // placeholder guidance, do not commit real keys
     console.error('  $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"');
     process.exit(1);
   }

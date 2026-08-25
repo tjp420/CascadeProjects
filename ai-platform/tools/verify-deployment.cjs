@@ -95,7 +95,7 @@ async function runDiagnostics() {
     // and properly enforcing signature verification.
     var timestamp = Math.floor(Date.now() / 1000).toString();
     var mockPayload = JSON.stringify({ id: 'evt_test_diagnostic', type: 'ping' });
-    var mockSecret = 'whsec_diagnostic_dummy_secret';
+    var mockSecret = process.env.DIAGNOSTIC_STRIPE_WEBHOOK_SECRET || 'whsec_diagnostic_dummy_secret'; // allow env override for secure CI/ops testing
     var signedPayload = timestamp + '.' + mockPayload;
     var signature = crypto
       .createHmac('sha256', mockSecret)
