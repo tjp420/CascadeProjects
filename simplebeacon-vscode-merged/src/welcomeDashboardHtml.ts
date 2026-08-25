@@ -39,7 +39,7 @@ export function buildDashboardHtml(options: DashboardHtmlOptions): string {
  /* welcome dashboard specific variables (language palette and trust colors) */
  --wd-lang-1:#89d185;--wd-lang-2:#38bdf8;--wd-lang-3:#a78bfa;--wd-lang-4:#f48771;
  --wd-lang-5:#d7a24c;--wd-lang-6:#007acc;--wd-lang-7:#ec4899;--wd-lang-8:#10b981;
- --wd-trust-good:#89d185;--wd-trust-med:#d7a24c;--wd-trust-low:#c75450;
+ --wd-trust-good:#89d185;--wd-trust-med:#d7a24c;--wd-trust-low:#c75450;--wd-sev-medium:#75beff;
 }
 body.vscode-light,body.vscode-high-contrast-light{
   --primary:#6366f1;--primary-hover:#4f46e5;--primary-subtle:#eef2ff;--accent:#06b6d4;
@@ -1181,7 +1181,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="db-kpi-icon">&#128200;</div>
-        <div class="db-kpi-value" id="statScore" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="statScore" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Quality Score</div>
         <div class="db-kpi-trend" id="trendScore">No data</div>
       </div>
@@ -1329,7 +1329,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="analyze-results" id="analyzeResults" style="display:none;">
       <h3>Analysis Results</h3>
       <div class="analyze-metrics" id="analyzeMetrics">
-        <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricScore" style="color:#89d185">--</div><div class="analyze-metric-label">Quality Score</div></div>
+        <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricScore" style="color:var(--wd-trust-good,#89d185)">--</div><div class="analyze-metric-label">Quality Score</div></div>
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricGate">--</div><div class="analyze-metric-label">Gate Status</div></div>
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricIssues" style="color:var(--vscode-errorForeground)">0</div><div class="analyze-metric-label">Issues Found</div></div>
         <div class="analyze-metric-card"><div class="analyze-metric-value" id="analyzeMetricFiles">0</div><div class="analyze-metric-label">Files Scanned</div></div>
@@ -1369,7 +1369,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="report-kpi-icon">&#128200;</div>
-        <div class="db-kpi-value" id="reportScore" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="reportScore" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Quality Score</div>
       </div>
       <div class="db-kpi-card">
@@ -1502,7 +1502,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="cert-kpi-icon">&#128274;</div>
-        <div class="db-kpi-value" id="certScore" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="certScore" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Compliance Score</div>
       </div>
       <div class="db-kpi-card">
@@ -1806,7 +1806,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="road-kpi-icon">&#9989;</div>
-        <div class="db-kpi-value" id="roadDone" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="roadDone" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Completed</div>
       </div>
       <div class="db-kpi-card">
@@ -1921,7 +1921,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="ai-kpi-icon">&#129302;</div>
-        <div class="db-kpi-value" id="aiModels" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="aiModels" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Models Detected</div>
       </div>
       <div class="db-kpi-card">
@@ -2040,7 +2040,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="up-kpi-icon">&#128193;</div>
-        <div class="db-kpi-value" id="upTotal" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="upTotal" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Total Files</div>
       </div>
       <div class="db-kpi-card">
@@ -2123,7 +2123,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="aud-kpi-icon">&#9989;</div>
-        <div class="db-kpi-value" id="audPassed" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="audPassed" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Checks Passed</div>
       </div>
       <div class="db-kpi-card">
@@ -2249,12 +2249,12 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       </div>
       <div class="db-kpi-card">
         <div class="sec-kpi-icon">&#128993;</div>
-        <div class="db-kpi-value" id="secHigh" style="color:#d7a24c">--</div>
+        <div class="db-kpi-value" id="secHigh" style="color:var(--wd-trust-med,#d7a24c)">--</div>
         <div class="db-kpi-label">High</div>
       </div>
       <div class="db-kpi-card">
         <div class="sec-kpi-icon">&#128309;</div>
-        <div class="db-kpi-value" id="secMedium" style="color:#75beff">--</div>
+        <div class="db-kpi-value" id="secMedium" style="color:var(--wd-sev-medium,#75beff)">--</div>
         <div class="db-kpi-label">Medium</div>
       </div>
       <div class="db-kpi-card">
@@ -2566,7 +2566,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="asst-kpi-icon">&#9989;</div>
-        <div class="db-kpi-value" id="asstCompleted" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="asstCompleted" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Completed</div>
       </div>
       <div class="db-kpi-card">
@@ -2957,7 +2957,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <div class="db-kpi-grid">
       <div class="db-kpi-card">
         <div class="comp-kpi-icon">&#9989;</div>
-        <div class="db-kpi-value" id="compPassed" style="color:#89d185">--</div>
+        <div class="db-kpi-value" id="compPassed" style="color:var(--wd-trust-good,#89d185)">--</div>
         <div class="db-kpi-label">Passed</div>
       </div>
       <div class="db-kpi-card">
@@ -6785,3 +6785,4 @@ vscode.postMessage({ command: 'ready' });
 </body>
 </html>`;
 }
+
