@@ -48,6 +48,16 @@ process.env.NODE_ENV = 'test';
 // connection attempts and noisy logging when Redis is not available in CI.
 process.env.ADMIN_THROTTLE_DISABLE_REDIS = process.env.ADMIN_THROTTLE_DISABLE_REDIS || '1';
 
+// Mock app-logger early so background services (SIEM exporter, telemetry, etc.)
+// do not attempt to write to console after Jest has torn down. This prevents
+// 'Cannot log after tests are done' failures caused by background retries.
+try {
+  jest.mock('../server/lib/app-logger.cjs', () => {
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn(), child: () => logger, write: () => {} };
+    return logger;
+  });
+} catch (e) {}
+
 // Track intervals created during tests so we can forcibly clear them in teardown.
 // This is defensive: some modules start background schedulers on require
 // which tests may not explicitly stop. We wrap only in the test environment.
