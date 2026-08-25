@@ -15,7 +15,10 @@ if (!fs.existsSync(source)) {
 fs.mkdirSync(dest, { recursive: true });
 
 // Copy newer/changed files from ai-platform source without deleting extras in dashboard-web.
-const cmd = `xcopy "${source}" "${dest}" /D /E /Y /I`;
+const isWindows = process.platform === 'win32';
+const cmd = isWindows
+  ? `xcopy "${source}" "${dest}" /D /E /Y /I`
+  : `cp -r "${source}/." "${dest}/"`;
 console.log(`[sync-dashboard-web] ${cmd}`);
 execSync(cmd, { stdio: 'inherit', shell: true });
 
