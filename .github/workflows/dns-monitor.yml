@@ -1,0 +1,30 @@
+name: SimpleBeacon Uptime & DNS Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs every hour
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  check-endpoints:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Apex Domain Status
+        run: |
+          echo "Checking https://simplebeacon.ai/dashboard/..."
+          STATUS_APEX=$(curl -o /dev/null -s -w "%{http_code}" https://simplebeacon.ai/dashboard/)
+          echo "Apex Response Code: $STATUS_APEX"
+          if [ "$STATUS_APEX" -ne 200 ]; then
+            echo "::error::Apex domain dashboard is failing with status $STATUS_APEX"
+            exit 1
+          fi
+
+      - name: Verify WWW Domain Status
+        run: |
+          echo "Checking https://www.simplebeacon.ai/dashboard/..."
+          STATUS_WWW=$(curl -o /dev/null -s -w "%{http_code}" https://www.simplebeacon.ai/dashboard/)
+          echo "WWW Response Code: $STATUS_WWW"
+          if [ "$STATUS_WWW" -ne 200 ]; then
+            echo "::error::WWW subdomain dashboard failed. DNS resolution or routing issue likely."
+            exit 1
+          fi
