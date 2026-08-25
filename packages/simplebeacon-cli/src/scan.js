@@ -1708,7 +1708,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         })),
         scannerEntry('custom-heuristic', 'customHeuristicScan', scanCustomHeuristicRules, (opts) => ({
             ignoreGlobs: opts.ignoreGlobs || config.ignore,
-            universalRules: opts.universalRules !== false
+            universalRules: opts.universalRules !== false,
+            extraSkipDirs: config.fullDirectoryScanSkipDirs || []
         })),
         {
             key: 'gzdoom-integrity-patterns',

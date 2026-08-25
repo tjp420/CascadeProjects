@@ -595,7 +595,8 @@ async function scanCustomHeuristicRules(projectRoot, options = {}) {
 
     // Walk the project directory
     const files = [];
-    await walkProjectFiles(projectRoot, '', files, allExtensions, ignoreGlobs, options.maxDepth || 15);
+    const extraSkipDirs = new Set(options.extraSkipDirs || []);
+    await walkProjectFiles(projectRoot, '', files, allExtensions, ignoreGlobs, options.maxDepth || 15, 0, extraSkipDirs);
 
     for (const file of files) {
         const relPath = file.relPath;
@@ -636,7 +637,7 @@ async function scanCustomHeuristicRules(projectRoot, options = {}) {
 /**
  * Recursively walk project files, respecting skip dirs and extension filters.
  */
-async function walkProjectFiles(root, relDir, results, extensions, ignoreGlobs, maxDepth, depth = 0) {
+async function walkProjectFiles(root, relDir, results, extensions, ignoreGlobs, maxDepth, depth = 0, extraSkipDirs = new Set()) {
     if (depth > maxDepth) return;
 
     const absDir = relDir ? path.join(root, relDir) : root;
@@ -650,9 +651,10 @@ async function walkProjectFiles(root, relDir, results, extensions, ignoreGlobs, 
     for (const entry of entries) {
         if (entry.isDirectory()) {
             if (SKIP_DIRS.has(entry.name)) continue;
+            if (extraSkipDirs.has(entry.name)) continue;
             if (entry.name.startsWith('.')) continue;
             const childRel = relDir ? `${relDir}/${entry.name}` : entry.name;
-            await walkProjectFiles(root, childRel, results, extensions, ignoreGlobs, maxDepth, depth + 1);
+            await walkProjectFiles(root, childRel, results, extensions, ignoreGlobs, maxDepth, depth + 1, extraSkipDirs);
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
             if (!extensions.has(ext)) continue;

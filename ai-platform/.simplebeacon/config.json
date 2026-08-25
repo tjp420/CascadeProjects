@@ -383,7 +383,17 @@
     "guardrail-test-bench",
     "local-agent",
     "simplebeacon-rule-tests",
-    "simplebeacon-guardrails-public"
+    "simplebeacon-guardrails-public",
+    "node_modules_host",
+    ".container_node_modules",
+    "vsix-staging",
+    "scripts",
+    "sales",
+    "marketing",
+    "packages/simplebeacon-cli/src/rules",
+    "worker-deploy",
+    "browser-extension",
+    "simplebeacon-desktop"
   ],
   "fullDirectoryScanMaxFiles": 100000
 }

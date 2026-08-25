@@ -533,6 +533,8 @@
         "worker-deploy/src/worker.js"
       ]
     }
+  },
+  "gate": {
     "failOn": [
       "high"
     ],
