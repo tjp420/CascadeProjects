@@ -44,6 +44,9 @@ try {
   // best-effort; don't fail tests if mocking fails
 }
 process.env.NODE_ENV = 'test';
+// Disable Redis usage in admin-throttle during Jest tests to avoid background
+// connection attempts and noisy logging when Redis is not available in CI.
+process.env.ADMIN_THROTTLE_DISABLE_REDIS = process.env.ADMIN_THROTTLE_DISABLE_REDIS || '1';
 
 // Track intervals created during tests so we can forcibly clear them in teardown.
 // This is defensive: some modules start background schedulers on require
