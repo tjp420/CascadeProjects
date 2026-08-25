@@ -11,7 +11,7 @@
  *   2. Set environment variables (PowerShell):
  *      $env:R2_ACCESS_KEY_ID = "<R2_ACCESS_KEY_ID>" // placeholder; do NOT commit real keys
  *      $env:R2_SECRET_ACCESS_KEY = "<R2_SECRET_ACCESS_KEY>" // placeholder; do NOT commit real keys
- *      $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"
+ *      $env:R2_ACCOUNT_ID = "<R2_ACCOUNT_ID>"
  *
  *   3. Run:
  *      node upload-oracle-to-r2.cjs
@@ -44,7 +44,7 @@ async function main() {
     console.error('Set them in PowerShell:');
     console.error('  $env:R2_ACCESS_KEY_ID = "<R2_ACCESS_KEY_ID>"'); // placeholder guidance, do not commit real keys
     console.error('  $env:R2_SECRET_ACCESS_KEY = "<R2_SECRET_ACCESS_KEY>"'); // placeholder guidance, do not commit real keys
-    console.error('  $env:R2_ACCOUNT_ID = "8815946f6d5847844ea60cf05e43f871"');
+    console.error('  $env:R2_ACCOUNT_ID = "<R2_ACCOUNT_ID>"');
     process.exit(1);
   }
 
