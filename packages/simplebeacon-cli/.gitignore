@@ -1,5 +1,7 @@
 node_modules/
 .simplebeacon/
 *.log
+# Allow checked-in test fixtures (log files used by tests)
+!tests/fixtures/**/*.log
 .DS_Store
 simplebeacon-*.tgz

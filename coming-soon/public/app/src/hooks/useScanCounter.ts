@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useFeatureAccess } from './useFeatureAccess';
-import { apiUrl, waitForApiBase, authHeaders } from '@/config';
+import { apiUrl, waitForApiBase } from '@/config';
 
 const STORAGE_KEY = 'sb_scan_count';
 const MONTH_KEY = 'sb_scan_month';
@@ -55,7 +55,7 @@ export function useScanCounter() {
         if (!token) return;
         await waitForApiBase();
         const resp = await fetch(apiUrl('/scans/count'), {
-          headers: { ...authHeaders() },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (resp.ok) {
           const data = await resp.json();
@@ -83,7 +83,7 @@ export function useScanCounter() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
+            Authorization: `Bearer ${token}`,
           },
         });
       }

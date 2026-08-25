@@ -245,7 +245,7 @@ const DEFAULT_OLLAMA_ORIGIN = 'http://127.0.0.1:11434'; // simplebeacon-ignore h
 const EXTENSION_PROBE_PORTS = [54358, 54697, 58681];
 
 export function getVsixDownloadUrl() {
-    return VSIX_DOWNLOAD_URL || '/downloads/simplebeacon.vsix';
+    return VSIX_DOWNLOAD_URL || '/downloads/simplebeacon-3.0.518.vsix';
 }
 
 /** vscode:// or cursor:// deep link — extension opens simplebeacon.ai with bridge params in the system browser. */

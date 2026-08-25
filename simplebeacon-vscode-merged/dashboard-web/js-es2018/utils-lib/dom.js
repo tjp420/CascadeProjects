@@ -802,3 +802,37 @@ export function browserFolderCapMessage(fileCount) {
     return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
         + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
 }
+
+// --- Notification helpers (stubs — real implementation uses toast system) ---
+export function requestNotificationPermission() {
+    try {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            return Notification.requestPermission();
+        }
+    } catch (_) { /* ignore */ }
+    return Promise.resolve(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
+}
+
+export function showOSNotification(title, body) {
+    try {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            new Notification(title, { body: String(body || '') });
+            return true;
+        }
+    } catch (_) { /* ignore */ }
+    return false;
+}
+
+export function isNotificationsEnabled() {
+    try {
+        return localStorage.getItem('sb_notifications') === '1';
+    } catch (_) {
+        return false;
+    }
+}
+
+export function setNotificationsEnabled(enabled) {
+    try {
+        localStorage.setItem('sb_notifications', enabled ? '1' : '0');
+    } catch (_) { /* ignore */ }
+}

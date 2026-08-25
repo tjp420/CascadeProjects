@@ -100,7 +100,28 @@ export function useExtensionBridge() {
     if (urlBase) {
       setBridgeBase(urlBase);
       setStatus('connected');
-      return { ok: true as const, base: urlBase };
+      // Fetch the bridge token from the health endpoint — the URL base gives us
+      // the port but not the token. Without this, /api/scan returns 401.
+      let fetchedToken: string | null = null;
+      try {
+        const doFetch = getLocalBridgeFetch();
+        const healthRes = await doFetch(`${urlBase}/api/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(3000),
+        });
+        if (healthRes.ok) {
+          const healthData = await healthRes.json().catch(() => ({}));
+          fetchedToken = healthData?.bridgeToken || null;
+          if (fetchedToken) {
+            setBridgeToken(fetchedToken);
+            persistBridge(urlBase, fetchedToken);
+          }
+        }
+      } catch {
+        // Best-effort — the bridge base is correct even without the token.
+        // The user can retry the scan and the token will be fetched on demand.
+      }
+      return { ok: true as const, base: urlBase, token: fetchedToken };
     }
 
     const storedBase = readStoredBridgeBase();

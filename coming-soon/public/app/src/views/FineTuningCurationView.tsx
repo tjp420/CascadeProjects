@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { getApiBase, authHeaders } from '@/config';
+import { getApiBase } from '@/config';
 import { toast } from 'sonner';
 import { Database, Search, ChevronLeft, ChevronRight, Download, Tag } from 'lucide-react';
 
@@ -45,6 +45,10 @@ function apiUrl(path: string): string {
   return `${base}/api${path}`;
 }
 
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 const LABELS = ['include', 'exclude', 'review', 'golden'];
 const FORMATS = ['jsonl', 'alpaca', 'chatml'];
@@ -345,5 +349,3 @@ export function FineTuningCurationView() {
     </div>
   );
 }
-
-

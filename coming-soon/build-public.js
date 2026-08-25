@@ -353,6 +353,13 @@ try {
       console.warn(`VSIX ${vsixFiles[0]} is ${(latestSize / 1024 / 1024).toFixed(1)} MiB; skipping copy because Cloudflare Pages limits static assets to 25 MiB.`);
     } else {
       fs.copyFileSync(latest, path.join(vsixDir, 'simplebeacon.vsix'));
+      // Also copy with version in filename — fresh URL bypasses CDN cache on updates
+      const versionMatch = vsixFiles[0].match(/(\d+\.\d+\.\d+)\.vsix$/);
+      if (versionMatch) {
+        const versionedName = `simplebeacon-${versionMatch[1]}.vsix`;
+        fs.copyFileSync(latest, path.join(vsixDir, versionedName));
+        process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/${versionedName}\n`);
+      }
       process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/simplebeacon.vsix\n`);
     }
   }

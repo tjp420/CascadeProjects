@@ -227,7 +227,7 @@
       setTimeout(function() { clearInterval(fastIv); setInterval(cleanup, 1000); }, 5000);
     })();
   </script>
-  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon-3.0.518.vsix",pricing:{plans:[]}};</script>
   <script>
 // SimpleBeacon Site Configuration (inlined to avoid 404 on Cloudflare Pages)
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
@@ -300,7 +300,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     } catch (_) { }
 })();
   </script>
-  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon.vsix",pricing:{plans:[]}};</script>
+  <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"/downloads/simplebeacon-3.0.518.vsix",pricing:{plans:[]}};</script>
   <script src="/site-config.js"></script>
   <script src="/js-es2018/referral-capture.js" defer></script>
 </head>

@@ -49,9 +49,7 @@ const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => (
 const TelemetryView = lazy(() => import('./views/TelemetryView').then(m => ({ default: m.TelemetryView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
-// Organization and workspace views are intentionally public so users can view org/workspace pages
-// without being forced to sign in. Authentication checks are still enforced for write-heavy pages.
-const AUTH_REQUIRED_VIEWS = new Set<string>();
+const AUTH_REQUIRED_VIEWS = new Set(['organization', 'workspace']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {

@@ -973,6 +973,24 @@ export function AnalyzeView() {
             }
           }
         }
+        // Fallback: if we have a bridge base but no token, fetch it from /api/health
+        if (activeBridge && !activeToken) {
+          try {
+            const healthRes = await fetch(`${activeBridge}/api/health`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(3000),
+            });
+            if (healthRes.ok) {
+              const healthData = await healthRes.json().catch(() => ({}));
+              activeToken = healthData?.bridgeToken || null;
+              if (activeToken && typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('sb_bridge_token', activeToken);
+              }
+            }
+          } catch {
+            // Best-effort — scan will fail with 401 if token is missing
+          }
+        }
         let bridgeReachable = false;
         if (activeBridge) {
           bridgeReachable = await checkLocalNetworkAccess(activeBridge, 2000);

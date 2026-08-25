@@ -3,8 +3,7 @@
   "include": [
     "/api/*",
     "/dashboard/*",
-    "/app/*",
-    "/downloads/*"
+    "/app/*"
   ],
   "exclude": [
     "/js/*",
@@ -17,6 +16,7 @@
     "/favicon.svg",
     "/robots.txt",
     "/sitemap.xml",
+    "/downloads/*.vsix",
     "/dashboard/css/*",
     "/dashboard/js/*",
     "/dashboard/js-es2018/*",

@@ -13,7 +13,7 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err) {
+    } catch (err: any) {
       // depcruise exits non-zero when there are errors
       output = err.stdout || '';
       const stderr = err.stderr || '';
@@ -34,7 +34,7 @@ describe('Architecture rules', () => {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    } catch (err) {
+    } catch (err: any) {
       output = err.stdout || '';
     }
 

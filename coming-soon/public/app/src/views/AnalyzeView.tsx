@@ -973,6 +973,24 @@ export function AnalyzeView() {
             }
           }
         }
+        // Fallback: if we have a bridge base but no token, fetch it from /api/health
+        if (activeBridge && !activeToken) {
+          try {
+            const healthRes = await fetch(`${activeBridge}/api/health`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(3000),
+            });
+            if (healthRes.ok) {
+              const healthData = await healthRes.json().catch(() => ({}));
+              activeToken = healthData?.bridgeToken || null;
+              if (activeToken && typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('sb_bridge_token', activeToken);
+              }
+            }
+          } catch {
+            // Best-effort — scan will fail with 401 if token is missing
+          }
+        }
         let bridgeReachable = false;
         if (activeBridge) {
           bridgeReachable = await checkLocalNetworkAccess(activeBridge, 2000);
@@ -1717,9 +1735,34 @@ export function AnalyzeView() {
         { key: 'server', label: 'Server Path', icon: FolderSearch },
         { key: 'github', label: 'GitHub URL', icon: Github },
       ];
- 
+
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
+      <div className="flex items-center justify-end">
+        <Button size="sm" onClick={async () => {
+          try {
+            if (notifsEnabled) {
+              setNotificationsPreference(false);
+              setNotifsEnabled(false);
+              toast.success('Notifications disabled');
+              return;
+            }
+            setNotificationsPreference(true);
+            setNotifsEnabled(true);
+            const perm = await requestNotificationPermission();
+            if (perm === 'granted') {
+              showOSNotification('SimpleBeacon', { body: 'Notifications enabled' });
+              toast.success('Notifications enabled');
+            }
+            else {
+              toast.error('Notifications not enabled');
+            }
+          }
+          catch (e) {
+            toast.error('Could not enable notifications');
+          }
+        }}>{notifsEnabled ? 'Disable notifications' : 'Enable notifications'}</Button>
+      </div>
       {localNetworkDenied && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-yellow-400/30 bg-yellow-50/30 px-4 py-3 text-sm">
           <div className="flex items-center gap-2">
@@ -1916,70 +1959,24 @@ export function AnalyzeView() {
           {hosted && (
             <div className="flex items-center gap-2 shrink-0">
               {bridgeStatus === 'connected' && bridgeBase ? (
-                <>
-                  <Badge variant="default" className="gap-1">IDE bridge connected</Badge>
-                  <Button size="sm" variant="ghost" onClick={async () => {
-                    try {
-                      if (notifsEnabled) {
-                        setNotificationsPreference(false);
-                        setNotifsEnabled(false);
-                        toast.success('Notifications disabled');
-                        return;
-                      }
-                      setNotificationsPreference(true);
-                      setNotifsEnabled(true);
-                      const perm = await requestNotificationPermission();
-                      if (perm === 'granted') {
-                        showOSNotification('SimpleBeacon', { body: 'Notifications enabled' });
-                        toast.success('Notifications enabled');
-                      } else {
-                        toast.error('Notifications not enabled');
-                      }
-                    } catch (e) {
-                      toast.error('Could not enable notifications');
-                    }
-                  }}>{notifsEnabled ? 'Disable notifications' : 'Enable notifications'}</Button>
-                </>
+                <Badge variant="default" className="gap-1">IDE bridge connected</Badge>
               ) : (
-                <>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      const probe = await recheckBridge(true);
-                      if (probe?.ok) return;
-                      if (probe && 'deepLink' in probe && probe.deepLink) {
-                        window.location.href = probe.deepLink;
-                      } else {
-                        toast.info('Install the SimpleBeacon VS Code extension, reload this page, then try Connect IDE again.');
-                      }
-                    }}
-                  >
-                    Connect IDE
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={async () => {
-                    try {
-                      if (notifsEnabled) {
-                        setNotificationsPreference(false);
-                        setNotifsEnabled(false);
-                        toast.success('Notifications disabled');
-                        return;
-                      }
-                      setNotificationsPreference(true);
-                      setNotifsEnabled(true);
-                      const perm = await requestNotificationPermission();
-                      if (perm === 'granted') {
-                        showOSNotification('SimpleBeacon', { body: 'Notifications enabled' });
-                        toast.success('Notifications enabled');
-                      } else {
-                        toast.error('Notifications not enabled');
-                      }
-                    } catch (e) {
-                      toast.error('Could not enable notifications');
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const probe = await recheckBridge(true);
+                    if (probe?.ok) return;
+                    if (probe && 'deepLink' in probe && probe.deepLink) {
+                      window.location.href = probe.deepLink;
+                    } else {
+                      toast.info('Install the SimpleBeacon VS Code extension, reload this page, then try Connect IDE again.');
                     }
-                  }}>{notifsEnabled ? 'Disable notifications' : 'Enable notifications'}</Button>
-                </>
+                  }}
+                >
+                  Connect IDE
+                </Button>
               )}
             </div>
           )}

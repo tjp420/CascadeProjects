@@ -87,9 +87,29 @@
         return;
       }
 
-      // For buttons, attach click handler
+      // For buttons, prefer opening the pricing modal when data-price-id or data-annual-price-id is present
       el.addEventListener('click', function (e) {
         e.preventDefault();
+        try {
+          if (el.hasAttribute && (el.hasAttribute('data-price-id') || el.hasAttribute('data-annual-price-id'))) {
+            // Record that the modal was opened for debugging
+            try { localStorage.setItem('sb_last_checkout_path', 'modal:' + tierKey); } catch (_) {}
+            try { console.info('[pricing] open modal for tier', tierKey); } catch (_) {}
+            // Defer to the pricing page modal / client-side handler so the user's billing cadence is respected
+            if (typeof openCheckoutModal === 'function') {
+              openCheckoutModal(tierKey);
+              // Optionally send a lightweight beacon if configured
+              try {
+                if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
+                  var payload = JSON.stringify({ event: 'checkout_modal_open', tier: tierKey, ts: Date.now() });
+                  navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload);
+                }
+              } catch (_) {}
+              return;
+            }
+          }
+        } catch (_) {}
+
         var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
         // Record the redirect path for diagnostics
         try { localStorage.setItem('sb_last_checkout_path', 'redirect:' + (url || tierKey)); } catch (_) {}
@@ -97,10 +117,11 @@
         // Try to send a beacon to configured telemetry endpoint (best-effort)
         try {
           if (navigator && navigator.sendBeacon && cfg.clientTelemetryEndpoint) {
-            var payload = JSON.stringify({ event: 'checkout_redirect', tier: tierKey, url: url || null, ts: Date.now() });
-            navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload);
+            var payload2 = JSON.stringify({ event: 'checkout_redirect', tier: tierKey, url: url || null, ts: Date.now() });
+            navigator.sendBeacon(cfg.clientTelemetryEndpoint, payload2);
           }
         } catch (_) {}
+
         // URL validated: only Stripe payment links or internal anchors allowed
         if (isStripeUrl(url)) {
           window.location.href = url;

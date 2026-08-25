@@ -50,6 +50,10 @@ export function getApiBase(): string {
   }
 }
 
+/**
+ * Build a safe API URL for a given path segment.
+ * Ensures the base has no trailing `/api` and the returned URL contains exactly one `/api` prefix.
+ */
 export function authHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
@@ -57,16 +61,15 @@ export function authHeaders(): Record<string, string> {
 }
 
 export function isTokenExpired(): boolean {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === 'undefined') return false;
   const token = localStorage.getItem('sb_token') || localStorage.getItem('sb-token') || localStorage.getItem('auth_token');
   if (!token) return true;
   try {
     const parts = token.split('.');
-    if (parts.length < 2) return false;
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = JSON.parse(decodeURIComponent(escape(atob(payload))));
-    if (!decoded || typeof decoded.exp !== 'number') return false;
-    return Math.floor(Date.now() / 1000) >= decoded.exp;
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && Date.now() >= payload.exp * 1000) return true;
+    return false;
   } catch {
     return true;
   }
@@ -106,8 +109,13 @@ if (typeof window !== 'undefined') {
   const win: any = window as any;
   const _host = window.location.hostname || '';
   // Only probe for a local API server when running on localhost.
+  // On hosted dashboards (simplebeacon.pages.dev), probing causes Private Network Access
+  // permission prompts and CORS errors because the secure context cannot reach a local
+  // server without explicit browser permission. Users who need a local server can use
+  // the sb_api_base query parameter instead.
   const _isLocalhost = /^127\.0\.0\.1$|^localhost$/i.test(_host);
   if (_isLocalhost && !win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+    // Prefer the configured default port first, then common proxy/agent ports.
     const ports = [58000, 64772, 54358, 50559, 3001, 3000, 3002, 4000, 8080];
     _apiBaseDetectPromise = (async () => {
       async function probePort(port: number): Promise<boolean> {
@@ -123,6 +131,9 @@ if (typeof window !== 'undefined') {
           if (!res || !(res.ok || res.status === 401 || res.status === 403 || res.status === 404)) {
             return false;
           }
+          // Verify the response actually came from a Simplebeacon server.
+          // Other dev tools (e.g. Windsurf, Vite) may respond on 3001 with the
+          // wrong CORS policy and cause subsequent API calls to fail.
           try {
             const data = await res.clone().json();
             if (data.platform !== 'Simplebeacon' && data.status !== 'healthy') {
@@ -131,6 +142,8 @@ if (typeof window !== 'undefined') {
           } catch {
             return false;
           }
+          // Verify CORS allows the authorization header — otherwise authenticated
+          // requests will fail with preflight errors.
           const allowHeaders = res.headers.get('Access-Control-Allow-Headers') || '';
           if (allowHeaders && allowHeaders !== '*') {
             const allowed = allowHeaders.toLowerCase().split(',').map(h => h.trim());
@@ -157,6 +170,7 @@ if (typeof window !== 'undefined') {
       return null;
     })();
   } else {
+    // No probing needed — mark as done so getApiBase doesn't wait
     _probeDone = true;
   }
 }
