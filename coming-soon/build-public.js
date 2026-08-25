@@ -478,7 +478,7 @@ try {
                 fs.copyFileSync(latest, path.join(vsixDir, versionedName));
                 process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/${versionedName}\n`);
             }
-            process.stdout.write(`Copied VSIX ${vsixFiles[0]} → publichttps://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode\n`);
+            process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/simplebeacon.vsix\n`);
         }
     }
 } catch (e) {
