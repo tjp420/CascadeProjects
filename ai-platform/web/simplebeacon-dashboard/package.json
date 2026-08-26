@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/check-api.cjs && vite",
+    "dev:ci": "node scripts/prepare-worker-assets.cjs || true && node scripts/check-api.cjs && vite",
     "build": "tsc -b && vite build && node scripts/prepare-worker-assets.cjs",
     "preview": "vite preview",
     "dev:jitter": "node ../../../tools/run-jitter-harness.js",

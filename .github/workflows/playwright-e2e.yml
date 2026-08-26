@@ -111,7 +111,7 @@ jobs:
 
       - name: Run E2E Test Suite
         run: |
-          PORT=61455 npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
+          PORT=61455 npx start-server-and-test "npm run dev:ci" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
         working-directory: ai-platform/web/simplebeacon-dashboard
         env:
           NODE_ENV: test
