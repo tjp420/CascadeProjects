@@ -51,15 +51,39 @@ jobs:
       - name: Compile Application Production Bundle
         run: npm run build
 
-      - name: Run prepare-worker-assets (defensive)
+      - name: Run prepare-worker-assets (diagnostic + defensive)
         if: always()
         run: |
+          echo "--- prepare-worker-assets diagnostic start ---"
+          echo "PWD: $(pwd)"
+          echo "Listing working directory contents:"
+          ls -la || true
+          echo "Checking for assets directory:"
+          if [ -d assets ]; then
+            echo "assets directory exists, listing contents:"; ls -la assets || true
+          else
+            echo "assets directory missing"
+          fi
+          echo "Checking for scripts directory:"
+          if [ -d scripts ]; then
+            echo "scripts directory exists, listing contents:"; ls -la scripts || true
+          else
+            echo "scripts directory missing"
+          fi
+          echo "Node version:"; node -v || true
+
           if [ -f scripts/prepare-worker-assets.cjs ]; then
             echo "Running prepare-worker-assets.cjs to ensure placeholder maps/chunks"
-            node scripts/prepare-worker-assets.cjs || true
+            node --trace-warnings scripts/prepare-worker-assets.cjs || echo "prepare-worker-assets exited with $?"
+            echo "After prepare-worker-assets run: listing assets directory (post-script):"
+            ls -la assets || true
+            echo "Listing asset maps and chunk candidates (globs may be empty):"
+            ls -la assets/*.map || true
+            ls -la assets/*v2-localAgentService* || true
           else
             echo "prepare-worker-assets.cjs not found — skipping"
           fi
+          echo "--- prepare-worker-assets diagnostic end ---"
 
       - name: Ensure Playwright artifact directories exist
         run: |
