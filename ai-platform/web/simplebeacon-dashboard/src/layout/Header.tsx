@@ -160,6 +160,11 @@ export function Header({
                   localStorage.removeItem("sb_token");
                   localStorage.removeItem("sb-token");
                   localStorage.removeItem("sb_user");
+                  try {
+                    window.dispatchEvent(new Event("sb:logout"));
+                  } catch {
+                    /* ignore */
+                  }
                   navigate("signin");
                 }}
               >

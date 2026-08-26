@@ -95,7 +95,14 @@ export function useAuth() {
 
     checkAuth();
     window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
+    // Listen for same-tab login/logout events dispatched by SignInView
+    window.addEventListener("sb:login", checkAuth);
+    window.addEventListener("sb:logout", checkAuth);
+    return () => {
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("sb:login", checkAuth);
+      window.removeEventListener("sb:logout", checkAuth);
+    };
   }, []);
 
   const signOut = useCallback(() => {
@@ -105,6 +112,11 @@ export function useAuth() {
     localStorage.removeItem("auth_token");
     setIsAuthenticated(false);
     setUser(null);
+    try {
+      window.dispatchEvent(new Event("sb:logout"));
+    } catch {
+      /* ignore */
+    }
     navigate("signin");
   }, []);
 
