@@ -188,9 +188,56 @@ function main() {
                   console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
                 }
               } else {
-                // No candidate found — write a small stub module to prevent import-analysis failure
-                fs.writeFileSync(refPath, 'export default {};', 'utf8');
-                console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+                // No candidate found in the assets folder — search fallback build output directories
+                const fallbackDirs = [
+                  path.join(ROOT, 'dist'),
+                  path.join(ROOT, 'build'),
+                  path.join(ROOT, 'js-es2018'),
+                  path.join(ROOT, '..', 'dist'),
+                  path.join(ROOT, '..', '..', 'dist'),
+                ];
+
+                let foundInFallback = false;
+                for (const fd of fallbackDirs) {
+                  try {
+                    if (!fs.existsSync(fd)) continue;
+                    const fdFiles = fs.readdirSync(fd).filter((f) => f.endsWith('.js'));
+                    // Exact filename present in fallback?
+                    if (fdFiles.includes(ref)) {
+                      fs.copyFileSync(path.join(fd, ref), refPath);
+                      console.log(`[prepare-worker-assets] Copied ${ref} from fallback ${fd} → assets`);
+                      const fdMap = ref + '.map';
+                      if (fdFiles.includes(fdMap) && !fs.existsSync(refPath + '.map')) {
+                        fs.copyFileSync(path.join(fd, fdMap), refPath + '.map');
+                        console.log(`[prepare-worker-assets] Copied map ${fdMap} from ${fd}`);
+                      }
+                      foundInFallback = true;
+                      break;
+                    }
+                    // Try base-match candidates in fallback
+                    const fdCandidates = fdFiles.filter((f) => f.startsWith(baseMatch + '-') && f.endsWith('.js'));
+                    if (fdCandidates.length > 0) {
+                      const candidate = fdCandidates[0];
+                      fs.copyFileSync(path.join(fd, candidate), refPath);
+                      console.log(`[prepare-worker-assets] Copied candidate ${candidate} from ${fd} → ${ref}`);
+                      const candMap = candidate + '.map';
+                      if (fdFiles.includes(candMap) && !fs.existsSync(refPath + '.map')) {
+                        fs.copyFileSync(path.join(fd, candMap), refPath + '.map');
+                        console.log(`[prepare-worker-assets] Copied map ${candMap} from ${fd}`);
+                      }
+                      foundInFallback = true;
+                      break;
+                    }
+                  } catch (e) {
+                    console.warn(`[prepare-worker-assets] Error scanning fallback dir ${fd}: ${e.message}`);
+                  }
+                }
+
+                if (!foundInFallback) {
+                  // No candidate found — write a small stub module to prevent import-analysis failure
+                  fs.writeFileSync(refPath, 'export default {};', 'utf8');
+                  console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+                }
               }
             } catch (err) {
               console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
