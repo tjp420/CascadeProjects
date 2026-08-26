@@ -51,6 +51,16 @@ jobs:
       - name: Compile Application Production Bundle
         run: npm run build
 
+      - name: Run prepare-worker-assets (defensive)
+        if: always()
+        run: |
+          if [ -f scripts/prepare-worker-assets.cjs ]; then
+            echo "Running prepare-worker-assets.cjs to ensure placeholder maps/chunks"
+            node scripts/prepare-worker-assets.cjs || true
+          else
+            echo "prepare-worker-assets.cjs not found — skipping"
+          fi
+
       - name: Ensure Playwright artifact directories exist
         run: |
           mkdir -p ai-platform/web/simplebeacon-dashboard/playwright-report
