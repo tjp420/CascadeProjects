@@ -126,46 +126,47 @@ function main() {
       }
     }
 
-    // Defensive: ensure every .js file has a .map and stub missing chunks referenced by main.js
-    try {
-      const allJs = fs.readdirSync(DIST_ASSETS).filter((f) => /\.js$/.test(f) && !f.endsWith('.map'));
-      for (const jf of allJs) {
-        const mapPath = path.join(DIST_ASSETS, jf + '.map');
-        if (!fs.existsSync(mapPath)) {
-          try {
-            fs.writeFileSync(mapPath, JSON.stringify({ version: 3, file: jf, sources: [], names: [], mappings: '' }), 'utf8');
-            console.log(`[prepare-worker-assets] Created placeholder map for ${jf}`);
-          } catch (err) {
-            console.warn(`[prepare-worker-assets] Failed to create placeholder map for ${jf}: ${err.message}`);
-          }
-        }
-      }
-
-      const mainJsPathNow = path.join(DIST_ASSETS, 'main.js');
-      if (fs.existsSync(mainJsPathNow)) {
-        const mainContent = fs.readFileSync(mainJsPathNow, 'utf8');
-        const importRegex = /from\s+["']\.\/([^"']+\.js)["']/g;
-        let m;
-        while ((m = importRegex.exec(mainContent)) !== null) {
-          const ref = m[1];
-          const refPath = path.join(DIST_ASSETS, ref);
-          if (!fs.existsSync(refPath)) {
-            try {
-              fs.writeFileSync(refPath, 'export default {};', 'utf8');
-              console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
-            } catch (err) {
-              console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[prepare-worker-assets] Defensive asset checks failed:', err.message);
-    }
   } else {
     console.warn(
       "[prepare-worker-assets] No hashed main entry found — skipping unhashed copy",
     );
+  }
+
+  // Defensive (always-run): ensure every .js file has a .map and stub missing chunks referenced by main.js
+  try {
+    const allJs = fs.readdirSync(DIST_ASSETS).filter((f) => /\.js$/.test(f) && !f.endsWith('.map'));
+    for (const jf of allJs) {
+      const mapPath = path.join(DIST_ASSETS, jf + '.map');
+      if (!fs.existsSync(mapPath)) {
+        try {
+          fs.writeFileSync(mapPath, JSON.stringify({ version: 3, file: jf, sources: [], names: [], mappings: '' }), 'utf8');
+          console.log(`[prepare-worker-assets] Created placeholder map for ${jf}`);
+        } catch (err) {
+          console.warn(`[prepare-worker-assets] Failed to create placeholder map for ${jf}: ${err.message}`);
+        }
+      }
+    }
+
+    const mainJsPathNow = path.join(DIST_ASSETS, 'main.js');
+    if (fs.existsSync(mainJsPathNow)) {
+      const mainContent = fs.readFileSync(mainJsPathNow, 'utf8');
+      const importRegex = /from\s+["']\.\/([^"']+\.js)["']/g;
+      let m;
+      while ((m = importRegex.exec(mainContent)) !== null) {
+        const ref = m[1];
+        const refPath = path.join(DIST_ASSETS, ref);
+        if (!fs.existsSync(refPath)) {
+          try {
+            fs.writeFileSync(refPath, 'export default {};', 'utf8');
+            console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+          } catch (err) {
+            console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[prepare-worker-assets] Defensive asset checks failed:', err.message);
   }
 
   // Copy hashed main CSS to unhashed main.css for index.html compatibility.
