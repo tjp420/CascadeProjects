@@ -18,7 +18,7 @@
         "/dashboard/js-es2018/*",
         "/dashboard/images/*",
         "/dashboard/fonts/*",
-        "/dashboard/assets/*",
+        "/dashboard/assets/main-v30min.js",
         "/dashboard/dist/assets/*",
         "/dashboard/dist/*.css",
         "/dashboard/dist/*.js",
@@ -27,7 +27,7 @@
         "/app/js-es2018/*",
         "/app/images/*",
         "/app/fonts/*",
-        "/app/assets/*",
+        "/app/assets/main-v30min.js",
         "/app/dist/assets/*",
         "/app/dist/*.css",
         "/app/dist/*.js"
