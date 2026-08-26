@@ -73,7 +73,8 @@ function readStore() {
     if (!fs.existsSync(storePath)) return { entries: {} };
     const raw = fs.readFileSync(storePath, "utf8");
     return JSON.parse(raw);
-  } catch {
+  } catch (e) {
+    try { logger.warn('[AuditLogger] readStore failed, returning empty store:', e && e.message ? e.message : e); } catch (_) {}
     return { entries: {} };
   }
 }
@@ -112,7 +113,8 @@ function _getPiiPolicyStore() {
   if (_piiPolicyStore === null) {
     try {
       _piiPolicyStore = require("./pii-policy-store.cjs");
-    } catch {
+    } catch (e) {
+      try { logger.info('[AuditLogger] pii-policy-store unavailable:', e && e.message ? e.message : e); } catch (_) {}
       _piiPolicyStore = false; // Mark as unavailable
     }
   }

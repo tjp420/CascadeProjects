@@ -435,8 +435,9 @@ class DkgSnarkEngine {
             entityId: nodeId,
             reason: e.message,
           });
-        } catch (_) {
-          // swallow audit errors
+        } catch (err) {
+          // swallow audit errors, but log at debug level for diagnostics
+          try { console.warn('dkg-snark-engine: auditHook error:', err); } catch (_) {}
         }
       }
       throw e;
@@ -496,7 +497,7 @@ class DkgSnarkEngine {
               entityId: nodeId,
               reason: e.message,
             });
-          } catch (_) {}
+          } catch (err) { try { console.warn('dkg-snark-engine: auditHook error:', err); } catch (_) {} }
         }
         throw e;
       }

@@ -69,7 +69,8 @@ function readStore() {
     } else {
       _cache = Object.assign({}, DEFAULT_SETTINGS);
     }
-  } catch {
+  } catch (e) {
+    console.error('security-monitor-settings-store.cjs readStore error:', e);
     _cache = Object.assign({}, DEFAULT_SETTINGS);
   }
   _cacheDirty = false;
