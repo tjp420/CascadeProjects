@@ -51,6 +51,11 @@ jobs:
       - name: Compile Application Production Bundle
         run: npm run build
 
+      - name: Ensure Playwright artifact directories exist
+        run: |
+          mkdir -p ai-platform/web/simplebeacon-dashboard/playwright-report
+          mkdir -p ai-platform/web/simplebeacon-dashboard/test-results
+
       - name: Fire Static Sandbox Server & Execute E2E Suite
         env:
           CI: true
