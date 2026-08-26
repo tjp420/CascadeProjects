@@ -75,6 +75,40 @@ jobs:
           node -e "const http=require('http');const port=53900;const server=http.createServer((req,res)=>{try{if(req.url==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({ok:true,env:'mock'}));}if(req.url.startsWith('/api/config')){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({pricing:[],features:{}}));}if(req.url.startsWith('/api/')){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({mock:true,path:req.url}));}res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}catch(e){console.error('mock-api error',e);res.writeHead(500);res.end('error');}});server.listen(port,'127.0.0.1',()=>console.log('Mock API listening on',port));setInterval(()=>{},1e6)" > mock-api.log 2>&1 &
           echo $! > mock-api.pid
 
+      - name: Run prepare-worker-assets (diagnostic + defensive)
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        run: |
+          echo "--- prepare-worker-assets diagnostic start ---"
+          echo "PWD: $(pwd)"
+          echo "Listing working directory contents:"
+          ls -la || true
+          echo "Checking for assets directory:"
+          if [ -d assets ]; then
+            echo "assets directory exists, listing contents:"; ls -la assets || true
+          else
+            echo "assets directory missing"
+          fi
+          echo "Checking for scripts directory:"
+          if [ -d scripts ]; then
+            echo "scripts directory exists, listing contents:"; ls -la scripts || true
+          else
+            echo "scripts directory missing"
+          fi
+          echo "Node version:"; node -v || true
+
+          if [ -f scripts/prepare-worker-assets.cjs ]; then
+            echo "Running prepare-worker-assets.cjs to ensure placeholder maps/chunks"
+            node --trace-warnings scripts/prepare-worker-assets.cjs || echo "prepare-worker-assets exited with $?"
+            echo "After prepare-worker-assets run: listing assets directory (post-script):"
+            ls -la assets || true
+            echo "Listing asset maps and chunk candidates (globs may be empty):"
+            ls -la assets/*.map || true
+            ls -la assets/*v2-localAgentService* || true
+          else
+            echo "prepare-worker-assets.cjs not found — skipping"
+          fi
+          echo "--- prepare-worker-assets diagnostic end ---"
+
       - name: Run E2E Test Suite
         run: |
           PORT=61455 npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
