@@ -11,48 +11,54 @@
       // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
       (function () {
         function isBeacon(el) {
-          if (!el || el.tagName !== 'SCRIPT') return false;
-          var src = el.src || '';
-          var cf = el.getAttribute('data-cf-beacon');
-          return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
+          if (!el || el.tagName !== "SCRIPT") return false;
+          var src = el.src || "";
+          var cf = el.getAttribute("data-cf-beacon");
+          return (
+            src.indexOf("static.cloudflareinsights.com/beacon.min.js") !== -1 ||
+            (cf && cf.length > 0)
+          );
         }
         function neutralize(el) {
           if (!isBeacon(el)) return;
           try {
-            el.removeAttribute('src');
+            el.removeAttribute("src");
           } catch (_) {}
           try {
-            el.type = 'text/plain';
+            el.type = "text/plain";
           } catch (_) {}
           try {
-            el.removeAttribute('integrity');
+            el.removeAttribute("integrity");
           } catch (_) {}
           try {
-            el.removeAttribute('crossorigin');
+            el.removeAttribute("crossorigin");
           } catch (_) {}
         }
         var origCreate = document.createElement.bind(document);
         document.createElement = function (tag) {
           var el = origCreate(tag);
-          if (typeof tag === 'string' && tag.toLowerCase() === 'script') {
+          if (typeof tag === "string" && tag.toLowerCase() === "script") {
             var origSetAttr = el.setAttribute.bind(el);
             el.setAttribute = function (name, value) {
               if (
-                name === 'src' &&
-                typeof value === 'string' &&
-                value.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1
+                name === "src" &&
+                typeof value === "string" &&
+                value.indexOf("static.cloudflareinsights.com/beacon.min.js") !==
+                  -1
               ) {
                 try {
-                  el.removeAttribute('integrity');
+                  el.removeAttribute("integrity");
                 } catch (_) {}
                 try {
-                  el.removeAttribute('crossorigin');
+                  el.removeAttribute("crossorigin");
                 } catch (_) {}
               }
               if (
-                (name === 'integrity' || name === 'crossorigin') &&
-                typeof el.src === 'string' &&
-                el.src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1
+                (name === "integrity" || name === "crossorigin") &&
+                typeof el.src === "string" &&
+                el.src.indexOf(
+                  "static.cloudflareinsights.com/beacon.min.js",
+                ) !== -1
               ) {
                 return;
               }
@@ -64,41 +70,58 @@
         if (window.MutationObserver) {
           var mo = new MutationObserver(function (records) {
             records.forEach(function (record) {
-              Array.prototype.forEach.call(record.addedNodes || [], function (node) {
-                if (node.nodeType === 1) {
-                  if (node.tagName === 'SCRIPT') neutralize(node);
-                  if (node.querySelectorAll) {
-                    Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+              Array.prototype.forEach.call(
+                record.addedNodes || [],
+                function (node) {
+                  if (node.nodeType === 1) {
+                    if (node.tagName === "SCRIPT") neutralize(node);
+                    if (node.querySelectorAll) {
+                      Array.prototype.forEach.call(
+                        node.querySelectorAll("script"),
+                        neutralize,
+                      );
+                    }
                   }
-                }
-              });
+                },
+              );
             });
           });
-          mo.observe(document.documentElement, { childList: true, subtree: true });
+          mo.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+          });
           // Stop observing after 5s — edge injection happens during initial load
           setTimeout(function () {
             mo.disconnect();
           }, 5000);
         }
         // Sweep existing scripts on DOMContentLoaded for any injected before observer
-        document.addEventListener('DOMContentLoaded', function () {
-          Array.prototype.forEach.call(document.querySelectorAll('script'), neutralize);
+        document.addEventListener("DOMContentLoaded", function () {
+          Array.prototype.forEach.call(
+            document.querySelectorAll("script"),
+            neutralize,
+          );
         });
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <script>
       (function () {
-        var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-        var l = document.createElement('link');
-        l.rel = 'stylesheet';
-        if (devHost) l.href = './assets/main.css';
-        else l.href = './assets/main.css';
+        var devHost =
+          /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) ||
+          location.port === "5173";
+        var l = document.createElement("link");
+        l.rel = "stylesheet";
+        if (devHost) l.href = "./assets/main.css";
+        else l.href = "./assets/main.css";
         document.head.appendChild(l);
       })();
     </script>
@@ -107,17 +130,21 @@
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
-        var sbParentUrlbar = params.get('sb_parent_urlbar');
-        var sbWebsiteMode = params.get('sb_website_mode');
+        var sbParentUrlbar = params.get("sb_parent_urlbar");
+        var sbWebsiteMode = params.get("sb_website_mode");
         // Consider IDE/embed only when explicitly embedded (iframe), when the
         // host provides an explicit query flag, or when VS Code provides the
         // `acquireVsCodeApi` bridge. Do not rely on the UA "Electron" token
         // alone because browsers or previews may include it.
         var isIde =
-          window.self !== window.top || typeof window.acquireVsCodeApi === 'function' || sbParentUrlbar === '1';
-        if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
-        if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
-        if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
+          window.self !== window.top ||
+          typeof window.acquireVsCodeApi === "function" ||
+          sbParentUrlbar === "1";
+        if (sbParentUrlbar === "1")
+          document.documentElement.setAttribute("data-parent-urlbar", "1");
+        if (sbWebsiteMode === "1")
+          document.documentElement.setAttribute("data-embed-mode", "1");
+        if (isIde) document.documentElement.setAttribute("data-ide-embed", "1");
       })();
     </script>
 
@@ -125,9 +152,9 @@
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem('sb_theme');
-          if (saved === 'light' || saved === 'dark') {
-            document.documentElement.setAttribute('data-theme', saved);
+          var saved = localStorage.getItem("sb_theme");
+          if (saved === "light" || saved === "dark") {
+            document.documentElement.setAttribute("data-theme", saved);
           }
         } catch (_) {}
       })();
@@ -146,7 +173,7 @@
       /* If the host forces inline heights on html/body, make the app root
        fill the viewport and be independently scrollable. Do not apply in
        IDE/embed contexts where the host controls sizing. */
-      html:not([data-ide-embed='1']) #root {
+      html:not([data-ide-embed="1"]) #root {
         position: fixed;
         inset: 0;
         overflow: auto;
@@ -156,8 +183,8 @@
       /* Also ensure the runtime app container (`#app-main` / `.app-main`) is
        fixed and scrollable when the host forces html/body heights. This
        targets the built runtime structure. */
-      html:not([data-ide-embed='1']) #app-main,
-      html:not([data-ide-embed='1']) .app-main {
+      html:not([data-ide-embed="1"]) #app-main,
+      html:not([data-ide-embed="1"]) .app-main {
         position: fixed;
         inset: 0;
         overflow: auto !important;
@@ -167,20 +194,20 @@
       /* When embedded in an IDE or parent URL bar we allow the app container to
        remain scrollable rather than forcing host-hidden overflow. This prevents
        host-injected inline heights from breaking layout/scrolling. */
-      html[data-ide-embed='1'],
-      html[data-ide-embed='1'] body {
+      html[data-ide-embed="1"],
+      html[data-ide-embed="1"] body {
         height: 100%;
         min-height: 0;
         margin: 0;
         padding: 0;
         overflow: auto !important;
       }
-      html[data-ide-embed='1'] #root {
+      html[data-ide-embed="1"] #root {
         height: 100% !important;
         min-height: 0;
         overflow: auto !important;
       }
-      html[data-parent-urlbar='1'] #root {
+      html[data-parent-urlbar="1"] #root {
         height: 100% !important;
         min-height: 0;
         overflow: auto !important;
@@ -194,21 +221,38 @@
           try {
             // Do not force fixed positioning when embedded in an IDE parent —
             // the host controls sizing. Skip applying fixed layout in that case.
-            if (document.documentElement && document.documentElement.getAttribute('data-ide-embed') === '1') return;
-            var el = document.getElementById('app-main') || document.querySelector('.app-main');
+            if (
+              document.documentElement &&
+              document.documentElement.getAttribute("data-ide-embed") === "1"
+            )
+              return;
+            var el =
+              document.getElementById("app-main") ||
+              document.querySelector(".app-main");
             if (!el) return;
-            el.style.setProperty('position', 'fixed', 'important');
+            el.style.setProperty("position", "fixed", "important");
             // Responsive inset: sidebar (240px) only on wide screens (>=1024px).
             // On mobile/tablet the sidebar is hidden by the React app via lg:hidden,
             // so the content area must fill the full width (left: 0).
-            var isWide = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
-            el.style.setProperty('inset', isWide ? '64px 0 0 240px' : '64px 0 0 0', 'important');
-            el.style.setProperty('overflow', 'auto', 'important');
-            el.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
-            el.style.setProperty('box-sizing', 'border-box', 'important');
+            var isWide =
+              window.matchMedia &&
+              window.matchMedia("(min-width: 1024px)").matches;
+            el.style.setProperty(
+              "inset",
+              isWide ? "64px 0 0 240px" : "64px 0 0 0",
+              "important",
+            );
+            el.style.setProperty("overflow", "auto", "important");
+            el.style.setProperty(
+              "-webkit-overflow-scrolling",
+              "touch",
+              "important",
+            );
+            el.style.setProperty("box-sizing", "border-box", "important");
           } catch (e) {}
         }
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+        if (document.readyState === "loading")
+          document.addEventListener("DOMContentLoaded", apply);
         else apply();
         var n = 0;
         var iv = setInterval(function () {
@@ -221,7 +265,7 @@
           } catch (e) {}
         }, 3000);
         // Re-apply on viewport changes (orientation change, mobile browser UI show/hide)
-        window.addEventListener('resize', apply, { passive: true });
+        window.addEventListener("resize", apply, { passive: true });
       })();
     </script>
 
@@ -229,19 +273,21 @@
       (function () {
         function isIde() {
           try {
-            var params = new URLSearchParams(window.location.search || '');
+            var params = new URLSearchParams(window.location.search || "");
             return (
               window.self !== window.top ||
-              typeof window.acquireVsCodeApi === 'function' ||
-              params.get('sb_parent_urlbar') === '1'
+              typeof window.acquireVsCodeApi === "function" ||
+              params.get("sb_parent_urlbar") === "1"
             );
           } catch (e) {
             return false;
           }
         }
         function stripHeightFromAttr(attrVal) {
-          if (!attrVal) return '';
-          return attrVal.replace(/\bheight\s*:\s*[^;!]*!important;?/gi, '').replace(/\bheight\s*:\s*[^;]*;?/gi, '');
+          if (!attrVal) return "";
+          return attrVal
+            .replace(/\bheight\s*:\s*[^;!]*!important;?/gi, "")
+            .replace(/\bheight\s*:\s*[^;]*;?/gi, "");
         }
         function cleanup() {
           if (isIde()) return;
@@ -249,21 +295,26 @@
             if (document.documentElement) {
               // remove via style API
               try {
-                document.documentElement.style.removeProperty('height');
+                document.documentElement.style.removeProperty("height");
               } catch (e) {}
               // also sanitize raw attribute
               try {
-                var s = document.documentElement.getAttribute('style');
-                if (s && /height\s*:/i.test(s)) document.documentElement.setAttribute('style', stripHeightFromAttr(s));
+                var s = document.documentElement.getAttribute("style");
+                if (s && /height\s*:/i.test(s))
+                  document.documentElement.setAttribute(
+                    "style",
+                    stripHeightFromAttr(s),
+                  );
               } catch (e) {}
             }
             if (document.body) {
               try {
-                document.body.style.removeProperty('height');
+                document.body.style.removeProperty("height");
               } catch (e) {}
               try {
-                var sb = document.body.getAttribute('style');
-                if (sb && /height\s*:/i.test(sb)) document.body.setAttribute('style', stripHeightFromAttr(sb));
+                var sb = document.body.getAttribute("style");
+                if (sb && /height\s*:/i.test(sb))
+                  document.body.setAttribute("style", stripHeightFromAttr(sb));
               } catch (e) {}
             }
           } catch (e) {}
@@ -274,8 +325,15 @@
             var mo = new MutationObserver(function (m) {
               cleanup();
             });
-            mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-            if (document.body) mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+            mo.observe(document.documentElement, {
+              attributes: true,
+              attributeFilter: ["style"],
+            });
+            if (document.body)
+              mo.observe(document.body, {
+                attributes: true,
+                attributeFilter: ["style"],
+              });
           }
         } catch (e) {}
         // aggressive initial cleanup: use rAF for quick removal and then a
@@ -302,49 +360,70 @@
     </script>
     <script>
       window.__SB_SITE_CONFIG = window.__SB_SITE_CONFIG || {
-        brand: { name: 'SimpleBeacon', logo: '/favicon.svg' },
-        vsixDownloadUrl: '/downloads/simplebeacon.vsix',
+        brand: { name: "SimpleBeacon", logo: "/favicon.svg" },
+        vsixDownloadUrl: "/downloads/simplebeacon.vsix",
         pricing: { plans: [] },
       };
     </script>
     <script>
       // SimpleBeacon Site Configuration (inlined to avoid 404 on Cloudflare Pages)
       window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
-        env: 'production',
-        githubUrl: 'https://github.com/tjp420/simplebeacon',
-        vsixDownloadUrl: 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix',
-        sampleReportUrl: 'sample-report.html',
-        sampleCertificateUrl: 'sample-certificate.html',
+        env: "production",
+        githubUrl: "https://github.com/tjp420/simplebeacon",
+        vsixDownloadUrl:
+          "https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix",
+        sampleReportUrl: "sample-report.html",
+        sampleCertificateUrl: "sample-certificate.html",
         sampleEuAiActReportUrl: null,
-        pricingUrl: 'pricing.html',
-        communityUrl: 'community.html',
-        contactUrl: 'contact.html',
-        contactPageUrl: 'contact.html',
-        termsUrl: 'terms.html',
-        privacyUrl: 'privacy.html',
-        refundUrl: 'refund.html',
+        pricingUrl: "pricing.html",
+        communityUrl: "community.html",
+        contactUrl: "contact.html",
+        contactPageUrl: "contact.html",
+        termsUrl: "terms.html",
+        privacyUrl: "privacy.html",
+        refundUrl: "refund.html",
         cloudTeamsUrl: null,
         auditEmail: null,
         pricing: {
-          developer: { name: 'Free', price: 0, stripeLink: null, testStripeLink: null },
-          startup: { name: 'Pro', price: 9, stripeLink: null, testStripeLink: null },
-          compliance: { name: 'Compliance Suite', price: 399, stripeLink: null, testStripeLink: null },
-          enterprise: { name: 'Enterprise Air-Gapped', price: null, stripeLink: null, testStripeLink: null },
+          developer: {
+            name: "Free",
+            price: 0,
+            stripeLink: null,
+            testStripeLink: null,
+          },
+          startup: {
+            name: "Pro",
+            price: 9,
+            stripeLink: null,
+            testStripeLink: null,
+          },
+          compliance: {
+            name: "Compliance Suite",
+            price: 399,
+            stripeLink: null,
+            testStripeLink: null,
+          },
+          enterprise: {
+            name: "Enterprise Air-Gapped",
+            price: null,
+            stripeLink: null,
+            testStripeLink: null,
+          },
         },
-        instantReportLink: 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07',
-        stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
-        euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
+        instantReportLink: "https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07",
+        stripePaymentLink: "https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05",
+        euAiActPackLink: "https://buy.stripe.com/fZu28qesn6fB1ODftceEo06",
         apiBase:
-          typeof location !== 'undefined' &&
-          (location.hostname === 'localhost' ||
-            location.hostname === '127.0.0.1' ||
-            location.hostname === 'simplebeacon.ai' ||
-            location.hostname === 'www.simplebeacon.ai' ||
-            location.hostname.endsWith('.onrender.com'))
-            ? ''
-            : 'https://simplebeacon.ai',
-        dashboardUrl: '/dashboard/',
-        dashboardAppUrl: '/dashboard/',
+          typeof location !== "undefined" &&
+          (location.hostname === "localhost" ||
+            location.hostname === "127.0.0.1" ||
+            location.hostname === "simplebeacon.ai" ||
+            location.hostname === "www.simplebeacon.ai" ||
+            location.hostname.endsWith(".onrender.com"))
+            ? ""
+            : "https://simplebeacon.ai",
+        dashboardUrl: "/dashboard/",
+        dashboardAppUrl: "/dashboard/",
         stagingMode: false,
         paymentsEnabled: true,
         closedSource: false,
@@ -356,8 +435,8 @@
       };
       (function () {
         try {
-          const apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
-          fetch(apiBase + '/api/config/pricing')
+          const apiBase = window.SIMPLEBEACON_SITE.apiBase || "";
+          fetch(apiBase + "/api/config/pricing")
             .then(function (res) {
               if (!res.ok) return null;
               return res.json();
@@ -388,16 +467,16 @@
       (function () {
         try {
           var params = new URLSearchParams(window.location.search);
-          var ref = params.get('ref');
+          var ref = params.get("ref");
           if (!ref) return;
           try {
-            localStorage.setItem('sb_ref_slug', ref);
+            localStorage.setItem("sb_ref_slug", ref);
           } catch (_) {}
-          fetch('/api/referral/capture', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ref: ref, channel: 'web' }),
+          fetch("/api/referral/capture", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ref: ref, channel: "web" }),
           }).catch(function () {});
         } catch (_) {}
       })();
@@ -445,36 +524,58 @@
         role="status"
         aria-live="polite"
       >
-        <p style="font-size: 1rem; margin: 0">Loading SimpleBeacon Dashboard…</p>
-        <p style="font-size: 0.875rem; margin: 0.5rem 0 0; color: #64748b">AI Safety Scanning Platform</p>
+        <p style="font-size: 1rem; margin: 0">
+          Loading SimpleBeacon Dashboard…
+        </p>
+        <p style="font-size: 0.875rem; margin: 0.5rem 0 0; color: #64748b">
+          AI Safety Scanning Platform
+        </p>
       </div>
     </div>
 
     <!-- Extension bridge fetch rewrite -->
     <script>
       (function () {
-        var BRIDGE_PREFIXES = ['/api/simplebeacon/', '/api/notify', '/api/ping', '/api/stream', '/api/free-token'];
+        var BRIDGE_PREFIXES = [
+          "/api/simplebeacon/",
+          "/api/notify",
+          "/api/ping",
+          "/api/stream",
+          "/api/free-token",
+        ];
         function isBridgeApiPath(path) {
-          if (!path || path.indexOf('/api/') !== 0) return false;
+          if (!path || path.indexOf("/api/") !== 0) return false;
           for (var i = 0; i < BRIDGE_PREFIXES.length; i++) {
             var prefix = BRIDGE_PREFIXES[i];
-            if (path === prefix.replace(/\/$/, '') || path.indexOf(prefix) === 0) return true;
+            if (
+              path === prefix.replace(/\/$/, "") ||
+              path.indexOf(prefix) === 0
+            )
+              return true;
           }
           return false;
         }
         function bridgeHost() {
-          return window.__SB_BRIDGE_HOST__ || '';
+          return window.__SB_BRIDGE_HOST__ || "";
         }
         function isHostedSite() {
-          return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
+          return (
+            location.protocol === "https:" ||
+            !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname)
+          );
         }
 
         // Debug toggle: enable by adding `?sb_debug=1` or `localStorage.setItem('sb_debug','1')`
         var SB_DEBUG = false;
         try {
-          var params = new URLSearchParams(location.search || '');
-          if (params.get('sb_debug') === '1') SB_DEBUG = true;
-          if (!SB_DEBUG && localStorage && localStorage.getItem('sb_debug') === '1') SB_DEBUG = true;
+          var params = new URLSearchParams(location.search || "");
+          if (params.get("sb_debug") === "1") SB_DEBUG = true;
+          if (
+            !SB_DEBUG &&
+            localStorage &&
+            localStorage.getItem("sb_debug") === "1"
+          )
+            SB_DEBUG = true;
         } catch (e) {
           SB_DEBUG = false;
         }
@@ -482,9 +583,10 @@
         function debug() {
           if (!SB_DEBUG || !console || !console.debug) return; // no-op
           try {
-            console.groupCollapsed && console.groupCollapsed('SB Bridge Debug');
+            console.groupCollapsed && console.groupCollapsed("SB Bridge Debug");
           } catch (e) {}
-          for (var i = 0; i < arguments.length; i++) console.debug(arguments[i]);
+          for (var i = 0; i < arguments.length; i++)
+            console.debug(arguments[i]);
           try {
             console.groupEnd && console.groupEnd();
           } catch (e) {}
@@ -492,48 +594,67 @@
 
         function rewriteBridgeUrl(url) {
           var host = bridgeHost();
-          debug('rewriteBridgeUrl called', { url: url, host: host, isHostedSite: isHostedSite() });
-          if (!host || typeof url !== 'string') {
-            debug('no host or invalid url; returning original');
+          debug("rewriteBridgeUrl called", {
+            url: url,
+            host: host,
+            isHostedSite: isHostedSite(),
+          });
+          if (!host || typeof url !== "string") {
+            debug("no host or invalid url; returning original");
             return url;
           }
           if (isHostedSite()) {
-            debug('hosted site detected; not rewriting');
+            debug("hosted site detected; not rewriting");
             return url;
           }
           try {
             var u = new URL(url, location.href);
             var path = u.pathname + u.search;
             if (isBridgeApiPath(u.pathname)) {
-              debug('rewriting bridge api path', { orig: url, rewritten: host + path });
+              debug("rewriting bridge api path", {
+                orig: url,
+                rewritten: host + path,
+              });
               return host + path;
             }
-            var current = location.protocol + '//' + location.host;
-            if (url.indexOf(current + '/api/') === 0) {
+            var current = location.protocol + "//" + location.host;
+            if (url.indexOf(current + "/api/") === 0) {
               var relPath = url.slice(current.length);
-              if (isBridgeApiPath(relPath.split('?')[0])) {
-                debug('rewriting current-origin api path', { orig: url, rewritten: host + relPath });
+              if (isBridgeApiPath(relPath.split("?")[0])) {
+                debug("rewriting current-origin api path", {
+                  orig: url,
+                  rewritten: host + relPath,
+                });
                 return host + relPath;
               }
             }
           } catch (e) {
-            debug('rewriteBridgeUrl error', e);
+            debug("rewriteBridgeUrl error", e);
           }
-          debug('no rewrite rule matched; returning original');
+          debug("no rewrite rule matched; returning original");
           return url;
         }
 
         var origFetch = window.fetch;
         if (origFetch) {
           window.fetch = function (input, init) {
-            var url = typeof input === 'string' ? input : input && input.url ? input.url : String(input);
+            var url =
+              typeof input === "string"
+                ? input
+                : input && input.url
+                  ? input.url
+                  : String(input);
             var rewritten = rewriteBridgeUrl(url);
             if (rewritten !== url) {
               init = init || {};
-              if (!init.credentials) init.credentials = 'omit';
-              debug('fetch rewritten', { from: url, to: rewritten, init: init });
+              if (!init.credentials) init.credentials = "omit";
+              debug("fetch rewritten", {
+                from: url,
+                to: rewritten,
+                init: init,
+              });
             } else if (SB_DEBUG) {
-              debug('fetch passthrough', { url: url, init: init });
+              debug("fetch passthrough", { url: url, init: init });
             }
             return origFetch.call(this, rewritten, init);
           };
@@ -546,8 +667,14 @@
             var origOpen = xhr.open;
             xhr.open = function (method, url) {
               var newUrl = rewriteBridgeUrl(String(url));
-              if (newUrl !== url) debug('XHR open rewritten', { method: method, from: url, to: newUrl });
-              else if (SB_DEBUG) debug('XHR open passthrough', { method: method, url: url });
+              if (newUrl !== url)
+                debug("XHR open rewritten", {
+                  method: method,
+                  from: url,
+                  to: newUrl,
+                });
+              else if (SB_DEBUG)
+                debug("XHR open passthrough", { method: method, url: url });
               return origOpen.call(this, method, newUrl);
             };
             return xhr;
@@ -566,11 +693,14 @@
     <!-- JSZip for export functionality -->
     <script>
       (function () {
-        var devHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.port === '5173';
-        var s = document.createElement('script');
+        var devHost =
+          /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) ||
+          location.port === "5173";
+        var s = document.createElement("script");
         s.defer = true;
-        if (devHost) s.src = '/dashboard/js/vendor/jszip.min.js?v=20260726react1';
-        else s.src = '/dashboard/js/vendor/jszip.min.js?v=20260726react1';
+        if (devHost)
+          s.src = "/dashboard/js/vendor/jszip.min.js?v=20260726react1";
+        else s.src = "/dashboard/js/vendor/jszip.min.js?v=20260726react1";
         document.head.appendChild(s);
       })();
     </script>
@@ -582,24 +712,28 @@
         try {
           var _isEmbedFlag = (function () {
             try {
-              var params = new URLSearchParams(location.search || '');
-              if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1') return true;
+              var params = new URLSearchParams(location.search || "");
               if (
-                document.documentElement &&
-                (document.documentElement.getAttribute('data-parent-urlbar') ||
-                  document.documentElement.getAttribute('data-embed-mode') ||
-                  document.documentElement.getAttribute('data-ide-embed'))
+                params.get("sb_parent_urlbar") === "1" ||
+                params.get("sb_website_mode") === "1"
               )
                 return true;
-              if (typeof window.acquireVsCodeApi === 'function') return true;
+              if (
+                document.documentElement &&
+                (document.documentElement.getAttribute("data-parent-urlbar") ||
+                  document.documentElement.getAttribute("data-embed-mode") ||
+                  document.documentElement.getAttribute("data-ide-embed"))
+              )
+                return true;
+              if (typeof window.acquireVsCodeApi === "function") return true;
             } catch (e) {}
             return false;
           })();
           if (!_isEmbedFlag) {
             var css =
-              '#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }';
-            var s = document.createElement('style');
-            s.setAttribute('data-sb-resilient', '1');
+              "#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }";
+            var s = document.createElement("style");
+            s.setAttribute("data-sb-resilient", "1");
             s.appendChild(document.createTextNode(css));
             (document.head || document.documentElement).appendChild(s);
           }
