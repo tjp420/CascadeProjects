@@ -754,10 +754,26 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
   let yieldCounter = 0;
 
   async function processOne(file) {
-    const fileResult = await analyzeFileContent(file, rootDir, {
-      ...options,
-      findingsCap: cap,
-    });
+    // Wrap each file analysis in a timeout so a single problematic file
+    // (huge file, catastrophic regex backtracking, etc.) can't hang the scan.
+    const FILE_TIMEOUT_MS = Number(process.env.CODEBASE_FILE_TIMEOUT_MS) || 30000;
+    let fileResult;
+    try {
+      fileResult = await Promise.race([
+        analyzeFileContent(file, rootDir, {
+          ...options,
+          findingsCap: cap,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`File analysis timed out: ${file.relativePath}`)), FILE_TIMEOUT_MS),
+        ),
+      ]);
+    } catch (fileErr) {
+      // Log and skip — don't let one file kill the entire scan
+      if (process.env.SIMPLEBEACON_DEBUG)
+        logger.debug(`[CodebaseAnalyzer] Skipping file after timeout/error: ${file.relativePath} — ${fileErr?.message || fileErr}`);
+      fileResult = { findings: [], structure: null };
+    }
     for (const finding of fileResult.findings) {
       pushFinding(findings, finding, cap);
     }
