@@ -11,6 +11,18 @@ export async function onRequest(context) {
     const pathname = url.pathname;
 
     if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+        // Redirect old main.js to the cache-busted version
+        if (pathname.endsWith('/assets/main.js')) {
+            const newUrl = new URL(pathname.replace('/assets/main.js', '/assets/main-v30min.js'), url.origin);
+            const newReq = new Request(newUrl.toString(), request);
+            const assetResp = await env.ASSETS.fetch(newReq);
+            if (assetResp.ok) {
+                const headers = new Headers(assetResp.headers);
+                headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+                headers.set('CDN-Cache-Control', 'no-store');
+                return new Response(assetResp.body, { status: assetResp.status, headers });
+            }
+        }
         return env.ASSETS.fetch(request);
     }
 
