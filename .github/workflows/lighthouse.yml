@@ -49,8 +49,13 @@ jobs:
           # Run LHCI against the prepared serving directory
           lhci autorun --config=.lighthouserc.cjs
 
+      - name: Check lighthouse-ci results exist
+        id: lighthouse_check
+        run: |
+          if [ -d "ai-platform/web/simplebeacon-dashboard/.lighthouseci" ] && [ "$(ls -A ai-platform/web/simplebeacon-dashboard/.lighthouseci 2>/dev/null | wc -l)" -gt 0 ]; then echo "found=true" >> $GITHUB_OUTPUT; else echo "found=false" >> $GITHUB_OUTPUT; fi
+
       - name: Upload Lighthouse CI Results
-        if: always()
+        if: steps.lighthouse_check.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-ci-results

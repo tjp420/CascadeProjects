@@ -66,8 +66,17 @@ jobs:
             fi
           ) | tee e2e-output.txt
 
+      - name: Check e2e test artifacts exist
+        id: artifact_check
+        run: |
+          found=false
+          if [ -d "ai-platform/web/simplebeacon-dashboard/playwright-report" ] && [ "$(ls -A ai-platform/web/simplebeacon-dashboard/playwright-report 2>/dev/null | wc -l)" -gt 0 ]; then found=true; fi
+          if [ -d "ai-platform/web/simplebeacon-dashboard/test-results" ] && [ "$(ls -A ai-platform/web/simplebeacon-dashboard/test-results 2>/dev/null | wc -l)" -gt 0 ]; then found=true; fi
+          if [ -f "ai-platform/web/simplebeacon-dashboard/e2e-output.txt" ]; then found=true; fi
+          echo "found=$found" >> $GITHUB_OUTPUT
+
       - name: Upload Test Execution Artifacts
-        if: failure()
+        if: failure() && steps.artifact_check.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-execution-report-${{ matrix.browser }}

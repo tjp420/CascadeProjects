@@ -54,7 +54,13 @@ jobs:
           echo "ci-test-metrics.prom:"
           cat ai-platform/test-results/ci-test-metrics.prom || true
 
+      - name: Check ci-test-metrics artifact exists
+        id: artifact_check
+        run: |
+          if [ -d "ai-platform/test-results" ] && [ "$(ls -A ai-platform/test-results 2>/dev/null | wc -l)" -gt 0 ]; then echo "found=true" >> $GITHUB_OUTPUT; else echo "found=false" >> $GITHUB_OUTPUT; fi
+
       - name: Upload CI test metrics artifact
+        if: steps.artifact_check.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ci-test-metrics
