@@ -79,6 +79,24 @@ function main() {
     fs.copyFileSync(entryPath, mainJsPath);
     console.log(`[prepare-worker-assets] Copied ${entryMatch} → main.js`);
 
+    // Ensure hashed source map exists for the entry. Some CI builds or
+    // publish steps may omit .map files; creating a minimal placeholder
+    // prevents runtime ENOENT errors during E2E (the browser tries to
+    // fetch main-<hash>.js.map when the built main.js contains a
+    // sourceMappingURL comment). This is safe: source maps are only
+    // used for debugging and tests — an empty map avoids load failures.
+    const hashedMap = entryMatch + '.map';
+    const hashedMapPath = path.join(DIST_ASSETS, hashedMap);
+    if (!fs.existsSync(hashedMapPath)) {
+      const placeholder = JSON.stringify({ version: 3, file: entryMatch, sources: [], names: [], mappings: "" });
+      try {
+        fs.writeFileSync(hashedMapPath, placeholder, 'utf8');
+        console.log(`[prepare-worker-assets] Created placeholder source map: ${hashedMap}`);
+      } catch (err) {
+        console.warn(`[prepare-worker-assets] Unable to create placeholder map ${hashedMap}: ${err.message}`);
+      }
+    }
+
     // Rewrite chunk imports: replace references to "main-[hash].js" with "main.js"
     // so chunks can resolve the unhashed entry at runtime.
     const chunkFiles = fs
