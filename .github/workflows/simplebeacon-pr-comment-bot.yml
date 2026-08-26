@@ -43,19 +43,25 @@ jobs:
           path: ai-platform/.simplebeacon
         continue-on-error: true
 
-      - name: Post PR comment
+      - name: Post PR brief comment (safe)
         working-directory: ai-platform
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
         run: |
+          set -euo pipefail
           REPORT=".simplebeacon/report.json"
           if [ ! -f "$REPORT" ]; then
             echo "No report found; skipping comment."
             exit 0
           fi
-          node packages/simplebeacon-cli/bin/simplebeacon.js comment \
-            --report "$REPORT" \
-            --repo "$GITHUB_REPOSITORY" \
-            --issue-number "$GITHUB_PR_NUMBER"
+          # Build a short summary to avoid exceeding GitHub comment limits.
+          CRIT=$(jq -r '.severityCounts.critical // .scan_summary.critical_severity_count // 0' "$REPORT")
+          HIGH=$(jq -r '.severityCounts.high // .scan_summary.high_severity_count // 0' "$REPORT")
+          MED=$(jq -r '.severityCounts.medium // .scan_summary.medium_severity_count // 0' "$REPORT")
+          LOW=$(jq -r '.severityCounts.low // .scan_summary.low_severity_count // 0' "$REPORT")
+          STATUS=$(jq -r '.scan_summary.status // "UNKNOWN"' "$REPORT")
+          BODY="SimpleBeacon quick gate: $STATUS. Issues — critical=$CRIT, high=$HIGH, medium=$MED, low=$LOW. Full report files have been uploaded as workflow artifacts (simplebeacon-enterprise-report / simplebeacon-ai-hygiene-report).\n\nIf you need the full JSON inline, download the artifact from the workflow run."
+          echo "Posting short PR comment (length=${#BODY})"
+          gh api repos/${GITHUB_REPOSITORY}/issues/${GITHUB_PR_NUMBER}/comments -F body="$BODY" --silent
