@@ -109,6 +109,16 @@ jobs:
           fi
           echo "--- prepare-worker-assets diagnostic end ---"
 
+      - name: List assets before server start
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        run: |
+          echo "Listing assets at ai-platform/web/simplebeacon-dashboard/assets (repo-relative):"
+          ls -la assets || true
+          echo "Listing fallback dist directories (if any):"
+          ls -la dist || true
+          ls -la dist/build || true
+          echo "End assets listing"
+
       - name: Run E2E Test Suite
         run: |
           PORT=61455 npx start-server-and-test "npm run dev:ci" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"

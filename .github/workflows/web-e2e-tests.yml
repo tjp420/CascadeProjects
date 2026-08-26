@@ -30,7 +30,7 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
@@ -89,6 +89,15 @@ jobs:
         run: |
           mkdir -p ai-platform/web/simplebeacon-dashboard/playwright-report
           mkdir -p ai-platform/web/simplebeacon-dashboard/test-results
+
+      - name: List assets before server start
+        run: |
+          echo "Listing assets at ai-platform/web/simplebeacon-dashboard/assets (repo-relative):"
+          ls -la ai-platform/web/simplebeacon-dashboard/assets || true
+          echo "Listing fallback dist directories (if any):"
+          ls -la ai-platform/web/simplebeacon-dashboard/dist || true
+          ls -la ai-platform/web/simplebeacon-dashboard/dist/build || true
+          echo "End assets listing"
 
       - name: Fire Static Sandbox Server & Execute E2E Suite
         env:
