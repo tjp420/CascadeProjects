@@ -31,8 +31,9 @@ try {
     const val = trimmed.slice(eq + 1).trim();
     if (key && !process.env[key]) process.env[key] = val;
   }
-} catch (_) {
-  /* .env missing — proceed with process.env */
+} catch (e) {
+  // .env missing or unreadable — proceed with process.env but log for diagnostics
+  try { logger.info('[Env] .env file not found or unreadable, using process.env'); } catch (__) {}
 }
 
 // Ensure critical env vars have fallbacks for local dev
