@@ -359,6 +359,55 @@ if (fs.existsSync(dashboardSrc)) {
     removeDirSafe(dashboardDst);
     fs.mkdirSync(dashboardDst, { recursive: true });
     copyRecursive(dashboardSrc, dashboardDst, 'dashboard/');
+
+    // Vite produces hashed filenames (main-[hash].js) but index.html references
+    // the unhashed name (main.js). Copy the hashed file to the unhashed name so
+    // the HTML reference resolves correctly. Also copy source maps so browser
+    // devtools can resolve the source map reference in the unhashed alias.
+    const assetsDir = path.join(dashboardDst, 'assets');
+    if (fs.existsSync(assetsDir)) {
+        const hashedMainJs = fs.readdirSync(assetsDir).find(f => /^main-[a-zA-Z0-9_-]+\.js$/.test(f));
+        if (hashedMainJs) {
+            fs.copyFileSync(path.join(assetsDir, hashedMainJs), path.join(assetsDir, 'main.js'));
+            console.log(`Copied ${hashedMainJs} → main.js (unhashed alias for index.html)`);
+            // Copy the source map too so devtools doesn't 404 on main.js.map
+            const hashedMapJs = hashedMainJs + '.map';
+            if (fs.existsSync(path.join(assetsDir, hashedMapJs))) {
+                fs.copyFileSync(path.join(assetsDir, hashedMapJs), path.join(assetsDir, 'main.js.map'));
+                console.log(`Copied ${hashedMapJs} → main.js.map (source map alias)`);
+            }
+        }
+        const hashedMainCss = fs.readdirSync(assetsDir).find(f => /^main-[a-zA-Z0-9_-]+\.css$/.test(f));
+        if (hashedMainCss) {
+            fs.copyFileSync(path.join(assetsDir, hashedMainCss), path.join(assetsDir, 'main.css'));
+            console.log(`Copied ${hashedMainCss} → main.css (unhashed alias for index.html)`);
+        }
+
+        // Copy scan-worker.js and its dependencies from pages-publish/assets
+        // (Vite doesn't bundle these — they're loaded dynamically as Web Workers)
+        const pagesPublishAssets = path.join(dashboardSrc, 'pages-publish', 'assets');
+        const workerFiles = [
+            'scan-worker.js',
+            'scan-wasm-bridge.js',
+            'simplebeaconignore.browser.js',
+        ];
+        for (const wf of workerFiles) {
+            const src1 = path.join(pagesPublishAssets, wf);
+            const dst1 = path.join(assetsDir, wf);
+            if (fs.existsSync(src1)) {
+                fs.copyFileSync(src1, dst1);
+                console.log(`Copied ${wf} → assets/${wf} (web worker)`);
+            } else {
+                // Fallback: try js-es2018/workers/
+                const altSrc = path.join(dashboardSrc, 'js-es2018', 'workers', wf);
+                if (fs.existsSync(altSrc)) {
+                    fs.copyFileSync(altSrc, dst1);
+                    console.log(`Copied ${wf} → assets/${wf} (from js-es2018/workers)`);
+                }
+            }
+        }
+    }
+
     // Duplicate index.html under a no-extension name so the Pages Function can serve the SPA
     // without Cloudflare stripping the extension or redirecting to a directory-style URL.
     const dashboardIndex = path.join(dashboardDst, 'index.html');
@@ -377,15 +426,16 @@ if (fs.existsSync(dashboardSrc)) {
         if (!/<title>/i.test(dashHtml)) {
             dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
         }
-        // Rewrite production asset paths to /dashboard/dist/assets for CF Pages
+        // Rewrite production asset paths with cache-bust query parameter.
+        // Match both absolute (/assets/...), /dashboard/assets/..., and relative (./assets/...) paths.
         const cacheBust = Date.now();
         dashHtml = dashHtml.replace(
-            /href="\/assets\/main\.css(?:\?[^"]*)?"/g,
-            `href="/dashboard/dist/assets/main.css?v=${cacheBust}"`
+            /href="\.?\/?assets\/main\.css(?:\?[^"]*)?"/g,
+            `href="/dashboard/assets/main.css?v=${cacheBust}"`
         );
         dashHtml = dashHtml.replace(
-            /src="\/assets\/main\.js(?:\?[^"]*)?"/g,
-            `src="/dashboard/dist/assets/main.js?v=${cacheBust}"`
+            /src="\.?\/?assets\/main\.js(?:\?[^"]*)?"/g,
+            `src="/dashboard/assets/main.js?v=${cacheBust}"`
         );
         dashHtml = dashHtml.replace(
             /src="\/dashboard\/assets\/main\.js(?:\?[^"]*)?"/g,
@@ -394,7 +444,7 @@ if (fs.existsSync(dashboardSrc)) {
         // Also handle any leftover Vite dev script references
         dashHtml = dashHtml.replace(
             /<script type="module" src="\/src\/main\.tsx"><\/script>/,
-            `<script type="module" src="/dashboard/dist/assets/main.js?v=${cacheBust}"></script>`
+            `<script type="module" src="/dashboard/assets/main.js?v=${cacheBust}"></script>`
         );
         // Rewrite relative js/vendor paths to absolute /dashboard/js/vendor for CF Pages
         dashHtml = dashHtml.replace(/src="js\/vendor\//g, 'src="/dashboard/js/vendor/');
@@ -418,11 +468,22 @@ if (fs.existsSync(dashboardSrc)) {
     fs.mkdirSync(appDst, { recursive: true });
     copyRecursive(dashboardDst, appDst, 'app/');
     // Rewrite asset paths from /dashboard/ to /app/ in the /app/ copy
+    // and add cache-bust so the CDN fetches fresh assets
     const appIndex = path.join(appDst, 'index.html');
     const appEntry = path.join(appDst, '__entry');
     if (fs.existsSync(appIndex)) {
         let appHtml = fs.readFileSync(appIndex, 'utf8');
         appHtml = appHtml.replace(/\/dashboard\//g, '/app/');
+        // Add cache-bust to /app/ asset references (same as /dashboard/ above)
+        const appCacheBust = Date.now();
+        appHtml = appHtml.replace(
+            /src="\/app\/assets\/main\.js(?:\?[^"]*)?"/g,
+            `src="/app/assets/main.js?v=${appCacheBust}"`
+        );
+        appHtml = appHtml.replace(
+            /href="\/app\/assets\/main\.css(?:\?[^"]*)?"/g,
+            `href="/app/assets/main.css?v=${appCacheBust}"`
+        );
         try {
             fs.writeFileSync(appIndex, appHtml, 'utf8');
         } catch (e) {
@@ -432,6 +493,38 @@ if (fs.existsSync(dashboardSrc)) {
             fs.copyFileSync(appIndex, appEntry);
         } catch (e) {
             console.warn('Skipping copy of app/__entry:', (e && e.message) || e);
+        }
+    }
+
+    // Also copy dashboard to /d2/ — a fresh CDN path that bypasses stuck cache on
+    // both /dashboard/ and /app/. Use this URL when the CDN can't be purged.
+    const d2Dst = path.join(dst, 'd2');
+    removeDirSafe(d2Dst);
+    fs.mkdirSync(d2Dst, { recursive: true });
+    copyRecursive(dashboardDst, d2Dst, 'd2/');
+    const d2Index = path.join(d2Dst, 'index.html');
+    const d2Entry = path.join(d2Dst, '__entry');
+    if (fs.existsSync(d2Index)) {
+        let d2Html = fs.readFileSync(d2Index, 'utf8');
+        d2Html = d2Html.replace(/\/dashboard\//g, '/d2/');
+        const d2CacheBust = Date.now();
+        d2Html = d2Html.replace(
+            /src="\/d2\/assets\/main\.js(?:\?[^"]*)?"/g,
+            `src="/d2/assets/main.js?v=${d2CacheBust}"`
+        );
+        d2Html = d2Html.replace(
+            /href="\/d2\/assets\/main\.css(?:\?[^"]*)?"/g,
+            `href="/d2/assets/main.css?v=${d2CacheBust}"`
+        );
+        try {
+            fs.writeFileSync(d2Index, d2Html, 'utf8');
+        } catch (e) {
+            console.warn('Skipping write of d2/index.html:', (e && e.message) || e);
+        }
+        try {
+            fs.copyFileSync(d2Index, d2Entry);
+        } catch (e) {
+            console.warn('Skipping copy of d2/__entry:', (e && e.message) || e);
         }
     }
 }

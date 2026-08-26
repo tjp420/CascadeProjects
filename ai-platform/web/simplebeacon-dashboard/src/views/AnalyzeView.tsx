@@ -1935,8 +1935,14 @@ export function AnalyzeView() {
         setProgressLabel("Processing results...");
         setProgress(90);
 
-        const r = data.report || {};
-        const s = r.summary || {};
+        // The async scan reportJson has a different structure than the sync scan.
+        // Async: { results: { simplebeacon: {...}, codebase: {...} }, summary: {...}, detectedIssues: [...] }
+        // Sync:  { report: { summary: {...}, gate: {...}, ... } }
+        // Normalize both into a unified `r` for downstream processing.
+        const r = data.report ||
+          data.results?.simplebeacon ||
+          data.completeScan?.results?.simplebeacon || {};
+        const s = r.summary || data.summary || {};
         const scope = r.scanScope || data.scanScope || {};
         const scanResult: ScanResult = {
           totalFiles:
@@ -1944,8 +1950,11 @@ export function AnalyzeView() {
             r.repositoryFilesTotal ||
             r.repositoryInventory?.totalFiles ||
             data.repositoryFilesTotal ||
+            s.codeFilesAnalyzed ||
             0,
-          issueCount: s.findingsTotal || r.issueCount || data.issueCount || 0,
+          issueCount: s.findingsTotal || r.issueCount || data.issueCount ||
+            (Array.isArray(data.detectedIssues) ? data.detectedIssues.length : 0) ||
+            (Array.isArray(data.issues) ? data.issues.length : 0) || 0,
           severityCounts: s.severityCounts ||
             r.severityCounts ||
             data.severityCounts || {
@@ -1958,7 +1967,8 @@ export function AnalyzeView() {
           gate: r.gate ||
             data.gate || { pass: true, blockingCount: 0, warningCount: 0 },
           qualityScore:
-            s.healthScore ?? r.qualityScore ?? data.qualityScore ?? null,
+            s.healthScore ?? r.qualityScore ?? data.qualityScore ??
+            data.integrityScore ?? null,
           projectPath:
             r.projectRoot || r.projectPath || data.projectPath || scanPath,
           scanScope: {
@@ -1975,14 +1985,15 @@ export function AnalyzeView() {
         };
 
         setResult(scanResult);
-        setFullReport(data.report || data);
+        const fullReportData = data.report || data.results?.simplebeacon || data;
+        setFullReport(fullReportData);
         setScanState("complete");
         setProgress(100);
         appendLog(
           `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
         );
 
-        persistScanResult(scanResult, data.report || data);
+        persistScanResult(scanResult, fullReportData);
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel("Browser sandbox not available in React mode yet");

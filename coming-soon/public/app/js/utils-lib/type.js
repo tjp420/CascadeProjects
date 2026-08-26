@@ -4,7 +4,9 @@
  * @returns {boolean}
  */
 export function isBlank(value) {
-    return value == null || (typeof value === 'string' && value.trim().length === 0);
+  return (
+    value == null || (typeof value === "string" && value.trim().length === 0)
+  );
 }
 
 /**
@@ -13,8 +15,8 @@ export function isBlank(value) {
  * @returns {boolean}
  */
 export function isEmail(str) {
-    if (typeof str !== 'string') return false;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
+  if (typeof str !== "string") return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
 }
 
 /**
@@ -23,10 +25,10 @@ export function isEmail(str) {
  * @returns {boolean}
  */
 export function isNumeric(value) {
-    if (typeof value === 'number') return Number.isFinite(value);
-    if (typeof value !== 'string') return false;
-    const n = Number(value.trim());
-    return Number.isFinite(n) && !/^\s*$/.test(value);
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value !== "string") return false;
+  const n = Number(value.trim());
+  return Number.isFinite(n) && !/^\s*$/.test(value);
 }
 
 /**
@@ -35,10 +37,10 @@ export function isNumeric(value) {
  * @returns {boolean}
  */
 export function isInteger(value) {
-    if (typeof value === 'number') return Number.isInteger(value);
-    if (typeof value !== 'string') return false;
-    const n = Number(value.trim());
-    return Number.isSafeInteger(n);
+  if (typeof value === "number") return Number.isInteger(value);
+  if (typeof value !== "string") return false;
+  const n = Number(value.trim());
+  return Number.isSafeInteger(n);
 }
 
 /**
@@ -47,13 +49,13 @@ export function isInteger(value) {
  * @returns {boolean}
  */
 export function isUrl(str) {
-    if (typeof str !== 'string') return false;
-    try {
-        const url = new URL(str);
-        return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch {
-        return false;
-    }
+  if (typeof str !== "string") return false;
+  try {
+    const url = new URL(str);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -62,7 +64,7 @@ export function isUrl(str) {
  * @returns {boolean}
  */
 export function isHexColor(str) {
-    return typeof str === 'string' && /^#([0-9a-fA-F]{3}){1,2}$/.test(str.trim());
+  return typeof str === "string" && /^#([0-9a-fA-F]{3}){1,2}$/.test(str.trim());
 }
 
 /**
@@ -71,11 +73,11 @@ export function isHexColor(str) {
  * @returns {boolean}
  */
 export function isEmpty(value) {
-    if (value == null) return true;
-    if (typeof value === 'string') return value.trim().length === 0;
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === 'object') return Object.keys(value).length === 0;
-    return false;
+  if (value == null) return true;
+  if (typeof value === "string") return value.trim().length === 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
 }
 
 /**
@@ -83,7 +85,7 @@ export function isEmpty(value) {
  * @returns {void}
  */
 export function noop() {
-    /* intentionally empty */
+  /* intentionally empty */
 }
 
 /**
@@ -93,7 +95,7 @@ export function noop() {
  * @returns {value is T}
  */
 export function isDefined(value) {
-    return value !== null && value !== undefined;
+  return value !== null && value !== undefined;
 }
 
 /**
@@ -102,18 +104,18 @@ export function isDefined(value) {
  * @param {string} [message]
  * @returns {never}
  */
-export function assertNever(value, message = 'Unexpected value') {
-    const display =
-        typeof value === 'string'
-            ? value
-            : (() => {
-                  try {
-                      return JSON.stringify(value);
-                  } catch {
-                      return String(value);
-                  }
-              })();
-    throw new Error(`${message}: ${display}`);
+export function assertNever(value, message = "Unexpected value") {
+  const display =
+    typeof value === "string"
+      ? value
+      : (() => {
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        })();
+  throw new Error(`${message}: ${display}`);
 }
 
 /**
@@ -124,12 +126,12 @@ export function assertNever(value, message = 'Unexpected value') {
  * @returns {T}
  */
 export function parseJsonSafe(text, fallback = null) {
-    if (text == null) return fallback;
-    try {
-        return JSON.parse(String(text));
-    } catch {
-        return fallback;
-    }
+  if (text == null) return fallback;
+  try {
+    return JSON.parse(String(text));
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -139,15 +141,17 @@ export function parseJsonSafe(text, fallback = null) {
  * @returns {Promise<any>}
  */
 export async function parseResponseJson(res, fallback = null) {
-    const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
-    if (!contentType.includes('application/json')) return fallback ?? {};
-    const text = await res.text();
-    if (!text) return fallback ?? {};
-    try {
-        return JSON.parse(text);
-    } catch {
-        return fallback ?? {};
-    }
+  const contentType = String(
+    res.headers?.get("content-type") || "",
+  ).toLowerCase();
+  if (!contentType.includes("application/json")) return fallback ?? {};
+  const text = await res.text();
+  if (!text) return fallback ?? {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return fallback ?? {};
+  }
 }
 
 /**
@@ -155,7 +159,7 @@ export async function parseResponseJson(res, fallback = null) {
  * @returns {boolean}
  */
 export function isOnline() {
-    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  return typeof navigator !== "undefined" ? navigator.onLine : true;
 }
 
 /**
@@ -163,7 +167,10 @@ export function isOnline() {
  * @returns {boolean}
  */
 export function isVSCodeWebview() {
-    return typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+  return (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  );
 }
 
 /**
@@ -171,7 +178,7 @@ export function isVSCodeWebview() {
  * @returns {boolean}
  */
 export function isStandalone() {
-    return !isVSCodeWebview();
+  return !isVSCodeWebview();
 }
 
 /**
@@ -179,26 +186,30 @@ export function isStandalone() {
  * @returns {any|null}
  */
 export function getVSCodeApi() {
-    if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
-        try {
-            return window.acquireVsCodeApi();
-        } catch {
-            return null;
-        }
+  if (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  ) {
+    try {
+      return window.acquireVsCodeApi();
+    } catch {
+      return null;
     }
-    return null;
+  }
+  return null;
 }
 
 /** @returns {string} Hex-encoded 16-byte random string.
  */
 export function getNonce() {
-    const arr = new Uint8Array(16);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        crypto.getRandomValues(arr);
-    } else {
-        for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
-    }
-    return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  const arr = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(arr);
+  } else {
+    for (let i = 0; i < arr.length; i++)
+      arr[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Type guard: value is null.
@@ -206,7 +217,7 @@ export function getNonce() {
  * @returns {boolean}
  */
 export function isNull(value) {
-    return value === null;
+  return value === null;
 }
 
 /** Type guard: value is undefined.
@@ -214,7 +225,7 @@ export function isNull(value) {
  * @returns {boolean}
  */
 export function isUndefined(value) {
-    return value === undefined;
+  return value === undefined;
 }
 
 /** Type guard: value is null or undefined.
@@ -222,7 +233,7 @@ export function isUndefined(value) {
  * @returns {boolean}
  */
 export function isNil(value) {
-    return value == null;
+  return value == null;
 }
 
 /** Type guard: value is a symbol.
@@ -230,7 +241,7 @@ export function isNil(value) {
  * @returns {boolean}
  */
 export function isSymbol(value) {
-    return typeof value === 'symbol';
+  return typeof value === "symbol";
 }
 
 /** Type guard: value is a Map.
@@ -238,7 +249,7 @@ export function isSymbol(value) {
  * @returns {boolean}
  */
 export function isMap(value) {
-    return value instanceof Map;
+  return value instanceof Map;
 }
 
 /** Type guard: value is a Set.
@@ -246,5 +257,5 @@ export function isMap(value) {
  * @returns {boolean}
  */
 export function isSet(value) {
-    return value instanceof Set;
+  return value instanceof Set;
 }

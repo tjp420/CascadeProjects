@@ -332,10 +332,22 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       navAssessments: '/dashboard/assessments',
       navRoadmap: '/dashboard/remediation',
       navPlatform: '/dashboard/platform',
+      navTeamMetrics: '/dashboard/team-metrics',
+      navTelemetry: '/dashboard/telemetry',
+      navOutreach: '/dashboard/outreach-analytics',
+      navOrganization: '/dashboard/organization',
+      navEnterprise: '/dashboard/enterprise',
+      navWorkspace: '/dashboard/workspace',
+      navFineTuning: '/dashboard/fine-tuning',
+      navWebhookEvents: '/dashboard/webhook-events',
+      navOpsReport: '/dashboard/ops-report',
+      navLicenseManager: '/dashboard/license-manager',
       navProfile: '/dashboard/profile',
+      navAdmin: '/dashboard/admin',
       navTools: '/dashboard/tools',
       navSettings: '/dashboard/settings',
       navHelp: '/dashboard/help',
+      navGettingStarted: '/dashboard/getting-started',
       navChatbot: '/dashboard/chatbot',
       navAbout: '/dashboard/about',
     };
@@ -3777,10 +3789,22 @@ ${buildSidebarThemeStyles(ideTheme)}
   <div class="tc-list-item" id="tdAssessmentsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4DD;</span><span class="tc-list-name">Assessments</span></div></div>
   <div class="tc-list-item" id="tdRemediationSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E4;</span><span class="tc-list-name">Remediation</span></div></div>
   <div class="tc-list-item" id="tdPlatformSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F680;</span><span class="tc-list-name">Platform</span></div></div>
+  <div class="tc-list-item" id="tdTeamMetricsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4C9;</span><span class="tc-list-name">Team Metrics</span></div></div>
+  <div class="tc-list-item" id="tdTelemetrySidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4E1;</span><span class="tc-list-name">Advanced Telemetry</span></div></div>
+  <div class="tc-list-item" id="tdOutreachSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4E7;</span><span class="tc-list-name">Outreach Analytics</span></div></div>
+  <div class="tc-list-item" id="tdOrganizationSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F3E2;</span><span class="tc-list-name">Organization</span></div></div>
+  <div class="tc-list-item" id="tdEnterpriseSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F5A5;</span><span class="tc-list-name">Enterprise</span></div></div>
+  <div class="tc-list-item" id="tdWorkspaceSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4BC;</span><span class="tc-list-name">Workspace</span></div></div>
+  <div class="tc-list-item" id="tdFineTuningSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F9EC;</span><span class="tc-list-name">Fine-Tuning</span></div></div>
+  <div class="tc-list-item" id="tdWebhookEventsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F517;</span><span class="tc-list-name">Webhook Events</span></div></div>
+  <div class="tc-list-item" id="tdOpsReportSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4C4;</span><span class="tc-list-name">Ops Report</span></div></div>
+  <div class="tc-list-item" id="tdLicenseManagerSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F511;</span><span class="tc-list-name">License Manager</span></div></div>
   <div class="tc-list-item" id="tdProfileSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F464;</span><span class="tc-list-name">Profile</span></div></div>
+  <div class="tc-list-item" id="tdAdminSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F465;</span><span class="tc-list-name">Admin</span></div></div>
   <div class="tc-list-item" id="tdToolsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E0;</span><span class="tc-list-name">Tools</span></div></div>
   <div class="tc-list-item" id="tdSettingsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2699;</span><span class="tc-list-name">Settings</span></div></div>
   <div class="tc-list-item" id="tdHelpSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2753;</span><span class="tc-list-name">Help</span></div></div>
+  <div class="tc-list-item" id="tdGettingStartedSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F680;</span><span class="tc-list-name">Getting Started</span></div></div>
   <div class="tc-list-item" id="tdChatbotSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F916;</span><span class="tc-list-name">Chatbot</span></div></div>
   <div class="tc-list-item" id="tdAboutSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2139;</span><span class="tc-list-name">About</span></div></div>
 </div>

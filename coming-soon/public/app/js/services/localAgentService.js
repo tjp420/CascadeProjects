@@ -13,13 +13,13 @@
  * a browser extension or an Electron wrapper for full compatibility.
  */
 
-const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
+const DEFAULT_AGENT_ORIGIN = "http://127.0.0.1:55432";
 const AGENT_TIMEOUT_MS = 3000;
 const AGENT_DOWNLOAD_URLS = {
-    windows: '/downloads/simplebeacon-local-agent-setup.exe',
-    linux: '/downloads/simplebeacon-local-agent-portable.zip',
-    macos: '/downloads/simplebeacon-local-agent-portable.zip',
-    unknown: '/downloads/simplebeacon-local-agent-portable.zip'
+  windows: "/downloads/simplebeacon-local-agent-setup.exe",
+  linux: "/downloads/simplebeacon-local-agent-portable.zip",
+  macos: "/downloads/simplebeacon-local-agent-portable.zip",
+  unknown: "/downloads/simplebeacon-local-agent-portable.zip",
 };
 
 let cachedAgentStatus = null;
@@ -28,14 +28,21 @@ const CACHE_TTL_MS = 30000;
 let pendingProbe = null;
 
 export function isLocalPath(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return false;
-    if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return false;
-    const isWindowsClient = typeof navigator !== 'undefined' && /Win(dows|32|64)/i.test(navigator.userAgent || '');
-    if (isWindowsClient) {
-        return /^[A-Za-z]:[\\/]/.test(raw) || /^\\\\/.test(raw);
-    }
-    return /^[A-Za-z]:[\\/]/.test(raw) || /^\/[^/]/.test(raw) || /^~[\\/]/.test(raw) || /^\\\\/.test(raw);
+  const raw = String(value || "").trim();
+  if (!raw) return false;
+  if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return false;
+  const isWindowsClient =
+    typeof navigator !== "undefined" &&
+    /Win(dows|32|64)/i.test(navigator.userAgent || "");
+  if (isWindowsClient) {
+    return /^[A-Za-z]:[\\/]/.test(raw) || /^\\\\/.test(raw);
+  }
+  return (
+    /^[A-Za-z]:[\\/]/.test(raw) ||
+    /^\/[^/]/.test(raw) ||
+    /^~[\\/]/.test(raw) ||
+    /^\\\\/.test(raw)
+  );
 }
 
 /**
@@ -44,51 +51,59 @@ export function isLocalPath(value) {
  * @returns {Promise<{available:boolean, scannerAvailable:boolean, version?:string}>}
  */
 export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
-    const now = Date.now();
-    if (cachedAgentStatus && cachedAt + CACHE_TTL_MS > now) {
-        return cachedAgentStatus;
-    }
-    if (pendingProbe) {
-        return pendingProbe;
-    }
-
-    pendingProbe = (async () => {
-        if (isMixedContent(origin)) {
-            const status = { available: false, scannerAvailable: false, likelyBlocked: true };
-            cachedAgentStatus = status;
-            cachedAt = Date.now();
-            return status;
-        }
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
-        try {
-            const response = await fetch(`${origin}/health`, {
-                method: 'GET',
-                signal: controller.signal,
-                headers: { Accept: 'application/json' }
-            });
-            clearTimeout(timer);
-            const body = await response.json().catch(() => ({}));
-            const status = {
-                available: response.ok && body.success === true,
-                scannerAvailable: Boolean(body.scannerAvailable),
-                scannerLoadError: body.scannerLoadError || undefined,
-                version: body.version || undefined
-            };
-            cachedAgentStatus = status;
-            cachedAt = Date.now();
-            return status;
-        } catch (err) {
-            clearTimeout(timer);
-            const likelyBlocked = isMixedContentBlocked(origin, err);
-            cachedAgentStatus = { available: false, scannerAvailable: false, likelyBlocked };
-            cachedAt = Date.now();
-            return cachedAgentStatus;
-        } finally {
-            pendingProbe = null;
-        }
-    })();
+  const now = Date.now();
+  if (cachedAgentStatus && cachedAt + CACHE_TTL_MS > now) {
+    return cachedAgentStatus;
+  }
+  if (pendingProbe) {
     return pendingProbe;
+  }
+
+  pendingProbe = (async () => {
+    if (isMixedContent(origin)) {
+      const status = {
+        available: false,
+        scannerAvailable: false,
+        likelyBlocked: true,
+      };
+      cachedAgentStatus = status;
+      cachedAt = Date.now();
+      return status;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${origin}/health`, {
+        method: "GET",
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
+      clearTimeout(timer);
+      const body = await response.json().catch(() => ({}));
+      const status = {
+        available: response.ok && body.success === true,
+        scannerAvailable: Boolean(body.scannerAvailable),
+        scannerLoadError: body.scannerLoadError || undefined,
+        version: body.version || undefined,
+      };
+      cachedAgentStatus = status;
+      cachedAt = Date.now();
+      return status;
+    } catch (err) {
+      clearTimeout(timer);
+      const likelyBlocked = isMixedContentBlocked(origin, err);
+      cachedAgentStatus = {
+        available: false,
+        scannerAvailable: false,
+        likelyBlocked,
+      };
+      cachedAt = Date.now();
+      return cachedAgentStatus;
+    } finally {
+      pendingProbe = null;
+    }
+  })();
+  return pendingProbe;
 }
 
 /**
@@ -97,36 +112,37 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
  * but Firefox/Safari will throw a mixed-content error.
  */
 function isMixedContentBlocked(origin, err) {
-    if (isMixedContent(origin)) return true;
-    if (!origin || !origin.startsWith('http://')) return false;
-    if (typeof window === 'undefined') return false;
-    if (window.location.protocol !== 'https:') return false;
-    const message = String(err?.message || '').toLowerCase();
-    return (
-        message.includes('mixed content') ||
-        message.includes('insecure') ||
-        message.includes('blocked') ||
-        message.includes('failed to fetch') ||
-        message.includes('ns_error')
-    );
+  if (isMixedContent(origin)) return true;
+  if (!origin || !origin.startsWith("http://")) return false;
+  if (typeof window === "undefined") return false;
+  if (window.location.protocol !== "https:") return false;
+  const message = String(err?.message || "").toLowerCase();
+  return (
+    message.includes("mixed content") ||
+    message.includes("insecure") ||
+    message.includes("blocked") ||
+    message.includes("failed to fetch") ||
+    message.includes("ns_error")
+  );
 }
 
 function isMixedContent(origin) {
-    if (!origin || !origin.startsWith('http://')) return false;
-    if (typeof window === 'undefined') return false;
-    if (window.location.protocol !== 'https:') return false;
-    try {
-        var params = new URLSearchParams(window.location.search);
-        if (params.get('sb_api_base') || params.get('sb_notify_base')) return false;
-        if (
-            typeof sessionStorage !== 'undefined' &&
-            (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
-        )
-            return false;
-    } catch (e) {
-        /* ignore */
-    }
-    return true;
+  if (!origin || !origin.startsWith("http://")) return false;
+  if (typeof window === "undefined") return false;
+  if (window.location.protocol !== "https:") return false;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("sb_api_base") || params.get("sb_notify_base")) return false;
+    if (
+      typeof sessionStorage !== "undefined" &&
+      (sessionStorage.getItem("sb_api_base") ||
+        sessionStorage.getItem("sb_notify_base"))
+    )
+      return false;
+  } catch (e) {
+    /* ignore */
+  }
+  return true;
 }
 
 /**
@@ -136,26 +152,38 @@ function isMixedContent(origin) {
  * @param {string} [origin]
  * @returns {Promise<Object>}
  */
-export async function fetchInventoryViaAgent(projectPath, options = {}, origin = DEFAULT_AGENT_ORIGIN) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 300_000);
-    try {
-        const response = await fetch(`${origin}/inventory`, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ projectPath, fullDirectoryScan: options.fullDirectoryScan })
-        });
-        clearTimeout(timer);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || `Agent inventory failed (${response.status})`);
-        }
-        return data.inventory;
-    } catch (err) {
-        clearTimeout(timer);
-        throw err;
+export async function fetchInventoryViaAgent(
+  projectPath,
+  options = {},
+  origin = DEFAULT_AGENT_ORIGIN,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 300_000);
+  try {
+    const response = await fetch(`${origin}/inventory`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        projectPath,
+        fullDirectoryScan: options.fullDirectoryScan,
+      }),
+    });
+    clearTimeout(timer);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.error || `Agent inventory failed (${response.status})`,
+      );
     }
+    return data.inventory;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 /**
@@ -165,26 +193,29 @@ export async function fetchInventoryViaAgent(projectPath, options = {}, origin =
  * @returns {Promise<Object>}
  */
 export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
-    const controller = new AbortController();
-    // Scans can take a while; use a generous timeout.
-    const timer = setTimeout(() => controller.abort(), 300_000);
-    try {
-        const response = await fetch(`${origin}/scan`, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ projectPath })
-        });
-        clearTimeout(timer);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || `Agent scan failed (${response.status})`);
-        }
-        return data.report;
-    } catch (err) {
-        clearTimeout(timer);
-        throw err;
+  const controller = new AbortController();
+  // Scans can take a while; use a generous timeout.
+  const timer = setTimeout(() => controller.abort(), 300_000);
+  try {
+    const response = await fetch(`${origin}/scan`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ projectPath }),
+    });
+    clearTimeout(timer);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || `Agent scan failed (${response.status})`);
     }
+    return data.report;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 /**
@@ -195,26 +226,28 @@ export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
  * @returns {boolean}
  */
 export function shouldUseAgent(projectPath, agentStatus) {
-    if (!agentStatus?.available || !agentStatus?.scannerAvailable) return false;
-    return isLocalPath(projectPath);
+  if (!agentStatus?.available || !agentStatus?.scannerAvailable) return false;
+  return isLocalPath(projectPath);
 }
 
 /**
  * Format a status message for the UI.
  */
 export function formatAgentStatus(agentStatus) {
-    if (!agentStatus) return '';
-    if (!agentStatus.available) {
-        if (agentStatus.likelyBlocked) {
-            return 'Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or download the Local Scan Agent below';
-        }
-        return 'Local agent offline — download the Local Scan Agent portable zip and run start-agent.bat';
+  if (!agentStatus) return "";
+  if (!agentStatus.available) {
+    if (agentStatus.likelyBlocked) {
+      return "Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or download the Local Scan Agent below";
     }
-    if (!agentStatus.scannerAvailable) {
-        const error = agentStatus.scannerLoadError ? `: ${agentStatus.scannerLoadError}` : '';
-        return `Local agent connected, but scanner is not available${error}`;
-    }
-    return `Local agent connected${agentStatus.version ? ` (v${agentStatus.version})` : ''}`;
+    return "Local agent offline — download the Local Scan Agent portable zip and run start-agent.bat";
+  }
+  if (!agentStatus.scannerAvailable) {
+    const error = agentStatus.scannerLoadError
+      ? `: ${agentStatus.scannerLoadError}`
+      : "";
+    return `Local agent connected, but scanner is not available${error}`;
+  }
+  return `Local agent connected${agentStatus.version ? ` (v${agentStatus.version})` : ""}`;
 }
 
 /**
@@ -222,12 +255,12 @@ export function formatAgentStatus(agentStatus) {
  * @returns {'windows'|'linux'|'macos'|'unknown'}
  */
 export function detectPlatform() {
-    if (typeof window === 'undefined' || !window.navigator) return 'unknown';
-    const ua = window.navigator.userAgent.toLowerCase();
-    if (ua.includes('win')) return 'windows';
-    if (ua.includes('mac') || ua.includes('darwin')) return 'macos';
-    if (ua.includes('linux')) return 'linux';
-    return 'unknown';
+  if (typeof window === "undefined" || !window.navigator) return "unknown";
+  const ua = window.navigator.userAgent.toLowerCase();
+  if (ua.includes("win")) return "windows";
+  if (ua.includes("mac") || ua.includes("darwin")) return "macos";
+  if (ua.includes("linux")) return "linux";
+  return "unknown";
 }
 
 /**
@@ -235,8 +268,8 @@ export function detectPlatform() {
  * @param {'windows'|'linux'|'macos'|'unknown'} [platform]
  */
 export function getAgentDownloadUrl(platform) {
-    const p = platform || detectPlatform();
-    return AGENT_DOWNLOAD_URLS[p] || AGENT_DOWNLOAD_URLS.unknown;
+  const p = platform || detectPlatform();
+  return AGENT_DOWNLOAD_URLS[p] || AGENT_DOWNLOAD_URLS.unknown;
 }
 
 /**
@@ -245,17 +278,19 @@ export function getAgentDownloadUrl(platform) {
  * @returns {string}
  */
 export function getAgentFallbackMessage(agentStatus) {
-    if (agentStatus?.likelyBlocked) {
-        return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or download the Local Scan Agent below.';
-    }
-    if (!agentStatus?.available) {
-        return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';
-    }
-    if (!agentStatus?.scannerAvailable) {
-        const error = agentStatus?.scannerLoadError ? ` (${agentStatus.scannerLoadError})` : '';
-        return `Local Scan Agent is running but the scanner is not loaded.${error} Restart the agent or reinstall the portable package.`;
-    }
-    return 'Local Scan Agent is not ready.';
+  if (agentStatus?.likelyBlocked) {
+    return "Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or download the Local Scan Agent below.";
+  }
+  if (!agentStatus?.available) {
+    return "Local Scan Agent is offline. Download and run it from the link below, then try again.";
+  }
+  if (!agentStatus?.scannerAvailable) {
+    const error = agentStatus?.scannerLoadError
+      ? ` (${agentStatus.scannerLoadError})`
+      : "";
+    return `Local Scan Agent is running but the scanner is not loaded.${error} Restart the agent or reinstall the portable package.`;
+  }
+  return "Local Scan Agent is not ready.";
 }
 
 /**
@@ -263,13 +298,13 @@ export function getAgentFallbackMessage(agentStatus) {
  * @param {'windows'|'linux'|'macos'|'unknown'} platform
  */
 export function getPlatformLabel(platform) {
-    const labels = {
-        windows: 'Windows',
-        linux: 'Linux',
-        macos: 'macOS',
-        unknown: 'your platform'
-    };
-    return labels[platform] || labels.unknown;
+  const labels = {
+    windows: "Windows",
+    linux: "Linux",
+    macos: "macOS",
+    unknown: "your platform",
+  };
+  return labels[platform] || labels.unknown;
 }
 
 /**
@@ -277,12 +312,12 @@ export function getPlatformLabel(platform) {
  * @param {'windows'|'linux'|'macos'|'unknown'} platform
  */
 export function getInstallInstructions(platform) {
-    const p = platform || detectPlatform();
-    if (p === 'windows') {
-        return 'Run the downloaded .exe and follow the prompts. The installer will start the agent automatically.';
-    }
-    if (p === 'linux' || p === 'macos' || p === 'unknown') {
-        return 'Extract the downloaded zip, open a terminal in the extracted folder, and run: ./install.sh';
-    }
-    return '';
+  const p = platform || detectPlatform();
+  if (p === "windows") {
+    return "Run the downloaded .exe and follow the prompts. The installer will start the agent automatically.";
+  }
+  if (p === "linux" || p === "macos" || p === "unknown") {
+    return "Extract the downloaded zip, open a terminal in the extracted folder, and run: ./install.sh";
+  }
+  return "";
 }

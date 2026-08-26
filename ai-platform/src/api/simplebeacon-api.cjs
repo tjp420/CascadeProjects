@@ -610,7 +610,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
         cwd: PROJECT_ROOT,
         timeout:
           Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) ||
-          constants.TIMEOUT_10M,
+          25 * 60 * 1000, // 25 minutes — large repos (4000+ files) need more than the default 10min
         env: {
           ...process.env,
           FORCE_COLOR: "0",

@@ -89,7 +89,7 @@ test("assembleEnhancedExecutiveSummary keeps deterministic metrics tables", () =
   assert.match(body, /\| Critical \| 1 \|/);
   assert.match(body, /\| High \| 2 \|/);
   assert.match(body, /Business impact paragraph/);
-  assert.match(body, /\*\*Headline:\*\* Fix credentials first\./);
+  assert.match(body, /\*\*Summary:\*\* Fix credentials first\./);
 });
 
 test("enhanceExecutiveSummary replaces executive summary but preserves detailed findings", async () => {
@@ -102,7 +102,7 @@ test("enhanceExecutiveSummary replaces executive summary but preserves detailed 
     company: "Digital Build Agency LLC",
     assessment,
   });
-  const detailedSection = baseMarkdown.split("## Detailed findings")[1];
+  const detailedSection = baseMarkdown.split("## What we found")[1];
 
   const enhanced = await enhanceExecutiveSummary(
     baseMarkdown,
@@ -127,9 +127,9 @@ test("enhanceExecutiveSummary replaces executive summary but preserves detailed 
   assert.match(enhanced, /\| Critical \| 1 \|/);
   assert.doesNotMatch(
     enhanced,
-    /Simplebeacon performed a read-only static analysis/,
+    /SimpleBeacon scanned your codebase for security risks/,
   );
-  assert.equal(enhanced.split("## Detailed findings")[1], detailedSection);
+  assert.equal(enhanced.split("## What we found")[1], detailedSection);
 });
 
 test("replaceExecutiveSummaryBody swaps narrative while keeping section boundaries", () => {
@@ -148,7 +148,7 @@ test("replaceExecutiveSummaryBody swaps narrative while keeping section boundari
 
   assert.match(
     updated,
-    /## Executive summary\n\nReplacement executive summary body\.\n\n---\n\n## Detailed findings/,
+    /## Executive summary\n\nReplacement executive summary body\.\n\n---\n\n## What we found/,
   );
   assert.match(updated, /### Critical — Hardcoded credential pattern/);
 });

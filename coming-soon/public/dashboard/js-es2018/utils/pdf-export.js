@@ -1,6 +1,6 @@
 export function exportToPDF(items) {
-    const printWindow = window.open('', '_blank');
-    const htmlContent = `
+  const printWindow = window.open("", "_blank");
+  const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -24,8 +24,8 @@ export function exportToPDF(items) {
       </div>
       <div>
         ${items
-            .map(
-                item => `
+          .map(
+            (item) => `
           <div class="item ${item.status.toLowerCase()}">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div><strong>${item.article}: ${item.title}</strong></div>
@@ -33,15 +33,15 @@ export function exportToPDF(items) {
             </div>
             <p style="margin-top:8px;color:#444">${item.desc}</p>
           </div>
-        `
-            )
-            .join('')}
+        `,
+          )
+          .join("")}
       </div>
     </body>
     </html>
   `;
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
 }

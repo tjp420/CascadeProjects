@@ -8,6 +8,8 @@ const { createScanHandlers } = require("./handlers/scan-handlers");
 const { createReportHandlers } = require("./handlers/report-handlers");
 const { createUtilityHandlers } = require("./handlers/utility-handlers");
 const { createDeploymentHandlers } = require("./handlers/deployment-handlers");
+const { createPdaHandlers } = require("./handlers/pda-handlers");
+const { createAgentHandlers } = require("./handlers/agent-handlers");
 const constants = require("../lib/constants");
 
 function resolveProjectRoot(override) {
@@ -109,12 +111,27 @@ function createMcpToolHandlers(options = {}) {
     resolveProjectRoot,
     formatToolResult,
   });
+  const pdaHandlers = createPdaHandlers({
+    withGuard,
+    resolveProjectRoot,
+    formatToolResult,
+    formatMarkdownResult,
+  });
+  const agentHandlers = createAgentHandlers({
+    withGuard,
+    resolveProjectRoot,
+    formatToolResult,
+    formatMarkdownResult,
+    getCachedReport,
+  });
 
   return {
     ...scanHandlers,
     ...reportHandlers,
     ...utilityHandlers,
     ...deploymentHandlers,
+    ...pdaHandlers,
+    ...agentHandlers,
     dispose() {
       if (networkGuard) networkGuard.dispose();
     },
@@ -437,6 +454,348 @@ const TOOL_DEFINITIONS = [
           description:
             "Project root to scan (default: cwd or SIMPLEBEACON_PROJECT_ROOT)",
         },
+      },
+    },
+  },
+  // ─── Agent Workflow Tools ───
+  {
+    name: "supercharge_agent",
+    description:
+      "One-call mission briefing for coding agents. Returns gate state, top blocking issues, suggested fixes, previous handoff, and the next mission. Auto-registers the agent and optionally writes a brief to .simplebeacon/agent-supercharge.md. Call this at session start.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+        reportPath: {
+          type: "string",
+          description: "Override report path relative to project root",
+        },
+        writeDisk: {
+          type: "boolean",
+          description:
+            "Write the supercharge brief to .simplebeacon/agent-supercharge.md (default: false)",
+        },
+      },
+    },
+  },
+  {
+    name: "handoff_check",
+    description:
+      "Pre-completion verification — checks gate pass, blocking count, and open tasks. Returns ready=true when safe to claim done. Optionally writes a handoff brief for the next session. Call this before claiming work is complete.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+        summary: {
+          type: "string",
+          description: "Summary of what was accomplished this session",
+        },
+        completedTasks: {
+          type: "array",
+          items: { type: "string" },
+          description: "List of completed task titles",
+        },
+        filesChanged: {
+          type: "array",
+          items: { type: "string" },
+          description: "List of files modified this session",
+        },
+        notes: {
+          type: "string",
+          description: "Notes for the next session or reviewer",
+        },
+        writeHandoff: {
+          type: "boolean",
+          description: "Write a handoff brief even if not ready (default: auto-writes when ready)",
+        },
+      },
+    },
+  },
+  {
+    name: "scan_staged",
+    description:
+      "Run a gate scan on staged git files only — much faster than scan_project for pre-commit checks. Copies staged files to a temp dir, scans them, and returns blocking issues. Use before commits and PRs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+      },
+    },
+  },
+  {
+    name: "agent_status",
+    description:
+      "Return the current agent's status — gate state, open tasks, recent memories, and the recommended next action. Use this to orient yourself mid-session without re-running a full scan.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+      },
+    },
+  },
+  {
+    name: "code_suggestions",
+    description:
+      "Return deterministic before/after fix suggestions for blocking issues from the latest scan report. Includes pattern explanation, fix hint, and verification command. No LLM inference — all from the rule catalog.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+        reportPath: {
+          type: "string",
+          description: "Override report path relative to project root",
+        },
+        maxSuggestions: {
+          type: "number",
+          description: "Max suggestions to return (default 10)",
+        },
+      },
+    },
+  },
+  {
+    name: "install_agent_plugin",
+    description:
+      "Install SimpleBeacon MCP config and agent rules for a specific coding agent host (cursor, windsurf, continue, copilot, cline, aider, universal, all). Writes .cursor/mcp.json and agent rule files.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+        hosts: {
+          type: "string",
+          description:
+            "Comma-separated list of agent hosts: cursor, windsurf, continue, copilot, cline, aider, universal, all (default: universal)",
+        },
+        force: {
+          type: "boolean",
+          description: "Overwrite existing config files",
+        },
+      },
+    },
+  },
+  // ─── PDA: Agent Memory ───
+  {
+    name: "agent_register",
+    description:
+      "Register a new agent in the project's agent registry. Returns agent ID. Usually auto-registration is sufficient — use this only for explicit naming.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        name: { type: "string", description: "Agent name (e.g. 'devin', 'cursor')" },
+        type: { type: "string", description: "Agent type (e.g. 'coding', 'review')" },
+      },
+    },
+  },
+  {
+    name: "agent_remember",
+    description:
+      "Store a key-value memory for the current agent. Persists across sessions in .simplebeacon/agent-memory/. Use this to save architectural decisions, false positive allowlists, and context that would otherwise be re-discovered.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        key: { type: "string", description: "Memory key (e.g. 'auth-pattern', 'false-positive-001')" },
+        value: { type: "string", description: "Memory value (string or JSON string)" },
+        category: { type: "string", description: "Category: context, decision, handoff, false-positive (default: context)" },
+        ttlSeconds: { type: "number", description: "Optional TTL in seconds — memory auto-expires after this" },
+      },
+      required: ["key", "value"],
+    },
+  },
+  {
+    name: "agent_recall",
+    description:
+      "Recall memories for the current agent by key, category, or search query. Returns matching memories. Use this to recover context from previous sessions without re-reading files.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        key: { type: "string", description: "Specific key to recall (optional)" },
+        category: { type: "string", description: "Filter by category (optional)" },
+        search: { type: "string", description: "Full-text search across memory values" },
+        allAgents: { type: "boolean", description: "Search across all agents, not just current (default: false)" },
+      },
+    },
+  },
+  {
+    name: "agent_forget",
+    description:
+      "Delete a memory by key and optional category. Use this to clean up stale context.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        key: { type: "string", description: "Memory key to delete" },
+        category: { type: "string", description: "Optional category filter" },
+      },
+      required: ["key"],
+    },
+  },
+  // ─── PDA: Tasks ───
+  {
+    name: "task_create",
+    description:
+      "Create a task for the current agent. Tasks can have priorities, parent tasks, and approval requirements. Use this to track multi-step work and avoid losing track of pending items.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        title: { type: "string", description: "Task title" },
+        description: { type: "string", description: "Task description" },
+        priority: { type: "string", description: "Priority: low, medium, high, critical" },
+        parentId: { type: "string", description: "Optional parent task ID" },
+        approvalRequired: { type: "boolean", description: "Require approval before completion" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "task_list",
+    description:
+      "List tasks for the current agent (or all agents). Filter by status: pending, in-progress, completed, blocked, cancelled.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        status: { type: "string", description: "Filter by status (optional)" },
+      },
+    },
+  },
+  {
+    name: "task_update",
+    description:
+      "Update a task — change title, description, status, priority, or block reason.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        taskId: { type: "string", description: "Task ID to update" },
+        title: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string", description: "New status: pending, in-progress, completed, blocked, cancelled" },
+        priority: { type: "string" },
+        blockReason: { type: "string", description: "Reason for blocking (if status=blocked)" },
+      },
+      required: ["taskId"],
+    },
+  },
+  {
+    name: "task_complete",
+    description:
+      "Mark a task as completed. Fails if parent task is not yet completed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        taskId: { type: "string", description: "Task ID to complete" },
+      },
+      required: ["taskId"],
+    },
+  },
+  // ─── PDA: Policies ───
+  {
+    name: "policy_check",
+    description:
+      "Check if an action is allowed by the project's agent policies. Returns allowed, violations, and warnings. Use this before destructive or risky actions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        action: { type: "string", description: "Action to check (e.g. 'commit', 'deploy', 'delete-file')" },
+        context: { type: "object", description: "Additional context for the action" },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "policy_list",
+    description:
+      "List all agent policies for the project. Returns policy definitions and their source file.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+      },
+    },
+  },
+  // ─── PDA: Gate Finalize ───
+  {
+    name: "gate_finalize",
+    description:
+      "Check if the agent can finalize changes — runs gate scan, checks policies, and verifies no blocking issues. Returns canFinalize, blocking count, and violations. More thorough than handoff_check.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        runScan: { type: "boolean", description: "Run a fresh scan (default: true)" },
+        useExistingReport: { type: "boolean", description: "Use existing .simplebeacon/report.json instead of re-scanning" },
+        action: { type: "string", description: "Action label for the finalize check (default: 'finalize-changes')" },
+      },
+    },
+  },
+  // ─── PDA: Handoff ───
+  {
+    name: "handoff_write",
+    description:
+      "Write a handoff brief for the next session or another agent. Includes summary, completed tasks, pending tasks, notes, and files changed. Stored in agent memory under 'handoff' category.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        summary: { type: "string", description: "Summary of what was accomplished" },
+        completedTasks: { type: "array", items: { type: "string" } },
+        pendingTasks: { type: "array", items: { type: "string" } },
+        notes: { type: "string" },
+        filesChanged: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
+  {
+    name: "handoff_read",
+    description:
+      "Read the latest handoff brief from any agent. Use this at session start to recover context from the previous session without re-exploring.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        agentId: { type: "string", description: "Read handoff from a specific agent (default: latest from any agent)" },
+      },
+    },
+  },
+  // ─── PDA: Cross-Project Learning ───
+  {
+    name: "cross_project_learn",
+    description:
+      "Analyze scan reports across multiple projects to extract patterns, recurring issues, and recommendations. Use this to learn from past mistakes and avoid repeating them.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        searchRoots: {
+          type: "array",
+          items: { type: "string" },
+          description: "Directories to search for projects (default: ~/CascadeProjects, ~/, E:/Ai)",
+        },
+        maxDepth: { type: "number", description: "Max directory depth (default: 5)" },
+        format: { type: "string", description: "Output format: json (default) | markdown" },
       },
     },
   },

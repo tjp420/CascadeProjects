@@ -153,17 +153,17 @@ const SAMPLE_REPORT = {
 
 test("generateMarkdownReport produces a complete markdown document", () => {
   const md = generateMarkdownReport(SAMPLE_REPORT);
-  assert.ok(md.includes("# SimpleBeacon Scan Audit Report"));
-  assert.ok(md.includes("## Severity Breakdown"));
-  assert.ok(md.includes("## Rule Engine Summary"));
-  assert.ok(md.includes("## AI Slop Detection"));
-  assert.ok(md.includes("## Top Findings"));
+  assert.ok(md.includes("# Code Quality & Security Scan Report"));
+  assert.ok(md.includes("## Issues Found"));
+  assert.ok(md.includes("## What Was Checked"));
+  assert.ok(md.includes("## AI-Generated Code Issues"));
+  assert.ok(md.includes("## Top Issues to Fix"));
   assert.ok(md.includes("## Quality Scorecard"));
-  assert.ok(md.includes("## Build Readiness"));
-  assert.ok(md.includes("## Remediation Roadmap"));
-  assert.ok(md.includes("## EU AI Act Status"));
-  assert.ok(md.includes("## File Inventory"));
-  assert.ok(md.includes("## Scan Statistics"));
+  assert.ok(md.includes("## Build Readiness Checklist"));
+  assert.ok(md.includes("## Fix Roadmap"));
+  assert.ok(md.includes("## EU AI Act Compliance"));
+  assert.ok(md.includes("## File Breakdown"));
+  assert.ok(md.includes("## Scan Details"));
   assert.ok(md.includes("SimpleBeacon"));
 });
 
@@ -194,7 +194,7 @@ test("generateSeverityBreakdown counts issues by severity", () => {
   const breakdown = generateSeverityBreakdown(SAMPLE_REPORT);
   assert.ok(breakdown.includes("Medium"));
   assert.ok(breakdown.includes("2"));
-  assert.ok(breakdown.includes("Warning issues:** 3"));
+  assert.ok(breakdown.includes("Warning issues (should review):** 3"));
 });
 
 test("generateRuleHitSummary lists all rule categories with hit counts", () => {
@@ -233,7 +233,7 @@ test("generateFictionRuleBreakdown shows hit counts for flagged rules", () => {
 test("generateFictionRuleBreakdown shows clean message when no hits", () => {
   const cleanReport = { ...SAMPLE_REPORT, rawIssues: [] };
   const breakdown = generateFictionRuleBreakdown(cleanReport);
-  assert.ok(breakdown.includes("No AI slop patterns detected"));
+  assert.ok(breakdown.includes("No AI-generated code issues found"));
 });
 
 test("generateTopFindings shows warning issues sorted by severity", () => {
@@ -249,7 +249,7 @@ test("generateTopFindings shows clean message when no issues", () => {
     gate: { pass: true, blockingIssues: [], warningIssues: [] },
   };
   const findings = generateTopFindings(cleanReport);
-  assert.ok(findings.includes("No blocking or warning findings"));
+  assert.ok(findings.includes("No issues found — your code looks clean!"));
 });
 
 test("generateBuildReadiness shows checklist with missing items", () => {
@@ -272,7 +272,7 @@ test("generateRemediationPhases shows phase progress", () => {
 
 test("generateEuAiActSection shows clean status when no indicators", () => {
   const eu = generateEuAiActSection(SAMPLE_REPORT);
-  assert.ok(eu.includes("No EU AI Act indicators"));
+  assert.ok(eu.includes("No EU AI Act compliance issues detected"));
 });
 
 test("generateEuAiActSection shows indicators when present", () => {
@@ -338,7 +338,7 @@ test("generateMarkdownReport handles minimal report without crashing", () => {
     },
   };
   const md = generateMarkdownReport(minimal);
-  assert.ok(md.includes("# SimpleBeacon Scan Audit Report"));
+  assert.ok(md.includes("# Code Quality & Security Scan Report"));
   assert.ok(md.includes("BLOCKED"));
   assert.ok(md.includes("Secret"));
   assert.ok(md.includes("Rotate key"));
@@ -383,6 +383,6 @@ test("selectPayload returns markdown for markdown format", () => {
     fakeJsonReport,
     "markdown",
   );
-  assert.ok(payload.includes("# SimpleBeacon Scan Audit Report"));
+  assert.ok(payload.includes("# Code Quality & Security Scan Report"));
   assert.ok(payload.includes("PASS"));
 });

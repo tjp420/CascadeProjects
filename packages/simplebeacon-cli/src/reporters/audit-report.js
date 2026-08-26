@@ -124,11 +124,11 @@ function formatReportDate(iso) {
 
 function formatGateResult(gate) {
   if (!gate) {
-    return "**Not evaluated** — re-run scan with `--gate`";
+    return "Not evaluated — re-run scan with `--gate` to check";
   }
   return gate.pass
-    ? "**PASS** — no blocking issues at configured severities"
-    : "**FAIL** — action required before production deployment";
+    ? "✅ **PASS** — no blocking issues found, safe to deploy"
+    : "❌ **FAIL** — fix blocking issues before deploying";
 }
 
 function formatFileLocation(issue) {
@@ -483,17 +483,17 @@ function buildExecutiveSummaryMetricsTables(report, _options = {}) {
 
   return `| Metric | Value |
 |--------|-------|
-| **Total files scanned** | ${totalFiles} |
-| **Gate result** | ${formatGateResult(report.gate)} |
+| **Files scanned** | ${totalFiles} |
+| **Quality gate** | ${formatGateResult(report.gate)} |
 
-### Vulnerability count by severity
+### Issues found by severity
 
-| Severity | Count |
-|----------|-------|
-| Critical | ${severityCounts.critical} |
-| High | ${severityCounts.high} |
-| Medium | ${severityCounts.medium} |
-| Low | ${severityCounts.low} |`;
+| Severity | Count | What it means |
+|----------|-------|---------------|
+| Critical | ${severityCounts.critical} | Must fix before release |
+| High | ${severityCounts.high} | Fix before merging |
+| Medium | ${severityCounts.medium} | Review and fix soon |
+| Low | ${severityCounts.low} | Minor cleanup |`;
 }
 
 function buildExecutiveSummaryBody(report, options = {}) {
@@ -506,15 +506,15 @@ function buildExecutiveSummaryBody(report, options = {}) {
     issues,
   );
 
-  return `Simplebeacon performed a read-only static analysis on the provided repository root. The scan targeted hardcoded credentials, production mock data leaks, AI-generated fiction patterns, and schema consistency in configured sample paths.
+  return `SimpleBeacon scanned your codebase for security risks, AI-generated errors, and quality issues. The scan checked for hardcoded passwords/API keys, test data accidentally left in production code, AI-generated placeholder values, and consistency issues in sample data files.
 
 ${buildExecutiveSummaryMetricsTables(report, options)}
 
-**Headline:** ${headline}`;
+**Summary:** ${headline}`;
 }
 
 const EXECUTIVE_SUMMARY_START = "## Executive summary\n\n";
-const EXECUTIVE_SUMMARY_END = "\n\n---\n\n## Detailed findings";
+const EXECUTIVE_SUMMARY_END = "\n\n---\n\n## What we found";
 
 function replaceExecutiveSummaryBody(markdown, newBody) {
   const startIdx = markdown.indexOf(EXECUTIVE_SUMMARY_START);
@@ -559,13 +559,13 @@ function compileAuditReportMarkdown(report, options = {}) {
     assessor,
   });
 
-  return `# Simplebeacon Pre-Launch Code Audit Report
+  return `# Code Quality & Security Audit Report
 
-**Target project:** ${client}${branchLabel}  
+**Project:** ${client}${branchLabel}  
 **Prepared for:** ${company}  
-**Assessor:** ${assessor}  
+**Assessed by:** ${assessor}  
 **Date:** ${formatReportDate(generatedAt)}  
-**Audit type:** Static source code leak and AI-fiction analysis (read-only)
+**Audit type:** Automated code review — finds security risks, AI-generated errors, and quality issues (read-only)
 
 ---
 
@@ -575,7 +575,7 @@ ${executiveSummary}
 
 ---
 
-## Detailed findings
+## What we found
 
 ${detailedFindings}
 
@@ -587,26 +587,26 @@ ${howToFix}
 
 ---
 
-## Your personalized action plan
+## Your action plan
 
 ${actionPlan}
 
 ---
 
-## Compliance and gate recommendations
+## Compliance checklist
 
 ${complianceTable}
 
-**Recommended CI action**
+**Set up automated checks in CI**
 
 \`\`\`bash
 npx simplebeacon init
 npx simplebeacon scan --gate --format json --output .simplebeacon/report.json
 \`\`\`
 
-Add \`.github/workflows/simplebeacon.yml\` from the Simplebeacon repo examples so PRs fail on high-severity findings.
+Add \`.github/workflows/simplebeacon.yml\` from the Simplebeacon repo examples so PRs automatically fail on high-severity issues.
 
-**Recommended local hook**
+**Set up local pre-commit hook**
 
 \`\`\`bash
 npx simplebeacon hook install
@@ -622,9 +622,9 @@ ${commandsRun.join("\n")}
 
 ---
 
-## Disclaimer
+## About this report
 
-This assessment is an **opinion-based, static technical review** of the source files provided at the time of evaluation. It is not a legal compliance guarantee, formal penetration test, SOC 2 attestation, or certification that the system is secure in production. Findings depend on configured scan paths, rules, and allowlists. The client remains responsible for remediation and release decisions.`;
+This is an **automated technical review** of the source code at the time of evaluation. It is not a legal compliance guarantee, formal penetration test, or security certification. Findings depend on configured scan paths, rules, and allowlists. The client remains responsible for remediation and release decisions.`;
 }
 
 /** @deprecated Use compileAuditReportMarkdown */

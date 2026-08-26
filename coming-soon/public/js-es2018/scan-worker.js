@@ -17,8 +17,7 @@ const LANGUAGE_REGISTRY = {
 const PATTERN_REGISTRY = {
     debugArtifacts: {
         appliesTo: ['javascript'],
-        pattern:
-            /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
+        pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
     },
     todoMarkers: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
@@ -26,8 +25,7 @@ const PATTERN_REGISTRY = {
     },
     credentials: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
-        pattern:
-            /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
+        pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
         appliesTo: ['javascript'],
@@ -67,28 +65,23 @@ const PATTERN_REGISTRY = {
     },
     phpDebug: {
         appliesTo: ['php'],
-        pattern:
-            /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
+        pattern: /\becho\s+['"]|\bvar_dump\s*\(|\bprint_r\s*\(|\bdie\s*\(|\bexit\s*\(|\bdebug_backtrace\s*\(|\btrigger_error\s*\(/i
     },
     phpFramework: {
         appliesTo: ['php'],
-        pattern:
-            /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
+        pattern: /APP_DEBUG\s*=>\s*true|APP_ENV\s*=>\s*['"]local['"]|DB::raw\s*\(|mysql_query\s*\(|mysqli_query\s*\(|PDO\s*::\s*query\s*\(|eval\s*\(/i
     },
     dotnetDebug: {
         appliesTo: ['dotnet'],
-        pattern:
-            /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
+        pattern: /\bConsole\.Write(Line)?\s*\(|\bDebug\.Write(Line)?\s*\(|\bTrace\.Write(Line)?\s*\(|\bDebugger\.Break\s*\(/i
     },
     dotnetFramework: {
         appliesTo: ['dotnet'],
-        pattern:
-            /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
+        pattern: /connectionString\s*=\s*["'][^"']{10,}|Integrated\s+Security\s*=\s*false|Server=localhost;|\.UseInMemoryDatabase\s*\(/i
     },
     rubyDebug: {
         appliesTo: ['ruby'],
-        pattern:
-            /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
+        pattern: /\bputs\s+['"]|\bp\s+['"]|\bdebugger\b|\bdebug\s+['"]|\bbinding\.irb\b|\bbinding\.pry\b|\bRails\.logger\.debug\s*\(/i
     },
     rubyFramework: {
         appliesTo: ['ruby'],
@@ -102,7 +95,8 @@ const SEVERITY_MAP = {
 function detectFileLanguage(path) {
     const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
     for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
-        if (config.extensions.includes(ext)) return langKey;
+        if (config.extensions.includes(ext))
+            return langKey;
     }
     return null;
 }
@@ -118,7 +112,8 @@ function detectDominantLanguage(paths) {
         }
     }
     const entries = Object.entries(counts);
-    if (entries.length === 0) return 'javascript';
+    if (entries.length === 0)
+        return 'javascript';
     entries.sort((a, b) => b[1] - a[1]);
     return entries[0][0];
 }
@@ -167,18 +162,13 @@ async function simpleHash(str) {
  */
 function shouldSkipFile(path, deepScan) {
     const normalized = path.replace(/\\/g, '/');
-    if (
-        /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(
-            normalized
-        )
-    )
+    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized))
         return true;
-    if (
-        !deepScan &&
-        /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)
-    )
+    if (!deepScan &&
+        /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized))
         return true;
-    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
+    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized))
+        return true;
     return false;
 }
 /**
@@ -209,7 +199,8 @@ async function scanFiles(files, deepScan) {
     let processed = 0;
     let textErrors = 0;
     for (const file of files) {
-        if (shouldSkipFile(file.path, deepScan)) continue;
+        if (shouldSkipFile(file.path, deepScan))
+            continue;
         try {
             const fileObj = file.fileObj || file;
             if (typeof fileObj.text !== 'function') {
@@ -228,22 +219,21 @@ async function scanFiles(files, deepScan) {
                 const results = runAnalyzer(name, text, file.path);
                 if (results.length > 0) {
                     allResults.push(...results);
-                    issues.push(
-                        ...results.map(r => ({
-                            severity: SEVERITY_MAP[name] || 'medium',
-                            filePath: r.filePath,
-                            rule: name,
-                            impact: `${r.count} ${name} finding(s) detected`,
-                            fix: 'Review and remediate before next release.'
-                        }))
-                    );
+                    issues.push(...results.map(r => ({
+                        severity: SEVERITY_MAP[name] || 'medium',
+                        filePath: r.filePath,
+                        rule: name,
+                        impact: `${r.count} ${name} finding(s) detected`,
+                        fix: 'Review and remediate before next release.'
+                    })));
                 }
             }
             processed++;
             if (processed % 50 === 0) {
                 self.postMessage({ type: 'progress', processed, total: files.length });
             }
-        } catch (err) {
+        }
+        catch (err) {
             textErrors++;
         }
     }
@@ -264,14 +254,15 @@ async function scanFiles(files, deepScan) {
     };
 }
 // Message handler
-self.onmessage = async e => {
+self.onmessage = async (e) => {
     const { type, files, scanId } = e.data;
     if (type === 'scan') {
         self.postMessage({ type: 'started', scanId, totalFiles: files.length });
         try {
             const results = await scanFiles(files, e.data.deepScan);
             self.postMessage({ type: 'complete', scanId, ...results });
-        } catch (err) {
+        }
+        catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });
         }
     }

@@ -103,7 +103,7 @@ function assembleEnhancedExecutiveSummary(parts, report, options = {}) {
 
 ${metrics}
 
-${impactBlock}**Headline:** ${parts.headline}`;
+${impactBlock}**Summary:** ${parts.headline}`;
 }
 
 function callOpenAIChatCompletion(prompt, options = {}) {

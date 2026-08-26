@@ -187,11 +187,32 @@ export async function clearUserAiKeys() {
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
+// Ports that are definitely NOT Ollama — dev servers, dashboards, extension bridges.
+const NON_OLLAMA_PORTS = new Set([61455, 54358, 54697, 58681, 58000, 53900, 3000, 8080, 4000, 55432]);
+const FALLBACK_OLLAMA_URL = "http://127.0.0.1:11434";
+
 function sanitizeOllamaBaseUrl(url) {
-  return String(url || "")
+  const clean = String(url || "")
     .trim()
     .replace(/^["']+|["']+$/g, "")
-    .replace(/\/$/, "");
+    .replace(/\/+$/, "");
+  if (!clean) return "";
+  try {
+    const parsed = new URL(clean);
+    const port = parseInt(parsed.port, 10);
+    // If the URL points at a known non-Ollama port (dev server, extension bridge, etc.),
+    // return the default Ollama origin instead.
+    if (Number.isFinite(port) && NON_OLLAMA_PORTS.has(port)) {
+      return FALLBACK_OLLAMA_URL;
+    }
+    // Also catch the case where the stored URL matches the current page origin
+    if (typeof window !== "undefined" && clean === window.location.origin) {
+      return FALLBACK_OLLAMA_URL;
+    }
+  } catch {
+    /* ignore parse errors */
+  }
+  return clean;
 }
 
 export function isLocalOllamaUrl(url) {

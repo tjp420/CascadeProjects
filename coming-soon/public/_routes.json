@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "include": ["/api/*", "/dashboard/*", "/app/*"],
+    "include": ["/api/*", "/dashboard/*", "/app/*", "/d2/*"],
     "exclude": [
         "/js/*",
         "/js-es2018/*",
@@ -30,6 +30,15 @@
         "/app/assets/*",
         "/app/dist/assets/*",
         "/app/dist/*.css",
-        "/app/dist/*.js"
+        "/app/dist/*.js",
+        "/d2/css/*",
+        "/d2/js/*",
+        "/d2/js-es2018/*",
+        "/d2/images/*",
+        "/d2/fonts/*",
+        "/d2/assets/*",
+        "/d2/dist/assets/*",
+        "/d2/dist/*.css",
+        "/d2/dist/*.js"
     ]
 }

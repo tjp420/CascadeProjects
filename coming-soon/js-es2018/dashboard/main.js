@@ -2,7 +2,8 @@
 // Copy-to-clipboard helper
 window.copyToClipboard = function (elementId) {
     const el = document.getElementById(elementId);
-    if (!el) return;
+    if (!el)
+        return;
     navigator.clipboard.writeText(el.textContent).then(() => {
         const btn = el.nextElementSibling;
         if (btn) {
@@ -13,7 +14,8 @@ window.copyToClipboard = function (elementId) {
 };
 window.togglePalette = function (id) {
     const palette = document.getElementById(id);
-    if (!palette) return;
+    if (!palette)
+        return;
     palette.classList.toggle('collapsed');
     const header = palette.querySelector('.terminal-header');
     if (header) {
@@ -22,7 +24,8 @@ window.togglePalette = function (id) {
     }
 };
 function decodeJwtPayload(token) {
-    if (!token || typeof token !== 'string') return null;
+    if (!token || typeof token !== 'string')
+        return null;
     const parts = token.split('.');
     if (parts.length !== 2 && parts.length !== 3) {
         return null;
@@ -42,19 +45,23 @@ function decodeJwtPayload(token) {
         let decoded;
         if (typeof TextDecoder !== 'undefined') {
             const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            for (let i = 0; i < binary.length; i++)
+                bytes[i] = binary.charCodeAt(i);
             decoded = new TextDecoder().decode(bytes);
-        } else {
+        }
+        else {
             decoded = decodeURIComponent(escape(binary));
         }
         return JSON.parse(decoded);
-    } catch (e) {
+    }
+    catch (e) {
         return null;
     }
 }
 window.toggleModuleDropdown = function () {
     const dd = document.getElementById('analyzerDropdown');
-    if (!dd) return;
+    if (!dd)
+        return;
     dd.classList.toggle('collapsed');
     const header = dd.querySelector('.select-all-bar');
     if (header) {
@@ -82,21 +89,22 @@ const FILE_COUNT_VERY_HIGH = 100000;
 // Local server ports to probe
 const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
 // API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
-const API_BASE =
-    location.hostname === 'localhost' ||
+const API_BASE = location.hostname === 'localhost' ||
     location.hostname === '127.0.0.1' ||
     location.hostname.endsWith('.onrender.com')
-        ? ''
-        : 'https://cascadeprojects-yzzd.onrender.com';
+    ? ''
+    : 'https://cascadeprojects-yzzd.onrender.com';
 const IS_LOCAL_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 function isSameOriginApiHost() {
     const host = location.hostname;
     return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev') || host.endsWith('.pages.dev');
 }
 function resolveApiBase() {
-    if (serverUploadUrl) return serverUploadUrl.replace(/\/$/, '');
+    if (serverUploadUrl)
+        return serverUploadUrl.replace(/\/$/, '');
     const storedHost = localStorage.getItem('sb_api_host');
-    if (storedHost) return storedHost.replace(/\/$/, '');
+    if (storedHost)
+        return storedHost.replace(/\/$/, '');
     if (IS_LOCAL_HOST || isSameOriginApiHost() || location.hostname.endsWith('.onrender.com')) {
         return location.origin.replace(/\/$/, '');
     }
@@ -157,12 +165,11 @@ function safeBatchPush(target, source, batchSize) {
 // Run folder-size analyzer and show warnings before scan starts.
 // Returns { proceed: boolean, analysis: object }.
 function applyFolderSizeAnalysis(files, context) {
-    var analyzer =
-        typeof ScanUtils !== 'undefined' && ScanUtils.analyzeFolderSize
-            ? ScanUtils.analyzeFolderSize
-            : typeof analyzeFolderSize !== 'undefined'
-              ? analyzeFolderSize
-              : null;
+    var analyzer = typeof ScanUtils !== 'undefined' && ScanUtils.analyzeFolderSize
+        ? ScanUtils.analyzeFolderSize
+        : typeof analyzeFolderSize !== 'undefined'
+            ? analyzeFolderSize
+            : null;
     if (!analyzer) {
         return { proceed: true, analysis: null };
     }
@@ -173,30 +180,26 @@ function applyFolderSizeAnalysis(files, context) {
     // Color-coded terminal line
     var color = analysis.severity === 'error' ? '#EF4444' : analysis.severity === 'warn' ? '#F59E0B' : '#60A5FA';
     var icon = analysis.severity === 'error' ? '&#10008;' : analysis.severity === 'warn' ? '&#9888;' : '&#9432;';
-    appendTerminalLine(
-        '<span style="color:' +
-            color +
-            ';font-weight:700;">' +
-            icon +
-            ' ' +
-            escapeHtml(context || 'Folder') +
-            ':</span> ' +
-            escapeHtml(analysis.message),
-        analysis.severity === 'error' ? 'error' : 'warn',
-        true
-    );
+    appendTerminalLine('<span style="color:' +
+        color +
+        ';font-weight:700;">' +
+        icon +
+        ' ' +
+        escapeHtml(context || 'Folder') +
+        ':</span> ' +
+        escapeHtml(analysis.message), analysis.severity === 'error' ? 'error' : 'warn', true);
     // Toast for errors so the user sees it even if terminal is hidden
     if (analysis.severity === 'error') {
         showToast(analysis.message, 'error', 8000);
-    } else if (analysis.severity === 'warn') {
+    }
+    else if (analysis.severity === 'warn') {
         showToast(analysis.message, 'warning', TOAST_DURATION_SHORT);
     }
     return { proceed: !analysis.blocked, analysis: analysis };
 }
 // Module-scope constants for file discovery (shared by drop && change handlers)
 // MAX_DISCOVERED_FILES is defined in scan-utils.js (loaded first)
-const SKIP_DIRS =
-    /[\/]dist[\/]|[\/]build[\/]|[\/]\.next[\/]|[\/]out[\/]|[\/]coverage[\/]|[\/]\.husky[\/]|[\/]frontend-build[\/]|[\/]\.github-sync[\/]|[\/]github-cache[\/]|[\/]\.simplebeacon[\/]|[\/]\.cursor[\/]|[\/]\.windsurf[\/]|[\/]deployments[\/]|[\/]backups[\/]|[\/]coming-soon-dev[\/]|[\/]node_modules[\/]|[\/]\.git[\/]/i;
+const SKIP_DIRS = /[\/]dist[\/]|[\/]build[\/]|[\/]\.next[\/]|[\/]out[\/]|[\/]coverage[\/]|[\/]\.husky[\/]|[\/]frontend-build[\/]|[\/]\.github-sync[\/]|[\/]github-cache[\/]|[\/]\.simplebeacon[\/]|[\/]\.cursor[\/]|[\/]\.windsurf[\/]|[\/]deployments[\/]|[\/]backups[\/]|[\/]coming-soon-dev[\/]|[\/]node_modules[\/]|[\/]\.git[\/]/i;
 const UPDATE_INTERVAL = 200;
 function readEntriesChunk(reader) {
     return new Promise((resolve, reject) => {
@@ -204,14 +207,18 @@ function readEntriesChunk(reader) {
     });
 }
 async function traverseFileSystemEntry(entry, parentPath, files, state) {
-    if (state.traverseAbort) return;
-    if (files.length >= MAX_DISCOVERED_FILES) return;
+    if (state.traverseAbort)
+        return;
+    if (files.length >= MAX_DISCOVERED_FILES)
+        return;
     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
     const normalizedPath = currentPath.replace(/\\/g, '/');
     // Skip heavy directories during discovery to keep file counts manageable
-    if (entry.isDirectory && SKIP_DIRS.test(normalizedPath + '/')) return;
+    if (entry.isDirectory && SKIP_DIRS.test(normalizedPath + '/'))
+        return;
     if (entry.isFile) {
-        if (files.length >= MAX_DISCOVERED_FILES) return;
+        if (files.length >= MAX_DISCOVERED_FILES)
+            return;
         try {
             const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
             Object.defineProperty(file, 'webkitRelativePath', {
@@ -220,16 +227,15 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
                 configurable: true
             });
             files.push(file);
-        } catch (err) {
+        }
+        catch (err) {
             state.traverseErrors++;
             if (state.traverseErrors <= 5) {
-                appendTerminalLine(
-                    'File read error: ' + normalizedPath + ' \u2014 ' + err.name + ': ' + err.message,
-                    'warn'
-                );
+                appendTerminalLine('File read error: ' + normalizedPath + ' \u2014 ' + err.name + ': ' + err.message, 'warn');
             }
         }
-    } else if (entry.isDirectory) {
+    }
+    else if (entry.isDirectory) {
         const dirReader = entry.createReader();
         const BATCH_SIZE = 100;
         let batch = [];
@@ -237,43 +243,41 @@ async function traverseFileSystemEntry(entry, parentPath, files, state) {
             let results;
             try {
                 results = await readEntriesChunk(dirReader);
-            } catch (err) {
-                appendTerminalLine(
-                    `Directory ${normalizedPath}: read error listing entries — ${err.name}: ${err.message}`,
-                    'error'
-                );
+            }
+            catch (err) {
+                appendTerminalLine(`Directory ${normalizedPath}: read error listing entries — ${err.name}: ${err.message}`, 'error');
                 state.traverseErrors++;
                 break;
             }
-            if (!results || results.length === 0) break;
+            if (!results || results.length === 0)
+                break;
             for (const child of results) {
-                if (files.length >= MAX_DISCOVERED_FILES) break;
+                if (files.length >= MAX_DISCOVERED_FILES)
+                    break;
                 batch.push(child);
                 if (batch.length >= BATCH_SIZE) {
-                    await Promise.all(
-                        batch.map(async c => {
-                            try {
-                                await traverseFileSystemEntry(c, currentPath, files, state);
-                            } catch (err) {
-                                state.traverseErrors++;
-                            }
-                        })
-                    );
+                    await Promise.all(batch.map(async (c) => {
+                        try {
+                            await traverseFileSystemEntry(c, currentPath, files, state);
+                        }
+                        catch (err) {
+                            state.traverseErrors++;
+                        }
+                    }));
                     batch = [];
                     await new Promise(r => setTimeout(r, 0));
                 }
             }
         }
         if (batch.length > 0 && !state.traverseAbort && files.length < MAX_DISCOVERED_FILES) {
-            await Promise.all(
-                batch.map(async c => {
-                    try {
-                        await traverseFileSystemEntry(c, currentPath, files, state);
-                    } catch (err) {
-                        state.traverseErrors++;
-                    }
-                })
-            );
+            await Promise.all(batch.map(async (c) => {
+                try {
+                    await traverseFileSystemEntry(c, currentPath, files, state);
+                }
+                catch (err) {
+                    state.traverseErrors++;
+                }
+            }));
         }
     }
     const now = Date.now();
@@ -310,7 +314,8 @@ async function copyReportData(text, btn) {
             btn.style.borderColor = '';
             btn.style.color = '';
         }, 1500);
-    } catch (e) {
+    }
+    catch (e) {
         showToast('Failed to copy to clipboard', 'error');
     }
 }
@@ -566,11 +571,13 @@ function filterReportByModules(report, modules) {
     });
     // Always keep shared metadata
     for (const key of allowedKeys) {
-        if (key in report) out[key] = report[key];
+        if (key in report)
+            out[key] = report[key];
     }
     // Keep activated module sections
     for (const key of moduleKeys) {
-        if (key in report) out[key] = report[key];
+        if (key in report)
+            out[key] = report[key];
     }
     // Filter detectedIssues to only include types matching activated modules
     if (Array.isArray(out.detectedIssues)) {
@@ -657,19 +664,29 @@ function filterReportByModules(report, modules) {
 // Download selected module's full data as JSON
 // Redact all leaf data values while preserving structure
 function redactReport(obj) {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj === 'number' || typeof obj === 'boolean') return obj;
-    if (typeof obj === 'string') return '***REDACTED***';
-    if (Array.isArray(obj)) return obj.length ? ['***REDACTED***'] : [];
+    if (obj === null || obj === undefined)
+        return obj;
+    if (typeof obj === 'number' || typeof obj === 'boolean')
+        return obj;
+    if (typeof obj === 'string')
+        return '***REDACTED***';
+    if (Array.isArray(obj))
+        return obj.length ? ['***REDACTED***'] : [];
     const out = {};
     for (const key in obj) {
-        if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+        if (!Object.prototype.hasOwnProperty.call(obj, key))
+            continue;
         const val = obj[key];
-        if (typeof val === 'string') out[key] = '***REDACTED***';
-        else if (typeof val === 'number' || typeof val === 'boolean') out[key] = val;
-        else if (Array.isArray(val)) out[key] = val.length ? ['***REDACTED***'] : [];
-        else if (val && typeof val === 'object') out[key] = redactReport(val);
-        else out[key] = val;
+        if (typeof val === 'string')
+            out[key] = '***REDACTED***';
+        else if (typeof val === 'number' || typeof val === 'boolean')
+            out[key] = val;
+        else if (Array.isArray(val))
+            out[key] = val.length ? ['***REDACTED***'] : [];
+        else if (val && typeof val === 'object')
+            out[key] = redactReport(val);
+        else
+            out[key] = val;
     }
     return out;
 }
@@ -689,8 +706,7 @@ function downloadSelectedModule(btn) {
         }
         const data = window._scanPreviewData || {};
         if (select.value === '__full_report__') {
-            const tier =
-                ((_a = window._tokenPayload) === null || _a === void 0 ? void 0 : _a.tier) ||
+            const tier = ((_a = window._tokenPayload) === null || _a === void 0 ? void 0 : _a.tier) ||
                 ((_b = window._tokenPayload) === null || _b === void 0 ? void 0 : _b.product) ||
                 'locked';
             const isFree = tier === 'instant';
@@ -720,12 +736,9 @@ function downloadSelectedModule(btn) {
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-            showToast(
-                isFree
-                    ? 'Downloaded redacted report (upgrade for full data)'
-                    : `Downloaded report with ${activatedModules.length} activated module(s)`,
-                'success'
-            );
+            showToast(isFree
+                ? 'Downloaded redacted report (upgrade for full data)'
+                : `Downloaded report with ${activatedModules.length} activated module(s)`, 'success');
             return;
         }
         const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
@@ -740,13 +753,11 @@ function downloadSelectedModule(btn) {
         }
         const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
         const now = new Date().toISOString();
-        const totalFiles =
-            ((_c = data.codebase) === null || _c === void 0 ? void 0 : _c.totalFiles) ||
+        const totalFiles = ((_c = data.codebase) === null || _c === void 0 ? void 0 : _c.totalFiles) ||
             data.totalFiles ||
             data.filesAnalyzed ||
             1;
-        const totalLines =
-            ((_d = data.codebase) === null || _d === void 0 ? void 0 : _d.totalLines) || data.totalLines || 0;
+        const totalLines = ((_d = data.codebase) === null || _d === void 0 ? void 0 : _d.totalLines) || data.totalLines || 0;
         // Build rich module data based on module number
         let moduleData = {
             metadata: {
@@ -778,41 +789,42 @@ function downloadSelectedModule(btn) {
                 blockingFindings: gateIssues
                     .slice(0, 15)
                     .map(i => ({
-                        severity: i.severity,
-                        type: i.type,
-                        count: i.count || 0,
-                        filePath: i.filePath,
-                        rule: i.rule,
-                        impact: i.impact,
-                        fix: i.fix,
-                        findings: (i.findings || [])
-                            .slice(0, 3)
-                            .map(f => ({
-                                file: f.file,
-                                matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
-                            }))
-                    })),
+                    severity: i.severity,
+                    type: i.type,
+                    count: i.count || 0,
+                    filePath: i.filePath,
+                    rule: i.rule,
+                    impact: i.impact,
+                    fix: i.fix,
+                    findings: (i.findings || [])
+                        .slice(0, 3)
+                        .map(f => ({
+                        file: f.file,
+                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                    }))
+                })),
                 allIssues: _allIssues
                     .slice(0, 20)
                     .map(i => ({
-                        severity: i.severity,
-                        type: i.type,
-                        count: i.count || 0,
-                        filePath: i.filePath,
-                        rule: i.rule,
-                        impact: i.impact,
-                        fix: i.fix
-                    })),
+                    severity: i.severity,
+                    type: i.type,
+                    count: i.count || 0,
+                    filePath: i.filePath,
+                    rule: i.rule,
+                    impact: i.impact,
+                    fix: i.fix
+                })),
                 severityCounts: data.severityCounts || {},
                 qualityScore: (_e = data.qualityScore) !== null && _e !== void 0 ? _e : null
             };
-        } else if (num === '2') {
+        }
+        else if (num === '2') {
             const cons = data.consolidation || {};
             const dupFiles = (cons.duplicateFiles || [])
                 .map(g => {
-                    const paths = Array.isArray(g) ? g : g.paths || [];
-                    return paths.filter(p => !/\.simplebeacon\//i.test(p));
-                })
+                const paths = Array.isArray(g) ? g : g.paths || [];
+                return paths.filter(p => !/\.simplebeacon\//i.test(p));
+            })
                 .filter(g => g.length > 1);
             const dupCount = cons.duplicateGroups || dupFiles.length || 0;
             moduleData = {
@@ -824,12 +836,12 @@ function downloadSelectedModule(btn) {
                     ? `${dupCount} duplicate file group${dupCount === 1 ? '' : 's'} detected.`
                     : 'No duplicate files detected.'
             };
-        } else if (num === '3') {
+        }
+        else if (num === '3') {
             const mockCats = data.mockDataCategories || [];
-            const mockTotal =
-                (_f = data.mockSampleFiles) !== null && _f !== void 0
-                    ? _f
-                    : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
+            const mockTotal = (_f = data.mockSampleFiles) !== null && _f !== void 0
+                ? _f
+                : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
             moduleData = {
                 ...moduleData,
                 fileCount: mockTotal,
@@ -844,7 +856,8 @@ function downloadSelectedModule(btn) {
                     ? `${mockTotal} mock/fixture file${mockTotal === 1 ? '' : 's'} detected.`
                     : 'No mock data found.'
             };
-        } else if (num === '4') {
+        }
+        else if (num === '4') {
             // Synthesize roadmap from all report data
             const rm = data.roadmap || {};
             const baseTodos = (rm.todoFiles || []).filter(Boolean);
@@ -853,16 +866,15 @@ function downloadSelectedModule(btn) {
             const actionItems = [];
             // Gate blockers
             const gate = data.gate || data.gateReport || {};
-            const blockers =
-                (gate.blockingCount || 0) +
+            const blockers = (gate.blockingCount || 0) +
                 (data.detectedIssues || []).filter(i => ['high', 'critical'].includes(i.severity)).length;
             if (blockers > 0) {
                 const gateFindings = gate.blockingFindings || [];
                 const maxSeverity = gateFindings.length
                     ? gateFindings.reduce((max, f) => {
-                          const order = { critical: 3, high: 2, medium: 1, low: 0 };
-                          return (order[f.severity] || 0) > (order[max] || 0) ? f.severity : max;
-                      }, 'low')
+                        const order = { critical: 3, high: 2, medium: 1, low: 0 };
+                        return (order[f.severity] || 0) > (order[max] || 0) ? f.severity : max;
+                    }, 'low')
                     : 'high';
                 actionItems.push({
                     task: `Fix ${blockers} blocking security issue${blockers === 1 ? '' : 's'} before release`,
@@ -938,10 +950,9 @@ function downloadSelectedModule(btn) {
                 });
             // Mock data
             const mockCats = data.mockDataCategories || [];
-            const mockTotal =
-                (_g = data.mockSampleFiles) !== null && _g !== void 0
-                    ? _g
-                    : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
+            const mockTotal = (_g = data.mockSampleFiles) !== null && _g !== void 0
+                ? _g
+                : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
             if (mockTotal > 0)
                 actionItems.push({
                     task: `Ensure ${mockTotal} mock/fixture file${mockTotal === 1 ? '' : 's'} are excluded from production builds`,
@@ -959,7 +970,8 @@ function downloadSelectedModule(btn) {
                     ? `${totalTodos} roadmap item${totalTodos === 1 ? '' : 's'} (${baseCount} task/fix marker${baseCount === 1 ? '' : 's'} + ${actionItems.length} synthesized action item${actionItems.length === 1 ? '' : 's'})`
                     : 'No roadmap items found.'
             };
-        } else if (num === '5') {
+        }
+        else if (num === '5') {
             const cb = data.codebase || data.codeAnalysis || {};
             const ftEntries = Object.entries(cb.fileTypes || {})
                 .sort((a, b) => b[1] - a[1])
@@ -973,11 +985,11 @@ function downloadSelectedModule(btn) {
                     count,
                     percentage: totalFiles > 0 ? ((count / totalFiles) * 100).toFixed(1) + '%' : '0.0%'
                 })),
-                summary:
-                    cb.summary ||
+                summary: cb.summary ||
                     `${(cb.totalFiles || totalFiles).toLocaleString()} files analyzed, ${(cb.totalLines || totalLines).toLocaleString()} lines of code.`
             };
-        } else if (num === '6') {
+        }
+        else if (num === '6') {
             const fr = data.fileReduction || data.fileReductionPlan || {};
             const assetLen = (fr.unusedAssetCandidates || []).length;
             moduleData = {
@@ -985,13 +997,13 @@ function downloadSelectedModule(btn) {
                 unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10),
                 unusedAssetCount: assetLen,
                 duplicateGroups: fr.duplicateGroups || 0,
-                summary:
-                    fr.summary ||
+                summary: fr.summary ||
                     (assetLen
                         ? `${assetLen} image asset${assetLen === 1 ? '' : 's'} detected for review.`
                         : 'No file reduction opportunities.')
             };
-        } else if (num === '7') {
+        }
+        else if (num === '7') {
             const dq = data.dataQuality || {};
             const emptyFiles = (dq.emptyJsonFiles || []).filter(Boolean);
             const ec = dq.emptyJsonCount || emptyFiles.length || 0;
@@ -1001,7 +1013,8 @@ function downloadSelectedModule(btn) {
                 emptyJsonCount: ec,
                 summary: ec ? `${ec} empty JSON file${ec === 1 ? '' : 's'} detected.` : 'No data quality issues.'
             };
-        } else if (num === '8') {
+        }
+        else if (num === '8') {
             const cl = data.cleanup || {};
             const debugIssue = (data.detectedIssues || []).find(i => i.type === 'Debug Artifact');
             const artifacts = (cl.debugArtifacts || []).filter(Boolean);
@@ -1013,25 +1026,26 @@ function downloadSelectedModule(btn) {
                 findings: ((debugIssue === null || debugIssue === void 0 ? void 0 : debugIssue.findings) || [])
                     .slice(0, 5)
                     .map(f => ({
-                        file: f.file,
-                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
-                    })),
+                    file: f.file,
+                    matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                })),
                 summary: ac ? `${ac} debug artifact${ac === 1 ? '' : 's'} detected.` : 'No debug artifacts found.'
             };
-        } else if (num === '9') {
+        }
+        else if (num === '9') {
             const npm = data.npmAudit || {};
             moduleData = {
                 ...moduleData,
                 packageJsonCount: npm.packageJsonCount || 0,
                 dependencyCount: npm.dependencyCount || 0,
                 packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5),
-                summary:
-                    npm.summary ||
+                summary: npm.summary ||
                     (npm.packageJsonCount
                         ? `${npm.packageJsonCount} package.json file${npm.packageJsonCount === 1 ? '' : 's'} found with ${(npm.dependencyCount || 0).toLocaleString()} total dependenc${(npm.dependencyCount || 0) === 1 ? 'y' : 'ies'}.`
                         : 'No package.json files found.')
             };
-        } else if (num === '10') {
+        }
+        else if (num === '10') {
             const comp = data.compliance || {};
             const licFiles = (comp.licenseFiles || []).filter(Boolean);
             const secFiles = (comp.securityFiles || []).filter(Boolean);
@@ -1039,10 +1053,14 @@ function downloadSelectedModule(btn) {
             const secCount = secFiles.length || comp.securityCount || 0;
             const govScore = licCount + secCount;
             let health;
-            if (govScore >= 5) health = 'excellent';
-            else if (govScore >= 2) health = 'good';
-            else if (govScore >= 1) health = 'fair';
-            else health = 'poor';
+            if (govScore >= 5)
+                health = 'excellent';
+            else if (govScore >= 2)
+                health = 'good';
+            else if (govScore >= 1)
+                health = 'fair';
+            else
+                health = 'poor';
             const standardFiles = [
                 'LICENS' + 'E',
                 'LICENS' + 'E.md',
@@ -1056,12 +1074,12 @@ function downloadSelectedModule(btn) {
                 'NOTICE'
             ];
             const foundFiles = [...licFiles.map(f => f.toUpperCase()), ...secFiles.map(f => f.toUpperCase())];
-            const missing = standardFiles.filter(
-                f => !foundFiles.some(found => found.includes(f.replace('.md', '').replace('.txt', '')))
-            );
+            const missing = standardFiles.filter(f => !foundFiles.some(found => found.includes(f.replace('.md', '').replace('.txt', ''))));
             const recs = [];
-            if (licCount === 0) recs.push('Add a LICENS' + 'E file to clarify distribution terms.');
-            if (secCount === 0) recs.push('Add SECURITY.md to disclose vulnerability reporting.');
+            if (licCount === 0)
+                recs.push('Add a LICENS' + 'E file to clarify distribution terms.');
+            if (secCount === 0)
+                recs.push('Add SECURITY.md to disclose vulnerability reporting.');
             if (!foundFiles.some(f => f.includes('CODE_' + 'OF_CONDUCT')))
                 recs.push('Add CODE_' + 'OF_CONDUCT.md to set community standards.');
             if (!foundFiles.some(f => f.includes('CONTRIBUTING')))
@@ -1070,8 +1088,7 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 metrics: {
                     riskScore: Math.max(0, 40 - govScore * 5),
-                    priority:
-                        health === 'excellent' || health === 'good' ? 'low' : health === 'fair' ? 'medium' : 'high'
+                    priority: health === 'excellent' || health === 'good' ? 'low' : health === 'fair' ? 'medium' : 'high'
                 },
                 licenseCount: licCount,
                 securityCount: secCount,
@@ -1084,7 +1101,8 @@ function downloadSelectedModule(btn) {
                 remediation: recs[0] || 'Verify license compatibility with your distribution model.',
                 summary: `${licCount} license file${licCount === 1 ? '' : 's'}, ${secCount} security/governance file${secCount === 1 ? '' : 's'} detected.`
             };
-        } else if (num === '11') {
+        }
+        else if (num === '11') {
             const eu = data.euAiActSummary || data.euAiAct || {};
             const euIndicators = eu.aiSystemIndicators || 0;
             const euHighRisk = eu.highRiskIndicators || 0;
@@ -1096,19 +1114,17 @@ function downloadSelectedModule(btn) {
                 documentationArtifacts: eu.documentationArtifacts || 0,
                 documentationFound: (eu.documentationFound || []).slice(0, 5),
                 controls: (eu.controls || []).slice(0, 5),
-                summary:
-                    eu.deadlineNote ||
+                summary: eu.deadlineNote ||
                     (euHighRisk
                         ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
                         : euIndicators
-                          ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.`
-                          : 'Review EU AI Act requirements.')
+                            ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.`
+                            : 'Review EU AI Act requirements.')
             };
-        } else if (num === '12') {
+        }
+        else if (num === '12') {
             const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
-            const vulnIssues = (data.detectedIssues || []).filter(
-                i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type) && !/unused/i.test(i.type)
-            );
+            const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type) && !/unused/i.test(i.type));
             const vc = depAudit.vulnerabilityCount || vulnIssues.length || 0;
             const cc = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
             const hc = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
@@ -1129,28 +1145,26 @@ function downloadSelectedModule(btn) {
                 summary: vc
                     ? `${vc} dependency issue${vc === 1 ? '' : 's'} detected${cc ? ` (${cc} critical)` : ''}.`
                     : 'No dependency vulnerabilities found.',
-                recommendations:
-                    cc > 0
+                recommendations: cc > 0
+                    ? [
+                        'Update critical dependencies immediately.',
+                        'Review changelogs for breaking changes before bumping major versions.'
+                    ]
+                    : vc > 0
                         ? [
-                              'Update critical dependencies immediately.',
-                              'Review changelogs for breaking changes before bumping major versions.'
-                          ]
-                        : vc > 0
-                          ? [
-                                'Run npm audit fix to auto-resolve patchable issues.',
-                                'Schedule dependency update sprint within 30 days.'
-                            ]
-                          : ['Keep dependencies current with automated Dependabot || Renovate.'],
-                remediation:
-                    cc > 0
-                        ? 'Upgrade critical && high-severity packages before next release.'
-                        : vc > 0
-                          ? 'Run npm audit fix || yarn audit fix to resolve patchable vulnerabilities.'
-                          : 'No remediation needed — dependency hygiene is clean.'
+                            'Run npm audit fix to auto-resolve patchable issues.',
+                            'Schedule dependency update sprint within 30 days.'
+                        ]
+                        : ['Keep dependencies current with automated Dependabot || Renovate.'],
+                remediation: cc > 0
+                    ? 'Upgrade critical && high-severity packages before next release.'
+                    : vc > 0
+                        ? 'Run npm audit fix || yarn audit fix to resolve patchable vulnerabilities.'
+                        : 'No remediation needed — dependency hygiene is clean.'
             };
-        } else if (num === '13') {
-            const allFiles =
-                data.fileList ||
+        }
+        else if (num === '13') {
+            const allFiles = data.fileList ||
                 ((_h = data.repositoryInventory) === null || _h === void 0 ? void 0 : _h.totalFiles) ||
                 [];
             const filePaths = Array.isArray(allFiles) ? allFiles : [];
@@ -1170,18 +1184,12 @@ function downloadSelectedModule(btn) {
                 },
                 {
                     name: 'Tests',
-                    found: lowerPaths.some(p =>
-                        /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)
-                    ),
+                    found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)),
                     critical: true
                 },
                 {
                     name: 'CI/CD',
-                    found: lowerPaths.some(p =>
-                        /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(
-                            p
-                        )
-                    ),
+                    found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)),
                     critical: true
                 },
                 {
@@ -1197,9 +1205,7 @@ function downloadSelectedModule(btn) {
                 { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },
                 {
                     name: 'Build Tool Config',
-                    found: lowerPaths.some(p =>
-                        /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)
-                    ),
+                    found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)),
                     critical: false
                 },
                 {
@@ -1233,12 +1239,11 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 metrics: {
                     riskScore: 100 - score,
-                    priority:
-                        missingCritical.length > 2
-                            ? 'critical'
-                            : missingCritical.length > 0
-                              ? 'high'
-                              : missingNice.length > 3
+                    priority: missingCritical.length > 2
+                        ? 'critical'
+                        : missingCritical.length > 0
+                            ? 'high'
+                            : missingNice.length > 3
                                 ? 'medium'
                                 : 'low'
                 },
@@ -1250,26 +1255,25 @@ function downloadSelectedModule(btn) {
                 totalChecks: checks.length,
                 passedChecks: checks.filter(c => c.found).length,
                 summary: `${score >= 80 ? 'READY' : score >= 50 ? 'NEEDS WORK' : 'BLOCKED'} — ${checks.filter(c => c.found).length} of ${checks.length} checklist items present.${missingCritical.length ? ` ${missingCritical.length} critical blocker${missingCritical.length === 1 ? '' : 's'}.` : ''}`,
-                recommendations:
-                    missingCritical.length > 0
+                recommendations: missingCritical.length > 0
+                    ? [
+                        'Add all critical files before production deployment.',
+                        'Start with package.json, README, .gitignore, && .env.example.'
+                    ]
+                    : missingNice.length > 0
                         ? [
-                              'Add all critical files before production deployment.',
-                              'Start with package.json, README, .gitignore, && .env.example.'
-                          ]
-                        : missingNice.length > 0
-                          ? [
-                                'Add recommended files to improve maintainability.',
-                                'Consider Docker, linting config, && CHANGELOG.'
-                            ]
-                          : ['Project is fully ready for production. All checklist items present.'],
-                remediation:
-                    missingCritical.length > 0
-                        ? `Missing critical: ${missingCritical.map(c => c.name).join(', ')}.`
-                        : missingNice.length > 0
-                          ? `Missing recommended: ${missingNice.map(c => c.name).join(', ')}.`
-                          : 'No remediation needed.'
+                            'Add recommended files to improve maintainability.',
+                            'Consider Docker, linting config, && CHANGELOG.'
+                        ]
+                        : ['Project is fully ready for production. All checklist items present.'],
+                remediation: missingCritical.length > 0
+                    ? `Missing critical: ${missingCritical.map(c => c.name).join(', ')}.`
+                    : missingNice.length > 0
+                        ? `Missing recommended: ${missingNice.map(c => c.name).join(', ')}.`
+                        : 'No remediation needed.'
             };
-        } else if (num === '14') {
+        }
+        else if (num === '14') {
             const aiInd = data.aiIndicators || data.aiSystemIndicators || {};
             const sdkCount = aiInd.sdkCount || aiInd.aiSystemIndicators || 0;
             const modelCount = aiInd.modelCount || 0;
@@ -1282,12 +1286,12 @@ function downloadSelectedModule(btn) {
                 summary: sdkCount
                     ? `${sdkCount} AI SDK import${sdkCount === 1 ? '' : 's'} detected.`
                     : 'No AI system indicators found.',
-                recommendations:
-                    sdkCount > 0
-                        ? ['Verify all AI integrations are approved.', 'Document model usage for compliance.']
-                        : ['No AI remediation needed.']
+                recommendations: sdkCount > 0
+                    ? ['Verify all AI integrations are approved.', 'Document model usage for compliance.']
+                    : ['No AI remediation needed.']
             };
-        } else if (num === '15') {
+        }
+        else if (num === '15') {
             const gov = data.governance || {};
             const comp = data.compliance || {};
             const licCount = gov.licenseHeaders || comp.licenseCount || 0;
@@ -1301,12 +1305,12 @@ function downloadSelectedModule(btn) {
                 summary: licCount
                     ? `${licCount} license header${licCount === 1 ? '' : 's'} detected.`
                     : 'No license or governance markers found.',
-                recommendations:
-                    licCount === 0
-                        ? ['Add LICENSE file.', 'Add SECURITY.md for vulnerability reporting.']
-                        : ['Verify license compatibility with distribution model.']
+                recommendations: licCount === 0
+                    ? ['Add LICENSE file.', 'Add SECURITY.md for vulnerability reporting.']
+                    : ['Verify license compatibility with distribution model.']
             };
-        } else if (num === '16') {
+        }
+        else if (num === '16') {
             const junk = data.junkFiles || {};
             const junkCount = junk.fileCount || 0;
             const junkFiles = (junk.files || []).slice(0, 10);
@@ -1317,12 +1321,12 @@ function downloadSelectedModule(btn) {
                 summary: junkCount
                     ? `${junkCount} junk/temp file${junkCount === 1 ? '' : 's'} detected.`
                     : 'No junk or temporary files found.',
-                recommendations:
-                    junkCount > 0
-                        ? ['Remove temporary files, editor backups, and OS artifacts before production builds.']
-                        : ['No junk remediation needed.']
+                recommendations: junkCount > 0
+                    ? ['Remove temporary files, editor backups, and OS artifacts before production builds.']
+                    : ['No junk remediation needed.']
             };
-        } else if (num === '17') {
+        }
+        else if (num === '17') {
             const ar = data.aiResidue || {};
             const arHits = ar.aiResidueHits || 0;
             const arFindings = (ar.aiResidueFindings || []).slice(0, 10);
@@ -1330,20 +1334,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 hitCount: arHits,
                 findings: arFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    arHits > 0
-                        ? `${arHits} AI residue pattern${arHits === 1 ? '' : 's'} detected.`
-                        : 'No AI residue patterns found.',
-                recommendations:
-                    arHits > 0
-                        ? [
-                              'Replace stubs with real implementations.',
-                              'Modernize deprecated APIs.',
-                              'Add proper error handling.'
-                          ]
-                        : ['No AI residue remediation needed.']
+                summary: arHits > 0
+                    ? `${arHits} AI residue pattern${arHits === 1 ? '' : 's'} detected.`
+                    : 'No AI residue patterns found.',
+                recommendations: arHits > 0
+                    ? [
+                        'Replace stubs with real implementations.',
+                        'Modernize deprecated APIs.',
+                        'Add proper error handling.'
+                    ]
+                    : ['No AI residue remediation needed.']
             };
-        } else if (num === '18') {
+        }
+        else if (num === '18') {
             const perf = data.performance || {};
             const perfCount = perf.performanceHits || 0;
             const perfFindings = (perf.performanceFindings || []).slice(0, 10);
@@ -1351,16 +1354,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: perfCount,
                 findings: perfFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    perfCount > 0
-                        ? `${perfCount} performance issue${perfCount === 1 ? '' : 's'} detected.`
-                        : 'No performance issues found.',
-                recommendations:
-                    perfCount > 0
-                        ? ['Optimize nested loops.', 'Debounce event handlers.', 'Review regex complexity.']
-                        : ['No performance remediation needed.']
+                summary: perfCount > 0
+                    ? `${perfCount} performance issue${perfCount === 1 ? '' : 's'} detected.`
+                    : 'No performance issues found.',
+                recommendations: perfCount > 0
+                    ? ['Optimize nested loops.', 'Debounce event handlers.', 'Review regex complexity.']
+                    : ['No performance remediation needed.']
             };
-        } else if (num === '19') {
+        }
+        else if (num === '19') {
             const ts = data.typeSafety || {};
             const tsCount = ts.typeSafetyHits || 0;
             const tsFindings = (ts.typeSafetyFindings || []).slice(0, 10);
@@ -1368,20 +1370,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 gapCount: tsCount,
                 findings: tsFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    tsCount > 0
-                        ? `${tsCount} type safety gap${tsCount === 1 ? '' : 's'} detected.`
-                        : 'No type safety gaps found.',
-                recommendations:
-                    tsCount > 0
-                        ? [
-                              'Replace any with specific types.',
-                              'Add PropTypes or migrate to TypeScript.',
-                              'Limit function parameters.'
-                          ]
-                        : ['No type safety remediation needed.']
+                summary: tsCount > 0
+                    ? `${tsCount} type safety gap${tsCount === 1 ? '' : 's'} detected.`
+                    : 'No type safety gaps found.',
+                recommendations: tsCount > 0
+                    ? [
+                        'Replace any with specific types.',
+                        'Add PropTypes or migrate to TypeScript.',
+                        'Limit function parameters.'
+                    ]
+                    : ['No type safety remediation needed.']
             };
-        } else if (num === '20') {
+        }
+        else if (num === '20') {
             const doc = data.documentation || {};
             const docCount = doc.documentationHits || 0;
             const docFindings = (doc.documentationFindings || []).slice(0, 10);
@@ -1389,16 +1390,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 gapCount: docCount,
                 findings: docFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    docCount > 0
-                        ? `${docCount} documentation gap${docCount === 1 ? '' : 's'} detected.`
-                        : 'No documentation gaps found.',
-                recommendations:
-                    docCount > 0
-                        ? ['Add JSDoc to public functions.', 'Keep README in sync with recent changes.']
-                        : ['No documentation remediation needed.']
+                summary: docCount > 0
+                    ? `${docCount} documentation gap${docCount === 1 ? '' : 's'} detected.`
+                    : 'No documentation gaps found.',
+                recommendations: docCount > 0
+                    ? ['Add JSDoc to public functions.', 'Keep README in sync with recent changes.']
+                    : ['No documentation remediation needed.']
             };
-        } else if (num === '21') {
+        }
+        else if (num === '21') {
             const tc = data.testCoverage || {};
             const tcCount = tc.testCoverageHits || 0;
             const tcFindings = (tc.testCoverageFindings || []).slice(0, 10);
@@ -1406,16 +1406,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 gapCount: tcCount,
                 findings: tcFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    tcCount > 0
-                        ? `${tcCount} test coverage gap${tcCount === 1 ? '' : 's'} detected.`
-                        : 'No test coverage gaps found.',
-                recommendations:
-                    tcCount > 0
-                        ? ['Implement skipped tests.', 'Add tests for complex untested functions.']
-                        : ['No test coverage remediation needed.']
+                summary: tcCount > 0
+                    ? `${tcCount} test coverage gap${tcCount === 1 ? '' : 's'} detected.`
+                    : 'No test coverage gaps found.',
+                recommendations: tcCount > 0
+                    ? ['Implement skipped tests.', 'Add tests for complex untested functions.']
+                    : ['No test coverage remediation needed.']
             };
-        } else if (num === '22') {
+        }
+        else if (num === '22') {
             const a11y = data.accessibility || {};
             const a11yCount = a11y.accessibilityHits || 0;
             const a11yFindings = (a11y.accessibilityFindings || []).slice(0, 10);
@@ -1423,20 +1422,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: a11yCount,
                 findings: a11yFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    a11yCount > 0
-                        ? `${a11yCount} accessibility issue${a11yCount === 1 ? '' : 's'} detected.`
-                        : 'No accessibility issues found.',
-                recommendations:
-                    a11yCount > 0
-                        ? [
-                              'Add alt text to images.',
-                              'Add aria-label to buttons.',
-                              'Associate labels with form inputs.'
-                          ]
-                        : ['No accessibility remediation needed.']
+                summary: a11yCount > 0
+                    ? `${a11yCount} accessibility issue${a11yCount === 1 ? '' : 's'} detected.`
+                    : 'No accessibility issues found.',
+                recommendations: a11yCount > 0
+                    ? [
+                        'Add alt text to images.',
+                        'Add aria-label to buttons.',
+                        'Associate labels with form inputs.'
+                    ]
+                    : ['No accessibility remediation needed.']
             };
-        } else if (num === '23') {
+        }
+        else if (num === '23') {
             const i18n = data.i18n || {};
             const i18nCount = i18n.i18nHits || 0;
             const i18nFindings = (i18n.i18nFindings || []).slice(0, 10);
@@ -1444,16 +1442,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: i18nCount,
                 findings: i18nFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    i18nCount > 0
-                        ? `${i18nCount} i18n issue${i18nCount === 1 ? '' : 's'} detected.`
-                        : 'No i18n issues found.',
-                recommendations:
-                    i18nCount > 0
-                        ? ['Wrap UI strings in t()/i18n().', 'Use locale-aware date and currency formatting.']
-                        : ['No i18n remediation needed.']
+                summary: i18nCount > 0
+                    ? `${i18nCount} i18n issue${i18nCount === 1 ? '' : 's'} detected.`
+                    : 'No i18n issues found.',
+                recommendations: i18nCount > 0
+                    ? ['Wrap UI strings in t()/i18n().', 'Use locale-aware date and currency formatting.']
+                    : ['No i18n remediation needed.']
             };
-        } else if (num === '24') {
+        }
+        else if (num === '24') {
             const sd = data.sensitiveData || {};
             const sdCount = sd.sensitiveDataHits || 0;
             const sdFindings = (sd.sensitiveDataFindings || []).slice(0, 10);
@@ -1461,20 +1458,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 exposureCount: sdCount,
                 findings: sdFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    sdCount > 0
-                        ? `${sdCount} sensitive data exposure${sdCount === 1 ? '' : 's'} detected.`
-                        : 'No sensitive data exposures found.',
-                recommendations:
-                    sdCount > 0
-                        ? [
-                              'Remove PII from logs and source.',
-                              'Sanitize user data.',
-                              'Avoid storing tokens in localStorage.'
-                          ]
-                        : ['No sensitive data remediation needed.']
+                summary: sdCount > 0
+                    ? `${sdCount} sensitive data exposure${sdCount === 1 ? '' : 's'} detected.`
+                    : 'No sensitive data exposures found.',
+                recommendations: sdCount > 0
+                    ? [
+                        'Remove PII from logs and source.',
+                        'Sanitize user data.',
+                        'Avoid storing tokens in localStorage.'
+                    ]
+                    : ['No sensitive data remediation needed.']
             };
-        } else if (num === '25') {
+        }
+        else if (num === '25') {
             const cd = data.configDrift || {};
             const cdCount = cd.configDriftHits || 0;
             const cdFindings = (cd.configDriftFindings || []).slice(0, 10);
@@ -1482,16 +1478,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 driftCount: cdCount,
                 findings: cdFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    cdCount > 0
-                        ? `${cdCount} configuration drift${cdCount === 1 ? '' : 's'} detected.`
-                        : 'No configuration drift found.',
-                recommendations:
-                    cdCount > 0
-                        ? ['Move secrets to environment variables.', 'Externalize URLs.', 'Never commit .env files.']
-                        : ['No config drift remediation needed.']
+                summary: cdCount > 0
+                    ? `${cdCount} configuration drift${cdCount === 1 ? '' : 's'} detected.`
+                    : 'No configuration drift found.',
+                recommendations: cdCount > 0
+                    ? ['Move secrets to environment variables.', 'Externalize URLs.', 'Never commit .env files.']
+                    : ['No config drift remediation needed.']
             };
-        } else if (num === '26') {
+        }
+        else if (num === '26') {
             const sh = data.securityHeaders || {};
             const shCount = sh.securityHeadersHits || 0;
             const shFindings = (sh.securityHeadersFindings || []).slice(0, 10);
@@ -1499,16 +1494,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 referenceCount: shCount,
                 findings: shFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    shCount > 0
-                        ? `${shCount} security header reference${shCount === 1 ? '' : 's'} found.`
-                        : 'No security header configs found.',
-                recommendations:
-                    shCount > 0
-                        ? ['Ensure CSP is configured.', 'Add X-Frame-Options.', 'Enable HSTS and Referrer-Policy.']
-                        : ['No security header remediation needed.']
+                summary: shCount > 0
+                    ? `${shCount} security header reference${shCount === 1 ? '' : 's'} found.`
+                    : 'No security header configs found.',
+                recommendations: shCount > 0
+                    ? ['Ensure CSP is configured.', 'Add X-Frame-Options.', 'Enable HSTS and Referrer-Policy.']
+                    : ['No security header remediation needed.']
             };
-        } else if (num === '27') {
+        }
+        else if (num === '27') {
             const dbp = data.databasePatterns || {};
             const dbpCount = dbp.databasePatternsHits || 0;
             const dbpFindings = (dbp.databasePatternsFindings || []).slice(0, 10);
@@ -1516,20 +1510,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: dbpCount,
                 findings: dbpFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    dbpCount > 0
-                        ? `${dbpCount} database anti-pattern${dbpCount === 1 ? '' : 's'} detected.`
-                        : 'No database anti-patterns found.',
-                recommendations:
-                    dbpCount > 0
-                        ? [
-                              'Use parameterized queries.',
-                              'Add pagination limits.',
-                              'Wrap database operations in transactions.'
-                          ]
-                        : ['No database pattern remediation needed.']
+                summary: dbpCount > 0
+                    ? `${dbpCount} database anti-pattern${dbpCount === 1 ? '' : 's'} detected.`
+                    : 'No database anti-patterns found.',
+                recommendations: dbpCount > 0
+                    ? [
+                        'Use parameterized queries.',
+                        'Add pagination limits.',
+                        'Wrap database operations in transactions.'
+                    ]
+                    : ['No database pattern remediation needed.']
             };
-        } else if (num === '28') {
+        }
+        else if (num === '28') {
             const fp = data.frameworkPractices || {};
             const fpCount = fp.frameworkPracticesHits || 0;
             const fpFindings = (fp.frameworkPracticesFindings || []).slice(0, 10);
@@ -1537,16 +1530,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: fpCount,
                 findings: fpFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    fpCount > 0
-                        ? `${fpCount} framework practice issue${fpCount === 1 ? '' : 's'} detected.`
-                        : 'No framework practice issues found.',
-                recommendations:
-                    fpCount > 0
-                        ? ['Fix hook dependencies.', 'Avoid direct DOM access.', 'Add cleanup in Angular components.']
-                        : ['No framework practice remediation needed.']
+                summary: fpCount > 0
+                    ? `${fpCount} framework practice issue${fpCount === 1 ? '' : 's'} detected.`
+                    : 'No framework practice issues found.',
+                recommendations: fpCount > 0
+                    ? ['Fix hook dependencies.', 'Avoid direct DOM access.', 'Add cleanup in Angular components.']
+                    : ['No framework practice remediation needed.']
             };
-        } else if (num === '29') {
+        }
+        else if (num === '29') {
             const wh = data.workspaceHealth || {};
             const whCount = wh.workspaceHealthHits || 0;
             const whFindings = (wh.workspaceHealthFindings || []).slice(0, 10);
@@ -1554,16 +1546,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: whCount,
                 findings: whFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    whCount > 0
-                        ? `${whCount} workspace health issue${whCount === 1 ? '' : 's'} detected.`
-                        : 'No workspace health issues found.',
-                recommendations:
-                    whCount > 0
-                        ? ['Refactor shared code into common packages.', 'Align dependency versions across workspace.']
-                        : ['No workspace health remediation needed.']
+                summary: whCount > 0
+                    ? `${whCount} workspace health issue${whCount === 1 ? '' : 's'} detected.`
+                    : 'No workspace health issues found.',
+                recommendations: whCount > 0
+                    ? ['Refactor shared code into common packages.', 'Align dependency versions across workspace.']
+                    : ['No workspace health remediation needed.']
             };
-        } else if (num === '30') {
+        }
+        else if (num === '30') {
             const ud = data.unusedDeps || {};
             const udCount = ud.unusedDepsHits || 0;
             const udFindings = (ud.unusedDepsFindings || []).slice(0, 10);
@@ -1571,16 +1562,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 flagCount: udCount,
                 findings: udFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    udCount > 0
-                        ? `${udCount} unused dependency flag${udCount === 1 ? '' : 's'} detected.`
-                        : 'No unused dependency flags found.',
-                recommendations:
-                    udCount > 0
-                        ? ['Remove unused packages from package.json.', 'Update lockfile after removal.']
-                        : ['No unused dependency remediation needed.']
+                summary: udCount > 0
+                    ? `${udCount} unused dependency flag${udCount === 1 ? '' : 's'} detected.`
+                    : 'No unused dependency flags found.',
+                recommendations: udCount > 0
+                    ? ['Remove unused packages from package.json.', 'Update lockfile after removal.']
+                    : ['No unused dependency remediation needed.']
             };
-        } else if (num === '31') {
+        }
+        else if (num === '31') {
             const ac = data.apiContract || {};
             const acCount = ac.apiContractHits || 0;
             const acFindings = (ac.apiContractFindings || []).slice(0, 10);
@@ -1588,16 +1578,15 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 driftCount: acCount,
                 findings: acFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    acCount > 0
-                        ? `${acCount} API contract drift${acCount === 1 ? '' : 's'} detected.`
-                        : 'No API contract drift found.',
-                recommendations:
-                    acCount > 0
-                        ? ['Sync OpenAPI specs with implementation.', 'Verify frontend consumes all endpoints.']
-                        : ['No API contract remediation needed.']
+                summary: acCount > 0
+                    ? `${acCount} API contract drift${acCount === 1 ? '' : 's'} detected.`
+                    : 'No API contract drift found.',
+                recommendations: acCount > 0
+                    ? ['Sync OpenAPI specs with implementation.', 'Verify frontend consumes all endpoints.']
+                    : ['No API contract remediation needed.']
             };
-        } else if (num === '32') {
+        }
+        else if (num === '32') {
             const cx = data.complexity || {};
             const cxCount = cx.complexityHits || 0;
             const cxFindings = (cx.complexityFindings || []).slice(0, 10);
@@ -1605,20 +1594,19 @@ function downloadSelectedModule(btn) {
                 ...moduleData,
                 issueCount: cxCount,
                 findings: cxFindings.map(f => ({ file: f.file, type: f.type })),
-                summary:
-                    cxCount > 0
-                        ? `${cxCount} complexity issue${cxCount === 1 ? '' : 's'} detected.`
-                        : 'No complexity issues found.',
-                recommendations:
-                    cxCount > 0
-                        ? [
-                              'Extract helper functions.',
-                              'Reduce nesting with early returns.',
-                              'Apply cyclomatic complexity limits.'
-                          ]
-                        : ['No complexity remediation needed.']
+                summary: cxCount > 0
+                    ? `${cxCount} complexity issue${cxCount === 1 ? '' : 's'} detected.`
+                    : 'No complexity issues found.',
+                recommendations: cxCount > 0
+                    ? [
+                        'Extract helper functions.',
+                        'Reduce nesting with early returns.',
+                        'Apply cyclomatic complexity limits.'
+                    ]
+                    : ['No complexity remediation needed.']
             };
-        } else if (num === '33') {
+        }
+        else if (num === '33') {
             const fn = data.fileNaming || {};
             const fnCount = fn.hits || 0;
             const fnFindings = (fn.findings || []).slice(0, 10);
@@ -1632,20 +1620,19 @@ function downloadSelectedModule(btn) {
                     suggestion: f.suggestion
                 })),
                 styleStats: fn.styleStats || {},
-                summary:
-                    fnCount > 0
-                        ? `${fnCount} file naming issue${fnCount === 1 ? '' : 's'} detected.`
-                        : 'No file naming issues found.',
-                recommendations:
-                    fnCount > 0
-                        ? [
-                              'Standardize on one naming convention across the project.',
-                              'Remove spaces and special characters from filenames.',
-                              'Use descriptive names for data files instead of generic names like data.json.'
-                          ]
-                        : ['No file naming remediation needed.']
+                summary: fnCount > 0
+                    ? `${fnCount} file naming issue${fnCount === 1 ? '' : 's'} detected.`
+                    : 'No file naming issues found.',
+                recommendations: fnCount > 0
+                    ? [
+                        'Standardize on one naming convention across the project.',
+                        'Remove spaces and special characters from filenames.',
+                        'Use descriptive names for data files instead of generic names like data.json.'
+                    ]
+                    : ['No file naming remediation needed.']
             };
-        } else if (num === '34') {
+        }
+        else if (num === '34') {
             const rf = data.removableFiles || {};
             const rfCount = rf.totalRemovable || 0;
             const rfCats = (rf.categories || []).filter(c => c.removable).slice(0, 10);
@@ -1663,15 +1650,14 @@ function downloadSelectedModule(btn) {
                     action: c.action
                 })),
                 summary: rf.summary || 'No removable files detected.',
-                recommendations:
-                    rfCount > 0
-                        ? [
-                              'Review node_modules — delete and run npm install to regenerate.',
-                              'Remove build artifacts (dist, build, .next) — they regenerate on build.',
-                              'Add .gitignore entries for cache dirs, logs, and OS metadata files.',
-                              'Delete empty files and temporary/backup files.'
-                          ]
-                        : ['No file removal needed.']
+                recommendations: rfCount > 0
+                    ? [
+                        'Review node_modules — delete and run npm install to regenerate.',
+                        'Remove build artifacts (dist, build, .next) — they regenerate on build.',
+                        'Add .gitignore entries for cache dirs, logs, and OS metadata files.',
+                        'Delete empty files and temporary/backup files.'
+                    ]
+                    : ['No file removal needed.']
             };
         }
         const blob = new Blob([JSON.stringify(moduleData, null, 2)], { type: 'application/json' });
@@ -1684,7 +1670,8 @@ function downloadSelectedModule(btn) {
         a.remove();
         URL.revokeObjectURL(url);
         showToast(`Downloaded ${mod.title} module data`, 'success');
-    } catch (err) {
+    }
+    catch (err) {
         showToast('Export failed: ' + (err.message || err), 'error');
     }
 }
@@ -1737,7 +1724,8 @@ function isModulePaidFor(moduleNum) {
     // Re-parse current token from input if cached payload is missing/stale
     if (!payload) {
         const token = typeof licenseInput !== 'undefined' && licenseInput ? licenseInput.value.trim() : '';
-        if (token) payload = decodeJwtPayload(token);
+        if (token)
+            payload = decodeJwtPayload(token);
     }
     // No token = free tier (same access as 'instant')
     if (!payload) {
@@ -1762,9 +1750,12 @@ function isModulePaidFor(moduleNum) {
         'admin',
         'superuser'
     ];
-    if (allAccess.includes(tier)) return true;
-    if (role === 'admin' || role === 'superuser') return true;
-    if (Array.isArray(payload.features) && payload.features.includes('all_modules')) return true;
+    if (allAccess.includes(tier))
+        return true;
+    if (role === 'admin' || role === 'superuser')
+        return true;
+    if (Array.isArray(payload.features) && payload.features.includes('all_modules'))
+        return true;
     if (tier === 'instant') {
         return ['1', '3'].includes(numStr);
     }
@@ -1776,17 +1767,18 @@ function isModulePaidFor(moduleNum) {
     }
     // Fallback: if the corresponding analyzer card is NOT locked, treat as paid
     if (typeof analyzerCardGrid !== 'undefined' && analyzerCardGrid) {
-        const card =
-            analyzerCardGrid.querySelector(`[data-value="${map[numStr]}"]`) ||
+        const card = analyzerCardGrid.querySelector(`[data-value="${map[numStr]}"]`) ||
             analyzerCardGrid.querySelector(`[data-value="${numStr}"]`);
-        if (card && !card.classList.contains('locked')) return true;
+        if (card && !card.classList.contains('locked'))
+            return true;
     }
     return false;
 }
 // Toast notification system
 function showToast(message, type = 'info', duration = 4000) {
     const container = document.getElementById('toastContainer');
-    if (!container) return;
+    if (!container)
+        return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icons = { info: '&#8505;', success: '&#9989;', error: '&#10060;', warning: '&#9888;' };
@@ -2275,7 +2267,8 @@ const MODULE_CARDS = [
 // Multi-select module picker for ZIP export
 // Render analyzer cards as multi-select checklist
 function renderAnalyzerCards() {
-    if (!analyzerCardGrid) return;
+    if (!analyzerCardGrid)
+        return;
     analyzerCardGrid.innerHTML = '';
     MODULE_CARDS.forEach(mod => {
         const card = document.createElement('div');
@@ -2308,7 +2301,8 @@ function renderAnalyzerCards() {
                     card.classList.add('selected');
                     selectedModules.add(card.dataset.value);
                 });
-            } else {
+            }
+            else {
                 unlocked.forEach(card => {
                     card.classList.remove('selected');
                     selectedModules.delete(card.dataset.value);
@@ -2322,14 +2316,16 @@ function toggleModuleSelection(id, card) {
     if (selectedModules.has(id)) {
         selectedModules.delete(id);
         card.classList.remove('selected');
-    } else {
+    }
+    else {
         selectedModules.add(id);
         card.classList.add('selected');
     }
     updateSelectAllUI();
 }
 function updateSelectAllUI() {
-    if (!selectAllModules || !selectAllCount || !analyzerCardGrid) return;
+    if (!selectAllModules || !selectAllCount || !analyzerCardGrid)
+        return;
     const unlocked = Array.from(analyzerCardGrid.children).filter(c => !c.classList.contains('locked'));
     const selectedUnlocked = unlocked.filter(c => c.classList.contains('selected'));
     selectAllModules.checked = unlocked.length > 0 && selectedUnlocked.length === unlocked.length;
@@ -2346,7 +2342,8 @@ function base64Decode(input) {
         const enc2 = chars.indexOf(input[i++]);
         const enc3 = chars.indexOf(input[i++]);
         const enc4 = chars.indexOf(input[i++]);
-        if (enc1 < 0 || enc2 < 0) break;
+        if (enc1 < 0 || enc2 < 0)
+            break;
         const chr1 = (enc1 << 2) | (enc2 >> 4);
         output += String.fromCharCode(chr1);
         if (enc3 >= 0 && enc3 < 64) {
@@ -2362,7 +2359,8 @@ function base64Decode(input) {
 }
 function syncModuleSelectionFromTier() {
     var _a;
-    if (!analyzerCardGrid) return;
+    if (!analyzerCardGrid)
+        return;
     const token = ((_a = document.getElementById('licenseToken')) === null || _a === void 0 ? void 0 : _a.value) || '';
     let tier = 'locked';
     let allowed = TIER_MODULE_MAP.locked || [];
@@ -2372,7 +2370,8 @@ function syncModuleSelectionFromTier() {
             tier = json.tier || json.product || 'locked';
             if (typeof resolveAllowedModules === 'function') {
                 allowed = resolveAllowedModules(tier, json);
-            } else {
+            }
+            else {
                 const paidTiers = [
                     'developer',
                     'pro',
@@ -2401,11 +2400,13 @@ function syncModuleSelectionFromTier() {
         card.classList.toggle('locked', !ok);
         card.title = ok ? '' : mod ? mod.desc : '';
         const hint = card.querySelector('.card-hint');
-        if (hint) hint.textContent = ok ? '' : 'Upgrade your plan to unlock this module';
+        if (hint)
+            hint.textContent = ok ? '' : 'Upgrade your plan to unlock this module';
         if (ok) {
             selectedModules.add(card.dataset.value);
             card.classList.add('selected');
-        } else {
+        }
+        else {
             card.classList.remove('selected');
         }
     });
@@ -2419,20 +2420,23 @@ function syncModuleSelectionFromTier() {
 }
 // PRODUCT_CONFIG and TIER_PROFILES are declared in token-manager.js (same global scope)
 renderAnalyzerCards();
-if (typeof bindPresetButtons === 'function') bindPresetButtons();
+if (typeof bindPresetButtons === 'function')
+    bindPresetButtons();
 function filterScanProfiles(tier, features) {
     const isCustom = tier === 'custom' && Array.isArray(features) && features.length > 0;
     const allowed = isCustom
         ? features
         : TIER_PROFILES[tier] || TIER_PROFILES.universal || (typeof ALL_MODULES !== 'undefined' ? ALL_MODULES : []);
-    if (!Array.isArray(allowed)) return;
+    if (!Array.isArray(allowed))
+        return;
     let firstEnabled = null;
     // Update hidden select
     if (browserScanProfile) {
         Array.from(browserScanProfile.options).forEach(opt => {
             const ok = allowed.includes(opt.value);
             opt.disabled = !ok;
-            if (ok && !firstEnabled) firstEnabled = opt.value;
+            if (ok && !firstEnabled)
+                firstEnabled = opt.value;
         });
     }
     // Update visual cards
@@ -2440,7 +2444,8 @@ function filterScanProfiles(tier, features) {
         Array.from(analyzerCardGrid.children).forEach(card => {
             const ok = allowed.includes(card.dataset.value);
             card.classList.toggle('locked', !ok);
-            if (ok && !firstEnabled) firstEnabled = card.dataset.value;
+            if (ok && !firstEnabled)
+                firstEnabled = card.dataset.value;
         });
     }
     if (firstEnabled && browserScanProfile && !allowed.includes(browserScanProfile.value)) {
@@ -2464,46 +2469,56 @@ function applyProductFromToken(token) {
     const banner = document.getElementById('sprintBanner');
     if (!token) {
         window._tokenPayload = null;
-        if (banner) banner.style.display = 'none';
+        if (banner)
+            banner.style.display = 'none';
         filterScanProfiles('locked');
         syncModuleSelectionFromTier();
         updateDropzoneGate();
         // Reset product UI so user can enter a new token cleanly
         const infoCard = document.getElementById('productInfoCard');
-        if (infoCard) infoCard.style.display = 'none';
+        if (infoCard)
+            infoCard.style.display = 'none';
         const productLabelEl = document.getElementById('productLabel');
-        if (productLabelEl) productLabelEl.textContent = '';
+        if (productLabelEl)
+            productLabelEl.textContent = '';
         const pageTitleEl = document.getElementById('pageTitle');
-        if (pageTitleEl) pageTitleEl.textContent = 'Upload Your Scan Report';
+        if (pageTitleEl)
+            pageTitleEl.textContent = 'Upload Your Scan Report';
         const pageSubtitleEl = document.getElementById('pageSubtitle');
         if (pageSubtitleEl)
             pageSubtitleEl.textContent = 'Generate an Executive Risk Certificate from your local SimpleBeacon scan.';
         const tokenHelpEl = document.getElementById('tokenHelp');
-        if (tokenHelpEl) tokenHelpEl.textContent = 'Paste the license token from your payment confirmation email.';
+        if (tokenHelpEl)
+            tokenHelpEl.textContent = 'Paste the license token from your payment confirmation email.';
         const submitBtnEl = document.getElementById('submitBtn');
-        if (submitBtnEl) submitBtnEl.style.display = '';
+        if (submitBtnEl)
+            submitBtnEl.style.display = '';
         return;
     }
     try {
         const cleanToken = token.trim().replace(/\s/g, '');
         const payload = decodeJwtPayload(cleanToken);
-        if (!payload) return;
+        if (!payload)
+            return;
         window._tokenPayload = payload;
         const tier = payload.tier || payload.product || 'executive';
         filterScanProfiles(tier, payload.features);
         syncModuleSelectionFromTier();
-        const config =
-            typeof resolveProductConfig === 'function'
-                ? resolveProductConfig(tier)
-                : PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal || {};
+        const config = typeof resolveProductConfig === 'function'
+            ? resolveProductConfig(tier)
+            : PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal || {};
         const productLabelEl = document.getElementById('productLabel');
-        if (productLabelEl) productLabelEl.textContent = config.label || '';
+        if (productLabelEl)
+            productLabelEl.textContent = config.label || '';
         const pageTitleEl = document.getElementById('pageTitle');
-        if (pageTitleEl) pageTitleEl.textContent = config.title || '';
+        if (pageTitleEl)
+            pageTitleEl.textContent = config.title || '';
         const pageSubtitleEl = document.getElementById('pageSubtitle');
-        if (pageSubtitleEl) pageSubtitleEl.textContent = config.subtitle || '';
+        if (pageSubtitleEl)
+            pageSubtitleEl.textContent = config.subtitle || '';
         const tokenHelpEl = document.getElementById('tokenHelp');
-        if (tokenHelpEl) tokenHelpEl.textContent = config.tokenHelp || '';
+        if (tokenHelpEl)
+            tokenHelpEl.textContent = config.tokenHelp || '';
         const submitBtnEl = document.getElementById('submitBtn');
         if (submitBtnEl && !config.showUpload) {
             submitBtnEl.style.display = 'none';
@@ -2518,7 +2533,8 @@ function applyProductFromToken(token) {
         }
         if (typeof renderProductInfoCard === 'function') {
             renderProductInfoCard(tier, config);
-        } else {
+        }
+        else {
             const infoCard = document.getElementById('productInfoCard');
             if (infoCard) {
                 infoCard.style.display = 'block';
@@ -2551,23 +2567,29 @@ function applyProductFromToken(token) {
                 fill.style.background = 'linear-gradient(90deg,#EF4444,#991B1B)';
                 banner.style.border = '1px solid rgba(239,68,68,0.4)';
                 banner.style.background = 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(153,27,27,0.08))';
-            } else {
+            }
+            else {
                 daysEl.textContent = daysRemaining;
                 tierEl.textContent = config.label;
                 projEl.textContent = payload.projectName || 'default-project';
                 fill.style.width = pct + '%';
                 // Color shift as expiry approaches
-                if (pct < 15) fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
-                else if (pct < 40) fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
-                else fill.style.background = 'linear-gradient(90deg,#2563EB,#10B981)';
+                if (pct < 15)
+                    fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
+                else if (pct < 40)
+                    fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
+                else
+                    fill.style.background = 'linear-gradient(90deg,#2563EB,#10B981)';
                 banner.style.border = '';
                 banner.style.background = '';
             }
             banner.style.display = 'block';
         }
-    } catch (e) {
+    }
+    catch (e) {
         // Don't lock UI on decode error — let user fix the token
-    } finally {
+    }
+    finally {
         updateDropzoneGate();
     }
 }
@@ -2580,7 +2602,8 @@ if (urlToken) {
     applyProductFromToken(urlToken);
     updateSubmit();
     updateDropzoneGate();
-} else {
+}
+else {
     filterScanProfiles('locked');
     syncModuleSelectionFromTier();
     updateDropzoneGate();
@@ -2616,22 +2639,25 @@ if (resendBtn) {
                 resendStatus.textContent =
                     result.message || 'Token sent to your inbox. Check your email (&& spam folder).';
                 resendStatus.style.color = 'var(--success)';
-            } else if (result.redirectToPricing) {
+            }
+            else if (result.redirectToPricing) {
                 window.location.href = 'pricing.html';
                 return;
-            } else {
+            }
+            else {
                 resendStatus.textContent =
                     result.error ||
-                    'Could ! resend token. Please email ' +
-                        ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') +
-                        ' for help.';
+                        'Could ! resend token. Please email ' +
+                            ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') +
+                            ' for help.';
                 resendStatus.style.color = 'var(--error)';
             }
-        } catch (err) {
+        }
+        catch (err) {
             resendStatus.textContent =
                 'Network error. Please email ' +
-                ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') +
-                ' for help.';
+                    ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') +
+                    ' for help.';
             resendStatus.style.color = 'var(--error)';
         }
         resendStatus.style.display = 'block';
@@ -2647,10 +2673,7 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
         var _a;
         const btn = document.getElementById('tryFreeBtn');
         const originalText = '\u2699\uFE0F Try Free Sandbox';
-        const email =
-            (
-                ((_a = document.getElementById('resendEmail')) === null || _a === void 0 ? void 0 : _a.value) || ''
-            ).trim() || 'guest@simplebeacon.ai';
+        const email = (((_a = document.getElementById('resendEmail')) === null || _a === void 0 ? void 0 : _a.value) || '').trim() || 'guest@simplebeacon.ai';
         btn.disabled = true;
         btn.classList.add('btn-loading');
         let serverMsg = '';
@@ -2664,11 +2687,14 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
                 const text = await response.text();
                 try {
                     const parsed = JSON.parse(text);
-                    if (parsed.error) serverMsg = parsed.error;
-                } catch (_b) {
+                    if (parsed.error)
+                        serverMsg = parsed.error;
+                }
+                catch (_b) {
                     serverMsg = text;
                 }
-                if (!serverMsg) serverMsg = 'Server returned ' + response.status;
+                if (!serverMsg)
+                    serverMsg = 'Server returned ' + response.status;
                 console.error('[FreeToken] HTTP', response.status, serverMsg);
                 btn.textContent = originalText;
                 showToast('Token generation failed: ' + serverMsg, 'error');
@@ -2685,26 +2711,30 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
                 btn.style.color = 'var(--success)';
                 try {
                     history.replaceState(null, '', '?token=' + encodeURIComponent(data.token));
-                } catch (e) {}
+                }
+                catch (e) { }
                 if (email) {
                     const emailMsg = data.emailed
                         ? 'Token emailed to ' + email + '.'
                         : data.queued
-                          ? 'Token queued for email to ' + email + '.'
-                          : 'Token generated. Save your email to recover this token later.';
+                            ? 'Token queued for email to ' + email + '.'
+                            : 'Token generated. Save your email to recover this token later.';
                     showToast(emailMsg, 'success');
                 }
-            } else {
+            }
+            else {
                 console.error('[FreeToken] API error:', data);
                 btn.textContent = originalText;
                 showToast('Could not provision sandbox: ' + (data.error || 'Unknown error'), 'error');
             }
-        } catch (err) {
+        }
+        catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
             console.error('[FreeToken] Network error:', msg);
             btn.textContent = originalText;
             showToast('Token generation failed: ' + msg, 'error');
-        } finally {
+        }
+        finally {
             btn.classList.remove('btn-loading');
         }
     });
@@ -2715,15 +2745,15 @@ if (typeof window.TokenEntryGuard !== 'undefined') {
 }
 licenseInput.addEventListener('input', () => {
     const tokenError = document.getElementById('tokenError');
-    if (tokenError) tokenError.classList.add('hidden-display');
+    if (tokenError)
+        tokenError.classList.add('hidden-display');
     const token = licenseInput.value.trim();
     applyProductFromToken(token);
     updateSubmit();
     updateDropzoneGate();
     if (token && hasValidToken()) {
         const payload = decodeJwtPayload(token);
-        const tier =
-            (payload === null || payload === void 0 ? void 0 : payload.tier) ||
+        const tier = (payload === null || payload === void 0 ? void 0 : payload.tier) ||
             (payload === null || payload === void 0 ? void 0 : payload.product) ||
             '';
         const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
@@ -2734,8 +2764,7 @@ licenseInput.addEventListener('input', () => {
 });
 function registerTokenInVault(token) {
     const payload = decodeJwtPayload(token);
-    const tier =
-        (payload === null || payload === void 0 ? void 0 : payload.tier) ||
+    const tier = (payload === null || payload === void 0 ? void 0 : payload.tier) ||
         (payload === null || payload === void 0 ? void 0 : payload.product) ||
         'free';
     const isFree = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'].includes(tier);
@@ -2743,24 +2772,28 @@ function registerTokenInVault(token) {
     const features = Array.isArray(payload === null || payload === void 0 ? void 0 : payload.features)
         ? payload.features
         : Array.isArray(payload === null || payload === void 0 ? void 0 : payload.modules)
-          ? payload.modules
-          : null;
+            ? payload.modules
+            : null;
     const exp = (payload === null || payload === void 0 ? void 0 : payload.exp) || null;
     let vault = [];
     try {
         const raw = localStorage.getItem('sb-token-vault');
-        if (raw) vault = JSON.parse(raw);
-    } catch (e) {
+        if (raw)
+            vault = JSON.parse(raw);
+    }
+    catch (e) {
         /* ignore */
     }
-    if (!Array.isArray(vault)) vault = [];
+    if (!Array.isArray(vault))
+        vault = [];
     const existing = vault.find(v => v.token === token);
     if (existing) {
         existing.tier = tier;
         existing.exp = exp;
         existing.features = features;
         existing.user = user;
-    } else {
+    }
+    else {
         vault.push({ token, user, tier, exp, features, addedAt: new Date().toISOString(), usedAt: null });
     }
     localStorage.setItem('sb-token-vault', JSON.stringify(vault));
@@ -2768,17 +2801,21 @@ function registerTokenInVault(token) {
         let accountFeatures = [];
         try {
             const raw = localStorage.getItem('sb-account-features');
-            if (raw) accountFeatures = JSON.parse(raw);
-        } catch (e) {
+            if (raw)
+                accountFeatures = JSON.parse(raw);
+        }
+        catch (e) {
             /* ignore */
         }
-        if (!Array.isArray(accountFeatures)) accountFeatures = [];
+        if (!Array.isArray(accountFeatures))
+            accountFeatures = [];
         const merged = new Set([...accountFeatures, ...features]);
         localStorage.setItem('sb-account-features', JSON.stringify(Array.from(merged)));
     }
     if (!isFree) {
         const accountTokens = JSON.parse(localStorage.getItem('sb-account-tokens') || '[]');
-        if (!Array.isArray(accountTokens)) accountTokens = [];
+        if (!Array.isArray(accountTokens))
+            accountTokens = [];
         if (!accountTokens.some(t => t.token === token)) {
             accountTokens.push({ token, tier, exp, registeredAt: new Date().toISOString() });
             localStorage.setItem('sb-account-tokens', JSON.stringify(accountTokens));
@@ -2790,7 +2827,8 @@ function hideTokenSection() {
     const tokenCard = tokenSection === null || tokenSection === void 0 ? void 0 : tokenSection.closest('.card');
     if (tokenCard) {
         tokenCard.style.display = 'none';
-    } else if (tokenSection) {
+    }
+    else if (tokenSection) {
         tokenSection.style.display = 'none';
     }
 }
@@ -2802,11 +2840,13 @@ function hasValidToken() {
     return val.length > 20 && val.includes('.');
 }
 function updateDropzoneGate() {
-    if (!browserFolderDropzone) return;
+    if (!browserFolderDropzone)
+        return;
     const locked = !hasValidToken();
     browserFolderDropzone.classList.toggle('locked', locked);
     const overlay = document.getElementById('dropzoneGateOverlay');
-    if (overlay) overlay.style.display = locked ? 'flex' : 'none';
+    if (overlay)
+        overlay.style.display = locked ? 'flex' : 'none';
 }
 // Stepper state management
 function updateStepper() {
@@ -2817,13 +2857,15 @@ function updateStepper() {
     const line2 = document.getElementById('stepperLine2');
     const hasFile = reportData !== null;
     const hasToken = licenseInput.value.trim().length > 10;
-    if (!step1 || !step2 || !step3) return;
+    if (!step1 || !step2 || !step3)
+        return;
     // Step 1: Upload Scan
     if (hasFile) {
         step1.classList.remove('active');
         step1.classList.add('done');
         line1.classList.add('done');
-    } else {
+    }
+    else {
         step1.classList.add('active');
         step1.classList.remove('done');
         line1.classList.remove('done');
@@ -2833,12 +2875,14 @@ function updateStepper() {
         step2.classList.remove('active');
         step2.classList.add('done');
         line2.classList.add('done');
-    } else if (hasFile) {
+    }
+    else if (hasFile) {
         step2.classList.add('active');
         step2.classList.remove('done');
         line2.classList.add('active');
         line2.classList.remove('done');
-    } else {
+    }
+    else {
         step2.classList.remove('active', 'done');
         line2.classList.remove('active', 'done');
     }
@@ -2846,7 +2890,8 @@ function updateStepper() {
     if (hasFile && hasToken) {
         step3.classList.add('active');
         step3.classList.remove('done');
-    } else {
+    }
+    else {
         step3.classList.remove('active', 'done');
     }
 }
@@ -2860,11 +2905,13 @@ const LS_KEY_SCAN = 'simplebeacon_scan_data';
         if (isFresh) {
             localStorage.removeItem(LS_KEY_SCAN);
             for (var k in localStorage) {
-                if (k.indexOf('sbr_') === 0) localStorage.removeItem(k);
+                if (k.indexOf('sbr_') === 0)
+                    localStorage.removeItem(k);
             }
         }
         sessionStorage.setItem('sb_main_visited', '1');
-    } catch (e) {
+    }
+    catch (e) {
         /* ignore */
     }
 })();
@@ -2879,8 +2926,10 @@ function saveToLocalStorage() {
             localStorage.setItem('token', token);
             localStorage.setItem('authToken', token);
         }
-        if (reportData) localStorage.setItem(LS_KEY_SCAN, JSON.stringify(reportData));
-    } catch (e) {
+        if (reportData)
+            localStorage.setItem(LS_KEY_SCAN, JSON.stringify(reportData));
+    }
+    catch (e) {
         /* Storage may be full || disabled */
     }
 }
@@ -2903,9 +2952,11 @@ function loadFromLocalStorage() {
             try {
                 applyProductFromToken(savedToken);
                 updateDropzoneGate();
-            } catch (e) {
+            }
+            catch (e) {
                 localStorage.removeItem(LS_KEY_TOKEN);
-                for (const key of dashboardKeys) localStorage.removeItem(key);
+                for (const key of dashboardKeys)
+                    localStorage.removeItem(key);
                 licenseInput.value = '';
             }
         }
@@ -2916,18 +2967,17 @@ function loadFromLocalStorage() {
             const projectName = parsed.projectName || parsed.projectRoot || '';
             const generatedAt = parsed.generatedAt ? new Date(parsed.generatedAt) : null;
             const ageHours = generatedAt ? (Date.now() - generatedAt.getTime()) / (1000 * 60 * 60) : 0;
-            const isStaleProject =
-                /^(css|js|test|temp|untitled|default|project)$/i.test(projectName) ||
+            const isStaleProject = /^(css|js|test|temp|untitled|default|project)$/i.test(projectName) ||
                 (projectName.includes('CascadeProjects') && !projectName.includes('coming-soon'));
             if (totalFiles > 1000 || isStaleProject || ageHours > 0.001) {
                 localStorage.removeItem(LS_KEY_SCAN);
-                const reason =
-                    totalFiles > 1000 ? 'large file count' : isStaleProject ? 'stale project name' : 'expired';
+                const reason = totalFiles > 1000 ? 'large file count' : isStaleProject ? 'stale project name' : 'expired';
                 showToast('Cleared stale scan cache (' + reason + '). Please re-upload your report.', 'warning');
                 return;
             }
             reportData = parsed;
-            if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
+            if (typeof window.renderPreview === 'function')
+                window.renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast('Restored previous scan from browser storage', 'info');
@@ -2940,7 +2990,8 @@ function loadFromLocalStorage() {
                 }
             }, 400);
         }
-    } catch (e) {
+    }
+    catch (e) {
         /* Ignore parse errors */
     }
 }
@@ -2957,18 +3008,23 @@ if (resetBtn) {
             scanAbortController.abort();
             scanAbortController = null;
         }
-        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
-        if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
-        if (typeof fileInput !== 'undefined' && fileInput) fileInput.value = '';
+        if (typeof cliFileName !== 'undefined' && cliFileName)
+            cliFileName.textContent = '';
+        if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone)
+            cliJsonDropzone.classList.remove('has-file');
+        if (typeof fileInput !== 'undefined' && fileInput)
+            fileInput.value = '';
         if (scanPreview) {
             scanPreview.innerHTML = '';
             scanPreview.style.display = 'none';
         }
         const localScanFileName = document.getElementById('localScanFileName');
-        if (localScanFileName) localScanFileName.textContent = '';
+        if (localScanFileName)
+            localScanFileName.textContent = '';
         // Clear secure report block
         const secureBlock = document.getElementById('secureReportBlock');
-        if (secureBlock) secureBlock.remove();
+        if (secureBlock)
+            secureBlock.remove();
         // Clear hash ribbons
         ['browserHashRibbon', 'cliHashRibbon'].forEach(id => {
             const el = document.getElementById(id);
@@ -2984,8 +3040,10 @@ if (resetBtn) {
         // Reset terminal && browser scan panels
         accumulatedPickerFiles = [];
         isAccumulatingFolders = false;
-        if (terminalConsole) terminalConsole.innerHTML = '';
-        if (dropzonePrompt) dropzonePrompt.style.display = '';
+        if (terminalConsole)
+            terminalConsole.innerHTML = '';
+        if (dropzonePrompt)
+            dropzonePrompt.style.display = '';
         if (panelStatus) {
             panelStatus.textContent = 'AWAITING_INPUT';
             panelStatus.style.color = '#F59E0B';
@@ -2994,13 +3052,17 @@ if (resetBtn) {
             panelMetrics.innerHTML = '';
             panelMetrics.style.display = 'none';
         }
-        if (panelProgressContainer) panelProgressContainer.style.display = 'none';
-        if (panelProgressBar) panelProgressBar.style.width = '0%';
+        if (panelProgressContainer)
+            panelProgressContainer.style.display = 'none';
+        if (panelProgressBar)
+            panelProgressBar.style.width = '0%';
         // Hide cancel && log buttons
         const cancelBtn = document.getElementById('cancelScanBtn');
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (cancelBtn)
+            cancelBtn.style.display = 'none';
         const downloadLogBtn = document.getElementById('downloadLogBtn');
-        if (downloadLogBtn) downloadLogBtn.style.display = 'none';
+        if (downloadLogBtn)
+            downloadLogBtn.style.display = 'none';
         // Reset scan profiles
         resetScanProfiles();
         syncModuleSelectionFromTier();
@@ -3008,11 +3070,13 @@ if (resetBtn) {
         status.style.display = 'none';
         status.className = 'status';
         const tokenActionRow = document.getElementById('tokenActionRow');
-        if (tokenActionRow) tokenActionRow.style.display = 'none';
+        if (tokenActionRow)
+            tokenActionRow.style.display = 'none';
         // Clear persisted scan data
         try {
             localStorage.removeItem(LS_KEY_SCAN);
-        } catch (e) {
+        }
+        catch (e) {
             /* ignore */
         }
         updateSubmit();
@@ -3042,7 +3106,8 @@ document.addEventListener('keydown', e => {
 function validateTokenVisual() {
     const val = licenseInput.value.trim();
     const indicator = document.getElementById('tokenValidIndicator');
-    if (!indicator) return;
+    if (!indicator)
+        return;
     if (val.length === 0) {
         indicator.classList.remove('show', 'valid', 'invalid');
         updateDropzoneGate();
@@ -3054,7 +3119,8 @@ function validateTokenVisual() {
         indicator.classList.add('valid');
         indicator.classList.remove('invalid');
         indicator.innerHTML = '<span>&#10003;</span> Token format looks valid';
-    } else {
+    }
+    else {
         indicator.classList.add('invalid');
         indicator.classList.remove('valid');
         indicator.innerHTML = '<span>&#9888;</span> Token too short || malformed';
@@ -3067,13 +3133,18 @@ function updateSubmit() {
     const tokenActionRow = document.getElementById('tokenActionRow');
     const certEmptyState = document.getElementById('certEmptyState');
     const certSubmitBtn = document.getElementById('certSubmitBtn');
-    if (scanPreview) scanPreview.style.display = hasFile ? 'block' : 'none';
-    if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
+    if (scanPreview)
+        scanPreview.style.display = hasFile ? 'block' : 'none';
+    if (certEmptyState)
+        certEmptyState.style.display = hasFile ? 'none' : 'block';
     const resetBtnEl = document.getElementById('resetBtn');
-    if (resetBtnEl) resetBtnEl.style.display = hasFile ? 'inline-block' : 'none';
-    if (hasFile) updateStepper();
+    if (resetBtnEl)
+        resetBtnEl.style.display = hasFile ? 'inline-block' : 'none';
+    if (hasFile)
+        updateStepper();
     // Always show token row so users can change tokens freely
-    if (tokenActionRow) tokenActionRow.style.display = 'block';
+    if (tokenActionRow)
+        tokenActionRow.style.display = 'block';
     if (hasFile) {
         // Certificate generation no longer requires a token (token gates browser scan only)
         if (submitBtn) {
@@ -3087,8 +3158,10 @@ function updateSubmit() {
             certSubmitBtn.style.opacity = '1';
         }
         // Re-render preview to update watermark/unlock state
-        if (reportData && typeof window.renderPreview === 'function') window.renderPreview(reportData);
-    } else {
+        if (reportData && typeof window.renderPreview === 'function')
+            window.renderPreview(reportData);
+    }
+    else {
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
@@ -3153,11 +3226,11 @@ if (oneClickInstallBtn && installCommandEl) {
         navigator.clipboard
             .writeText(installCommandEl.textContent)
             .then(() => {
-                showToast('Install command copied! Paste in your terminal.', 'success');
-            })
+            showToast('Install command copied! Paste in your terminal.', 'success');
+        })
             .catch(() => {
-                showToast('Copy failed. Select && copy manually.', 'error');
-            });
+            showToast('Copy failed. Select && copy manually.', 'error');
+        });
     });
 }
 // === Drag & Drop / Copy & Paste Inner Tab Toggle ===
@@ -3198,10 +3271,9 @@ function triggerDirectoryPicker() {
     // _pickerTriggeredByButton is set by the caller (startLocalScan) when appropriate
     // Prefer File System Access API directory picker (Chrome/Edge)
     // Secure context required: HTTPS, localhost, or 127.0.0.1
-    const isSecureContext =
-        typeof window.isSecureContext !== 'undefined'
-            ? window.isSecureContext
-            : location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const isSecureContext = typeof window.isSecureContext !== 'undefined'
+        ? window.isSecureContext
+        : location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     if (typeof showDirectoryPicker === 'function' && isSecureContext) {
         console.log('[triggerDirectoryPicker] calling showDirectoryPicker synchronously');
         var pickerTimeout = setTimeout(function () {
@@ -3213,52 +3285,48 @@ function triggerDirectoryPicker() {
         // Call synchronously — do NOT await here — to preserve user gesture
         showDirectoryPicker()
             .then(dirHandle => {
-                clearTimeout(pickerTimeout);
-                console.log('[triggerDirectoryPicker] dirHandle acquired');
-                return collectFilesFromDirectoryHandle(dirHandle);
-            })
+            clearTimeout(pickerTimeout);
+            console.log('[triggerDirectoryPicker] dirHandle acquired');
+            return collectFilesFromDirectoryHandle(dirHandle);
+        })
             .then(files => {
-                console.log('[triggerDirectoryPicker] collected ' + files.length + ' files');
-                const pickerCheck = applyFolderSizeAnalysis(files, 'Picker');
-                if (!pickerCheck.proceed) {
-                    isPickerActive = false;
-                    return;
-                }
-                safeBatchPush(accumulatedPickerFiles, files);
-                isAccumulatingFolders = true;
-                showAccumulationPrompt();
-                // Auto-start scan if user triggered via Start Local Scan button
-                if (_pickerTriggeredByButton) {
-                    _pickerTriggeredByButton = false;
-                    console.log('[triggerDirectoryPicker] auto-starting scan from button trigger');
-                    setTimeout(function () {
-                        window._startAccumulatedScan();
-                    }, 100);
-                }
-            })
-            .catch(err => {
-                clearTimeout(pickerTimeout);
-                console.log('[triggerDirectoryPicker] error: ' + err.name + ' ' + err.message);
-                if (err.name === 'AbortError') {
-                    _pickerTriggeredByButton = false;
-                    isPickerActive = false;
-                    return;
-                }
-                // User gesture expired inside promise handler — can't programmatically click input.
-                // Show drag-and-drop guidance instead.
-                showToast(
-                    'Browser folder picker unavailable (' +
-                        err.name +
-                        '). Drag & drop your project folder onto the dropzone below.',
-                    'warning',
-                    TOAST_DURATION_LONG
-                );
-            })
-            .finally(() => {
-                clearTimeout(pickerTimeout);
-                // Safety net: always release picker lock so button never deadlocks
+            console.log('[triggerDirectoryPicker] collected ' + files.length + ' files');
+            const pickerCheck = applyFolderSizeAnalysis(files, 'Picker');
+            if (!pickerCheck.proceed) {
                 isPickerActive = false;
-            });
+                return;
+            }
+            safeBatchPush(accumulatedPickerFiles, files);
+            isAccumulatingFolders = true;
+            showAccumulationPrompt();
+            // Auto-start scan if user triggered via Start Local Scan button
+            if (_pickerTriggeredByButton) {
+                _pickerTriggeredByButton = false;
+                console.log('[triggerDirectoryPicker] auto-starting scan from button trigger');
+                setTimeout(function () {
+                    window._startAccumulatedScan();
+                }, 100);
+            }
+        })
+            .catch(err => {
+            clearTimeout(pickerTimeout);
+            console.log('[triggerDirectoryPicker] error: ' + err.name + ' ' + err.message);
+            if (err.name === 'AbortError') {
+                _pickerTriggeredByButton = false;
+                isPickerActive = false;
+                return;
+            }
+            // User gesture expired inside promise handler — can't programmatically click input.
+            // Show drag-and-drop guidance instead.
+            showToast('Browser folder picker unavailable (' +
+                err.name +
+                '). Drag & drop your project folder onto the dropzone below.', 'warning', TOAST_DURATION_LONG);
+        })
+            .finally(() => {
+            clearTimeout(pickerTimeout);
+            // Safety net: always release picker lock so button never deadlocks
+            isPickerActive = false;
+        });
         return;
     }
     tryWebkitDirectoryFallback();
@@ -3281,16 +3349,13 @@ function tryWebkitDirectoryFallback() {
                 }
             }, 30000);
             return;
-        } catch (e) {
+        }
+        catch (e) {
             console.log('[triggerDirectoryPicker] input click blocked:', e);
         }
     }
     console.log('[triggerDirectoryPicker] showing drag-and-drop guidance');
-    showToast(
-        'Drag & drop your project folder onto the dropzone below to start scanning.',
-        'info',
-        TOAST_DURATION_LONG
-    );
+    showToast('Drag & drop your project folder onto the dropzone below to start scanning.', 'info', TOAST_DURATION_LONG);
     if (browserFolderDropzone) {
         browserFolderDropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
         browserFolderDropzone.classList.add('pulse-highlight');
@@ -3299,10 +3364,8 @@ function tryWebkitDirectoryFallback() {
     isPickerActive = false;
 }
 async function collectFilesFromDirectoryHandle(dirHandle) {
-    console.log(
-        '[collectFilesFromDirectoryHandle] starting, dirHandle=' +
-            (dirHandle ? dirHandle.name + ' kind=' + dirHandle.kind : 'null')
-    );
+    console.log('[collectFilesFromDirectoryHandle] starting, dirHandle=' +
+        (dirHandle ? dirHandle.name + ' kind=' + dirHandle.kind : 'null'));
     if (!dirHandle || dirHandle.kind !== 'directory') {
         console.error('[collectFilesFromDirectoryHandle] invalid dirHandle');
         appendTerminalLine('Invalid directory handle — picker may have returned a file instead of a folder.', 'error');
@@ -3312,15 +3375,19 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     let traverseErrors = 0;
     let lastUpdate = Date.now();
     const localScanFileName = document.getElementById('localScanFileName');
-    if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+    if (localScanFileName)
+        localScanFileName.textContent = 'Discovering files...';
     async function traverse(handle, parentPath) {
-        if (files.length >= MAX_DISCOVERED_FILES) return;
+        if (files.length >= MAX_DISCOVERED_FILES)
+            return;
         const currentPath = parentPath ? parentPath + '/' + handle.name : handle.name;
         const normalizedPath = currentPath.replace(/\\/g, '/');
         // Skip heavy directories during discovery to keep file counts manageable
-        if (handle.kind === 'directory' && SKIP_DIRS.test(normalizedPath + '/')) return;
+        if (handle.kind === 'directory' && SKIP_DIRS.test(normalizedPath + '/'))
+            return;
         if (handle.kind === 'file') {
-            if (files.length >= MAX_DISCOVERED_FILES) return;
+            if (files.length >= MAX_DISCOVERED_FILES)
+                return;
             try {
                 const file = await handle.getFile();
                 Object.defineProperty(file, 'webkitRelativePath', {
@@ -3329,40 +3396,37 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
                     configurable: true
                 });
                 files.push(file);
-            } catch (err) {
+            }
+            catch (err) {
                 traverseErrors++;
                 if (traverseErrors <= 5) {
-                    appendTerminalLine(
-                        'File read error: ' + normalizedPath + ' — ' + err.name + ': ' + err.message,
-                        'warn'
-                    );
+                    appendTerminalLine('File read error: ' + normalizedPath + ' — ' + err.name + ': ' + err.message, 'warn');
                 }
             }
-        } else if (handle.kind === 'directory') {
+        }
+        else if (handle.kind === 'directory') {
             try {
-                const iterable =
-                    typeof handle.values === 'function'
-                        ? handle.values()
-                        : typeof handle.entries === 'function'
-                          ? handle.entries()
-                          : null;
+                const iterable = typeof handle.values === 'function'
+                    ? handle.values()
+                    : typeof handle.entries === 'function'
+                        ? handle.entries()
+                        : null;
                 if (!iterable) {
-                    appendTerminalLine(
-                        `Directory ${normalizedPath}: no iterator API available (values/entries missing)`,
-                        'warn'
-                    );
+                    appendTerminalLine(`Directory ${normalizedPath}: no iterator API available (values/entries missing)`, 'warn');
                     return;
                 }
                 // Stream entries from iterator in bounded batches to avoid OOM on huge dirs
                 const BATCH_SIZE = 100;
                 let batch = [];
                 for await (const item of iterable) {
-                    if (files.length >= MAX_DISCOVERED_FILES) break;
+                    if (files.length >= MAX_DISCOVERED_FILES)
+                        break;
                     batch.push(Array.isArray(item) ? item[1] : item);
                     if (batch.length >= BATCH_SIZE) {
                         try {
                             await Promise.all(batch.map(entry => traverse(entry, currentPath)));
-                        } catch (err) {
+                        }
+                        catch (err) {
                             appendTerminalLine(`Batch error in ${normalizedPath}: ${err.name}: ${err.message}`, 'warn');
                             traverseErrors++;
                         }
@@ -3373,16 +3437,15 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
                 if (batch.length > 0 && files.length < MAX_DISCOVERED_FILES) {
                     try {
                         await Promise.all(batch.map(entry => traverse(entry, currentPath)));
-                    } catch (err) {
+                    }
+                    catch (err) {
                         appendTerminalLine(`Batch error in ${normalizedPath}: ${err.name}: ${err.message}`, 'warn');
                         traverseErrors++;
                     }
                 }
-            } catch (err) {
-                appendTerminalLine(
-                    `Directory ${normalizedPath}: read error listing entries — ${err.name}: ${err.message}`,
-                    'error'
-                );
+            }
+            catch (err) {
+                appendTerminalLine(`Directory ${normalizedPath}: read error listing entries — ${err.name}: ${err.message}`, 'error');
                 traverseErrors++;
                 return;
             }
@@ -3397,64 +3460,46 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     }
     try {
         await traverse(dirHandle, '');
-    } catch (err) {
+    }
+    catch (err) {
         appendTerminalLine(`Directory traversal failed: ${err.name}: ${err.message}`, 'error');
         console.error(err);
     }
     if (files.length >= MAX_DISCOVERED_FILES) {
-        appendTerminalLine(
-            '<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ' +
-                MAX_DISCOVERED_FILES.toLocaleString() +
-                ' files discovered. Use CLI for full coverage.',
-            'warn',
-            true
-        );
+        appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ' +
+            MAX_DISCOVERED_FILES.toLocaleString() +
+            ' files discovered. Use CLI for full coverage.', 'warn', true);
     }
-    appendTerminalLine(
-        '&#128451; Discovery complete: ' + files.length.toLocaleString() + ' files, ' + traverseErrors + ' read errors.'
-    );
+    appendTerminalLine('&#128451; Discovery complete: ' + files.length.toLocaleString() + ' files, ' + traverseErrors + ' read errors.');
     if (traverseErrors > 0) {
-        appendTerminalLine(
-            'Warning: ' + traverseErrors + ' files/dirs could not be read during directory traversal.',
-            'warn'
-        );
+        appendTerminalLine('Warning: ' + traverseErrors + ' files/dirs could not be read during directory traversal.', 'warn');
     }
     if (files.length >= MAX_DISCOVERED_FILES) {
-        appendTerminalLine(
-            '<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' +
-                files.length.toLocaleString() +
-                ' files discovered.',
-            'warn',
-            true
-        );
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' +
+            files.length.toLocaleString() +
+            ' files discovered.', 'warn', true);
     }
     if (localScanFileName) {
         localScanFileName.innerHTML =
             '<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">' +
-            files.length.toLocaleString() +
-            '</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>';
+                files.length.toLocaleString() +
+                '</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>';
     }
-    appendTerminalLine(
-        '<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>' +
-            files.length.toLocaleString() +
-            '</strong> files.',
-        undefined,
-        true
-    );
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>' +
+        files.length.toLocaleString() +
+        '</strong> files.', undefined, true);
     // Diagnostic: warn if showDirectoryPicker returned suspiciously few files
     if (files.length > 0 && files.length < 3000) {
-        appendTerminalLine(
-            '<span style="color:#F59E0B;font-weight:700;">&#9888; Low file count detected:</span> The browser directory picker may have capped results at ~1,000–1,500 files. For large directories, try <strong>dragging and dropping</strong> the folder onto the dropzone instead — it uses a different API with higher limits.',
-            'warn',
-            true
-        );
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Low file count detected:</span> The browser directory picker may have capped results at ~1,000–1,500 files. For large directories, try <strong>dragging and dropping</strong> the folder onto the dropzone instead — it uses a different API with higher limits.', 'warn', true);
     }
     return files;
 }
 if (browserFolderDropzone)
     browserFolderDropzone.addEventListener('click', e => {
-        if (!e.isTrusted) return; // ignore programmatic clicks (e.g. folderInput.click())
-        if (e.target.closest('#terminal-console')) return;
+        if (!e.isTrusted)
+            return; // ignore programmatic clicks (e.g. folderInput.click())
+        if (e.target.closest('#terminal-console'))
+            return;
         triggerDirectoryPicker();
     });
 if (dropzonePrompt)
@@ -3476,12 +3521,12 @@ if (browserFolderDropzone)
     browserFolderDropzone.addEventListener('dragenter', e => {
         var _a, _b;
         e.preventDefault();
-        if (!hasValidToken()) return;
+        if (!hasValidToken())
+            return;
         _browserDragDepth++;
         if (_browserDragDepth === 1) {
             browserFolderDropzone.classList.add('dragover');
-            const fileCount =
-                ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) ||
+            const fileCount = ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) ||
                 ((_b = e.dataTransfer.files) === null || _b === void 0 ? void 0 : _b.length) ||
                 0;
             const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
@@ -3509,7 +3554,7 @@ if (browserFolderDropzone)
         }
     });
 if (browserFolderDropzone)
-    browserFolderDropzone.addEventListener('drop', async e => {
+    browserFolderDropzone.addEventListener('drop', async (e) => {
         e.preventDefault();
         _browserDragDepth = 0;
         browserFolderDropzone.classList.remove('dragover');
@@ -3526,14 +3571,16 @@ if (browserFolderDropzone)
         const items = e.dataTransfer.items;
         if (items && items.length > 0) {
             const localScanFileName = document.getElementById('localScanFileName');
-            if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+            if (localScanFileName)
+                localScanFileName.textContent = 'Discovering files...';
             const files = [];
             const state = { traverseErrors: 0, traverseAbort: false, lastUpdate: Date.now() };
             // Allow Escape to cancel during discovery
             const onKeyDown = ev => {
                 if (ev.key === 'Escape') {
                     state.traverseAbort = true;
-                    if (localScanFileName) localScanFileName.textContent = 'Discovery cancelled by user.';
+                    if (localScanFileName)
+                        localScanFileName.textContent = 'Discovery cancelled by user.';
                     appendTerminalLine('Discovery cancelled by user.', 'warn');
                     document.removeEventListener('keydown', onKeyDown);
                 }
@@ -3541,10 +3588,12 @@ if (browserFolderDropzone)
             document.addEventListener('keydown', onKeyDown);
             for (let i = 0; i < items.length && !state.traverseAbort; i++) {
                 const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
-                if (entry) await traverseFileSystemEntry(entry, '', files, state);
+                if (entry)
+                    await traverseFileSystemEntry(entry, '', files, state);
             }
             document.removeEventListener('keydown', onKeyDown);
-            if (state.traverseAbort) return;
+            if (state.traverseAbort)
+                return;
             // Fallback: some browsers (Firefox, Safari) don't expose webkitGetAsEntry for dropped folders
             if (files.length === 0 && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 const dtFiles = Array.from(e.dataTransfer.files);
@@ -3552,7 +3601,8 @@ if (browserFolderDropzone)
                 if (hasRelativePath) {
                     // Chrome/Edge flattened drop — files already have webkitRelativePath
                     safeBatchPush(files, dtFiles);
-                } else {
+                }
+                else {
                     // Flat file list without paths — create minimal File wrappers
                     dtFiles.forEach(f => {
                         if (!f.webkitRelativePath) {
@@ -3563,43 +3613,31 @@ if (browserFolderDropzone)
                 }
             }
             if (files.length >= MAX_DISCOVERED_FILES) {
-                appendTerminalLine(
-                    `<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`,
-                    'warn',
-                    true
-                );
+                appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`, 'warn', true);
             }
             if (state.traverseErrors > 0) {
-                appendTerminalLine(
-                    `Warning: ${state.traverseErrors} files could ! be read during directory traversal.`,
-                    'warn'
-                );
+                appendTerminalLine(`Warning: ${state.traverseErrors} files could ! be read during directory traversal.`, 'warn');
             }
             if (files.length >= MAX_DISCOVERED_FILES) {
-                appendTerminalLine(
-                    `<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ${files.length.toLocaleString()} files discovered. Scanning very large repositories in-browser may be slow — consider using the CLI for best performance.`,
-                    'warn',
-                    true
-                );
+                appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ${files.length.toLocaleString()} files discovered. Scanning very large repositories in-browser may be slow — consider using the CLI for best performance.`, 'warn', true);
             }
             if (localScanFileName) {
                 localScanFileName.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">${files.length.toLocaleString()}</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>`;
             }
-            appendTerminalLine(
-                `<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`,
-                undefined,
-                true
-            );
+            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`, undefined, true);
             const dropCheck = applyFolderSizeAnalysis(files, 'Drop');
-            if (!dropCheck.proceed) return;
+            if (!dropCheck.proceed)
+                return;
             // Defensive stale-data purge before new scan
             window._scanPreviewData = null;
             window._scanPreviewModules = null;
-            if (typeof selectedModules !== 'undefined' && selectedModules.clear) selectedModules.clear();
+            if (typeof selectedModules !== 'undefined' && selectedModules.clear)
+                selectedModules.clear();
             if (scanPreview) {
                 scanPreview.innerHTML = '';
             }
-            if (typeof window.processLocalCLIScan === 'function') await window.processLocalCLIScan(files);
+            if (typeof window.processLocalCLIScan === 'function')
+                await window.processLocalCLIScan(files);
         }
     });
 // === Keyboard Shortcuts ===
@@ -3607,7 +3645,8 @@ document.addEventListener('keydown', e => {
     // Escape -> clear status messages
     if (e.key === 'Escape') {
         const statusEl = document.getElementById('status');
-        if (statusEl) statusEl.style.display = 'none';
+        if (statusEl)
+            statusEl.style.display = 'none';
     }
 });
 // SHA-256 helper using Web Crypto API
@@ -3652,7 +3691,8 @@ function validateReportQuality(report) {
             ? 'Counts align across all fields'
             : 'Mismatch: inventory vs analyzed counts or issue totals inconsistent'
     });
-    if (accPass) passCount++;
+    if (accPass)
+        passCount++;
     // 2. Completeness — required modules present
     const requiredModules = ['gateReport', 'gate'];
     const missingMods = requiredModules.filter(m => !report[m] || typeof report[m] !== 'object');
@@ -3662,17 +3702,16 @@ function validateReportQuality(report) {
         pass: compPass,
         note: compPass ? 'All core modules present' : `Missing modules: ${missingMods.join(', ')}`
     });
-    if (compPass) passCount++;
+    if (compPass)
+        passCount++;
     // 3. Consistency — cross-field arithmetic holds
-    const sevSum =
-        (((_b = report.severityCounts) === null || _b === void 0 ? void 0 : _b.critical) || 0) +
+    const sevSum = (((_b = report.severityCounts) === null || _b === void 0 ? void 0 : _b.critical) || 0) +
         (((_c = report.severityCounts) === null || _c === void 0 ? void 0 : _c.high) || 0) +
         (((_d = report.severityCounts) === null || _d === void 0 ? void 0 : _d.medium) || 0) +
         (((_e = report.severityCounts) === null || _e === void 0 ? void 0 : _e.low) || 0);
-    const summaryFindings =
-        (_g = (_f = report.summary) === null || _f === void 0 ? void 0 : _f.totalFindings) !== null && _g !== void 0
-            ? _g
-            : -1;
+    const summaryFindings = (_g = (_f = report.summary) === null || _f === void 0 ? void 0 : _f.totalFindings) !== null && _g !== void 0
+        ? _g
+        : -1;
     const consChecks = [
         sevSum === report.issueCount,
         summaryFindings === report.issueCount || summaryFindings === -1,
@@ -3691,7 +3730,8 @@ function validateReportQuality(report) {
             ? 'Cross-field arithmetic verified'
             : `severitySum(${sevSum})≠issueCount(${report.issueCount}) || gate mismatch`
     });
-    if (consPass) passCount++;
+    if (consPass)
+        passCount++;
     // 4. Timeliness — timestamp valid && within 5 min window
     const scanDate = new Date(report.generatedAt);
     const nowMs = Date.now();
@@ -3703,7 +3743,8 @@ function validateReportQuality(report) {
         pass: timePass,
         note: timePass ? `Timestamp valid (${ageMin.toFixed(1)}m ago)` : 'Timestamp missing, future-dated, || stale'
     });
-    if (timePass) passCount++;
+    if (timePass)
+        passCount++;
     // 5. Validity — schema types && ranges
     const qs = report.qualityScore;
     const valChecks = [
@@ -3721,7 +3762,8 @@ function validateReportQuality(report) {
             ? 'Schema types && ranges correct'
             : 'qualityScore, totalFiles, || arrays have invalid types/ranges'
     });
-    if (valPass) passCount++;
+    if (valPass)
+        passCount++;
     // 6. Integrity — report is serializable (proxy for tamper-check)
     let intPass = false;
     let intNote = '';
@@ -3729,11 +3771,13 @@ function validateReportQuality(report) {
         const copy = JSON.parse(JSON.stringify(report));
         intPass = copy && typeof copy === 'object';
         intNote = intPass ? 'Deep-clone serialization successful' : 'Report ! serializable';
-    } catch (e) {
+    }
+    catch (e) {
         intNote = 'Serialization failed — circular reference || non-JSON data';
     }
     dims.push({ name: 'Integrity', pass: intPass, note: intNote });
-    if (intPass) passCount++;
+    if (intPass)
+        passCount++;
     const score = Math.round((passCount / 6) * 100);
     const overall = passCount === 6 ? 'PASS' : passCount >= 4 ? 'REVIEW' : 'FAIL';
     return { dims, score, overall, passCount };
@@ -3742,22 +3786,13 @@ function renderQualityScorecard(report) {
     const { dims, score, overall, passCount } = validateReportQuality(report);
     const overallColor = overall === 'PASS' ? '#34D399' : overall === 'REVIEW' ? '#F59E0B' : '#EF4444';
     appendTerminalLine('');
-    appendTerminalLine(
-        `Data Quality Scorecard — ${overall} (${score}/100)`,
-        overall === 'PASS' ? 'success' : overall === 'REVIEW' ? 'warn' : 'error'
-    );
+    appendTerminalLine(`Data Quality Scorecard — ${overall} (${score}/100)`, overall === 'PASS' ? 'success' : overall === 'REVIEW' ? 'warn' : 'error');
     for (const d of dims) {
         const icon = d.pass ? '✓' : '✗';
         const color = d.pass ? '#34D399' : '#EF4444';
-        appendTerminalLine(
-            `  ${icon} <span style="color:${color};">${escapeHtml(d.name)}</span> — ${escapeHtml(d.note)}`,
-            undefined,
-            true
-        );
+        appendTerminalLine(`  ${icon} <span style="color:${color};">${escapeHtml(d.name)}</span> — ${escapeHtml(d.note)}`, undefined, true);
     }
-    appendTerminalLine(
-        `  ${passCount}/6 dimensions passed · Report is ${overall === 'PASS' ? 'ready for certificate generation' : 'flagged for review'}.`
-    );
+    appendTerminalLine(`  ${passCount}/6 dimensions passed · Report is ${overall === 'PASS' ? 'ready for certificate generation' : 'flagged for review'}.`);
     return { dims, score, overall };
 }
 function handleJsonFile(file) {
@@ -3766,16 +3801,19 @@ function handleJsonFile(file) {
         showStatus('Please upload a .json file', 'error');
         return;
     }
-    if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = file.name;
-    if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
+    if (typeof cliFileName !== 'undefined' && cliFileName)
+        cliFileName.textContent = file.name;
+    if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone)
+        cliJsonDropzone.classList.add('has-file');
     const reader = new FileReader();
-    reader.onload = async e => {
+    reader.onload = async (e) => {
         try {
             reportData = JSON.parse(e.target.result);
             // Compute hash of raw JSON content
             const hash = await computeSha256(e.target.result);
             showHashRibbon('cliHashRibbon', 'cliHashValue', hash);
-            if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
+            if (typeof window.renderPreview === 'function')
+                window.renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast(`Loaded "${file.name}" — ${(e.target.result.length / 1024).toFixed(1)} KB`, 'success');
@@ -3796,11 +3834,13 @@ function handleJsonFile(file) {
             }
             // Auto-scroll to certificate section
             document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Invalid JSON file', 'error');
             showStatus('Invalid JSON file', 'error');
             reportData = null;
-            if (scanPreview) scanPreview.style.display = 'none';
+            if (scanPreview)
+                scanPreview.style.display = 'none';
             updateSubmit();
         }
     };
@@ -3811,7 +3851,7 @@ if (cliFolderInput) {
         console.log('[cliFolderInput] cancel event — releasing isPickerActive');
         isPickerActive = false;
     });
-    cliFolderInput.addEventListener('change', async e => {
+    cliFolderInput.addEventListener('change', async (e) => {
         isPickerActive = false;
         if (!hasValidToken()) {
             showToast('Paste a license token to unlock scanning.', 'warning');
@@ -3834,18 +3874,12 @@ if (cliFolderInput) {
             });
             const isFirefox = /Firefox\//i.test(navigator.userAgent);
             if (isFirefox && !hasSubdirFiles && pickedFiles.length > 0) {
-                console.log(
-                    '[cliFolderInput] Firefox non-recursive folder picker: ' +
-                        pickedFiles.length +
-                        ' top-level files only'
-                );
-                showToast(
-                    'Firefox folder picker is non-recursive — only ' +
-                        pickedFiles.length +
-                        ' top-level file(s) found. Drag & drop your project folder onto the dropzone below for a full recursive scan.',
-                    'warning',
-                    10000
-                );
+                console.log('[cliFolderInput] Firefox non-recursive folder picker: ' +
+                    pickedFiles.length +
+                    ' top-level files only');
+                showToast('Firefox folder picker is non-recursive — only ' +
+                    pickedFiles.length +
+                    ' top-level file(s) found. Drag & drop your project folder onto the dropzone below for a full recursive scan.', 'warning', 10000);
                 if (browserFolderDropzone) {
                     browserFolderDropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     browserFolderDropzone.classList.add('pulse-highlight');
@@ -3875,11 +3909,7 @@ if (cliFolderInput) {
                 e.target.value = '';
                 return;
             }
-            showToast(
-                'Directory picker returned no files. Try dragging and dropping the folder onto the dropzone below.',
-                'warning',
-                TOAST_DURATION_SHORT
-            );
+            showToast('Directory picker returned no files. Try dragging and dropping the folder onto the dropzone below.', 'warning', TOAST_DURATION_SHORT);
             e.target.value = '';
             return;
         }
@@ -3891,9 +3921,11 @@ if (cliFolderInput) {
         let traverseAbort = false;
         let lastUpdate = Date.now();
         const state = { traverseErrors, traverseAbort, lastUpdate };
-        if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+        if (localScanFileName)
+            localScanFileName.textContent = 'Discovering files...';
         for (const entry of entries) {
-            if (state.traverseAbort) break;
+            if (state.traverseAbort)
+                break;
             await traverseFileSystemEntry(entry, '', files, state);
         }
         console.log('[cliFolderInput] webkitEntries traversal done: ' + files.length + ' files');
@@ -3912,34 +3944,33 @@ if (cliFolderInput) {
 }
 function showAccumulationPrompt() {
     const total = accumulatedPickerFiles.length;
-    if (terminalConsole) terminalConsole.style.display = 'block';
+    if (terminalConsole)
+        terminalConsole.style.display = 'block';
     var badgeColor = '#60A5FA';
-    if (total > FILE_COUNT_VERY_HIGH) badgeColor = '#EF4444';
-    else if (total > FILE_COUNT_HIGH) badgeColor = '#EF4444';
-    else if (total > 10000) badgeColor = '#F59E0B';
-    else if (total > 5000) badgeColor = '#F59E0B';
-    appendTerminalLine(
-        '<span style="color:#60A5FA;font-weight:700;">&#128451; Accumulated:</span> <strong style="color:' +
-            badgeColor +
-            ';">' +
-            total.toLocaleString() +
-            '</strong> files from folder pick.',
-        undefined,
-        true
-    );
-    appendTerminalLine(
-        '<span style="color:#94A3B8;">&#10148;</span> ' +
-            '<a href="#" onclick="window._addAnotherFolder();return false;" style="color:#60A5FA;text-decoration:underline;font-weight:600;">Add another folder</a>' +
-            ' <span style="color:#64748B;">or</span> ' +
-            '<a href="#" onclick="window._startAccumulatedScan();return false;" style="color:#34D399;text-decoration:underline;font-weight:600;">Start scan</a>'
-    );
+    if (total > FILE_COUNT_VERY_HIGH)
+        badgeColor = '#EF4444';
+    else if (total > FILE_COUNT_HIGH)
+        badgeColor = '#EF4444';
+    else if (total > 10000)
+        badgeColor = '#F59E0B';
+    else if (total > 5000)
+        badgeColor = '#F59E0B';
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451; Accumulated:</span> <strong style="color:' +
+        badgeColor +
+        ';">' +
+        total.toLocaleString() +
+        '</strong> files from folder pick.', undefined, true);
+    appendTerminalLine('<span style="color:#94A3B8;">&#10148;</span> ' +
+        '<a href="#" onclick="window._addAnotherFolder();return false;" style="color:#60A5FA;text-decoration:underline;font-weight:600;">Add another folder</a>' +
+        ' <span style="color:#64748B;">or</span> ' +
+        '<a href="#" onclick="window._startAccumulatedScan();return false;" style="color:#34D399;text-decoration:underline;font-weight:600;">Start scan</a>');
     if (localScanFileName) {
         localScanFileName.innerHTML =
             '<span style="font-size:1.1rem;font-weight:700;color:' +
-            badgeColor +
-            ';">' +
-            total.toLocaleString() +
-            '</span> <span style="font-size:0.75rem;color:#94A3B8;">files accumulated</span>';
+                badgeColor +
+                ';">' +
+                total.toLocaleString() +
+                '</span> <span style="font-size:0.75rem;color:#94A3B8;">files accumulated</span>';
     }
 }
 window._addAnotherFolder = function () {
@@ -3953,13 +3984,9 @@ async function uploadFilesToServer(files, serverUrl) {
         return false;
     }
     if (files.length > 500000) {
-        appendTerminalLine(
-            '<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' +
-                files.length.toLocaleString() +
-                ' files exceed server upload limit (500k). Falling back to browser scan.',
-            'warn',
-            true
-        );
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' +
+            files.length.toLocaleString() +
+            ' files exceed server upload limit (500k). Falling back to browser scan.', 'warn', true);
         return false;
     }
     const formData = new FormData();
@@ -3971,13 +3998,9 @@ async function uploadFilesToServer(files, serverUrl) {
     formData.append('filePaths', JSON.stringify(filePaths));
     formData.append('licenseToken', token);
     formData.append('analysisType', 'simplebeacon');
-    appendTerminalLine(
-        '<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Uploading ' +
-            files.length.toLocaleString() +
-            ' files to server for full CLI scan...',
-        undefined,
-        true
-    );
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Uploading ' +
+        files.length.toLocaleString() +
+        ' files to server for full CLI scan...', undefined, true);
     try {
         const res = await fetch(serverUrl + '/api/analyze/upload-directory', {
             method: 'POST',
@@ -3996,13 +4019,12 @@ async function uploadFilesToServer(files, serverUrl) {
             pollCount++;
             await new Promise(r => setTimeout(r, 3000));
             const progressRes = await fetch(serverUrl + '/api/analyze/progress?scanId=' + encodeURIComponent(scanId));
-            if (!progressRes.ok) continue;
+            if (!progressRes.ok)
+                continue;
             const data = await progressRes.json();
             if (data.status === 'scanning') {
                 const pct = data.percent || 0;
-                appendTerminalLine(
-                    'Server scan progress: ' + pct + '% (' + (data.current || 0) + '/' + (data.total || '?') + ' files)'
-                );
+                appendTerminalLine('Server scan progress: ' + pct + '% (' + (data.current || 0) + '/' + (data.total || '?') + ' files)');
                 continue;
             }
             if (data.status === 'error') {
@@ -4013,12 +4035,14 @@ async function uploadFilesToServer(files, serverUrl) {
                 appendTerminalLine('Server scan complete! Rendering report...', 'success');
                 if (data.reportJson) {
                     reportData = data.reportJson;
-                    if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
+                    if (typeof window.renderPreview === 'function')
+                        window.renderPreview(reportData);
                     scanPreview.style.display = 'block';
                     updateSubmit();
                     setTimeout(() => {
                         const row = document.getElementById('tokenActionRow');
-                        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (row)
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 300);
                 }
                 return true;
@@ -4026,7 +4050,8 @@ async function uploadFilesToServer(files, serverUrl) {
         }
         appendTerminalLine('Server scan polling timed out.', 'warn');
         return false;
-    } catch (err) {
+    }
+    catch (err) {
         appendTerminalLine('Server upload error: ' + (err && err.message ? err.message : String(err)), 'error');
         return false;
     }
@@ -4036,11 +4061,7 @@ async function startServerScan(projectPath) {
     const url = serverUploadUrl || '';
     const scanUrl = url + '/api/simplebeacon/scan';
     const payload = { projectPath: projectPath || '', fullDirectoryScan: true, format: 'json' };
-    appendTerminalLine(
-        '<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting server-side scan...',
-        'info',
-        true
-    );
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting server-side scan...', 'info', true);
     try {
         const res = await fetch(scanUrl, {
             method: 'POST',
@@ -4054,23 +4075,21 @@ async function startServerScan(projectPath) {
         }
         const data = await res.json();
         const report = data.report || data;
-        appendTerminalLine(
-            '<span style="color:#34D399;font-weight:700;">&#10004;</span> Server scan complete — ' +
-                (report.filesAnalyzed || report.totalFiles || 0).toLocaleString() +
-                ' files analyzed.',
-            'success',
-            true
-        );
+        appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#10004;</span> Server scan complete — ' +
+            (report.filesAnalyzed || report.totalFiles || 0).toLocaleString() +
+            ' files analyzed.', 'success', true);
         reportData = report;
         window._scanPreviewData = null;
         window._scanPreviewModules = null;
-        if (typeof selectedModules !== 'undefined' && selectedModules.clear) selectedModules.clear();
+        if (typeof selectedModules !== 'undefined' && selectedModules.clear)
+            selectedModules.clear();
         if (scanPreview) {
             scanPreview.innerHTML = '';
         }
         renderFullReport(report);
         return true;
-    } catch (err) {
+    }
+    catch (err) {
         appendTerminalLine('Server scan error: ' + (err && err.message ? err.message : String(err)), 'error');
         console.error('[startServerScan] error:', err);
         return false;
@@ -4091,22 +4110,14 @@ window._startAccumulatedScan = async function () {
         appendTerminalLine('Scan cancelled — folder exceeds safe limits.', 'warn');
         return;
     }
-    appendTerminalLine(
-        '<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' +
-            files.length.toLocaleString() +
-            '</strong> files...',
-        undefined,
-        true
-    );
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' +
+        files.length.toLocaleString() +
+        '</strong> files...', undefined, true);
     // Low file count from browser picker — fall back to server-side scan for full coverage
     if (files.length < 1000 && serverUploadUrl) {
-        appendTerminalLine(
-            '<span style="color:#F59E0B;font-weight:700;">&#9888;</span> Browser picker returned only ' +
-                files.length.toLocaleString() +
-                ' files. Falling back to server-side scan for full coverage...',
-            'warn',
-            true
-        );
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888;</span> Browser picker returned only ' +
+            files.length.toLocaleString() +
+            ' files. Falling back to server-side scan for full coverage...', 'warn', true);
         const ok = await startServerScan();
         if (ok) {
             console.log('[_startAccumulatedScan] server scan fallback completed');
@@ -4131,7 +4142,8 @@ window._startAccumulatedScan = async function () {
     // Defensive stale-data purge before new scan
     window._scanPreviewData = null;
     window._scanPreviewModules = null;
-    if (typeof selectedModules !== 'undefined' && selectedModules.clear) selectedModules.clear();
+    if (typeof selectedModules !== 'undefined' && selectedModules.clear)
+        selectedModules.clear();
     if (scanPreview) {
         scanPreview.innerHTML = '';
     }
@@ -4139,7 +4151,8 @@ window._startAccumulatedScan = async function () {
     try {
         await window.processLocalCLIScan(files);
         console.log('[_startAccumulatedScan] processLocalCLIScan completed');
-    } catch (err) {
+    }
+    catch (err) {
         appendTerminalLine('Scan error: ' + (err && err.message ? err.message : String(err)), 'error');
         console.error('[_startAccumulatedScan] processLocalCLIScan error:', err);
     }
@@ -4153,13 +4166,15 @@ if (cliFilesInput)
             e.target.value = '';
             return;
         }
-        if (e.target.files.length > 0) window.processLocalCLIScan(Array.from(e.target.files));
+        if (e.target.files.length > 0)
+            window.processLocalCLIScan(Array.from(e.target.files));
     });
 // === CLI JSON Dropzone ===
 let _cliDragDepth = 0;
 if (cliJsonDropzone) {
     cliJsonDropzone.addEventListener('click', () => {
-        if (fileInput) fileInput.click();
+        if (fileInput)
+            fileInput.click();
     });
     cliJsonDropzone.addEventListener('dragenter', e => {
         var _a, _b;
@@ -4167,8 +4182,7 @@ if (cliJsonDropzone) {
         _cliDragDepth++;
         if (_cliDragDepth === 1) {
             cliJsonDropzone.classList.add('dragover');
-            const fileCount =
-                ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) ||
+            const fileCount = ((_a = e.dataTransfer.items) === null || _a === void 0 ? void 0 : _a.length) ||
                 ((_b = e.dataTransfer.files) === null || _b === void 0 ? void 0 : _b.length) ||
                 0;
             const prompt = cliJsonDropzone.querySelector('p');
@@ -4202,12 +4216,14 @@ if (cliJsonDropzone) {
             prompt.innerHTML = cliJsonDropzone.dataset.originalText;
         }
         const file = e.dataTransfer.files[0];
-        if (file) handleJsonFile(file);
+        if (file)
+            handleJsonFile(file);
     });
 }
 if (fileInput) {
     fileInput.addEventListener('change', e => {
-        if (e.target.files[0]) handleJsonFile(e.target.files[0]);
+        if (e.target.files[0])
+            handleJsonFile(e.target.files[0]);
     });
 }
 // === JSON Paste Handler ===
@@ -4215,7 +4231,8 @@ if (jsonPasteInput) {
     jsonPasteInput.addEventListener('keydown', e => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            if (jsonPasteBtn) jsonPasteBtn.click();
+            if (jsonPasteBtn)
+                jsonPasteBtn.click();
         }
     });
 }
@@ -4229,17 +4246,21 @@ if (jsonPasteBtn && jsonPasteInput) {
         try {
             reportData = JSON.parse(text);
             const hash = await computeSha256(text);
-            if (integrityHashEl) integrityHashEl.textContent = hash;
-            if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
+            if (integrityHashEl)
+                integrityHashEl.textContent = hash;
+            if (typeof window.renderPreview === 'function')
+                window.renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
             showToast('JSON loaded! Ready to generate certificate.', 'success');
             showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Invalid JSON: ' + err.message, 'error');
             showStatus('Invalid JSON: ' + err.message, 'error');
             reportData = null;
-            if (scanPreview) scanPreview.style.display = 'none';
+            if (scanPreview)
+                scanPreview.style.display = 'none';
             updateSubmit();
         }
     });
@@ -4269,10 +4290,14 @@ function appendTerminalLine(text, type, isHtml) {
     const line = document.createElement('div');
     const ts = new Date().toLocaleTimeString().split(' ')[0];
     let indicator = `<span style="color:#64748B;">[${ts}]</span> `;
-    if (type === 'success') indicator += '<span style="color:#10B981;">&#10003; SUCCESS:</span> ';
-    else if (type === 'warn') indicator += '<span style="color:#F59E0B;">&#9888; WARN:</span> ';
-    else if (type === 'error') indicator += '<span style="color:#EF4444;">&#10007; CRITICAL:</span> ';
-    else if (type === 'input') indicator += '<span style="color:#60A5FA;">&#10095;</span> ';
+    if (type === 'success')
+        indicator += '<span style="color:#10B981;">&#10003; SUCCESS:</span> ';
+    else if (type === 'warn')
+        indicator += '<span style="color:#F59E0B;">&#9888; WARN:</span> ';
+    else if (type === 'error')
+        indicator += '<span style="color:#EF4444;">&#10007; CRITICAL:</span> ';
+    else if (type === 'input')
+        indicator += '<span style="color:#60A5FA;">&#10095;</span> ';
     // Escape text by default to prevent HTML injection; isHtml=true passes through trusted template HTML
     const safeText = isHtml ? text : escapeHtml(text);
     line.insertAdjacentHTML('beforeend', indicator + safeText);
@@ -4288,7 +4313,8 @@ function appendTerminalLine(text, type, isHtml) {
     const elapsed = performance.now() - t0;
     __terminalPerf.calls++;
     __terminalPerf.totalMs += elapsed;
-    if (elapsed > __terminalPerf.maxMs) __terminalPerf.maxMs = elapsed;
+    if (elapsed > __terminalPerf.maxMs)
+        __terminalPerf.maxMs = elapsed;
     if (elapsed > 16) {
         __terminalPerf.slowCalls++;
         if (console && console.warn)
@@ -4302,22 +4328,24 @@ function parseIgnoreFile(ignoreText) {
         .map(line => line.trim())
         .filter(line => line && !line.startsWith('#'))
         .map(line => {
-            let pattern = line;
-            if (pattern.startsWith('/')) pattern = pattern.slice(1);
-            // Convert wildcards to placeholders, escape regex specials, then restore
-            pattern = pattern.replace(/\*\*/g, '__GLOBSTAR__').replace(/\*/g, '__STAR__').replace(/\?/g, '__QMARK__');
-            pattern = pattern.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
-            pattern = pattern
-                .replace(/__GLOBSTAR__/g, '.*')
-                .replace(/__STAR__/g, '[^/]*')
-                .replace(/__QMARK__/g, '[^/]');
-            return new RegExp(pattern, 'i');
-        });
+        let pattern = line;
+        if (pattern.startsWith('/'))
+            pattern = pattern.slice(1);
+        // Convert wildcards to placeholders, escape regex specials, then restore
+        pattern = pattern.replace(/\*\*/g, '__GLOBSTAR__').replace(/\*/g, '__STAR__').replace(/\?/g, '__QMARK__');
+        pattern = pattern.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
+        pattern = pattern
+            .replace(/__GLOBSTAR__/g, '.*')
+            .replace(/__STAR__/g, '[^/]*')
+            .replace(/__QMARK__/g, '[^/]');
+        return new RegExp(pattern, 'i');
+    });
 }
 // 3. Main scan engine
 // NOTE: processLocalCLIScan extracted to scanner-engine.js
 function escapeHtml(str) {
-    if (!str) return '';
+    if (!str)
+        return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -4329,16 +4357,22 @@ function escapeHtml(str) {
 // NOTE: generateSovereignCertificate && doGenerateCertificate extracted to certificate-module.js
 if (submitBtn)
     submitBtn.addEventListener('click', () => {
-        if (typeof openCertCredentialsModal === 'function') openCertCredentialsModal();
-        else if (typeof doGenerateCertificate === 'function') doGenerateCertificate(submitBtn);
-        else showToast('Certificate generator not loaded yet. Please refresh the page.', 'error');
+        if (typeof openCertCredentialsModal === 'function')
+            openCertCredentialsModal();
+        else if (typeof doGenerateCertificate === 'function')
+            doGenerateCertificate(submitBtn);
+        else
+            showToast('Certificate generator not loaded yet. Please refresh the page.', 'error');
     });
 const certSubmitBtn = document.getElementById('certSubmitBtn');
 if (certSubmitBtn) {
     certSubmitBtn.addEventListener('click', () => {
-        if (typeof openCertCredentialsModal === 'function') openCertCredentialsModal();
-        else if (typeof doGenerateCertificate === 'function') doGenerateCertificate(certSubmitBtn);
-        else showToast('Certificate generator not loaded yet. Please refresh the page.', 'error');
+        if (typeof openCertCredentialsModal === 'function')
+            openCertCredentialsModal();
+        else if (typeof doGenerateCertificate === 'function')
+            doGenerateCertificate(certSubmitBtn);
+        else
+            showToast('Certificate generator not loaded yet. Please refresh the page.', 'error');
     });
 }
 // Ensure UI state is synchronized on load (restored scans, URL tokens, etc.)
@@ -4348,21 +4382,20 @@ const clearSessionBtn = document.getElementById('clearSessionBtn');
 if (clearSessionBtn) {
     clearSessionBtn.addEventListener('click', () => {
         const hasData = reportData !== null || licenseInput.value.trim().length > 0;
-        if (
-            hasData &&
-            !confirm(
-                'Clear session?\n\nThis will remove your scan data && license token from this page && browser storage.'
-            )
-        ) {
+        if (hasData &&
+            !confirm('Clear session?\n\nThis will remove your scan data && license token from this page && browser storage.')) {
             return;
         }
         reportData = null;
         licenseInput.value = '';
-        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
-        if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+        if (typeof cliFileName !== 'undefined' && cliFileName)
+            cliFileName.textContent = '';
+        if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone)
+            cliJsonDropzone.classList.remove('has-file');
         scanPreview.style.display = 'none';
         const metaDisplay = document.getElementById('fileMetaDisplay');
-        if (metaDisplay) metaDisplay.style.display = 'none';
+        if (metaDisplay)
+            metaDisplay.style.display = 'none';
         try {
             localStorage.removeItem(LS_KEY_TOKEN);
             localStorage.removeItem(LS_KEY_SCAN);
@@ -4371,7 +4404,8 @@ if (clearSessionBtn) {
             localStorage.removeItem('access_token');
             localStorage.removeItem('token');
             localStorage.removeItem('authToken');
-        } catch (e) {
+        }
+        catch (e) {
             /* ignore */
         }
         applyProductFromToken('');
@@ -4384,7 +4418,8 @@ if (clearSessionBtn) {
 const copyJsonBtn = document.getElementById('copyJsonBtn');
 if (copyJsonBtn) {
     copyJsonBtn.addEventListener('click', () => {
-        if (!reportData) return;
+        if (!reportData)
+            return;
         navigator.clipboard.writeText(JSON.stringify(reportData, null, 2)).then(() => {
             copyJsonBtn.textContent = 'Copied!';
             setTimeout(() => (copyJsonBtn.innerHTML = '&#128203; Copy JSON'), 1500);
@@ -4410,17 +4445,15 @@ detailOverlay.className = 'detail-overlay';
 detailOverlay.innerHTML = `<div class="detail-panel"><button type="button" class="close-btn">&times;</button><div id="detail-panel-content"></div></div>`;
 detailOverlay.querySelector('.close-btn').addEventListener('click', () => detailOverlay.classList.remove('active'));
 detailOverlay.addEventListener('click', e => {
-    if (e.target === detailOverlay) detailOverlay.classList.remove('active');
+    if (e.target === detailOverlay)
+        detailOverlay.classList.remove('active');
 });
 document.body.appendChild(detailOverlay);
 function showDetailPanel(title, rows) {
     const content = document.getElementById('detail-panel-content');
     const safeTitle = escapeHtml(title);
     const rowHtml = rows
-        .map(
-            r =>
-                `<div class="detail-row"><div class="detail-label">${escapeHtml(r.label)}</div><div class="detail-value">${escapeHtml(r.value)}</div></div>`
-        )
+        .map(r => `<div class="detail-row"><div class="detail-label">${escapeHtml(r.label)}</div><div class="detail-value">${escapeHtml(r.value)}</div></div>`)
         .join('');
     content.innerHTML = `<h3>${safeTitle}</h3><div class="detail-meta">Click anywhere outside to close</div>${rowHtml}`;
     detailOverlay.classList.add('active');
@@ -4430,8 +4463,7 @@ document.addEventListener('click', e => {
     var _a, _b;
     const row = e.target.closest('.matrix-row');
     if (row && row.dataset.detailTitle) {
-        const tier =
-            ((_a = window._tokenPayload) === null || _a === void 0 ? void 0 : _a.tier) ||
+        const tier = ((_a = window._tokenPayload) === null || _a === void 0 ? void 0 : _a.tier) ||
             ((_b = window._tokenPayload) === null || _b === void 0 ? void 0 : _b.product) ||
             'locked';
         const blockedInFree = [
@@ -4467,14 +4499,21 @@ document.addEventListener('click', e => {
                 { label: 'Severity', value: (issue.severity || 'low').toUpperCase() },
                 { label: 'Description', value: issue.description || '' }
             ];
-            if (issue.confidence) rows.push({ label: 'Confidence', value: Math.round(issue.confidence * 100) + '%' });
-            if (issue.reasoning) rows.push({ label: 'How we found this', value: issue.reasoning });
-            if (issue.humanReadable) rows.push({ label: 'In plain English', value: issue.humanReadable });
-            if (issue.impact) rows.push({ label: 'Impact', value: issue.impact });
-            if (issue.fix) rows.push({ label: 'Remediation', value: issue.fix });
-            if (issue.count) rows.push({ label: 'Occurrences', value: String(issue.count) });
+            if (issue.confidence)
+                rows.push({ label: 'Confidence', value: Math.round(issue.confidence * 100) + '%' });
+            if (issue.reasoning)
+                rows.push({ label: 'How we found this', value: issue.reasoning });
+            if (issue.humanReadable)
+                rows.push({ label: 'In plain English', value: issue.humanReadable });
+            if (issue.impact)
+                rows.push({ label: 'Impact', value: issue.impact });
+            if (issue.fix)
+                rows.push({ label: 'Remediation', value: issue.fix });
+            if (issue.count)
+                rows.push({ label: 'Occurrences', value: String(issue.count) });
             showDetailPanel(issue.type || 'Finding Detail', rows);
-        } catch (err) {
+        }
+        catch (err) {
             console.warn('Failed to parse issue detail:', err);
         }
     }
@@ -4488,7 +4527,8 @@ let bridgeAvailable = false;
 let bridgeEventSource = null;
 let serverUploadUrl = null;
 async function probeLocalBridge() {
-    if (!IS_LOCAL_HOST) return;
+    if (!IS_LOCAL_HOST)
+        return;
     try {
         const res = await fetch(`${BRIDGE_URL}/health`, {
             method: 'GET',
@@ -4498,14 +4538,12 @@ async function probeLocalBridge() {
         if (res.ok) {
             bridgeAvailable = true;
             const panel = document.getElementById('local-scanner-panel');
-            if (panel) panel.style.display = 'block';
-            appendTerminalLine(
-                '<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.',
-                'info',
-                true
-            );
+            if (panel)
+                panel.style.display = 'block';
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info', true);
         }
-    } catch (_) {
+    }
+    catch (_) {
         bridgeAvailable = false;
     }
 }
@@ -4533,21 +4571,19 @@ async function probeDataServer() {
         if (res.ok) {
             dataServerAvailable = true;
             const panel = document.getElementById('data-server-panel');
-            if (panel) panel.style.display = 'block';
+            if (panel)
+                panel.style.display = 'block';
             const statusEl = document.getElementById('dataServerStatus');
             if (statusEl) {
                 statusEl.textContent = 'Connected to VS Code: sidebar';
                 statusEl.style.color = '#34D399';
             }
-            appendTerminalLine(
-                '<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.',
-                'info',
-                true
-            );
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.', 'info', true);
             // Start SSE to get real-time updates
             startDataServerSse();
         }
-    } catch (_) {
+    }
+    catch (_) {
         dataServerAvailable = false;
         const statusEl = document.getElementById('dataServerStatus');
         if (statusEl) {
@@ -4573,7 +4609,8 @@ function startDataServerSse() {
                         statusEl.textContent = `Connected — ${st.scanStatus}`;
                     }
                 }
-            } catch (_) {}
+            }
+            catch (_) { }
         };
         dataServerSse.onerror = () => {
             if (dataServerSse) {
@@ -4581,7 +4618,8 @@ function startDataServerSse() {
                 dataServerSse = null;
             }
         };
-    } catch (_) {}
+    }
+    catch (_) { }
 }
 async function fetchSidebarData() {
     if (!dataServerAvailable) {
@@ -4595,7 +4633,8 @@ async function fetchSidebarData() {
     }
     try {
         const res = await fetch(`${DATA_SERVER_URL}/api/report`, { mode: 'cors' });
-        if (!res.ok) throw new Error('Report endpoint returned ' + res.status);
+        if (!res.ok)
+            throw new Error('Report endpoint returned ' + res.status);
         const report = await res.json();
         if (!report || Object.keys(report).length === 0) {
             showToast('No scan data available in sidebar yet. Run a scan in VS Code: first.', 'info');
@@ -4611,20 +4650,14 @@ async function fetchSidebarData() {
             scanPreview.style.display = 'block';
             updateSubmit();
         }
-        appendTerminalLine(
-            `<span style="color:#34D399;font-weight:700;">&#128229;</span> Loaded sidebar report — ${escapeHtml(report.totalFiles || report.filesAnalyzed || '?')} files, score ${escapeHtml(report.qualityScore != null ? report.qualityScore : '?')}/100`,
-            'success',
-            true
-        );
+        appendTerminalLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Loaded sidebar report — ${escapeHtml(report.totalFiles || report.filesAnalyzed || '?')} files, score ${escapeHtml(report.qualityScore != null ? report.qualityScore : '?')}/100`, 'success', true);
         showToast(`Sidebar report loaded: ${report.totalFiles || report.filesAnalyzed || '?'} files`, 'success');
-    } catch (err) {
-        appendTerminalLine(
-            `<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${escapeHtml(err.message)}`,
-            'error',
-            true
-        );
+    }
+    catch (err) {
+        appendTerminalLine(`<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${escapeHtml(err.message)}`, 'error', true);
         showToast('Failed to fetch sidebar data: ' + err.message, 'error');
-    } finally {
+    }
+    finally {
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Fetch from Sidebar';
@@ -4633,30 +4666,37 @@ async function fetchSidebarData() {
 }
 // Detect local SimpleBeacon server (e.g. ai-platform dashboard) for full scans
 async function probeLocalServer() {
-    if (!IS_LOCAL_HOST) return;
+    if (!IS_LOCAL_HOST)
+        return;
     const SERVER_PORTS = LOCAL_SERVER_PORTS;
     const currentPort = parseInt(location.port, 10);
     // Skip detection if we're already served from the server
-    if (!isNaN(currentPort) && SERVER_PORTS.includes(currentPort)) return;
+    if (!isNaN(currentPort) && SERVER_PORTS.includes(currentPort))
+        return;
     for (const port of SERVER_PORTS) {
-        if (port === currentPort) continue;
+        if (port === currentPort)
+            continue;
         try {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 1500);
             const response = await fetch(`http://127.0.0.1:${port}/health`, { signal: controller.signal });
             clearTimeout(timer);
-            if (!response.ok) continue;
+            if (!response.ok)
+                continue;
             serverUploadUrl = `http://127.0.0.1:${port}`;
             const banner = document.getElementById('serverDetectedBanner');
             const link = document.getElementById('serverDashboardLink');
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/#/analyze`;
+                if (link)
+                    link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/#/analyze`;
             }
-            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
+            if (vaultLink)
+                vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
             return;
-        } catch (_) {
+        }
+        catch (_) {
             // Server not running on this port
         }
     }
@@ -4664,7 +4704,8 @@ async function probeLocalServer() {
 function appendLocalScannerLine(html, type) {
     const t0 = performance.now();
     const term = document.getElementById('localScannerTerminal');
-    if (!term) return;
+    if (!term)
+        return;
     const line = document.createElement('div');
     line.className = 'log-line';
     // Escape html by default; type='html' passes through trusted template HTML
@@ -4676,7 +4717,8 @@ function appendLocalScannerLine(html, type) {
     const elapsed = performance.now() - t0;
     __terminalPerf.calls++;
     __terminalPerf.totalMs += elapsed;
-    if (elapsed > __terminalPerf.maxMs) __terminalPerf.maxMs = elapsed;
+    if (elapsed > __terminalPerf.maxMs)
+        __terminalPerf.maxMs = elapsed;
     if (elapsed > 16) {
         __terminalPerf.slowCalls++;
         if (console && console.warn)
@@ -4685,9 +4727,7 @@ function appendLocalScannerLine(html, type) {
 }
 let isPickerActive = false;
 async function startLocalScan() {
-    console.log(
-        '[startLocalScan] entered. accumulated=' + accumulatedPickerFiles.length + ' bridge=' + bridgeAvailable
-    );
+    console.log('[startLocalScan] entered. accumulated=' + accumulatedPickerFiles.length + ' bridge=' + bridgeAvailable);
     if (isPickerActive) {
         console.log('[startLocalScan] picker already active — ignoring duplicate click');
         return;
@@ -4707,14 +4747,12 @@ async function startLocalScan() {
     const pathInput = document.getElementById('localScannerPath');
     const rawPath = pathInput ? pathInput.value : '';
     const directoryPath = rawPath.trim();
-    console.log(
-        '[startLocalScan] pathInput=' +
-            (pathInput ? 'found' : 'null') +
-            ' rawPath=' +
-            JSON.stringify(rawPath) +
-            ' directoryPath=' +
-            JSON.stringify(directoryPath)
-    );
+    console.log('[startLocalScan] pathInput=' +
+        (pathInput ? 'found' : 'null') +
+        ' rawPath=' +
+        JSON.stringify(rawPath) +
+        ' directoryPath=' +
+        JSON.stringify(directoryPath));
     // No path typed → prefer server-side scan for full coverage, else browser picker
     if (!directoryPath) {
         if (serverUploadUrl) {
@@ -4730,26 +4768,25 @@ async function startLocalScan() {
     // Path typed + bridge available → use native bridge scan; else server scan
     if (!bridgeAvailable) {
         if (serverUploadUrl) {
-            console.log(
-                '[startLocalScan] bridge unavailable — falling back to server-side scan for path: ' + directoryPath
-            );
+            console.log('[startLocalScan] bridge unavailable — falling back to server-side scan for path: ' + directoryPath);
             await startServerScan(directoryPath);
             return;
         }
-        showToast(
-            'Local bridge not running. Enter a path only when the bridge is active, or use drag & drop.',
-            'warning'
-        );
+        showToast('Local bridge not running. Enter a path only when the bridge is active, or use drag & drop.', 'warning');
         return;
     }
     const progressDiv = document.getElementById('localScannerProgress');
     const progressBar = document.getElementById('localScannerProgressBar');
     const statusDiv = document.getElementById('localScannerStatus');
     const term = document.getElementById('localScannerTerminal');
-    if (progressDiv) progressDiv.style.display = 'block';
-    if (term) term.style.display = 'block';
-    if (statusDiv) statusDiv.textContent = 'Starting scan...';
-    if (progressBar) progressBar.style.width = '0%';
+    if (progressDiv)
+        progressDiv.style.display = 'block';
+    if (term)
+        term.style.display = 'block';
+    if (statusDiv)
+        statusDiv.textContent = 'Starting scan...';
+    if (progressBar)
+        progressBar.style.width = '0%';
     if (bridgeEventSource) {
         bridgeEventSource.close();
         bridgeEventSource = null;
@@ -4759,28 +4796,21 @@ async function startLocalScan() {
         try {
             const data = JSON.parse(e.data);
             if (e.lastEventId === 'phase') {
-                appendLocalScannerLine(
-                    `<span style="color:#60A5FA;">&#10148;</span> ${escapeHtml(data.message || data.phase)}`,
-                    'html'
-                );
-                if (statusDiv) statusDiv.textContent = data.message || data.phase;
+                appendLocalScannerLine(`<span style="color:#60A5FA;">&#10148;</span> ${escapeHtml(data.message || data.phase)}`, 'html');
+                if (statusDiv)
+                    statusDiv.textContent = data.message || data.phase;
             }
             if (e.lastEventId === 'progress') {
-                if (progressBar) progressBar.style.width = data.percent + '%';
+                if (progressBar)
+                    progressBar.style.width = data.percent + '%';
                 if (statusDiv)
                     statusDiv.textContent = `${data.percent}% — ${data.processed.toLocaleString()} / ${data.total.toLocaleString()} files (${data.findingsSoFar} findings)`;
             }
             if (e.lastEventId === 'discoveryComplete') {
-                appendLocalScannerLine(
-                    `<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Discovered ${data.totalFiles.toLocaleString()} files`,
-                    'html'
-                );
+                appendLocalScannerLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Discovered ${data.totalFiles.toLocaleString()} files`, 'html');
             }
             if (e.lastEventId === 'complete') {
-                appendLocalScannerLine(
-                    `<span style="color:#34D399;font-weight:700;">&#10004;</span> Scan complete — ${data.filesAnalyzed.toLocaleString()} files analyzed in ${(data.durationMs / 1000).toFixed(1)}s`,
-                    'html'
-                );
+                appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#10004;</span> Scan complete — ${data.filesAnalyzed.toLocaleString()} files analyzed in ${(data.durationMs / 1000).toFixed(1)}s`, 'html');
                 if (bridgeEventSource) {
                     bridgeEventSource.close();
                     bridgeEventSource = null;
@@ -4788,10 +4818,7 @@ async function startLocalScan() {
                 fetchReportAndLoad();
             }
             if (e.lastEventId === 'error') {
-                appendLocalScannerLine(
-                    `<span style="color:#EF4444;">&#10008;</span> ${escapeHtml(data.message)}`,
-                    'html'
-                );
+                appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> ${escapeHtml(data.message)}`, 'html');
             }
             if (e.lastEventId === 'cancelled') {
                 appendLocalScannerLine(`<span style="color:#F59E0B;">&#9209;</span> Scan cancelled`, 'html');
@@ -4800,7 +4827,8 @@ async function startLocalScan() {
                     bridgeEventSource = null;
                 }
             }
-        } catch (_) {}
+        }
+        catch (_) { }
     };
     console.log('[startLocalScan] posting to bridge with directoryPath=' + JSON.stringify(directoryPath));
     fetch(`${BRIDGE_URL}/scan`, {
@@ -4809,51 +4837,38 @@ async function startLocalScan() {
         body: JSON.stringify({ directoryPath })
     })
         .then(r => {
-            console.log('[startLocalScan] bridge POST status=' + r.status);
-            return r.json();
-        })
+        console.log('[startLocalScan] bridge POST status=' + r.status);
+        return r.json();
+    })
         .then(j => {
-            console.log('[startLocalScan] bridge POST response=' + JSON.stringify(j));
-            appendLocalScannerLine(
-                `<span style="color:#60A5FA;">&#9432;</span> Scan job started: ${escapeHtml(j.scanId)}`,
-                'html'
-            );
-        })
+        console.log('[startLocalScan] bridge POST response=' + JSON.stringify(j));
+        appendLocalScannerLine(`<span style="color:#60A5FA;">&#9432;</span> Scan job started: ${escapeHtml(j.scanId)}`, 'html');
+    })
         .catch(err => {
-            appendLocalScannerLine(
-                `<span style="color:#EF4444;">&#10008;</span> Failed to start scan: ${escapeHtml(err.message)}`,
-                'html'
-            );
-            if (bridgeEventSource) {
-                bridgeEventSource.close();
-                bridgeEventSource = null;
-            }
-        });
+        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to start scan: ${escapeHtml(err.message)}`, 'html');
+        if (bridgeEventSource) {
+            bridgeEventSource.close();
+            bridgeEventSource = null;
+        }
+    });
 }
 async function fetchReportAndLoad() {
     try {
         const res = await fetch(`${BRIDGE_URL}/result`, { mode: 'cors' });
-        if (!res.ok) throw new Error('Report not ready');
+        if (!res.ok)
+            throw new Error('Report not ready');
         const report = await res.json();
-        appendLocalScannerLine(
-            `<span style="color:#34D399;font-weight:700;">&#128229;</span> Report loaded — ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`,
-            'html'
-        );
+        appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Report loaded — ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`, 'html');
         reportData = report;
         if (typeof window.renderPreview === 'function') {
             window.renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
         }
-        showToast(
-            `Local scan complete: ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files`,
-            'success'
-        );
-    } catch (err) {
-        appendLocalScannerLine(
-            `<span style="color:#EF4444;">&#10008;</span> Failed to load report: ${escapeHtml(err.message)}`,
-            'html'
-        );
+        showToast(`Local scan complete: ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files`, 'success');
+    }
+    catch (err) {
+        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to load report: ${escapeHtml(err.message)}`, 'html');
     }
 }
 // Wire up local scanner UI when DOM is ready
@@ -4862,9 +4877,11 @@ function initLocalScannerUI() {
     probeLocalServer();
     probeDataServer();
     const panel = document.getElementById('local-scanner-panel');
-    if (panel) panel.style.display = 'block';
+    if (panel)
+        panel.style.display = 'block';
     const dataPanel = document.getElementById('data-server-panel');
-    if (dataPanel) dataPanel.style.display = 'block';
+    if (dataPanel)
+        dataPanel.style.display = 'block';
     // Wire up elements that previously used inline event handlers (CSP compliance)
     document.querySelectorAll('.cmd-copy[data-copy-target]').forEach(btn => {
         btn.addEventListener('click', () => copyToClipboard(btn.dataset.copyTarget));
@@ -4874,7 +4891,8 @@ function initLocalScannerUI() {
         serverDashboardLinkTrigger.addEventListener('click', e => {
             e.preventDefault();
             const link = document.getElementById('serverDashboardLink');
-            if (link) link.click();
+            if (link)
+                link.click();
         });
     }
     const selectAllBar = document.getElementById('selectAllBar');
@@ -4915,8 +4933,7 @@ function initLocalScannerUI() {
         });
         roadmapLink.addEventListener('click', e => {
             e.preventDefault();
-            const report =
-                (typeof window.currentReport !== 'undefined' ? window.currentReport : null) ||
+            const report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) ||
                 (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null) ||
                 reportData;
             if (!report) {
@@ -4929,19 +4946,23 @@ function initLocalScannerUI() {
             }
             if (typeof window.stashReportForRoadmap === 'function') {
                 window.stashReportForRoadmap(report);
-            } else {
+            }
+            else {
                 try {
                     sessionStorage.setItem('sb_audit_report', JSON.stringify(report));
-                } catch (err) {
+                }
+                catch (err) {
                     /* ignore */
                 }
             }
             const target = roadmapLink.getAttribute('href') || '/roadmap?v=16';
             if (typeof window.navigateEmbeddedRoute === 'function') {
                 window.navigateEmbeddedRoute(target);
-            } else if (typeof window.buildEmbeddedUrl === 'function') {
+            }
+            else if (typeof window.buildEmbeddedUrl === 'function') {
                 window.location.href = window.buildEmbeddedUrl(target);
-            } else {
+            }
+            else {
                 window.location.href = target;
             }
         });
@@ -4954,7 +4975,8 @@ function initLocalScannerUI() {
             startLocalScan();
         });
         console.log('[main.js] startLocalScanBtn listener attached');
-    } else {
+    }
+    else {
         console.warn('[main.js] startLocalScanBtn not found in DOM');
     }
     const fetchBtn = document.getElementById('fetchSidebarBtn');
@@ -4968,7 +4990,8 @@ function initLocalScannerUI() {
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLocalScannerUI);
-} else {
+}
+else {
     initLocalScannerUI();
 }
 // Auto-sync to VS Code: watch for report data changes and push automatically
@@ -4976,18 +4999,20 @@ if (document.readyState === 'loading') {
     var lastReportJson = null;
     function checkAndSync() {
         try {
-            var report =
-                (typeof window.currentReport !== 'undefined' ? window.currentReport : null) ||
+            var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) ||
                 (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null) ||
                 (typeof reportData !== 'undefined' ? reportData : null);
-            if (!report) return;
+            if (!report)
+                return;
             var json = JSON.stringify(report);
-            if (json === lastReportJson) return;
+            if (json === lastReportJson)
+                return;
             lastReportJson = json;
             if (typeof window.__postReportToVsCode === 'function') {
                 window.__postReportToVsCode(report);
             }
-        } catch (e) {
+        }
+        catch (e) {
             console.warn('[AutoSync] Error:', e);
         }
     }
@@ -5000,30 +5025,39 @@ if (document.readyState === 'loading') {
     try {
         const params = new URLSearchParams(window.location.search);
         const reportPath = params.get('report');
-        if (!reportPath) return;
+        if (!reportPath)
+            return;
         const url = reportPath.startsWith('http')
             ? reportPath
             : reportPath.startsWith('/')
-              ? reportPath
-              : '/' + reportPath;
+                ? reportPath
+                : '/' + reportPath;
         fetch(url)
             .then(function (res) {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.json();
-            })
+            if (!res.ok)
+                throw new Error('HTTP ' + res.status);
+            return res.json();
+        })
             .then(function (data) {
-                reportData = data;
-                if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
-                const scanPreview = document.getElementById('scanPreview');
-                if (scanPreview) scanPreview.style.display = 'block';
-                if (typeof updateSubmit === 'function') updateSubmit();
-                if (typeof showToast === 'function') showToast('Auto-loaded report from URL', 'success');
-            })
+            reportData = data;
+            if (typeof window.renderPreview === 'function')
+                window.renderPreview(reportData);
+            const scanPreview = document.getElementById('scanPreview');
+            if (scanPreview)
+                scanPreview.style.display = 'block';
+            if (typeof updateSubmit === 'function')
+                updateSubmit();
+            if (typeof showToast === 'function')
+                showToast('Auto-loaded report from URL', 'success');
+        })
             .catch(function (err) {
-                if (typeof showToast === 'function') showToast('Failed to auto-load report: ' + err.message, 'error');
-                else console.warn('[AutoLoad] Failed to load report:', err);
-            });
-    } catch (e) {
+            if (typeof showToast === 'function')
+                showToast('Failed to auto-load report: ' + err.message, 'error');
+            else
+                console.warn('[AutoLoad] Failed to load report:', err);
+        });
+    }
+    catch (e) {
         console.warn('[AutoLoad] Error:', e);
     }
 })();

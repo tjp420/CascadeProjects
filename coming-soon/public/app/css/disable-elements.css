@@ -1,27 +1,27 @@
 /* User-requested disabled dashboard elements — hard hide at stylesheet level */
 
 /* Hide Outreach nav link */
-.nav-link[data-view='outreach'],
-a.nav-link[href='#/outreach'],
-.app-nav .nav-link[data-view='outreach'],
-#app-nav .nav-link[data-view='outreach'] {
-    display: none !important;
+.nav-link[data-view="outreach"],
+a.nav-link[href="#/outreach"],
+.app-nav .nav-link[data-view="outreach"],
+#app-nav .nav-link[data-view="outreach"] {
+  display: none !important;
 }
 
 /* Hide AI Problem Analyzer Suite card */
 .analyze-issue-analyzer-card,
 .card.analyze-issue-analyzer-card {
-    display: none !important;
+  display: none !important;
 }
 
 /* Hide Scan engines reference card */
 .analyze-engines-reference,
 .card.analyze-engines-reference {
-    display: none !important;
+  display: none !important;
 }
 
 /* Hide client deliverable SKU picker table */
 .analyze-deliverable-table-wrap,
 .analyze-deliverable-picker {
-    display: none !important;
+  display: none !important;
 }

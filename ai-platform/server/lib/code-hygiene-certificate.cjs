@@ -134,7 +134,7 @@ function buildCertificateModel(options = {}) {
  */
 function renderFindingsTable(findings = []) {
   if (!findings.length) {
-    return '<p class="muted">No blocking findings at configured gate severities.</p>';
+    return '<p class="muted">No issues found — your code passed all checks.</p>';
   }
   const rows = findings
     .map((f) => {
@@ -147,7 +147,7 @@ function renderFindingsTable(findings = []) {
       return `<tr><td>${sev}</td><td>${type}</td><td><code>${pathText}</code></td><td>${desc}</td></tr>`;
     })
     .join("");
-  return `<table class="findings"><thead><tr><th>Severity</th><th>Category</th><th>Path</th><th>Summary</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="findings"><thead><tr><th>Severity</th><th>Issue type</th><th>File</th><th>What's wrong</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 /**
@@ -167,8 +167,8 @@ function renderCertificateHtml(model) {
     ? "status-review"
     : "status-pass";
   const statusLabel = model.summary.hasFailures
-    ? "ACTION REQUIRED"
-    : "PASSED SECURE HYGIENE GATE";
+    ? "ACTION REQUIRED — fix issues before release"
+    : "PASSED — code is ready for release";
   const dateLabel = new Date(model.generatedAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -180,19 +180,19 @@ function renderCertificateHtml(model) {
   const recs = [];
   if (model.summary.counts.credential > 0)
     recs.push(
-      "Remove or rotate exposed credential patterns before client handoff.",
+      "Remove hardcoded passwords and API keys from your code. If any were real, rotate them immediately.",
     );
   if (model.summary.counts.leak > 0)
     recs.push(
-      "Eliminate sample/mock path references from production directories.",
+      "Remove test/sample data references from production code — these can cause real users to see fake data.",
     );
   if (model.summary.counts.fiction > 0)
     recs.push(
-      "Replace AI-fiction KPIs in mock/dashboard samples with measured values.",
+      "Replace AI-generated placeholder values (fake metrics, dummy numbers) with real data from your analytics.",
     );
   if (!recs.length)
     recs.push(
-      "Maintain current gate configuration through Beta and Release milestones.",
+      "Your code passed all quality checks. Keep up the good work through the next release milestone.",
     );
 
   return `<!DOCTYPE html>
@@ -245,7 +245,7 @@ function renderCertificateHtml(model) {
     </tr></table>
     <div class="divider"></div>
     <h1 class="title">Code Hygiene Certificate</h1>
-    <p class="subtitle">Independent Code Quality &amp; Asset Integrity Assessment</p>
+    <p class="subtitle">Automated Code Quality &amp; Security Assessment</p>
     <div class="meta-grid">
       <div>
         <div><strong>Project Name:</strong> ${escapeHtml(model.project.project_name)}</div>
@@ -258,22 +258,22 @@ function renderCertificateHtml(model) {
         <div><strong>Scan Integrity ID:</strong> ${escapeHtml(model.scanId)}</div>
       </div>
     </div>
-    <div class="status-box ${statusClass}">Status: ${statusLabel}</div>
-    <p class="muted">This codebase was evaluated via the SimpleBeacon read-only static analysis framework. Protocols check credential patterns, production-path configuration leaks, and structural AI-fiction anomalies. Quality score: <strong>${model.summary.qualityScore}</strong> · Issues at gate: <strong>${model.summary.issueCount}</strong>.</p>
+    <div class="status-box ${statusClass}">${statusLabel}</div>
+    <p class="muted">This codebase was automatically scanned for security risks, code quality issues, and AI-generated errors. The scan checked for hardcoded passwords/keys, test data in production code, and AI placeholder values. Quality score: <strong>${model.summary.qualityScore}/100</strong> · Issues found: <strong>${model.summary.issueCount}</strong>.</p>
     <p class="print-hint">Print this page (Ctrl+P / Cmd+P) → Save as PDF · Recommended filename: <code>${escapeHtml(model.certificateId)}.pdf</code></p>
   </section>
 
   <section class="page">
     <div class="divider"></div>
-    <h2 class="section-title">Security &amp; Hygiene Scan Results</h2>
+    <h2 class="section-title">What Was Checked</h2>
     <p class="muted">${escapeHtml(model.project.client_name)} — ${escapeHtml(model.project.project_name)}</p>
     <div class="summary-grid">
-      <div class="summary-card"><span>Credential patterns</span><strong>${model.summary.counts.credential}</strong><span class="muted">Max: ${escapeHtml(model.summary.maxSeverity.credential)}</span></div>
-      <div class="summary-card"><span>Production data leaks</span><strong>${model.summary.counts.leak}</strong><span class="muted">Max: ${escapeHtml(model.summary.maxSeverity.leak)}</span></div>
-      <div class="summary-card"><span>AI fiction / mock KPI</span><strong>${model.summary.counts.fiction}</strong><span class="muted">Max: ${escapeHtml(model.summary.maxSeverity.fiction)}</span></div>
+      <div class="summary-card"><span>Hardcoded passwords &amp; API keys</span><strong>${model.summary.counts.credential}</strong><span class="muted">Highest severity: ${escapeHtml(model.summary.maxSeverity.credential)}</span></div>
+      <div class="summary-card"><span>Test data in production code</span><strong>${model.summary.counts.leak}</strong><span class="muted">Highest severity: ${escapeHtml(model.summary.maxSeverity.leak)}</span></div>
+      <div class="summary-card"><span>AI-generated placeholder values</span><strong>${model.summary.counts.fiction}</strong><span class="muted">Highest severity: ${escapeHtml(model.summary.maxSeverity.fiction)}</span></div>
     </div>
     ${renderFindingsTable(model.summary.topFindings)}
-    <h3 class="section-title" style="margin-top:28px">Recommendations</h3>
+    <h3 class="section-title" style="margin-top:28px">What you should do next</h3>
     <ol class="rec-list">${recs.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ol>
   </section>
 
@@ -282,9 +282,10 @@ function renderCertificateHtml(model) {
     <div class="value-block">
       <h2 class="section-title">Why this matters for ${escapeHtml(model.project.client_name)}</h2>
       <ul class="rec-list">
-        <li>Verified read-only scan — application source was not modified.</li>
-        <li>Credential and sample-path checks completed before client-facing launch.</li>
-        <li>AI-assisted development hygiene documented for vendor and procurement reviews.</li>
+        <li><strong>Security:</strong> No hardcoded passwords or API keys were found in the code (or issues were identified and need fixing).</li>
+        <li><strong>Quality:</strong> Test data is not leaking into production paths (or issues were identified for cleanup).</li>
+        <li><strong>AI hygiene:</strong> AI-generated placeholder values have been checked and documented for review.</li>
+        <li><strong>Read-only:</strong> The scan did not modify your code — it only read and analyzed files.</li>
       </ul>
       <p class="muted" style="margin-top:16px">Agency: ${escapeHtml(model.project.agency_name)}${branding.contact_email ? ` · ${escapeHtml(branding.contact_email)}` : ""}</p>
       <p class="muted">SimpleBeacon verification · Certificate ${escapeHtml(model.certificateId)} · ${escapeHtml(model.verificationUrl)}</p>

@@ -701,7 +701,26 @@ function AiProvidersTab() {
       });
       if (resp.ok) {
         const data = await resp.json();
-        setOllamaUrl(data.ollamaBaseUrl || "");
+        // Sanitize Ollama URL — if it points at a dev server or the current page origin,
+        // fall back to the default Ollama port (11434) instead of causing ECONNREFUSED errors.
+        const rawOllamaUrl = data.ollamaBaseUrl || "";
+        const OLLAMA_DEFAULT = "http://127.0.0.1:11434";
+        let safeOllamaUrl = rawOllamaUrl;
+        try {
+          if (rawOllamaUrl) {
+            const parsed = new URL(rawOllamaUrl);
+            const nonOllamaPorts = new Set([61455, 54358, 54697, 58681, 58000, 53900, 3000, 8080]);
+            const port = parseInt(parsed.port, 10);
+            if (Number.isFinite(port) && nonOllamaPorts.has(port)) {
+              safeOllamaUrl = OLLAMA_DEFAULT;
+            } else if (rawOllamaUrl.replace(/\/+$/, "") === window.location.origin) {
+              safeOllamaUrl = OLLAMA_DEFAULT;
+            }
+          }
+        } catch {
+          safeOllamaUrl = OLLAMA_DEFAULT;
+        }
+        setOllamaUrl(safeOllamaUrl);
         setOllamaModel(data.ollamaModel || "");
         setOpenaiModel(data.openaiModel || "");
         setAnthropicModel(data.anthropicModel || "");

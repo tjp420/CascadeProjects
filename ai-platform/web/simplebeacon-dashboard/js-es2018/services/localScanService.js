@@ -8,6 +8,26 @@ import {
   browserLocalScanCapMessage,
 } from "../utils-lib/dom.js?v=20260804largefolder1";
 import { normalizeSimplebeaconReport } from "./analyzeService.js?v=20260726sevfix1";
+// Vite-bundled inline worker — embedded as base64 blob in the main JS bundle.
+// No network fetch needed, which avoids Firefox NS_ERROR_UNKNOWN_HOST on *.pages.dev.
+// Lazy-loaded: the "@/" alias only resolves inside Vite's bundler. When this
+// file is loaded directly (e.g., by the VS Code extension's data server), the
+// dynamic import fails gracefully and we fall back to fetch+blob or direct
+// module worker approaches below.
+let _inlineScanWorkerCtor = null;
+let _inlineScanWorkerLoaded = false;
+async function getInlineScanWorker() {
+  if (_inlineScanWorkerLoaded) return _inlineScanWorkerCtor;
+  _inlineScanWorkerLoaded = true;
+  try {
+    // @ts-ignore — Vite worker import (only resolves under Vite build)
+    const mod = await import("@/workers/scan-worker-bundled.js?worker&inline");
+    _inlineScanWorkerCtor = mod.default;
+  } catch (_e) {
+    // Not running under Vite — fallbacks will be used
+  }
+  return _inlineScanWorkerCtor;
+}
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -18,7 +38,7 @@ import {
 } from "../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
-// runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
+// runtime under the active mount so /app, /dashboard, and /d2 all hit assets/scan-worker.js.
 const WORKER_ASSET_VERSION = "20260804worker1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
@@ -29,7 +49,9 @@ function resolveScanWorkerUrl() {
         ? "/dashboard"
         : path.startsWith("/app")
           ? "/app"
-          : null;
+          : path.startsWith("/d2")
+            ? "/d2"
+            : null;
       if (mount) {
         return new URL(
           `${mount}/assets/scan-worker.js?v=${v}`,
@@ -56,6 +78,97 @@ function resolveScanWorkerUrl() {
     /* fall through */
   }
   return `/app/assets/scan-worker.js?v=${v}`;
+}
+
+/**
+ * Resolve the assets base URL for the current mount point.
+ * Returns e.g. "https://3dd524d1.simplebeacon.pages.dev/d2/assets/"
+ */
+function resolveAssetsBaseUrl() {
+  try {
+    const workerUrl = resolveScanWorkerUrl();
+    const url = new URL(workerUrl.href || workerUrl, location.origin);
+    // Strip the filename, keep the directory
+    const dir = url.pathname.replace(/\/[^/]*$/, "/");
+    return new URL(dir, url.origin).href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pre-fetch the worker script and its module dependencies, inline them into
+ * a single blob, and return a blob URL. This bypasses Firefox's module worker
+ * DNS resolution issues (NS_ERROR_UNKNOWN_HOST) and CORS issues by creating
+ * a same-origin blob: URL worker.
+ *
+ * The worker script uses ES module imports like:
+ *   import { ... } from "./scan-wasm-bridge.js"
+ *   import { ... } from "./simplebeaconignore.browser.js"
+ *
+ * We fetch all three files, strip the import statements from the worker,
+ * prepend the dependency code, and create a classic (non-module) blob worker.
+ */
+async function createInlinedBlobWorker(workerUrlStr) {
+  const assetsBase = resolveAssetsBaseUrl();
+  const origin = new URL(workerUrlStr, location.origin).origin;
+
+  // Fetch the worker script
+  const workerResp = await fetch(workerUrlStr);
+  if (!workerResp.ok) throw new Error(`Fetch worker failed: HTTP ${workerResp.status}`);
+  let workerText = await workerResp.text();
+  const ct = String(workerResp.headers.get("content-type") || "").toLowerCase();
+  if (ct.includes("text/html") || /^\s*</.test(workerText)) {
+    throw new Error(`Worker URL returned HTML instead of JavaScript (${workerUrlStr})`);
+  }
+
+  // Find all ES module imports in the worker script
+  const importRegex = /import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+(?:\s*,\s*\{[^}]*\})?)\s+from\s+["']([^"']+)["']/g;
+  const imports = [];
+  let match;
+  while ((match = importRegex.exec(workerText)) !== null) {
+    imports.push(match[0]);
+  }
+
+  // Fetch each dependency and collect its code
+  const dependencyCode = [];
+  for (const importStmt of imports) {
+    const pathMatch = importStmt.match(/from\s+["']([^"']+)["']/);
+    if (!pathMatch) continue;
+    const depPath = pathMatch[1];
+    // Resolve relative to the worker URL's directory
+    const depUrl = new URL(depPath, workerUrlStr).href;
+    try {
+      const depResp = await fetch(depUrl);
+      if (!depResp.ok) {
+        console.warn(`[localScan] Failed to fetch worker dependency ${depPath}: HTTP ${depResp.status}`);
+        continue;
+      }
+      const depText = await depResp.text();
+      const depCt = String(depResp.headers.get("content-type") || "").toLowerCase();
+      if (depCt.includes("text/html") || /^\s*</.test(depText)) {
+        console.warn(`[localScan] Worker dependency ${depPath} returned HTML, skipping`);
+        continue;
+      }
+      dependencyCode.push(`// === Inlined: ${depPath} ===\n${depText}`);
+    } catch (depErr) {
+      console.warn(`[localScan] Failed to fetch worker dependency ${depPath}:`, depErr);
+    }
+  }
+
+  // Strip import statements from the worker script (dependencies are inlined above)
+  let inlinedScript = workerText.replace(importRegex, "");
+
+  // Also strip any remaining export statements (classic workers can't use them)
+  inlinedScript = inlinedScript.replace(/^\s*export\s+/gm, "");
+
+  // Combine: dependencies first, then worker script
+  const fullScript = dependencyCode.join("\n\n") + "\n\n" + inlinedScript;
+
+  const blob = new Blob([fullScript], { type: "application/javascript" });
+  const blobUrl = URL.createObjectURL(blob);
+  console.warn(`[localScan] Created inlined blob worker (${fullScript.length} chars, ${dependencyCode.length} dependencies)`);
+  return blobUrl;
 }
 const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
@@ -1098,32 +1211,67 @@ export async function runLocalScan(options = {}) {
     }
 
     try {
-      // Try normal worker construction first
-      worker = new Worker(workerUrlForCreation, { type: "module" });
+      // Primary approach: use the Vite-bundled inline worker.
+      // This is embedded as a base64 blob in the main JS bundle — no network
+      // fetch needed, which avoids Firefox NS_ERROR_UNKNOWN_HOST on *.pages.dev
+      // domains where fetch() to same-origin subresources can fail.
+      const InlineScanWorkerCtor = await getInlineScanWorker();
+      if (InlineScanWorkerCtor) {
+        try {
+          console.warn("[localScan] Using Vite inline worker (no network fetch needed)");
+          worker = new InlineScanWorkerCtor();
+        } catch (inlineErr) {
+          console.warn(
+            "[localScan] Vite inline worker failed, trying fallback approaches:",
+            inlineErr?.message || inlineErr,
+          );
+        }
+      }
+
+      // Fallback 1: fetch + inline blob worker (for non-Vite environments)
+      if (!worker) {
+        const isHostedHttps =
+          typeof window !== "undefined" &&
+          window.location.protocol === "https:" &&
+          !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+        const isFirefox =
+          typeof navigator !== "undefined" &&
+          navigator.userAgent.toLowerCase().includes("firefox");
+
+        if (isHostedHttps || isFirefox) {
+          try {
+            console.warn(
+              "[localScan] Hosted/Firefox detected — using fetch+blob worker fallback",
+            );
+            blobUrlForWorker = await createInlinedBlobWorker(
+              String(workerUrlForCreation),
+            );
+            worker = new Worker(blobUrlForWorker, { type: "classic" });
+          } catch (inlineErr) {
+            console.warn(
+              "[localScan] fetch+blob worker failed, falling back to direct module worker:",
+              inlineErr?.message || inlineErr,
+            );
+          }
+        }
+      }
+
+      // Fallback 2: direct module worker construction
+      if (!worker) {
+        worker = new Worker(workerUrlForCreation, { type: "module" });
+      }
     } catch (ctorErr) {
       console.error("localScanService.js error:", ctorErr);
-      // If construction fails (CORS, Firefox module query issues, or other), attempt a fetch+blob fallback
+      // Last resort: fetch+blob fallback
       try {
         console.warn(
           "[localScan] Worker construction failed, attempting fetch+blob fallback:",
           ctorErr?.message || ctorErr,
         );
-        const resp = await fetch(String(workerUrlForCreation));
-        if (!resp.ok)
-          throw new Error(`Fetch failed with status ${resp.status}`);
-        const ct = String(resp.headers.get("content-type") || "").toLowerCase();
-        const scriptText = await resp.text();
-        if (ct.includes("text/html") || /^\s*</.test(scriptText)) {
-          throw new Error(
-            `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
-          );
-        }
-        const blob = new Blob([scriptText], { type: "application/javascript" });
-        blobUrlForWorker = URL.createObjectURL(blob);
-        console.warn(
-          "[localScan] Created blob URL for worker; will keep alive until worker confirms start",
+        blobUrlForWorker = await createInlinedBlobWorker(
+          String(workerUrlForCreation),
         );
-        worker = new Worker(blobUrlForWorker, { type: "module" });
+        worker = new Worker(blobUrlForWorker, { type: "classic" });
       } catch (fbErr) {
         console.error("[localScan] fetch+blob fallback failed:", fbErr);
         throw ctorErr; // rethrow original constructor error to surface the root cause

@@ -2,7 +2,8 @@
 // Defensive: ensure escapeHtml is available even if utils.js fails to load
 if (typeof window !== 'undefined' && !window.escapeHtml) {
     window.escapeHtml = function (str) {
-        if (!str) return '';
+        if (!str)
+            return '';
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -393,20 +394,24 @@ const ZIP_MARKDOWN_TEMPLATES = [
     }
 ];
 function fmtCertBytes(bytes) {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0)
+        return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 function generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, template) {
-    if (!allowedModules.includes(template.moduleId)) return;
+    if (!allowedModules.includes(template.moduleId))
+        return;
     let data = filteredReport[template.section] || {};
     let hits = Number(data[`${template.section}Hits`]) || 0;
     let rawList = data[`${template.section}Findings`];
     // Fallback for alternate structure (e.g. architectureDrift: { count, findings })
-    if (!hits && data.count != null) hits = Number(data.count) || 0;
-    if (!Array.isArray(rawList) && Array.isArray(data.findings)) rawList = data.findings;
+    if (!hits && data.count != null)
+        hits = Number(data.count) || 0;
+    if (!Array.isArray(rawList) && Array.isArray(data.findings))
+        rawList = data.findings;
     // Fallback for direct findings array on report (e.g. syncIoFindings)
     if (!hits && !Array.isArray(rawList)) {
         const directFindings = filteredReport[`${template.section}Findings`];
@@ -434,7 +439,8 @@ function generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectN
     zip.file(template.filename, md);
 }
 async function certComputeSha256(text) {
-    if (typeof computeSha256 === 'function') return computeSha256(text);
+    if (typeof computeSha256 === 'function')
+        return computeSha256(text);
     if (typeof window !== 'undefined' && typeof window.computeSha256 === 'function') {
         return window.computeSha256(text);
     }
@@ -447,8 +453,10 @@ async function certComputeSha256(text) {
 }
 function certIsModulePaidFor(moduleNum) {
     try {
-        if (typeof isModulePaidFor === 'function') return isModulePaidFor(moduleNum);
-    } catch (_) {
+        if (typeof isModulePaidFor === 'function')
+            return isModulePaidFor(moduleNum);
+    }
+    catch (_) {
         /* main.js may still be loading */
     }
     const numStr = String(moduleNum);
@@ -487,18 +495,20 @@ async function generateSovereignCertificate(report, token, options = {}) {
     if (qs >= 95) {
         grade = 'A';
         gradeColor = '#10B981';
-    } else if (qs >= 85) {
+    }
+    else if (qs >= 85) {
         grade = 'B';
         gradeColor = '#84CC16';
-    } else if (qs >= 70) {
+    }
+    else if (qs >= 70) {
         grade = 'C';
         gradeColor = '#F59E0B';
-    } else if (qs >= 50) {
+    }
+    else if (qs >= 50) {
         grade = 'D';
         gradeColor = '#F97316';
     }
-    const gatePassed =
-        ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) === true ||
+    const gatePassed = ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) === true ||
         ((_b = report.gate) === null || _b === void 0 ? void 0 : _b.status) === 'PASS';
     // Sync summary.gatePass so downstream consumers see consistent state
     if (report.summary && typeof report.summary === 'object') {
@@ -507,16 +517,13 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const gateLabel = gatePassed
         ? 'PASS'
         : ((_c = report.gate) === null || _c === void 0 ? void 0 : _c.blockingCount)
-          ? 'BLOCKED'
-          : 'REVIEW';
+            ? 'BLOCKED'
+            : 'REVIEW';
     const gateColor = gatePassed ? '#34D399' : '#EF4444';
-    const profileLabel =
-        profileLabelOverride ||
-        (
-            ((_d = window._tokenPayload) === null || _d === void 0 ? void 0 : _d.tier) ||
+    const profileLabel = profileLabelOverride ||
+        (((_d = window._tokenPayload) === null || _d === void 0 ? void 0 : _d.tier) ||
             ((_e = window._tokenPayload) === null || _e === void 0 ? void 0 : _e.product) ||
-            'executive'
-        ).toUpperCase();
+            'executive').toUpperCase();
     // Map UI module IDs (from analyzer dropdown) to certificate numeric module IDs
     const UI_TO_CERT_MODULE = {
         gate: '1',
@@ -654,7 +661,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
     ].filter(m => certIsModulePaidFor(m));
     if (allowedModules.length > 0) {
         allowedModules = allowedModules.filter(m => paidModules.includes(m));
-    } else {
+    }
+    else {
         allowedModules = paidModules;
     }
     // Safety net: never generate an empty module list — fall back to all modules
@@ -935,7 +943,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
     };
     // Safety net: derive analyzer sections from detectedIssues when buildAnalyzerSections data is missing
     function deriveAnalyzerSectionsFromDetectedIssues(detectedIssues) {
-        if (!Array.isArray(detectedIssues) || detectedIssues.length === 0) return {};
+        if (!Array.isArray(detectedIssues) || detectedIssues.length === 0)
+            return {};
         const typeToSection = {
             'Debug Artifact': 'aiResidue',
             'License/Governance Marker': 'governanceMarker',
@@ -1213,17 +1222,19 @@ async function generateSovereignCertificate(report, token, options = {}) {
         const derived = {};
         for (const issue of detectedIssues) {
             const sectionName = typeToSection[issue.type];
-            if (!sectionName) continue;
+            if (!sectionName)
+                continue;
             const schema = sectionSchema.find(s => s.section === sectionName);
-            if (!schema) continue;
+            if (!schema)
+                continue;
             const findings = (issue.findings || []).map(f => ({
                 file: typeof f === 'string' ? f : f.file || f.filePath || 'unknown',
                 type: issue.type,
                 matches: Array.isArray(f.matches)
                     ? f.matches.slice(0, 3).map(m => ({
-                          line: m.line || 0,
-                          snippet: (m.snippet || '').slice(0, 120)
-                      }))
+                        line: m.line || 0,
+                        snippet: (m.snippet || '').slice(0, 120)
+                    }))
                     : []
             }));
             const hits = issue.count || findings.length || 0;
@@ -1249,17 +1260,20 @@ async function generateSovereignCertificate(report, token, options = {}) {
     // Assemble comprehensive report.json with ALL available scan data for rich roadmap generation
     const assembledReport = {};
     for (const key of baseKeys) {
-        if (report[key] != null) assembledReport[key] = report[key];
+        if (report[key] != null)
+            assembledReport[key] = report[key];
     }
     // Merge detectedIssues-derived analyzer sections as safety net
     const derivedSections = deriveAnalyzerSectionsFromDetectedIssues(report.detectedIssues);
     for (const [sectionName, sectionData] of Object.entries(derivedSections)) {
-        if (!assembledReport[sectionName]) assembledReport[sectionName] = sectionData;
+        if (!assembledReport[sectionName])
+            assembledReport[sectionName] = sectionData;
     }
     // Include ALL per-module data regardless of tier so roadmaps have full detail
     for (const data of Object.values(perModuleData)) {
         Object.entries(data).forEach(([k, v]) => {
-            if (v != null) assembledReport[k] = v;
+            if (v != null)
+                assembledReport[k] = v;
         });
     }
     const filteredReport = assembledReport;
@@ -1283,13 +1297,12 @@ async function generateSovereignCertificate(report, token, options = {}) {
         F: { label: 'Critical Risk', ringColor: '#f85149', cssVar: 'var(--blocked)' }
     };
     const gradeInfo = gradeConfig[grade] || gradeConfig['F'];
-    const companyInitials =
-        escapeHtml(projectName)
-            .split(' ')
-            .map(w => w[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase() || 'SB';
+    const companyInitials = escapeHtml(projectName)
+        .split(' ')
+        .map(w => w[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'SB';
     // Aggregate real findings from detectedIssues when gate buckets are empty
     const detectedIssues = report.detectedIssues || [];
     const issueCounts = {
@@ -1307,21 +1320,27 @@ async function generateSovereignCertificate(report, token, options = {}) {
         const type = (issue.type || '').toLowerCase();
         const count = issue.count || 0;
         const sev = (issue.severity || 'low').toLowerCase();
-        if (severityCounts[sev] != null) severityCounts[sev] += count;
-        if (type.includes('credential')) issueCounts.credential += count;
-        else if (type.includes('debug')) issueCounts.debug += count;
-        else if (type.includes('architecture')) issueCounts.architecture += count;
-        else if (type.includes('maintainability')) issueCounts.maintainability += count;
-        else if (type.includes('license') || type.includes('governance')) issueCounts.governance += count;
+        if (severityCounts[sev] != null)
+            severityCounts[sev] += count;
+        if (type.includes('credential'))
+            issueCounts.credential += count;
+        else if (type.includes('debug'))
+            issueCounts.debug += count;
+        else if (type.includes('architecture'))
+            issueCounts.architecture += count;
+        else if (type.includes('maintainability'))
+            issueCounts.maintainability += count;
+        else if (type.includes('license') || type.includes('governance'))
+            issueCounts.governance += count;
         else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction'))
             issueCounts.slop += count;
         else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed'))
             issueCounts.sensitive += count;
-        else issueCounts.other += count;
+        else
+            issueCounts.other += count;
     }
     const aiHits = aiResidueHits || issueCounts.slop || issueCounts.debug;
-    const credentialHits =
-        issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
+    const credentialHits = issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
     const governanceHits = issueCounts.governance;
     // Liability based on severity (conservative per-incident estimates)
     const LIABILITY_MULTIPLIER_CRITICAL = 500000;
@@ -1329,17 +1348,15 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const LIABILITY_MULTIPLIER_MEDIUM = 100000;
     const LIABILITY_MULTIPLIER_LOW = 25000;
     const LIABILITY_FORMAT_THRESHOLD = 1000000;
-    const liabilityRaw =
-        severityCounts.critical * LIABILITY_MULTIPLIER_CRITICAL +
+    const liabilityRaw = severityCounts.critical * LIABILITY_MULTIPLIER_CRITICAL +
         severityCounts.high * LIABILITY_MULTIPLIER_HIGH +
         severityCounts.medium * LIABILITY_MULTIPLIER_MEDIUM +
         severityCounts.low * LIABILITY_MULTIPLIER_LOW;
-    const liabilityFormatted =
-        liabilityRaw > 0
-            ? liabilityRaw >= LIABILITY_FORMAT_THRESHOLD
-                ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M'
-                : '$' + liabilityRaw.toLocaleString()
-            : '$0';
+    const liabilityFormatted = liabilityRaw > 0
+        ? liabilityRaw >= LIABILITY_FORMAT_THRESHOLD
+            ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M'
+            : '$' + liabilityRaw.toLocaleString()
+        : '$0';
     const pillars = [];
     if (aiHits === 0) {
         pillars.push({
@@ -1348,7 +1365,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
             name: 'AI Slop & Hallucinations',
             detail: 'No unresolved LLM placeholders or fake metrics detected'
         });
-    } else {
+    }
+    else {
         pillars.push({
             status: 'warn',
             statusText: 'WARNING',
@@ -1363,7 +1381,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
             name: 'Credential Leaks',
             detail: 'No hardcoded credentials or API keys detected in source'
         });
-    } else {
+    }
+    else {
         pillars.push({
             status: 'warn',
             statusText: 'WARNING',
@@ -1378,7 +1397,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
             name: 'Shadow AI Systems',
             detail: 'No undocumented AI integrations detected'
         });
-    } else {
+    }
+    else {
         pillars.push({
             status: gatePassed ? 'pass' : 'warn',
             statusText: gatePassed ? 'PASS' : 'REVIEW',
@@ -1393,21 +1413,19 @@ async function generateSovereignCertificate(report, token, options = {}) {
             name: 'Licensing & IP Verification',
             detail: licenseCount + ' license file(s), ' + securityCount + ' governance file(s) present'
         });
-    } else {
-        const govDetail =
-            governanceHits > 0
-                ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
-                : 'Missing governance files — add LICENSE and SECURITY.md';
+    }
+    else {
+        const govDetail = governanceHits > 0
+            ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
+            : 'Missing governance files — add LICENSE and SECURITY.md';
         pillars.push({ status: 'warn', statusText: 'REVIEW', name: 'Licensing & IP Verification', detail: govDetail });
     }
     const pillarsHtml = pillars
-        .map(
-            p => `    <div class="pillar">
+        .map(p => `    <div class="pillar">
         <div class="status ${p.status}">${p.statusText}</div>
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="detail">${escapeHtml(p.detail)}</div>
-    </div>`
-        )
+    </div>`)
         .join('\n');
     const validThrough = new Date(isoDate);
     validThrough.setFullYear(validThrough.getFullYear() + 1);
@@ -1560,18 +1578,14 @@ Generated entirely in-browser. Zero data uploaded.
             items.push('## Blocking Issues\n');
             blocking.forEach((i, idx) => {
                 const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : i.filePath || 'N/A';
-                items.push(
-                    `${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`
-                );
+                items.push(`${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`);
             });
         }
         if (warnings.length) {
             items.push('## Warnings\n');
             warnings.forEach((i, idx) => {
                 const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : i.filePath || 'N/A';
-                items.push(
-                    `${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`
-                );
+                items.push(`${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`);
             });
         }
         const findingsMd = `# Gate Findings Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Blocking:** ${blocking.length}\n**Warnings:** ${warnings.length}\n\n${items.length ? items.join('\n\n') : 'No blocking or warning issues detected.'}\n`;
@@ -1598,11 +1612,11 @@ Generated entirely in-browser. Zero data uploaded.
         const rm = filteredReport.roadmap || {};
         const roadmapMd = phases.length
             ? `# 5-Phase Compliance Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Todo Items:** ${rm.todoCount || 0}\n\n${phases
-                  .map((p, idx) => {
-                      var _a;
-                      return `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${(_a = p.progress) !== null && _a !== void 0 ? _a : 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`;
-                  })
-                  .join('\n\n')}\n`
+                .map((p, idx) => {
+                var _a;
+                return `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${(_a = p.progress) !== null && _a !== void 0 ? _a : 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`;
+            })
+                .join('\n\n')}\n`
             : `# Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n${rm.summary || 'No roadmap data available.'}\n`;
         zip.file('roadmap.md', roadmapMd);
     }
@@ -1619,43 +1633,39 @@ Generated entirely in-browser. Zero data uploaded.
         // Control cards
         const controlCards = euControls.length
             ? euControls
-                  .map(
-                      c =>
-                          `### ${c.controlId}: ${c.title}\n\n- **Article:** ${c.article || 'N/A'}\n- **Status:** ${c.status || 'N/A'}\n- **Severity:** ${c.severity || 'N/A'}\n- **Evidence:** ${c.evidence || 'N/A'}\n- **Action:** ${c.action || 'N/A'}\n`
-                  )
-                  .join('\n')
+                .map(c => `### ${c.controlId}: ${c.title}\n\n- **Article:** ${c.article || 'N/A'}\n- **Status:** ${c.status || 'N/A'}\n- **Severity:** ${c.severity || 'N/A'}\n- **Evidence:** ${c.evidence || 'N/A'}\n- **Action:** ${c.action || 'N/A'}\n`)
+                .join('\n')
             : 'No controls data available.';
         // Risk matrix — use worst control status to drive overall risk, not just AI counts
         const worstControl = euControls.length
             ? euControls.reduce((w, c) => {
-                  const rank = { FAIL: 4, WARN: 3, REVIEW: 2, PASS: 1 };
-                  return rank[c.status] > rank[w.status] ? c : w;
-              }, euControls[0])
+                const rank = { FAIL: 4, WARN: 3, REVIEW: 2, PASS: 1 };
+                return rank[c.status] > rank[w.status] ? c : w;
+            }, euControls[0])
             : null;
         const likelihood = aiCount > 5 ? 'High' : aiCount > 0 ? 'Medium' : 'Low';
-        const impact =
-            worstControl && (worstControl.severity === 'critical' || worstControl.severity === 'high')
+        const impact = worstControl && (worstControl.severity === 'critical' || worstControl.severity === 'high')
+            ? 'High'
+            : hrCount > 0
                 ? 'High'
-                : hrCount > 0
-                  ? 'High'
-                  : aiCount > 0
+                : aiCount > 0
                     ? 'Medium'
                     : 'Low';
-        const riskLevel =
-            likelihood === 'High' || impact === 'High'
-                ? 'High'
-                : likelihood === 'Medium' || impact === 'Medium'
-                  ? 'Medium'
-                  : 'Low';
+        const riskLevel = likelihood === 'High' || impact === 'High'
+            ? 'High'
+            : likelihood === 'Medium' || impact === 'Medium'
+                ? 'Medium'
+                : 'Low';
         const riskColor = riskLevel === 'High' ? '🔴' : riskLevel === 'Medium' ? '🟡' : '🟢';
         // Remediation guide — PASS = no open task; REVIEW/WARN/FAIL = open task
         const remediationGuide = euControls
             .map(c => {
-                if (c.status === 'PASS') return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
-                if (c.status === 'FAIL')
-                    return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
-                return `- [ ] **${c.controlId}** — ${c.action}`;
-            })
+            if (c.status === 'PASS')
+                return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
+            if (c.status === 'FAIL')
+                return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
+            return `- [ ] **${c.controlId}** — ${c.action}`;
+        })
             .join('\n');
         // Documentation checklist
         const requiredDocs = [
@@ -1750,8 +1760,7 @@ Generated entirely in-browser. Zero data uploaded.
     }
     // Module 13: Build Readiness
     if (allowedModules.includes('13')) {
-        const allFiles =
-            filteredReport.fileList ||
+        const allFiles = filteredReport.fileList ||
             ((_f = filteredReport.repositoryInventory) === null || _f === void 0 ? void 0 : _f.totalFiles) ||
             [];
         const filePaths = Array.isArray(allFiles) ? allFiles : [];
@@ -1763,17 +1772,11 @@ Generated entirely in-browser. Zero data uploaded.
             { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)) },
             {
                 name: 'Tests',
-                found: lowerPaths.some(p =>
-                    /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)
-                )
+                found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p))
             },
             {
                 name: 'CI/CD',
-                found: lowerPaths.some(p =>
-                    /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(
-                        p
-                    )
-                )
+                found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p))
             },
             { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)) },
             {
@@ -1829,64 +1832,46 @@ Generated entirely in-browser. Zero data uploaded.
         zip.file('junk-files.md', junkMd);
     }
     // Modules 17-32: schema-driven markdown generation
-    ZIP_MARKDOWN_TEMPLATES.forEach(t =>
-        generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, t)
-    );
+    ZIP_MARKDOWN_TEMPLATES.forEach(t => generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, t));
     // Executive Summary — consolidated overview of all included modules
     const execSections = [];
     if (allowedModules.includes('1')) {
         const g = filteredReport.gateReport || filteredReport.gate || {};
-        execSections.push(
-            `## Gate Scan\n- Blocking: ${(g.blockingIssues || []).length}\n- Warnings: ${(g.warningIssues || []).length}\n- Status: ${g.pass ? 'PASS' : 'BLOCKED'}`
-        );
+        execSections.push(`## Gate Scan\n- Blocking: ${(g.blockingIssues || []).length}\n- Warnings: ${(g.warningIssues || []).length}\n- Status: ${g.pass ? 'PASS' : 'BLOCKED'}`);
     }
     if (allowedModules.includes('5')) {
         const cb = filteredReport.codebase || {};
-        execSections.push(
-            `## Codebase Analysis\n- Files: ${cb.totalFiles || 0}\n- Lines: ${(cb.totalLines || 0).toLocaleString()}\n- Avg lines/file: ${cb.averageLinesPerFile || 0}`
-        );
+        execSections.push(`## Codebase Analysis\n- Files: ${cb.totalFiles || 0}\n- Lines: ${(cb.totalLines || 0).toLocaleString()}\n- Avg lines/file: ${cb.averageLinesPerFile || 0}`);
     }
     if (allowedModules.includes('7')) {
         const dq = filteredReport.dataQuality || {};
-        execSections.push(
-            `## Data Quality\n- Invalid JSON: ${dq.invalidJsonCount || 0}\n- Empty JSON: ${dq.emptyJsonCount || 0}\n- Schema compliance: ${dq.schemaCompliance != null ? dq.schemaCompliance + '%' : 'N/A'}`
-        );
+        execSections.push(`## Data Quality\n- Invalid JSON: ${dq.invalidJsonCount || 0}\n- Empty JSON: ${dq.emptyJsonCount || 0}\n- Schema compliance: ${dq.schemaCompliance != null ? dq.schemaCompliance + '%' : 'N/A'}`);
     }
     if (allowedModules.includes('9')) {
         const npm = filteredReport.npmAudit || {};
-        execSections.push(
-            `## npm Audit\n- package.json files: ${npm.packageJsonCount || 0}\n- Dependencies: ${(npm.dependencyCount || 0).toLocaleString()}`
-        );
+        execSections.push(`## npm Audit\n- package.json files: ${npm.packageJsonCount || 0}\n- Dependencies: ${(npm.dependencyCount || 0).toLocaleString()}`);
     }
     if (allowedModules.includes('10')) {
         const comp = filteredReport.compliance || {};
-        execSections.push(
-            `## Compliance\n- License files: ${comp.licenseCount || 0}\n- Security files: ${comp.securityCount || 0}`
-        );
+        execSections.push(`## Compliance\n- License files: ${comp.licenseCount || 0}\n- Security files: ${comp.securityCount || 0}`);
     }
     if (allowedModules.includes('11')) {
         const eu = filteredReport.euAiActSummary || {};
         const euControls = eu.controls || [];
-        execSections.push(
-            `## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls
-                .map(c => {
-                    var _a;
-                    return `| ${c.controlId} | ${((_a = (c.article || '').split(',').pop()) === null || _a === void 0 ? void 0 : _a.trim()) || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`;
-                })
-                .join('\n')}`
-        );
+        execSections.push(`## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls
+            .map(c => {
+            var _a;
+            return `| ${c.controlId} | ${((_a = (c.article || '').split(',').pop()) === null || _a === void 0 ? void 0 : _a.trim()) || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`;
+        })
+            .join('\n')}`);
     }
     if (allowedModules.includes('12')) {
         const dep = filteredReport.dependencyAudit || filteredReport.vulnerabilityAudit || {};
-        execSections.push(
-            `## Dependency Vulnerabilities\n- Total: ${dep.vulnerabilityCount || 0}\n- Critical: ${dep.critical || 0}\n- High: ${dep.high || 0}`
-        );
+        execSections.push(`## Dependency Vulnerabilities\n- Total: ${dep.vulnerabilityCount || 0}\n- Critical: ${dep.critical || 0}\n- High: ${dep.high || 0}`);
     }
     if (allowedModules.includes('15')) {
         const gov = filteredReport.governance || {};
-        execSections.push(
-            `## Governance\n- License headers: ${gov.licenseHeaders || 0}\n- Copyright notices: ${gov.copyrightNotices || 0}`
-        );
+        execSections.push(`## Governance\n- License headers: ${gov.licenseHeaders || 0}\n- Copyright notices: ${gov.copyrightNotices || 0}`);
     }
     if (allowedModules.includes('16')) {
         const junk = filteredReport.junkFiles || {};
@@ -1971,23 +1956,16 @@ Generated entirely in-browser. Zero data uploaded.
         zip.file(`module-${mod}.json`, JSON.stringify(cleanData, null, 2));
         createdModules++;
     }
-    zip.file(
-        'manifest.json',
-        JSON.stringify(
-            {
-                generator: 'SimpleBeacon Sovereign Engine v1.4.0',
-                timestamp: isoDate,
-                certificateId: certId,
-                tokenPrefix: token.slice(0, 8) + '...',
-                reportIntegrity: reportHash,
-                localOnly: true,
-                zeroUpload: true,
-                includedModules: allowedModules
-            },
-            null,
-            2
-        )
-    );
+    zip.file('manifest.json', JSON.stringify({
+        generator: 'SimpleBeacon Sovereign Engine v1.4.0',
+        timestamp: isoDate,
+        certificateId: certId,
+        tokenPrefix: token.slice(0, 8) + '...',
+        reportIntegrity: reportHash,
+        localOnly: true,
+        zeroUpload: true,
+        includedModules: allowedModules
+    }, null, 2));
     try {
         const zipBlob = await zip.generateAsync({
             type: 'blob',
@@ -2007,7 +1985,8 @@ Generated entirely in-browser. Zero data uploaded.
         document.body.appendChild(a);
         try {
             a.click();
-        } catch (e) {
+        }
+        catch (e) {
             window.open(url, '_blank');
         }
         if (typeof window.notifyDownloadComplete === 'function') {
@@ -2018,7 +1997,8 @@ Generated entirely in-browser. Zero data uploaded.
             a.remove();
             URL.revokeObjectURL(url);
         }, 30000);
-    } catch (zipErr) {
+    }
+    catch (zipErr) {
         throw new Error('Failed to generate certificate ZIP: ' + (zipErr.message || zipErr));
     }
 }
@@ -2032,7 +2012,8 @@ async function doGenerateCertificate(buttonEl) {
     __certGenerating = true;
     const token = licenseInput ? licenseInput.value.trim() : '';
     const tokenError = document.getElementById('tokenError');
-    if (tokenError) tokenError.classList.add('hidden-display');
+    if (tokenError)
+        tokenError.classList.add('hidden-display');
     if (!reportData) {
         __certGenerating = false;
         showToast('No scan report loaded. Upload a JSON || run a browser scan first.', 'error');
@@ -2058,15 +2039,14 @@ async function doGenerateCertificate(buttonEl) {
                     hasJSZip: Boolean(window.JSZip),
                     hasReport: Boolean(reportData),
                     reportType: (reportData === null || reportData === void 0 ? void 0 : reportData.type) || null,
-                    issueCount:
-                        (_a = reportData === null || reportData === void 0 ? void 0 : reportData.issueCount) !== null &&
+                    issueCount: (_a = reportData === null || reportData === void 0 ? void 0 : reportData.issueCount) !== null &&
                         _a !== void 0
-                            ? _a
-                            : null
+                        ? _a
+                        : null
                 },
                 timestamp: Date.now()
             })
-        }).catch(() => {});
+        }).catch(() => { });
         // #endregion
         const creds = typeof getCertificateCredentials === 'function' ? getCertificateCredentials() : {};
         await generateSovereignCertificate(reportData, token, creds);
@@ -2074,8 +2054,10 @@ async function doGenerateCertificate(buttonEl) {
         const CERT_TOAST_DURATION = 6000;
         showToast('Certificate ZIP downloaded — generated entirely in your browser!', 'success', CERT_TOAST_DURATION);
         showStatus('Certificate ZIP generated locally! Zero bytes uploaded to any server.', 'success');
-        if (token && window.TokenEntryGuard) window.TokenEntryGuard.markTokenConsumed(token);
-    } catch (err) {
+        if (token && window.TokenEntryGuard)
+            window.TokenEntryGuard.markTokenConsumed(token);
+    }
+    catch (err) {
         const errMsg = (err && err.message) || (typeof err === 'string' ? err : JSON.stringify(err));
         // #region agent log
         fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617', {
@@ -2089,7 +2071,7 @@ async function doGenerateCertificate(buttonEl) {
                 data: { errMsg, hasJSZip: Boolean(window.JSZip), hasReport: Boolean(reportData) },
                 timestamp: Date.now()
             })
-        }).catch(() => {});
+        }).catch(() => { });
         // #endregion
         appendTerminalLine(`Certificate generation failed: ${errMsg || 'Unknown error'}`, 'error');
         showToast(errMsg || 'Certificate generation failed', 'error');
@@ -2114,7 +2096,8 @@ async function doGenerateCertificate(buttonEl) {
                 doGenerateCertificate(buttonEl);
             });
         }
-    } finally {
+    }
+    finally {
         __certGenerating = false;
         if (buttonEl) {
             buttonEl.disabled = false;

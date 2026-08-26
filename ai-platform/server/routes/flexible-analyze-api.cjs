@@ -168,7 +168,7 @@ const _scanJobCleanupInterval = setInterval(() => {
         scanJobs.set(id, {
           ...job,
           status: "error",
-          error: "Scan timed out after 20 minutes",
+          error: "Scan timed out after 35 minutes",
         });
         try {
           fs.rmSync(job.tmpDir, { recursive: true, force: true });
@@ -1526,7 +1526,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                   scanProfile: "default",
                   includeBrowserAnalyzers: true,
                 }),
-                90_000,
+                300_000, // 5 minutes — large repos need more than 90s
                 "async codebase analysis",
               );
               engines.push("codebase");

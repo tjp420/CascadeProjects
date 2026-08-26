@@ -36,7 +36,7 @@ test("selectPayload returns text for text format", () => {
   const jsonReport = { ...report, gate: gateResult };
   const payload = selectPayload(report, gateResult, jsonReport, "text");
   assert.equal(typeof payload, "string");
-  assert.ok(payload.includes("Simplebeacon"));
+  assert.ok(payload.includes("SimpleBeacon"));
 });
 
 test("selectPayload returns action plan for action-plan format", () => {

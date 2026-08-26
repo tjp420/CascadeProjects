@@ -37,6 +37,7 @@ import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
 import { getLargeItem } from "@/utils/dbStorage";
+import { apiUrl, authHeaders, waitForApiBase } from "@/config";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -1441,6 +1442,9 @@ export function AuditView() {
   const [fullReport, setFullReport] = useState<FullReport | null>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
   const [importedReport, setImportedReport] = useState<FullReport | null>(null);
+  const [serverAudit, setServerAudit] = useState<any>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const { isFreeTier } = useAuth();
 
   // Load scan data from localStorage + IndexedDB
@@ -1487,8 +1491,91 @@ export function AuditView() {
     };
   }, []);
 
-  // Use imported report if provided, otherwise use stored data
-  const activeReport = importedReport || fullReport;
+  // Fetch audit payload from server API to get complete audit layers,
+  // assessment, fiction catalog, scan scope, and gate warnings.
+  // The localStorage scan report only has the raw scan data — the server
+  // buildAuditPayload function enriches it with all the audit-specific fields.
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Don't fetch from server if we have an imported report (offline mode)
+      if (importedReport) return;
+      // Don't fetch if there's no API base (browser-only mode)
+      try {
+        await waitForApiBase();
+      } catch {
+        return; // No API base available — rely on localStorage only
+      }
+      setAuditLoading(true);
+      setAuditError(null);
+      try {
+        const response = await fetch(apiUrl("/simplebeacon/audit"), {
+          headers: authHeaders(),
+        });
+        if (!response.ok) {
+          if (response.status === 404) {
+            // No audit data on server yet — silently use local data
+            return;
+          }
+          if (response.status === 402 || response.status === 403) {
+            // Free tier or auth — silently use local data
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (!cancelled && data) {
+          setServerAudit(data);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setAuditError(err?.message || "Failed to load audit data");
+        }
+      } finally {
+        if (!cancelled) setAuditLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [importedReport]);
+
+  // Merge server audit payload with local scan report.
+  // Server audit provides: auditLayers, assessment, fictionCatalog, scanScope, gateWarnings, baseline.
+  // Local report provides: rawIssues, detectedIssues, qualityScore, severityCounts, gate.
+  // Prefer server data for audit-specific fields, fall back to local for scan-specific fields.
+  const mergedReport = useMemo<FullReport | null>(() => {
+    if (importedReport) return importedReport;
+    const local = fullReport || (result as any);
+    if (!serverAudit && !local) return null;
+    const serverReport = serverAudit?.report || {};
+    const serverDashboard = serverAudit?.dashboard || {};
+    return {
+      // Local scan report fields (raw data from the scan)
+      ...(local || {}),
+      // Server report fields (enriched audit data)
+      ...serverReport,
+      // Audit-specific fields from server (never overwrite with local undefined)
+      auditLayers: serverAudit?.auditLayers || local?.auditLayers,
+      assessment: serverAudit?.assessment || local?.assessment,
+      fictionCatalog: serverAudit?.fictionCatalog || local?.fictionCatalog,
+      scanScope: serverAudit?.dashboard?.scanScope || serverReport.scanScope || local?.scanScope,
+      gateWarnings: local?.gateWarnings || local?.warningIssues || [],
+      // Prefer server values for key metrics when available
+      qualityScore: serverReport.qualityScore ?? local?.qualityScore ?? null,
+      consistencyScore: serverReport.consistencyScore ?? local?.consistencyScore ?? null,
+      gate: serverReport.gate || local?.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+      totalFiles: serverReport.totalFiles ?? local?.totalFiles ?? 0,
+      issueCount: serverReport.issueCount ?? local?.issueCount ?? 0,
+      severityCounts: serverDashboard.severityCounts || local?.severityCounts || {
+        critical: 0, high: 0, medium: 0, low: 0, info: 0,
+      },
+    } as FullReport;
+  }, [importedReport, fullReport, result, serverAudit]);
+
+  // Use imported report if provided, otherwise use merged data
+  const activeReport = mergedReport;
   const activeResult = importedReport
     ? ({
         totalFiles: importedReport.totalFiles || 0,
@@ -1512,13 +1599,36 @@ export function AuditView() {
           resultsViewScope: "browser-local",
         },
       } as ScanResultData)
-    : result;
+    : (result || (serverAudit?.report
+        ? ({
+            totalFiles: serverAudit.report.totalFiles || serverAudit.dashboard?.totalFiles || 0,
+            issueCount: serverAudit.report.issueCount || 0,
+            severityCounts: serverAudit.dashboard?.severityCounts || {
+              critical: 0, high: 0, medium: 0, low: 0, info: 0,
+            },
+            gate: serverAudit.report.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+            qualityScore: serverAudit.report.qualityScore ?? null,
+            projectPath: serverAudit.report.projectRoot || serverAudit.dashboard?.projectPath || "",
+            scanScope: serverAudit.dashboard?.scanScope || { profile: "standard" },
+          } as ScanResultData)
+        : null));
 
-  // Derive audit layers from the full report
+  // Derive audit layers from the full report, merging server audit layers
+  // with client-derived layers (server doesn't include securityPatterns/llmSlop)
   const auditLayers = useMemo<AuditLayers>(() => {
-    if (activeReport?.auditLayers) return activeReport.auditLayers;
-    if (activeReport) return deriveAuditLayers(activeReport as FullReport);
-    return {};
+    const serverLayers = activeReport?.auditLayers;
+    const clientLayers = activeReport
+      ? deriveAuditLayers(activeReport as FullReport)
+      : {};
+    if (!serverLayers) return clientLayers;
+    // Merge: server layers take precedence, but add client-only layers (securityPatterns, llmSlop)
+    return {
+      ...clientLayers,
+      ...serverLayers,
+      // Keep client-derived securityPatterns and llmSlop if server doesn't provide them
+      securityPatterns: serverLayers.securityPatterns || clientLayers.securityPatterns,
+      llmSlop: serverLayers.llmSlop || clientLayers.llmSlop,
+    } as AuditLayers;
   }, [activeReport]);
 
   const gateWarnings = useMemo<GateWarning[]>(() => {
@@ -1530,7 +1640,103 @@ export function AuditView() {
   }, [activeReport]);
 
   const assessment = useMemo<Assessment | null>(() => {
-    return activeReport?.assessment || null;
+    const serverAssessment = activeReport?.assessment || null;
+    // If the server assessment has a compliance checklist with at least one non-skip rule,
+    // trust it and return as-is.
+    if (
+      serverAssessment?.complianceChecklist?.rules?.some(
+        (r) => r.status !== "skip",
+      )
+    ) {
+      return serverAssessment;
+    }
+    // Otherwise, derive compliance checklist client-side from the report data.
+    // This handles the case where the Render backend has no scan data (all rules
+    // would be "skip") but the user has local scan data in localStorage.
+    const report = activeReport as FullReport | null;
+    if (!report) return serverAssessment;
+    const filesScanned =
+      report.totalFiles ?? report.filesAnalyzed ?? 0;
+    const gatePass = report.gate?.pass === true;
+    const credScanned = report.credentialScanned ?? 0;
+    const credFindings = report.credentialFindings ?? 0;
+    const leakScanned = report.productionLeakScanned ?? 0;
+    const leakFindings = report.productionLeakFindings ?? 0;
+    const schemaChecked = report.schemaChecked ?? 0;
+    const schemaPassed = report.schemaPassed ?? 0;
+    const consistencyChecked = report.consistencyChecked ?? 0;
+    const consistencyPassed =
+      report.consistencyPassed === true
+        ? consistencyChecked
+        : (report.consistencyPassed ?? 0);
+    const consistencyScore =
+      report.consistencyScore ??
+      (consistencyChecked
+        ? Math.round((consistencyPassed / consistencyChecked) * 100)
+        : 0);
+
+    const rules: ComplianceRule[] = [
+      {
+        id: "GATE-001",
+        title: "Merge gate passes on configured severities",
+        status:
+          filesScanned === 0 && !gatePass
+            ? "skip"
+            : gatePass
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "CRED-001",
+        title: "No credential or secret patterns in scanned paths",
+        status:
+          credScanned === 0
+            ? "skip"
+            : credFindings === 0
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "LEAK-001",
+        title: "No mock/sample JSON paths referenced from production directories",
+        status:
+          leakScanned === 0
+            ? "skip"
+            : leakFindings === 0
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "DATA-001",
+        title: "Registered page samples match schema specs",
+        status:
+          schemaChecked === 0
+            ? "skip"
+            : schemaPassed === schemaChecked
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "DATA-002",
+        title: "No fiction KPI or baseline drift in anchor samples",
+        status:
+          consistencyChecked === 0
+            ? "skip"
+            : consistencyScore >= 95
+              ? "pass"
+              : "fail",
+      },
+    ];
+    const passed = rules.filter((r) => r.status === "pass").length;
+    const failed = rules.filter((r) => r.status === "fail").length;
+    const skipped = rules.filter((r) => r.status === "skip").length;
+    return {
+      ...serverAssessment,
+      complianceChecklist: {
+        rules,
+        summary: { passed, failed, skipped },
+      },
+    } as Assessment;
   }, [activeReport]);
 
   const fictionCatalog = useMemo(() => {
@@ -1661,7 +1867,7 @@ export function AuditView() {
 
   // ── Empty state ──────────────────────────────────────────────────────────
 
-  if (!activeResult && !importedReport) {
+  if (!activeResult && !importedReport && !serverAudit) {
     return (
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
@@ -1672,16 +1878,27 @@ export function AuditView() {
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
-            <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">
-              No scan results loaded
-            </p>
-            <p className="text-xs text-foreground-muted">
-              Run a scan from the Analyze page or import a report below
-            </p>
-            <Button className="mt-2" onClick={() => navigate("analyze")}>
-              <Play className="h-4 w-4" /> Go to Analyze
-            </Button>
+            {auditLoading ? (
+              <>
+                <Activity className="h-12 w-12 text-info animate-pulse" />
+                <p className="text-sm text-foreground-muted">
+                  Loading audit data from server…
+                </p>
+              </>
+            ) : (
+              <>
+                <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
+                <p className="text-sm text-foreground-muted">
+                  No scan results loaded
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  Run a scan from the Analyze page or import a report below
+                </p>
+                <Button className="mt-2" onClick={() => navigate("analyze")}>
+                  <Play className="h-4 w-4" /> Go to Analyze
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
         <ImportReportSection onLoad={handleImport} />
@@ -1714,8 +1931,29 @@ export function AuditView() {
               Imported
             </Badge>
           )}
+          {serverAudit && !importedReport && (
+            <Badge variant="success" className="ml-2 text-xs">
+              Server audit
+            </Badge>
+          )}
         </p>
       </div>
+
+      {/* Audit loading indicator */}
+      {auditLoading && (
+        <div className="flex items-center gap-2 rounded-md border border-info/30 bg-info/5 p-3 text-sm">
+          <Activity className="h-4 w-4 text-info animate-pulse" />
+          <span className="text-info">Loading audit data from server…</span>
+        </div>
+      )}
+      {auditError && (
+        <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs">
+          <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+          <span className="text-foreground-muted">
+            Server audit unavailable: {auditError}. Showing locally stored data.
+          </span>
+        </div>
+      )}
 
       {/* Top metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,4 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Settings,
   Key,
@@ -16,21 +22,24 @@ import {
   CreditCard,
   ExternalLink,
   AlertCircle,
-} from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { apiUrl, authHeaders, waitForApiBase } from '@/config';
-import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
-import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
-import { ProrationPreview } from '@/components/ProrationPreview';
+} from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { apiUrl, authHeaders, waitForApiBase } from "@/config";
+import {
+  isNotificationsEnabled,
+  setNotificationsEnabled as setNotificationsPreference,
+} from "@utils/utils-lib/dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
+import { ReferralAnalyticsPanel } from "@/components/ReferralAnalyticsPanel";
+import { ProrationPreview } from "@/components/ProrationPreview";
 
 interface AiKeysState {
   openai: { configured: boolean; hint: string };
@@ -40,67 +49,79 @@ interface AiKeysState {
   updatedAt: string | null;
 }
 
-const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
-const PROVIDER_DISCOVERY_CACHE_KEY = 'simplebeacon_provider_discovery_cache';
+const MODEL_PREFS_STORAGE_KEY = "simplebeacon_ai_model_preferences";
+const PROVIDER_DISCOVERY_CACHE_KEY = "simplebeacon_provider_discovery_cache";
 const PROVIDER_DISCOVERY_TTL_MS = 15000;
-const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+const BROWSER_OLLAMA_URL = "http://127.0.0.1:11434";
 const OLLAMA_REGISTRY_MODELS: string[] = [
-  'llama3.2',
-  'llama3.1',
-  'llama3',
-  'llama2',
-  'mistral',
-  'mistral-nemo',
-  'mixtral',
-  'codellama',
-  'codegemma',
-  'qwen2.5-coder',
-  'deepseek-coder-v2',
-  'phi3',
-  'phi3.5',
-  'gemma2',
-  'gemma',
-  'qwen2.5',
-  'qwen2',
-  'yi',
-  'llava',
-  'llava-llama3',
-  'dolphin-llama3',
-  'dolphin-mistral',
-  'wizardlm2',
-  'orca2',
-  'command-r',
-  'command-r-plus',
-  'starcoder2',
-  'stable-code',
-  'mathstral',
-  'granite-code',
-  'smollm2',
-  'llama3.2-vision',
+  "llama3.2",
+  "llama3.1",
+  "llama3",
+  "llama2",
+  "mistral",
+  "mistral-nemo",
+  "mixtral",
+  "codellama",
+  "codegemma",
+  "qwen2.5-coder",
+  "deepseek-coder-v2",
+  "phi3",
+  "phi3.5",
+  "gemma2",
+  "gemma",
+  "qwen2.5",
+  "qwen2",
+  "yi",
+  "llava",
+  "llava-llama3",
+  "dolphin-llama3",
+  "dolphin-mistral",
+  "wizardlm2",
+  "orca2",
+  "command-r",
+  "command-r-plus",
+  "starcoder2",
+  "stable-code",
+  "mathstral",
+  "granite-code",
+  "smollm2",
+  "llama3.2-vision",
 ];
-const PROVIDER_MODEL_OPTIONS: Record<'ollama' | 'openai' | 'anthropic', string[]> = {
+const PROVIDER_MODEL_OPTIONS: Record<
+  "ollama" | "openai" | "anthropic",
+  string[]
+> = {
   ollama: OLLAMA_REGISTRY_MODELS,
-  openai: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o3-mini'],
-  anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
+  openai: ["gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini", "o3-mini"],
+  anthropic: [
+    "claude-3-7-sonnet-latest",
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-haiku-latest",
+  ],
 };
 
 /**
  * Probe Ollama directly from the browser (for hosted dashboard where server
  * can't reach user's local Ollama). Returns discovered model names or null.
  */
-async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<string[] | null> {
+async function probeBrowserOllama(
+  baseUrl: string,
+  timeoutMs = 2500,
+): Promise<string[] | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+    const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/tags`, {
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
     clearTimeout(timer);
     if (!res.ok) return null;
     const data = await res.json();
     if (Array.isArray(data.models)) {
-      return data.models.map((m: any) => m.name).filter((n: string) => typeof n === 'string' && n.trim());
+      return data.models
+        .map((m: any) => m.name)
+        .filter((n: string) => typeof n === "string" && n.trim());
     }
     return [];
   } catch {
@@ -109,18 +130,18 @@ async function probeBrowserOllama(baseUrl: string, timeoutMs = 2500): Promise<st
 }
 
 function readModelPrefs(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(MODEL_PREFS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
 function writeModelPrefs(next: Record<string, string>) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(MODEL_PREFS_STORAGE_KEY, JSON.stringify(next));
   } catch {
@@ -129,15 +150,18 @@ function writeModelPrefs(next: Record<string, string>) {
 }
 
 function readProviderDiscoveryCache(): string[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(PROVIDER_DISCOVERY_CACHE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    if (!parsed || typeof parsed !== 'object') return [];
-    if (typeof parsed.fetchedAt !== 'number') return [];
+    if (!parsed || typeof parsed !== "object") return [];
+    if (typeof parsed.fetchedAt !== "number") return [];
     if (Date.now() - parsed.fetchedAt > PROVIDER_DISCOVERY_TTL_MS) return [];
     return Array.isArray(parsed.ollamaModels)
-      ? parsed.ollamaModels.filter((m: unknown): m is string => typeof m === 'string' && m.trim().length > 0)
+      ? parsed.ollamaModels.filter(
+          (m: unknown): m is string =>
+            typeof m === "string" && m.trim().length > 0,
+        )
       : [];
   } catch {
     return [];
@@ -145,14 +169,14 @@ function readProviderDiscoveryCache(): string[] {
 }
 
 function writeProviderDiscoveryCache(ollamaModels: string[]) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(
       PROVIDER_DISCOVERY_CACHE_KEY,
       JSON.stringify({
         fetchedAt: Date.now(),
         ollamaModels,
-      })
+      }),
     );
   } catch {
     // best-effort only
@@ -163,21 +187,24 @@ export function SettingsView() {
   const [enabled, setEnabled] = useState(isNotificationsEnabled());
   const { user } = useAuth();
   const [defaultProjectPath, setDefaultProjectPath] = useState(
-    () => localStorage.getItem('simplebeacon_default_project_path') || ''
+    () => localStorage.getItem("simplebeacon_default_project_path") || "",
   );
   const [productionPaths, setProductionPaths] = useState(
-    () => localStorage.getItem('simplebeacon_production_paths') || ''
+    () => localStorage.getItem("simplebeacon_production_paths") || "",
   );
   const [savingPaths, setSavingPaths] = useState(false);
 
   const handleSavePaths = useCallback(() => {
     setSavingPaths(true);
     try {
-      localStorage.setItem('simplebeacon_default_project_path', defaultProjectPath);
-      localStorage.setItem('simplebeacon_production_paths', productionPaths);
-      toast.success('Scan paths saved');
+      localStorage.setItem(
+        "simplebeacon_default_project_path",
+        defaultProjectPath,
+      );
+      localStorage.setItem("simplebeacon_production_paths", productionPaths);
+      toast.success("Scan paths saved");
     } catch {
-      toast.error('Failed to save scan paths');
+      toast.error("Failed to save scan paths");
     } finally {
       setSavingPaths(false);
     }
@@ -187,7 +214,9 @@ export function SettingsView() {
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-foreground-muted">Configure API keys, scan paths, AI providers, and preferences</p>
+        <p className="text-foreground-muted">
+          Configure API keys, scan paths, AI providers, and preferences
+        </p>
       </div>
 
       <Tabs defaultValue="ai">
@@ -213,11 +242,15 @@ export function SettingsView() {
           <Card>
             <CardHeader>
               <CardTitle>Scan Paths</CardTitle>
-              <CardDescription>Configure which directories to scan</CardDescription>
+              <CardDescription>
+                Configure which directories to scan
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="default-project-path">Default Project Path</Label>
+                <Label htmlFor="default-project-path">
+                  Default Project Path
+                </Label>
                 <Input
                   id="default-project-path"
                   placeholder="/path/to/project"
@@ -235,7 +268,7 @@ export function SettingsView() {
                 />
               </div>
               <Button onClick={handleSavePaths} disabled={savingPaths}>
-                {savingPaths ? 'Saving...' : 'Save Paths'}
+                {savingPaths ? "Saving..." : "Save Paths"}
               </Button>
             </CardContent>
           </Card>
@@ -249,7 +282,9 @@ export function SettingsView() {
           <Card>
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
-              <CardDescription>Configure scan and alert notifications</CardDescription>
+              <CardDescription>
+                Configure scan and alert notifications
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-3">
@@ -264,7 +299,9 @@ export function SettingsView() {
                   }}
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <Label htmlFor="notifications-toggle">Enable desktop notifications</Label>
+                <Label htmlFor="notifications-toggle">
+                  Enable desktop notifications
+                </Label>
               </div>
             </CardContent>
           </Card>
@@ -287,7 +324,10 @@ export function SettingsView() {
 
 function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
   const [loading, setLoading] = useState(false);
-  const [billingStatus, setBillingStatus] = useState<{ tier: string; subscriptionActive: boolean } | null>(null);
+  const [billingStatus, setBillingStatus] = useState<{
+    tier: string;
+    subscriptionActive: boolean;
+  } | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -295,11 +335,11 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
     try {
       const parsed = new URL(url);
       if (
-        parsed.hostname === 'checkout.stripe.com' ||
-        parsed.hostname === 'billing.stripe.com' ||
-        parsed.hostname.endsWith('.stripe.com')
+        parsed.hostname === "checkout.stripe.com" ||
+        parsed.hostname === "billing.stripe.com" ||
+        parsed.hostname.endsWith(".stripe.com")
       ) {
-        window.open(parsed.href, '_self');
+        window.open(parsed.href, "_self");
         return true;
       }
       return false;
@@ -316,12 +356,20 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
     }
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl(`/simplebeacon/billing/status?email=${encodeURIComponent(userEmail)}`), {
-        headers: authHeaders(),
-      });
+      const resp = await fetch(
+        apiUrl(
+          `/simplebeacon/billing/status?email=${encodeURIComponent(userEmail)}`,
+        ),
+        {
+          headers: authHeaders(),
+        },
+      );
       if (resp.ok) {
         const data = await resp.json();
-        setBillingStatus({ tier: data.tier || 'free', subscriptionActive: Boolean(data.subscriptionActive) });
+        setBillingStatus({
+          tier: data.tier || "free",
+          subscriptionActive: Boolean(data.subscriptionActive),
+        });
       }
     } catch {
       // Billing status unavailable — show the manage button anyway
@@ -336,39 +384,50 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
 
   const handleManageSubscription = async () => {
     if (!userEmail) {
-      toast.error('You must be signed in to manage your subscription');
+      toast.error("You must be signed in to manage your subscription");
       return;
     }
     setLoading(true);
     setError(null);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/simplebeacon/billing/portal'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      const resp = await fetch(apiUrl("/simplebeacon/billing/portal"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ email: userEmail }),
       });
       const data = await resp.json();
       if (resp.ok && data.url) {
         if (!safeStripeRedirect(data.url)) {
-          setError('Invalid redirect URL received from billing service');
+          setError("Invalid redirect URL received from billing service");
           return;
         }
       } else if (resp.status === 503) {
-        setError('Billing is not yet configured. Paid plans will be available soon.');
+        setError(
+          "Billing is not yet configured. Paid plans will be available soon.",
+        );
       } else if (resp.status === 404) {
-        setError('No active subscription found. Visit the pricing page to subscribe.');
+        setError(
+          "No active subscription found. Visit the pricing page to subscribe.",
+        );
       } else {
-        setError(data.error || data.message || `Failed to open billing portal (${resp.status})`);
+        setError(
+          data.error ||
+            data.message ||
+            `Failed to open billing portal (${resp.status})`,
+        );
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to connect to billing service');
+      setError(e.message || "Failed to connect to billing service");
     } finally {
       setLoading(false);
     }
   };
 
-  const isPaid = billingStatus && billingStatus.subscriptionActive && billingStatus.tier !== 'free';
+  const isPaid =
+    billingStatus &&
+    billingStatus.subscriptionActive &&
+    billingStatus.tier !== "free";
 
   return (
     <Card>
@@ -377,24 +436,34 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
           <CreditCard className="h-5 w-5" />
           Subscription
         </CardTitle>
-        <CardDescription>Manage your plan, upgrade, downgrade, or cancel your subscription.</CardDescription>
+        <CardDescription>
+          Manage your plan, upgrade, downgrade, or cancel your subscription.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {statusLoading ? (
           <div className="flex items-center gap-2 text-sm text-foreground-muted">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading subscription status…
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading subscription
+            status…
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Current Plan</span>
-                <Badge variant={isPaid ? 'default' : 'secondary'} className="capitalize">
-                  {billingStatus?.tier || 'free'}
+                <Badge
+                  variant={isPaid ? "default" : "secondary"}
+                  className="capitalize"
+                >
+                  {billingStatus?.tier || "free"}
                 </Badge>
               </div>
               {!isPaid && (
-                <Button size="sm" variant="outline" onClick={() => window.open('/pricing.html', '_blank')}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.open("/pricing.html", "_blank")}
+                >
                   <ExternalLink className="h-4 w-4 mr-1" /> View Plans
                 </Button>
               )}
@@ -403,14 +472,21 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
             <Separator />
 
             <div className="flex flex-col gap-3">
-              <Button onClick={handleManageSubscription} disabled={loading || !userEmail}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+              <Button
+                onClick={handleManageSubscription}
+                disabled={loading || !userEmail}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <CreditCard className="h-4 w-4 mr-2" />
+                )}
                 Manage Subscription
               </Button>
               <p className="text-xs text-foreground-muted">
                 {isPaid
-                  ? 'Upgrade, downgrade, update payment methods, or cancel via Stripe.'
-                  : 'Subscribe on the pricing page, then manage your plan here.'}
+                  ? "Upgrade, downgrade, update payment methods, or cancel via Stripe."
+                  : "Subscribe on the pricing page, then manage your plan here."}
               </p>
             </div>
 
@@ -428,10 +504,10 @@ function ManageSubscriptionCard({ userEmail }: { userEmail?: string | null }) {
 }
 
 function ApiKeysTab() {
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [anthropicKey, setAnthropicKey] = useState('');
-  const [openaiHint, setOpenaiHint] = useState('');
-  const [anthropicHint, setAnthropicHint] = useState('');
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [openaiHint, setOpenaiHint] = useState("");
+  const [anthropicHint, setAnthropicHint] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -439,11 +515,13 @@ function ApiKeysTab() {
     setLoading(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
-        setOpenaiHint(data.openai?.hint || '');
-        setAnthropicHint(data.anthropic?.hint || '');
+        setOpenaiHint(data.openai?.hint || "");
+        setAnthropicHint(data.anthropic?.hint || "");
       }
     } catch {
       // API unavailable — allow manual entry
@@ -463,24 +541,24 @@ function ApiKeysTab() {
       const payload: Record<string, string> = {};
       if (openaiKey) payload.openai = openaiKey;
       if (anthropicKey) payload.anthropic = anthropicKey;
-      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
       if (resp.ok) {
         const data = await resp.json();
-        setOpenaiHint(data.openai?.hint || '');
-        setAnthropicHint(data.anthropic?.hint || '');
-        setOpenaiKey('');
-        setAnthropicKey('');
-        toast.success('API keys saved');
+        setOpenaiHint(data.openai?.hint || "");
+        setAnthropicHint(data.anthropic?.hint || "");
+        setOpenaiKey("");
+        setAnthropicKey("");
+        toast.success("API keys saved");
       } else {
         const data = await resp.json().catch(() => ({}));
         toast.error(data.error || `Save failed (${resp.status})`);
       }
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save API keys');
+      toast.error(e.message || "Failed to save API keys");
     } finally {
       setSaving(false);
     }
@@ -490,21 +568,21 @@ function ApiKeysTab() {
     setSaving(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
-        method: 'DELETE',
+      const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+        method: "DELETE",
         headers: authHeaders(),
       });
       if (resp.ok) {
-        setOpenaiHint('');
-        setAnthropicHint('');
-        setOpenaiKey('');
-        setAnthropicKey('');
-        toast.success('API keys cleared');
+        setOpenaiHint("");
+        setAnthropicHint("");
+        setOpenaiKey("");
+        setAnthropicKey("");
+        toast.success("API keys cleared");
       } else {
-        toast.error('Failed to clear keys');
+        toast.error("Failed to clear keys");
       }
     } catch (e: any) {
-      toast.error(e.message || 'Failed to clear API keys');
+      toast.error(e.message || "Failed to clear API keys");
     } finally {
       setSaving(false);
     }
@@ -514,7 +592,9 @@ function ApiKeysTab() {
     <Card>
       <CardHeader>
         <CardTitle>API Keys</CardTitle>
-        <CardDescription>Manage API keys for scanning and analysis. Keys are encrypted at rest.</CardDescription>
+        <CardDescription>
+          Manage API keys for scanning and analysis. Keys are encrypted at rest.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? (
@@ -535,7 +615,11 @@ function ApiKeysTab() {
               <Input
                 id="openai-api-key"
                 type="password"
-                placeholder={openaiHint ? 'sk-… (configured — enter new key to replace)' : 'sk-...'}
+                placeholder={
+                  openaiHint
+                    ? "sk-… (configured — enter new key to replace)"
+                    : "sk-..."
+                }
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
               />
@@ -552,19 +636,32 @@ function ApiKeysTab() {
               <Input
                 id="anthropic-api-key"
                 type="password"
-                placeholder={anthropicHint ? 'sk-ant-… (configured — enter new key to replace)' : 'sk-ant-...'}
+                placeholder={
+                  anthropicHint
+                    ? "sk-ant-… (configured — enter new key to replace)"
+                    : "sk-ant-..."
+                }
                 value={anthropicKey}
                 onChange={(e) => setAnthropicKey(e.target.value)}
               />
             </div>
             <Separator />
             <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving || (!openaiKey && !anthropicKey)}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button
+                onClick={handleSave}
+                disabled={saving || (!openaiKey && !anthropicKey)}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Save Keys
               </Button>
               {(openaiHint || anthropicHint) && (
-                <Button variant="outline" onClick={handleClear} disabled={saving}>
+                <Button
+                  variant="outline"
+                  onClick={handleClear}
+                  disabled={saving}
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Clear All
                 </Button>
@@ -578,16 +675,20 @@ function ApiKeysTab() {
 }
 
 function AiProvidersTab() {
-  const [ollamaUrl, setOllamaUrl] = useState('');
-  const [ollamaModel, setOllamaModel] = useState('');
-  const [openaiModel, setOpenaiModel] = useState('');
-  const [anthropicModel, setAnthropicModel] = useState('');
+  const [ollamaUrl, setOllamaUrl] = useState("");
+  const [ollamaModel, setOllamaModel] = useState("");
+  const [openaiModel, setOpenaiModel] = useState("");
+  const [anthropicModel, setAnthropicModel] = useState("");
   const [openaiConfigured, setOpenaiConfigured] = useState(false);
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
   const [dynamicOllamaModels, setDynamicOllamaModels] = useState<string[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<'ollama' | 'openai' | 'anthropic'>('ollama');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [modelPrefs, setModelPrefs] = useState<Record<string, string>>(() => readModelPrefs());
+  const [selectedProvider, setSelectedProvider] = useState<
+    "ollama" | "openai" | "anthropic"
+  >("ollama");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [modelPrefs, setModelPrefs] = useState<Record<string, string>>(() =>
+    readModelPrefs(),
+  );
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -595,13 +696,34 @@ function AiProvidersTab() {
     setLoading(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
-        setOllamaUrl(data.ollamaBaseUrl || '');
-        setOllamaModel(data.ollamaModel || '');
-        setOpenaiModel(data.openaiModel || '');
-        setAnthropicModel(data.anthropicModel || '');
+        // Sanitize Ollama URL — if it points at a dev server or the current page origin,
+        // fall back to the default Ollama port (11434) instead of causing ECONNREFUSED errors.
+        const rawOllamaUrl = data.ollamaBaseUrl || "";
+        const OLLAMA_DEFAULT = "http://127.0.0.1:11434";
+        let safeOllamaUrl = rawOllamaUrl;
+        try {
+          if (rawOllamaUrl) {
+            const parsed = new URL(rawOllamaUrl);
+            const nonOllamaPorts = new Set([61455, 54358, 54697, 58681, 58000, 53900, 3000, 8080]);
+            const port = parseInt(parsed.port, 10);
+            if (Number.isFinite(port) && nonOllamaPorts.has(port)) {
+              safeOllamaUrl = OLLAMA_DEFAULT;
+            } else if (rawOllamaUrl.replace(/\/+$/, "") === window.location.origin) {
+              safeOllamaUrl = OLLAMA_DEFAULT;
+            }
+          }
+        } catch {
+          safeOllamaUrl = OLLAMA_DEFAULT;
+        }
+        setOllamaUrl(safeOllamaUrl);
+        setOllamaModel(data.ollamaModel || "");
+        setOpenaiModel(data.openaiModel || "");
+        setAnthropicModel(data.anthropicModel || "");
         setOpenaiConfigured(data.providers?.openai?.configured || false);
         setAnthropicConfigured(data.providers?.anthropic?.configured || false);
         const merged = {
@@ -617,16 +739,20 @@ function AiProvidersTab() {
       if (cachedModels.length > 0) {
         setDynamicOllamaModels(cachedModels);
       } else {
-        const providersResp = await fetch(apiUrl('/chatbot/providers'), {
-          method: 'GET',
+        const providersResp = await fetch(apiUrl("/chatbot/providers"), {
+          method: "GET",
           headers: authHeaders(),
         });
         if (providersResp.ok) {
           const providersData = await providersResp.json();
-          const providerList = Array.isArray(providersData.providers) ? providersData.providers : [];
-          const ollamaMeta = providerList.find((p: any) => p?.id === 'ollama');
+          const providerList = Array.isArray(providersData.providers)
+            ? providersData.providers
+            : [];
+          const ollamaMeta = providerList.find((p: any) => p?.id === "ollama");
           const discoveredModels = Array.isArray(ollamaMeta?.models)
-            ? ollamaMeta.models.filter((m: any) => typeof m === 'string' && m.trim())
+            ? ollamaMeta.models.filter(
+                (m: any) => typeof m === "string" && m.trim(),
+              )
             : [];
           if (discoveredModels.length > 0) {
             setDynamicOllamaModels(discoveredModels);
@@ -638,8 +764,8 @@ function AiProvidersTab() {
       // On the hosted dashboard, the server can't reach the user's local Ollama.
       // Probe directly from the browser to discover installed models.
       const isHosted =
-        typeof window !== 'undefined' &&
-        window.location.protocol === 'https:' &&
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
         !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
       if (isHosted) {
         const browserModels = await probeBrowserOllama(BROWSER_OLLAMA_URL);
@@ -668,25 +794,39 @@ function AiProvidersTab() {
   }, [load]);
 
   useEffect(() => {
-    const fromPrefs = modelPrefs[selectedProvider] || '';
+    const fromPrefs = modelPrefs[selectedProvider] || "";
     const fallbackOptions =
-      selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
+      selectedProvider === "ollama" && dynamicOllamaModels.length > 0
         ? dynamicOllamaModels
         : PROVIDER_MODEL_OPTIONS[selectedProvider];
-    const fallback = fallbackOptions[0] || '';
+    const fallback = fallbackOptions[0] || "";
     const stored =
-      selectedProvider === 'ollama' ? ollamaModel : selectedProvider === 'openai' ? openaiModel : anthropicModel;
+      selectedProvider === "ollama"
+        ? ollamaModel
+        : selectedProvider === "openai"
+          ? openaiModel
+          : anthropicModel;
     setSelectedModel(fromPrefs || stored || fallback);
-  }, [selectedProvider, modelPrefs, ollamaModel, openaiModel, anthropicModel, dynamicOllamaModels]);
+  }, [
+    selectedProvider,
+    modelPrefs,
+    ollamaModel,
+    openaiModel,
+    anthropicModel,
+    dynamicOllamaModels,
+  ]);
 
   const availableModelOptions =
-    selectedProvider === 'ollama'
+    selectedProvider === "ollama"
       ? dynamicOllamaModels.length > 0
         ? dynamicOllamaModels
         : PROVIDER_MODEL_OPTIONS[selectedProvider]
       : PROVIDER_MODEL_OPTIONS[selectedProvider];
-  const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
-  const oracleInstalledSettings = selectedProvider === 'ollama' && availableModelOptions.includes('unbreakable-oracle');
+  const isCustomModel =
+    Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
+  const oracleInstalledSettings =
+    selectedProvider === "ollama" &&
+    availableModelOptions.includes("unbreakable-oracle");
 
   const handleSave = async () => {
     setSaving(true);
@@ -697,14 +837,17 @@ function AiProvidersTab() {
 
       await waitForApiBase();
       const payload =
-        selectedProvider === 'ollama'
-          ? { ollamaBaseUrl: ollamaUrl, ollamaModel: selectedModel || ollamaModel }
-          : selectedProvider === 'openai'
+        selectedProvider === "ollama"
+          ? {
+              ollamaBaseUrl: ollamaUrl,
+              ollamaModel: selectedModel || ollamaModel,
+            }
+          : selectedProvider === "openai"
             ? { openaiModel: selectedModel }
             : { anthropicModel: selectedModel };
-      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
       if (resp.ok) {
@@ -712,12 +855,16 @@ function AiProvidersTab() {
         setOllamaModel(result.ollamaModel || selectedModel || ollamaModel);
         setOpenaiModel(result.openaiModel || openaiModel);
         setAnthropicModel(result.anthropicModel || anthropicModel);
-        toast.success(selectedProvider === 'ollama' ? 'Ollama configuration saved' : 'Model preference saved');
+        toast.success(
+          selectedProvider === "ollama"
+            ? "Ollama configuration saved"
+            : "Model preference saved",
+        );
       } else {
-        toast.error('Failed to save model configuration');
+        toast.error("Failed to save model configuration");
       }
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save');
+      toast.error(e.message || "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -727,7 +874,8 @@ function AiProvidersTab() {
     return (
       <Card>
         <CardContent className="flex items-center gap-2 py-8 text-sm text-foreground-muted">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading AI provider configuration…
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading AI provider
+          configuration…
         </CardContent>
       </Card>
     );
@@ -738,16 +886,28 @@ function AiProvidersTab() {
       <CardHeader>
         <CardTitle>AI Providers</CardTitle>
         <CardDescription>
-          Configure AI analysis providers for the chatbot and narrative summaries. Outputs are AI-generated — EU AI Act
-          Article 50 disclosure.
+          Configure AI analysis providers for the chatbot and narrative
+          summaries. Outputs are AI-generated — EU AI Act Article 50 disclosure.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Provider Status */}
         <div className="grid gap-3 sm:grid-cols-3">
-          <ProviderStatusCard label="OpenAI" configured={openaiConfigured} hint="Configure in API Keys tab" />
-          <ProviderStatusCard label="Anthropic" configured={anthropicConfigured} hint="Configure in API Keys tab" />
-          <ProviderStatusCard label="Ollama" configured={!!ollamaUrl} hint="Configure below" />
+          <ProviderStatusCard
+            label="OpenAI"
+            configured={openaiConfigured}
+            hint="Configure in API Keys tab"
+          />
+          <ProviderStatusCard
+            label="Anthropic"
+            configured={anthropicConfigured}
+            hint="Configure in API Keys tab"
+          />
+          <ProviderStatusCard
+            label="Ollama"
+            configured={!!ollamaUrl}
+            hint="Configure below"
+          />
         </div>
 
         <Separator />
@@ -763,7 +923,11 @@ function AiProvidersTab() {
               <Label>AI Provider</Label>
               <select
                 value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value as 'ollama' | 'openai' | 'anthropic')}
+                onChange={(e) =>
+                  setSelectedProvider(
+                    e.target.value as "ollama" | "openai" | "anthropic",
+                  )
+                }
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="ollama">Ollama (Local)</option>
@@ -774,22 +938,26 @@ function AiProvidersTab() {
             <div className="space-y-2">
               <Label>Model</Label>
               <select
-                value={isCustomModel ? '__custom__' : selectedModel}
+                value={isCustomModel ? "__custom__" : selectedModel}
                 onChange={(e) => {
-                  if (e.target.value === '__oracle_install__') {
-                    window.open('/dashboard/#/chatbot', '_blank');
+                  if (e.target.value === "__oracle_install__") {
+                    window.open("/dashboard/#/chatbot", "_blank");
                     return;
                   }
-                  if (e.target.value === '__custom__') return;
+                  if (e.target.value === "__custom__") return;
                   setSelectedModel(e.target.value);
                 }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                {selectedProvider === 'ollama' &&
+                {selectedProvider === "ollama" &&
                   (oracleInstalledSettings ? (
-                    <option value="unbreakable-oracle">★ unbreakable-oracle (installed)</option>
+                    <option value="unbreakable-oracle">
+                      ★ unbreakable-oracle (installed)
+                    </option>
                   ) : (
-                    <option value="__oracle_install__">★ Unbreakable Oracle — Click to install…</option>
+                    <option value="__oracle_install__">
+                      ★ Unbreakable Oracle — Click to install…
+                    </option>
                   ))}
                 {availableModelOptions.map((model) => (
                   <option key={model} value={model}>
@@ -821,16 +989,19 @@ function AiProvidersTab() {
               placeholder="http://localhost:11434"
               value={ollamaUrl}
               onChange={(e) => setOllamaUrl(e.target.value)}
-              disabled={selectedProvider !== 'ollama'}
+              disabled={selectedProvider !== "ollama"}
             />
             <p className="text-xs text-foreground-muted">
-              Default: http://localhost:11434 — only used when provider is set to Ollama
+              Default: http://localhost:11434 — only used when provider is set
+              to Ollama
             </p>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {selectedProvider === 'ollama' ? 'Save Ollama Settings' : 'Save Model Preference'}
+            {selectedProvider === "ollama"
+              ? "Save Ollama Settings"
+              : "Save Model Preference"}
           </Button>
         </div>
 
@@ -846,13 +1017,19 @@ function AiProvidersTab() {
               <div>
                 <p className="text-sm font-medium">Unbreakable Oracle</p>
                 <p className="text-xs text-foreground-muted mt-1">
-                  Custom LLM based on llama3.2 (3.2B) with a unique system prompt. Free to download, runs locally.
+                  Custom LLM based on llama3.2 (3.2B) with a unique system
+                  prompt. Free to download, runs locally.
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant={oracleInstalledSettings ? 'default' : 'secondary'} className="text-xs">
-                    {oracleInstalledSettings ? 'Installed' : 'Not installed'}
+                  <Badge
+                    variant={oracleInstalledSettings ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {oracleInstalledSettings ? "Installed" : "Not installed"}
                   </Badge>
-                  <span className="text-xs text-foreground-muted">1.88 GB · Q4_K_M · llama3.2 family</span>
+                  <span className="text-xs text-foreground-muted">
+                    1.88 GB · Q4_K_M · llama3.2 family
+                  </span>
                 </div>
               </div>
             </div>
@@ -867,9 +1044,9 @@ ollama run unbreakable-oracle`}</pre>
               variant="outline"
               onClick={() => {
                 navigator.clipboard.writeText(
-                  'curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle'
+                  "curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle",
                 );
-                toast.success('Copied install commands to clipboard');
+                toast.success("Copied install commands to clipboard");
               }}
             >
               <Copy className="h-3.5 w-3.5 mr-1" /> Copy install commands
@@ -881,28 +1058,46 @@ ollama run unbreakable-oracle`}</pre>
 
         <div className="text-xs text-foreground-muted space-y-1">
           <p>
-            <strong>OpenAI</strong> and <strong>Anthropic</strong> keys are managed in the API Keys tab.
+            <strong>OpenAI</strong> and <strong>Anthropic</strong> keys are
+            managed in the API Keys tab.
           </p>
-          <p>Keys are encrypted at rest (AES-256-GCM) and never exposed back to the browser.</p>
-          <p>The chatbot will use the first available provider in order: Ollama → OpenAI → Anthropic.</p>
+          <p>
+            Keys are encrypted at rest (AES-256-GCM) and never exposed back to
+            the browser.
+          </p>
+          <p>
+            The chatbot will use the first available provider in order: Ollama →
+            OpenAI → Anthropic.
+          </p>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function ProviderStatusCard({ label, configured, hint }: { label: string; configured: boolean; hint: string }) {
+function ProviderStatusCard({
+  label,
+  configured,
+  hint,
+}: {
+  label: string;
+  configured: boolean;
+  hint: string;
+}) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
-        <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
+        <Badge
+          variant={configured ? "default" : "secondary"}
+          className="text-xs"
+        >
           {configured ? (
             <>
               <Check className="h-3 w-3 mr-1" /> Ready
             </>
           ) : (
-            'Not configured'
+            "Not configured"
           )}
         </Badge>
       </div>
@@ -918,26 +1113,31 @@ function ThemeTab() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('sb_theme');
+      const stored = localStorage.getItem("sb_theme");
       setFollowSystem(!stored);
     } catch {
       /* ignore */
     }
   }, []);
 
-  const applyTheme = (next: 'light' | 'dark') => {
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('sb_theme', next);
+  const applyTheme = (next: "light" | "dark") => {
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("sb_theme", next);
     setFollowSystem(false);
     toast.success(`Theme set to ${next} mode`);
   };
 
   const enableFollowSystem = () => {
-    localStorage.removeItem('sb_theme');
+    localStorage.removeItem("sb_theme");
     setFollowSystem(true);
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    toast.success('Theme set to follow system preference');
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    document.documentElement.setAttribute(
+      "data-theme",
+      prefersDark ? "dark" : "light",
+    );
+    toast.success("Theme set to follow system preference");
   };
 
   return (
@@ -956,11 +1156,11 @@ function ThemeTab() {
           <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={() => applyTheme('light')}
+              onClick={() => applyTheme("light")}
               className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
-                theme === 'light' && !followSystem
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/40'
+                theme === "light" && !followSystem
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/40"
               }`}
             >
               <Sun className="h-6 w-6 text-warning" />
@@ -968,11 +1168,11 @@ function ThemeTab() {
             </button>
             <button
               type="button"
-              onClick={() => applyTheme('dark')}
+              onClick={() => applyTheme("dark")}
               className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
-                theme === 'dark' && !followSystem
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/40'
+                theme === "dark" && !followSystem
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/40"
               }`}
             >
               <Moon className="h-6 w-6 text-info" />
@@ -982,7 +1182,9 @@ function ThemeTab() {
               type="button"
               onClick={enableFollowSystem}
               className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
-                followSystem ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                followSystem
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/40"
               }`}
             >
               <Monitor className="h-6 w-6 text-foreground-muted" />
@@ -991,7 +1193,8 @@ function ThemeTab() {
           </div>
           {followSystem && (
             <p className="text-xs text-foreground-muted">
-              Dashboard will match your OS preference. Currently using <strong>{theme}</strong> mode.
+              Dashboard will match your OS preference. Currently using{" "}
+              <strong>{theme}</strong> mode.
             </p>
           )}
         </div>
@@ -1002,11 +1205,22 @@ function ThemeTab() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label>Quick Toggle</Label>
-            <p className="text-xs text-foreground-muted">Switch between light and dark instantly</p>
+            <p className="text-xs text-foreground-muted">
+              Switch between light and dark instantly
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={toggleTheme} className="gap-2">
-            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            {theme === 'light' ? 'Dark' : 'Light'}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleTheme}
+            className="gap-2"
+          >
+            {theme === "light" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            {theme === "light" ? "Dark" : "Light"}
           </Button>
         </div>
 
@@ -1018,11 +1232,18 @@ function ThemeTab() {
             <Label>Current Status</Label>
             <p className="text-xs text-foreground-muted">
               Active theme: <strong className="capitalize">{theme}</strong>
-              {followSystem && ' (following system)'}
+              {followSystem && " (following system)"}
             </p>
           </div>
-          <Badge variant={theme === 'dark' ? 'secondary' : 'outline'} className="gap-1.5">
-            {theme === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
+          <Badge
+            variant={theme === "dark" ? "secondary" : "outline"}
+            className="gap-1.5"
+          >
+            {theme === "dark" ? (
+              <Moon className="h-3 w-3" />
+            ) : (
+              <Sun className="h-3 w-3" />
+            )}
             <span className="capitalize">{theme}</span>
           </Badge>
         </div>

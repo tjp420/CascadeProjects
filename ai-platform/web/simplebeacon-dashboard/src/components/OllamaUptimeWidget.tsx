@@ -146,8 +146,22 @@ export function OllamaUptimeWidget() {
   const [pollInterval, setPollInterval] = useState<ReturnType<
     typeof setInterval
   > | null>(null);
+  const [userOptedIn, setUserOptedIn] = useState(false);
+
+  // On hosted HTTPS dashboards, auto-probing http://127.0.0.1:11434 triggers
+  // Local Network Access permission prompts on every page load. Only probe
+  // after the user explicitly clicks "Check Ollama" or has previously allowed it.
+  const isHostedHttps =
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 
   const fetchHealth = useCallback(async () => {
+    // On hosted HTTPS, don't auto-probe unless the user has opted in
+    if (isHostedHttps && !userOptedIn) {
+      setLoading(false);
+      return;
+    }
     // Probe Ollama directly from the browser — the hosted server cannot
     // reach the user's local Ollama instance.
     const result = await probeBrowserOllama(BROWSER_OLLAMA_URL);
@@ -158,16 +172,20 @@ export function OllamaUptimeWidget() {
       setError(null);
     }
     setLoading(false);
-  }, []);
+  }, [isHostedHttps, userOptedIn]);
 
   useEffect(() => {
     fetchHealth();
+    // Only set up polling interval if user has opted in (or not on hosted HTTPS)
+    if (isHostedHttps && !userOptedIn) {
+      return;
+    }
     const interval = setInterval(fetchHealth, 30000);
     setPollInterval(interval);
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchHealth]);
+  }, [fetchHealth, isHostedHttps, userOptedIn]);
 
   const status = deriveStatus(data);
   const statusConfig = {
@@ -233,10 +251,12 @@ export function OllamaUptimeWidget() {
             size="sm"
             onClick={() => {
               setLoading(true);
+              setUserOptedIn(true);
               fetchHealth();
             }}
             disabled={loading}
             className="h-7 w-7 p-0"
+            title={isHostedHttps && !userOptedIn ? "Click to check Ollama (will request Local Network Access)" : "Refresh"}
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -263,6 +283,14 @@ export function OllamaUptimeWidget() {
             </span>
           )}
         </div>
+
+        {/* Hosted HTTPS opt-in prompt */}
+        {isHostedHttps && !userOptedIn && !loading && (
+          <div className="rounded-md border border-info/30 bg-info/5 p-2 text-xs text-muted-foreground">
+            Click the refresh button above to check if Ollama is running locally.
+            Your browser may ask for Local Network Access permission.
+          </div>
+        )}
 
         {/* Metrics grid */}
         {data && status === "connected" && (

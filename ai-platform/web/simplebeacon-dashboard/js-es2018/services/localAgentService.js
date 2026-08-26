@@ -266,6 +266,35 @@ export function getLocalBridgeFetch() {
 
 const DEFAULT_OLLAMA_ORIGIN = "http://127.0.0.1:11434"; // simplebeacon-ignore hardcoded-url
 const EXTENSION_PROBE_PORTS = [54358, 54697, 58681];
+// Ports that are definitely NOT Ollama — these are dev servers, dashboards, or extension bridges.
+// When a stored Ollama base URL points at one of these, fall back to the default Ollama port.
+const NON_OLLAMA_PORTS = new Set([61455, 54358, 54697, 58681, 58000, 53900, 3000, 8080]);
+
+/**
+ * Sanitize a stored Ollama base URL. If it points at a known non-Ollama port
+ * (dev server, extension bridge, etc.), return the default Ollama origin instead.
+ * @param {string} baseUrl
+ * @returns {string}
+ */
+function sanitizeOllamaBaseUrl(baseUrl) {
+  const normalized = String(baseUrl || "").trim().replace(/\/+$/, "");
+  if (!normalized) return DEFAULT_OLLAMA_ORIGIN;
+  try {
+    const parsed = new URL(normalized);
+    const port = parseInt(parsed.port, 10);
+    if (Number.isFinite(port) && NON_OLLAMA_PORTS.has(port)) {
+      return DEFAULT_OLLAMA_ORIGIN;
+    }
+    // Also catch the case where the stored URL matches the current page origin
+    // (e.g., Vite dev server URL was accidentally saved as the Ollama URL)
+    if (typeof window !== "undefined" && normalized === window.location.origin) {
+      return DEFAULT_OLLAMA_ORIGIN;
+    }
+  } catch {
+    return DEFAULT_OLLAMA_ORIGIN;
+  }
+  return normalized;
+}
 
 export function getVsixDownloadUrl() {
   return VSIX_DOWNLOAD_URL || "/downloads/simplebeacon-3.0.518.vsix";
@@ -482,10 +511,7 @@ export function resolveOllamaProxyUrl(
   ollamaPath,
   baseUrl = DEFAULT_OLLAMA_ORIGIN,
 ) {
-  const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(
-    /\/+$/,
-    "",
-  );
+  const normalized = sanitizeOllamaBaseUrl(baseUrl);
   const path = String(ollamaPath || "").startsWith("/")
     ? String(ollamaPath)
     : `/${ollamaPath || ""}`;
@@ -536,10 +562,7 @@ async function parseOllamaProbeResponse(res) {
 }
 
 function buildBridgeOllamaProbeUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
-  const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(
-    /\/+$/,
-    "",
-  );
+  const normalized = sanitizeOllamaBaseUrl(baseUrl);
   const bridge = getExtensionBridgeOrigin();
   if (!bridge) {
     return [`${normalized}/api/tags`];
@@ -554,10 +577,7 @@ function buildBridgeOllamaProbeUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
 
 /** Probe URLs for Ollama chat through the extension data server (new + legacy paths). */
 export function buildBridgeOllamaChatUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
-  const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(
-    /\/+$/,
-    "",
-  );
+  const normalized = sanitizeOllamaBaseUrl(baseUrl);
   const bridge = getExtensionBridgeOrigin();
   if (!bridge) {
     return [`${normalized}/api/chat`];
@@ -605,7 +625,7 @@ export async function probeExtensionBridgeHealth() {
  */
 export async function probeLocalOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
   if (typeof window === "undefined") return false;
-  const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, "");
+  const origin = sanitizeOllamaBaseUrl(baseUrl);
   // Hosted dashboard: never auto-probe loopback — use Connect local Ollama (probeUserInitiatedOllama).
   if (isHostedHttpsDashboard()) return false;
   if (!shouldProbeOllamaModels(origin)) return false;
@@ -636,7 +656,7 @@ export async function probeUserInitiatedOllama(
 ) {
   if (typeof window === "undefined")
     return { ok: false, corsBlocked: false, status: 0 };
-  const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, "");
+  const origin = sanitizeOllamaBaseUrl(baseUrl);
   const siteOrigin =
     typeof window !== "undefined"
       ? window.location.origin

@@ -11,8 +11,10 @@ import {
   RefreshCw,
   AlertCircle,
   Download,
+  Database,
 } from "lucide-react";
-import { apiUrl, authHeaders } from "@/config";
+import { apiUrl, authHeaders, waitForApiBase } from "@/config";
+import { getLargeItem } from "@/utils/dbStorage";
 
 type SeverityCounts = Record<string, number>;
 
@@ -28,6 +30,13 @@ type TrustScope = {
   ruleScopedFilesAnalyzed: number;
   schemaChecked: number;
   schemaPassed: number;
+  consistencyScore?: number | null;
+  consistencyChecked?: number | null;
+  consistencyPassed?: number | null;
+  schemaCompliance?: number | null;
+  mockSampleFiles?: number | null;
+  fictionJsonFilesScanned?: number | null;
+  fictionSampleFilesScanned?: number | null;
   rulesEnabled: string[];
   scopeNote?: string;
 };
@@ -85,6 +94,80 @@ type TrustHistory = {
   }>;
 };
 
+/**
+ * Build a trust verification envelope from locally stored scan data.
+ * This is used as a fallback when the server trust API is unavailable.
+ */
+function buildLocalTrustVerification(
+  scanResult: any,
+  fullReport: any,
+): TrustVerification | null {
+  if (!scanResult && !fullReport) return null;
+  const report = fullReport || scanResult || {};
+  const gate = report.gate || scanResult?.gate || {};
+  const severityCounts = report.severityCounts || scanResult?.severityCounts || {};
+  const totalFiles =
+    report.repositoryFilesTotal ||
+    report.totalFiles ||
+    scanResult?.totalFiles ||
+    0;
+  const ruleScoped =
+    report.ruleScopedFilesAnalyzed ||
+    report.filesAnalyzed ||
+    report.summary?.codeFilesAnalyzed ||
+    scanResult?.scanScope?.codeFilesAnalyzed ||
+    0;
+  const issueCount =
+    report.issueCount ||
+    scanResult?.issueCount ||
+    (report.detectedIssues || report.rawIssues || []).length ||
+    0;
+  const qualityScore = report.qualityScore ?? scanResult?.qualityScore ?? null;
+  const generatedAt = report.generatedAt || new Date().toISOString();
+  const projectPath = report.projectRoot || report.projectPath || scanResult?.projectPath || "";
+
+  const scope: TrustScope = {
+    label: "Local scan",
+    projectRoot: projectPath,
+    generatedAt,
+    gatePass: gate.pass ?? false,
+    qualityScore,
+    issueCount,
+    severityCounts,
+    repositoryFilesTotal: totalFiles,
+    ruleScopedFilesAnalyzed: ruleScoped,
+    schemaChecked: report.schemaChecked ?? 0,
+    schemaPassed: report.schemaPassed ?? 0,
+    rulesEnabled: report.scanScope?.rulesEnabled || [],
+    scopeNote: report.scanScope?.limitations?.[0] || "Local scan data — server trust API was unavailable.",
+  };
+
+  return {
+    success: true,
+    type: "simplebeacon-trust-verification",
+    generatedAt,
+    verificationMethod: "simplebeacon-deterministic-gate (local fallback)",
+    platform: scope,
+    monorepo: null,
+    headlineSource: "platform",
+    headlineReason: "Built from locally stored scan data (server API unavailable)",
+    headline: {
+      gatePass: scope.gatePass,
+      qualityScore: scope.qualityScore,
+      issueCount: scope.issueCount,
+      lastScan: scope.generatedAt,
+      repositoryFilesTotal: scope.repositoryFilesTotal,
+      ruleScopedFilesAnalyzed: scope.ruleScopedFilesAnalyzed,
+    },
+    disclaimers: [
+      "This verification was built from locally stored scan data — the server trust API was unavailable.",
+      "Quality score and issue counts apply to the last scan run from this browser.",
+      "Publish via a connected server to get a cryptographically signed verification ID.",
+    ],
+    publishedAt: null,
+  };
+}
+
 export function TrustView() {
   const [verification, setVerification] = useState<TrustVerification | null>(
     null,
@@ -92,35 +175,90 @@ export function TrustView() {
   const [history, setHistory] = useState<TrustHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<"server" | "local" | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // Try to wait for API base, but don't fail if unavailable
+    let apiBase = true;
     try {
-      const [vRes, hRes] = await Promise.all([
-        fetch(apiUrl("/trust/verification"), { headers: authHeaders() }),
-        fetch(apiUrl("/trust/history?limit=10"), { headers: authHeaders() }),
-      ]);
-      if (vRes.ok) {
-        const vData = await vRes.json();
-        setVerification(vData);
-      }
-      if (hRes.ok) {
-        const hData = await hRes.json();
-        setHistory(hData);
-      }
-      if (!vRes.ok && !hRes.ok) {
-        setError(
-          "Trust API unavailable. Ensure the ai-platform server is running.",
-        );
-      }
+      await waitForApiBase();
     } catch {
-      setError(
-        "Failed to fetch trust data. Check your connection to the local server.",
-      );
-    } finally {
-      setLoading(false);
+      apiBase = false;
     }
+
+    let serverVerification: TrustVerification | null = null;
+    let serverHistory: TrustHistory | null = null;
+    let serverOk = false;
+
+    if (apiBase) {
+      try {
+        const [vRes, hRes] = await Promise.allSettled([
+          fetch(apiUrl("/trust/verification"), { headers: authHeaders() }),
+          fetch(apiUrl("/trust/history?limit=10"), { headers: authHeaders() }),
+        ]);
+
+        if (vRes.status === "fulfilled" && vRes.value.ok) {
+          const vData = await vRes.value.json();
+          serverVerification = vData;
+          serverOk = true;
+        }
+        if (hRes.status === "fulfilled" && hRes.value.ok) {
+          const hData = await hRes.value.json();
+          serverHistory = hData;
+        }
+      } catch {
+        // Network error — fall through to local fallback
+      }
+    }
+
+    if (serverOk && serverVerification) {
+      setVerification(serverVerification);
+      setHistory(serverHistory);
+      setDataSource("server");
+      setError(null);
+    } else {
+      // Fallback: build trust verification from localStorage scan data
+      let localScan: any = null;
+      let localReport: any = null;
+      try {
+        const stored = localStorage.getItem("sb_last_scan_full");
+        if (stored) localScan = JSON.parse(stored);
+      } catch { /* ignore */ }
+      try {
+        const storedReport = localStorage.getItem("sb_last_scan_report");
+        if (storedReport) localReport = JSON.parse(storedReport);
+      } catch { /* ignore */ }
+      // Try IndexedDB if localStorage didn't have it
+      if (!localReport) {
+        try {
+          const storageHint = localStorage.getItem("sb_last_scan_report_storage");
+          if (storageHint === "indexeddb") {
+            localReport = await getLargeItem<any>("sb_last_scan_report");
+          }
+        } catch { /* ignore */ }
+      }
+
+      const localVerification = buildLocalTrustVerification(localScan, localReport);
+      if (localVerification) {
+        setVerification(localVerification);
+        setHistory(null);
+        setDataSource("local");
+        setError(null);
+      } else if (!apiBase) {
+        setError("No API base configured and no local scan data found. Run a scan first.");
+        setVerification(null);
+      } else {
+        setError(
+          "Trust API unavailable and no local scan data found. Run a scan from the Analyze page.",
+        );
+        setVerification(null);
+      }
+    }
+
+    setLoading(false);
   }, []);
 
   // simplebeacon-ignore: framework-practices
@@ -196,6 +334,37 @@ export function TrustView() {
               </div>
               <div className="font-semibold">
                 {scope.ruleScopedFilesAnalyzed?.toLocaleString() ?? "—"}
+              </div>
+            </div>
+          </div>
+          {/* Additional stats row */}
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div>
+              <div className="text-xs text-foreground-muted">Schema Checks</div>
+              <div className="font-semibold">
+                {scope.schemaChecked != null
+                  ? `${scope.schemaPassed ?? 0}/${scope.schemaChecked}`
+                  : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-foreground-muted">Consistency</div>
+              <div className="font-semibold">
+                {scope.consistencyScore != null
+                  ? `${scope.consistencyScore}%`
+                  : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-foreground-muted">Mock/Sample Files</div>
+              <div className="font-semibold">
+                {scope.mockSampleFiles?.toLocaleString() ?? "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-foreground-muted">Fiction JSON Scanned</div>
+              <div className="font-semibold">
+                {scope.fictionJsonFilesScanned?.toLocaleString() ?? "—"}
               </div>
             </div>
           </div>
@@ -301,6 +470,9 @@ export function TrustView() {
             <p className="text-sm text-foreground-muted">
               No trust verification data
             </p>
+            <Button size="sm" onClick={() => fetchData()} className="mt-2">
+              <RefreshCw className="h-4 w-4 mr-2" /> Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -322,6 +494,16 @@ export function TrustView() {
         <h1 className="text-3xl font-bold tracking-tight">Trust</h1>
         <p className="text-foreground-muted">
           Trust verification and integrity attestation
+          {dataSource === "local" && (
+            <Badge variant="warning" className="ml-2 text-xs">
+              Local data
+            </Badge>
+          )}
+          {dataSource === "server" && (
+            <Badge variant="success" className="ml-2 text-xs">
+              Server verified
+            </Badge>
+          )}
         </p>
       </div>
 
@@ -391,6 +573,50 @@ export function TrustView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-4">
+            <Database className="h-6 w-6 text-blue-500" />
+            <span className="text-2xl font-bold">
+              {headline.repositoryFilesTotal?.toLocaleString() ?? "—"}
+            </span>
+            <span className="text-xs text-foreground-muted">Files Total</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-4">
+            <FileCheck className="h-6 w-6 text-purple-500" />
+            <span className="text-2xl font-bold">
+              {headline.ruleScopedFilesAnalyzed?.toLocaleString() ?? "—"}
+            </span>
+            <span className="text-xs text-foreground-muted">Rules Analyzed</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-4">
+            <ShieldCheck className="h-6 w-6 text-green-500" />
+            <span className="text-2xl font-bold">
+              {verification.platform?.schemaChecked != null
+                ? `${verification.platform.schemaPassed ?? 0}/${verification.platform.schemaChecked}`
+                : "—"}
+            </span>
+            <span className="text-xs text-foreground-muted">Schema Checks</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-4">
+            <Activity className="h-6 w-6 text-orange-500" />
+            <span className="text-2xl font-bold">
+              {verification.platform?.consistencyScore != null
+                ? `${verification.platform.consistencyScore}%`
+                : "—"}
+            </span>
+            <span className="text-xs text-foreground-muted">Consistency</span>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Trend */}
       {trend && trend.latest && (

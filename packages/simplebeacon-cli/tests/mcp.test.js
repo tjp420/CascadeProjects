@@ -52,14 +52,31 @@ test("MCP tool handlers return JSON content blocks", () => {
   assert.ok(Array.isArray(parsed.findings));
 });
 
-test("MCP stdio server exposes fourteen tools", () => {
+test("MCP stdio server exposes all tools", () => {
   const server = createMcpStdioServer({ offline: true });
   const list = server.toolListResult();
-  assert.equal(list.tools.length, 14);
+  // 14 original + 6 agent workflow + 14 PDA = 34 tools
+  assert.ok(list.tools.length >= 34, `Expected at least 34 tools, got ${list.tools.length}`);
+  // Original tools
   assert.ok(list.tools.some((t) => t.name === "gate_status"));
   assert.ok(list.tools.some((t) => t.name === "scan_project"));
   assert.ok(list.tools.some((t) => t.name === "get_action_plan"));
   assert.ok(list.tools.some((t) => t.name === "scan_deployment_readiness"));
+  // Agent workflow tools
+  assert.ok(list.tools.some((t) => t.name === "supercharge_agent"));
+  assert.ok(list.tools.some((t) => t.name === "handoff_check"));
+  assert.ok(list.tools.some((t) => t.name === "scan_staged"));
+  assert.ok(list.tools.some((t) => t.name === "agent_status"));
+  assert.ok(list.tools.some((t) => t.name === "code_suggestions"));
+  assert.ok(list.tools.some((t) => t.name === "install_agent_plugin"));
+  // PDA tools
+  assert.ok(list.tools.some((t) => t.name === "agent_remember"));
+  assert.ok(list.tools.some((t) => t.name === "agent_recall"));
+  assert.ok(list.tools.some((t) => t.name === "task_create"));
+  assert.ok(list.tools.some((t) => t.name === "gate_finalize"));
+  assert.ok(list.tools.some((t) => t.name === "handoff_write"));
+  assert.ok(list.tools.some((t) => t.name === "handoff_read"));
+  assert.ok(list.tools.some((t) => t.name === "cross_project_learn"));
 });
 
 test("readGateStatus handles missing report gracefully", () => {

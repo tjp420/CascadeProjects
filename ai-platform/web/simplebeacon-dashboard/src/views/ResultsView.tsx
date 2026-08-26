@@ -372,22 +372,22 @@ export function ResultsView() {
     return (
       <div className="mx-auto max-w-7xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Results</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Scan Results</h1>
           <p className="text-foreground-muted">
-            Detailed scan findings and issue breakdown
+            Here's what SimpleBeacon found in your code — plain English summary with step-by-step fixes
           </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <ClipboardList className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">
-              No scan results loaded
+              No scan results yet
             </p>
             <p className="text-xs text-foreground-muted">
-              Run a scan from the Analyze page to see results here
+              Run a scan to see what SimpleBeacon finds in your code
             </p>
             <Button className="mt-2" onClick={() => navigate("analyze")}>
-              <Play className="h-4 w-4" /> Go to Analyze
+              <Play className="h-4 w-4" /> Start a Scan
             </Button>
           </CardContent>
         </Card>
@@ -407,9 +407,9 @@ export function ResultsView() {
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Results</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Scan Results</h1>
         <p className="text-foreground-muted">
-          Detailed scan findings and issue breakdown
+          Here's what SimpleBeacon found in your code — plain English summary with step-by-step fixes
         </p>
       </div>
 
@@ -418,7 +418,7 @@ export function ResultsView() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Scan Report</CardTitle>
+              <CardTitle>Scan Summary</CardTitle>
               <CardDescription>
                 {result.projectPath}
                 {scanTime && <span className="ml-2 text-xs">— {scanTime}</span>}
@@ -428,11 +428,25 @@ export function ResultsView() {
               variant={result.gate.pass ? "success" : "danger"}
               className="text-sm"
             >
-              {result.gate.pass ? "PASS" : "FAIL"}
+              {result.gate.pass ? "✓ PASSED" : "✗ FAILED"}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Plain English summary */}
+          <div className={`rounded-lg p-4 border ${result.gate.pass ? "bg-green-50 border-green-200 text-green-800" : "bg-amber-50 border-amber-200 text-amber-800"}`}>
+            <p className="text-sm font-medium">
+              {result.gate.pass
+                ? `✓ Your code passed all quality checks — it's ready to merge or deploy.`
+                : `✗ Your code has ${result.gate.blockingCount || result.issueCount || "some"} issue${(result.gate.blockingCount || result.issueCount || 0) === 1 ? "" : "s"} that need${(result.gate.blockingCount || result.issueCount || 0) === 1 ? "s" : ""} fixing before it can be merged or deployed.`}
+            </p>
+            <p className="text-xs mt-1 opacity-80">
+              {result.issueCount === 0
+                ? "No issues were found in the scanned files."
+                : `${result.issueCount} issue${result.issueCount === 1 ? "" : "s"} found across ${result.totalFiles.toLocaleString()} file${result.totalFiles === 1 ? "" : "s"} scanned.`}
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               icon={FileCode}
@@ -446,7 +460,7 @@ export function ResultsView() {
             />
             <MetricCard
               icon={Shield}
-              label="Rules Checked"
+              label="Files Analyzed"
               value={result.scanScope.codeFilesAnalyzed || 0}
             />
             <MetricCard
@@ -476,6 +490,13 @@ export function ResultsView() {
                           : "outline"
                 }
                 className="capitalize gap-1.5"
+                title={
+                  sev === "critical" ? "Must fix before release" :
+                  sev === "high" ? "Fix before merging" :
+                  sev === "medium" ? "Review and fix soon" :
+                  sev === "low" ? "Minor cleanup" :
+                  "For your awareness"
+                }
               >
                 {sev}: {result.severityCounts[sev]}
               </Badge>
@@ -485,20 +506,20 @@ export function ResultsView() {
           {/* Storage Engine Badge Footer */}
           <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center gap-2">
-              <span className="text-slate-600">Report Storage State:</span>
+              <span className="text-slate-600">Report storage:</span>
               {localStorage.getItem("sb_last_scan_report_storage") ===
               "indexeddb" ? (
                 <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-medium border border-blue-200">
-                  ⚡ IndexedDB (Quota-Safe)
+                  IndexedDB (large report)
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-medium border border-emerald-200">
-                  LocalStorage (Legacy)
+                  LocalStorage
                 </span>
               )}
             </div>
             <div className="text-slate-600">
-              Max Scan Bounds: Unlimited (Sentinels Active)
+              Scan capacity: Unlimited
             </div>
           </div>
         </CardContent>
@@ -523,8 +544,7 @@ export function ResultsView() {
         <CardHeader>
           <CardTitle>Risk Heatmap</CardTitle>
           <CardDescription>
-            3x3 matrix of issue impact vs. likelihood. Click or press Enter on a
-            cell to filter findings.
+            Shows how serious each issue is (impact) and how often it appears (likelihood). Click a cell to filter.
             {selectedCell &&
               ` · filtering: ${selectedCell.impact} impact, ${selectedCell.likelihood} likelihood`}
           </CardDescription>
@@ -533,18 +553,18 @@ export function ResultsView() {
           <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1 max-w-md">
             <div />
             <div className="text-xs text-center text-foreground-muted font-medium">
-              Low Lk
+              Rare
             </div>
             <div className="text-xs text-center text-foreground-muted font-medium">
-              Med Lk
+              Common
             </div>
             <div className="text-xs text-center text-foreground-muted font-medium">
-              High Lk
+              Frequent
             </div>
             {(["high", "medium", "low"] as const).map((imp) => (
               <div key={imp} className="contents">
                 <div className="text-xs text-right text-foreground-muted font-medium self-center pr-1 capitalize">
-                  {imp} Imp
+                  {imp === "high" ? "Serious" : imp === "medium" ? "Moderate" : "Minor"}
                 </div>
                 {(["low", "medium", "high"] as const).map((lk) => {
                   const count = heatmapGrid[imp][lk];
@@ -587,7 +607,7 @@ export function ResultsView() {
                     >
                       <div className="text-lg font-bold">{count}</div>
                       <div className="text-[10px] opacity-60">
-                        {total >= 6 ? "Red" : total >= 3 ? "Amber" : "Green"}
+                        {total >= 6 ? "Fix first" : total >= 3 ? "Fix soon" : "Low risk"}
                       </div>
                     </div>
                   );
@@ -612,11 +632,11 @@ export function ResultsView() {
               <div className="flex items-center gap-2 mb-2">
                 <Globe className="h-4 w-4 text-foreground-muted" />
                 <span className="text-sm font-medium">
-                  Regulatory Frameworks
+                  Compliance Frameworks
                 </span>
                 <span className="text-xs text-foreground-muted">
                   · {activeFrameworks.length} of {REGULATORY_FRAMEWORKS.length}{" "}
-                  frameworks with findings
+                  frameworks with issues found
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -669,19 +689,19 @@ export function ResultsView() {
       {/* Findings Table + Detail Tabs */}
       <Tabs defaultValue="findings">
         <TabsList>
-          <TabsTrigger value="findings">Findings</TabsTrigger>
+          <TabsTrigger value="findings">Issues</TabsTrigger>
           <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="inventory">File Inventory</TabsTrigger>
           <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-          <TabsTrigger value="scope">Scope</TabsTrigger>
-          <TabsTrigger value="export">Export</TabsTrigger>
+          <TabsTrigger value="scope">Scan Scope</TabsTrigger>
+          <TabsTrigger value="export">Export Report</TabsTrigger>
         </TabsList>
 
         <TabsContent value="findings">
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
             <Card>
               <CardHeader>
-                <CardTitle>Findings Breakdown</CardTitle>
+                <CardTitle>Issues Found</CardTitle>
                 <CardDescription>
                   {Math.max(
                     result?.issueCount ?? 0,
@@ -743,9 +763,9 @@ export function ResultsView() {
                   <div className="flex items-center gap-3 py-8">
                     <CheckCircle2 className="h-8 w-8 text-success" />
                     <div>
-                      <p className="text-sm font-medium">No issues detected</p>
+                      <p className="text-sm font-medium">No issues found — your code looks clean!</p>
                       <p className="text-xs text-foreground-muted">
-                        All gate rules passed with zero findings
+                        All checks passed with zero issues found
                       </p>
                     </div>
                   </div>
@@ -754,16 +774,15 @@ export function ResultsView() {
                     <AlertTriangle className="h-8 w-8 text-amber-400" />
                     <div>
                       <p className="text-sm font-medium">
-                        {(result?.issueCount ?? 0).toLocaleString()} issues
-                        found — detailed list unavailable
+                        {(result?.issueCount ?? 0).toLocaleString()} issues found — detailed list not available
                       </p>
                       <p className="text-xs text-foreground-muted mt-1">
-                        The findings list was too large for browser storage.
-                        Export the JSON report from the Analyze page or run{" "}
+                        The findings list was too large to display in the browser.
+                        Export the JSON report from the Analyze page, or run{" "}
                         <code className="font-mono bg-muted px-1 py-0.5 rounded">
                           npx simplebeacon scan --full --gate
                         </code>{" "}
-                        via the CLI for the complete list.
+                        in your terminal to see the full list.
                       </p>
                     </div>
                   </div>
@@ -772,10 +791,10 @@ export function ResultsView() {
                     <Search className="h-8 w-8 text-foreground-muted" />
                     <div>
                       <p className="text-sm font-medium">
-                        No issues match current filters
+                        No issues match your current filters
                       </p>
                       <p className="text-xs text-foreground-muted">
-                        Try adjusting severity filter or search query
+                        Try changing the severity filter or search terms
                       </p>
                     </div>
                   </div>
@@ -796,13 +815,13 @@ export function ResultsView() {
                                 Severity
                               </th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">
-                                Type
+                                Issue type
                               </th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">
-                                Description
+                                What's wrong
                               </th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">
-                                Framework
+                                Compliance
                               </th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">
                                 File
@@ -883,6 +902,7 @@ export function ResultsView() {
             <Card className="lg:sticky lg:top-4 h-fit">
               <CardHeader>
                 <CardTitle className="text-base">Issue Details</CardTitle>
+                <CardDescription>Click an issue from the list to see details and how to fix it</CardDescription>
               </CardHeader>
               <CardContent>
                 {selectedIssue ? (
@@ -914,7 +934,7 @@ export function ResultsView() {
                     {getIssueFramework(selectedIssue) && (
                       <div className="space-y-1">
                         <p className="text-xs text-foreground-muted">
-                          Regulatory Framework
+                          Compliance framework
                         </p>
                         <div className="flex items-center gap-2">
                           <Globe className="h-4 w-4 text-foreground-muted" />
@@ -943,7 +963,7 @@ export function ResultsView() {
                     {selectedIssue.recommendedAction && (
                       <div className="space-y-1">
                         <p className="text-xs text-foreground-muted">
-                          Recommended Action
+                          How to fix it
                         </p>
                         <p className="text-sm">
                           {selectedIssue.recommendedAction}
@@ -953,7 +973,7 @@ export function ResultsView() {
                     {selectedIssue.affectedFiles?.length > 0 && (
                       <div className="space-y-1">
                         <p className="text-xs text-foreground-muted">
-                          Affected Files ({selectedIssue.affectedFiles.length})
+                          Files affected ({selectedIssue.affectedFiles.length})
                         </p>
                         <ul className="text-xs space-y-1 max-h-40 overflow-auto">
                           {selectedIssue.affectedFiles.map(
@@ -969,7 +989,7 @@ export function ResultsView() {
                     {selectedIssue.metadata?.duplicatePaths?.length > 0 && (
                       <div className="space-y-1">
                         <p className="text-xs text-foreground-muted">
-                          Duplicate Paths
+                          Duplicate file paths
                         </p>
                         <ul className="text-xs space-y-1 max-h-40 overflow-auto">
                           {selectedIssue.metadata.duplicatePaths.map(

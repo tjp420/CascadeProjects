@@ -3625,12 +3625,53 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // Audit endpoint — returns current report as audit data
     if (parsed.pathname === '/api/simplebeacon/audit') {
-      const report = serverState.currentReport || {};
+      let report = serverState.currentReport || {};
+      // If no current report in memory, try reading the latest gate scan report from disk
+      if (!report || Object.keys(report).length === 0) {
+        try {
+          const wsPath =
+            (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
+          const reportCandidates = [
+            path.join(wsPath, '.simplebeacon', 'report.json'),
+            path.join(context.extensionPath, '..', '.simplebeacon', 'report.json'),
+            path.join(context.extensionPath, '..', '..', '.simplebeacon', 'report.json'),
+          ];
+          for (const candidate of reportCandidates) {
+            if (fs.existsSync(candidate)) {
+              const fileContent = fs.readFileSync(candidate, 'utf8');
+              if (fileContent && fileContent.trim().startsWith('{')) {
+                report = JSON.parse(fileContent);
+                break;
+              }
+            }
+          }
+        } catch {
+          // Ignore — fall back to empty report
+        }
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           success: true,
           status: 'complete',
+          // Return the full report so the dashboard can evaluate compliance checklist rules
+          // (GATE-001, CRED-001, LEAK-001, DATA-001, DATA-002) and derive audit layers.
+          report: {
+            ...report,
+            findings: report.rawIssues || report.findings || report.detectedIssues || [],
+            severityCounts: report.severityCounts || {},
+            qualityScore: report.qualityScore ?? report.score ?? null,
+            fileCount: report.totalFiles ?? report.fileCount ?? 0,
+            filesAnalyzed: report.filesAnalyzed ?? 0,
+            scannedAt: report.generatedAt ?? new Date().toISOString(),
+          },
+          dashboard: {
+            severityCounts: report.severityCounts || {},
+            scanScope: report.scanScope || { profile: 'eu-ai-act', resultsViewScope: 'browser-local' },
+            totalFiles: report.totalFiles ?? 0,
+            projectPath: report.projectPath || report.projectRoot || '',
+          },
+          // Also include top-level fields for backwards compatibility with older dashboards
           data: {
             findings: report.rawIssues || report.findings || report.detectedIssues || [],
             severityCounts: report.severityCounts || {},
@@ -5313,8 +5354,11 @@ ${
     // Demo route — read-only dashboard without auth
     if (parsed.pathname === '/demo' || parsed.pathname === '/demo/') {
       const dashboardRoot = resolveDashboardRoot(context);
+      // Prefer the Vite-bundled index.html (loads assets/main.js with inline worker)
+      // over index.vanilla.html (loads js-es2018/main.js which can't resolve @/ aliases).
+      const reactIndexPath = path.join(dashboardRoot, 'index.html');
       const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
-      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
+      const indexPath = fs.existsSync(reactIndexPath) ? reactIndexPath : (fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : reactIndexPath);
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',
@@ -5390,8 +5434,11 @@ ${
         res.end(fs.readFileSync(requestedPath));
         return;
       }
+      // Prefer the Vite-bundled index.html (loads assets/main.js with inline worker)
+      // over index.vanilla.html (loads js-es2018/main.js which can't resolve @/ aliases).
+      const reactIndexPath = path.join(dashboardRoot, 'index.html');
       const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
-      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
+      const indexPath = fs.existsSync(reactIndexPath) ? reactIndexPath : (fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : reactIndexPath);
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',

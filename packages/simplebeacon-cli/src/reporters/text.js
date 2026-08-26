@@ -69,25 +69,25 @@ function formatTextReport(report, gateResult = null) {
   const _tierInfo = detectTier();
 
   const lines = [];
-  lines.push(paint("Simplebeacon", "cyan"));
+  lines.push(paint("SimpleBeacon", "cyan"));
   lines.push(
     paint(
-      "48 analyzers + 25 scan engines · catch AI code debt traditional linting misses",
+      "Code quality & security scanner — finds issues AI tools and linters miss",
       "dim",
     ),
   );
   lines.push("==================");
-  lines.push(`Root: ${report.projectRoot || "unknown"}`);
+  lines.push(`Project: ${report.projectRoot || "unknown"}`);
   if (report.repositoryFilesTotal != null) {
     lines.push(
-      `Repository files: ${report.repositoryFilesTotal.toLocaleString()}`,
+      `Files in repo: ${report.repositoryFilesTotal.toLocaleString()}`,
     );
   }
   lines.push(
-    `Gate rules checked: ${report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.totalFiles ?? 0} files`,
+    `Files analyzed: ${(report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.totalFiles ?? 0).toLocaleString()}`,
   );
   if (report.mockSampleFiles != null) {
-    lines.push(`Mock/sample files: ${report.mockSampleFiles}`);
+    lines.push(`Test/sample files: ${report.mockSampleFiles}`);
   }
   // Show quality score for paid users; hide for free tier
   if (report.qualityScoreHidden) {
@@ -103,55 +103,42 @@ function formatTextReport(report, gateResult = null) {
             ) / Math.max(Object.keys(report.qualityScorecard).length, 1),
           )
         : 0);
-    lines.push(`Quality score: ${qs}/100`);
+    const grade = qs >= 90 ? "A" : qs >= 80 ? "B" : qs >= 70 ? "C" : qs >= 60 ? "D" : "F";
+    lines.push(`Quality score: ${qs}/100 (grade: ${grade})`);
   }
   lines.push("");
 
-  // Remove free tier limitations
-  // if (!isPaid) {
-  //     lines.push(paint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'yellow'));
-  //     lines.push(paint('  FREE TIER — showing first 5 findings only', 'yellow'));
-  //     lines.push(paint('  Upgrade: https://simplebeacon.ai/pricing', 'yellow'));
-  //     lines.push(paint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'yellow'));
-  //     lines.push('');
-  // }
-
   const counts = report.severityCounts || {};
-  lines.push(
-    `${paint("Critical", "red")}: ${counts.critical || 0}  ` +
-      `${paint("High", "red")}: ${counts.high || 0}  ` +
-      `${paint("Medium", "yellow")}: ${counts.medium || 0}  ` +
-      `${paint("Low", "dim")}: ${counts.low || 0}`,
-  );
-  if (report.productionLeakScanned != null) {
-    lines.push(
-      `Production files scanned: ${report.productionLeakScanned} (${report.productionLeakFindings || 0} leak(s))`,
-    );
-  }
-  if (report.credentialScanned != null) {
-    lines.push(
-      `Credential files scanned: ${report.credentialScanned} (${report.credentialFindings || 0} finding(s))`,
-    );
-  }
-  if (report.jestBaselineChecked) {
-    lines.push(
-      `Jest baseline: ${report.jestBaselinePassed ? paint("PASS", "green") : paint("FAIL", "red")}`,
-    );
+  const totalIssues = (counts.critical || 0) + (counts.high || 0) + (counts.medium || 0) + (counts.low || 0);
+
+  // Plain-English summary
+  if (totalIssues === 0) {
+    lines.push(paint("✓ All clear — no issues found in scanned files.", "green"));
+  } else {
+    const parts = [];
+    if (counts.critical) parts.push(`${counts.critical} critical (${counts.critical === 1 ? "fix immediately" : "fix immediately"})`);
+    if (counts.high) parts.push(`${counts.high} high (${counts.high === 1 ? "fix before release" : "fix before release"})`);
+    if (counts.medium) parts.push(`${counts.medium} medium (${counts.medium === 1 ? "review soon" : "review soon"})`);
+    if (counts.low) parts.push(`${counts.low} low (${counts.low === 1 ? "cleanup when convenient" : "cleanup when convenient"})`);
+    lines.push(`Found ${totalIssues} ${totalIssues === 1 ? "issue" : "issues"}: ${parts.join(", ")}`);
   }
   lines.push("");
 
   if (gateResult) {
-    lines.push(
-      gateResult.pass
-        ? paint("Gate: PASS", "green")
-        : paint("Gate: FAIL", "red"),
-    );
+    if (gateResult.pass) {
+      lines.push(paint("✓ GATE PASSED — safe to merge or deploy", "green"));
+    } else {
+      lines.push(paint("✗ GATE FAILED — fix blocking issues before merging", "red"));
+      if (gateResult.blockingCount) {
+        lines.push(paint(`  ${gateResult.blockingCount} ${gateResult.blockingCount === 1 ? "issue is" : "issues are"} blocking the gate`, "red"));
+      }
+    }
     lines.push("");
   }
 
   const issues = enrichFindingsWithAlerts(report.rawIssues || []);
   if (issues.length === 0) {
-    lines.push(paint("No issues detected.", "green"));
+    lines.push(paint("No issues detected. Your code looks clean!", "green"));
     return lines.join("\n");
   }
 
@@ -169,18 +156,21 @@ function formatTextReport(report, gateResult = null) {
     .slice(0, 8);
 
   if (prioritized.length > 0) {
-    lines.push(paint("Top Remediation Actions (do these first):", "cyan"));
+    lines.push(paint("What to fix first (prioritized by impact):", "cyan"));
+    lines.push("");
     for (const [idx, issue] of prioritized.entries()) {
       const action = remediationText(issue);
       const title = alertTitle(issue);
       const label = title ? `${issue.type} → ${title}` : issue.type;
+      const sevLabel = String(issue.severity || "low").toUpperCase();
       lines.push(
-        `  ${idx + 1}. ${paint(`[${String(issue.severity || "low").toUpperCase()}]`, severityColor(issue.severity))} ${label}: ${action}`,
+        `  ${idx + 1}. ${paint(`[${sevLabel}]`, severityColor(issue.severity))} ${label}`,
       );
+      lines.push(paint(`     → ${action}`, "dim"));
       const steps = alertRemediationSteps(issue);
       if (steps.length > 0) {
         for (const [stepIdx, step] of steps.entries()) {
-          lines.push(`     ${stepIdx + 1}. ${step}`);
+          lines.push(paint(`     ${stepIdx + 1}. ${step}`, "dim"));
         }
       }
     }
@@ -189,45 +179,55 @@ function formatTextReport(report, gateResult = null) {
 
   const displayLimit = 1000;
   const buckets = ["critical", "high", "medium", "low", "info"];
+  const bucketLabels = {
+    critical: "🔴 Critical — must fix before release",
+    high: "🟠 High — blocking issues, fix before merge",
+    medium: "🟡 Medium — review and fix when possible",
+    low: "🔵 Low — minor cleanup, no rush",
+    info: "ℹ️  Info — for your awareness",
+  };
   const grouped = new Map(buckets.map((key) => [key, []]));
   for (const issue of sortedIssues.slice(0, displayLimit)) {
     const sev = grouped.has(issue.severity) ? issue.severity : "info";
     grouped.get(sev).push(issue);
   }
 
-  lines.push("Issues by severity:");
+  lines.push("All findings:");
   for (const sev of buckets) {
     const list = grouped.get(sev);
     if (!list || list.length === 0) continue;
-    lines.push(
-      `  ${paint(sev.toUpperCase(), severityColor(sev))} (${list.length})`,
-    );
+    lines.push("");
+    lines.push(`  ${paint(bucketLabels[sev] || sev, severityColor(sev))} (${list.length})`);
     for (const issue of list) {
       const title = alertTitle(issue);
       const label = title
-        ? `${issue.type}: ${title} — ${issue.description}`
-        : `${issue.type}: ${issue.description}`;
-      lines.push(`    - ${label}`);
+        ? `${issue.type}: ${title}`
+        : `${issue.type}`;
+      const file = issue.filePath || issue.file || "—";
+      lines.push(`    • ${label}`);
+      lines.push(paint(`      in: ${file}${issue.line ? ` (line ${issue.line})` : ""}`, "dim"));
+      if (issue.description && issue.description !== label) {
+        lines.push(paint(`      what: ${issue.description}`, "dim"));
+      }
       const action = remediationText(issue);
       if (action) {
-        lines.push(`      Fix: ${action}`);
+        lines.push(paint(`      fix: ${action}`, "green"));
       }
       const steps = alertRemediationSteps(issue);
       if (steps.length > 0) {
-        lines.push(`      Steps:`);
         for (const [stepIdx, step] of steps.entries()) {
-          lines.push(`        ${stepIdx + 1}. ${step}`);
+          lines.push(paint(`        ${stepIdx + 1}. ${step}`, "dim"));
         }
       }
       if (issue.alertTemplate?.cwe) {
-        lines.push(`      CWE: ${issue.alertTemplate.cwe}`);
+        lines.push(paint(`      ref: ${issue.alertTemplate.cwe}`, "dim"));
       }
     }
   }
 
   const hiddenCount = issues.length - displayLimit;
   if (hiddenCount > 0) {
-    lines.push(`  ... and ${hiddenCount} more`);
+    lines.push(`  ... and ${hiddenCount} more (use --format json for full details)`);
   }
 
   return lines.join("\n");
@@ -237,32 +237,33 @@ function formatActionPlanReport(report, gateResult = null) {
   const lines = [];
   lines.push(paint("Simplebeacon Action Plan", "cyan"));
   lines.push("========================");
-  lines.push(`Root: ${report.projectRoot || "unknown"}`);
-  lines.push(
-    `Quality score: ${report.qualityScore ?? (report.qualityScorecard ? Math.round(Object.values(report.qualityScorecard).reduce((a, b) => a + (Number(b) || 0), 0) / Math.max(Object.keys(report.qualityScorecard).length, 1)) : 0)}/100`,
-  );
+  lines.push(`Project: ${report.projectRoot || "unknown"}`);
+  const qs = report.qualityScore ?? (report.qualityScorecard ? Math.round(Object.values(report.qualityScorecard).reduce((a, b) => a + (Number(b) || 0), 0) / Math.max(Object.keys(report.qualityScorecard).length, 1)) : 0);
+  const grade = qs >= 90 ? "A" : qs >= 80 ? "B" : qs >= 70 ? "C" : qs >= 60 ? "D" : "F";
+  lines.push(`Quality score: ${qs}/100 (grade: ${grade})`);
   lines.push("");
 
   if (gateResult) {
-    lines.push(
-      gateResult.pass
-        ? paint("Gate: PASS", "green")
-        : paint("Gate: FAIL", "red"),
-    );
+    if (gateResult.pass) {
+      lines.push(paint("✓ Gate passed — your code is ready to ship", "green"));
+    } else {
+      lines.push(paint("✗ Gate failed — fix the issues below before shipping", "red"));
+    }
     lines.push("");
   }
 
   const counts = report.severityCounts || {};
-  lines.push("Severity counts:");
-  lines.push(`  ${paint("Critical", "red")}: ${counts.critical || 0}`);
-  lines.push(`  ${paint("High", "red")}: ${counts.high || 0}`);
-  lines.push(`  ${paint("Medium", "yellow")}: ${counts.medium || 0}`);
-  lines.push(`  ${paint("Low", "dim")}: ${counts.low || 0}`);
+  const totalIssues = (counts.critical || 0) + (counts.high || 0) + (counts.medium || 0) + (counts.low || 0);
+  lines.push(`Issue summary (${totalIssues} total):`);
+  lines.push(`  ${paint("Critical", "red")}: ${counts.critical || 0} — must fix before release`);
+  lines.push(`  ${paint("High", "red")}: ${counts.high || 0} — fix before merging`);
+  lines.push(`  ${paint("Medium", "yellow")}: ${counts.medium || 0} — review and fix soon`);
+  lines.push(`  ${paint("Low", "dim")}: ${counts.low || 0} — minor cleanup`);
   lines.push("");
 
   const issues = report.rawIssues || [];
   if (issues.length === 0) {
-    lines.push(paint("No issues detected. No action required.", "green"));
+    lines.push(paint("✓ No issues found — nothing to fix. Great work!", "green"));
     return lines.join("\n");
   }
 
@@ -273,7 +274,7 @@ function formatActionPlanReport(report, gateResult = null) {
   if (guideIds.length === 0) {
     lines.push(
       paint(
-        "No prioritized action items — scan is clean under configured paths.",
+        "No prioritized fixes needed — your scan is clean.",
         "green",
       ),
     );
@@ -308,10 +309,10 @@ function formatActionPlanReport(report, gateResult = null) {
   };
 
   let totalMinutes = 0;
-  lines.push(paint("Prioritized Remediation", "cyan"));
+  lines.push(paint("Fix these issues (in order of priority):", "cyan"));
   lines.push("");
 
-  for (const id of orderedIds) {
+  for (const [idx, id] of orderedIds.entries()) {
     const guide = GUIDE_PLAYBOOKS[id];
     const count = kindCounts[id] || 0;
     const est = ESTIMATES[id] || 30;
@@ -322,24 +323,24 @@ function formatActionPlanReport(report, gateResult = null) {
         : guide.difficulty === "Moderate"
           ? "yellow"
           : "red";
-    lines.push(
-      `${paint(`[${guide.difficulty}]`, diffColor)} ${guide.title}${count > 1 ? ` (${count} findings)` : ""}`,
-    );
-    lines.push(`  Time: ${guide.timeRequired}`);
-    lines.push(`  Impact: ${guide.whyItMatters}`);
-    lines.push("  Steps:");
+    lines.push(paint(`${idx + 1}. ${guide.title}${count > 1 ? ` (${count} findings)` : ""}`, "cyan"));
+    lines.push(`   ${paint(`[${guide.difficulty}]`, diffColor)} · ~${guide.timeRequired} · ${count} finding${count === 1 ? "" : "s"}`);
+    lines.push(paint(`   Why it matters: ${guide.whyItMatters}`, "dim"));
+    lines.push("   How to fix:");
     for (const step of guide.steps) {
-      lines.push(`    • ${step}`);
+      lines.push(paint(`     • ${step}`, "dim"));
     }
-    lines.push(`  Verify: ${guide.verify}`);
+    lines.push(paint(`   Verify: ${guide.verify}`, "green"));
     lines.push("");
   }
 
   const hours = Math.max(1, Math.round(totalMinutes / 60));
-  lines.push(`Estimated total effort: ~${hours} hour${hours === 1 ? "" : "s"}`);
+  lines.push(paint(`Estimated total effort: ~${hours} hour${hours === 1 ? "" : "s"}`, "cyan"));
+  lines.push("");
   lines.push(
-    paint("Run `npx simplebeacon scan --gate` after fixes to verify.", "green"),
+    paint("After fixing, run: npx simplebeacon scan --gate", "green"),
   );
+  lines.push(paint("This will verify your fixes pass the quality gate.", "dim"));
 
   return lines.join("\n");
 }

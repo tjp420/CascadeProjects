@@ -125,23 +125,23 @@ test("compileAuditReportMarkdown matches SAMPLE_REPORT structure", () => {
     projectRoot: sampleReport.projectRoot,
   });
 
-  assert.match(markdown, /^# Simplebeacon Pre-Launch Code Audit Report/m);
+  assert.match(markdown, /^# Code Quality & Security Audit Report/m);
   assert.match(
     markdown,
-    /\*\*Target project:\*\* Acme Enterprise Dashboard \(staging branch\)/,
+    /\*\*Project:\*\* Acme Enterprise Dashboard \(staging branch\)/,
   );
   assert.match(markdown, /## Executive summary/);
-  assert.match(markdown, /### Vulnerability count by severity/);
+  assert.match(markdown, /### Issues found by severity/);
   assert.match(markdown, /\| Critical \| 1 \|/);
-  assert.match(markdown, /## Detailed findings/);
+  assert.match(markdown, /## What we found/);
   assert.match(markdown, /## How to fix each issue/);
   assert.match(markdown, /### Fix: Hardcoded credential patterns/);
-  assert.match(markdown, /## Your personalized action plan/);
+  assert.match(markdown, /## Your action plan/);
   assert.match(markdown, /### Week 1: Critical path/);
-  assert.match(markdown, /## Compliance and gate recommendations/);
-  assert.match(markdown, /Recommended local hook/);
+  assert.match(markdown, /## Compliance checklist/);
+  assert.match(markdown, /Set up local pre-commit hook/);
   assert.match(markdown, /## Commands run \(this audit\)/);
-  assert.match(markdown, /## Disclaimer/);
-  assert.match(markdown, /\*\*Gate result\*\* \| \*\*FAIL\*\*/);
+  assert.match(markdown, /## About this report/);
+  assert.match(markdown, /\*\*Quality gate\*\* \| ❌ \*\*FAIL\*\* — fix blocking issues before deploying/);
   assert.doesNotMatch(markdown, /🔴|🟠|🟡|🟢/);
 });

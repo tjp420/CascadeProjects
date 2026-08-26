@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ClipboardCheck,
   Download,
@@ -26,11 +32,12 @@ import {
   Zap,
   Activity,
   TrendingUp,
-} from 'lucide-react';
-import { navigate } from '@/router/HashRouter';
-import { useAuth } from '@/hooks/useAuth';
-import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
-import { getLargeItem } from '@/utils/dbStorage';
+} from "lucide-react";
+import { navigate } from "@/router/HashRouter";
+import { useAuth } from "@/hooks/useAuth";
+import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
+import { getLargeItem } from "@/utils/dbStorage";
+import { apiUrl, authHeaders, waitForApiBase } from "@/config";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +56,7 @@ interface GateInfo {
 }
 
 interface AuditLayer {
-  status: 'pass' | 'warn' | 'fail' | string;
+  status: "pass" | "warn" | "fail" | string;
   findings: number;
   scanned: number | string;
   checked?: number | string;
@@ -75,7 +82,7 @@ interface AuditLayers {
 interface ComplianceRule {
   id: string;
   title: string;
-  status: 'pass' | 'fail' | 'skip' | string;
+  status: "pass" | "fail" | "skip" | string;
 }
 
 interface ComplianceChecklist {
@@ -101,6 +108,7 @@ interface Assessment {
 
 interface ScanScope {
   profile?: string;
+  resultsViewScope?: string;
   rulesEnabled?: string[];
   productionPaths?: string[];
   limitations?: string[];
@@ -126,10 +134,10 @@ interface ScanResultData {
   gate: GateInfo;
   qualityScore: number | null;
   projectPath: string;
-  scanScope: { profile: string; resultsViewScope: string };
+  scanScope: ScanScope;
 }
 
-interface FullReport extends ScanResultData {
+interface FullReport extends Omit<ScanResultData, "scanScope"> {
   rawIssues?: any[];
   detectedIssues?: any[];
   consistencyScore?: number;
@@ -140,7 +148,11 @@ interface FullReport extends ScanResultData {
   filesAnalyzed?: number;
   mockSampleFiles?: number;
   generatedAt?: string;
-  repositoryInventory?: { totalFiles: number; totalFolders: number; projectRoot: string };
+  repositoryInventory?: {
+    totalFiles: number;
+    totalFolders: number;
+    projectRoot: string;
+  };
   scanScope?: ScanScope;
   gateWarnings?: GateWarning[];
   warningIssues?: GateWarning[];
@@ -180,15 +192,15 @@ interface BenchmarkData {
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const LAYER_LABELS: Record<string, string> = {
-  credentials: 'Credential patterns',
-  fictionKpis: 'Fiction & KPI drift',
-  schema: 'JSON schema & page samples',
-  productionLeaks: 'Production path leaks',
-  roadmap: 'Roadmap & duplicates',
-  jestBaseline: 'Jest baseline',
-  securityPatterns: 'Security patterns',
-  llmSlop: 'LLM slop patterns',
-  gate: 'Compliance gate',
+  credentials: "Credential patterns",
+  fictionKpis: "Fiction & KPI drift",
+  schema: "JSON schema & page samples",
+  productionLeaks: "Production path leaks",
+  roadmap: "Roadmap & duplicates",
+  jestBaseline: "Jest baseline",
+  securityPatterns: "Security patterns",
+  llmSlop: "LLM slop patterns",
+  gate: "Compliance gate",
 };
 
 const LAYER_ICONS: Record<string, typeof Shield> = {
@@ -205,27 +217,31 @@ const LAYER_ICONS: Record<string, typeof Shield> = {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function layerStatusClass(status: string): string {
-  if (status === 'pass') return 'success';
-  if (status === 'warn' || status === 'warning') return 'warning';
-  if (status === 'fail') return 'danger';
-  return 'secondary';
+  if (status === "pass") return "success";
+  if (status === "warn" || status === "warning") return "warning";
+  if (status === "fail") return "danger";
+  return "secondary";
 }
 
 function formatNumber(n: number | null | undefined): string {
-  if (n == null) return '—';
+  if (n == null) return "—";
   return n.toLocaleString();
 }
 
 function formatPercent(n: number | null | undefined): string {
-  if (n == null) return '—';
+  if (n == null) return "—";
   return `${Math.round(n)}%`;
 }
 
 function isSimplebeaconReport(data: any): boolean {
   return Boolean(
     data &&
-    typeof data === 'object' &&
-    (data.gate || data.rawIssues || data.detectedIssues || data.issueCount != null || data.totalFiles != null)
+    typeof data === "object" &&
+    (data.gate ||
+      data.rawIssues ||
+      data.detectedIssues ||
+      data.issueCount != null ||
+      data.totalFiles != null),
   );
 }
 
@@ -235,70 +251,84 @@ function deriveAuditLayers(report: FullReport): AuditLayers {
   const gate = report.gate || { pass: true, blockingCount: 0, warningCount: 0 };
   const issueCount = report.issueCount || rawIssues.length;
 
-  const credIssues = rawIssues.filter((i) => i.type === 'credential' || i.patternId === 'credential');
+  const credIssues = rawIssues.filter(
+    (i) => i.type === "credential" || i.patternId === "credential",
+  );
   const leakIssues = rawIssues.filter(
-    (i) => i.type === 'production-leak' || i.patternId === 'production-leak' || i.type === 'productionLeak'
+    (i) =>
+      i.type === "production-leak" ||
+      i.patternId === "production-leak" ||
+      i.type === "productionLeak",
   );
   const fictionIssues = rawIssues.filter(
-    (i) => i.type === 'fiction' || i.patternId === 'fiction' || i.type === 'fictionKpi'
+    (i) =>
+      i.type === "fiction" ||
+      i.patternId === "fiction" ||
+      i.type === "fictionKpi",
   );
   const secIssues = rawIssues.filter(
-    (i) => i.type === 'security' || i.patternId === 'security' || i.type === 'securityPattern'
+    (i) =>
+      i.type === "security" ||
+      i.patternId === "security" ||
+      i.type === "securityPattern",
   );
   const slopIssues = rawIssues.filter(
-    (i) => i.type === 'llm-slop' || i.patternId === 'llm-slop' || i.type === 'llmSlop'
+    (i) =>
+      i.type === "llm-slop" ||
+      i.patternId === "llm-slop" ||
+      i.type === "llmSlop",
   );
 
   return {
     credentials: {
-      status: credIssues.length ? 'fail' : 'pass',
+      status: credIssues.length ? "fail" : "pass",
       findings: credIssues.length,
       scanned: report.credentialScanned || 0,
     },
     productionLeaks: {
-      status: leakIssues.length ? 'fail' : 'pass',
+      status: leakIssues.length ? "fail" : "pass",
       findings: leakIssues.length,
       scanned: report.productionLeakScanned || 0,
     },
     fictionKpis: {
-      status: fictionIssues.length ? 'fail' : 'pass',
+      status: fictionIssues.length ? "fail" : "pass",
       findings: fictionIssues.length,
       scanned: report.sourceCodeFilesScanned || 0,
     },
     schema: {
-      status: 'pass',
+      status: "pass",
       findings: 0,
       scanned: report.schemaChecked || 0,
       pageSamplesChecked: report.pageSampleSchemaChecked,
       pageSamplesPassed: report.pageSampleSchemaPassed,
     },
     roadmap: {
-      status: 'pass',
+      status: "pass",
       findings: 0,
       scanned: report.roadmapSchemaChecked || 0,
     },
     jestBaseline: {
-      status: report.jestBaselinePassed ? 'pass' : 'warn',
+      status: report.jestBaselinePassed ? "pass" : "warn",
       findings: 0,
       scanned: report.jestBaselineChecked ? 1 : 0,
     },
     securityPatterns: {
-      status: secIssues.length ? 'fail' : 'pass',
+      status: secIssues.length ? "fail" : "pass",
       findings: report.securityPatternFindings || secIssues.length || 0,
       scanned: report.securityPatternFilesScanned || 0,
     },
     llmSlop: {
-      status: slopIssues.length ? 'fail' : 'pass',
+      status: slopIssues.length ? "fail" : "pass",
       findings: report.llmSlopPatternHits || slopIssues.length || 0,
       scanned: report.llmSlopFilesScanned || 0,
     },
     gate: {
       pass: gate.pass !== false,
-      status: gate.pass ? 'pass' : 'fail',
+      status: gate.pass ? "pass" : "fail",
       findings: issueCount,
       blockingCount: gate.blockingCount || 0,
       warningCount: gate.warningCount || 0,
-      scanned: '—',
+      scanned: "—",
     },
   };
 }
@@ -309,21 +339,21 @@ function MetricCard({
   icon: Icon,
   label,
   value,
-  variant = 'default',
+  variant = "default",
 }: {
   icon: typeof Shield;
   label: string;
   value: string;
-  variant?: 'default' | 'success' | 'danger' | 'warning';
+  variant?: "default" | "success" | "danger" | "warning";
 }) {
   const colorClass =
-    variant === 'success'
-      ? 'text-success'
-      : variant === 'danger'
-        ? 'text-danger'
-        : variant === 'warning'
-          ? 'text-warning'
-          : 'text-info';
+    variant === "success"
+      ? "text-success"
+      : variant === "danger"
+        ? "text-danger"
+        : variant === "warning"
+          ? "text-warning"
+          : "text-info";
   return (
     <Card>
       <CardContent className="flex items-center gap-3 py-4">
@@ -339,11 +369,17 @@ function MetricCard({
   );
 }
 
-function LayerCard({ layerKey, layer }: { layerKey: string; layer: AuditLayer }) {
+function LayerCard({
+  layerKey,
+  layer,
+}: {
+  layerKey: string;
+  layer: AuditLayer;
+}) {
   const Icon = LAYER_ICONS[layerKey] || Layers;
-  const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
-  const findings = layer.findings ?? '—';
-  const scanned = layer.scanned ?? layer.checked ?? layer.label ?? '—';
+  const status = layer.status || (layer.findings > 0 ? "fail" : "pass");
+  const findings = layer.findings ?? "—";
+  const scanned = layer.scanned ?? layer.checked ?? layer.label ?? "—";
 
   return (
     <Card>
@@ -351,7 +387,9 @@ function LayerCard({ layerKey, layer }: { layerKey: string; layer: AuditLayer })
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-foreground-muted" />
-            <CardTitle className="text-sm">{LAYER_LABELS[layerKey] || layerKey}</CardTitle>
+            <CardTitle className="text-sm">
+              {LAYER_LABELS[layerKey] || layerKey}
+            </CardTitle>
           </div>
           <Badge variant={layerStatusClass(status) as any} className="text-xs">
             {status}
@@ -370,7 +408,9 @@ function LayerCard({ layerKey, layer }: { layerKey: string; layer: AuditLayer })
         {layer.compliance != null && (
           <div className="flex justify-between">
             <span className="text-foreground-muted">Compliance</span>
-            <span className="font-medium">{formatPercent(layer.compliance)}</span>
+            <span className="font-medium">
+              {formatPercent(layer.compliance)}
+            </span>
           </div>
         )}
         {layer.knownPatterns != null && (
@@ -379,7 +419,7 @@ function LayerCard({ layerKey, layer }: { layerKey: string; layer: AuditLayer })
             <span className="font-medium">{layer.knownPatterns}</span>
           </div>
         )}
-        {layerKey === 'schema' && layer.pageSamplesChecked != null && (
+        {layerKey === "schema" && layer.pageSamplesChecked != null && (
           <div className="flex justify-between">
             <span className="text-foreground-muted">Page specs</span>
             <span className="font-medium">
@@ -398,7 +438,9 @@ function GateWarningsTable({ warnings }: { warnings: GateWarning[] }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 text-warning" />
-        <h2 className="text-lg font-semibold">Gate warnings ({warnings.length})</h2>
+        <h2 className="text-lg font-semibold">
+          Gate warnings ({warnings.length})
+        </h2>
       </div>
       <Card>
         <CardContent className="p-0">
@@ -408,23 +450,31 @@ function GateWarningsTable({ warnings }: { warnings: GateWarning[] }) {
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">Severity</th>
                   <th className="px-4 py-2 text-left font-medium">Type</th>
-                  <th className="px-4 py-2 text-left font-medium">Description</th>
+                  <th className="px-4 py-2 text-left font-medium">
+                    Description
+                  </th>
                   <th className="px-4 py-2 text-left font-medium">File</th>
                 </tr>
               </thead>
               <tbody>
                 {warnings.map((w, i) => {
-                  const file = (w.filePath || w.file || '').split(/[\\/]/).pop() || '—';
+                  const file =
+                    (w.filePath || w.file || "").split(/[\\/]/).pop() || "—";
                   return (
                     <tr key={i} className="border-b last:border-0">
                       <td className="px-4 py-2">
-                        <Badge variant={(w.severity as any) || 'secondary'} className="text-xs">
-                          {w.severity || 'low'}
+                        <Badge
+                          variant={(w.severity as any) || "secondary"}
+                          className="text-xs"
+                        >
+                          {w.severity || "low"}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2">{w.type || w.id || '—'}</td>
-                      <td className="px-4 py-2">{w.description || '—'}</td>
-                      <td className="px-4 py-2 text-xs text-foreground-muted">{file}</td>
+                      <td className="px-4 py-2">{w.type || w.id || "—"}</td>
+                      <td className="px-4 py-2">{w.description || "—"}</td>
+                      <td className="px-4 py-2 text-xs text-foreground-muted">
+                        {file}
+                      </td>
                     </tr>
                   );
                 })}
@@ -438,14 +488,23 @@ function GateWarningsTable({ warnings }: { warnings: GateWarning[] }) {
 }
 
 function ScanScopeSection({ scope }: { scope: ScanScope }) {
-  const profile = scope.profile || '—';
-  const rules = (scope.rulesEnabled || []).join(', ') || '—';
-  const prodPaths = (scope.productionPaths || []).join(', ') || '—';
+  const profile = scope.profile || "—";
+  const rules = (scope.rulesEnabled || []).join(", ") || "—";
+  const prodPaths = (scope.productionPaths || []).join(", ") || "—";
   const limitations = scope.limitations || [];
-  const mockFiles = scope.mockSampleFilesInScanPaths != null ? formatNumber(scope.mockSampleFilesInScanPaths) : '—';
-  const prodDirs = scope.productionDirsScanned != null ? formatNumber(scope.productionDirsScanned) : '—';
-  const ruleScoped = scope.ruleScopedFilesAnalyzed != null ? formatNumber(scope.ruleScopedFilesAnalyzed) : '—';
-  const jestExecuted = scope.jestExecutedDuringScan ? 'Yes' : 'No';
+  const mockFiles =
+    scope.mockSampleFilesInScanPaths != null
+      ? formatNumber(scope.mockSampleFilesInScanPaths)
+      : "—";
+  const prodDirs =
+    scope.productionDirsScanned != null
+      ? formatNumber(scope.productionDirsScanned)
+      : "—";
+  const ruleScoped =
+    scope.ruleScopedFilesAnalyzed != null
+      ? formatNumber(scope.ruleScopedFilesAnalyzed)
+      : "—";
+  const jestExecuted = scope.jestExecutedDuringScan ? "Yes" : "No";
 
   return (
     <div className="space-y-3">
@@ -472,7 +531,9 @@ function ScanScopeSection({ scope }: { scope: ScanScope }) {
             <span className="font-medium">{mockFiles}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-foreground-muted">Production dirs scanned</span>
+            <span className="text-foreground-muted">
+              Production dirs scanned
+            </span>
             <span className="font-medium">{prodDirs}</span>
           </div>
           <div className="flex justify-between">
@@ -485,7 +546,9 @@ function ScanScopeSection({ scope }: { scope: ScanScope }) {
           </div>
           {limitations.length > 0 && (
             <div className="pt-2">
-              <p className="text-xs font-medium text-foreground-muted mb-1">Limitations</p>
+              <p className="text-xs font-medium text-foreground-muted mb-1">
+                Limitations
+              </p>
               <ul className="list-disc list-inside text-xs text-foreground-muted space-y-0.5">
                 {limitations.map((l, i) => (
                   <li key={i}>{l}</li>
@@ -503,8 +566,10 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   const exec = assessment.executiveSummary;
   const checklist = assessment.complianceChecklist || {};
   const rules = checklist.rules || [];
-  const summary = checklist.summary || {};
-  const generatedAt = assessment.generatedAt ? new Date(assessment.generatedAt).toLocaleString() : null;
+  const summary = checklist.summary ?? { passed: 0, failed: 0, skipped: 0 };
+  const generatedAt = assessment.generatedAt
+    ? new Date(assessment.generatedAt).toLocaleString()
+    : null;
 
   if (!exec) return null;
 
@@ -515,17 +580,24 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
           <ClipboardCheck className="h-5 w-5 text-info" />
           <h2 className="text-lg font-semibold">Assessment summary</h2>
         </div>
-        {generatedAt && <span className="text-xs text-foreground-muted">Updated {generatedAt}</span>}
+        {generatedAt && (
+          <span className="text-xs text-foreground-muted">
+            Updated {generatedAt}
+          </span>
+        )}
       </div>
       <Card>
         <CardContent className="space-y-4">
-          <p className="text-sm">{exec.headline || '—'}</p>
+          <p className="text-sm">{exec.headline || "—"}</p>
           <div className="flex flex-wrap gap-2">
-            <Badge variant={exec.gateResult === 'PASS' ? 'success' : 'warning'} className="gap-1">
-              {exec.gateResult || '—'}
+            <Badge
+              variant={exec.gateResult === "PASS" ? "success" : "warning"}
+              className="gap-1"
+            >
+              {exec.gateResult || "—"}
             </Badge>
             <Badge variant="secondary" className="gap-1">
-              <strong>{exec.qualityScore ?? '—'}</strong> quality
+              <strong>{exec.qualityScore ?? "—"}</strong> quality
             </Badge>
             <Badge variant="secondary" className="gap-1">
               <strong>{formatNumber(exec.filesScanned)}</strong> files
@@ -543,16 +615,22 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
           {rules.length > 0 && (
             <>
               <p className="text-xs text-foreground-muted">
-                Corporate safety checklist — {summary.passed ?? 0} pass · {summary.failed ?? 0} fail ·{' '}
-                {summary.skipped ?? 0} skipped
+                Corporate safety checklist — {summary.passed ?? 0} pass ·{" "}
+                {summary.failed ?? 0} fail · {summary.skipped ?? 0} skipped
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
-                      <th className="px-3 py-1.5 text-left font-medium">Rule</th>
-                      <th className="px-3 py-1.5 text-left font-medium">Title</th>
-                      <th className="px-3 py-1.5 text-left font-medium">Status</th>
+                      <th className="px-3 py-1.5 text-left font-medium">
+                        Rule
+                      </th>
+                      <th className="px-3 py-1.5 text-left font-medium">
+                        Title
+                      </th>
+                      <th className="px-3 py-1.5 text-left font-medium">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,22 +639,33 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
                         <td className="px-3 py-1.5">
                           <Badge
                             variant={
-                              rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : 'secondary'
+                              rule.status === "pass"
+                                ? "success"
+                                : rule.status === "fail"
+                                  ? "danger"
+                                  : "secondary"
                             }
                             className="text-xs"
                           >
-                            {rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○'} {rule.id}
+                            {rule.status === "pass"
+                              ? "✓"
+                              : rule.status === "fail"
+                                ? "✗"
+                                : "○"}{" "}
+                            {rule.id}
                           </Badge>
                         </td>
                         <td className="px-3 py-1.5">{rule.title}</td>
-                        <td className="px-3 py-1.5">{rule.status || '—'}</td>
+                        <td className="px-3 py-1.5">{rule.status || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               {rules.length > 8 && (
-                <p className="text-xs text-foreground-muted">{rules.length - 8} more rules in the full report.</p>
+                <p className="text-xs text-foreground-muted">
+                  {rules.length - 8} more rules in the full report.
+                </p>
               )}
             </>
           )}
@@ -586,10 +675,10 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
               size="sm"
               onClick={() => {
                 const blob = new Blob([JSON.stringify(assessment, null, 2)], {
-                  type: 'application/json',
+                  type: "application/json",
                 });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                const a = document.createElement("a");
                 a.href = url;
                 a.download = `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
@@ -607,7 +696,7 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
 
 function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
   const [pasteMode, setPasteMode] = useState(false);
-  const [jsonText, setJsonText] = useState('');
+  const [jsonText, setJsonText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -619,7 +708,7 @@ function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
         const text = await file.text();
         const parsed = JSON.parse(text);
         if (!isSimplebeaconReport(parsed)) {
-          setError('File is not a recognized Simplebeacon report');
+          setError("File is not a recognized Simplebeacon report");
           return;
         }
         setError(null);
@@ -628,14 +717,14 @@ function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
         setError(`Failed to load report: ${err.message}`);
       }
     },
-    [onLoad]
+    [onLoad],
   );
 
   const handlePasteLoad = useCallback(() => {
     try {
       const parsed = JSON.parse(jsonText);
       if (!isSimplebeaconReport(parsed)) {
-        setError('Pasted JSON is not a recognized Simplebeacon report');
+        setError("Pasted JSON is not a recognized Simplebeacon report");
         return;
       }
       setError(null);
@@ -651,10 +740,15 @@ function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
         <CardTitle className="flex items-center gap-2 text-base">
           <Upload className="h-4 w-4" /> Import Existing Report
         </CardTitle>
-        <CardDescription>Load a pre-generated report.json from the CLI for offline audit review</CardDescription>
+        <CardDescription>
+          Load a pre-generated report.json from the CLI for offline audit review
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={pasteMode ? 'paste' : 'file'} onValueChange={(v) => setPasteMode(v === 'paste')}>
+        <Tabs
+          value={pasteMode ? "paste" : "file"}
+          onValueChange={(v) => setPasteMode(v === "paste")}
+        >
           <TabsList>
             <TabsTrigger value="file">Upload file</TabsTrigger>
             <TabsTrigger value="paste">Paste JSON</TabsTrigger>
@@ -666,16 +760,25 @@ function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
             >
               <FileCode className="h-8 w-8 text-foreground-muted" />
               <p className="text-sm text-foreground-muted">
-                Click to select a <code className="text-xs">report.json</code> file
+                Click to select a <code className="text-xs">report.json</code>{" "}
+                file
               </p>
               <p className="text-xs text-foreground-muted">
-                Generate with:{' '}
+                Generate with:{" "}
                 <code className="text-xs">
-                  npx simplebeacon scan --gate --offline --format json --output=report.json
+                  npx simplebeacon scan --gate --offline --format json
+                  --output=report.json
                 </code>
               </p>
             </div>
-            <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleFile} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              aria-label="Upload audit report JSON"
+              hidden
+              onChange={handleFile}
+            />
           </TabsContent>
           <TabsContent value="paste" className="space-y-3">
             <Textarea
@@ -684,7 +787,11 @@ function ImportReportSection({ onLoad }: { onLoad: (data: any) => void }) {
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
             />
-            <Button size="sm" onClick={handlePasteLoad} disabled={!jsonText.trim()}>
+            <Button
+              size="sm"
+              onClick={handlePasteLoad}
+              disabled={!jsonText.trim()}
+            >
               <CheckCircle2 className="h-4 w-4" /> Load JSON Report
             </Button>
           </TabsContent>
@@ -709,20 +816,23 @@ function FictionCatalogSection({
   if (!catalog.length) return null;
   const statusLine =
     activeFindings === 0
-      ? 'Latest scan: 0 active fiction findings in KPI fields — gate passes.'
+      ? "Latest scan: 0 active fiction findings in KPI fields — gate passes."
       : `Latest scan: ${activeFindings} active fiction finding(s) — review Results for details.`;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 text-warning" />
-        <h2 className="text-lg font-semibold">Fiction detection catalog ({catalog.length} baseline patterns)</h2>
+        <h2 className="text-lg font-semibold">
+          Fiction detection catalog ({catalog.length} baseline patterns)
+        </h2>
       </div>
       <Card>
         <CardContent className="space-y-3">
           <p className="text-sm text-foreground-muted">
-            These {catalog.length} baseline patterns are banned KPI values Simplebeacon detects and rejects. They are
-            not scan failures by themselves. {statusLine}
+            These {catalog.length} baseline patterns are banned KPI values
+            Simplebeacon detects and rejects. They are not scan failures by
+            themselves. {statusLine}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -730,7 +840,9 @@ function FictionCatalogSection({
                 <tr>
                   <th className="px-3 py-1.5 text-left font-medium">Pattern</th>
                   <th className="px-3 py-1.5 text-left font-medium">Type</th>
-                  <th className="px-3 py-1.5 text-left font-medium">Severity</th>
+                  <th className="px-3 py-1.5 text-left font-medium">
+                    Severity
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -739,9 +851,12 @@ function FictionCatalogSection({
                     <td className="px-3 py-1.5">
                       <code className="text-xs">{entry.pattern}</code>
                     </td>
-                    <td className="px-3 py-1.5">{entry.patternType || '—'}</td>
+                    <td className="px-3 py-1.5">{entry.patternType || "—"}</td>
                     <td className="px-3 py-1.5">
-                      <Badge variant={(entry.severity as any) || 'secondary'} className="text-xs">
+                      <Badge
+                        variant={(entry.severity as any) || "secondary"}
+                        className="text-xs"
+                      >
                         {entry.severity}
                       </Badge>
                     </td>
@@ -752,7 +867,7 @@ function FictionCatalogSection({
           </div>
           {catalog.length > 12 && (
             <p className="text-xs text-foreground-muted">
-              {catalog.length - 12} more baseline patterns documented in{' '}
+              {catalog.length - 12} more baseline patterns documented in{" "}
               <code className="text-xs">.simplebeacon/baseline.json</code>.
             </p>
           )}
@@ -782,16 +897,20 @@ function ThroughputBar({
   const widthPct = Math.min(100, (value / scaleMax) * 100);
   const minLinePct = (profileMin / scaleMax) * 100;
   const maxLinePct = (profileMax / scaleMax) * 100;
-  const throttlePct = throttleThreshold ? (throttleThreshold / scaleMax) * 100 : 0;
+  const throttlePct = throttleThreshold
+    ? (throttleThreshold / scaleMax) * 100
+    : 0;
 
-  const isThrottled = throttleThreshold ? value < throttleThreshold : value < profileMin * 0.8;
+  const isThrottled = throttleThreshold
+    ? value < throttleThreshold
+    : value < profileMin * 0.8;
   const barColor = isThrottled
-    ? 'bg-danger'
+    ? "bg-danger"
     : value >= profileMax
-      ? 'bg-success'
+      ? "bg-success"
       : value >= profileMin
-        ? 'bg-info'
-        : 'bg-warning';
+        ? "bg-info"
+        : "bg-warning";
 
   return (
     <div className="space-y-1">
@@ -802,7 +921,10 @@ function ThroughputBar({
       <div className="relative h-6 rounded-md bg-muted overflow-hidden">
         {/* Throttle threshold zone */}
         {throttlePct > 0 && (
-          <div className="absolute inset-y-0 left-0 bg-danger/10" style={{ width: `${throttlePct}%` }} />
+          <div
+            className="absolute inset-y-0 left-0 bg-danger/10"
+            style={{ width: `${throttlePct}%` }}
+          />
         )}
         {/* Profile minimum line */}
         <div
@@ -817,7 +939,10 @@ function ThroughputBar({
           title={`Profile max: ${profileMax} tok/s`}
         />
         {/* Actual throughput bar */}
-        <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${widthPct}%` }} />
+        <div
+          className={`h-full ${barColor} transition-all duration-500`}
+          style={{ width: `${widthPct}%` }}
+        />
       </div>
     </div>
   );
@@ -834,19 +959,19 @@ function StatusGauge({
   value: string;
   unit?: string;
   icon: typeof Gauge;
-  status: 'success' | 'warning' | 'danger' | 'info';
+  status: "success" | "warning" | "danger" | "info";
 }) {
   const colorMap: Record<string, string> = {
-    success: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-danger',
-    info: 'text-info',
+    success: "text-success",
+    warning: "text-warning",
+    danger: "text-danger",
+    info: "text-info",
   };
   const bgMap: Record<string, string> = {
-    success: 'bg-success/10 border-success/30',
-    warning: 'bg-warning/10 border-warning/30',
-    danger: 'bg-danger/10 border-danger/30',
-    info: 'bg-info/10 border-info/30',
+    success: "bg-success/10 border-success/30",
+    warning: "bg-warning/10 border-warning/30",
+    danger: "bg-danger/10 border-danger/30",
+    info: "bg-info/10 border-info/30",
   };
   return (
     <div className={`rounded-lg border p-3 ${bgMap[status]}`}>
@@ -870,10 +995,16 @@ function TelemetrySection({
   benchmark: BenchmarkData;
   onRunBenchmark?: () => Promise<BenchmarkData | null>;
   onApplyProfile?: (
-    profile: string
-  ) => Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }>;
+    profile: string,
+  ) => Promise<{
+    oldProfile: string;
+    newProfile: string;
+    containerRestarted: boolean;
+  }>;
 }) {
-  const [liveBenchmark, setLiveBenchmark] = useState<BenchmarkData | null>(null);
+  const [liveBenchmark, setLiveBenchmark] = useState<BenchmarkData | null>(
+    null,
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [runElapsed, setRunElapsed] = useState<number | null>(null);
@@ -896,11 +1027,11 @@ function TelemetrySection({
   const numGpu = benchmark.numGpu ?? 0;
   const cpuTemp = benchmark.cpuTemp;
   const runs = benchmark.runs ?? 0;
-  const profile = benchmark.profile ?? 'unknown';
-  const model = benchmark.model ?? 'unknown';
+  const profile = benchmark.profile ?? "unknown";
+  const model = benchmark.model ?? "unknown";
 
   // Determine the recommended downshift profile for auto-tune
-  const recommendedProfile = profile === 'maximum' ? 'balanced' : 'minimal';
+  const recommendedProfile = profile === "maximum" ? "balanced" : "minimal";
 
   const handleRunBenchmark = useCallback(async () => {
     if (!onRunBenchmark || isRunning) return;
@@ -913,7 +1044,7 @@ function TelemetrySection({
         setLiveBenchmark(result);
         setRunElapsed(Date.now());
       } else {
-        setRunError('Benchmark completed but returned no data');
+        setRunError("Benchmark completed but returned no data");
       }
     } catch (err) {
       setRunError(err instanceof Error ? err.message : String(err));
@@ -954,22 +1085,34 @@ function TelemetrySection({
   }, [onApplyProfile, isTuning, recommendedProfile, onRunBenchmark]);
 
   // Determine statuses
-  const isThrottled = throttleThreshold ? avg < throttleThreshold : avg < profileMin * 0.8;
-  const throughputStatus: 'success' | 'warning' | 'danger' = isThrottled
-    ? 'danger'
+  const isThrottled = throttleThreshold
+    ? avg < throttleThreshold
+    : avg < profileMin * 0.8;
+  const throughputStatus: "success" | "warning" | "danger" = isThrottled
+    ? "danger"
     : avg >= profileMin
-      ? 'success'
-      : 'warning';
+      ? "success"
+      : "warning";
 
   const gpuActive = numGpu !== 0;
   const gpuThroughputOk = gpuActive && avg >= profileMin * 2;
-  const gpuStatus: 'success' | 'warning' | 'info' = !gpuActive ? 'info' : gpuThroughputOk ? 'success' : 'warning';
+  const gpuStatus: "success" | "warning" | "info" = !gpuActive
+    ? "info"
+    : gpuThroughputOk
+      ? "success"
+      : "warning";
 
-  const varianceStatus: 'success' | 'warning' | 'danger' =
-    variance > 20 ? 'danger' : variance > 10 ? 'warning' : 'success';
+  const varianceStatus: "success" | "warning" | "danger" =
+    variance > 20 ? "danger" : variance > 10 ? "warning" : "success";
 
-  const thermalStatus: 'success' | 'warning' | 'danger' | 'info' =
-    cpuTemp == null ? 'info' : cpuTemp > 85 ? 'danger' : cpuTemp > 75 ? 'warning' : 'success';
+  const thermalStatus: "success" | "warning" | "danger" | "info" =
+    cpuTemp == null
+      ? "info"
+      : cpuTemp > 85
+        ? "danger"
+        : cpuTemp > 75
+          ? "warning"
+          : "success";
 
   return (
     <div className="space-y-3">
@@ -992,12 +1135,17 @@ function TelemetrySection({
             <div>
               <CardTitle>Throughput Benchmark</CardTitle>
               <CardDescription>
-                {model} · {runs} run{runs !== 1 ? 's' : ''} · {profile} profile
+                {model} · {runs} run{runs !== 1 ? "s" : ""} · {profile} profile
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               {onRunBenchmark && (
-                <Button variant="outline" size="sm" onClick={handleRunBenchmark} disabled={isRunning}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRunBenchmark}
+                  disabled={isRunning}
+                >
                   {isRunning ? (
                     <>
                       <Activity className="h-4 w-4 animate-pulse" />
@@ -1013,15 +1161,19 @@ function TelemetrySection({
               )}
               <Badge
                 variant={
-                  throughputStatus === 'success' ? 'success' : throughputStatus === 'danger' ? 'danger' : 'warning'
+                  throughputStatus === "success"
+                    ? "success"
+                    : throughputStatus === "danger"
+                      ? "danger"
+                      : "warning"
                 }
                 className="text-sm"
               >
-                {throughputStatus === 'success'
-                  ? 'Meets profile'
-                  : throughputStatus === 'danger'
-                    ? 'Throttled'
-                    : 'Below min'}
+                {throughputStatus === "success"
+                  ? "Meets profile"
+                  : throughputStatus === "danger"
+                    ? "Throttled"
+                    : "Below min"}
               </Badge>
             </div>
           </div>
@@ -1032,16 +1184,24 @@ function TelemetrySection({
             <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
               <AlertCircle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-danger">Benchmark run failed</p>
-                <p className="text-xs text-foreground-muted mt-0.5 font-mono">{runError}</p>
+                <p className="font-semibold text-danger">
+                  Benchmark run failed
+                </p>
+                <p className="text-xs text-foreground-muted mt-0.5 font-mono">
+                  {runError}
+                </p>
               </div>
             </div>
           )}
           {liveBenchmark && runElapsed && (
             <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-3 text-sm">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <span className="text-success font-semibold">Live benchmark data loaded</span>
-              <span className="text-xs text-foreground-muted ml-auto">{new Date(runElapsed).toLocaleTimeString()}</span>
+              <span className="text-success font-semibold">
+                Live benchmark data loaded
+              </span>
+              <span className="text-xs text-foreground-muted ml-auto">
+                {new Date(runElapsed).toLocaleTimeString()}
+              </span>
             </div>
           )}
           {/* Throughput bars */}
@@ -1084,10 +1244,10 @@ function TelemetrySection({
               label="GPU Offload"
               value={
                 numGpu === 0
-                  ? 'CPU only'
+                  ? "CPU only"
                   : numGpu === -1 || numGpu > 900
-                    ? 'All layers'
-                    : `${numGpu} layer${numGpu !== 1 ? 's' : ''}`
+                    ? "All layers"
+                    : `${numGpu} layer${numGpu !== 1 ? "s" : ""}`
               }
               icon={Cpu}
               status={gpuStatus}
@@ -1101,8 +1261,8 @@ function TelemetrySection({
             />
             <StatusGauge
               label="CPU Temp"
-              value={cpuTemp != null ? cpuTemp.toFixed(1) : 'N/A'}
-              unit={cpuTemp != null ? '°C' : ''}
+              value={cpuTemp != null ? cpuTemp.toFixed(1) : "N/A"}
+              unit={cpuTemp != null ? "°C" : ""}
               icon={Thermometer}
               status={thermalStatus}
             />
@@ -1129,10 +1289,10 @@ function TelemetrySection({
             <span className="flex items-center gap-1.5">
               <Zap className="h-3 w-3" />
               {variance > 20
-                ? 'High variance — possible thread contention or thermal instability'
+                ? "High variance — possible thread contention or thermal instability"
                 : variance > 10
-                  ? 'Moderate variance — monitor for degradation'
-                  : 'Stable throughput across runs'}
+                  ? "Moderate variance — monitor for degradation"
+                  : "Stable throughput across runs"}
             </span>
           </div>
 
@@ -1141,13 +1301,16 @@ function TelemetrySection({
             <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="font-semibold text-danger">Throughput below throttle threshold</p>
-                <p className="text-xs text-foreground-muted mt-0.5">
-                  Average {avg.toFixed(1)} tok/s is below 80% of {profile} minimum (
-                  {throttleThreshold ?? profileMin * 0.8} tok/s). Check for thermal throttling, GPU offload failure, or
-                  resource contention.
+                <p className="font-semibold text-danger">
+                  Throughput below throttle threshold
                 </p>
-                {onApplyProfile && profile !== 'minimal' && (
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  Average {avg.toFixed(1)} tok/s is below 80% of {profile}{" "}
+                  minimum ({throttleThreshold ?? profileMin * 0.8} tok/s). Check
+                  for thermal throttling, GPU offload failure, or resource
+                  contention.
+                </p>
+                {onApplyProfile && profile !== "minimal" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -1175,10 +1338,13 @@ function TelemetrySection({
             <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
               <Cpu className="h-4 w-4 text-warning mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-warning">GPU offload may not be effective</p>
+                <p className="font-semibold text-warning">
+                  GPU offload may not be effective
+                </p>
                 <p className="text-xs text-foreground-muted mt-0.5">
-                  GPU is configured (NUM_GPU={numGpu}) but throughput ({avg.toFixed(1)} tok/s) is in CPU-only range.
-                  Verify GPU drivers and Ollama GPU detection.
+                  GPU is configured (NUM_GPU={numGpu}) but throughput (
+                  {avg.toFixed(1)} tok/s) is in CPU-only range. Verify GPU
+                  drivers and Ollama GPU detection.
                 </p>
               </div>
             </div>
@@ -1187,10 +1353,13 @@ function TelemetrySection({
             <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
               <TrendingUp className="h-4 w-4 text-warning mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-warning">High variance across runs</p>
+                <p className="font-semibold text-warning">
+                  High variance across runs
+                </p>
                 <p className="text-xs text-foreground-muted mt-0.5">
-                  Coefficient of variation is {variance.toFixed(1)}% (threshold: 20%). Possible thread contention,
-                  thermal instability, or background processes.
+                  Coefficient of variation is {variance.toFixed(1)}% (threshold:
+                  20%). Possible thread contention, thermal instability, or
+                  background processes.
                 </p>
               </div>
             </div>
@@ -1199,12 +1368,15 @@ function TelemetrySection({
             <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm">
               <Thermometer className="h-4 w-4 text-danger mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="font-semibold text-danger">CPU thermal throttling likely</p>
-                <p className="text-xs text-foreground-muted mt-0.5">
-                  CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C). Reduce workload, improve cooling, or
-                  switch to a lower quantization profile.
+                <p className="font-semibold text-danger">
+                  CPU thermal throttling likely
                 </p>
-                {onApplyProfile && profile !== 'minimal' && (
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  CPU temperature is {cpuTemp.toFixed(1)}°C (threshold: 85°C).
+                  Reduce workload, improve cooling, or switch to a lower
+                  quantization profile.
+                </p>
+                {onApplyProfile && profile !== "minimal" && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -1235,12 +1407,13 @@ function TelemetrySection({
               <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-success">
-                  Profile changed: {tuneResult.oldProfile} → {tuneResult.newProfile}
+                  Profile changed: {tuneResult.oldProfile} →{" "}
+                  {tuneResult.newProfile}
                 </p>
                 <p className="text-xs text-foreground-muted mt-0.5">
                   {tuneResult.containerRestarted
-                    ? 'Container restarted with new profile. Benchmark re-run automatically.'
-                    : 'Env file updated but container not restarted. Restart manually, then re-run benchmark.'}
+                    ? "Container restarted with new profile. Benchmark re-run automatically."
+                    : "Env file updated but container not restarted. Restart manually, then re-run benchmark."}
                 </p>
               </div>
             </div>
@@ -1250,7 +1423,9 @@ function TelemetrySection({
               <AlertCircle className="h-4 w-4 text-danger mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-danger">Auto-tune failed</p>
-                <p className="text-xs text-foreground-muted mt-0.5 font-mono">{tuneError}</p>
+                <p className="text-xs text-foreground-muted mt-0.5 font-mono">
+                  {tuneError}
+                </p>
               </div>
             </div>
           )}
@@ -1267,21 +1442,24 @@ export function AuditView() {
   const [fullReport, setFullReport] = useState<FullReport | null>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
   const [importedReport, setImportedReport] = useState<FullReport | null>(null);
+  const [serverAudit, setServerAudit] = useState<any>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const { isFreeTier } = useAuth();
 
   // Load scan data from localStorage + IndexedDB
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
-      const full = localStorage.getItem('sb_last_scan_full');
+      const full = localStorage.getItem("sb_last_scan_full");
       if (full) {
         setResult(JSON.parse(full));
       }
-      const report = localStorage.getItem('sb_last_scan_report');
+      const report = localStorage.getItem("sb_last_scan_report");
       if (report) {
         setFullReport(JSON.parse(report));
       }
-      const time = localStorage.getItem('sb_last_scan_time');
+      const time = localStorage.getItem("sb_last_scan_time");
       if (time) {
         setScanTime(new Date(time).toLocaleString());
       }
@@ -1296,10 +1474,10 @@ export function AuditView() {
     let cancelled = false;
     (async () => {
       try {
-        const storageHint = localStorage.getItem('sb_last_scan_report_storage');
-        const hasReport = !!localStorage.getItem('sb_last_scan_report');
-        if (!hasReport && storageHint === 'indexeddb') {
-          const r = await getLargeItem<any>('sb_last_scan_report');
+        const storageHint = localStorage.getItem("sb_last_scan_report_storage");
+        const hasReport = !!localStorage.getItem("sb_last_scan_report");
+        if (!hasReport && storageHint === "indexeddb") {
+          const r = await getLargeItem<any>("sb_last_scan_report");
           if (!cancelled && r) {
             setFullReport(r);
           }
@@ -1313,8 +1491,91 @@ export function AuditView() {
     };
   }, []);
 
-  // Use imported report if provided, otherwise use stored data
-  const activeReport = importedReport || fullReport;
+  // Fetch audit payload from server API to get complete audit layers,
+  // assessment, fiction catalog, scan scope, and gate warnings.
+  // The localStorage scan report only has the raw scan data — the server
+  // buildAuditPayload function enriches it with all the audit-specific fields.
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Don't fetch from server if we have an imported report (offline mode)
+      if (importedReport) return;
+      // Don't fetch if there's no API base (browser-only mode)
+      try {
+        await waitForApiBase();
+      } catch {
+        return; // No API base available — rely on localStorage only
+      }
+      setAuditLoading(true);
+      setAuditError(null);
+      try {
+        const response = await fetch(apiUrl("/simplebeacon/audit"), {
+          headers: authHeaders(),
+        });
+        if (!response.ok) {
+          if (response.status === 404) {
+            // No audit data on server yet — silently use local data
+            return;
+          }
+          if (response.status === 402 || response.status === 403) {
+            // Free tier or auth — silently use local data
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (!cancelled && data) {
+          setServerAudit(data);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setAuditError(err?.message || "Failed to load audit data");
+        }
+      } finally {
+        if (!cancelled) setAuditLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [importedReport]);
+
+  // Merge server audit payload with local scan report.
+  // Server audit provides: auditLayers, assessment, fictionCatalog, scanScope, gateWarnings, baseline.
+  // Local report provides: rawIssues, detectedIssues, qualityScore, severityCounts, gate.
+  // Prefer server data for audit-specific fields, fall back to local for scan-specific fields.
+  const mergedReport = useMemo<FullReport | null>(() => {
+    if (importedReport) return importedReport;
+    const local = fullReport || (result as any);
+    if (!serverAudit && !local) return null;
+    const serverReport = serverAudit?.report || {};
+    const serverDashboard = serverAudit?.dashboard || {};
+    return {
+      // Local scan report fields (raw data from the scan)
+      ...(local || {}),
+      // Server report fields (enriched audit data)
+      ...serverReport,
+      // Audit-specific fields from server (never overwrite with local undefined)
+      auditLayers: serverAudit?.auditLayers || local?.auditLayers,
+      assessment: serverAudit?.assessment || local?.assessment,
+      fictionCatalog: serverAudit?.fictionCatalog || local?.fictionCatalog,
+      scanScope: serverAudit?.dashboard?.scanScope || serverReport.scanScope || local?.scanScope,
+      gateWarnings: local?.gateWarnings || local?.warningIssues || [],
+      // Prefer server values for key metrics when available
+      qualityScore: serverReport.qualityScore ?? local?.qualityScore ?? null,
+      consistencyScore: serverReport.consistencyScore ?? local?.consistencyScore ?? null,
+      gate: serverReport.gate || local?.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+      totalFiles: serverReport.totalFiles ?? local?.totalFiles ?? 0,
+      issueCount: serverReport.issueCount ?? local?.issueCount ?? 0,
+      severityCounts: serverDashboard.severityCounts || local?.severityCounts || {
+        critical: 0, high: 0, medium: 0, low: 0, info: 0,
+      },
+    } as FullReport;
+  }, [importedReport, fullReport, result, serverAudit]);
+
+  // Use imported report if provided, otherwise use merged data
+  const activeReport = mergedReport;
   const activeResult = importedReport
     ? ({
         totalFiles: importedReport.totalFiles || 0,
@@ -1326,18 +1587,48 @@ export function AuditView() {
           low: 0,
           info: 0,
         },
-        gate: importedReport.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+        gate: importedReport.gate || {
+          pass: false,
+          blockingCount: 0,
+          warningCount: 0,
+        },
         qualityScore: importedReport.qualityScore ?? null,
-        projectPath: importedReport.projectPath || '',
-        scanScope: importedReport.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+        projectPath: importedReport.projectPath || "",
+        scanScope: importedReport.scanScope || {
+          profile: "standard",
+          resultsViewScope: "browser-local",
+        },
       } as ScanResultData)
-    : result;
+    : (result || (serverAudit?.report
+        ? ({
+            totalFiles: serverAudit.report.totalFiles || serverAudit.dashboard?.totalFiles || 0,
+            issueCount: serverAudit.report.issueCount || 0,
+            severityCounts: serverAudit.dashboard?.severityCounts || {
+              critical: 0, high: 0, medium: 0, low: 0, info: 0,
+            },
+            gate: serverAudit.report.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+            qualityScore: serverAudit.report.qualityScore ?? null,
+            projectPath: serverAudit.report.projectRoot || serverAudit.dashboard?.projectPath || "",
+            scanScope: serverAudit.dashboard?.scanScope || { profile: "standard" },
+          } as ScanResultData)
+        : null));
 
-  // Derive audit layers from the full report
+  // Derive audit layers from the full report, merging server audit layers
+  // with client-derived layers (server doesn't include securityPatterns/llmSlop)
   const auditLayers = useMemo<AuditLayers>(() => {
-    if (activeReport?.auditLayers) return activeReport.auditLayers;
-    if (activeReport) return deriveAuditLayers(activeReport as FullReport);
-    return {};
+    const serverLayers = activeReport?.auditLayers;
+    const clientLayers = activeReport
+      ? deriveAuditLayers(activeReport as FullReport)
+      : {};
+    if (!serverLayers) return clientLayers;
+    // Merge: server layers take precedence, but add client-only layers (securityPatterns, llmSlop)
+    return {
+      ...clientLayers,
+      ...serverLayers,
+      // Keep client-derived securityPatterns and llmSlop if server doesn't provide them
+      securityPatterns: serverLayers.securityPatterns || clientLayers.securityPatterns,
+      llmSlop: serverLayers.llmSlop || clientLayers.llmSlop,
+    } as AuditLayers;
   }, [activeReport]);
 
   const gateWarnings = useMemo<GateWarning[]>(() => {
@@ -1349,7 +1640,103 @@ export function AuditView() {
   }, [activeReport]);
 
   const assessment = useMemo<Assessment | null>(() => {
-    return activeReport?.assessment || null;
+    const serverAssessment = activeReport?.assessment || null;
+    // If the server assessment has a compliance checklist with at least one non-skip rule,
+    // trust it and return as-is.
+    if (
+      serverAssessment?.complianceChecklist?.rules?.some(
+        (r) => r.status !== "skip",
+      )
+    ) {
+      return serverAssessment;
+    }
+    // Otherwise, derive compliance checklist client-side from the report data.
+    // This handles the case where the Render backend has no scan data (all rules
+    // would be "skip") but the user has local scan data in localStorage.
+    const report = activeReport as FullReport | null;
+    if (!report) return serverAssessment;
+    const filesScanned =
+      report.totalFiles ?? report.filesAnalyzed ?? 0;
+    const gatePass = report.gate?.pass === true;
+    const credScanned = report.credentialScanned ?? 0;
+    const credFindings = report.credentialFindings ?? 0;
+    const leakScanned = report.productionLeakScanned ?? 0;
+    const leakFindings = report.productionLeakFindings ?? 0;
+    const schemaChecked = report.schemaChecked ?? 0;
+    const schemaPassed = report.schemaPassed ?? 0;
+    const consistencyChecked = report.consistencyChecked ?? 0;
+    const consistencyPassed =
+      report.consistencyPassed === true
+        ? consistencyChecked
+        : (report.consistencyPassed ?? 0);
+    const consistencyScore =
+      report.consistencyScore ??
+      (consistencyChecked
+        ? Math.round((consistencyPassed / consistencyChecked) * 100)
+        : 0);
+
+    const rules: ComplianceRule[] = [
+      {
+        id: "GATE-001",
+        title: "Merge gate passes on configured severities",
+        status:
+          filesScanned === 0 && !gatePass
+            ? "skip"
+            : gatePass
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "CRED-001",
+        title: "No credential or secret patterns in scanned paths",
+        status:
+          credScanned === 0
+            ? "skip"
+            : credFindings === 0
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "LEAK-001",
+        title: "No mock/sample JSON paths referenced from production directories",
+        status:
+          leakScanned === 0
+            ? "skip"
+            : leakFindings === 0
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "DATA-001",
+        title: "Registered page samples match schema specs",
+        status:
+          schemaChecked === 0
+            ? "skip"
+            : schemaPassed === schemaChecked
+              ? "pass"
+              : "fail",
+      },
+      {
+        id: "DATA-002",
+        title: "No fiction KPI or baseline drift in anchor samples",
+        status:
+          consistencyChecked === 0
+            ? "skip"
+            : consistencyScore >= 95
+              ? "pass"
+              : "fail",
+      },
+    ];
+    const passed = rules.filter((r) => r.status === "pass").length;
+    const failed = rules.filter((r) => r.status === "fail").length;
+    const skipped = rules.filter((r) => r.status === "skip").length;
+    return {
+      ...serverAssessment,
+      complianceChecklist: {
+        rules,
+        summary: { passed, failed, skipped },
+      },
+    } as Assessment;
   }, [activeReport]);
 
   const fictionCatalog = useMemo(() => {
@@ -1359,7 +1746,12 @@ export function AuditView() {
   const letterGrade = useMemo(() => {
     return resolveScanLetterGrade(
       activeResult?.qualityScore ?? null,
-      activeReport ? { letterGrade: activeReport.letterGrade, letter_grade: activeReport.letter_grade } : null
+      activeReport
+        ? {
+            letterGrade: activeReport.letterGrade,
+            letter_grade: activeReport.letter_grade,
+          }
+        : null,
     );
   }, [activeResult, activeReport]);
 
@@ -1376,11 +1768,21 @@ export function AuditView() {
     setResult({
       totalFiles: report.totalFiles || 0,
       issueCount: report.issueCount || 0,
-      severityCounts: report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+      severityCounts: report.severityCounts || {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        info: 0,
+      },
       gate: report.gate || { pass: false, blockingCount: 0, warningCount: 0 },
       qualityScore: report.qualityScore ?? null,
-      projectPath: report.projectPath || report.projectPath || '',
-      scanScope: report.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+      projectPath: report.projectPath || "",
+      scanScope: {
+        profile: report.scanScope?.profile || "standard",
+        resultsViewScope: report.scanScope?.resultsViewScope || "browser-local",
+        ...report.scanScope,
+      },
     });
     if (report.generatedAt) {
       setScanTime(new Date(report.generatedAt).toLocaleString());
@@ -1390,10 +1792,10 @@ export function AuditView() {
   const exportJson = useCallback(() => {
     if (!activeReport) {
       const blob = new Blob([JSON.stringify(activeResult, null, 2)], {
-        type: 'application/json',
+        type: "application/json",
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `simplebeacon-audit-${Date.now()}.json`;
       a.click();
@@ -1401,14 +1803,16 @@ export function AuditView() {
       return;
     }
     if (isFreeTier) {
-      alert('Export disabled for free-tier accounts — upgrade to Pro to download full reports.');
+      alert(
+        "Export disabled for free-tier accounts — upgrade to Pro to download full reports.",
+      );
       return;
     }
     const blob = new Blob([JSON.stringify(activeReport, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `simplebeacon-audit-${Date.now()}.json`;
     a.click();
@@ -1416,27 +1820,36 @@ export function AuditView() {
   }, [activeReport, activeResult, isFreeTier]);
 
   // Execute a live air-gap benchmark via the VS Code extension data server
-  const handleRunBenchmark = useCallback(async (): Promise<BenchmarkData | null> => {
-    const response = await fetch('/api/airgap/benchmark', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || data.detail || `HTTP ${response.status}`);
-    }
-    if (!data.success || !data.benchmark) {
-      throw new Error(data.message || data.error || 'Benchmark returned no data');
-    }
-    return data.benchmark as BenchmarkData;
-  }, []);
+  const handleRunBenchmark =
+    useCallback(async (): Promise<BenchmarkData | null> => {
+      const response = await fetch("/api/airgap/benchmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || `HTTP ${response.status}`);
+      }
+      if (!data.success || !data.benchmark) {
+        throw new Error(
+          data.message || data.error || "Benchmark returned no data",
+        );
+      }
+      return data.benchmark as BenchmarkData;
+    }, []);
 
   // Apply a new memory profile to the air-gap deployment
   const handleApplyProfile = useCallback(
-    async (targetProfile: string): Promise<{ oldProfile: string; newProfile: string; containerRestarted: boolean }> => {
-      const response = await fetch('/api/airgap/apply-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    async (
+      targetProfile: string,
+    ): Promise<{
+      oldProfile: string;
+      newProfile: string;
+      containerRestarted: boolean;
+    }> => {
+      const response = await fetch("/api/airgap/apply-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile: targetProfile }),
       });
       const data = await response.json();
@@ -1444,31 +1857,48 @@ export function AuditView() {
         throw new Error(data.error || data.detail || `HTTP ${response.status}`);
       }
       return {
-        oldProfile: data.oldProfile || 'unknown',
+        oldProfile: data.oldProfile || "unknown",
         newProfile: data.newProfile || targetProfile,
         containerRestarted: !!data.containerRestarted,
       };
     },
-    []
+    [],
   );
 
   // ── Empty state ──────────────────────────────────────────────────────────
 
-  if (!activeResult && !importedReport) {
+  if (!activeResult && !importedReport && !serverAudit) {
     return (
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Audit Report</h1>
-          <p className="text-foreground-muted">Compliance audit with gate status, audit layers, and export options</p>
+          <p className="text-foreground-muted">
+            Compliance audit with gate status, audit layers, and export options
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
-            <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">No scan results loaded</p>
-            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page or import a report below</p>
-            <Button className="mt-2" onClick={() => navigate('analyze')}>
-              <Play className="h-4 w-4" /> Go to Analyze
-            </Button>
+            {auditLoading ? (
+              <>
+                <Activity className="h-12 w-12 text-info animate-pulse" />
+                <p className="text-sm text-foreground-muted">
+                  Loading audit data from server…
+                </p>
+              </>
+            ) : (
+              <>
+                <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
+                <p className="text-sm text-foreground-muted">
+                  No scan results loaded
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  Run a scan from the Analyze page or import a report below
+                </p>
+                <Button className="mt-2" onClick={() => navigate("analyze")}>
+                  <Play className="h-4 w-4" /> Go to Analyze
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
         <ImportReportSection onLoad={handleImport} />
@@ -1480,8 +1910,12 @@ export function AuditView() {
 
   const displayReport = activeReport || (activeResult as any);
   const layers = auditLayers;
-  const gate = activeResult?.gate || { pass: false, blockingCount: 0, warningCount: 0 };
-  const layerEntries = Object.entries(layers).filter(([k]) => k !== 'gate');
+  const gate = activeResult?.gate || {
+    pass: false,
+    blockingCount: 0,
+    warningCount: 0,
+  };
+  const layerEntries = Object.entries(layers).filter(([k]) => k !== "gate");
   const fictionActiveFindings = layers.fictionKpis?.findings ?? 0;
 
   return (
@@ -1490,37 +1924,64 @@ export function AuditView() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Audit Report</h1>
         <p className="text-foreground-muted">
-          {activeResult?.projectPath || '—'}
+          {activeResult?.projectPath || "—"}
           {scanTime && <span className="ml-2 text-xs">— {scanTime}</span>}
           {importedReport && (
             <Badge variant="info" className="ml-2 text-xs">
               Imported
             </Badge>
           )}
+          {serverAudit && !importedReport && (
+            <Badge variant="success" className="ml-2 text-xs">
+              Server audit
+            </Badge>
+          )}
         </p>
       </div>
+
+      {/* Audit loading indicator */}
+      {auditLoading && (
+        <div className="flex items-center gap-2 rounded-md border border-info/30 bg-info/5 p-3 text-sm">
+          <Activity className="h-4 w-4 text-info animate-pulse" />
+          <span className="text-info">Loading audit data from server…</span>
+        </div>
+      )}
+      {auditError && (
+        <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs">
+          <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+          <span className="text-foreground-muted">
+            Server audit unavailable: {auditError}. Showing locally stored data.
+          </span>
+        </div>
+      )}
 
       {/* Top metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           icon={gate.pass ? CheckCircle2 : XCircle}
           label="Gate Status"
-          value={gate.pass ? 'PASS' : 'FAIL'}
-          variant={gate.pass ? 'success' : 'danger'}
+          value={gate.pass ? "PASS" : "FAIL"}
+          variant={gate.pass ? "success" : "danger"}
         />
         <MetricCard
           icon={ClipboardCheck}
           label="Quality Score"
           value={
-            activeResult?.qualityScore != null ? `${activeResult.qualityScore}% (${letterGrade})` : `— (${letterGrade})`
+            activeResult?.qualityScore != null
+              ? `${activeResult.qualityScore}% (${letterGrade})`
+              : `— (${letterGrade})`
           }
         />
-        <MetricCard icon={FileCode} label="Files Scanned" value={formatNumber(activeResult?.totalFiles)} />
+        <MetricCard
+          icon={FileCode}
+          label="Files Scanned"
+          value={formatNumber(activeResult?.totalFiles)}
+        />
         <MetricCard
           icon={AlertTriangle}
           label="Issues Found"
           value={String(activeResult?.issueCount ?? 0)}
-          variant={(activeResult?.issueCount ?? 0) > 0 ? 'warning' : 'success'}
+          variant={(activeResult?.issueCount ?? 0) > 0 ? "warning" : "success"}
         />
       </div>
 
@@ -1532,8 +1993,11 @@ export function AuditView() {
               <CardTitle>Gate Status</CardTitle>
               <CardDescription>Deterministic gate scan results</CardDescription>
             </div>
-            <Badge variant={gate.pass ? 'success' : 'danger'} className="text-sm">
-              {gate.pass ? 'PASS' : 'FAIL'}
+            <Badge
+              variant={gate.pass ? "success" : "danger"}
+              className="text-sm"
+            >
+              {gate.pass ? "PASS" : "FAIL"}
             </Badge>
           </div>
         </CardHeader>
@@ -1543,14 +2007,18 @@ export function AuditView() {
               <FileCode className="h-5 w-5 text-info" />
               <div>
                 <p className="text-xs text-foreground-muted">Files Scanned</p>
-                <p className="text-lg font-bold">{formatNumber(activeResult?.totalFiles)}</p>
+                <p className="text-lg font-bold">
+                  {formatNumber(activeResult?.totalFiles)}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
               <div>
                 <p className="text-xs text-foreground-muted">Issues Found</p>
-                <p className="text-lg font-bold">{activeResult?.issueCount ?? 0}</p>
+                <p className="text-lg font-bold">
+                  {activeResult?.issueCount ?? 0}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1560,7 +2028,9 @@ export function AuditView() {
                 <XCircle className="h-5 w-5 text-danger" />
               )}
               <div>
-                <p className="text-xs text-foreground-muted">Blocking / Warnings</p>
+                <p className="text-xs text-foreground-muted">
+                  Blocking / Warnings
+                </p>
                 <p className="text-lg font-bold">
                   {gate.blockingCount} / {gate.warningCount}
                 </p>
@@ -1571,8 +2041,12 @@ export function AuditView() {
               <div>
                 <p className="text-xs text-foreground-muted">Quality / Grade</p>
                 <p className="text-lg font-bold">
-                  {activeResult?.qualityScore != null ? `${activeResult.qualityScore}%` : '—'}{' '}
-                  <span className="text-sm text-foreground-muted">({letterGrade})</span>
+                  {activeResult?.qualityScore != null
+                    ? `${activeResult.qualityScore}%`
+                    : "—"}{" "}
+                  <span className="text-sm text-foreground-muted">
+                    ({letterGrade})
+                  </span>
                 </p>
               </div>
             </div>
@@ -1582,8 +2056,12 @@ export function AuditView() {
             <>
               <Separator />
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-foreground-muted">Consistency score:</span>
-                <span className="font-bold">{formatPercent(consistencyScore)}</span>
+                <span className="text-foreground-muted">
+                  Consistency score:
+                </span>
+                <span className="font-bold">
+                  {formatPercent(consistencyScore)}
+                </span>
               </div>
             </>
           )}
@@ -1591,25 +2069,27 @@ export function AuditView() {
           <Separator />
 
           <div className="flex flex-wrap gap-2">
-            {(['critical', 'high', 'medium', 'low', 'info'] as const).map((sev) => (
-              <Badge
-                key={sev}
-                variant={
-                  sev === 'critical'
-                    ? 'danger'
-                    : sev === 'high'
-                      ? 'warning'
-                      : sev === 'medium'
-                        ? 'info'
-                        : sev === 'low'
-                          ? 'secondary'
-                          : 'outline'
-                }
-                className="capitalize gap-1.5"
-              >
-                {sev}: {activeResult?.severityCounts?.[sev] || 0}
-              </Badge>
-            ))}
+            {(["critical", "high", "medium", "low", "info"] as const).map(
+              (sev) => (
+                <Badge
+                  key={sev}
+                  variant={
+                    sev === "critical"
+                      ? "danger"
+                      : sev === "high"
+                        ? "warning"
+                        : sev === "medium"
+                          ? "info"
+                          : sev === "low"
+                            ? "secondary"
+                            : "outline"
+                  }
+                  className="capitalize gap-1.5"
+                >
+                  {sev}: {activeResult?.severityCounts?.[sev] || 0}
+                </Badge>
+              ),
+            )}
           </div>
 
           <Separator />
@@ -1618,10 +2098,18 @@ export function AuditView() {
             <Button variant="outline" size="sm" onClick={exportJson}>
               <Download className="h-4 w-4" /> Export JSON
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('results')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("results")}
+            >
               <FileCode className="h-4 w-4" /> View Full Results
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('analyze')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("analyze")}
+            >
               <Play className="h-4 w-4" /> New Scan
             </Button>
           </div>
@@ -1637,7 +2125,8 @@ export function AuditView() {
             <div className="text-3xl">📋</div>
             <p className="text-sm font-semibold">No assessment generated yet</p>
             <p className="text-xs text-foreground-muted">
-              Run assessment from the CLI to generate the executive summary and compliance checklist.
+              Run assessment from the CLI to generate the executive summary and
+              compliance checklist.
             </p>
           </CardContent>
         </Card>
@@ -1666,7 +2155,10 @@ export function AuditView() {
 
       {/* Fiction catalog */}
       {fictionCatalog.length > 0 && (
-        <FictionCatalogSection catalog={fictionCatalog} activeFindings={fictionActiveFindings} />
+        <FictionCatalogSection
+          catalog={fictionCatalog}
+          activeFindings={fictionActiveFindings}
+        />
       )}
 
       {/* Air-gap telemetry / benchmark */}

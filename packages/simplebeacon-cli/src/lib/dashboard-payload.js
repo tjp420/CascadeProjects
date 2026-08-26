@@ -414,6 +414,20 @@ function buildAuditLayers(report = {}, baseline = {}) {
       severity: "high",
       status: resolveJestBaselineStatus(report, baseline).status,
     },
+    securityPatterns: {
+      enabled: true,
+      scanned: report.securityPatternFilesScanned ?? 0,
+      findings: report.securityPatternFindings ?? countByType(/security/i),
+      severity: "high",
+      status: (report.securityPatternFindings ?? 0) === 0 ? "pass" : "fail",
+    },
+    llmSlop: {
+      enabled: true,
+      scanned: report.llmSlopFilesScanned ?? 0,
+      findings: report.llmSlopPatternHits ?? countByType(/llm.?slop/i),
+      severity: "medium",
+      status: (report.llmSlopPatternHits ?? 0) === 0 ? "pass" : "warn",
+    },
     gate: {
       pass: report.gate?.pass ?? false,
       failOn: report.gate?.failOn ?? ["high"],
@@ -446,6 +460,8 @@ function buildAuditPayload(context, extras = {}) {
       schemaChecked: report.schemaChecked,
       schemaPassed: report.schemaPassed,
       repositoryInventory: report.repositoryInventory ?? null,
+      repositoryFilesTotal: report.repositoryFilesTotal ?? null,
+      ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed ?? null,
       issueCount: report.gate
         ? (report.gate.blockingCount ?? 0) + (report.gate.warningCount ?? 0)
         : report.issueCount,
@@ -453,7 +469,32 @@ function buildAuditPayload(context, extras = {}) {
       blockingCount: report.gate?.blockingCount ?? 0,
       jestSummary: report.jestSummary ?? null,
       jestBaselinePassed: report.jestBaselinePassed ?? null,
+      jestBaselineChecked: report.jestBaselineChecked ?? null,
       gate: report.gate,
+      // Audit layer scan counts
+      credentialScanned: report.credentialScanned ?? null,
+      credentialFindings: report.credentialFindings ?? null,
+      productionLeakScanned: report.productionLeakScanned ?? null,
+      productionLeakFindings: report.productionLeakFindings ?? null,
+      sourceCodeFilesScanned: report.sourceCodeFilesScanned ?? null,
+      roadmapSchemaChecked: report.roadmapSchemaChecked ?? null,
+      roadmapSchemaPassed: report.roadmapSchemaPassed ?? null,
+      securityPatternFindings: report.securityPatternFindings ?? null,
+      securityPatternFilesScanned: report.securityPatternFilesScanned ?? null,
+      llmSlopPatternHits: report.llmSlopPatternHits ?? null,
+      llmSlopFilesScanned: report.llmSlopFilesScanned ?? null,
+      // Scan scope for the audit page
+      scanScope: report.scanScope ?? null,
+      // Issues for client-side layer derivation
+      detectedIssues: report.detectedIssues ?? report.rawIssues ?? [],
+      rawIssues: report.rawIssues ?? null,
+      severityCounts: report.severityCounts ?? null,
+      // Gate warnings
+      gateWarnings: report.gateWarnings ?? report.warningIssues ?? null,
+      // Letter grade
+      letterGrade: report.letterGrade ?? report.letter_grade ?? null,
+      // Project path
+      projectRoot: report.projectRoot ?? report.projectPath ?? null,
     },
     baseline: {
       pageSamplesLabel:

@@ -35,7 +35,8 @@
         div.appendChild(span);
         term.appendChild(div);
         for (let i = 0; i < text.length; i++) {
-            if (cancelled) return;
+            if (cancelled)
+                return;
             const tspan = document.createElement('span');
             tspan.textContent = text[i];
             div.appendChild(tspan);
@@ -48,7 +49,8 @@
         div.className = 'tw-line ' + className;
         term.appendChild(div);
         for (let i = 0; i < text.length; i++) {
-            if (cancelled) return;
+            if (cancelled)
+                return;
             div.textContent += text[i];
             term.scrollTop = term.scrollHeight;
             await sleep(typeSpeed);
@@ -60,7 +62,8 @@
         div.appendChild(htmlToFragment(html));
         term.appendChild(div);
         term.scrollTop = term.scrollHeight;
-        if (delay > 0) await sleep(delay);
+        if (delay > 0)
+            await sleep(delay);
     }
     const SCENARIOS = [
         {
@@ -188,35 +191,30 @@
         await typeLine('Scanning...', 'tw-dim');
         await sleep(300);
         const barId = 'pb-' + Date.now();
-        appendRaw(
-            `<div class="tw-progress"><span class="tw-dim">Analyzing files...</span><div class="tw-bar"><div class="tw-bar-fill" id="${barId}" style="width:0%"></div></div></div>`
-        );
+        appendRaw(`<div class="tw-progress"><span class="tw-dim">Analyzing files...</span><div class="tw-bar"><div class="tw-bar-fill" id="${barId}" style="width:0%"></div></div></div>`);
         for (let p = 0; p <= 100; p += 10) {
-            if (cancelled) return;
+            if (cancelled)
+                return;
             document.getElementById(barId).style.width = p + '%';
             await sleep(typeSpeed < 20 ? 30 : 120);
         }
         await sleep(200);
         appendLine(`<span class="tw-ok">Gate rules checked:</span> <span class="tw-dim">${s.files} files</span>`);
-        appendLine(
-            `<span class="tw-ok">Mock/sample files:</span> <span class="tw-dim">${Math.floor(s.files * 0.08)}</span>`
-        );
+        appendLine(`<span class="tw-ok">Mock/sample files:</span> <span class="tw-dim">${Math.floor(s.files * 0.08)}</span>`);
         await sleep(300);
         appendLine(`<span class="tw-warn">Issues found: ${s.findings.length}</span>`);
         await sleep(200);
         for (const f of s.findings) {
-            if (cancelled) return;
-            const badge =
-                f.sev === 'critical'
-                    ? '<span class="tw-badge tw-red">CRITICAL</span>'
-                    : f.sev === 'high'
-                      ? '<span class="tw-badge tw-red">HIGH</span>'
-                      : f.sev === 'medium'
+            if (cancelled)
+                return;
+            const badge = f.sev === 'critical'
+                ? '<span class="tw-badge tw-red">CRITICAL</span>'
+                : f.sev === 'high'
+                    ? '<span class="tw-badge tw-red">HIGH</span>'
+                    : f.sev === 'medium'
                         ? '<span class="tw-badge tw-yel">MEDIUM</span>'
                         : '<span class="tw-badge tw-blu">LOW</span>';
-            appendRaw(
-                `<div class="tw-finding ${f.sev}">${badge} <span class="tw-warn">${f.type}</span> <span class="tw-dim">— ${f.file}:${f.line}</span><br><span class="tw-dim">${f.msg}</span></div>`
-            );
+            appendRaw(`<div class="tw-finding ${f.sev}">${badge} <span class="tw-warn">${f.type}</span> <span class="tw-dim">— ${f.file}:${f.line}</span><br><span class="tw-dim">${f.msg}</span></div>`);
             await sleep(typeSpeed < 20 ? 200 : 600);
         }
         const hasBlocking = s.findings.some(f => f.sev === 'high' || f.sev === 'critical');
@@ -224,15 +222,13 @@
         if (hasBlocking) {
             appendLine('<span class="tw-err">Gate: FAIL</span> — blocking issues found');
             appendLine('<span class="tw-dim">Run `npx simplebeacon ai-plan` to generate remediation steps</span>');
-        } else {
+        }
+        else {
             appendLine('<span class="tw-ok">Gate: PASS</span>');
         }
-        const score = Math.max(
-            0,
-            100 -
-                s.findings.filter(f => f.sev === 'high' || f.sev === 'critical').length * 12 -
-                s.findings.filter(f => f.sev === 'medium').length * 4
-        );
+        const score = Math.max(0, 100 -
+            s.findings.filter(f => f.sev === 'high' || f.sev === 'critical').length * 12 -
+            s.findings.filter(f => f.sev === 'medium').length * 4);
         appendLine(`<span class="tw-dim">Quality Score: ${score}/100</span>`);
         appendRaw('<span class="tw-prompt">$ </span><span class="tw-cursor"></span>');
         running = false;
@@ -249,30 +245,25 @@
         appendLine(`<span class="tw-ok">Gate rules checked:</span> <span class="tw-dim">${s.files} files</span>`);
         appendLine(`<span class="tw-warn">Issues found: ${s.findings.length}</span>`);
         for (const f of s.findings) {
-            const badge =
-                f.sev === 'critical'
-                    ? '<span class="tw-badge tw-red">CRITICAL</span>'
-                    : f.sev === 'high'
-                      ? '<span class="tw-badge tw-red">HIGH</span>'
-                      : f.sev === 'medium'
+            const badge = f.sev === 'critical'
+                ? '<span class="tw-badge tw-red">CRITICAL</span>'
+                : f.sev === 'high'
+                    ? '<span class="tw-badge tw-red">HIGH</span>'
+                    : f.sev === 'medium'
                         ? '<span class="tw-badge tw-yel">MEDIUM</span>'
                         : '<span class="tw-badge tw-blu">LOW</span>';
-            appendRaw(
-                `<div class="tw-finding ${f.sev}">${badge} <span class="tw-warn">${f.type}</span> <span class="tw-dim">— ${f.file}:${f.line}</span><br><span class="tw-dim">${f.msg}</span></div>`
-            );
+            appendRaw(`<div class="tw-finding ${f.sev}">${badge} <span class="tw-warn">${f.type}</span> <span class="tw-dim">— ${f.file}:${f.line}</span><br><span class="tw-dim">${f.msg}</span></div>`);
         }
         const hasBlocking = s.findings.some(f => f.sev === 'high' || f.sev === 'critical');
         if (hasBlocking) {
             appendLine('<span class="tw-err">Gate: FAIL</span> — blocking issues found');
-        } else {
+        }
+        else {
             appendLine('<span class="tw-ok">Gate: PASS</span>');
         }
-        const score = Math.max(
-            0,
-            100 -
-                s.findings.filter(f => f.sev === 'high' || f.sev === 'critical').length * 12 -
-                s.findings.filter(f => f.sev === 'medium').length * 4
-        );
+        const score = Math.max(0, 100 -
+            s.findings.filter(f => f.sev === 'high' || f.sev === 'critical').length * 12 -
+            s.findings.filter(f => f.sev === 'medium').length * 4);
         appendLine(`<span class="tw-dim">Quality Score: ${score}/100</span>`);
         appendRaw('<span class="tw-prompt">$ </span><span class="tw-cursor"></span>');
         resetBtn.style.display = 'inline-block';

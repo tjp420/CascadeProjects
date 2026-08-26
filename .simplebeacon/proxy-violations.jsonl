@@ -1,2 +1,14 @@
 {"timestamp":"2026-07-05T07:50:32.005Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
 {"timestamp":"2026-07-05T07:50:32.018Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:36:02.915Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:36:02.922Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:37:29.938Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:37:29.950Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:40:26.750Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:40:26.757Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:48:27.764Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:48:27.780Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:49:53.115Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:49:53.123Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:51:31.871Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
+{"timestamp":"2026-08-26T02:51:31.879Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
