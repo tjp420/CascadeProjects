@@ -1878,7 +1878,7 @@ export function AnalyzeView() {
           );
           let pollData: any = null;
           let pollAttempts = 0;
-          const maxPollAttempts = 120; // 120 × 2s = 240s max
+          const maxPollAttempts = 300; // 300 × 2s = 600s (10 min) max — large repos need more time
           while (pollAttempts < maxPollAttempts) {
             await new Promise((resolve) => setTimeout(resolve, 2000));
             pollAttempts++;

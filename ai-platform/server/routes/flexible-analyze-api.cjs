@@ -158,7 +158,7 @@ const { buildRoadmapFromPath } = require("./lib/flexible-analyze-roadmap.cjs");
 
 // In-memory async scan jobs for /api/analyze/upload-directory polling
 const scanJobs = new Map();
-const SCAN_JOB_TTL_MS = 20 * constants.ONE_MINUTE_MS; // 20 minutes (covers CLI 15m + analyses timeout)
+const SCAN_JOB_TTL_MS = 30 * constants.ONE_MINUTE_MS; // 30 minutes (covers large repo scans up to 10min + post-processing)
 const _scanJobCleanupInterval = setInterval(() => {
   // simplebeacon-ignore memory-leak — server-side job cleanup timer, process lifetime
   const now = Date.now();
@@ -790,7 +790,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           try {
             let report = await withTimeout(
               getAnalyzeCodebase()(projectPath, analyzeOpts),
-              120_000,
+              600_000,
               "flexible codebase analysis",
             );
             if (understandingMode !== "off") {
