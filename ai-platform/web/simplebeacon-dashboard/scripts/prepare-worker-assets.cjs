@@ -164,8 +164,34 @@ function main() {
           const refPath = path.join(DIST_ASSETS, ref);
           if (!fs.existsSync(refPath)) {
             try {
-              fs.writeFileSync(refPath, 'export default {};', 'utf8');
-              console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+              // Attempt to find a matching chunk by base name (strip last -<hash> segment)
+              const baseMatch = ref.replace(/-[_A-Za-z0-9]+\.js$/, '');
+              const candidates = allJs.filter((f) => f.startsWith(baseMatch + '-') && f.endsWith('.js'));
+              if (candidates.length > 0) {
+                const candidate = candidates[0];
+                const candidatePath = path.join(DIST_ASSETS, candidate);
+                try {
+                  fs.copyFileSync(candidatePath, refPath);
+                  console.log(`[prepare-worker-assets] Copied existing chunk ${candidate} → ${ref} to satisfy import`);
+                  // copy map if exists
+                  const candMap = candidate + '.map';
+                  const candMapPath = path.join(DIST_ASSETS, candMap);
+                  const refMapPath = refPath + '.map';
+                  if (fs.existsSync(candMapPath) && !fs.existsSync(refMapPath)) {
+                    fs.copyFileSync(candMapPath, refMapPath);
+                    console.log(`[prepare-worker-assets] Copied map ${candMap} → ${path.basename(refMapPath)}`);
+                  }
+                } catch (copyErr) {
+                  console.warn(`[prepare-worker-assets] Failed to copy candidate chunk ${candidate} for missing ${ref}: ${copyErr.message}`);
+                  // fall back to writing a tiny stub
+                  fs.writeFileSync(refPath, 'export default {};', 'utf8');
+                  console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+                }
+              } else {
+                // No candidate found — write a small stub module to prevent import-analysis failure
+                fs.writeFileSync(refPath, 'export default {};', 'utf8');
+                console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+              }
             } catch (err) {
               console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
             }
