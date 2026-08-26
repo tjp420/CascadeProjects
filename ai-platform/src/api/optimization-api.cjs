@@ -93,7 +93,7 @@ function setupOptimizationAPI(app, options = {}) {
           message: "Too many requests, please try again later.",
         }),
   });
-  // TODO: Add authentication middleware (requireAuth) to merge-execute and merge-rollback
+  // TODO(#816): Add authentication middleware (requireAuth) to merge-execute and merge-rollback
   // before exposing these endpoints beyond localhost/Render internal network.
 
   app.get("/api/optimization/health", (req, res) => {

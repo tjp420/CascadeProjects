@@ -72,7 +72,7 @@ class JsonFileTokenStore {
   }
 
   nextSequence(tenantId) {
-    // TODO: per-tenant sequence persistence in JSON; for now rely on replicator cache
+    // TODO(#814): per-tenant sequence persistence in JSON; for now rely on replicator cache
     return null;
   }
 

@@ -182,7 +182,7 @@ function setupTrustAPI(app, options = {}) {
   );
 
   // Rate limiter for trust publish endpoint — mutation that writes to public dir.
-  // TODO: Add authentication middleware (requireAuth) before exposing beyond localhost.
+  // TODO(#816): Add authentication middleware (requireAuth) before exposing beyond localhost.
   const trustPublishRateLimit = require("express-rate-limit")({
     windowMs: 60 * 1000,
     max: 5,

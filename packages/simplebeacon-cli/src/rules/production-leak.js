@@ -175,7 +175,15 @@ function globMatch(relativePath, pattern) {
   if (p.includes("**")) {
     const suffix = p.replace(/^\*\*\//, "");
     if (suffix.startsWith("*.")) {
-      return normalized.endsWith(suffix.slice(1));
+      // Convert glob suffix (e.g. "*.test.*") to a regex anchored at end
+      try {
+        const tailRegex = new RegExp(
+          suffix.replace(/\./g, "\\.").replace(/\*/g, "[^/]*") + "$",
+        );
+        return tailRegex.test(normalized);
+      } catch {
+        return false;
+      }
     }
     if (suffix.endsWith("/**")) {
       const prefix = suffix.replace(/\/\*\*$/, "");

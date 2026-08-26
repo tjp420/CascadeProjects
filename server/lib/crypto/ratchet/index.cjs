@@ -16,7 +16,7 @@ function ensureDir(p) {
 module.exports = {
   bootstrapSession: function (opts = {}) {
     // opts: { tenant, peerPkSig, peerPkKem, localSkSig }
-    // TODO: implement hybrid KEM + signature bootstrap
+    // TODO(#817): implement hybrid KEM + signature bootstrap
     const sessionId = "ratchet-" + Date.now();
     const dir = path.join(storageBase, opts.tenant || "default", sessionId);
     ensureDir(dir);
@@ -32,22 +32,22 @@ module.exports = {
 
   processBootstrap: function (envelope) {
     // envelope: { sessionId, envelope, signature }
-    // TODO: verify signature, decapsulate KEM, derive session keys
+    // TODO(#817): verify signature, decapsulate KEM, derive session keys
     return { ok: false, reason: "not_implemented" };
   },
 
   rotate: function (sessionId) {
-    // TODO: create rotation envelope and sign it
+    // TODO(#817): create rotation envelope and sign it
     return { ok: false, reason: "not_implemented" };
   },
 
   verifyRotation: function (sessionId, envelope) {
-    // TODO: verify rotation and update session state
+    // TODO(#817): verify rotation and update session state
     return { ok: false, reason: "not_implemented" };
   },
 
   exportPublicMetadata: function (sessionId) {
-    // TODO: load session metadata
+    // TODO(#817): load session metadata
     return { pk_sig: null, pk_kem: null, version: "0.1.0" };
   },
 };
