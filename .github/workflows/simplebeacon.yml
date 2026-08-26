@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install monorepo dependencies
@@ -35,10 +35,12 @@ jobs:
       - name: Build SimpleBeacon CLI
         run: npm run build --workspace=simplebeacon
 
-      - name: Run local scan
+      - name: Run local scan (run from simplebeacon package)
         id: scan
+        working-directory: packages/simplebeacon-cli
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan --complete --gate --path . --format json --output .simplebeacon/report.json
+          # Run the CLI from the package folder, output report to repo root
+          node ./bin/simplebeacon.js scan --complete --gate --path ../.. --format json --output ../../.simplebeacon/report.json
         continue-on-error: true
 
       - name: Generate PR comment and step summary
