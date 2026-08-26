@@ -5587,7 +5587,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
       ".scala",
     ].includes(file.ext)
   ) {
-    if (!isNonProductionAuditContentPath(rel)) {
+    if (!isNonProductionAuditContentPath(rel) && !tooLargeForDeepScan) {
       findings.push(...detectPlaceholderAndFictionalData(content, rel));
     }
   }
@@ -5597,6 +5597,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
       file.ext,
     )
   ) {
+    if (!tooLargeForDeepScan) {
     findings.push(
       ...scanContentPatterns(
         content,
@@ -5643,11 +5644,14 @@ async function analyzeFileContent(file, rootDir, options = {}) {
       ),
     );
     findings.push(...detectDatabasePatterns(content, rel));
+    } // end if (!tooLargeForDeepScan)
   }
 
-  findings.push(...detectLicenseHeaders(content, rel));
+  if (!tooLargeForDeepScan) {
+    findings.push(...detectLicenseHeaders(content, rel));
+  }
 
-  if (languagePluginManager.shouldUsePlugin(file.ext)) {
+  if (languagePluginManager.shouldUsePlugin(file.ext) && !tooLargeForDeepScan) {
     const plugin = languagePluginManager.resolvePlugin(
       file.name,
       file.ext,
