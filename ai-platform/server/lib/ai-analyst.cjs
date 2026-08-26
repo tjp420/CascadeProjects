@@ -191,7 +191,8 @@ function tryParseJson(text) {
       .replace(/\s*```$/, "")
       .trim();
     return JSON.parse(cleaned);
-  } catch {
+  } catch (e) {
+    try { logger.warn('[AI Analyst] tryParseJson failed:', e && e.message ? e.message : e); } catch (_) {}
     return null;
   }
 }
