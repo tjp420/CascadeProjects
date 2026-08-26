@@ -122,7 +122,7 @@ function wrapStrategy({ finding, content }) {
     case "unhandled-promise":
       if (!lineText.includes(".catch")) {
         prefix = "try { ";
-        suffix = " } catch (e) { /* handle error */ }";
+        suffix = " } catch (e) { console.error('fix-orchestrator: unhandled promise caught', e); }";
         confidence = 0.7;
       }
       break;
