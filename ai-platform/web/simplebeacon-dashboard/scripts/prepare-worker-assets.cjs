@@ -150,17 +150,25 @@ function main() {
     const mainJsPathNow = path.join(DIST_ASSETS, 'main.js');
     if (fs.existsSync(mainJsPathNow)) {
       const mainContent = fs.readFileSync(mainJsPathNow, 'utf8');
-      const importRegex = /from\s+["']\.\/([^"']+\.js)["']/g;
-      let m;
-      while ((m = importRegex.exec(mainContent)) !== null) {
-        const ref = m[1];
-        const refPath = path.join(DIST_ASSETS, ref);
-        if (!fs.existsSync(refPath)) {
-          try {
-            fs.writeFileSync(refPath, 'export default {};', 'utf8');
-            console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
-          } catch (err) {
-            console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
+
+      // Match both static imports (from './foo.js') and dynamic imports (import('./foo.js'))
+      const importRegexes = [
+        /from\s+["']\.\/([^"']+\.js)["']/g,
+        /import\(\s*["']\.\/([^"']+\.js)["']\s*\)/g,
+      ];
+
+      for (const importRegex of importRegexes) {
+        let m;
+        while ((m = importRegex.exec(mainContent)) !== null) {
+          const ref = m[1];
+          const refPath = path.join(DIST_ASSETS, ref);
+          if (!fs.existsSync(refPath)) {
+            try {
+              fs.writeFileSync(refPath, 'export default {};', 'utf8');
+              console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+            } catch (err) {
+              console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
+            }
           }
         }
       }
