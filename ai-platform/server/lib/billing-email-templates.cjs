@@ -130,7 +130,8 @@ function fmtDate(iso) {
       month: "long",
       day: "numeric",
     });
-  } catch {
+  } catch (e) {
+    try { console.warn('[Billing Email Templates] fmtDate failed:', e && e.message ? e.message : e); } catch (_) {}
     return iso;
   }
 }

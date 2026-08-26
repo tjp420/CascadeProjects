@@ -18,7 +18,8 @@ function splitLargeJsonParts(filePath, content) {
   let data;
   try {
     data = JSON.parse(content);
-  } catch {
+  } catch (e) {
+    try { logger.warn(`[Export Bundle] splitLargeJsonParts JSON.parse failed for ${filePath}: ${e && e.message ? e.message : e}`); } catch (_) {}
     return splitTextParts(filePath, content);
   }
 

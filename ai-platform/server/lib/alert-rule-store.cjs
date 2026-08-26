@@ -58,7 +58,8 @@ function readStore() {
     }
     if (migrated) writeStore(store);
     return store;
-  } catch {
+  } catch (e) {
+    try { console.warn('[Alert Rule Store] readStore failed:', e && e.message ? e.message : e); } catch (_) {}
     return { rules: {} };
   }
 }
