@@ -223,7 +223,7 @@ const BINARY_EXTENSIONS = new Set([
 ]);
 const WALK_MAX_DEPTH = 128;
 const MAX_FILE_BYTES =
-  Number(process.env.CODEBASE_MAX_FILE_BYTES) || Number.POSITIVE_INFINITY;
+  Number(process.env.CODEBASE_MAX_FILE_BYTES) || 262144; // 256KB default
 const GOVERNANCE_FILE_BASENAMES = new Set([
   "license",
   "license.md",
@@ -5130,7 +5130,10 @@ async function analyzeFileContent(file, rootDir, options = {}) {
 
   if ([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"].includes(file.ext)) {
     const isNodeModulesFile = /(^|\/)node_modules\//.test(rel);
-    if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel)) {
+    // Skip expensive regex pattern scanning for large files to prevent
+    // catastrophic backtracking from blocking the event loop.
+    const tooLargeForDeepScan = content.length > 65536; // 64KB
+    if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel) && !tooLargeForDeepScan) {
       const syntaxError = checkJsSyntax(raw, rel);
       if (syntaxError) {
         pushFinding(findings, {
@@ -5148,7 +5151,8 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     if (
       !isNonProductionAuditContentPath(rel) &&
       !isTechnicalDebtReportArtifact(rel) &&
-      !hasFileLevelIgnore(content, "todoMarkers")
+      !hasFileLevelIgnore(content, "todoMarkers") &&
+      !tooLargeForDeepScan
     ) {
       findings.push(
         ...scanContentPatterns(
@@ -5164,7 +5168,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     const isScannerCatalog =
       /(?:^|\/)packages\/[^/]+\/(?:src\/)?rules\//.test(rel) ||
       /(?:^|\/)server\/lib\//.test(rel);
-    if (!isScannerCatalog) {
+    if (!isScannerCatalog && !tooLargeForDeepScan) {
       findings.push(
         ...scanContentPatterns(
           content,
@@ -5175,6 +5179,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         ),
       );
     }
+    if (!tooLargeForDeepScan) {
     findings.push(
       ...scanContentPatterns(
         content,
@@ -5281,6 +5286,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         "medium",
       ),
     );
+    } // end if (!tooLargeForDeepScan)
   }
 
   // committed-env-file: path-based detection for .env files (not .env.example/.env.sample)
@@ -5304,6 +5310,8 @@ async function analyzeFileContent(file, rootDir, options = {}) {
   }
 
   if ([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"].includes(file.ext)) {
+    // Skip expensive regex scanning for large files to prevent event loop blocking
+    if (!tooLargeForDeepScan) {
     // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
     // secret-in-comment: skip scanner/test files
     const skipSecretInComment =
@@ -5515,6 +5523,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         recommendedAction: "Replace eval/Function with safe alternatives",
       });
     }
+    } // end if (!tooLargeForDeepScan)
   }
 
   if ([".html", ".htm", ".jsx", ".tsx", ".vue"].includes(file.ext)) {
