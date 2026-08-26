@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SimpleBeacon Scan Report — 2026-08-26</title>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#0f172a; background:#f8fafc; padding:24px; }
+    .container { max-width:900px; margin:0 auto; background:#fff; border-radius:8px; box-shadow:0 6px 24px rgba(15,23,42,0.08); padding:28px; }
+    h1 { margin:0 0 8px; font-size:22px; }
+    .meta { color:#475569; margin-bottom:18px; }
+    .summary { display:flex; gap:12px; margin:18px 0; }
+    .card { background:#f1f5f9; padding:14px 16px; border-radius:8px; flex:1; text-align:center; }
+    .card h3 { margin:0; font-size:14px; color:#0f172a; }
+    .card p { margin:6px 0 0; color:#334155; font-weight:700; font-size:18px; }
+    .findings { margin-top:20px; }
+    .finding { border-left:4px solid #e2e8f0; background:#fbfdff; padding:12px 14px; border-radius:6px; margin-bottom:12px; }
+    .finding.info { border-left-color:#64748b; }
+    .finding.medium { border-left-color:#f59e0b; }
+    .finding h4 { margin:0 0 6px; font-size:15px; }
+    .recommend { margin-top:8px; color:#0f172a; font-weight:600; }
+    .footer { margin-top:24px; color:#64748b; font-size:13px; }
+    code { background:#0f172a10; padding:2px 6px; border-radius:4px; }
+    pre { background:#0f172a08; padding:12px; border-radius:6px; overflow:auto; }
+    .actions { margin-top:18px; }
+    .btn { display:inline-block; background:#0d9488; color:white; padding:10px 14px; border-radius:6px; text-decoration:none; font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SimpleBeacon — Quick Scan Report</h1>
+    <div class="meta">Scan: <strong>Quick gate</strong> — Generated: <strong>2026-08-26T02:03:21.894Z</strong> — Scope: <strong>sample repository scan (50 files)</strong></div>
+
+    <div class="summary">
+      <div class="card"><h3>Gate status</h3><p>PASS</p></div>
+      <div class="card"><h3>Critical</h3><p>0</p></div>
+      <div class="card"><h3>High</h3><p>0</p></div>
+      <div class="card"><h3>Medium</h3><p>2</p></div>
+      <div class="card"><h3>Low</h3><p>0</p></div>
+    </div>
+
+    <section class="findings">
+      <h2 style="margin-top:0;">Top Findings</h2>
+
+      <div class="finding info">
+        <h4>Deployment-readiness — Table "users" created by multiple services (SB-DEP-003)</h4>
+        <div>Severity: <strong>info</strong> &nbsp;|&nbsp; Count: 1</div>
+        <p style="margin-top:8px;">Description: The <code>users</code> table is created by multiple services (ai-platform, api-server). The schemas are incompatible (different primary key types, columns, and constraints) and may conflict during migrations or integrated deployments.</p>
+        <p class="recommend">Recommendation: Assign canonical owner for <code>users</code> (ai-platform or api-server) or prepare an orchestrated, idempotent migration plan with a compatibility window before broad release.</p>
+        <p style="margin-top:8px; color:#475569;">Affected file: <code>ai-platform/server/db/schema-phase2.sql</code></p>
+      </div>
+
+      <div class="finding medium">
+        <h4>Empty exception handler — ai-platform/server/lib/codebase-analyzer.cjs (line 771)</h4>
+        <div>Severity: <strong>medium</strong> &nbsp;|&nbsp; Count: 1</div>
+        <p style="margin-top:8px;">Description: An empty catch block may silently swallow errors and hide operational failures. At minimum, log the error to help debugging and observability.</p>
+        <p class="recommend">Recommendation: Add non-invasive diagnostics (logger.warn / logger.error) inside the catch block, preserving control flow. Run targeted unit tests and node -c.</p>
+        <p style="margin-top:8px; color:#475569;">Affected file: <code>ai-platform/server/lib/codebase-analyzer.cjs</code></p>
+      </div>
+
+      <div class="finding medium">
+        <h4>Empty exception handler — ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs (line 438)</h4>
+        <div>Severity: <strong>medium</strong> &nbsp;|&nbsp; Count: 1</div>
+        <p style="margin-top:8px;">Description: An empty catch block silently swallows audit errors. This reduces visibility into hardware/security adapter failures.</p>
+        <p class="recommend">Recommendation: Log the error at warn or error level with contextual metadata; consider alerting if audit hooks fail repeatedly.</p>
+        <p style="margin-top:8px; color:#475569;">Affected file: <code>ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs</code></p>
+      </div>
+
+    </section>
+
+    <section style="margin-top:18px;">
+      <h2 style="margin-bottom:8px;">Actionable Next Steps</h2>
+      <ol>
+        <li><strong>DB ownership decision:</strong> Resolve canonical owner of <code>users</code> or create a migration orchestration. (Owner: DB/Platform team)</li>
+        <li><strong>Follow-up SB-AI-004 sweep:</strong> Continue conservative edits to non-test server-side empty-catch sites. Target ~8 files per PR; add non-invasive logging and run node -c + targeted tests. (Owner: Release/Engineering)</li>
+        <li><strong>Staging deploy & smoke tests:</strong> Validate critical flows (dashboard, billing, agent) after merges. (Owner: SRE / Release owner)</li>
+      </ol>
+
+      <div class="actions">
+        <a class="btn" href="../.simplebeacon/report.json">Open raw JSON report</a>
+        &nbsp;&nbsp;
+        <a class="btn" style="background:#334155" href="../docs/executive-summary-2026-08-26.md">Open executive summary</a>
+      </div>
+    </section>
+
+    <div class="footer">Report generated by SimpleBeacon — quick gate scan. For authoritative pre-release checks run the full gate: <code>npx simplebeacon scan --full --gate</code>.</div>
+  </div>
+</body>
+</html>
