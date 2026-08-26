@@ -772,6 +772,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           filename: safeBasename(projectPath),
         });
 
+        // Wire up progress reporting so the client doesn't sit at a static percentage
+        analyzeOpts.onProgress = (info) => {
+          const job = scanJobs.get(asyncScanId);
+          if (!job || job.status !== "scanning") return;
+          scanJobs.set(asyncScanId, {
+            ...job,
+            current: info.current || job.current,
+            total: info.total || job.total,
+            percent: Math.min(99, Math.round((info.current / Math.max(1, info.total)) * 100)),
+            filename: info.filename || job.filename,
+          });
+        };
+
         (async () => {
           const startedAt = Date.now();
           try {
