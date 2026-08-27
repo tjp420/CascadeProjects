@@ -384,7 +384,7 @@ function _getWebsiteDashboardWebviewHtml(
 <html lang="en" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${cspSource} http://127.0.0.1:* http://localhost:*; img-src data: https: http://127.0.0.1:* http://localhost:*; font-src https: http://127.0.0.1:* http://localhost:*; frame-src https://simplebeacon.ai https://*.simplebeacon.pages.dev http://127.0.0.1:* http://localhost:* about:blank; connect-src http://127.0.0.1:* http://localhost:* https://simplebeacon.ai https://*.simplebeacon.pages.dev;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${cspSource} http://127.0.0.1:* http://localhost:*; img-src data: https: http://127.0.0.1:* http://localhost:*; font-src https: http://127.0.0.1:* http://localhost:*; frame-src https://simplebeacon.ai https://*.simplebeacon.pages.dev http://127.0.0.1:* http://localhost:*; connect-src http://127.0.0.1:* http://localhost:* https://simplebeacon.ai https://*.simplebeacon.pages.dev;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Dashboard</title>
 <style>

@@ -5913,7 +5913,7 @@ ${
       '/api/webhook-events': { events: [], total: 0 },
       '/api/webhook-events/stats': { stats: { total: 0, successful: 0, failed: 0 } },
       '/api/ops-report/status': { status: 'ok', lastRun: null },
-      '/api/license/seats': { seats: { total: 0, used: 0, available: 0 } },
+      '/api/license/seats': { seats: [], pendingInvites: [], maxSeats: 0, seatsUsed: 0, seatsRemaining: 0, tier: 'free' },
       '/api/user/subscription': { subscription: null, tier: 'free' },
     };
     if (dashboardStubs[parsed.pathname]) {
