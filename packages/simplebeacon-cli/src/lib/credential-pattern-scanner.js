@@ -107,6 +107,7 @@ const ALLOWLIST_SNIPPETS = [
   "test-api-key",
   "test-key",
   "test_token",
+  "test-access-token",
 ];
 
 const SCANNABLE_EXTENSIONS = new Set([
@@ -194,11 +195,15 @@ function isAllowlisted(match, content, fileName = "") {
     /\.test\./i.test(fileName) ||
     /\.spec\./i.test(fileName) ||
     /\.vitest\./i.test(fileName) ||
-    /(^|[\/])__tests__[\/]/i.test(fileName) ||
-    /(^|[\/])tests[\/]/i.test(fileName) ||
-    /(^|[\/])test[\/]/i.test(fileName) ||
-    /(^|[\/])e2e[\/]/i.test(fileName) ||
-    /(^|[\/])fixtures[\/]/i.test(fileName)
+    /(^|[\/\\])__tests__[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])tests[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])test[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])e2e[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])fixtures[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])test-helpers[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])test-utils[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])mocks[\/\\]/i.test(fileName) ||
+    /(^|[\/\\])__mocks__[\/\\]/i.test(fileName)
   ) {
     return true;
   }
