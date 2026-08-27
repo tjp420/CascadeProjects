@@ -1438,7 +1438,9 @@ app.use((req, res, next) => {
     req.path === "/api/audit-booking" ||
     req.path === "/api/audit-bookings" ||
     req.path === "/api/free-token" ||
-    req.path === "/api/tokens/sandbox"
+    req.path === "/api/tokens/sandbox" ||
+    req.path === "/api/license/validate" ||
+    req.path === "/api/subscription/webhook"
   )
     return next();
   if (isVaultAuthenticated(req)) return next();
@@ -2482,6 +2484,65 @@ async function startServer() {
   } catch (e) {
     logger.warn("[TokenValidate] Routes not loaded:", e.message);
   }
+
+  // Public license validation endpoint used by CLI/GitHub Action in CI
+  // No auth required — the license token itself is the credential
+  app.post("/api/license/validate", express.json(), (req, res) => {
+    try {
+      const { token } = req.body || {};
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({
+          active: false,
+          sandbox: true,
+          registered: false,
+          valid: false,
+          error: "Token required",
+        });
+      }
+      const { verifyLicenseToken } = require("./server/lib/simplebeacon-proxy.cjs");
+      const { getLicenseToken } = require("./server/lib/token-db.cjs");
+      let secret = null;
+      try {
+        secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim() || null;
+      } catch {
+        secret = null;
+      }
+      if (!secret) {
+        return res.status(503).json({
+          active: false,
+          sandbox: true,
+          registered: false,
+          valid: false,
+          error: "License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured",
+        });
+      }
+      const claims = verifyLicenseToken(token, secret);
+      const entry = getLicenseToken(token);
+      const registered = !!claims || !!entry;
+      const active = registered && claims !== null;
+      const tier = entry?.tier || claims?.tier || "developer";
+      const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || "https://simplebeacon.ai/pricing";
+      return res.json({
+        active,
+        sandbox: !active,
+        registered,
+        valid: !!claims,
+        email: entry?.email || claims?.sub || claims?.email || null,
+        tier,
+        features: claims?.features || [],
+        expiry: claims?.exp || null,
+        upgradeUrl,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        active: false,
+        sandbox: true,
+        registered: false,
+        valid: false,
+        error: "Internal error",
+      });
+    }
+  });
 
   // Referral program — link generation, click capture, invite emails
   try {
