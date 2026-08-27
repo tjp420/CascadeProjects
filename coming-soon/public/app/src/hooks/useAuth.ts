@@ -100,10 +100,58 @@ export function useAuth() {
     // Listen for same-tab login/logout events dispatched by SignInView
     window.addEventListener("sb:login", checkAuth);
     window.addEventListener("sb:logout", checkAuth);
+
+    // Listen for setAuthState messages from the IDE parent wrapper.
+    // When the dashboard is embedded in the IDE sidebar, the sidebar webview
+    // and the dashboard iframe have separate localStorage. The extension sends
+    // the auth token via postMessage through the wrapper, and we sync it here.
+    const onMessage = (ev: MessageEvent) => {
+      if (!ev.data || typeof ev.data !== "object") return;
+      if (ev.data.command !== "setAuthState") return;
+      const data = ev.data as {
+        signedIn?: boolean;
+        token?: string;
+        tier?: string;
+        isAdmin?: boolean;
+      };
+      if (data.signedIn && data.token) {
+        localStorage.setItem("sb_token", data.token);
+        if (data.tier) {
+          try {
+            const existing = JSON.parse(
+              localStorage.getItem("sb_user") || "{}",
+            );
+            existing.tier = data.tier;
+            existing.plan = data.tier;
+            if (data.isAdmin) existing.role = "admin";
+            localStorage.setItem("sb_user", JSON.stringify(existing));
+          } catch {
+            /* ignore */
+          }
+        }
+        try {
+          window.dispatchEvent(new Event("sb:login"));
+        } catch {
+          /* ignore */
+        }
+      } else if (data.signedIn === false) {
+        localStorage.removeItem("sb_token");
+        localStorage.removeItem("sb-token");
+        localStorage.removeItem("auth_token");
+        try {
+          window.dispatchEvent(new Event("sb:logout"));
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    window.addEventListener("message", onMessage);
+
     return () => {
       window.removeEventListener("storage", checkAuth);
       window.removeEventListener("sb:login", checkAuth);
       window.removeEventListener("sb:logout", checkAuth);
+      window.removeEventListener("message", onMessage);
     };
   }, []);
 
