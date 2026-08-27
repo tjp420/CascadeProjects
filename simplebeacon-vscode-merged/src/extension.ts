@@ -5124,16 +5124,27 @@ async function runScan(
               hasEnhancedAnalysis = false;
               enhancedAIProvider.setScanResult(currentReport);
 
-              // Save CLI report to disk so it persists across reloads
+              // Save CLI report to disk so it persists across reloads.
+              // Retry with backoff to handle EMFILE (too many open files) after large scans.
               const sbDir = path.join(projectPath, '.simplebeacon');
-              fs.promises
-                .mkdir(sbDir, { recursive: true })
-                .then(() =>
-                  fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8')
-                )
-                .catch((saveErr) => {
-                  outputChannel.appendLine(`[SimpleBeacon] Warning: could not save report: ${saveErr}`);
-                });
+              const reportJson = JSON.stringify(report, null, 2);
+              const writeReportWithRetry = async (attempt: number): Promise<void> => {
+                try {
+                  await fs.promises.mkdir(sbDir, { recursive: true });
+                  await fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), reportJson, 'utf8');
+                } catch (saveErr) {
+                  if (attempt < 3 && (saveErr as NodeJS.ErrnoException)?.code === 'EMFILE') {
+                    const delay = 500 * Math.pow(2, attempt);
+                    outputChannel.appendLine(`[SimpleBeacon] EMFILE on report write, retrying in ${delay}ms (attempt ${attempt + 1}/3)`);
+                    await new Promise((r) => setTimeout(r, delay));
+                    return writeReportWithRetry(attempt + 1);
+                  }
+                  throw saveErr;
+                }
+              };
+              writeReportWithRetry(0).catch((saveErr) => {
+                outputChannel.appendLine(`[SimpleBeacon] Warning: could not save report: ${saveErr}`);
+              });
               scanProvider.updateReport(currentReport as ScanReport);
               enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
               visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);

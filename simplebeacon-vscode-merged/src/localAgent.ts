@@ -246,6 +246,14 @@ export async function installLocalAgent(): Promise<void> {
       const zipPath = await downloadAgentZip(url, progress);
       progress.report({ message: `Extracting to ${installDir}` });
       await extractAgentZip(zipPath, installDir, progress);
+      // Verify agent.cjs exists after extraction — the portable zip must contain it.
+      const agentEntry = path.join(installDir, 'agent.cjs');
+      if (!fs.existsSync(agentEntry)) {
+        throw new Error(
+          `agent.cjs not found after extraction. The portable zip from ${url} may be incomplete or corrupted. ` +
+            'Try uninstalling and re-installing the local agent, or set `localAgent.downloadUrl` to a valid zip.'
+        );
+      }
       progress.report({ message: 'Running installer' });
       await runBundledInstaller(installDir);
       progress.report({ message: 'Starting agent' });

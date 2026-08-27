@@ -118,7 +118,24 @@ function main() {
     path.join(MONOREPO_ROOT, "packages", "simplebeacon-cli", "package.json"),
     path.join(OUT_DIR, "packages", "simplebeacon-cli", "package.json"),
   );
-  copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, ".simplebeacon"));
+  // Copy .simplebeacon config/rules only — exclude large report files and debug artifacts
+  // that accumulate in the monorepo's .simplebeacon directory during development.
+  const sbOutDir = path.join(OUT_DIR, ".simplebeacon");
+  fs.mkdirSync(sbOutDir, { recursive: true });
+  const sbConfigFiles = ["config.json", "config.local.json"];
+  for (const f of sbConfigFiles) {
+    const src = path.join(SIMPLEBEACON_DIR, f);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(sbOutDir, f));
+    }
+  }
+  const sbSubdirs = ["rules", "qa"];
+  for (const sub of sbSubdirs) {
+    const src = path.join(SIMPLEBEACON_DIR, sub);
+    if (fs.existsSync(src)) {
+      copyDir(src, path.join(sbOutDir, sub));
+    }
+  }
 
   // Copy server files that the scanner package requires at runtime.
   if (fs.existsSync(SERVER_DIR)) {
