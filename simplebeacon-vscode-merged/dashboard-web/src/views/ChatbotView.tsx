@@ -27,6 +27,27 @@ import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwo
 
 const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
 
+/**
+ * Detect when the dashboard is embedded inside the IDE (VS Code sidebar/webview).
+ * When true, the chatbot should route Ollama requests through the local data server
+ * instead of directly from the browser, because the webview's CSP and Private Network
+ * Access restrictions may block direct localhost requests.
+ */
+function isIdeEmbedSurface(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const win = window as any;
+    if (win.__SB_IDE_EMBED__) return true;
+    if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+    if (typeof win.acquireVsCodeApi === 'function') return true;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+  } catch {
+    /* ignore */
+  }
+  return window.self !== window.top;
+}
+
 type OllamaProbeResult =
   | { status: 'online'; models: string[] }
   | { status: 'cors_blocked' }
@@ -646,11 +667,13 @@ export function ChatbotView() {
               // Server reports no providers available. On the hosted dashboard, the server
               // cannot reach the user's local Ollama. Probe directly from the browser to
               // check if Ollama is running locally.
+              // Skip browser probe in IDE embed mode — the local data server already probes
+              // Ollama and can proxy requests. Browser-direct localhost fails in webviews.
               const isHosted =
                 typeof window !== 'undefined' &&
                 window.location.protocol === 'https:' &&
                 !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-              if (isHosted) {
+              if (isHosted && !isIdeEmbedSurface()) {
                 setConnectionStatus('checking');
                 setConnectionText('Checking for local Ollama…');
                 const probeResult = await probeBrowserOllamaDetailed(BROWSER_OLLAMA_URL);
@@ -879,11 +902,13 @@ export function ChatbotView() {
     try {
       // If using Ollama on the hosted dashboard, send directly from the browser
       // since the server cannot reach the user's local Ollama instance.
+      // Skip browser-direct in IDE embed mode — the local data server can proxy
+      // to Ollama, and the webview may block direct localhost requests.
       const isHosted =
         typeof window !== 'undefined' &&
         window.location.protocol === 'https:' &&
         !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-      if (selectedProvider === 'ollama' && isHosted) {
+      if (selectedProvider === 'ollama' && isHosted && !isIdeEmbedSurface()) {
         const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
         const discovered = providerModels['ollama'] || [];
         // Use the user's selection if it's installed, otherwise fall back to first installed.
