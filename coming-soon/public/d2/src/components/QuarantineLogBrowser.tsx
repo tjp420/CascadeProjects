@@ -322,7 +322,7 @@ export function QuarantineLogBrowser() {
 
   const entries = data.entries;
   const total = data.totalEntries;
-  const metadata = data.metadata;
+  const metadata = data.metadata ?? { encrypted: false, lastUpdated: null, totalQuarantined: 0, byReason: {} };
 
   return (
     <>

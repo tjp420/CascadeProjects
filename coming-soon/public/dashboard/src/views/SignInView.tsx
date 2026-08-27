@@ -30,6 +30,67 @@ type SsoProvider = {
   orgId?: string;
 };
 
+/**
+ * Notify the VS Code extension of auth state changes when running in IDE embed mode.
+ * The sign-in panel is a separate webview with isolated localStorage, so the sidebar
+ * never sees the token. We POST to the extension's /api/notify endpoint (sb_notify_base)
+ * and also try the image-beacon fallback for HTTPS→HTTP mixed-content scenarios.
+ * If a redirect_uri is present (vscode:// deep link), we also redirect to it.
+ */
+function notifyExtensionAuthState(
+  signedIn: boolean,
+  token: string,
+  tier?: string,
+  isAdmin?: boolean,
+): void {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  const notifyBase = params.get("sb_notify_base");
+  const redirectUri = params.get("redirect_uri");
+  if (!notifyBase && !redirectUri) return;
+
+  const payload = { signedIn, token, tier: tier || "", isAdmin: !!isAdmin };
+
+  // 1. POST to /api/notify (works for same-origin or CORS-enabled localhost)
+  if (notifyBase) {
+    try {
+      fetch(`${notifyBase}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "setAuthState", payload }),
+      }).catch(() => {
+        // 2. Beacon fallback for HTTPS→HTTP mixed-content blocking
+        try {
+          const beaconUrl = `${notifyBase}/notify/beacon?type=setAuthState&payload=${encodeURIComponent(JSON.stringify(payload))}`;
+          new Image().src = beaconUrl;
+        } catch {
+          /* ignore */
+        }
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 3. VS Code URI deep-link redirect (vscode://simplebeacon.simplebeacon-vscode/relay/auth)
+  if (redirectUri && signedIn && token) {
+    try {
+      const sep = redirectUri.includes("?") ? "&" : "?";
+      const redirectUrl = `${redirectUri}${sep}signedIn=true&token=${encodeURIComponent(token)}${tier ? `&tier=${encodeURIComponent(tier)}` : ""}${isAdmin ? "&isAdmin=true" : ""}`;
+      // Small delay so the fetch above can fire before we navigate away
+      setTimeout(() => {
+        try {
+          window.location.href = redirectUrl;
+        } catch {
+          /* ignore */
+        }
+      }, 200);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 type Mode = "signin" | "register" | "license";
 
 export function SignInView() {
@@ -56,6 +117,8 @@ export function SignInView() {
       } catch {
         /* ignore */
       }
+      // Notify the VS Code extension of the SSO login
+      notifyExtensionAuthState(true, ssoToken);
       toast.success("SSO authentication successful");
       // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
@@ -194,6 +257,12 @@ export function SignInView() {
         } catch {
           /* ignore */
         }
+        // Notify the VS Code extension so the sidebar updates (separate webview localStorage)
+        const userTier = data.user?.tier || data.tier || "";
+        const userIsAdmin = ["admin", "owner", "superuser", "superadmin"].includes(
+          String(data.user?.role || "").toLowerCase(),
+        );
+        notifyExtensionAuthState(true, data.token, userTier, userIsAdmin);
         toast.success(mode === "signin" ? "Signed in" : "Account created");
         navigate("dashboard");
       } else {
@@ -216,14 +285,26 @@ export function SignInView() {
     setLoading(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl("/auth/token-status"), {
+      let resp = await fetch(apiUrl("/auth/token-status"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: trimmed }),
       });
+      // Retry on 503 (Render cold-start)
+      if (resp.status === 503) {
+        for (let retry = 1; retry <= 3; retry++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          resp = await fetch(apiUrl("/auth/token-status"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: trimmed }),
+          });
+          if (resp.status !== 503) break;
+        }
+      }
       if (!resp.ok) {
         if (resp.status === 503) {
-          throw new Error("License validation is temporarily unavailable");
+          throw new Error("License validation is temporarily unavailable. The server may be waking up — please try again in a moment.");
         }
         let friendlyMsg = `Validation failed (${resp.status})`;
         try {
@@ -252,6 +333,12 @@ export function SignInView() {
         } catch {
           /* ignore */
         }
+        // Notify the VS Code extension of the license activation
+        const licenseTier = data.tier || "developer";
+        const licenseIsAdmin = ["admin", "owner", "superuser", "superadmin"].includes(
+          String(data.role || data.user?.role || "").toLowerCase(),
+        );
+        notifyExtensionAuthState(true, trimmed, licenseTier, licenseIsAdmin);
         toast.success(`License activated — ${data.tier} tier`);
         navigate("dashboard");
       } else if (data.registered && !data.valid) {

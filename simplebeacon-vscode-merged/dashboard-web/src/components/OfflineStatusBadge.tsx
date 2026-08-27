@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ShieldCheck, Wifi } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * OfflineStatusBadge — displays a real-time indicator showing whether the
@@ -8,22 +8,25 @@ import { Badge } from '@/components/ui/badge';
  *
  * When offline: green "Local Sandbox Active" badge — scans run 100% locally,
  * zero network requests, code never leaves the machine.
- * When online: muted "Online" badge — scans still run locally in the browser
- * sandbox, but the browser has network connectivity.
+ * When online: muted "Online — scans still local" badge — the browser has
+ * internet connectivity, but scans still run locally in the browser sandbox.
+ * The scan itself never uploads source code, regardless of browser connectivity.
  */
 export function OfflineStatusBadge() {
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -44,10 +47,10 @@ export function OfflineStatusBadge() {
     <Badge
       variant="outline"
       className="gap-1.5 cursor-default text-foreground-muted"
-      title="Browser is online. Scans still run locally in the browser sandbox — code is never uploaded to a server. Disconnect your internet to verify Zero Data Custody."
+      title="Your browser is online, but scans still run locally — source code is never uploaded to a server. The network guard verifies zero outbound requests during browser-local scans."
     >
       <Wifi className="h-3 w-3" />
-      Online
+      Online — scans still local
     </Badge>
   );
 }

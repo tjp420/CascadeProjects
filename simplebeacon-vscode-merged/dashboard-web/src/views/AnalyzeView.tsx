@@ -53,6 +53,13 @@ import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { discoverAndApplyExtensionBridge } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
 import {
+  TrustBanner,
+  ScanModeBadge,
+  PostScanVerification,
+  useNetworkGuard,
+  type ScanTrustMode,
+} from "@/components/TrustBanner";
+import {
   requestNotificationPermission,
   showOSNotification,
   isNotificationsEnabled,
@@ -358,6 +365,9 @@ export function AnalyzeView() {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   const [requiresManualTrigger, setRequiresManualTrigger] = useState(false);
+  const [trustMode, setTrustMode] = useState<ScanTrustMode>("unknown");
+  const [showPostScanVerification, setShowPostScanVerification] = useState(false);
+  const { networkEvents, isGuarding, startGuard, stopGuard } = useNetworkGuard();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -861,6 +871,9 @@ export function AnalyzeView() {
       }
       if (scanInFlightRef.current) return;
       scanInFlightRef.current = true;
+      setTrustMode("browser-local");
+      setShowPostScanVerification(false);
+      startGuard(); // Start network guard to verify no upload occurs
       // Clear stale scan data from previous scans so ResultsView doesn't show old findings
       try {
         localStorage.removeItem("sb_last_scan_full");
@@ -965,12 +978,15 @@ export function AnalyzeView() {
           );
         }
         persistScanResult(scanResult, report);
+        stopGuard();
+        setShowPostScanVerification(true);
       } catch (err: any) {
         setScanState("error");
         const errMsg = err?.message || String(err || "Unknown error");
         setLastErrorMsg(errMsg);
         appendLog(`[SimpleBeacon] Browser-local scan failed: ${errMsg}`);
         toast.error(errMsg || "Local scan failed");
+        stopGuard();
         postBrowserError({
           source: "dashboard",
           error: errMsg,
@@ -1826,6 +1842,8 @@ export function AnalyzeView() {
         const scanMode = apiBase
           ? "local server"
           : "remote backend (Render proxy)";
+        setTrustMode(apiBase ? "local-server" : "remote-backend");
+        setShowPostScanVerification(false);
         appendLog(`[SimpleBeacon] Requesting server scan via ${scanMode}...`);
         setProgressLabel(`Scanning via ${scanMode}...`);
         setProgress(60);
@@ -1833,16 +1851,40 @@ export function AnalyzeView() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         let resp: Response;
+        const fetchBody = JSON.stringify({
+          projectPath: scanPath,
+          analysisType: "codebase",
+        });
+        const fetchHeaders = { "Content-Type": "application/json", ...authHeaders() };
         try {
           resp = await fetch(apiUrl("/analyze/flexible"), {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify({
-              projectPath: scanPath,
-              analysisType: "codebase",
-            }),
+            headers: fetchHeaders,
+            body: fetchBody,
             signal: controller.signal,
           });
+          // Retry on 502/503 (Render cold-start)
+          if (resp.status === 502 || resp.status === 503) {
+            appendLog(`[SimpleBeacon] Server returned ${resp.status} — waking up...`);
+            setProgressLabel("Waking up the analysis server...");
+            for (let retry = 1; retry <= 3; retry++) {
+              await new Promise((r) => setTimeout(r, 5000));
+              appendLog(`[SimpleBeacon] Retry ${retry}/3...`);
+              setProgressLabel(`Waking up the analysis server (retry ${retry}/3)...`);
+              try {
+                resp = await fetch(apiUrl("/analyze/flexible"), {
+                  method: "POST",
+                  headers: fetchHeaders,
+                  body: fetchBody,
+                  signal: controller.signal,
+                });
+                if (resp.status !== 502 && resp.status !== 503) break;
+              } catch (retryErr: any) {
+                if (retryErr?.name === "AbortError") break;
+                // Continue to next retry
+              }
+            }
+          }
         } catch (fetchErr: any) {
           clearTimeout(timeoutId);
           if (fetchErr?.name === "AbortError") {
@@ -1995,12 +2037,69 @@ export function AnalyzeView() {
 
         persistScanResult(scanResult, fullReportData);
       } else {
-        appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
-        setProgressLabel("Browser sandbox not available in React mode yet");
-        setProgress(50);
-        throw new Error(
-          "Browser sandbox scan requires the vanilla JS service. Use server mode with sb_api_base parameter.",
-        );
+        // No API base and not hosted — try browser-local scan via dropped folder handle
+        const droppedDirHandle = (window as any).__sbDroppedDirHandle as
+          | FileSystemDirectoryHandle
+          | undefined;
+        if (droppedDirHandle) {
+          appendLog(`[SimpleBeacon] No API base — using browser local scan via dropped folder "${droppedDirHandle.name}"`);
+          setProgressLabel(`Scanning ${droppedDirHandle.name} locally...`);
+          setProgress(60);
+          const localReport = await runLocalScan({
+            dirHandle: droppedDirHandle,
+            projectPath: scanPath || droppedDirHandle.name,
+            onFilePrepProgress: (processed: number, total: number, label: string) => {
+              if (total > 0) {
+                const pct = Math.min(15, Math.round((processed / total) * 15));
+                setProgress(pct);
+              }
+              if (label) setProgressLabel(label);
+            },
+            onProgress: (processed: number, total: number) => {
+              if (total > 0) {
+                const pct = 15 + Math.round((processed / total) * 80);
+                setProgress(Math.min(95, pct));
+              }
+            },
+          }) as any;
+          const r = localReport;
+          const scanResult: ScanResult = {
+            totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || r.totalFiles || 0,
+            issueCount: r.issueCount || r.summary?.totalFindings || 0,
+            severityCounts: r.severityCounts || {
+              critical: 0,
+              high: 0,
+              medium: 0,
+              low: 0,
+              info: 0,
+            },
+            gate: r.gate || { pass: false, blockingCount: 0, warningCount: 0 },
+            qualityScore: r.qualityScore ?? null,
+            projectPath: r.projectPath || scanPath || droppedDirHandle.name,
+            scanScope: {
+              profile: r.scanScope?.profile || "standard",
+              resultsViewScope: r.scanScope?.resultsViewScope || "browser-local",
+              codeFilesAnalyzed:
+                r.scanScope?.codeFilesAnalyzed ||
+                r.summary?.codeFilesAnalyzed ||
+                r.filesAnalyzed ||
+                0,
+            },
+          };
+          setScanState("complete");
+          setProgress(100);
+          appendLog(
+            `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
+          );
+          persistScanResult(scanResult, localReport);
+        } else {
+          appendLog(`[SimpleBeacon] No API base and no folder selected`);
+          setProgressLabel("Select a folder to scan, or use the Server tab with a local API base");
+          setProgress(50);
+          throw new Error(
+            "No scan target available. Click 'Browse Folder' to select a local directory, or configure a server connection in Settings.",
+          );
+        }
       }
     } catch (err: any) {
       setScanState("error");
@@ -2896,13 +2995,16 @@ export function AnalyzeView() {
                 Choose a scan mode and provide a project path or URL
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="gap-1.5">
-              <Lock className="h-3 w-3" />
-              Private
-            </Badge>
+            <ScanModeBadge mode={trustMode} />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <TrustBanner mode={trustMode} />
+          <PostScanVerification
+            networkEvents={networkEvents}
+            isLocal={trustMode === "browser-local"}
+            show={showPostScanVerification && scanState === "complete"}
+          />
           <Tabs value={mode} onValueChange={(v) => setMode(v as ScanMode)}>
             <TabsList className="w-full">
               {modeTabs.map((t) => {

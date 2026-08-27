@@ -120,8 +120,8 @@
           location.port === "5173";
         var l = document.createElement("link");
         l.rel = "stylesheet";
-        if (devHost) l.href = "./assets/main.css?v=1787773474279";
-        else l.href = "./assets/main.css?v=1787773474279";
+        if (devHost) l.href = "./assets/main.css";
+        else l.href = "./assets/main.css";
         document.head.appendChild(l);
       })();
     </script>
@@ -419,8 +419,6 @@
             location.hostname === "127.0.0.1" ||
             location.hostname === "simplebeacon.ai" ||
             location.hostname === "www.simplebeacon.ai" ||
-            location.hostname === "simplebeacon.pages.dev" ||
-            location.hostname.endsWith(".simplebeacon.pages.dev") ||
             location.hostname.endsWith(".onrender.com"))
             ? ""
             : "https://simplebeacon.ai",
@@ -710,9 +708,8 @@
       })();
     </script>
 
-    <!-- React Dashboard Bundle (build $(Get-Date)) --> — static module script so Lighthouse waits for render -->
-    <!-- build-cache: 1787768446269 -->
-    <script type="module" src="/d2/assets/main.js?v=1787773474279"></script>
+    <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
+    <script type="module" src="/d2/assets/main.js?v=1787798389098"></script>
     <script>
       (function () {
         try {
@@ -748,6 +745,3 @@
     </script>
   </body>
 </html>
-
-<!-- force-upload: 128f1341-0d3e-427d-a8dd-7f5f6d2afd94 -->
-<!-- re-upload: 7359d7cb-1ba1-4675-b0b1-276b8d0d40c3 -->

@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Archive,
   RefreshCw,
@@ -16,9 +22,9 @@ import {
   Trash2,
   Activity,
   Lock,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { apiUrl, authHeaders } from '@/config';
+} from "lucide-react";
+import { toast } from "sonner";
+import { apiUrl, authHeaders } from "@/config";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,15 +82,17 @@ interface HealChainResponse {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function reasonColor(reason: string): string {
-  if (reason === 'content_tampered') return 'bg-red-500/15 text-red-500 border-red-500/30';
-  if (reason === 'broken_link') return 'bg-orange-500/15 text-orange-500 border-orange-500/30';
-  return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
+  if (reason === "content_tampered")
+    return "bg-red-500/15 text-red-500 border-red-500/30";
+  if (reason === "broken_link")
+    return "bg-orange-500/15 text-orange-500 border-orange-500/30";
+  return "bg-gray-500/15 text-gray-500 border-gray-500/30";
 }
 
 function reasonLabel(reason: string): string {
-  if (reason === 'content_tampered') return 'Content Tampered';
-  if (reason === 'broken_link') return 'Broken Link';
-  return reason || 'Unknown';
+  if (reason === "content_tampered") return "Content Tampered";
+  if (reason === "broken_link") return "Broken Link";
+  return reason || "Unknown";
 }
 
 function formatTimeAgo(iso: string): string {
@@ -96,9 +104,9 @@ function formatTimeAgo(iso: string): string {
 }
 
 function truncateHash(hash: string | undefined, len = 16): string {
-  if (!hash) return '—';
+  if (!hash) return "—";
   if (hash.length <= len) return hash;
-  return hash.slice(0, len / 2) + '…' + hash.slice(-len / 2);
+  return hash.slice(0, len / 2) + "…" + hash.slice(-len / 2);
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -108,17 +116,21 @@ export function QuarantineLogBrowser() {
   const [loading, setLoading] = useState(true);
   const [healing, setHealing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<QuarantineEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<QuarantineEntry | null>(
+    null,
+  );
   const [verifying, setVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<VerifyEntryResponse | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyEntryResponse | null>(
+    null,
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchQuarantine = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('audit/quarantine'), {
+      const resp = await fetch(apiUrl("audit/quarantine"), {
         headers: authHeaders(),
-        credentials: 'include',
+        credentials: "include",
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -127,7 +139,7 @@ export function QuarantineLogBrowser() {
       const json = await resp.json();
       setData(json);
     } catch (err) {
-      console.warn('[Quarantine] fetch failed:', err);
+      console.warn("[Quarantine] fetch failed:", err);
     } finally {
       setLoading(false);
     }
@@ -153,10 +165,10 @@ export function QuarantineLogBrowser() {
   const handleHeal = useCallback(async () => {
     setHealing(true);
     try {
-      const resp = await fetch(apiUrl('audit/heal-chain'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        credentials: 'include',
+      const resp = await fetch(apiUrl("audit/heal-chain"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -165,14 +177,16 @@ export function QuarantineLogBrowser() {
       const result: HealChainResponse = await resp.json();
       if (result.healed) {
         toast.success(
-          `Chain healed: ${result.quarantined.length} quarantined, ${result.relinked} relinked, ${result.remaining} remaining`
+          `Chain healed: ${result.quarantined.length} quarantined, ${result.relinked} relinked, ${result.remaining} remaining`,
         );
       } else {
-        toast.success('Chain is already valid — no healing needed');
+        toast.success("Chain is already valid — no healing needed");
       }
       void fetchQuarantine();
     } catch (err) {
-      toast.error(`Heal failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(
+        `Heal failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setHealing(false);
     }
@@ -182,10 +196,10 @@ export function QuarantineLogBrowser() {
     setVerifying(true);
     setVerifyResult(null);
     try {
-      const resp = await fetch(apiUrl('audit/quarantine/verify-entry'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        credentials: 'include',
+      const resp = await fetch(apiUrl("audit/quarantine/verify-entry"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
         body: JSON.stringify({ entryId: entry.id }),
       });
       if (!resp.ok) {
@@ -200,7 +214,9 @@ export function QuarantineLogBrowser() {
         toast.warning(`Entry ${entry.id.slice(0, 8)}… hash mismatch detected`);
       }
     } catch (err) {
-      toast.error(`Verify failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(
+        `Verify failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     } finally {
       setVerifying(false);
     }
@@ -209,13 +225,15 @@ export function QuarantineLogBrowser() {
   const handleDownloadEntry = useCallback((entry: QuarantineEntry) => {
     const payload = {
       exportedAt: new Date().toISOString(),
-      type: 'quarantine_entry',
+      type: "quarantine_entry",
       entry,
     };
     try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `quarantine-${entry.id}.json`;
       document.body.appendChild(a);
@@ -224,7 +242,7 @@ export function QuarantineLogBrowser() {
       URL.revokeObjectURL(url);
       toast.success(`Downloaded quarantine entry ${entry.id.slice(0, 8)}…`);
     } catch {
-      toast.error('Failed to download entry');
+      toast.error("Failed to download entry");
     }
   }, []);
 
@@ -232,24 +250,26 @@ export function QuarantineLogBrowser() {
     if (!data || data.entries.length === 0) return;
     const payload = {
       exportedAt: new Date().toISOString(),
-      type: 'quarantine_bundle',
+      type: "quarantine_bundle",
       totalEntries: data.totalEntries,
       metadata: data.metadata,
       entries: data.entries,
     };
     try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `quarantine-bundle-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      a.download = `quarantine-bundle-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
       toast.success(`Downloaded ${data.totalEntries} quarantine entries`);
     } catch {
-      toast.error('Failed to download bundle');
+      toast.error("Failed to download bundle");
     }
   }, [data]);
 
@@ -272,7 +292,9 @@ export function QuarantineLogBrowser() {
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <Loader2 className="h-6 w-6 text-foreground-muted animate-spin" />
-          <p className="text-sm text-foreground-muted">Loading quarantine data…</p>
+          <p className="text-sm text-foreground-muted">
+            Loading quarantine data…
+          </p>
         </CardContent>
       </Card>
     );
@@ -283,8 +305,14 @@ export function QuarantineLogBrowser() {
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <AlertTriangle className="h-8 w-8 text-foreground-muted" />
-          <p className="text-sm text-foreground-muted">Failed to load quarantine data</p>
-          <Button size="sm" variant="outline" onClick={() => void fetchQuarantine()}>
+          <p className="text-sm text-foreground-muted">
+            Failed to load quarantine data
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void fetchQuarantine()}
+          >
             <RefreshCw className="h-4 w-4 mr-2" /> Retry
           </Button>
         </CardContent>
@@ -294,7 +322,7 @@ export function QuarantineLogBrowser() {
 
   const entries = data.entries;
   const total = data.totalEntries;
-  const metadata = data.metadata;
+  const metadata = data.metadata ?? { encrypted: false, lastUpdated: null, totalQuarantined: 0, byReason: {} };
 
   return (
     <>
@@ -306,14 +334,26 @@ export function QuarantineLogBrowser() {
                 <Archive className="h-5 w-5" />
                 Quarantine Log Browser
               </CardTitle>
-              <CardDescription className="mt-1">Forensic inspection of quarantined audit entries</CardDescription>
+              <CardDescription className="mt-1">
+                Forensic inspection of quarantined audit entries
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setAutoRefresh((v) => !v)}>
-                <RefreshCw className={`h-4 w-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
-                {autoRefresh ? 'Auto' : 'Manual'}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAutoRefresh((v) => !v)}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-1 ${autoRefresh ? "animate-spin" : ""}`}
+                />
+                {autoRefresh ? "Auto" : "Manual"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => void fetchQuarantine()}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void fetchQuarantine()}
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -330,31 +370,54 @@ export function QuarantineLogBrowser() {
             <div className="rounded-lg border p-3 text-center">
               <ShieldAlert className="h-5 w-5 mx-auto text-red-500" />
               <p className="text-2xl font-bold mt-1 text-red-500">
-                {entries.filter((e) => e.quarantineReason === 'content_tampered').length}
+                {
+                  entries.filter(
+                    (e) => e.quarantineReason === "content_tampered",
+                  ).length
+                }
               </p>
               <p className="text-xs text-foreground-muted">Tampered</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
               <AlertTriangle className="h-5 w-5 mx-auto text-orange-500" />
               <p className="text-2xl font-bold mt-1 text-orange-500">
-                {entries.filter((e) => e.quarantineReason === 'broken_link').length}
+                {
+                  entries.filter((e) => e.quarantineReason === "broken_link")
+                    .length
+                }
               </p>
               <p className="text-xs text-foreground-muted">Broken Links</p>
             </div>
             <div className="rounded-lg border p-3 text-center">
               <Lock className="h-5 w-5 mx-auto text-foreground-muted" />
-              <p className="text-2xl font-bold mt-1">{metadata.encrypted ? 'YES' : 'NO'}</p>
+              <p className="text-2xl font-bold mt-1">
+                {metadata.encrypted ? "YES" : "NO"}
+              </p>
               <p className="text-xs text-foreground-muted">Encrypted</p>
             </div>
           </div>
 
           {/* ── Action Bar ────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="destructive" onClick={() => void handleHeal()} disabled={healing}>
-              {healing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => void handleHeal()}
+              disabled={healing}
+            >
+              {healing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Activity className="h-4 w-4" />
+              )}
               Re-Heal Chain
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleDownloadAll()} disabled={entries.length === 0}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDownloadAll()}
+              disabled={entries.length === 0}
+            >
               <Download className="h-4 w-4" />
               Download All
             </Button>
@@ -371,7 +434,8 @@ export function QuarantineLogBrowser() {
               <ShieldCheck className="h-10 w-10 text-green-500" />
               <p className="text-sm font-medium">No quarantined entries</p>
               <p className="text-xs text-foreground-muted">
-                The audit chain is clean — no tampered or broken entries detected
+                The audit chain is clean — no tampered or broken entries
+                detected
               </p>
             </div>
           ) : (
@@ -384,7 +448,7 @@ export function QuarantineLogBrowser() {
                   onClick={() => openDrawer(entry)}
                 >
                   <div className="flex-shrink-0">
-                    {entry.quarantineReason === 'content_tampered' ? (
+                    {entry.quarantineReason === "content_tampered" ? (
                       <ShieldAlert className="h-5 w-5 text-red-500" />
                     ) : (
                       <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -392,8 +456,13 @@ export function QuarantineLogBrowser() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-medium truncate">{entry.id.slice(0, 12)}…</span>
-                      <Badge variant="outline" className={`text-[10px] py-0 ${reasonColor(entry.quarantineReason)}`}>
+                      <span className="text-sm font-mono font-medium truncate">
+                        {entry.id.slice(0, 12)}…
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] py-0 ${reasonColor(entry.quarantineReason)}`}
+                      >
                         {reasonLabel(entry.quarantineReason)}
                       </Badge>
                     </div>
@@ -404,7 +473,9 @@ export function QuarantineLogBrowser() {
                     </div>
                   </div>
                   <div className="flex-shrink-0 flex items-center gap-1">
-                    <span className="text-xs font-mono text-foreground-muted">{truncateHash(entry.hash)}</span>
+                    <span className="text-xs font-mono text-foreground-muted">
+                      {truncateHash(entry.hash)}
+                    </span>
                     <ChevronRight className="h-4 w-4 text-foreground-muted" />
                   </div>
                 </div>
@@ -416,7 +487,10 @@ export function QuarantineLogBrowser() {
 
       {/* ── Detail Drawer / Overlay ──────────────────────────────────────── */}
       {drawerOpen && selectedEntry && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={closeDrawer}>
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/50"
+          onClick={closeDrawer}
+        >
           <div
             className="w-full max-w-2xl h-full bg-background border-l shadow-xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -425,9 +499,16 @@ export function QuarantineLogBrowser() {
             <div className="sticky top-0 z-10 bg-background border-b p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileSearch className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Quarantine Entry Inspector</h3>
+                <h3 className="text-lg font-semibold">
+                  Quarantine Entry Inspector
+                </h3>
               </div>
-              <Button size="sm" variant="ghost" aria-label="Close drawer" onClick={closeDrawer}>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="Close drawer"
+                onClick={closeDrawer}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -437,7 +518,10 @@ export function QuarantineLogBrowser() {
               {/* Entry Metadata */}
               <div className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={reasonColor(selectedEntry.quarantineReason)}>
+                  <Badge
+                    variant="outline"
+                    className={reasonColor(selectedEntry.quarantineReason)}
+                  >
                     {reasonLabel(selectedEntry.quarantineReason)}
                   </Badge>
                   <span className="text-xs text-foreground-muted">
@@ -446,31 +530,51 @@ export function QuarantineLogBrowser() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-xs text-foreground-muted">Entry ID</span>
-                    <p className="font-mono text-xs break-all">{selectedEntry.id}</p>
+                    <span className="text-xs text-foreground-muted">
+                      Entry ID
+                    </span>
+                    <p className="font-mono text-xs break-all">
+                      {selectedEntry.id}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-foreground-muted">Timestamp</span>
-                    <p className="text-xs">{new Date(selectedEntry.timestamp).toLocaleString()}</p>
+                    <span className="text-xs text-foreground-muted">
+                      Timestamp
+                    </span>
+                    <p className="text-xs">
+                      {new Date(selectedEntry.timestamp).toLocaleString()}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-foreground-muted">Action</span>
-                    <p className="text-xs font-medium">{selectedEntry.action}</p>
+                    <span className="text-xs text-foreground-muted">
+                      Action
+                    </span>
+                    <p className="text-xs font-medium">
+                      {selectedEntry.action}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-foreground-muted">Entity</span>
-                    <p className="text-xs">{selectedEntry.entity || '—'}</p>
+                    <span className="text-xs text-foreground-muted">
+                      Entity
+                    </span>
+                    <p className="text-xs">{selectedEntry.entity || "—"}</p>
                   </div>
                   {selectedEntry.actorEmail && (
                     <div>
-                      <span className="text-xs text-foreground-muted">Actor</span>
+                      <span className="text-xs text-foreground-muted">
+                        Actor
+                      </span>
                       <p className="text-xs">{selectedEntry.actorEmail}</p>
                     </div>
                   )}
                   {selectedEntry.entityId && (
                     <div>
-                      <span className="text-xs text-foreground-muted">Entity ID</span>
-                      <p className="font-mono text-xs break-all">{selectedEntry.entityId}</p>
+                      <span className="text-xs text-foreground-muted">
+                        Entity ID
+                      </span>
+                      <p className="font-mono text-xs break-all">
+                        {selectedEntry.entityId}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -478,16 +582,24 @@ export function QuarantineLogBrowser() {
 
               {/* Hash Details */}
               <div className="rounded-lg border p-3 space-y-2">
-                <h4 className="text-sm font-semibold">Cryptographic Hash Details</h4>
+                <h4 className="text-sm font-semibold">
+                  Cryptographic Hash Details
+                </h4>
                 <div className="space-y-1.5">
                   <div>
-                    <span className="text-xs text-foreground-muted">Stored Hash</span>
-                    <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">{selectedEntry.hash || '—'}</p>
+                    <span className="text-xs text-foreground-muted">
+                      Stored Hash
+                    </span>
+                    <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">
+                      {selectedEntry.hash || "—"}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-foreground-muted">Previous Hash</span>
+                    <span className="text-xs text-foreground-muted">
+                      Previous Hash
+                    </span>
                     <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">
-                      {selectedEntry.prevHash || '—'}
+                      {selectedEntry.prevHash || "—"}
                     </p>
                   </div>
                 </div>
@@ -507,24 +619,32 @@ export function QuarantineLogBrowser() {
                       variant="outline"
                       className={
                         verifyResult.hashMatches
-                          ? 'bg-green-500/15 text-green-500 border-green-500/30'
-                          : 'bg-red-500/15 text-red-500 border-red-500/30'
+                          ? "bg-green-500/15 text-green-500 border-green-500/30"
+                          : "bg-red-500/15 text-red-500 border-red-500/30"
                       }
                     >
-                      {verifyResult.hashMatches ? 'HASH MATCHES' : 'HASH MISMATCH'}
+                      {verifyResult.hashMatches
+                        ? "HASH MATCHES"
+                        : "HASH MISMATCH"}
                     </Badge>
-                    <span className="text-xs text-foreground-muted">Decryption: {verifyResult.decryptionStatus}</span>
+                    <span className="text-xs text-foreground-muted">
+                      Decryption: {verifyResult.decryptionStatus}
+                    </span>
                   </div>
                   {!verifyResult.hashMatches && (
                     <div className="space-y-1">
                       <div>
-                        <span className="text-xs text-foreground-muted">Expected Hash</span>
+                        <span className="text-xs text-foreground-muted">
+                          Expected Hash
+                        </span>
                         <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">
                           {verifyResult.expectedHash}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs text-foreground-muted">Actual Hash</span>
+                        <span className="text-xs text-foreground-muted">
+                          Actual Hash
+                        </span>
                         <p className="font-mono text-xs break-all bg-muted/30 rounded p-1.5">
                           {verifyResult.actualHash}
                         </p>
@@ -544,15 +664,32 @@ export function QuarantineLogBrowser() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 sticky bottom-0 bg-background py-3 border-t">
-                <Button size="sm" onClick={() => void handleVerifyEntry(selectedEntry)} disabled={verifying}>
-                  {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                <Button
+                  size="sm"
+                  onClick={() => void handleVerifyEntry(selectedEntry)}
+                  disabled={verifying}
+                >
+                  {verifying ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
                   Verify Hash
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDownloadEntry(selectedEntry)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadEntry(selectedEntry)}
+                >
                   <Download className="h-4 w-4" />
                   Download JSON
                 </Button>
-                <Button size="sm" variant="ghost" onClick={closeDrawer} className="ml-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={closeDrawer}
+                  className="ml-auto"
+                >
                   Close
                 </Button>
               </div>

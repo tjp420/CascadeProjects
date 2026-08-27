@@ -41,6 +41,7 @@ export function getApiBase(): string {
     // Canonical production + Cloudflare Pages (preview) proxy /api/* via the Worker — same-origin.
     if (
       host === "simplebeacon.ai" ||
+      host === "simplebeacon.pages.dev" ||
       host.endsWith(".simplebeacon.pages.dev")
     ) {
       return window.location.origin;

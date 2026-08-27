@@ -1,5 +1,34 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.531] - 2026-08-27
+
+### Added
+
+- **Compressed finding format** — `scan_snippet` and `scan_file` accept `compressed: true` to return ~30-token findings instead of ~120-token findings (78.3% reduction)
+  - Short keys: `{c:pattern, s:severity(C/H/M/L), l:line, m:match, a:actionCode}`
+  - 13 action codes map to full recommended actions (use `explain_finding` to expand)
+- **`propose_fix` MCP tool** — Returns structured remediation template + diff preview for a finding
+  - Maps ACTION_CODES to search/replace patterns, manual steps, verify commands
+  - `canAutoFix` flag indicates safe auto-fix vs human judgment required
+  - Does NOT apply the fix — returns diff preview only
+- **`verify_fix` MCP tool** — Re-runs `scan_file` after a fix is applied
+  - Reports resolved/remaining counts + before/after comparison
+- **`--format agent` CLI option** — Compressed JSON output for LLM agent consumption (96.6% smaller than `--format json`)
+- **Progressive MCP discovery** documented in README — 94.8% schema token reduction
+
+### Fixed
+
+- **Credential scanner false negative** — GitHub PATs containing `1234567890abcdef` were suppressed by allowlist substring matching. Refined allowlist to not suppress specific credential formats (`ghp_`, `sk-`, `AKIA`).
+- **LLM placeholder false negative** — `// AI Generated Placeholder` comments were suppressed because `placeholder` was in the allowlist. Narrowed allowlist to not suppress `SB-FICTION-001` matches.
+
+### Measured Performance
+
+- 100% catch rate on 9 AI-fiction bug categories (0 false positives)
+- 1.43ms snippet scan latency
+- 96.6% report payload compression (`--format agent`)
+- 78.3% finding payload compression (`compressed: true`)
+- 94.8% MCP schema token reduction (progressive discovery)
+
 ## [3.0.516] - 2026-08-21
 
 ### Added

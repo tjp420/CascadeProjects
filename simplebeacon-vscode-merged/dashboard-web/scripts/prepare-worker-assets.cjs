@@ -150,17 +150,98 @@ function main() {
     const mainJsPathNow = path.join(DIST_ASSETS, 'main.js');
     if (fs.existsSync(mainJsPathNow)) {
       const mainContent = fs.readFileSync(mainJsPathNow, 'utf8');
-      const importRegex = /from\s+["']\.\/([^"']+\.js)["']/g;
-      let m;
-      while ((m = importRegex.exec(mainContent)) !== null) {
-        const ref = m[1];
-        const refPath = path.join(DIST_ASSETS, ref);
-        if (!fs.existsSync(refPath)) {
-          try {
-            fs.writeFileSync(refPath, 'export default {};', 'utf8');
-            console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
-          } catch (err) {
-            console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
+
+      // Match both static imports (from './foo.js') and dynamic imports (import('./foo.js'))
+      const importRegexes = [
+        /from\s+["']\.\/([^"']+\.js)["']/g,
+        /import\(\s*["']\.\/([^"']+\.js)["']\s*\)/g,
+      ];
+
+      for (const importRegex of importRegexes) {
+        let m;
+        while ((m = importRegex.exec(mainContent)) !== null) {
+          const ref = m[1];
+          const refPath = path.join(DIST_ASSETS, ref);
+          if (!fs.existsSync(refPath)) {
+            try {
+              // Attempt to find a matching chunk by base name (strip last -<hash> segment)
+              const baseMatch = ref.replace(/-[_A-Za-z0-9]+\.js$/, '');
+              const candidates = allJs.filter((f) => f.startsWith(baseMatch + '-') && f.endsWith('.js'));
+              if (candidates.length > 0) {
+                const candidate = candidates[0];
+                const candidatePath = path.join(DIST_ASSETS, candidate);
+                try {
+                  fs.copyFileSync(candidatePath, refPath);
+                  console.log(`[prepare-worker-assets] Copied existing chunk ${candidate} → ${ref} to satisfy import`);
+                  // copy map if exists
+                  const candMap = candidate + '.map';
+                  const candMapPath = path.join(DIST_ASSETS, candMap);
+                  const refMapPath = refPath + '.map';
+                  if (fs.existsSync(candMapPath) && !fs.existsSync(refMapPath)) {
+                    fs.copyFileSync(candMapPath, refMapPath);
+                    console.log(`[prepare-worker-assets] Copied map ${candMap} → ${path.basename(refMapPath)}`);
+                  }
+                } catch (copyErr) {
+                  console.warn(`[prepare-worker-assets] Failed to copy candidate chunk ${candidate} for missing ${ref}: ${copyErr.message}`);
+                  // fall back to writing a tiny stub
+                  fs.writeFileSync(refPath, 'export default {};', 'utf8');
+                  console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+                }
+              } else {
+                // No candidate found in the assets folder — search fallback build output directories
+                const fallbackDirs = [
+                  path.join(ROOT, 'dist'),
+                  path.join(ROOT, 'build'),
+                  path.join(ROOT, 'js-es2018'),
+                  path.join(ROOT, '..', 'dist'),
+                  path.join(ROOT, '..', '..', 'dist'),
+                ];
+
+                let foundInFallback = false;
+                for (const fd of fallbackDirs) {
+                  try {
+                    if (!fs.existsSync(fd)) continue;
+                    const fdFiles = fs.readdirSync(fd).filter((f) => f.endsWith('.js'));
+                    // Exact filename present in fallback?
+                    if (fdFiles.includes(ref)) {
+                      fs.copyFileSync(path.join(fd, ref), refPath);
+                      console.log(`[prepare-worker-assets] Copied ${ref} from fallback ${fd} → assets`);
+                      const fdMap = ref + '.map';
+                      if (fdFiles.includes(fdMap) && !fs.existsSync(refPath + '.map')) {
+                        fs.copyFileSync(path.join(fd, fdMap), refPath + '.map');
+                        console.log(`[prepare-worker-assets] Copied map ${fdMap} from ${fd}`);
+                      }
+                      foundInFallback = true;
+                      break;
+                    }
+                    // Try base-match candidates in fallback
+                    const fdCandidates = fdFiles.filter((f) => f.startsWith(baseMatch + '-') && f.endsWith('.js'));
+                    if (fdCandidates.length > 0) {
+                      const candidate = fdCandidates[0];
+                      fs.copyFileSync(path.join(fd, candidate), refPath);
+                      console.log(`[prepare-worker-assets] Copied candidate ${candidate} from ${fd} → ${ref}`);
+                      const candMap = candidate + '.map';
+                      if (fdFiles.includes(candMap) && !fs.existsSync(refPath + '.map')) {
+                        fs.copyFileSync(path.join(fd, candMap), refPath + '.map');
+                        console.log(`[prepare-worker-assets] Copied map ${candMap} from ${fd}`);
+                      }
+                      foundInFallback = true;
+                      break;
+                    }
+                  } catch (e) {
+                    console.warn(`[prepare-worker-assets] Error scanning fallback dir ${fd}: ${e.message}`);
+                  }
+                }
+
+                if (!foundInFallback) {
+                  // No candidate found — write a small stub module to prevent import-analysis failure
+                  fs.writeFileSync(refPath, 'export default {};', 'utf8');
+                  console.log(`[prepare-worker-assets] Created placeholder module for missing chunk: ${ref}`);
+                }
+              }
+            } catch (err) {
+              console.warn(`[prepare-worker-assets] Could not write placeholder module ${ref}: ${err.message}`);
+            }
           }
         }
       }

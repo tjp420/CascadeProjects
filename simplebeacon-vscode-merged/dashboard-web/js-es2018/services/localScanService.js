@@ -19,13 +19,9 @@ let _inlineScanWorkerLoaded = false;
 async function getInlineScanWorker() {
   if (_inlineScanWorkerLoaded) return _inlineScanWorkerCtor;
   _inlineScanWorkerLoaded = true;
-  try {
-    // @ts-ignore — Vite worker import (only resolves under Vite build)
-    const mod = await import("@/workers/scan-worker-bundled.js?worker&inline");
-    _inlineScanWorkerCtor = mod.default;
-  } catch (_e) {
-    // Not running under Vite — fallbacks will be used
-  }
+  // The inline worker is only available in Vite-bundled contexts (main.js).
+  // In direct-load contexts (VS Code extension), skip the import attempt
+  // entirely — the @/ alias would throw an uncaught TypeError in some browsers.
   return _inlineScanWorkerCtor;
 }
 import {

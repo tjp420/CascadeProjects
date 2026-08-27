@@ -60,7 +60,7 @@ const PUBLIC_VIEWS = new Set([
   "about",
   "getting-started",
 ]);
-const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
+const AUTH_REQUIRED_VIEWS = new Set(["workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([
   "dashboard",
   "analyze",

@@ -47,7 +47,7 @@ type TrustVerification = {
   generatedAt: string;
   verificationMethod: string;
   platform: TrustScope;
-  monorepo: TrustScope;
+  monorepo: TrustScope | null;
   headlineSource: string;
   headlineReason: string;
   headline: {

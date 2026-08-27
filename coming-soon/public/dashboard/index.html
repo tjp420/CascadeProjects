@@ -120,8 +120,8 @@
           location.port === "5173";
         var l = document.createElement("link");
         l.rel = "stylesheet";
-        if (devHost) l.href = "./assets/main.css?v=1787773474279";
-        else l.href = "./assets/main.css?v=1787773474279";
+        if (devHost) l.href = "./assets/main.css";
+        else l.href = "./assets/main.css";
         document.head.appendChild(l);
       })();
     </script>
@@ -419,8 +419,6 @@
             location.hostname === "127.0.0.1" ||
             location.hostname === "simplebeacon.ai" ||
             location.hostname === "www.simplebeacon.ai" ||
-            location.hostname === "simplebeacon.pages.dev" ||
-            location.hostname.endsWith(".simplebeacon.pages.dev") ||
             location.hostname.endsWith(".onrender.com"))
             ? ""
             : "https://simplebeacon.ai",
@@ -711,7 +709,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="/dashboard/assets/main.js?v=1787773474279"></script>
+    <script type="module" src="/dashboard/assets/main.js?v=1787798387541"></script>
     <script>
       (function () {
         try {

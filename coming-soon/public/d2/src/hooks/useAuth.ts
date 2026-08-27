@@ -106,6 +106,40 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(() => {
+    // Notify the VS Code extension of sign-out before clearing the token
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const notifyBase = params.get("sb_notify_base");
+      const redirectUri = params.get("redirect_uri");
+      if (notifyBase || redirectUri) {
+        const token = localStorage.getItem("sb_token") || "";
+        const payload = { signedIn: false, token, tier: "", isAdmin: false };
+        if (notifyBase) {
+          fetch(`${notifyBase}/notify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "setAuthState", payload }),
+          }).catch(() => {
+            try {
+              const beaconUrl = `${notifyBase}/notify/beacon?type=setAuthState&payload=${encodeURIComponent(JSON.stringify(payload))}`;
+              new Image().src = beaconUrl;
+            } catch {
+              /* ignore */
+            }
+          });
+        }
+        if (redirectUri) {
+          const sep = redirectUri.includes("?") ? "&" : "?";
+          try {
+            window.location.href = `${redirectUri}${sep}signedIn=false&token=${encodeURIComponent(token)}`;
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
     localStorage.removeItem("sb_token");
     localStorage.removeItem("sb-token");
     localStorage.removeItem("sb_user");

@@ -167,6 +167,10 @@ interface FullReport extends Omit<ScanResultData, "scanScope"> {
   llmSlopFilesScanned?: number;
   credentialScanned?: number;
   productionLeakScanned?: number;
+  productionLeakFindings?: number;
+  credentialFindings?: number;
+  consistencyChecked?: number;
+  consistencyPassed?: number;
   sourceCodeFilesScanned?: number;
   roadmapSchemaChecked?: number;
   letterGrade?: string;
@@ -1641,18 +1645,27 @@ export function AuditView() {
 
   const assessment = useMemo<Assessment | null>(() => {
     const serverAssessment = activeReport?.assessment || null;
-    // If the server assessment has a compliance checklist with at least one non-skip rule,
-    // trust it and return as-is.
-    if (
-      serverAssessment?.complianceChecklist?.rules?.some(
-        (r) => r.status !== "skip",
-      )
-    ) {
+    // If the server assessment has a compliance checklist where the scan-specific
+    // rules (GATE-001, CRED-001, LEAK-001, DATA-001, DATA-002) have non-skip
+    // statuses, trust it and return as-is. Other rules (SUPPLY-001, AUTH-001)
+    // may pass independently from the scan data.
+    const SCAN_RULE_IDS = new Set([
+      "GATE-001",
+      "CRED-001",
+      "LEAK-001",
+      "DATA-001",
+      "DATA-002",
+    ]);
+    const scanRules = serverAssessment?.complianceChecklist?.rules?.filter(
+      (r) => SCAN_RULE_IDS.has(r.id),
+    ) || [];
+    if (scanRules.some((r) => r.status !== "skip")) {
       return serverAssessment;
     }
     // Otherwise, derive compliance checklist client-side from the report data.
-    // This handles the case where the Render backend has no scan data (all rules
-    // would be "skip") but the user has local scan data in localStorage.
+    // This handles the case where the Render backend has no scan data (scan rules
+    // would be "skip") but the user has local scan data in localStorage or the
+    // proxy enriched the audit response with scan metrics.
     const report = activeReport as FullReport | null;
     if (!report) return serverAssessment;
     const filesScanned =
@@ -1666,9 +1679,9 @@ export function AuditView() {
     const schemaPassed = report.schemaPassed ?? 0;
     const consistencyChecked = report.consistencyChecked ?? 0;
     const consistencyPassed =
-      report.consistencyPassed === true
-        ? consistencyChecked
-        : (report.consistencyPassed ?? 0);
+      typeof report.consistencyPassed === "number"
+        ? report.consistencyPassed
+        : (report.consistencyPassed ? consistencyChecked : 0);
     const consistencyScore =
       report.consistencyScore ??
       (consistencyChecked
@@ -1727,13 +1740,20 @@ export function AuditView() {
               : "fail",
       },
     ];
-    const passed = rules.filter((r) => r.status === "pass").length;
-    const failed = rules.filter((r) => r.status === "fail").length;
-    const skipped = rules.filter((r) => r.status === "skip").length;
+    // Merge: keep server's non-scan rules (SUPPLY-001, AUTH-001, etc.) and
+    // add the client-derived scan rules (GATE-001, CRED-001, etc.)
+    const serverNonScanRules =
+      serverAssessment?.complianceChecklist?.rules?.filter(
+        (r) => !SCAN_RULE_IDS.has(r.id),
+      ) || [];
+    const allRules = [...rules, ...serverNonScanRules];
+    const passed = allRules.filter((r) => r.status === "pass").length;
+    const failed = allRules.filter((r) => r.status === "fail").length;
+    const skipped = allRules.filter((r) => r.status === "skip").length;
     return {
       ...serverAssessment,
       complianceChecklist: {
-        rules,
+        rules: allRules,
         summary: { passed, failed, skipped },
       },
     } as Assessment;

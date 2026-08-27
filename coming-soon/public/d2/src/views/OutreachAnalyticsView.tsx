@@ -256,7 +256,7 @@ function computeRecentActivity(
   prospects: ProspectRecord[],
 ): ActivityRow[] {
   const prospectMap: Record<string, ProspectRecord> = {};
-  for (const p of prospects) {
+  for (const p of Array.isArray(prospects) ? prospects : []) {
     if (p.id) prospectMap[p.id] = p;
   }
 
@@ -353,7 +353,8 @@ export function OutreachAnalyticsView() {
       const rawProspects = localStorage.getItem("sb_outreach_prospects");
       if (rawProspects) {
         try {
-          prospectList = JSON.parse(rawProspects) as ProspectRecord[];
+          const parsed = JSON.parse(rawProspects);
+          prospectList = Array.isArray(parsed) ? parsed : [];
         } catch {
           /* ignore parse error */
         }
@@ -363,7 +364,10 @@ export function OutreachAnalyticsView() {
           const res = await fetch(apiUrl("/outreach/prospects"), {
             headers: authHeaders(),
           });
-          if (res.ok) prospectList = (await res.json()) as ProspectRecord[];
+          if (res.ok) {
+            const data = await res.json();
+            prospectList = Array.isArray(data) ? data : [];
+          }
         } catch {
           /* API optional */
         }
