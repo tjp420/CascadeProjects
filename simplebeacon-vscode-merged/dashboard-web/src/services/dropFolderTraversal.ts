@@ -146,7 +146,7 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 export async function collectFilesFromDrop(
   dataTransfer: DataTransfer | undefined,
   preCapturedEntries?: FileSystemEntry[],
-  options: { maxFiles?: number } = {}
+  options: { maxFiles?: number; onProgress?: (count: number) => void } = {}
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
@@ -158,6 +158,7 @@ export async function collectFilesFromDrop(
   for (const entry of entries) {
     if (files.length >= state.maxFiles) break;
     await traverseFileSystemEntry(entry, '', files, state);
+    if (options.onProgress) options.onProgress(files.length);
   }
 
   if (files.length === 0 && dataTransfer) {

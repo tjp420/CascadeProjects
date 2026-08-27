@@ -356,7 +356,7 @@ function syncReportToVscodeSidebar(
 
 export function AnalyzeView() {
   const [mode, setMode] = useState<ScanMode>(
-    isWebsiteMode() ? "website" : "local",
+    isWebsiteMode() && !isIdeEmbedSurface() ? "website" : "local",
   );
   const [path, setPath] = useState(
     localStorage.getItem("sb_default_path") || "",
@@ -2592,16 +2592,22 @@ export function AnalyzeView() {
     key: ScanMode;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
-  }[] = websiteMode
+  }[] = websiteMode && !isIdeEmbedSurface()
     ? [
         { key: "website", label: "Website URL", icon: Globe },
         { key: "github", label: "GitHub URL", icon: Github },
       ]
-    : [
-        { key: "local", label: "Local Path", icon: Folder },
-        { key: "server", label: "Server Path", icon: FolderSearch },
-        { key: "github", label: "GitHub URL", icon: Github },
-      ];
+    : websiteMode && isIdeEmbedSurface()
+      ? [
+          { key: "local", label: "Local Path", icon: Folder },
+          { key: "website", label: "Website URL", icon: Globe },
+          { key: "github", label: "GitHub URL", icon: Github },
+        ]
+      : [
+          { key: "local", label: "Local Path", icon: Folder },
+          { key: "server", label: "Server Path", icon: FolderSearch },
+          { key: "github", label: "GitHub URL", icon: Github },
+        ];
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
