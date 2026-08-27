@@ -1,6 +1,6 @@
 {
   "name": "simplebeacon",
-  "version": "3.0.532",
+  "version": "3.0.533",
   "description": "Local AI code audit — 36 MCP tools, 48 analyzers, agent supercharge workflow, progressive tool discovery, compressed findings, propose_fix/verify_fix loop. Offline by default. No source upload.",
   "author": "SimpleBeacon",
   "license": "MIT",
