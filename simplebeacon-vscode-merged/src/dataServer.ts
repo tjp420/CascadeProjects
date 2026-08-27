@@ -346,6 +346,13 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 })();
 </script>`;
 
+// Override CSP inherited from the sidebar webview. Chromium child iframes
+// inherit the parent's CSP when they don't declare their own. The sidebar's
+// frame-src blocks about:blank, which breaks Radix portals and other UI
+// libraries that create empty-src iframes. This permissive CSP is safe
+// because the dashboard is served locally by the extension's data server.
+const DASHBOARD_CSP_META = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' http: https: data: blob:; frame-src 'self' http: https: about: blob: data:; connect-src 'self' http: https: ws: wss:;">`;
+
 const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;if(typeof document!=='undefined'&&document.visibilityState==='hidden')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){console.error('Failed to broadcast theme change:',e);}}}).catch(()=>{});}p();setInterval(p,30000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){console.error('Failed to listen for theme changes:',e);}})();</script>`;
 
 const HIDE_PRICING_SCRIPT = `<script>
@@ -5414,7 +5421,7 @@ ${
           '/api",DATA_SERVER_PORT:' +
           dataPort +
           ',DEMO_MODE:true};<\/script>';
-        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
+        html = html.replace('</head>', DASHBOARD_CSP_META + envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           html = html.slice(0, bodyClose) + THEME_SCRIPT + html.slice(bodyClose);
@@ -5498,7 +5505,7 @@ ${
           '/api",DATA_SERVER_PORT:' +
           dataPort +
           '};<\/script>';
-        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
+        html = html.replace('</head>', DASHBOARD_CSP_META + envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           html = html.slice(0, bodyClose) + THEME_SCRIPT + html.slice(bodyClose);
@@ -5620,6 +5627,8 @@ ${
         let html = content.toString('utf8');
         // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
         html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
+        // Inject permissive CSP to override sidebar's inherited CSP (allows about:blank iframes)
+        html = html.replace('</head>', DASHBOARD_CSP_META + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           content = Buffer.from(
@@ -5899,7 +5908,7 @@ ${
     // These endpoints are called by the dashboard SPA on load. Return empty
     ///default responses so the SPA doesn't crash with 404 errors.
     const dashboardStubs: Record<string, unknown> = {
-      '/api/whitelabel/resolve': { success: false, whitelabel: null },
+      '/api/whitelabel/resolve': { found: false, brand: null, partnerId: null },
       '/api/sso/resolve': { success: false, sso: null },
       '/api/vault/consensus/status': { status: 'ok', consensus: false, nodes: 0 },
       '/api/outreach/campaign-state': { campaigns: [], activeCount: 0 },
