@@ -129,6 +129,11 @@ function isAllowlistedMatch(line, matchText) {
     .replace(/\/\/.*$/, "")
     .replace(/\/\*[\s\S]*?\*\//, "");
   const snippet = `${strippedLine} ${matchText}`.toLowerCase();
+  // Don't allowlist "placeholder" for SB-FICTION-001 which specifically
+  // detects "AI Generated Placeholder" comments — that's the bug we're catching.
+  // Only allowlist "placeholder" when it's a variable name, not a detection target.
+  const isPlaceholderDetection = /AI\s+Generated\s+Placeholder/i.test(matchText);
+  if (isPlaceholderDetection) return false;
   return ALLOWLIST_SNIPPETS.some((token) => snippet.includes(token));
 }
 

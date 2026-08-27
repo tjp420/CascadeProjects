@@ -159,11 +159,21 @@ function isAllowlisted(match, content, fileName = "") {
     typeof content !== "string"
   )
     return true;
+  const matchLower = match[0].toLowerCase();
   const snippet = content.slice(
     Math.max(0, match.index - 24),
     match.index + match[0].length + 24,
   );
   const lower = snippet.toLowerCase();
+  // Specific credential formats (ghp_, gho_, sk-, AKIA, etc.) have structured
+  // prefixes. Don't allowlist these based on substring matching — a real key
+  // might contain a short allowlist fragment (e.g. "1234567890abcdef" in a PAT).
+  const hasStructuredPrefix = /^(ghp_|gho_|sk-|akia|sg\.|re_|xox|eyJ|sk_test_|sk_live_|pk_test_|pk_live_)/i.test(match[0]);
+  if (hasStructuredPrefix) {
+    return ALLOWLIST_SNIPPETS.some((allowed) => matchLower === allowed.toLowerCase());
+  }
+  // Generic patterns (api_key=..., token=..., etc.) use substring matching
+  // since placeholder context matters more than exact format.
   if (
     ALLOWLIST_SNIPPETS.some((allowed) => lower.includes(allowed.toLowerCase()))
   ) {
