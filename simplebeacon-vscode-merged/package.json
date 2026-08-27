@@ -1,13 +1,13 @@
 {
   "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Offline AI code audit — 36 MCP tools, 48 analyzers, compressed findings, propose_fix/verify_fix loop, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
+  "description": "Offline AI code audit — 46 MCP tools (arm + exoskeleton), 48 analyzers, compressed findings, propose_fix/verify_fix loop, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/tjp420/CascadeProjects.git"
   },
-  "version": "3.0.534",
+  "version": "3.0.536",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
