@@ -11,7 +11,8 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
     return JSON.parse(atob(parts[1]));
-  } catch {
+  } catch (err) {
+    console.warn("[useAuth] Failed to decode JWT payload:", err);
     return null;
   }
 }
@@ -43,8 +44,8 @@ export function useAuth() {
           if (stored) {
             try {
               userData = JSON.parse(stored);
-            } catch {
-              /* ignore */
+            } catch (err) {
+              console.warn("[useAuth] Failed to parse sb_user:", err);
             }
           }
           // Fall back to decoding the JWT for role/email/name if sb_user is
@@ -86,7 +87,8 @@ export function useAuth() {
           setUser(null);
           setIsFreeTier(true);
         }
-      } catch {
+      } catch (err) {
+        console.error("[useAuth] Auth check failed:", err);
         setIsAuthenticated(false);
         setUser(null);
         setIsFreeTier(true);
@@ -119,12 +121,13 @@ export function useAuth() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ type: "setAuthState", payload }),
-          }).catch(() => {
+          }).catch((err) => {
+            console.warn("[useAuth] Fetch notify failed:", err);
             try {
               const beaconUrl = `${notifyBase}/notify/beacon?type=setAuthState&payload=${encodeURIComponent(JSON.stringify(payload))}`;
               new Image().src = beaconUrl;
-            } catch {
-              /* ignore */
+            } catch (err2) {
+              console.warn("[useAuth] Beacon fallback failed:", err2);
             }
           });
         }
@@ -132,13 +135,13 @@ export function useAuth() {
           const sep = redirectUri.includes("?") ? "&" : "?";
           try {
             window.location.href = `${redirectUri}${sep}signedIn=false&token=${encodeURIComponent(token)}`;
-          } catch {
-            /* ignore */
+          } catch (err) {
+            console.warn("[useAuth] Redirect failed:", err);
           }
         }
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error("[useAuth] Sign-out notification failed:", err);
     }
     localStorage.removeItem("sb_token");
     localStorage.removeItem("sb-token");
@@ -148,8 +151,8 @@ export function useAuth() {
     setUser(null);
     try {
       window.dispatchEvent(new Event("sb:logout"));
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.warn("[useAuth] Failed to dispatch logout event:", err);
     }
     navigate("signin");
   }, []);
