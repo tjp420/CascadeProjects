@@ -23,4 +23,9 @@ export const VSIX_DOWNLOAD_URL =
   (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.vsixDownloadUrl) ||
   'https://simplebeacon.ai/downloads/simplebeacon.vsix';
 export const EXTENSION_ID = env.EXTENSION_ID || 'simplebeacon.simplebeacon-vscode';
+/** Ollama Modelfile download URL for the Unbreakable Oracle local agent. */
+export const LOCAL_AGENT_DOWNLOAD_URL =
+  env.LOCAL_AGENT_DOWNLOAD_URL ||
+  (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.localAgentDownloadUrl) ||
+  'https://simplebeacon.ai/models/Modelfile';
 // DEMO_PASSWORD removed — token-based auth only, no hardcoded credentials

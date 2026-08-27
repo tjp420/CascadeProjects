@@ -5,22 +5,18 @@
  * for chunked file analysis. If it is missing or fails to load, a pure-JS
  * chunk analyzer is used instead so the scan still works in development.
  */
-const WASM_PKG_URL = new URL(
-  "../../wasm/pkg/simplebeacon_scan_wasm.js",
-  import.meta.url,
-);
+const WASM_PKG_URL = new URL('../../wasm/pkg/simplebeacon_scan_wasm.js', import.meta.url);
 const WASM_ENABLED = false; // Set to true after building and deploying wasm/pkg/
 const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1 MB
 const SEVERITY_MAP = {
-  credentials: "critical",
-  euAiAct: "high",
+  credentials: 'critical',
+  euAiAct: 'high',
 };
 const CREDENTIAL_LINE_RE =
   /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/i;
 const CREDENTIAL_ALLOWLIST =
   /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
-const IGNORE_LINE_RE =
-  /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
+const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
 /** Concatenate two Uint8Arrays without spreading large arrays. */
 function concatBytes(a, b) {
   const result = new Uint8Array(a.length + b.length);
@@ -31,9 +27,9 @@ function concatBytes(a, b) {
 /** Decode a Uint8Array chunk into a string, handling UTF-8 safely. */
 function decodeText(bytes) {
   try {
-    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
   } catch (_a) {
-    return "";
+    return '';
   }
 }
 /** Pure-JS chunk analyzer that mirrors the Rust `ChunkAnalyzer` API. */
@@ -89,8 +85,8 @@ class JsChunkAnalyzer {
   }
   scanTextPatterns(buffer) {
     const text = decodeText(buffer);
-    const lines = text.split("\n");
-    const trailingEmpty = text.endsWith("\n") ? 1 : 0;
+    const lines = text.split('\n');
+    const trailingEmpty = text.endsWith('\n') ? 1 : 0;
     const lineCount = Math.max(0, lines.length - trailingEmpty);
     let localLine = 0;
     for (const line of lines) {
@@ -99,13 +95,13 @@ class JsChunkAnalyzer {
       const trimmed = line.trim();
       if (!trimmed) continue;
       if (this.hasConsoleLog(trimmed)) {
-        this.pushFinding("debugArtifacts", localLine, trimmed);
+        this.pushFinding('debugArtifacts', localLine, trimmed);
       }
       if (this.hasTodo(trimmed)) {
-        this.pushFinding("todoMarkers", localLine, trimmed);
+        this.pushFinding('todoMarkers', localLine, trimmed);
       }
       if (this.hasCredential(trimmed)) {
-        this.pushFinding("credentials", localLine, trimmed);
+        this.pushFinding('credentials', localLine, trimmed);
       }
     }
     this.lineOffset += lineCount;
@@ -119,26 +115,20 @@ class JsChunkAnalyzer {
   }
   hasConsoleLog(line) {
     const lower = line.toLowerCase();
-    const dbgKeyword = ["debug", "ger"].join("");
+    const dbgKeyword = ['debug', 'ger'].join('');
     return (
-      lower.includes("console.log") ||
-      lower.includes("console.warn") ||
-      lower.includes("console.error") ||
+      lower.includes('console.log') ||
+      lower.includes('console.warn') ||
+      lower.includes('console.error') ||
       new RegExp(`\\b${dbgKeyword}\\s*;`).test(line)
     );
   }
   hasTodo(line) {
     const lower = line.toLowerCase();
-    return (
-      lower.includes("todo") ||
-      lower.includes("fixme") ||
-      lower.includes("hack") ||
-      lower.includes("xxx")
-    );
+    return lower.includes('todo') || lower.includes('fixme') || lower.includes('hack') || lower.includes('xxx');
   }
   hasCredential(line) {
-    if (IGNORE_LINE_RE.test(line) || CREDENTIAL_ALLOWLIST.test(line))
-      return false;
+    if (IGNORE_LINE_RE.test(line) || CREDENTIAL_ALLOWLIST.test(line)) return false;
     return CREDENTIAL_LINE_RE.test(line);
   }
 }
@@ -160,18 +150,18 @@ async function createAnalyzer() {
   if (!analyzerFactory) {
     analyzerFactory = await (async () => {
       if (!WASM_ENABLED) {
-        return { type: "js" };
+        return { type: 'js' };
       }
       try {
         const wasm = await import(WASM_PKG_URL);
         await wasm.default();
-        return { type: "wasm", wasm };
+        return { type: 'wasm', wasm };
       } catch (_a) {
-        return { type: "js" };
+        return { type: 'js' };
       }
     })();
   }
-  if (analyzerFactory.type === "wasm") {
+  if (analyzerFactory.type === 'wasm') {
     return new WasmAnalyzer(analyzerFactory.wasm);
   }
   return new JsChunkAnalyzer();
@@ -183,11 +173,7 @@ async function createAnalyzer() {
  * @param {number} [chunkSize]
  * @returns {Promise<{total_bytes:number, is_pe:boolean, findings:Array}>}
  */
-export async function analyzeFileChunks(
-  file,
-  filePath,
-  chunkSize = DEFAULT_CHUNK_SIZE,
-) {
+export async function analyzeFileChunks(file, filePath, chunkSize = DEFAULT_CHUNK_SIZE) {
   const analyzer = await createAnalyzer();
   const size = file.size || 0;
   for (let start = 0; start < size; start += chunkSize) {
@@ -208,22 +194,22 @@ export function findingsToIssues(results, filePath) {
   const issues = [];
   for (const f of results.findings || []) {
     issues.push({
-      severity: SEVERITY_MAP[f.rule] || "medium",
+      severity: SEVERITY_MAP[f.rule] || 'medium',
       filePath,
       rule: f.rule,
       line: f.line || 1,
       impact: `${f.rule} finding detected`,
-      fix: "Review and remediate before next release.",
+      fix: 'Review and remediate before next release.',
     });
   }
   if (results.is_pe) {
     issues.push({
-      severity: "info",
+      severity: 'info',
       filePath,
-      rule: "binaryPeHeader",
+      rule: 'binaryPeHeader',
       line: 1,
-      impact: "File has a Windows executable (PE) header",
-      fix: "Verify that executable files are intended to be scanned.",
+      impact: 'File has a Windows executable (PE) header',
+      fix: 'Verify that executable files are intended to be scanned.',
     });
   }
   return issues;

@@ -1665,47 +1665,6 @@ export function ChatbotView() {
         </div>
       )}
 
-      {showOracleBanner && connectionStatus !== "checking" && (
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-purple-400/30 bg-purple-50/30 px-4 py-3 text-sm">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 shrink-0 text-purple-600" />
-            <div>
-              <div className="font-medium">Try the Unbreakable Oracle</div>
-              <div className="text-xs text-foreground-muted">
-                Our custom local AI model — built on llama3.2 with a unique
-                system prompt. Free to download.
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowOracleInstall(true)}
-            >
-              <Download className="h-3.5 w-3.5 mr-1" /> Install
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setShowOracleBanner(false);
-                try {
-                  localStorage.setItem(
-                    "simplebeacon_oracle_banner_dismissed",
-                    "true",
-                  );
-                } catch {
-                  /* ignore */
-                }
-              }}
-            >
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
-
       {connectionStatus === "offline" && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-400/30 bg-blue-50/30 px-4 py-3 text-sm">
           <div className="flex items-center gap-2">
@@ -2007,7 +1966,15 @@ export function ChatbotView() {
               <label className="text-sm font-medium">Personality</label>
               <select
                 value={personality}
-                onChange={(e) => setPersonality(e.target.value as Personality)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "__install_oracle__") {
+                    setShowOracleInstall(true);
+                    e.target.value = personality;
+                    return;
+                  }
+                  setPersonality(v as Personality);
+                }}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {(
@@ -2017,6 +1984,9 @@ export function ChatbotView() {
                     {label}
                   </option>
                 ))}
+                <option value="__install_oracle__" className="text-purple-600 font-medium">
+                  🔮 Unbreakable Oracle — click to install…
+                </option>
               </select>
             </div>
             <label className="flex items-center gap-2 text-sm">
