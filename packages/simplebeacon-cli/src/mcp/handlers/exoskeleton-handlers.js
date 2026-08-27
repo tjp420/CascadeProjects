@@ -156,6 +156,38 @@ function createExoskeletonHandlers({
     }
   }
 
+  // ─── Helper: find mirror files (same relative path in different roots) ───
+  // Detects files like useAuth.ts that exist in multiple dashboard copies:
+  //   ai-platform/web/simplebeacon-dashboard/src/hooks/useAuth.ts
+  //   coming-soon/public/app/src/hooks/useAuth.ts
+  //   coming-soon/public/d2/src/hooks/useAuth.ts
+  //   coming-soon/public/dashboard/src/hooks/useAuth.ts
+  //   simplebeacon-vscode-merged/dashboard-web/src/hooks/useAuth.ts
+  function findMirrorFiles(root, filePath) {
+    try {
+      const normalized = filePath.replace(/\\/g, "/");
+      const basename = path.basename(normalized);
+      // Use git ls-files to find all tracked files with the same basename
+      const output = execSync(`git ls-files "*${basename}"`, {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 5000,
+      });
+      const candidates = output.trim().split("\n").filter(Boolean);
+      // Filter to files that share the same relative path suffix (last 3+ path segments)
+      const inputSegments = normalized.split("/").slice(-3).join("/");
+      const mirrors = candidates.filter((f) => {
+        if (f === normalized) return false; // Skip the file itself
+        if (f === filePath.replace(/\\/g, "/")) return false;
+        const fSegments = f.split("/").slice(-3).join("/");
+        return fSegments === inputSegments && f.endsWith(basename);
+      });
+      return mirrors;
+    } catch {
+      return [];
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // exoskeleton_boot — session start, inject everything in one payload
   // ═══════════════════════════════════════════════════════════════════
@@ -320,9 +352,20 @@ function createExoskeletonHandlers({
       preScan: null,
       postScan: null,
       fixesProposed: [],
+      mirrorFiles: [],
       verdict: "safe", // safe | blocked | warning
       reason: null,
     };
+
+    // Detect mirror files (same file exists in multiple dashboard copies)
+    const mirrors = findMirrorFiles(root, filePath);
+    if (mirrors.length > 0) {
+      result.mirrorFiles = mirrors;
+      if (result.verdict === "safe") {
+        result.verdict = "warning";
+        result.reason = `File has ${mirrors.length} mirror copies that may need the same edit: ${mirrors.slice(0, 3).join(", ")}${mirrors.length > 3 ? "..." : ""}`;
+      }
+    }
 
     // Pre-scan: scan old content (what's being replaced)
     if (oldContent) {
@@ -421,16 +464,16 @@ function createExoskeletonHandlers({
       }
     }
 
-    // Propose fixes for blocking findings
-    if (result.verdict === "blocked" && result.postScan?.findings) {
+    // Propose fixes for all findings (blocking + warnings)
+    if (result.postScan?.findings) {
       for (const finding of result.postScan.findings) {
-        if (finding.s !== "C" && finding.s !== "H") continue;
         const actionCode = finding.a;
         if (!actionCode) continue;
         const template = getRemediationTemplate(actionCode);
         if (template) {
           result.fixesProposed.push({
             actionCode,
+            severity: finding.s,
             canAutoFix: template.canAutoFix,
             manualSteps: template.manualSteps?.slice(0, 3),
             verifyCommand: template.verifyCommand,
@@ -482,32 +525,76 @@ function createExoskeletonHandlers({
       tokenSavings: null,
     };
 
-    // Gate check: scan staged files
+    // Gate check: run the actual CLI gate scan on staged files
     if (stagedFiles.length === 0) {
       result.gateCheck = { status: "no_staged_files" };
       result.verdict = "safe";
       result.reason = "No staged files to check";
     } else {
-      // Quick scan each staged file
+      // Try the CLI gate scan first (catches custom heuristics + cross-file rules)
       let blockingCount = 0;
       let warningCount = 0;
       const findings = [];
+      let usedCliGate = false;
 
-      for (const file of stagedFiles.slice(0, 50)) {
-        const fullPath = path.resolve(root, file);
-        try {
-          const scanResult = scanFileOnDisk(fullPath, {
-            projectRoot: root,
-            compressed: true,
+      try {
+        const stagedReportPath = path.join(root, ".simplebeacon", "staged-report.json");
+        execSync(
+          `npx simplebeacon scan --gate --offline --format json --output "${stagedReportPath}"`,
+          {
+            cwd: root,
+            encoding: "utf8",
+            timeout: 30000,
+            stdio: "pipe", // Suppress output
+          },
+        );
+        const stagedReport = JSON.parse(fs.readFileSync(stagedReportPath, "utf8"));
+        const gate = stagedReport.gate || {};
+        blockingCount = gate.blockingCount || 0;
+        warningCount = gate.warningCount || 0;
+        const blockingIssues = gate.blockingIssues || [];
+        const warningIssues = gate.warningIssues || [];
+        for (const issue of blockingIssues) {
+          findings.push({
+            file: issue.filePath || issue.file || "unknown",
+            c: issue.id || issue.pattern || "UNKNOWN",
+            s: issue.severityBand || issue.severity || "H",
+            l: issue.line || 0,
+            m: (issue.description || "").slice(0, 120),
           });
-          const fileFindings = scanResult.findings || [];
-          for (const f of fileFindings) {
-            if (f.s === "C" || f.s === "H") blockingCount++;
-            else warningCount++;
-            findings.push({ file, ...f });
+        }
+        for (const issue of warningIssues.slice(0, 10)) {
+          findings.push({
+            file: issue.filePath || issue.file || "unknown",
+            c: issue.id || issue.pattern || "UNKNOWN",
+            s: issue.severityBand || issue.severity || "M",
+            l: issue.line || 0,
+            m: (issue.description || "").slice(0, 120),
+          });
+        }
+        usedCliGate = true;
+      } catch {
+        // Fall back to per-file scan if CLI gate scan fails or times out
+      }
+
+      if (!usedCliGate) {
+        // Per-file fallback (doesn't catch custom heuristics, but better than nothing)
+        for (const file of stagedFiles.slice(0, 50)) {
+          const fullPath = path.resolve(root, file);
+          try {
+            const scanResult = scanFileOnDisk(fullPath, {
+              projectRoot: root,
+              compressed: true,
+            });
+            const fileFindings = scanResult.findings || [];
+            for (const f of fileFindings) {
+              if (f.s === "C" || f.s === "H") blockingCount++;
+              else warningCount++;
+              findings.push({ file, ...f });
+            }
+          } catch {
+            // Skip files that can't be scanned
           }
-        } catch {
-          // Skip files that can't be scanned
         }
       }
 
@@ -599,6 +686,7 @@ function createExoskeletonHandlers({
       newFindings: [],
       gateDrift: null,
       fileHashChanges: [],
+      mirrorDrift: [],
       summary: "stable",
     };
 
@@ -664,6 +752,32 @@ function createExoskeletonHandlers({
         } catch {
           // non-fatal
         }
+      }
+    }
+
+    // Detect mirror drift — changed files whose mirror copies weren't updated
+    if (sense.fileHashChanges.length > 0) {
+      for (const changedFile of sense.fileHashChanges.slice(0, 10)) {
+        const mirrors = findMirrorFiles(root, changedFile);
+        if (mirrors.length === 0) continue;
+        const changedHash = getFileHash(path.resolve(root, changedFile));
+        const staleMirrors = [];
+        for (const mirror of mirrors) {
+          const mirrorHash = getFileHash(path.resolve(root, mirror));
+          if (mirrorHash && mirrorHash !== changedHash) {
+            staleMirrors.push(mirror);
+          }
+        }
+        if (staleMirrors.length > 0) {
+          sense.mirrorDrift.push({
+            file: changedFile,
+            staleMirrors,
+            totalMirrors: mirrors.length,
+          });
+        }
+      }
+      if (sense.mirrorDrift.length > 0 && sense.summary === "stable") {
+        sense.summary = "mirror_drift_detected";
       }
     }
 

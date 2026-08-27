@@ -18,6 +18,9 @@ const {
   scanTextPatterns,
   scanSuspiciousDependencies,
 } = require("../rules/llm-slop-patterns");
+const {
+  scanSnippetWithCustomRules,
+} = require("../rules/custom-heuristic-scanner");
 const { loadSimplebeaconConfig } = require("../config");
 const { evaluateGate } = require("../gate");
 const { isPathWithinRoot, resolveCliProjectRoot } = require("./path-utils");
@@ -109,6 +112,16 @@ function scanSnippetContent(content, options = {}) {
   findings.push(
     ...scanTextPatterns(filePath, content, ext).map(normalizeFinding),
   );
+
+  // Custom heuristic rules (SB-AI-004 empty catch blocks, disabled SSL, etc.)
+  // This bridges the gap between snippet scan and full project scan so
+  // exoskeleton_guard_edit catches the same issues the gate scan catches.
+  try {
+    const customFindings = scanSnippetWithCustomRules(content, filePath, projectRoot);
+    findings.push(...customFindings.map(normalizeFinding));
+  } catch {
+    // Non-fatal — custom rules may not be loaded in all environments
+  }
 
   if (path.basename(filePath) === "package.json") {
     findings.push(

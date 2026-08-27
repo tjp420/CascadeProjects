@@ -857,8 +857,60 @@ function getCustomRulesSummary(projectRoot) {
   };
 }
 
+/**
+ * Scan a snippet (string content) against all enabled universal + custom rules.
+ * This is the snippet-level equivalent of scanCustomHeuristicRules, used by
+ * exoskeleton_guard_edit and scan_snippet to catch the same issues the full
+ * project scan catches (empty catch blocks, disabled SSL, etc.).
+ *
+ * @param {string} content — source code text to scan
+ * @param {string} filePath — virtual file path for rule matching (extension/include/exclude)
+ * @param {string} projectRoot — project root for loading custom-rules.json
+ * @returns {Array} findings array (same shape as scanFileAgainstRule output)
+ */
+function scanSnippetWithCustomRules(content, filePath, projectRoot) {
+  if (typeof content !== "string" || !content.length) return [];
+  const relPath = String(filePath || "snippet.txt").replace(/\\/g, "/");
+
+  // Load universal + project custom rules
+  let ruleSet = { rules: [], errors: [], warnings: [] };
+  try {
+    ruleSet = loadCustomRules(projectRoot || process.cwd());
+  } catch {
+    // Fall back to universal rules only
+    try {
+      ruleSet = loadUniversalRules();
+    } catch {
+      return [];
+    }
+  }
+
+  const findings = [];
+  for (const rule of ruleSet.rules) {
+    if (!rule.enabled) continue;
+    if (!shouldScanFile(relPath, rule)) continue;
+
+    // Only run regex-based rules on snippets (AST rules need full file context)
+    const engine = String(rule.engine || "regex").toLowerCase();
+    if (engine === "ast" || (rule.astCriteria && typeof rule.astCriteria === "object")) {
+      // AST rules require a full file on disk — skip for snippet scanning
+      continue;
+    }
+
+    try {
+      const ruleFindings = scanFileAgainstRule(content, relPath, rule);
+      findings.push(...ruleFindings);
+    } catch {
+      // Skip rules that error on snippet content
+    }
+  }
+
+  return findings;
+}
+
 module.exports = {
   scanCustomHeuristicRules,
+  scanSnippetWithCustomRules,
   loadCustomRules,
   validateRule,
   shouldScanFile,
