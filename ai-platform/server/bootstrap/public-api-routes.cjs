@@ -100,6 +100,11 @@ const PUBLIC_API_PATHS = new Set([
   "checkout/webhook",
   "session-token",
   "receipt",
+  // CLI license validation — public, token-only auth (used by GitHub Action in CI)
+  "license/validate",
+  // Subscription webhook — Stripe signs requests, no JWT auth
+  "subscription/webhook",
+  "create-subscription-session",
 ]);
 
 /**
