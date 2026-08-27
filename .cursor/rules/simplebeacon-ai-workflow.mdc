@@ -1,0 +1,76 @@
+---
+description: SimpleBeacon AI agent workflow — exoskeleton + arm + supercharge (local-only)
+alwaysApply: true
+---
+
+# SimpleBeacon Agent Exoskeleton
+
+You are wired to SimpleBeacon MCP — **local verify layer, no source upload**. The exoskeleton wraps you with always-on sensing, protection, and amplification. 46 MCP tools (36 base + 4 arm + 6 exoskeleton).
+
+## 1. Session start (mandatory)
+
+1. **`exoskeleton_boot`** — injects gate state, token savings, previous handoff, open tasks, environment info, and 8 protection flags in one compressed payload (call this FIRST)
+2. **`supercharge_agent`** — mission, gate, code suggestions, host status, playbook
+3. Read `.simplebeacon/agent-supercharge.md` when present
+4. Read `.simplebeacon/code-suggestions.md` before editing gate-blocking files
+5. Read `.simplebeacon/master-engineering-brief.md` for recovery playbooks
+
+If MCP is unavailable: `npx simplebeacon init --starter` then reload the IDE.
+
+## 2. Edit loop (exoskeleton-guarded)
+
+| Phase | Tool | Rule |
+|-------|------|------|
+| Before apply | `exoskeleton_guard_edit` | action=check — scans new content before applying. Verdict: safe/blocked/warning |
+| If blocked | `propose_fix` → apply → `exoskeleton_guard_edit` | action=verify — rescan file on disk after fix |
+| Hints | `code_suggestions` | Prefer deterministic before/after hints |
+| Unclear finding | `explain_finding` | Lookup pattern metadata |
+| After save | `scan_file` | Rescan changed file on disk |
+| Track progress | `agent_status` | Open findings + next action |
+| Every ~10 edits | `exoskeleton_sense` | Ambient monitoring — detects changed files, gate drift, new findings |
+
+**Never apply code that returns verdict=blocked.** Fix the blocking findings first, then re-verify.
+
+## 3. Before commit (mandatory)
+
+1. **`exoskeleton_guard_commit`** — scans all staged files, stores commit memory, updates handoff. Returns verdict: safe/blocked/warning
+2. If verdict=blocked: fix blocking findings, re-stage, re-check
+3. **`handoff_check`** — do not claim complete until `ready: true`
+4. CLI backstop: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`
+
+## 4. Stuck? Arm + master engineer tools
+
+- **`exoskeleton_health`** — checks for stuck loops, repeated failures, context budget. Returns health score (0-100) and recommendations
+- **`solve_problem`** — natural language ("CI failing", "tests timeout", "secrets in repo")
+- **`diagnose_error`** — paste stack trace or error message
+- **`master_engineering_brief`** — ten-cylinder plan + "yes you can" steps
+- **`arm_execute`** — one-call scan → propose → verify → remember → handoff loop
+
+## 5. Before claiming done
+
+1. **`exoskeleton_status`** — verify all layers active (scanner, arm, exoskeleton, compression, memory, handoff)
+2. **`exoskeleton_guard_commit`** — final commit guard
+3. **`handoff_check`** — do not claim complete until `ready: true`
+4. **`scan_staged`** — gate scan on staged files only
+5. CLI backstop: `npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`
+
+## 6. Wire another coding agent
+
+Call **`install_agent_plugin`** with `hosts: "cursor,windsurf,continue,copilot,cline,aider,universal"` or:
+
+```bash
+npx simplebeacon init --starter --hosts all
+```
+
+Supported plugins: Cursor, Windsurf, Continue, Claude, Cline, GitHub Copilot, Aider, Universal (AGENTS.md).
+
+## Rules
+
+- Extend existing files — no parallel modules unless required
+- Never commit secrets, fiction KPIs, or mock production paths
+- Fix gate-blocking (critical/high) before refactors
+- Prefer MCP tools over inventing shell commands
+- Never brag about raw finding counts — focus on gate-blocking issues
+- Call `exoskeleton_boot` first every session — do not skip
+- Call `exoskeleton_guard_edit` before every code edit — do not skip
+- Call `exoskeleton_guard_commit` before every commit — do not skip

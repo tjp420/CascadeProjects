@@ -902,3 +902,52 @@ Followers apply via `_applyRemoteKeyCommit()` and reply `KEY_COMMIT_ACK`, but th
 - **Risk assessment**: Dev-only dependency used for building standalone binaries. Not in production runtime. Not exploitable in production — requires local filesystem access on the build machine.
 - **Action**: Accepted risk for launch. Replace pkg with sbuild + standalone bundling in v2.
 - **Dependabot**: .github/dependabot.yml is enabled and will notify when a fix is released.
+
+---
+
+## Exoskeleton Integration (v3.0.536+)
+
+SimpleBeacon provides an exoskeleton layer — 6 MCP tools that wrap AI agents with always-on sensing, protection, and amplification. State persists to `.simplebeacon/agent-pda/exoskeleton-state.json`.
+
+### Exoskeleton Tools (6)
+
+| Tool | When to call | What it does |
+|------|-------------|--------------|
+| `exoskeleton_boot` | First call every session | Injects gate state, token savings, previous handoff, open tasks, environment info, 8 protection flags |
+| `exoskeleton_guard_edit` | Before every code edit | Pre-scans old content, post-scans new content. Returns verdict: safe/blocked/warning. Proposes fixes for blocking findings |
+| `exoskeleton_guard_commit` | Before every commit | Scans all staged files, stores commit memory, updates handoff. Returns verdict: safe/blocked/warning |
+| `exoskeleton_sense` | Every ~10 edits | Ambient monitoring — detects changed files, gate drift, new findings without full scan |
+| `exoskeleton_health` | When stuck or after 3+ failures | Detects stuck loops, tracks context budget, returns health score (0-100) and recommendations |
+| `exoskeleton_status` | Before claiming done | Full state report — all 6 layer statuses, session stats, 8 active protections |
+
+### Arm Tools (4)
+
+| Tool | When to call | What it does |
+|------|-------------|--------------|
+| `arm_execute` | Need scan→fix→verify in one call | Orchestrates scan → propose → verify → remember → handoff. action=scan\|fix\|verify\|handoff\|full |
+| `solve_problem` | Natural language problem | Classifies problem (secrets, AI slop, tests, CI) and returns diagnosis + action list + guidance |
+| `diagnose_error` | Paste a stack trace | Recognizes 10+ error patterns, returns root cause + fix |
+| `master_engineering_brief` | Stuck and need recovery plan | Ten-cylinder plan: assess → classify → prioritize → fix → verify → gate → remember → handoff → token budget → yes you can |
+
+### 8 Active Protections
+
+| Protection | What it prevents |
+|------------|-----------------|
+| editGuard | Introducing secrets/fiction in edits |
+| commitGuard | Bad commits shipping |
+| secretDetection | Hardcoded credentials in source |
+| fictionDetection | AI-generated placeholder values |
+| mockPathDetection | Mock/sample paths in production |
+| tokenCompression | Context window waste |
+| memoryPersistence | Losing context between sessions |
+| handoffTracking | Next session starting blind |
+
+### Required Workflow
+
+1. **Session start**: Call `exoskeleton_boot` FIRST, then `supercharge_agent`
+2. **Before every edit**: Call `exoskeleton_guard_edit` with action=check. Never apply code that returns verdict=blocked
+3. **Before every commit**: Call `exoskeleton_guard_commit`. Never commit if verdict=blocked
+4. **Every ~10 edits**: Call `exoskeleton_sense` for ambient monitoring
+5. **When stuck**: Call `exoskeleton_health`, then `solve_problem` or `diagnose_error`
+6. **Before claiming done**: Call `exoskeleton_status` to verify all layers active, then `handoff_check`
+
