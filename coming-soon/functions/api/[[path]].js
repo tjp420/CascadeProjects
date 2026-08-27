@@ -122,6 +122,8 @@ export async function onRequest(context) {
         'agentic/tools': { success: true, tools: [] },
         'audit/quarantine': { success: true, entries: [], total: 0, metadata: { encrypted: false, lastUpdated: null, totalQuarantined: 0, byReason: {} } },
         'audit/interdiction/stream/status': { success: true, enabled: false, status: 'idle', active: false, lastEvent: null, windowMs: 300000, ttlMs: 1800000, thresholds: { chain_verification: 3, pii_violation: 5, guardrail_refusal: 5, auth_failure: 10, org_partition: 5, rate_limit: 10, bundle_verification: 3 }, totalFailuresInWindow: 0, stats: { totalFailuresRecorded: 0, totalAutoInterdicts: 0, lastAutoInterdict: null, byType: {} }, recentFailures: [], byKey: {} },
+        'telemetry/collect': { success: true, entries: [], total: 0, page: 1, limit: 25, orgId: 'default' },
+        'telemetry/datasets': { success: true, datasets: [], orgId: 'default' },
         'audit/pii/orgs': { success: true, orgs: [] },
         'audit/pii/sync-history': { success: true, history: [], total: 0 },
         'audit/pii/policies/org-source': { success: true, policies: [] },
