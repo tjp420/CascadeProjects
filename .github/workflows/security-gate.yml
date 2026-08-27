@@ -88,12 +88,15 @@ jobs:
         run: |
           mkdir -p .simplebeacon || true
           npx simplebeacon scan --path ai-platform --gate --format json --output .simplebeacon/report-ai-platform.json
+          npx simplebeacon scan --path ai-platform --gate --format agent --output .simplebeacon/report-ai-platform-agent.json
 
       - name: Upload SimpleBeacon report (ai-platform)
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-report-ai-platform
-          path: .simplebeacon/report-ai-platform.json
+          path: |
+            .simplebeacon/report-ai-platform.json
+            .simplebeacon/report-ai-platform-agent.json
 
   simplebeacon-packages:
     name: SimpleBeacon scan - packages
@@ -127,12 +130,18 @@ jobs:
         run: |
           mkdir -p .simplebeacon || true
           npx simplebeacon scan --path packages --gate --format json --output .simplebeacon/report-packages.json
+          npx simplebeacon scan --path packages --gate --format agent --output .simplebeacon/report-packages-agent.json
+
+      - name: Agent performance telemetry check
+        run: npm run benchmark:agent
 
       - name: Upload SimpleBeacon report (packages)
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-report-packages
-          path: .simplebeacon/report-packages.json
+          path: |
+            .simplebeacon/report-packages.json
+            .simplebeacon/report-packages-agent.json
 
   simplebeacon-coming-soon:
     name: SimpleBeacon scan - coming-soon
@@ -166,12 +175,15 @@ jobs:
         run: |
           mkdir -p .simplebeacon || true
           npx simplebeacon scan --path coming-soon --gate --format json --output .simplebeacon/report-coming-soon.json
+          npx simplebeacon scan --path coming-soon --gate --format agent --output .simplebeacon/report-coming-soon-agent.json
 
       - name: Upload SimpleBeacon report (coming-soon)
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-report-coming-soon
-          path: .simplebeacon/report-coming-soon.json
+          path: |
+            .simplebeacon/report-coming-soon.json
+            .simplebeacon/report-coming-soon-agent.json
 
   nightly-full-scan:
     name: Nightly SimpleBeacon full scan

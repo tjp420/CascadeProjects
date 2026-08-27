@@ -10,6 +10,7 @@ const { createUtilityHandlers } = require("./handlers/utility-handlers");
 const { createDeploymentHandlers } = require("./handlers/deployment-handlers");
 const { createPdaHandlers } = require("./handlers/pda-handlers");
 const { createAgentHandlers } = require("./handlers/agent-handlers");
+const { createFixHandlers } = require("./handlers/fix-handlers");
 const constants = require("../lib/constants");
 
 function resolveProjectRoot(override) {
@@ -124,6 +125,11 @@ function createMcpToolHandlers(options = {}) {
     formatMarkdownResult,
     getCachedReport,
   });
+  const fixHandlers = createFixHandlers({
+    withGuard,
+    resolveProjectRoot,
+    formatToolResult,
+  });
 
   return {
     ...scanHandlers,
@@ -132,6 +138,7 @@ function createMcpToolHandlers(options = {}) {
     ...deploymentHandlers,
     ...pdaHandlers,
     ...agentHandlers,
+    ...fixHandlers,
     dispose() {
       if (networkGuard) networkGuard.dispose();
     },
@@ -292,6 +299,60 @@ const TOOL_DEFINITIONS = [
           description: "Override report path relative to project root",
         },
       },
+    },
+  },
+  {
+    name: "propose_fix",
+    description:
+      "Return a structured remediation template for a finding — search/replace pattern, manual steps, verify command, and optional diff preview. Does NOT apply the fix; the agent or human must apply it manually. Deterministic — no LLM inference. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        finding: {
+          type: "object",
+          description:
+            "Finding object — either compressed {c,s,l,m,a} from scan_snippet compressed=true, or full finding with recommendedAction/pattern/severity/line",
+        },
+        filePath: {
+          type: "string",
+          description:
+            "File path relative to project root (enables diff preview when canAutoFix=true)",
+        },
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+      },
+      required: ["finding"],
+    },
+  },
+  {
+    name: "verify_fix",
+    description:
+      "Re-scan a file after a fix is applied. Reports whether findings were resolved, remaining count, and optional comparison with previous finding count. Deterministic — no LLM inference. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filePath: {
+          type: "string",
+          description: "File path relative to project root to re-scan",
+        },
+        projectRoot: {
+          type: "string",
+          description: "Project root (default: cwd)",
+        },
+        previousFindingCount: {
+          type: "number",
+          description:
+            "Previous finding count for before/after comparison (optional)",
+        },
+        compressed: {
+          type: "boolean",
+          description:
+            "Return compressed findings (~30 tokens each vs ~120). Default: false.",
+        },
+      },
+      required: ["filePath"],
     },
   },
   {
