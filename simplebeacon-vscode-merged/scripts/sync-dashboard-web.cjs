@@ -66,4 +66,63 @@ if (fs.existsSync(destIndex)) {
   fs.writeFileSync(destIndex, html, 'utf8');
 }
 
+// ─── Post-sync verification: check for Vite-only patterns ───────────────────
+// Vite patterns like @/ aliases, ?worker, ?raw, import.meta.env break when
+// the dashboard is loaded directly in a VS Code webview (no Vite dev server).
+const VITE_PATTERNS = [
+  { regex: /from\s+["']@\/[^"']+["']/g, desc: 'Vite @/ alias import' },
+  { regex: /import\s+["']@\/[^"']+["']/g, desc: 'Vite @/ alias side-effect import' },
+  { regex: /import\s+[^;]+\?worker&inline/g, desc: 'Vite ?worker&inline suffix' },
+  { regex: /import\s+[^;]+\?worker\b/g, desc: 'Vite ?worker suffix' },
+  { regex: /import\s+[^;]+\?raw\b/g, desc: 'Vite ?raw suffix' },
+  { regex: /import\s+[^;]+\?inline\b/g, desc: 'Vite ?inline suffix' },
+  { regex: /import\.meta\.env/g, desc: 'Vite import.meta.env reference' },
+];
+
+const SCAN_DIRS = [
+  path.join(dest, 'js-es2018'),
+  path.join(dest, 'js'),
+  path.join(dest, 'assets'),
+];
+const SCAN_EXTS = new Set(['.js', '.mjs', '.ts']);
+
+function walkForJs(dir, files) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+      walkForJs(path.join(dir, entry.name), files);
+    } else if (SCAN_EXTS.has(path.extname(entry.name))) {
+      files.push(path.join(dir, entry.name));
+    }
+  }
+}
+
+const jsFiles = [];
+for (const dir of SCAN_DIRS) walkForJs(dir, jsFiles);
+
+let violationCount = 0;
+for (const file of jsFiles) {
+  const content = fs.readFileSync(file, 'utf8');
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    for (const { regex, desc } of VITE_PATTERNS) {
+      const re = new RegExp(regex.source, regex.flags);
+      if (re.test(lines[i])) {
+        const rel = path.relative(dest, file);
+        console.error(`[sync-dashboard-web] VIOLATION: ${rel}:${i + 1} — ${desc}`);
+        violationCount++;
+      }
+    }
+  }
+}
+
+if (violationCount > 0) {
+  console.error(`[sync-dashboard-web] ${violationCount} Vite-only pattern(s) found in synced dashboard-web.`);
+  console.error('[sync-dashboard-web] These will crash when loaded directly in a VS Code webview.');
+  console.error('[sync-dashboard-web] Fix the source in ai-platform/web/simplebeacon-dashboard and re-run sync.');
+  process.exit(1);
+}
+
+console.log('[sync-dashboard-web] Vite pattern check passed — no violations found');
 console.log('[sync-dashboard-web] Done');

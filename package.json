@@ -31,6 +31,17 @@
     "audit:context:init": "node scripts/audit-context.cjs --init-prd",
     "sb:hook:secrets-gate": "node packages/simplebeacon-cli/bin/simplebeacon.js secrets-gate --path .",
     "sb:hook:pre-commit": "node .simplebeacon/qa/env-production-guard.cjs && npm run sb:hook:secrets-gate && node .simplebeacon/qa/pre-commit-gate.cjs",
+    "poke-holes": "node scripts/poke-holes.js",
+    "poke-holes:mcp": "node scripts/poke-holes-mcp.cjs",
+    "audit:mcp-tools": "node scripts/audit-mcp-tools.cjs",
+    "test:progressive": "node scripts/test-progressive.cjs",
+    "test:telemetry": "node scripts/test-telemetry.cjs",
+    "benchmark:tokens": "node scripts/benchmark-tokens.cjs",
+    "benchmark:agent": "node scripts/benchmark-agent-speed.cjs",
+    "benchmark:agent:real": "node scripts/benchmark-agent-speed.cjs --real",
+    "tokens:report": "node scripts/track-token-savings.cjs --report",
+    "tokens:analyze": "node scripts/track-token-savings.cjs --analyze",
+    "tokens:reset": "node scripts/track-token-savings.cjs --reset",
     "check:entry-sync": "node scripts/check-entry-sync.cjs",
     "release:vscode:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -PrepareOnly",
     "release:vscode:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1",
@@ -50,7 +61,9 @@
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js",
     "build:ci": "node scripts/build-ci.js",
-    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
+    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs",
+    "build:dashboard": "cd ai-platform/web/simplebeacon-dashboard && npm run build && cd ../../../simplebeacon-vscode-merged && node scripts/sync-dashboard-web.cjs && node scripts/verify-dashboard-sync.cjs",
+    "sync:website": "node scripts/sync-dashboard-to-website.cjs"
   },
   "prepare": "husky install",
   "dependencies": {

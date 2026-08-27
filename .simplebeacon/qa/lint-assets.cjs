@@ -128,6 +128,55 @@ function checkPathIntegrity(filePath, relPath) {
   return violations;
 }
 
+// --- Vite-only pattern detection ---
+// Vite patterns like @/ aliases, ?worker, ?raw, import.meta.env break when
+// dashboard code is loaded directly in a VS Code webview (no Vite dev server).
+// This check catches them in staged files that are part of dashboard-web copies.
+const VITE_PATTERNS = [
+  { regex: /from\s+["']@\/[^"']+["']/g, desc: 'Vite @/ alias import' },
+  { regex: /import\s+["']@\/[^"']+["']/g, desc: 'Vite @/ alias side-effect import' },
+  { regex: /import\s+[^;]+\?worker&inline/g, desc: 'Vite ?worker&inline suffix' },
+  { regex: /import\s+[^;]+\?worker\b/g, desc: 'Vite ?worker suffix' },
+  { regex: /import\s+[^;]+\?raw\b/g, desc: 'Vite ?raw suffix' },
+  { regex: /import\s+[^;]+\?inline\b/g, desc: 'Vite ?inline suffix' },
+  { regex: /import\.meta\.env/g, desc: 'Vite import.meta.env reference' },
+];
+
+// Directories where Vite patterns are known to break direct loading
+const VITE_SENSITIVE_DIRS = [
+  'simplebeacon-vscode-merged/dashboard-web/',
+  'coming-soon/public/dashboard/',
+  'coming-soon/public/app/',
+  'coming-soon/public/d2/',
+];
+
+function checkVitePatterns(filePath, relPath) {
+  const violations = [];
+  const normalizedRelPath = relPath.replace(/\\/g, '/');
+
+  // Only check files in Vite-sensitive directories
+  const isSensitive = VITE_SENSITIVE_DIRS.some(dir => normalizedRelPath.startsWith(dir));
+  if (!isSensitive) return violations;
+
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (_e) {
+    return [];
+  }
+
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    for (const { regex, desc } of VITE_PATTERNS) {
+      const re = new RegExp(regex.source, regex.flags);
+      if (re.test(lines[i])) {
+        violations.push(`line ${i + 1}: ${desc}`);
+      }
+    }
+  }
+  return violations;
+}
+
 // --- Main ---
 const staged = getStagedFiles();
 
@@ -193,7 +242,8 @@ for (const relPath of staged) {
 
   const mojibakeIssues = checkMojibake(absPath);
   const pathIssues = checkPathIntegrity(absPath, relPath);
-  const allIssues = [...mojibakeIssues, ...pathIssues];
+  const viteIssues = checkVitePatterns(absPath, relPath);
+  const allIssues = [...mojibakeIssues, ...pathIssues, ...viteIssues];
 
   if (allIssues.length > 0) {
     totalViolations += allIssues.length;

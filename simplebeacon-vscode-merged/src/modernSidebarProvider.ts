@@ -2056,6 +2056,20 @@ $('cancelBtn').addEventListener('click', () => {
           case 'navSettings':
           case 'navHelp':
           case 'navChatbot':
+          case 'navAbout':
+          case 'navTeamMetrics':
+          case 'navTelemetry':
+          case 'navOutreach':
+          case 'navOrganization':
+          case 'navEnterprise':
+          case 'navWorkspace':
+          case 'navFineTuning':
+          case 'navWebhookEvents':
+          case 'navOpsReport':
+          case 'navLicenseManager':
+          case 'navAdmin':
+          case 'navGettingStarted':
+          case 'navChatbot':
           case 'navAbout': {
             const route = ModernSidebarProvider.teamNavRoute(message.command);
             if (route) {
@@ -2359,6 +2373,11 @@ $('cancelBtn').addEventListener('click', () => {
             }
             break;
           }
+          default:
+            ModernSidebarProvider.logRelay(
+              `[Sidebar] Unhandled command: ${message.command || '(none)'}`
+            );
+            break;
         }
       } catch (err) {
         vscode.window.showErrorMessage(
@@ -5876,7 +5895,19 @@ ${sidebarMainJsContent}
         case 'navSettings':
         case 'navHelp':
         case 'navChatbot':
-        case 'navAbout': {
+        case 'navAbout':
+        case 'navTeamMetrics':
+        case 'navTelemetry':
+        case 'navOutreach':
+        case 'navOrganization':
+        case 'navEnterprise':
+        case 'navWorkspace':
+        case 'navFineTuning':
+        case 'navWebhookEvents':
+        case 'navOpsReport':
+        case 'navLicenseManager':
+        case 'navAdmin':
+        case 'navGettingStarted': {
           const route = ModernSidebarProvider.teamNavRoute(
             message.command.startsWith('nav')
               ? message.command
@@ -5974,6 +6005,11 @@ ${sidebarMainJsContent}
           panel.webview.postMessage({ command: 'updateServerUrl', url: apiUrl });
           break;
         }
+        default:
+          ModernSidebarProvider.logRelay(
+            `[Panel] Unhandled command: ${message.command || '(none)'}`
+          );
+          break;
       }
     });
   }

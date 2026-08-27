@@ -168,6 +168,36 @@ export function setNotifyCallback(cb: (entry: NotifyEntry) => void) {
   notifyCallback = cb;
 }
 
+// ── Stub endpoint registry ──────────────────────────────────────────────────
+// Classifies stub endpoints so the dashboard can show appropriate messaging
+// instead of silent empty states that make the product look broken.
+//
+// Classifications:
+//   'online-only'  — requires a SimpleBeacon account; returns { success: false, reason: 'online-account-required' }
+//   'proxy'        — proxies to Render when authenticated; falls back to online-only when not
+//   'local'        — runs locally (already implemented or will be)
+const STUB_REGISTRY: Record<string, 'online-only' | 'proxy' | 'local'> = {
+  '/api/security/npm-audit': 'online-only',
+  '/api/optimization/compliance': 'online-only',
+  '/api/optimization/merge-preview': 'online-only',
+  '/api/optimization/analyze': 'online-only',
+  '/api/optimization/merge-execute': 'online-only',
+  '/api/admin/users': 'online-only',
+  '/api/admin/sessions': 'online-only',
+  '/api/simplebeacon/ci/telemetry/summary': 'online-only',
+  '/api/webauthn/status': 'online-only',
+  '/api/platform/status': 'local',
+  '/api/merger-tool/reduction-scan': 'local',
+};
+
+function onlineOnlyResponse(featureName: string): string {
+  return JSON.stringify({
+    success: false,
+    reason: 'online-account-required',
+    message: `${featureName} requires a SimpleBeacon account. Sign in to access this feature.`,
+  });
+}
+
 export function drainNotificationQueue(): NotifyEntry[] {
   const drained = notificationQueue.slice();
   notificationQueue.length = 0;
@@ -3029,17 +3059,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Security / npm audit stub
+    // Security / npm audit stub — online-only
     if (parsed.pathname === '/api/security/npm-audit') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 },
-          advisories: [],
-          message: 'npm audit is not available in local extension mode.',
-        })
-      );
+      res.end(onlineOnlyResponse('npm audit'));
       return;
     }
 
@@ -3048,19 +3071,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       if (String(parsed.searchParams.get('format') || '').toLowerCase() === 'html') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(
-          '<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting is not available in local extension mode.</p></body></html>'
+          '<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting requires a SimpleBeacon account. Sign in to access this feature.</p></body></html>'
         );
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          score: 100,
-          checks: [],
-          generatedAt: new Date().toISOString(),
-        })
-      );
+      res.end(onlineOnlyResponse('Compliance reporting'));
       return;
     }
     if (parsed.pathname === '/api/optimization/candidates' || parsed.pathname === '/optimization/candidates') {
@@ -3078,35 +3094,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
     if (parsed.pathname === '/api/optimization/merge-preview' || parsed.pathname === '/optimization/merge-preview') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          mergePreview: [],
-          message: 'Merge preview is not available in local extension mode.',
-        })
-      );
+      res.end(onlineOnlyResponse('Merge preview'));
       return;
     }
     if (parsed.pathname === '/api/optimization/analyze' || parsed.pathname === '/optimization/analyze') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          optimizationAvailable: false,
-          message: 'Optimization analysis is not available in local extension mode.',
-        })
-      );
+      res.end(onlineOnlyResponse('Optimization analysis'));
       return;
     }
     if (parsed.pathname === '/api/optimization/merge-execute' || parsed.pathname === '/optimization/merge-execute') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          applied: 0,
-          message: 'Merge execution is not available in local extension mode.',
-        })
-      );
+      res.end(onlineOnlyResponse('Merge execution'));
       return;
     }
 
@@ -3795,7 +3793,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       req.on('data', (chunk: Buffer) => {
         body += chunk.toString();
       });
-      req.on('end', () => {
+      req.on('end', async () => {
         let payload: any = {};
         try {
           payload = body ? JSON.parse(body) : {};
@@ -3803,6 +3801,46 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           console.error('Failed to parse request body as JSON:');
         }
         const isRoadmap = payload.analysisType === 'roadmap';
+        // Actually run a scan when a projectPath is provided — the dashboard
+        // uses /api/analyze/flexible as its primary scan endpoint.
+        const rawProjectPath = payload.projectPath || serverState.workspacePath || undefined;
+        if (rawProjectPath && payload.analysisType !== 'roadmap') {
+          try {
+            const args = {
+              projectPath: resolveRealPath(rawProjectPath),
+              fullDirectory: payload.fullDirectoryScan !== false,
+            };
+            updateServerState({ scanStatus: 'scanning', scanMessage: 'Scanning via /api/analyze/flexible' });
+            const report = (await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args)) as
+              ScanReport | undefined;
+            if (report) {
+              updateServerState({
+                currentReport: report as ScanReport | null,
+                scanStatus: 'completed',
+                scanMessage: 'Scan complete',
+                lastScanTime: Date.now(),
+              });
+              if (outputChannel) {
+                outputChannel.appendLine('[SimpleBeacon DataServer] /api/analyze/flexible scan complete');
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  status: 'complete',
+                  result: report,
+                  report,
+                  projectPath: rawProjectPath,
+                })
+              );
+              return;
+            }
+          } catch (scanErr) {
+            console.error('[SimpleBeacon DataServer] /api/analyze/flexible scan failed:', scanErr);
+            // Fall through to cached report below
+          }
+        }
+        // Fallback: return cached report (or empty report for roadmap)
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
           JSON.stringify({
@@ -4525,17 +4563,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Admin users list stub — local server has no user database
+    // Admin users list stub — online-only
     if (parsed.pathname === '/api/admin/users' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, users: [], total: 0, limit: 50, page: 1 }));
+      res.end(onlineOnlyResponse('Admin user management'));
       return;
     }
 
-    // Admin sessions list stub — local server has no session database
+    // Admin sessions list stub — online-only
     if (parsed.pathname === '/api/admin/sessions' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, sessions: [], total: 0 }));
+      res.end(onlineOnlyResponse('Admin session management'));
       return;
     }
 
@@ -5222,12 +5260,10 @@ ${
       return;
     }
 
-    // CI telemetry summary stub — local server has no CI data
+    // CI telemetry summary stub — online-only
     if (parsed.pathname === '/api/simplebeacon/ci/telemetry/summary') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({ success: true, summary: { days: 7, scans: [], totalScans: 0, passRate: 0, avgScore: null } })
-      );
+      res.end(onlineOnlyResponse('CI telemetry'));
       return;
     }
 
@@ -5252,10 +5288,10 @@ ${
       return;
     }
 
-    // WebAuthn status stub — local server does not support WebAuthn
+    // WebAuthn status stub — online-only
     if (parsed.pathname === '/api/webauthn/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ enabled: false, supported: false }));
+      res.end(onlineOnlyResponse('WebAuthn authentication'));
       return;
     }
 
