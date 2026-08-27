@@ -210,6 +210,12 @@ export function StreamInterdictionDashboard() {
     );
   }
 
+  // Defensive defaults — older API stubs may omit thresholds/byKey/recentFailures
+  const thresholds = status.thresholds ?? {};
+  const byKey = status.byKey ?? {};
+  const recentFailures = status.recentFailures ?? [];
+  const windowMs = status.windowMs ?? 0;
+
   const enabled = status.enabled;
   const totalAuto = status.stats.totalAutoInterdicts;
   const totalRecorded = status.stats.totalFailuresRecorded;
@@ -269,7 +275,7 @@ export function StreamInterdictionDashboard() {
           </div>
           <div className="rounded-lg border p-3 text-center">
             <Clock className="h-5 w-5 mx-auto text-foreground-muted" />
-            <p className="text-2xl font-bold mt-1">{formatDuration(status.windowMs)}</p>
+            <p className="text-2xl font-bold mt-1">{formatDuration(windowMs)}</p>
             <p className="text-xs text-foreground-muted">Window Size</p>
           </div>
         </div>
@@ -281,7 +287,7 @@ export function StreamInterdictionDashboard() {
             {FAILURE_AXES.map((axis) => {
               const Icon = axis.icon;
               const count = status.stats.byType[axis.type] || 0;
-              const threshold = status.thresholds[axis.type] || '—';
+              const threshold = thresholds[axis.type] || '—';
               return (
                 <div key={axis.type} className="flex items-center justify-between rounded-lg border p-2.5">
                   <div className="flex items-center gap-2">
@@ -294,7 +300,7 @@ export function StreamInterdictionDashboard() {
                   <Badge
                     variant="outline"
                     className={
-                      count >= (status.thresholds[axis.type] || Infinity)
+                      count >= (thresholds[axis.type] || Infinity)
                         ? 'bg-red-500/15 text-red-500 border-red-500/30'
                         : count > 0
                           ? 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30'
@@ -310,7 +316,7 @@ export function StreamInterdictionDashboard() {
         </div>
 
         {/* ── By-Key Breakdown Table ───────────────────────────────────────── */}
-        {Object.keys(status.byKey).length > 0 && (
+        {Object.keys(byKey).length > 0 && (
           <div>
             <h4 className="text-sm font-semibold mb-3">Failures by API Key</h4>
             <div className="overflow-x-auto rounded-lg border">
@@ -326,7 +332,7 @@ export function StreamInterdictionDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(status.byKey).map(([key, counts]) => (
+                  {Object.entries(byKey).map(([key, counts]) => (
                     <tr key={key} className="border-t">
                       <td className="p-2 font-mono text-xs">{key}</td>
                       {FAILURE_AXES.map((a) => {
@@ -336,7 +342,7 @@ export function StreamInterdictionDashboard() {
                             {c > 0 ? (
                               <span
                                 className={
-                                  c >= (status.thresholds[a.type] || Infinity)
+                                  c >= (thresholds[a.type] || Infinity)
                                     ? 'text-red-500 font-bold'
                                     : 'text-yellow-500'
                                 }
@@ -358,11 +364,11 @@ export function StreamInterdictionDashboard() {
         )}
 
         {/* ── Recent Failures Feed ─────────────────────────────────────────── */}
-        {status.recentFailures.length > 0 && (
+        {recentFailures.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-3">Recent Failures (last {status.recentFailures.length})</h4>
+            <h4 className="text-sm font-semibold mb-3">Recent Failures (last {recentFailures.length})</h4>
             <div className="space-y-1.5 max-h-64 overflow-y-auto rounded-lg border p-2">
-              {status.recentFailures.map((f, i) => {
+              {recentFailures.map((f, i) => {
                 const axis = FAILURE_AXES.find((a) => a.type === f.type);
                 const Icon = axis?.icon || AlertTriangle;
                 return (
