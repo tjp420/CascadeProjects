@@ -2245,6 +2245,25 @@ $('cancelBtn').addEventListener('click', () => {
                 const normalized = url.replace(/\/$/, '');
                 url = localMap[url] || localMap[normalized] || localMap[normalized + '/'] || url;
               }
+              // Explicitly add sb_api_base + force=1 so roadmap/audit pages can
+              // authenticate against the local data server. Without sb_api_base,
+              // these pages try to use the remote website API and sign-in fails.
+              try {
+                const parsedUrl = new URL(url);
+                const isRemoteSite = parsedUrl.hostname === 'simplebeacon.ai' || parsedUrl.hostname.endsWith('.simplebeacon.ai');
+                if (isRemoteSite) {
+                  const localApiBase = `http://127.0.0.1:${getDataServerPort()}/api`;
+                  if (!parsedUrl.searchParams.has('sb_api_base')) {
+                    parsedUrl.searchParams.set('sb_api_base', localApiBase);
+                  }
+                  if (!parsedUrl.searchParams.has('force')) {
+                    parsedUrl.searchParams.set('force', '1');
+                  }
+                  url = parsedUrl.toString();
+                }
+              } catch {
+                /* not a parseable URL — pass through as-is */
+              }
               vscode.commands.executeCommand('simplebeacon.openUrlInPreview', url, labelMap[message.command] || '');
             }
             break;

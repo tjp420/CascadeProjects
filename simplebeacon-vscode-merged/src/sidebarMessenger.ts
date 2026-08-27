@@ -234,10 +234,13 @@ function isDashboardEmbedUrl(url: string): boolean {
       path.startsWith('/dashboard/') ||
       path === '/audit' ||
       path.startsWith('/audit/') ||
-      path.endsWith('/audit.html')
+      path.endsWith('/audit.html') ||
+      path === '/roadmap' ||
+      path.startsWith('/roadmap/') ||
+      path.endsWith('/roadmap.html')
     );
   } catch {
-    return url.includes('/dashboard') || url.includes('/audit');
+    return url.includes('/dashboard') || url.includes('/audit') || url.includes('/roadmap');
   }
 }
 
