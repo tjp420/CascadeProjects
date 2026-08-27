@@ -28,6 +28,24 @@ const { registerUser } = require("../services/user-service.cjs");
 const { trustLevels } = require("../lib/auth/trust-levels.cjs");
 const { sendError } = require("../lib/response-helpers.cjs");
 
+// License token validation helpers (used by token-status endpoint)
+let getLicenseToken = null;
+let verifyLicenseToken = null;
+let resolveLicenseSecret = null;
+try {
+  ({ getLicenseToken } = require("../lib/token-db.cjs"));
+} catch (_) {}
+try {
+  ({ verifyLicenseToken } = require("../lib/simplebeacon-proxy.cjs"));
+} catch (_) {}
+try {
+  // resolveLicenseSecret is defined in simplebeacon-proxy.cjs in some versions
+  if (!resolveLicenseSecret) {
+    const proxy = require("../lib/simplebeacon-proxy.cjs");
+    resolveLicenseSecret = proxy.resolveLicenseSecret || null;
+  }
+} catch (_) {}
+
 const router = express.Router();
 
 router.post("/login", handleLogin);
@@ -122,6 +140,72 @@ router.get("/me", optionalAuthenticate, (req, res) => {
       permissions: (trustLevels.bronze || { permissions: [] }).permissions,
     },
   });
+});
+
+// License token status check — used by dashboard sign-in flow to validate
+// a license token before activating. Public (no JWT auth) because the
+// license token itself is the credential.
+router.post("/token-status", express.json(), (req, res) => {
+  const { token } = req.body || {};
+  if (!token || typeof token !== "string") {
+    return res
+      .status(400)
+      .json({ registered: false, valid: false, error: "Token required" });
+  }
+
+  const secret = resolveLicenseSecret
+    ? resolveLicenseSecret()
+    : (process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim() || null;
+  if (!secret) {
+    return res.status(503).json({
+      registered: false,
+      valid: false,
+      error:
+        "License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured",
+    });
+  }
+
+  if (verifyLicenseToken) {
+    const claims = verifyLicenseToken(token, secret);
+    if (claims) {
+      const email = claims.sub || claims.email || null;
+      const tier = claims.tier || "developer";
+      let entry = null;
+      try {
+        if (getLicenseToken) entry = getLicenseToken(token);
+      } catch (_) {}
+      return res.json({
+        registered: true,
+        valid: true,
+        email: (entry && entry.email) || email,
+        tier: (entry && entry.tier) || tier,
+        features: claims.features || [],
+        registeredAt:
+          (entry && entry.registered_at) ||
+          (claims.iat ? new Date(claims.iat * 1000).toISOString() : null),
+        expiresAt: claims.exp
+          ? new Date(claims.exp * 1000).toISOString()
+          : null,
+        expiry: claims.exp || null,
+      });
+    }
+  }
+
+  // Token signature invalid — check if it's registered in the DB
+  let entry = null;
+  try {
+    if (getLicenseToken) entry = getLicenseToken(token);
+  } catch (_) {}
+  if (entry) {
+    return res.json({
+      registered: true,
+      valid: false,
+      email: entry.email,
+      tier: entry.tier,
+      registeredAt: entry.registered_at,
+    });
+  }
+  return res.json({ registered: false, valid: false });
 });
 
 module.exports = router;
