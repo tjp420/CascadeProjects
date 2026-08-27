@@ -11,6 +11,7 @@ const { createDeploymentHandlers } = require("./handlers/deployment-handlers");
 const { createPdaHandlers } = require("./handlers/pda-handlers");
 const { createAgentHandlers } = require("./handlers/agent-handlers");
 const { createFixHandlers } = require("./handlers/fix-handlers");
+const { createArmHandlers } = require("./handlers/arm-handlers");
 const constants = require("../lib/constants");
 
 function resolveProjectRoot(override) {
@@ -130,6 +131,13 @@ function createMcpToolHandlers(options = {}) {
     resolveProjectRoot,
     formatToolResult,
   });
+  const armHandlers = createArmHandlers({
+    withGuard,
+    resolveProjectRoot,
+    formatToolResult,
+    formatMarkdownResult,
+    getCachedReport,
+  });
 
   return {
     ...scanHandlers,
@@ -139,6 +147,7 @@ function createMcpToolHandlers(options = {}) {
     ...pdaHandlers,
     ...agentHandlers,
     ...fixHandlers,
+    ...armHandlers,
     dispose() {
       if (networkGuard) networkGuard.dispose();
     },
@@ -872,6 +881,69 @@ const TOOL_DEFINITIONS = [
         },
         maxDepth: { type: "number", description: "Max directory depth (default: 5)" },
         format: { type: "string", enum: ["json", "markdown"], description: "Output format: json (default) for chaining, markdown for human-readable report" },
+      },
+    },
+  },
+  {
+    name: "arm_execute",
+    description:
+      "Unified arm entry point — orchestrates scan → propose → apply → verify → remember → handoff in one call. action: scan|fix|verify|handoff|full. Default: scan. Use action=full for the complete loop. Compressed output by default (~75% smaller). Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["scan", "fix", "verify", "handoff", "full"],
+          description: "Which arm action to execute. scan=scan only, fix=scan+propose, verify=rescan, handoff=write handoff, full=entire loop",
+        },
+        content: { type: "string", description: "Source content to scan (for scan/fix actions)" },
+        filePath: { type: "string", description: "File path to scan/verify (relative to project root)" },
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+        compressed: { type: "boolean", description: "Return compressed findings (default: true)" },
+        reportPath: { type: "string", description: "Override report path relative to project root" },
+      },
+    },
+  },
+  {
+    name: "solve_problem",
+    description:
+      "Natural-language problem solver — describe the problem ('CI failing on secrets', 'tests timeout', 'mock data in production') and get a classified diagnosis, action list, and deterministic guidance. If filePath is provided, scans it immediately. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        problem: { type: "string", description: "Natural language problem description" },
+        filePath: { type: "string", description: "Optional file to scan immediately" },
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+      },
+      required: ["problem"],
+    },
+  },
+  {
+    name: "diagnose_error",
+    description:
+      "Paste a stack trace or error message and get root-cause analysis + fix. Identifies common error patterns (null reference, missing module, chunk load failure, auth error, 502 backend, etc.) and maps to the likely file and remediation template. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        error: { type: "string", description: "Error message or stack trace text" },
+        stackTrace: { type: "string", description: "Alias for error" },
+        filePath: { type: "string", description: "Optional file path to scan for the root cause" },
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+      },
+      required: ["error"],
+    },
+  },
+  {
+    name: "master_engineering_brief",
+    description:
+      "Ten-cylinder recovery playbook for stuck agents — assess, classify, prioritize, fix, verify, gate, remember, handoff, token budget, yes-you-can. Reads gate state, token savings, and previous handoff. Use when the agent is stuck or needs a structured recovery plan. Set writeDisk=true to write .simplebeacon/master-engineering-brief.md. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        situation: { type: "string", description: "Brief description of the current situation (e.g. 'stuck on CI gate', 'dashboard crash')" },
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+        reportPath: { type: "string", description: "Override report path relative to project root" },
+        writeDisk: { type: "boolean", description: "Write brief to .simplebeacon/master-engineering-brief.md (default: false)" },
       },
     },
   },

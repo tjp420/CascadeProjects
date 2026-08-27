@@ -15,6 +15,7 @@ const agentRegistry = require("./agent-registry");
 const agentDetect = require("./agent-detect");
 const syncLayer = require("./sync-layer");
 const crossProjectLearner = require("./cross-project-learner");
+const tokenSavingsTracker = require("./token-savings-tracker");
 
 module.exports = {
   // Memory
@@ -76,6 +77,12 @@ module.exports = {
   extractPatterns: crossProjectLearner.extractPatterns,
   generateLearningReport: crossProjectLearner.generateReport,
 
+  // Token Savings
+  recordTokenSavings: tokenSavingsTracker.recordSavings,
+  getTokenSavings: tokenSavingsTracker.getSavings,
+  getTokenSavingsBrief: tokenSavingsTracker.getSavingsBrief,
+  estimateTokens: tokenSavingsTracker.estimateTokens,
+
   // Sub-modules (for advanced use)
   memoryStore,
   taskStore,
@@ -85,4 +92,5 @@ module.exports = {
   agentDetect,
   syncLayer,
   crossProjectLearner,
+  tokenSavingsTracker,
 };
