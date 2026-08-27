@@ -1069,6 +1069,68 @@ function createExoskeletonHandlers({
       });
     }
 
+    // ─── Self-healing: auto-scan stuck files and apply fixes ───────────────
+    // When health is degraded or critical, automatically scan stuck files
+    // and apply auto-fixable findings. This is the "recovery" layer.
+    health.selfHealing = { triggered: false, fixesApplied: 0, details: [] };
+    if (health.status !== "healthy" && stuckFiles.length > 0) {
+      health.selfHealing.triggered = true;
+      for (const stuck of stuckFiles.slice(0, 3)) {
+        try {
+          const stuckPath = path.resolve(root, stuck.file);
+          if (!fs.existsSync(stuckPath)) continue;
+          const scanResult = scanFileOnDisk(stuckPath, {
+            projectRoot: root,
+            compressed: true,
+          });
+          const findings = scanResult.findings || [];
+          let fileModified = false;
+          let fileContent = fs.readFileSync(stuckPath, "utf8");
+          for (const finding of findings) {
+            const actionCode = finding.a;
+            if (!actionCode) continue;
+            const template = getRemediationTemplate(actionCode);
+            if (!template?.canAutoFix) continue;
+            if (!template?.searchPattern || !template?.replaceTemplate) continue;
+            try {
+              const newContent = fileContent.replace(
+                template.searchPattern,
+                template.replaceTemplate,
+              );
+              if (newContent !== fileContent) {
+                fileContent = newContent;
+                fileModified = true;
+                state.fixCount = (state.fixCount || 0) + 1;
+                health.selfHealing.fixesApplied++;
+                health.selfHealing.details.push({
+                  file: stuck.file,
+                  actionCode,
+                  success: true,
+                });
+              }
+            } catch {
+              // Pattern replacement failed — skip
+            }
+          }
+          if (fileModified) {
+            fs.writeFileSync(stuckPath, fileContent, "utf8");
+            // Clear the repeated failures for this file since we fixed it
+            state.repeatedFailures = (state.repeatedFailures || []).filter(
+              (f) => f.filePath !== stuck.file,
+            );
+          }
+        } catch {
+          // Non-fatal — self-healing is best-effort
+        }
+      }
+      if (health.selfHealing.fixesApplied > 0) {
+        health.recommendations.push({
+          type: "self_healing",
+          message: `Self-healing applied ${health.selfHealing.fixesApplied} auto-fix(es) to stuck files. Re-scan with exoskeleton_sense to verify.`,
+        });
+      }
+    }
+
     // Update state
     state.lastHealthAt = now;
     state.stuckLoopCount = stuckLoops.length;

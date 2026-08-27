@@ -258,6 +258,217 @@ const REMEDIATION_TEMPLATES = {
     canAutoFix: true,
     playbookId: "custom-heuristic",
   },
+
+  // ── SB-AI-001: Debug print ───────────────────────────────────────────────
+  REMOVE_DEBUG_PRINT: {
+    actionCode: "REMOVE_DEBUG_PRINT",
+    searchPattern: null,
+    replaceTemplate: null,
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Remove the debug print statement or replace with a structured logger",
+      "Python: use logging.debug() instead of pprint() or print_r()",
+      "Go: use log/slog.Debug() instead of dbg!()",
+      "Rust: use tracing::debug!() instead of dbg!()",
+    ],
+    canAutoFix: false, // Language-dependent — not safe to auto-remove
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-002: TODO/FIXME marker ─────────────────────────────────────────
+  RESOLVE_TODO: {
+    actionCode: "RESOLVE_TODO",
+    searchPattern: /\/\/\s*(TODO|FIXME|HACK|XXX|BUG|REVIEW|OPTIMIZE|REFACTOR)\b[^\n]*$/gim,
+    replaceTemplate: '// Resolved — see commit history for details',
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Complete the task described in the TODO/FIXME marker",
+      "Or create a tracked issue (GitHub/Jira) with the context and link it",
+      "Then remove the marker or replace with a reference to the issue",
+    ],
+    canAutoFix: false, // Cannot auto-resolve the task — requires human judgment
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-005: Eval/exec usage ───────────────────────────────────────────
+  REPLACE_EVAL: {
+    actionCode: "REPLACE_EVAL",
+    searchPattern: null,
+    replaceTemplate: null,
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Python: replace eval() with ast.literal_eval() for literal expressions",
+      "JS: replace eval() with JSON.parse() for JSON data",
+      "For dynamic code, use a proper parser/interpreter sandbox",
+    ],
+    canAutoFix: false, // Context-dependent replacement — not safe to auto-fix
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-006: Hardcoded credential ──────────────────────────────────────
+  MOVE_CREDENTIAL_TO_ENV: {
+    actionCode: "MOVE_CREDENTIAL_TO_ENV",
+    searchPattern:
+      /(?:const|let|var)\s+(\w*(?:password|passwd|pwd|api_key|apikey|secret|access_key|private_key|token)\w*)\s*=\s*["']([^"']{8,})["']/gi,
+    replaceTemplate: 'process.env.$1',
+    envVarHint: "Add $1 to your .env file and rotate the exposed credential immediately",
+    verifyCommand: "npx simplebeacon scan --gate --path <file>",
+    manualSteps: [
+      "Rotate the exposed credential in the provider console immediately",
+      "Move the credential to an environment variable or secrets manager",
+      "Replace the hardcoded string with process.env.VAR_NAME",
+      "Add .env to .gitignore if not already present",
+    ],
+    canAutoFix: true,
+    playbookId: "credentials",
+  },
+
+  // ── SB-AI-007: Debug mode enabled ────────────────────────────────────────
+  DISABLE_DEBUG_MODE: {
+    actionCode: "DISABLE_DEBUG_MODE",
+    searchPattern: /(?:(?:^|\n)\s*(?:DEBUG|debug)\s*=\s*)(True|true|TRUE|1|yes|on)/g,
+    replaceTemplate: 'false // Disable debug mode in production',
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Set debug=false in production configuration",
+      "Use environment-specific config files (e.g. config.prod.json)",
+      "Or gate with: debug: process.env.NODE_ENV === 'development'",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-008: Broad exception catch ─────────────────────────────────────
+  NARROW_EXCEPTION: {
+    actionCode: "NARROW_EXCEPTION",
+    searchPattern: null,
+    replaceTemplate: null,
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace bare 'except:' with 'except SpecificError:'",
+      "Replace 'except Exception:' with the specific exception types you expect",
+      "Replace 'catch (e)' with typed catches where possible",
+    ],
+    canAutoFix: false, // Requires knowing which specific exceptions to catch
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-009: Hardcoded filesystem path ─────────────────────────────────
+  USE_RELATIVE_PATH: {
+    actionCode: "USE_RELATIVE_PATH",
+    searchPattern: null,
+    replaceTemplate: null,
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace hardcoded paths with relative paths using path.join() or pathlib",
+      "Use environment variables for configurable paths (e.g. DATA_DIR)",
+      "For Node.js: use path.resolve(__dirname, 'relative/path')",
+    ],
+    canAutoFix: false, // Path replacement is context-dependent
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-010: Wildcard import ───────────────────────────────────────────
+  EXPLICIT_IMPORTS: {
+    actionCode: "EXPLICIT_IMPORTS",
+    searchPattern: /from\s+(\S+)\s+import\s+\*/g,
+    replaceTemplate: null, // Cannot determine which specific names to import
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace 'from module import *' with explicit imports",
+      "List only the names you actually use: from module import ClassA, funcB",
+      "Use an IDE auto-import feature to discover used names",
+    ],
+    canAutoFix: false, // Requires analyzing which names are used downstream
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-011: Bare string exception ─────────────────────────────────────
+  PROPER_EXCEPTION_CLASS: {
+    actionCode: "PROPER_EXCEPTION_CLASS",
+    searchPattern: /raise\s+["']([^"']+)["']/g,
+    replaceTemplate: "raise ValueError('$1')",
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Python: replace raise 'message' with raise ValueError('message')",
+      "JS: replace throw 'message' with throw new Error('message')",
+      "Choose the appropriate exception class for the error type",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-012: Mutable default argument ──────────────────────────────────
+  FIX_MUTABLE_DEFAULT: {
+    actionCode: "FIX_MUTABLE_DEFAULT",
+    searchPattern: /def\s+(\w+)\s*\(([^)]*\b(?:x|y|z|items|data|result|args|opts|options|config|lst|arr|dct|mapping)\w*\s*=\s*(?:\[\]|\{\}|\{\}\s*|\[\]\s*))/g,
+    replaceTemplate: null, // Needs function-specific rewrite — too complex for regex
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace the mutable default with None",
+      "Create the mutable object inside the function body",
+      "Pattern: def f(x=None): x = x or [] if x is None else x",
+    ],
+    canAutoFix: false, // Requires multi-line rewrite
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-013: Disabled authentication ───────────────────────────────────
+  ENABLE_AUTH_CHECK: {
+    actionCode: "ENABLE_AUTH_CHECK",
+    searchPattern: /(?:auth\s*=\s*)(False|false|FALSE|0|no|off|disabled)/g,
+    replaceTemplate: 'true // Enable auth — use dev bypass flag for development',
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Enable authentication in production configuration",
+      "For development, use a dev auth bypass flag gated on NODE_ENV=development",
+      "Never deploy with auth disabled",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-014: Long sleep ────────────────────────────────────────────────
+  REPLACE_LONG_SLEEP: {
+    actionCode: "REPLACE_LONG_SLEEP",
+    searchPattern: null,
+    replaceTemplate: null,
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace long sleep() with an event-driven approach (condition variable, asyncio.Event)",
+      "If polling is necessary, use shorter intervals (1-5s) with a total timeout",
+      "Use asyncio.wait_for() or threading.Event.wait(timeout) instead of fixed sleeps",
+    ],
+    canAutoFix: false, // Requires architectural change
+    playbookId: "custom-heuristic",
+  },
+
+  // ── SB-AI-015: Wildcard CORS ─────────────────────────────────────────────
+  NARROW_CORS: {
+    actionCode: "NARROW_CORS",
+    searchPattern: /(["'])(?:access-control-allow-origin|allowed_origins|cors_origins)\1\s*[:=]\s*["']\*["']/gi,
+    replaceTemplate: "'access-control-allow-origin': process.env.CORS_ORIGINS || 'http://localhost:3000'",
+    envVarHint: "Set CORS_ORIGINS env var to a comma-separated list of allowed origins",
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Replace '*' with an explicit list of allowed origins",
+      "For development, use 'http://localhost:3000' or similar",
+      "Load allowed origins from an environment variable for flexibility",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
 };
 
 /**

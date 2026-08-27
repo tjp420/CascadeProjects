@@ -72,6 +72,19 @@ const ACTION_CODES = {
   // Custom heuristic actions
   ADD_ERROR_LOGGING: "Log the error, re-raise it, or handle it explicitly. Never silently swallow exceptions.",
   ENABLE_SSL_VERIFY: "Enable SSL/TLS verification. For local development, use a self-signed CA certificate instead of disabling verification.",
+  REMOVE_DEBUG_PRINT: "Remove the debug print or replace it with a structured logger (e.g. Python logging, Go log/slog, Rust tracing, Java SLF4J).",
+  RESOLVE_TODO: "Complete the task, remove the marker, or create a tracked issue with context.",
+  REPLACE_EVAL: "Replace with a safe alternative: use ast.literal_eval for Python, JSON.parse for JS, or a proper parser/interpreter.",
+  MOVE_CREDENTIAL_TO_ENV: "Move the credential to an environment variable or secrets manager. Rotate the exposed credential immediately.",
+  DISABLE_DEBUG_MODE: "Disable debug mode for production. Use environment-specific configuration files.",
+  NARROW_EXCEPTION: "Catch specific exception types (e.g. ValueError, ConnectionError) rather than bare except or Exception.",
+  USE_RELATIVE_PATH: "Use relative paths, environment variables, or path.join/pathlib for cross-platform compatibility.",
+  EXPLICIT_IMPORTS: "Replace with explicit imports: from module import SpecificClass, specific_function.",
+  PROPER_EXCEPTION_CLASS: "Raise a proper exception class: raise ValueError('message') or throw new Error('message').",
+  FIX_MUTABLE_DEFAULT: "Use None as the default and create the mutable object inside the function: def f(x=None): x = x or [].",
+  ENABLE_AUTH_CHECK: "Enable authentication. For development, use a dev auth bypass flag that requires NODE_ENV=development or equivalent.",
+  REPLACE_LONG_SLEEP: "Replace with an event-driven approach, condition variable, or async/await pattern. If polling is necessary, use shorter intervals with a timeout.",
+  NARROW_CORS: "Specify explicit allowed origins instead of '*'. For development, use a local origin list.",
 };
 
 // ── Reverse lookup: action string → code ─────────────────────────────────────
@@ -108,6 +121,19 @@ function resolveActionCode(recommendedAction) {
   if (lower.includes("conversational") || lower.includes("debris")) return "REMOVE_AI_DEBRIS";
   if (lower.includes("log the error") || lower.includes("silently swallow")) return "ADD_ERROR_LOGGING";
   if (lower.includes("ssl") || lower.includes("tls") && lower.includes("verification")) return "ENABLE_SSL_VERIFY";
+  if (lower.includes("debug print") || lower.includes("structured logger")) return "REMOVE_DEBUG_PRINT";
+  if (lower.includes("todo") || lower.includes("fixme") || lower.includes("tracked issue")) return "RESOLVE_TODO";
+  if (lower.includes("eval") && lower.includes("safe alternative")) return "REPLACE_EVAL";
+  if (lower.includes("credential") && lower.includes("environment variable")) return "MOVE_CREDENTIAL_TO_ENV";
+  if (lower.includes("debug mode") && lower.includes("production")) return "DISABLE_DEBUG_MODE";
+  if (lower.includes("specific exception") || lower.includes("bare except")) return "NARROW_EXCEPTION";
+  if (lower.includes("relative paths") || lower.includes("cross-platform")) return "USE_RELATIVE_PATH";
+  if (lower.includes("explicit imports")) return "EXPLICIT_IMPORTS";
+  if (lower.includes("proper exception class")) return "PROPER_EXCEPTION_CLASS";
+  if (lower.includes("mutable") && lower.includes("none")) return "FIX_MUTABLE_DEFAULT";
+  if (lower.includes("authentication") && lower.includes("dev auth bypass")) return "ENABLE_AUTH_CHECK";
+  if (lower.includes("event-driven") || lower.includes("polling")) return "REPLACE_LONG_SLEEP";
+  if (lower.includes("allowed origins") || lower.includes("wildcard") && lower.includes("cors")) return "NARROW_CORS";
   return "MANUAL_REVIEW";
 }
 
