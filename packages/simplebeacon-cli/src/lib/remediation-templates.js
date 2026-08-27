@@ -225,7 +225,14 @@ const REMEDIATION_TEMPLATES = {
   ADD_ERROR_LOGGING: {
     actionCode: "ADD_ERROR_LOGGING",
     searchPattern: /catch\s*(\(([^)]*)\))?\s*\{\s*(?:\/\*[^*]*\*\/\s*)?\}/g,
-    replaceTemplate: 'catch ($2) { console.error("[$1] Error:", $2); }',
+    replaceTemplate: (match, fullParens, paramName) => {
+      const param = paramName || "err";
+      if (fullParens) {
+        return `catch (${param}) { console.error("[${param}] Error:", ${param}); }`;
+      }
+      // TS catch without binding — add a parameter
+      return `catch (${param}) { console.error("[${param}] Error:", ${param}); }`;
+    },
     envVarHint: null,
     verifyCommand: "npx simplebeacon scan --path <file>",
     manualSteps: [

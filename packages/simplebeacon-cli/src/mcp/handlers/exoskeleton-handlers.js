@@ -156,13 +156,11 @@ function createExoskeletonHandlers({
     }
   }
 
-  // ─── Helper: find mirror files (same relative path in different roots) ───
-  // Detects files like useAuth.ts that exist in multiple dashboard copies:
-  //   ai-platform/web/simplebeacon-dashboard/src/hooks/useAuth.ts
-  //   coming-soon/public/app/src/hooks/useAuth.ts
-  //   coming-soon/public/d2/src/hooks/useAuth.ts
-  //   coming-soon/public/dashboard/src/hooks/useAuth.ts
-  //   simplebeacon-vscode-merged/dashboard-web/src/hooks/useAuth.ts
+  // ─── Helper: find mirror files (same content or same relative path in different roots) ───
+  // Detects files like useAuth.ts that exist in multiple dashboard copies.
+  // Uses two strategies:
+  //   1. Path-based: same last-N path segments (e.g. src/hooks/useAuth.ts)
+  //   2. Content-based: same file hash (catches renamed or relocated mirrors)
   function findMirrorFiles(root, filePath) {
     try {
       const normalized = filePath.replace(/\\/g, "/");
@@ -174,14 +172,55 @@ function createExoskeletonHandlers({
         timeout: 5000,
       });
       const candidates = output.trim().split("\n").filter(Boolean);
-      // Filter to files that share the same relative path suffix (last 3+ path segments)
+
+      // Get the content hash of the input file
+      const inputFullPath = path.resolve(root, filePath);
+      const inputHash = getFileHash(inputFullPath);
+
+      // Strategy 1: path segment matching (last 2-4 segments)
       const inputSegments = normalized.split("/").slice(-3).join("/");
-      const mirrors = candidates.filter((f) => {
-        if (f === normalized) return false; // Skip the file itself
-        if (f === filePath.replace(/\\/g, "/")) return false;
+      const inputSegments2 = normalized.split("/").slice(-2).join("/");
+
+      // Strategy 2: content hash matching
+      const mirrors = [];
+      const seen = new Set();
+      for (const f of candidates) {
+        if (f === normalized) continue;
+        if (f === filePath.replace(/\\/g, "/")) continue;
+        if (seen.has(f)) continue;
+
+        let isMirror = false;
+
+        // Path-based: same last 3 segments
         const fSegments = f.split("/").slice(-3).join("/");
-        return fSegments === inputSegments && f.endsWith(basename);
-      });
+        if (fSegments === inputSegments && f.endsWith(basename)) {
+          isMirror = true;
+        }
+
+        // Path-based: same last 2 segments (catches shallow mirrors)
+        if (!isMirror) {
+          const fSegments2 = f.split("/").slice(-2).join("/");
+          if (fSegments2 === inputSegments2 && f.endsWith(basename)) {
+            // Only count as mirror if same extension
+            if (path.extname(f) === path.extname(normalized)) {
+              isMirror = true;
+            }
+          }
+        }
+
+        // Content-based: same file hash (catches renamed/relocated mirrors)
+        if (!isMirror && inputHash) {
+          const fHash = getFileHash(path.resolve(root, f));
+          if (fHash && fHash === inputHash) {
+            isMirror = true;
+          }
+        }
+
+        if (isMirror) {
+          mirrors.push(f);
+          seen.add(f);
+        }
+      }
       return mirrors;
     } catch {
       return [];
@@ -479,6 +518,72 @@ function createExoskeletonHandlers({
             verifyCommand: template.verifyCommand,
           });
         }
+      }
+    }
+
+    // Auto-apply fixes when action=apply and templates have canAutoFix
+    if (action === "apply" && result.fixesProposed.length > 0) {
+      result.appliedFixes = [];
+      try {
+        let fileContent = fs.readFileSync(fullPath, "utf8");
+        let modified = false;
+        for (const proposed of result.fixesProposed) {
+          if (!proposed.canAutoFix) continue;
+          const template = getRemediationTemplate(proposed.actionCode);
+          if (!template?.searchPattern || !template?.replaceTemplate) continue;
+          try {
+            const newFileContent = fileContent.replace(
+              template.searchPattern,
+              template.replaceTemplate,
+            );
+            if (newFileContent !== fileContent) {
+              fileContent = newFileContent;
+              modified = true;
+              result.appliedFixes.push({
+                actionCode: proposed.actionCode,
+                success: true,
+              });
+              state.fixCount = (state.fixCount || 0) + 1;
+            }
+          } catch {
+            result.appliedFixes.push({
+              actionCode: proposed.actionCode,
+              success: false,
+              error: "Pattern replacement failed",
+            });
+          }
+        }
+        if (modified) {
+          fs.writeFileSync(fullPath, fileContent, "utf8");
+          result.verdict = "safe";
+          result.reason = `Applied ${result.appliedFixes.filter(f => f.success).length} auto-fix(es) to ${filePath}`;
+          // Re-scan the file after applying fixes
+          try {
+            const verifyResult = scanFileOnDisk(fullPath, {
+              projectRoot: root,
+              compressed: true,
+            });
+            result.postScan = {
+              findings: verifyResult.findings || [],
+              count: (verifyResult.findings || []).length,
+            };
+            const remainingBlocking = (verifyResult.findings || []).filter(
+              (f) => f.s === "C" || f.s === "H",
+            );
+            if (remainingBlocking.length > 0) {
+              result.verdict = "blocked";
+              result.reason = `${remainingBlocking.length} blocking findings remain after auto-fix`;
+            }
+          } catch {
+            // Non-fatal — file was still modified
+          }
+        }
+      } catch (err) {
+        result.appliedFixes.push({
+          actionCode: "ERROR",
+          success: false,
+          error: err.message,
+        });
       }
     }
 
