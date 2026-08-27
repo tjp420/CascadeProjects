@@ -53,6 +53,13 @@ import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { discoverAndApplyExtensionBridge } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
 import {
+  TrustBanner,
+  ScanModeBadge,
+  PostScanVerification,
+  useNetworkGuard,
+  type ScanTrustMode,
+} from "@/components/TrustBanner";
+import {
   requestNotificationPermission,
   showOSNotification,
   isNotificationsEnabled,
@@ -358,6 +365,9 @@ export function AnalyzeView() {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   const [requiresManualTrigger, setRequiresManualTrigger] = useState(false);
+  const [trustMode, setTrustMode] = useState<ScanTrustMode>("unknown");
+  const [showPostScanVerification, setShowPostScanVerification] = useState(false);
+  const { networkEvents, isGuarding, startGuard, stopGuard } = useNetworkGuard();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -861,6 +871,9 @@ export function AnalyzeView() {
       }
       if (scanInFlightRef.current) return;
       scanInFlightRef.current = true;
+      setTrustMode("browser-local");
+      setShowPostScanVerification(false);
+      startGuard(); // Start network guard to verify no upload occurs
       // Clear stale scan data from previous scans so ResultsView doesn't show old findings
       try {
         localStorage.removeItem("sb_last_scan_full");
@@ -965,12 +978,15 @@ export function AnalyzeView() {
           );
         }
         persistScanResult(scanResult, report);
+        stopGuard();
+        setShowPostScanVerification(true);
       } catch (err: any) {
         setScanState("error");
         const errMsg = err?.message || String(err || "Unknown error");
         setLastErrorMsg(errMsg);
         appendLog(`[SimpleBeacon] Browser-local scan failed: ${errMsg}`);
         toast.error(errMsg || "Local scan failed");
+        stopGuard();
         postBrowserError({
           source: "dashboard",
           error: errMsg,
@@ -1826,6 +1842,8 @@ export function AnalyzeView() {
         const scanMode = apiBase
           ? "local server"
           : "remote backend (Render proxy)";
+        setTrustMode(apiBase ? "local-server" : "remote-backend");
+        setShowPostScanVerification(false);
         appendLog(`[SimpleBeacon] Requesting server scan via ${scanMode}...`);
         setProgressLabel(`Scanning via ${scanMode}...`);
         setProgress(60);
@@ -2977,13 +2995,16 @@ export function AnalyzeView() {
                 Choose a scan mode and provide a project path or URL
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="gap-1.5">
-              <Lock className="h-3 w-3" />
-              Private
-            </Badge>
+            <ScanModeBadge mode={trustMode} />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <TrustBanner mode={trustMode} />
+          <PostScanVerification
+            networkEvents={networkEvents}
+            isLocal={trustMode === "browser-local"}
+            show={showPostScanVerification && scanState === "complete"}
+          />
           <Tabs value={mode} onValueChange={(v) => setMode(v as ScanMode)}>
             <TabsList className="w-full">
               {modeTabs.map((t) => {

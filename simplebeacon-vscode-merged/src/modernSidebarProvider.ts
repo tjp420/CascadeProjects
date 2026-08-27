@@ -4225,6 +4225,17 @@ ${buildSidebarThemeStyles(ideTheme)}
     </div>
   </div>
 
+  <div class="settings-section-card" style="border-color:rgba(34,197,94,0.2);background:rgba(34,197,94,0.04);">
+    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px;">
+      <span style="color:#22c55e;font-size:14px;">&#x2713;</span> Trust &amp; Privacy
+    </div>
+    <div style="font-size:11px;line-height:1.5;color:var(--text-secondary,inherit);padding:4px 0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="color:#22c55e;">&#x2713;</span> Read-only — files never modified</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="color:#22c55e;">&#x2713;</span> Local scan — code never uploaded</div>
+      <div style="display:flex;align-items:center;gap:6px;"><span style="color:#22c55e;">&#x2713;</span> Network guard verifies zero upload</div>
+    </div>
+  </div>
+
   <div class="settings-section-card">
     <div class="settings-section-title">Quick Actions</div>
     <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
