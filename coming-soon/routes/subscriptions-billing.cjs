@@ -191,7 +191,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const customer = db.getOrCreateCustomer(cleanEmail);
 
         // Update customer tier so webhook knows which license to generate
-        db.updateCustomerSubscription(cleanEmail, customer.subscription_status || 'inactive', selectedTier);
+        db.updateCustomerSubscription(cleanEmail, customer.subscription_status || 'inactive', tier);
 
         // Use existing Stripe customer ID or create new
         let stripeCustomerId = customer.stripe_customer_id;
@@ -199,7 +199,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             const stripeCustomer = await stripe.customers.create({
                 email: cleanEmail,
                 name: cleanClientName,
-                metadata: { projectName: cleanProjectName, tier: selectedTier }
+                metadata: { projectName: cleanProjectName, tier: tier }
             });
             stripeCustomerId = stripeCustomer.id;
             db.updateCustomerStripeId(cleanEmail, stripeCustomerId);
@@ -383,6 +383,7 @@ function setupSubscriptionWebhook(app) {
 
         const allowedEvents = new Set([
             'checkout.session.completed',
+            'customer.subscription.created',
             'customer.subscription.updated',
             'customer.subscription.deleted',
             'customer.subscription.paused',
@@ -391,6 +392,7 @@ function setupSubscriptionWebhook(app) {
             'invoice.payment_failed',
             'customer.subscription.trial_will_end',
             'charge.dispute.created',
+            'charge.refunded',
             'invoice.upcoming'
         ]);
         if (!allowedEvents.has(event.type)) {
@@ -446,7 +448,7 @@ function setupSubscriptionWebhook(app) {
             }
         }
 
-        if (event.type === 'customer.subscription.updated') {
+        if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
             const sub = event.data.object;
             const customerId = sub.customer;
             const status = sub.status;
@@ -513,7 +515,15 @@ function setupSubscriptionWebhook(app) {
                       : ['continuous_shield', 'ci_integration', 'export_reports'];
 
             db.updateCustomerSubscription(customer.email, status, finalTier);
-            db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);
+            const existingSub = db
+                .getDb()
+                .prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?')
+                .get(sub.id);
+            if (existingSub) {
+                db.updatePaidSubscriptionStatus(sub.id, status);
+            } else {
+                db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);
+            }
 
             // Detect tier change for proration notification
             const oldTier = customer.tier;
@@ -897,6 +907,59 @@ function setupSubscriptionWebhook(app) {
                 } catch (emailErr) {
                     logger.error('[SubscriptionWebhook] Resumed email failed:', emailErr.message);
                 }
+            }
+        }
+
+        // Charge refunded — notify customer, record refund in DB
+        if (event.type === 'charge.refunded') {
+            const charge = event.data.object;
+            const chargeId = charge.id;
+            const amountRefunded = charge.amount_refunded || 0;
+            const totalAmount = charge.amount || 0;
+            const currency = charge.currency || 'usd';
+            const isFullRefund = amountRefunded >= totalAmount;
+            const reason = charge.refund_reason || (charge.metadata && charge.metadata.refund_reason) || null;
+            const customerEmail = charge.billing_details?.email || (charge.metadata && charge.metadata.email);
+
+            logger.info(
+                '[SubscriptionWebhook] Charge REFUNDED — charge:',
+                chargeId,
+                'amount:',
+                (amountRefunded / 100).toFixed(2),
+                currency.toUpperCase(),
+                isFullRefund ? '(full)' : '(partial)',
+                reason ? 'reason: ' + reason : ''
+            );
+
+            // Record refund in subscription status if we can find the customer
+            if (customerEmail) {
+                try {
+                    const customer = db.getDb().prepare('SELECT * FROM customers WHERE email = ?').get(customerEmail);
+                    if (customer) {
+                        // Mark subscription as refunded (keep tier but update status)
+                        db.updateCustomerSubscription(customerEmail, 'refunded', customer.tier || 'developer');
+                    }
+                } catch (dbErr) {
+                    logger.error('[SubscriptionWebhook] Refund DB update failed:', dbErr.message);
+                }
+
+                try {
+                    const { sendEmail } = require('../services/email.cjs');
+                    const { renderRefundIssued } = require('../services/billing-email-templates.cjs');
+                    const { subject, text, html } = renderRefundIssued({
+                        amountCents: amountRefunded,
+                        currency,
+                        chargeId,
+                        reason,
+                        isFullRefund
+                    });
+                    await sendEmail({ to: customerEmail, subject, text, html });
+                    logger.info('[SubscriptionWebhook] Refund email sent to', customerEmail);
+                } catch (emailErr) {
+                    logger.error('[SubscriptionWebhook] Refund email failed:', emailErr.message);
+                }
+            } else {
+                logger.warn('[SubscriptionWebhook] charge.refunded: no customer email on charge', chargeId);
             }
         }
 

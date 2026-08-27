@@ -509,6 +509,7 @@ const VAULT_AUTH_EXACT_PATHS = new Set([
   "/api/tokens/sandbox",
   "/api/create-checkout-session",
   "/api/checkout/webhook",
+  "/api/license/validate",
 ]);
 
 const VAULT_AUTH_PREFIX_PATHS = [

@@ -299,6 +299,27 @@ function renderSubscriptionResumed(opts = {}) {
     return { subject, text, html: wrapHtml('Subscription Resumed', bodyContent) };
 }
 
+function renderRefundIssued(opts = {}) {
+    const { amountCents = 0, currency = 'usd', chargeId = null, reason = null, isFullRefund = true } = opts;
+    const amountDisplay = '$' + (amountCents / 100).toFixed(2);
+    const cur = currency.toUpperCase();
+    const reasonText = reason ? ` Reason: ${reason}.` : '';
+    const scope = isFullRefund ? 'full refund' : 'partial refund';
+
+    const subject = `SimpleBeacon Refund Processed — ${amountDisplay} ${cur}`;
+    const text = `A ${scope} of ${amountDisplay} ${cur} has been processed for your SimpleBeacon account.\n\nThe refund will appear on your original payment method within 5-10 business days.${reasonText}\n\nIf you have questions, contact support@simplebeacon.ai.`;
+
+    const bodyContent = `
+    <p>A <strong>${scope}</strong> of <strong>${amountDisplay} ${cur}</strong> has been processed for your SimpleBeacon account.</p>
+    <div class="callout callout-info">
+      <p>The refund will appear on your original payment method within 5-10 business days.${reasonText}</p>
+    </div>
+    ${chargeId ? `<div class="meta"><div class="meta-row"><span class="meta-label">Charge ID</span><span class="meta-value">${chargeId}</span></div></div>` : ''}
+    <p>If you have questions, contact <a href="mailto:support@simplebeacon.ai">support@simplebeacon.ai</a>.</p>`;
+
+    return { subject, text, html: wrapHtml('Refund Processed', bodyContent) };
+}
+
 module.exports = {
     renderSubscriptionActivated,
     renderSubscriptionCanceled,
@@ -309,5 +330,6 @@ module.exports = {
     renderInvoiceUpcoming,
     renderProrationNotice,
     renderSubscriptionPaused,
-    renderSubscriptionResumed
+    renderSubscriptionResumed,
+    renderRefundIssued
 };

@@ -1471,6 +1471,71 @@ try {
     logger.warn('[TokenValidate] Routes not loaded:', err.message);
 }
 
+// Public license validation endpoint used by CLI/GitHub Action in CI
+// No auth required — the license token itself is the credential
+app.post('/api/license/validate', express.json(), (req, res) => {
+    try {
+        const { token } = req.body || {};
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({
+                active: false,
+                sandbox: true,
+                registered: false,
+                valid: false,
+                error: 'Token required',
+            });
+        }
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        if (!secret) {
+            return res.status(503).json({
+                active: false,
+                sandbox: true,
+                registered: false,
+                valid: false,
+                error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured',
+            });
+        }
+        let payload = null;
+        try {
+            const jwt = require('jsonwebtoken');
+            payload = jwt.verify(token, secret, { clockTolerance: 60 });
+        } catch {
+            payload = null;
+        }
+        if (payload) {
+            const tier = payload.tier || 'developer';
+            const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing';
+            return res.json({
+                active: true,
+                sandbox: false,
+                registered: true,
+                valid: true,
+                email: payload.sub || payload.email || null,
+                tier,
+                features: payload.features || [],
+                expiry: payload.exp || null,
+                upgradeUrl,
+            });
+        }
+        return res.json({
+            active: false,
+            sandbox: true,
+            registered: false,
+            valid: false,
+            error: 'Invalid or expired token',
+            upgradeUrl: process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing',
+        });
+    } catch (err) {
+        return res.status(500).json({
+            active: false,
+            sandbox: true,
+            registered: false,
+            valid: false,
+            error: 'Internal error',
+        });
+    }
+});
+
 try {
     const adminRoutes = require('./routes/admin.cjs');
     app.use(adminRoutes);
