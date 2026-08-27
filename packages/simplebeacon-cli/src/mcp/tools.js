@@ -12,6 +12,7 @@ const { createPdaHandlers } = require("./handlers/pda-handlers");
 const { createAgentHandlers } = require("./handlers/agent-handlers");
 const { createFixHandlers } = require("./handlers/fix-handlers");
 const { createArmHandlers } = require("./handlers/arm-handlers");
+const { createExoskeletonHandlers } = require("./handlers/exoskeleton-handlers");
 const constants = require("../lib/constants");
 
 function resolveProjectRoot(override) {
@@ -138,6 +139,13 @@ function createMcpToolHandlers(options = {}) {
     formatMarkdownResult,
     getCachedReport,
   });
+  const exoskeletonHandlers = createExoskeletonHandlers({
+    withGuard,
+    resolveProjectRoot,
+    formatToolResult,
+    formatMarkdownResult,
+    getCachedReport,
+  });
 
   return {
     ...scanHandlers,
@@ -148,6 +156,7 @@ function createMcpToolHandlers(options = {}) {
     ...agentHandlers,
     ...fixHandlers,
     ...armHandlers,
+    ...exoskeletonHandlers,
     dispose() {
       if (networkGuard) networkGuard.dispose();
     },
@@ -944,6 +953,84 @@ const TOOL_DEFINITIONS = [
         projectRoot: { type: "string", description: "Project root (default: cwd)" },
         reportPath: { type: "string", description: "Override report path relative to project root" },
         writeDisk: { type: "boolean", description: "Write brief to .simplebeacon/master-engineering-brief.md (default: false)" },
+      },
+    },
+  },
+  {
+    name: "exoskeleton_boot",
+    description:
+      "Always-on context injection at session start — returns gate state, token savings, previous handoff, open tasks, environment info, and protection status in one compressed payload. Call this first every session. The exoskeleton wraps the agent with sensing, protection, and amplification. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+        reportPath: { type: "string", description: "Override report path relative to project root" },
+      },
+    },
+  },
+  {
+    name: "exoskeleton_guard_edit",
+    description:
+      "Wraps every code edit with pre-scan and post-scan. action=check scans new content before applying, action=verify rescans file on disk after applying. Returns verdict (safe|blocked|warning), findings, and proposed fixes for blocking issues. The exoskeleton protects the agent from introducing secrets, fiction KPIs, and mock paths. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filePath: { type: "string", description: "File being edited (relative to project root)" },
+        newContent: { type: "string", description: "New content to scan before applying" },
+        oldContent: { type: "string", description: "Old content being replaced (for pre-scan)" },
+        action: {
+          type: "string",
+          enum: ["check", "verify"],
+          description: "check=scan new content before applying, verify=rescan file on disk after applying",
+        },
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+      },
+      required: ["filePath"],
+    },
+  },
+  {
+    name: "exoskeleton_guard_commit",
+    description:
+      "Wraps every commit with gate check + memory storage + handoff update. Scans all staged files for blocking findings. Returns verdict (safe|blocked|warning). Stores commit memory and updates handoff for next session. The exoskeleton prevents bad commits from shipping. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+      },
+    },
+  },
+  {
+    name: "exoskeleton_sense",
+    description:
+      "Ambient environment monitoring — detects changed files, gate state drift (regressed/improved/worsened), new findings in changed files, and file hash changes since last sense. Call periodically to stay aware of environment changes without running a full scan. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+        reportPath: { type: "string", description: "Override report path relative to project root" },
+      },
+    },
+  },
+  {
+    name: "exoskeleton_health",
+    description:
+      "Agent health tracking — detects stuck loops (repeated failures of same type), stuck files (repeatedly blocked on same file), context budget (tokens saved by compression), session duration, and health score (0-100). Returns recommendations for recovery. Call when the agent feels stuck or after repeated failures. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+      },
+    },
+  },
+  {
+    name: "exoskeleton_status",
+    description:
+      "Full exoskeleton state report — shows what's protected (edit guard, commit guard, secret detection, etc.), what's monitored (gate, files, health), what's compressed (token savings), session stats (edits, commits, scans, fixes), and layer status (scanner, arm, exoskeleton, compression, memory, handoff). Call to verify the exoskeleton is active and healthy. Runs locally — no upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string", description: "Project root (default: cwd)" },
+        reportPath: { type: "string", description: "Override report path relative to project root" },
       },
     },
   },
