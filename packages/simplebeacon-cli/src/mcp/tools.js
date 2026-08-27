@@ -142,7 +142,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "scan_snippet",
     description:
-      "Scan a code snippet or pasted content for AI-fiction KPIs, mock-path leaks, credential patterns, and LLM placeholder slop. Runs locally — no upload.",
+      "Scan a code snippet or pasted content for AI-fiction KPIs, mock-path leaks, credential patterns, and LLM placeholder slop. Runs locally — no upload. Set compressed=true for ~75% smaller payload (short keys c/s/l/m/a + action codes — use explain_finding to expand).",
     inputSchema: {
       type: "object",
       properties: {
@@ -156,6 +156,11 @@ const TOOL_DEFINITIONS = [
           description:
             "Project root for baseline.json (default: cwd or SIMPLEBEACON_PROJECT_ROOT)",
         },
+        compressed: {
+          type: "boolean",
+          description:
+            "Return compressed findings (~30 tokens each vs ~120). Format: {c:pattern, s:severity(C/H/M/L), l:line, m:match, a:actionCode}. Use explain_finding to expand action codes. Default: false.",
+        },
       },
       required: ["content"],
     },
@@ -163,7 +168,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "scan_file",
     description:
-      "Scan one file on disk within the project root using the same rules as scan_snippet. Runs locally — no upload.",
+      "Scan one file on disk within the project root using the same rules as scan_snippet. Runs locally — no upload. Set compressed=true for ~75% smaller payload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -174,6 +179,11 @@ const TOOL_DEFINITIONS = [
         projectRoot: {
           type: "string",
           description: "Project root (default: cwd)",
+        },
+        compressed: {
+          type: "boolean",
+          description:
+            "Return compressed findings (~30 tokens each vs ~120). Use explain_finding to expand action codes. Default: false.",
         },
       },
       required: ["filePath"],
@@ -197,8 +207,9 @@ const TOOL_DEFINITIONS = [
         },
         profile: {
           type: "string",
+          enum: ["minimal", "standard", "cascade", "executive", "euai", "universal"],
           description:
-            "Override scan profile: minimal, standard, cascade, executive, euai, universal",
+            "Override scan profile. minimal = fast credential check, standard = default rules, cascade = deep multi-pass, executive = board-ready summary, euai = EU AI Act focus, universal = all rules",
         },
         fullDirectoryScan: {
           type: "boolean",
@@ -217,7 +228,8 @@ const TOOL_DEFINITIONS = [
         },
         format: {
           type: "string",
-          description: "Response format: json (default) | markdown",
+          enum: ["json", "markdown"],
+          description: "Response format: json (default) for chaining to other tools, markdown for human-readable output",
         },
       },
     },
@@ -225,11 +237,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "gate_status",
     description:
-      "Read latest .simplebeacon/report.json gate pass/fail and top blocking issues from a prior full scan.",
+      "Read latest .simplebeacon/report.json gate pass/fail and top blocking issues from a prior full scan. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         reportPath: {
           type: "string",
           description: "Override report path relative to project root",
@@ -244,7 +256,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "suggest_fixes",
     description:
-      "Read the latest scan report and return prioritized remediation steps for critical and high-severity issues. Deterministic — no LLM inference.",
+      "Read the latest scan report and return prioritized remediation steps for critical and high-severity issues. Deterministic — no LLM inference. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -267,7 +279,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "get_action_plan",
     description:
-      "Return a focused, human-readable action plan from the latest scan report — prioritized playbooks with time estimates, step-by-step steps, and verify commands. Uses the same deterministic remediation guides as the CLI --format action-plan.",
+      "Return a focused, human-readable action plan from the latest scan report — prioritized playbooks with time estimates, step-by-step steps, and verify commands. Uses the same deterministic remediation guides as the CLI --format action-plan. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -285,7 +297,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "explain_finding",
     description:
-      "Explain a pattern ID from scan results — deterministic rule metadata, not LLM inference.",
+      "Explain a pattern ID from scan results — deterministic rule metadata, not LLM inference. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -304,7 +316,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "init_project",
     description:
-      "Initialize a new project with .simplebeacon/config.json and baseline.json. Optionally install MCP config, Cursor rules, and CI workflow.",
+      "Initialize a new project with .simplebeacon/config.json and baseline.json. Optionally install MCP config, Cursor rules, and CI workflow. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -314,6 +326,7 @@ const TOOL_DEFINITIONS = [
         },
         profile: {
           type: "string",
+          enum: ["minimal", "standard", "cascade", "executive", "euai", "universal"],
           description:
             "Force profile: minimal, standard, cascade, executive, euai, universal",
         },
@@ -339,7 +352,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "compliance_checklist",
     description:
-      "Evaluate corporate safety checklist from a scan report. Returns pass/fail per rule, compliance score, and headline.",
+      "Evaluate corporate safety checklist from a scan report. Returns pass/fail per rule, compliance score, and headline. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -397,13 +410,14 @@ const TOOL_DEFINITIONS = [
         },
         channel: {
           type: "string",
+          enum: ["blog", "twitter", "linkedin", "newsletter", "case-study", "press-kit", "one-pager"],
           description:
-            "Channel: blog, twitter, linkedin, newsletter, case-study, press-kit, one-pager (default: blog)",
+            "Marketing channel format (default: blog). blog = long-form post, twitter = short thread, linkedin = professional post, newsletter = email blast, case-study = detailed success story, press-kit = media-ready summary, one-pager = executive summary",
         },
         tone: {
           type: "string",
-          description:
-            "Tone: professional, casual, technical (default: professional)",
+          enum: ["professional", "casual", "technical"],
+          description: "Writing tone (default: professional). professional = formal business, casual = conversational, technical = engineer-focused",
         },
       },
     },
@@ -411,7 +425,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "export_report",
     description:
-      "Export the latest scan report to a JSON file on disk. Useful for CI artifacts or sharing.",
+      "Export the latest scan report to a JSON file on disk. Useful for CI artifacts or sharing. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -435,7 +449,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "list_rulesets",
     description:
-      "Return the full Simplebeacon deterministic rule catalog — categories, severity bands, banned patterns, and anonymized type codes. Use this to learn what is forbidden before writing code.",
+      "Return the full Simplebeacon deterministic rule catalog — categories, severity bands, banned patterns, and anonymized type codes. Use this to learn what is forbidden before writing code. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -461,7 +475,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "supercharge_agent",
     description:
-      "One-call mission briefing for coding agents. Returns gate state, top blocking issues, suggested fixes, previous handoff, and the next mission. Auto-registers the agent and optionally writes a brief to .simplebeacon/agent-supercharge.md. Call this at session start.",
+      "One-call mission briefing for coding agents. Returns gate state, top blocking issues, suggested fixes, previous handoff, and the next mission. Auto-registers the agent and optionally writes a brief to .simplebeacon/agent-supercharge.md. Call this at session start. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -484,7 +498,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "handoff_check",
     description:
-      "Pre-completion verification — checks gate pass, blocking count, and open tasks. Returns ready=true when safe to claim done. Optionally writes a handoff brief for the next session. Call this before claiming work is complete.",
+      "Pre-completion verification — checks gate pass, blocking count, and open tasks. Returns ready=true when safe to claim done. Optionally writes a handoff brief for the next session. Call this before claiming work is complete. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -520,7 +534,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "scan_staged",
     description:
-      "Run a gate scan on staged git files only — much faster than scan_project for pre-commit checks. Copies staged files to a temp dir, scans them, and returns blocking issues. Use before commits and PRs.",
+      "Run a gate scan on staged git files only — much faster than scan_project for pre-commit checks. Copies staged files to a temp dir, scans them, and returns blocking issues. Use before commits and PRs. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -534,7 +548,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "agent_status",
     description:
-      "Return the current agent's status — gate state, open tasks, recent memories, and the recommended next action. Use this to orient yourself mid-session without re-running a full scan.",
+      "Return the current agent's status — gate state, open tasks, recent memories, and the recommended next action. Use this to orient yourself mid-session without re-running a full scan. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -548,7 +562,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "code_suggestions",
     description:
-      "Return deterministic before/after fix suggestions for blocking issues from the latest scan report. Includes pattern explanation, fix hint, and verification command. No LLM inference — all from the rule catalog.",
+      "Return deterministic before/after fix suggestions for blocking issues from the latest scan report. Includes pattern explanation, fix hint, and verification command. No LLM inference — all from the rule catalog. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -570,7 +584,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "install_agent_plugin",
     description:
-      "Install SimpleBeacon MCP config and agent rules for a specific coding agent host (cursor, windsurf, continue, copilot, cline, aider, universal, all). Writes .cursor/mcp.json and agent rule files.",
+      "Install SimpleBeacon MCP config and agent rules for a specific coding agent host (cursor, windsurf, continue, copilot, cline, aider, universal, all). Writes .cursor/mcp.json and agent rule files. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
@@ -580,8 +594,9 @@ const TOOL_DEFINITIONS = [
         },
         hosts: {
           type: "string",
+          enum: ["cursor", "windsurf", "continue", "copilot", "cline", "aider", "universal", "all"],
           description:
-            "Comma-separated list of agent hosts: cursor, windsurf, continue, copilot, cline, aider, universal, all (default: universal)",
+            "Agent host to install config for: cursor, windsurf, continue, copilot, cline, aider, universal (AGENTS.md), all (default: universal). Pass a single value, not comma-separated.",
         },
         force: {
           type: "boolean",
@@ -594,11 +609,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "agent_register",
     description:
-      "Register a new agent in the project's agent registry. Returns agent ID. Usually auto-registration is sufficient — use this only for explicit naming.",
+      "Register a new agent in the project's agent registry. Returns agent ID. Usually auto-registration is sufficient — use this only for explicit naming. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         name: { type: "string", description: "Agent name (e.g. 'devin', 'cursor')" },
         type: { type: "string", description: "Agent type (e.g. 'coding', 'review')" },
       },
@@ -607,14 +622,14 @@ const TOOL_DEFINITIONS = [
   {
     name: "agent_remember",
     description:
-      "Store a key-value memory for the current agent. Persists across sessions in .simplebeacon/agent-memory/. Use this to save architectural decisions, false positive allowlists, and context that would otherwise be re-discovered.",
+      "Store a key-value memory for the current agent. Persists across sessions in .simplebeacon/agent-memory/. Use this to save architectural decisions, false positive allowlists, and context that would otherwise be re-discovered. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         key: { type: "string", description: "Memory key (e.g. 'auth-pattern', 'false-positive-001')" },
         value: { type: "string", description: "Memory value (string or JSON string)" },
-        category: { type: "string", description: "Category: context, decision, handoff, false-positive (default: context)" },
+        category: { type: "string", enum: ["context", "decision", "handoff", "false-positive"], description: "Memory category (default: context). context = general knowledge, decision = architectural choice, handoff = session transfer note, false-positive = confirmed safe pattern to ignore" },
         ttlSeconds: { type: "number", description: "Optional TTL in seconds — memory auto-expires after this" },
       },
       required: ["key", "value"],
@@ -623,13 +638,13 @@ const TOOL_DEFINITIONS = [
   {
     name: "agent_recall",
     description:
-      "Recall memories for the current agent by key, category, or search query. Returns matching memories. Use this to recover context from previous sessions without re-reading files.",
+      "Recall memories for the current agent by key, category, or search query. Returns matching memories. Use this to recover context from previous sessions without re-reading files. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         key: { type: "string", description: "Specific key to recall (optional)" },
-        category: { type: "string", description: "Filter by category (optional)" },
+        category: { type: "string", enum: ["context", "decision", "handoff", "false-positive"], description: "Filter by category (optional)" },
         search: { type: "string", description: "Full-text search across memory values" },
         allAgents: { type: "boolean", description: "Search across all agents, not just current (default: false)" },
       },
@@ -638,13 +653,13 @@ const TOOL_DEFINITIONS = [
   {
     name: "agent_forget",
     description:
-      "Delete a memory by key and optional category. Use this to clean up stale context.",
+      "Delete a memory by key and optional category. Use this to clean up stale context. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         key: { type: "string", description: "Memory key to delete" },
-        category: { type: "string", description: "Optional category filter" },
+        category: { type: "string", enum: ["context", "decision", "handoff", "false-positive"], description: "Optional category filter" },
       },
       required: ["key"],
     },
@@ -653,14 +668,14 @@ const TOOL_DEFINITIONS = [
   {
     name: "task_create",
     description:
-      "Create a task for the current agent. Tasks can have priorities, parent tasks, and approval requirements. Use this to track multi-step work and avoid losing track of pending items.",
+      "Create a task for the current agent. Tasks can have priorities, parent tasks, and approval requirements. Use this to track multi-step work and avoid losing track of pending items. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         title: { type: "string", description: "Task title" },
         description: { type: "string", description: "Task description" },
-        priority: { type: "string", description: "Priority: low, medium, high, critical" },
+        priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "Task priority (default: medium). critical = blocks all other work, high = should be done this session, medium = normal, low = nice-to-have" },
         parentId: { type: "string", description: "Optional parent task ID" },
         approvalRequired: { type: "boolean", description: "Require approval before completion" },
       },
@@ -670,28 +685,28 @@ const TOOL_DEFINITIONS = [
   {
     name: "task_list",
     description:
-      "List tasks for the current agent (or all agents). Filter by status: pending, in-progress, completed, blocked, cancelled.",
+      "List tasks for the current agent (or all agents). Filter by status: pending, in-progress, completed, blocked, cancelled. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
-        status: { type: "string", description: "Filter by status (optional)" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
+        status: { type: "string", enum: ["pending", "in-progress", "completed", "blocked", "cancelled"], description: "Filter by status (optional). pending = not started, in-progress = actively working, completed = done, blocked = waiting on dependency, cancelled = abandoned" },
       },
     },
   },
   {
     name: "task_update",
     description:
-      "Update a task — change title, description, status, priority, or block reason.",
+      "Update a task — change title, description, status, priority, or block reason. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         taskId: { type: "string", description: "Task ID to update" },
-        title: { type: "string" },
-        description: { type: "string" },
-        status: { type: "string", description: "New status: pending, in-progress, completed, blocked, cancelled" },
-        priority: { type: "string" },
+        title: { type: "string", description: "New task title (optional)" },
+        description: { type: "string", description: "New task description (optional)" },
+        status: { type: "string", enum: ["pending", "in-progress", "completed", "blocked", "cancelled"], description: "New status: pending, in-progress, completed, blocked, cancelled" },
+        priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "New priority level (optional)" },
         blockReason: { type: "string", description: "Reason for blocking (if status=blocked)" },
       },
       required: ["taskId"],
@@ -700,11 +715,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "task_complete",
     description:
-      "Mark a task as completed. Fails if parent task is not yet completed.",
+      "Mark a task as completed. Fails if parent task is not yet completed. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         taskId: { type: "string", description: "Task ID to complete" },
       },
       required: ["taskId"],
@@ -714,11 +729,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "policy_check",
     description:
-      "Check if an action is allowed by the project's agent policies. Returns allowed, violations, and warnings. Use this before destructive or risky actions.",
+      "Check if an action is allowed by the project's agent policies. Returns allowed, violations, and warnings. Use this before destructive or risky actions. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         action: { type: "string", description: "Action to check (e.g. 'commit', 'deploy', 'delete-file')" },
         context: { type: "object", description: "Additional context for the action" },
       },
@@ -728,11 +743,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "policy_list",
     description:
-      "List all agent policies for the project. Returns policy definitions and their source file.",
+      "List all agent policies for the project. Returns policy definitions and their source file. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
       },
     },
   },
@@ -740,11 +755,11 @@ const TOOL_DEFINITIONS = [
   {
     name: "gate_finalize",
     description:
-      "Check if the agent can finalize changes — runs gate scan, checks policies, and verifies no blocking issues. Returns canFinalize, blocking count, and violations. More thorough than handoff_check.",
+      "Check if the agent can finalize changes — runs gate scan, checks policies, and verifies no blocking issues. Returns canFinalize, blocking count, and violations. More thorough than handoff_check. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         runScan: { type: "boolean", description: "Run a fresh scan (default: true)" },
         useExistingReport: { type: "boolean", description: "Use existing .simplebeacon/report.json instead of re-scanning" },
         action: { type: "string", description: "Action label for the finalize check (default: 'finalize-changes')" },
@@ -755,27 +770,27 @@ const TOOL_DEFINITIONS = [
   {
     name: "handoff_write",
     description:
-      "Write a handoff brief for the next session or another agent. Includes summary, completed tasks, pending tasks, notes, and files changed. Stored in agent memory under 'handoff' category.",
+      "Write a handoff brief for the next session or another agent. Includes summary, completed tasks, pending tasks, notes, and files changed. Stored in agent memory under 'handoff' category. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
-        summary: { type: "string", description: "Summary of what was accomplished" },
-        completedTasks: { type: "array", items: { type: "string" } },
-        pendingTasks: { type: "array", items: { type: "string" } },
-        notes: { type: "string" },
-        filesChanged: { type: "array", items: { type: "string" } },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
+        summary: { type: "string", description: "Summary of what was accomplished this session" },
+        completedTasks: { type: "array", items: { type: "string" }, description: "List of completed task titles" },
+        pendingTasks: { type: "array", items: { type: "string" }, description: "List of tasks still pending for the next session" },
+        notes: { type: "string", description: "Notes for the next session or reviewer — gotchas, warnings, context" },
+        filesChanged: { type: "array", items: { type: "string" }, description: "List of file paths modified this session" },
       },
     },
   },
   {
     name: "handoff_read",
     description:
-      "Read the latest handoff brief from any agent. Use this at session start to recover context from the previous session without re-exploring.",
+      "Read the latest handoff brief from any agent. Use this at session start to recover context from the previous session without re-exploring. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         agentId: { type: "string", description: "Read handoff from a specific agent (default: latest from any agent)" },
       },
     },
@@ -784,18 +799,18 @@ const TOOL_DEFINITIONS = [
   {
     name: "cross_project_learn",
     description:
-      "Analyze scan reports across multiple projects to extract patterns, recurring issues, and recommendations. Use this to learn from past mistakes and avoid repeating them.",
+      "Analyze scan reports across multiple projects to extract patterns, recurring issues, and recommendations. Use this to learn from past mistakes and avoid repeating them. Runs locally — no upload.",
     inputSchema: {
       type: "object",
       properties: {
-        projectRoot: { type: "string" },
+        projectRoot: { type: "string", description: "Project root directory (default: cwd or SIMPLEBEACON_PROJECT_ROOT)" },
         searchRoots: {
           type: "array",
           items: { type: "string" },
           description: "Directories to search for projects (default: ~/CascadeProjects, ~/, E:/Ai)",
         },
         maxDepth: { type: "number", description: "Max directory depth (default: 5)" },
-        format: { type: "string", description: "Output format: json (default) | markdown" },
+        format: { type: "string", enum: ["json", "markdown"], description: "Output format: json (default) for chaining, markdown for human-readable report" },
       },
     },
   },

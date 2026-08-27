@@ -27,11 +27,14 @@ function createScanHandlers({
       const result = scanSnippetContent(String(args.content || ""), {
         filePath: args.filePath || "snippet.txt",
         projectRoot: resolveProjectRoot(args.projectRoot),
+        compressed: args.compressed === true,
       });
       return formatToolResult({
         ...result,
         localOnly: true,
-        methodology: "Deterministic regex — not LLM semantic review",
+        methodology: args.compressed
+          ? "Deterministic regex — compressed findings (use explain_finding to expand action codes)"
+          : "Deterministic regex — not LLM semantic review",
       });
     }),
 
@@ -50,6 +53,7 @@ function createScanHandlers({
         const result = scanFileOnDisk(
           resolveProjectRoot(projectRoot),
           filePath,
+          { compressed: args.compressed === true },
         );
         return formatToolResult({ ...result, localOnly: true });
       } catch (err) {

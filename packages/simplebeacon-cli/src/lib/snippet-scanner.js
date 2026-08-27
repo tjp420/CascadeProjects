@@ -6,6 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const { scanTextContent } = require("./credential-pattern-scanner");
+const { compressFindings } = require("./finding-compressor");
 const {
   scanFileContent: scanProductionLeakContent,
 } = require("../rules/production-leak");
@@ -118,6 +119,18 @@ function scanSnippetContent(content, options = {}) {
   const blockingCount = findings.filter(
     (f) => f.severity === "high" || f.severity === "critical",
   ).length;
+
+  // Compressed mode: return ~30-token findings instead of ~120-token findings
+  // Uses short keys (c, s, l, m, a) and action codes from finding-compressor.js
+  if (options.compressed === true) {
+    return {
+      filePath,
+      findingCount: findings.length,
+      blockingCount,
+      compressed: true,
+      findings: compressFindings(findings),
+    };
+  }
 
   return {
     filePath,
