@@ -437,7 +437,7 @@ class DkgSnarkEngine {
           });
         } catch (err) {
           // swallow audit errors, but log at debug level for diagnostics
-          try { console.warn('dkg-snark-engine: auditHook error:', err); } catch (_) {}
+          try { console.warn('dkg-snark-engine: auditHook error:', err); } catch (logErr) { /* console.warn unavailable */ }
         }
       }
       throw e;

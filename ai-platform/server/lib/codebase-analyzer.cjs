@@ -770,8 +770,7 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
       ]);
     } catch (fileErr) {
       // Log and skip — don't let one file kill the entire scan
-      if (process.env.SIMPLEBEACON_DEBUG)
-        logger.debug(`[CodebaseAnalyzer] Skipping file after timeout/error: ${file.relativePath} — ${fileErr?.message || fileErr}`);
+      logger.debug(`[CodebaseAnalyzer] Skipping file after timeout/error: ${file.relativePath} — ${fileErr?.message || fileErr}`);
       fileResult = { findings: [], structure: null };
     }
     for (const finding of fileResult.findings) {
