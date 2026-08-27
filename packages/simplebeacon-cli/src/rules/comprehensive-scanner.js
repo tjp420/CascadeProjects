@@ -419,9 +419,14 @@ async function scanComprehensive(uniqueFiles, options = {}) {
   const rootDir = options.rootDir || process.cwd();
 
   // build-readiness: check for missing key project files
+  // Search the entire scanned tree, not just root — many repos have these
+  // files in subdirectories (e.g. .github/CODE_OF_CONDUCT.md, docs/LICENSE)
+  const scannedBasenames = new Set(
+    uniqueFiles.map((f) => path.basename(f.path || f.relativePath || f)),
+  );
   const requiredFiles = ["package.json", ".gitignore", "README.md", "LICENSE"];
   for (const req of requiredFiles) {
-    if (!fs.existsSync(path.join(rootDir, req))) {
+    if (!fs.existsSync(path.join(rootDir, req)) && !scannedBasenames.has(req)) {
       results.push({
         id: `build-readiness-missing-${req}`,
         severity: "low",
@@ -440,6 +445,7 @@ async function scanComprehensive(uniqueFiles, options = {}) {
   }
 
   // compliance: check for missing governance files
+  // Search the entire scanned tree — governance files may be in .github/ or docs/
   const governanceFiles = [
     "LICENSE",
     "CODE_OF_CONDUCT.md",
@@ -447,7 +453,7 @@ async function scanComprehensive(uniqueFiles, options = {}) {
     "CONTRIBUTING.md",
   ];
   for (const gf of governanceFiles) {
-    if (!fs.existsSync(path.join(rootDir, gf))) {
+    if (!fs.existsSync(path.join(rootDir, gf)) && !scannedBasenames.has(gf)) {
       results.push({
         id: `compliance-missing-${gf}`,
         severity: "low",

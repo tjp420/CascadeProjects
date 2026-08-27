@@ -399,7 +399,17 @@ async function analyzeFullDirectory(rootDir, options = {}) {
       const isStdoutCapture =
         /-stdout\.json$/i.test(file.name) ||
         /report-stdout\.json$/i.test(file.name);
-      if (!isNodeModules && !isStdoutCapture) {
+      // VS Code and TypeScript config files use JSON5 (trailing commas, comments).
+      // Flagging them as invalid JSON is a false positive — these files are valid
+      // in their tooling context. Skip JSON validation for known JSON5 configs.
+      const isJson5Config =
+        /(^|[\/\\])\.vscode[\/\\].*\.json$/i.test(file.relativePath) ||
+        /(^|[\/\\])\.devcontainer[\/\\].*\.json$/i.test(file.relativePath) ||
+        /[\/\\]tsconfig\.json$/i.test(file.relativePath) ||
+        /[\/\\]jsconfig\.json$/i.test(file.relativePath) ||
+        /[\/\\]\.eslintrc\.json$/i.test(file.relativePath) ||
+        /[\/\\]tsconfig\.[^/\\]*\.json$/i.test(file.relativePath);
+      if (!isNodeModules && !isStdoutCapture && !isJson5Config) {
         try {
           JSON.parse(content);
           jsonValid += 1;

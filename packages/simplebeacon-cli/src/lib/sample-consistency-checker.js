@@ -28,6 +28,11 @@ const SKIP_PATH_SUBSTRINGS = [
   "iconv-lite/encodings/dbcs-codec",
   "iconv-lite/encodings/sbcs-codec",
   "/encodings/tables/",
+  // ML model/tokenizer config files contain numeric weights and percentages
+  // that are not KPI claims — they're model parameters
+  "/models/",
+  "/tokenizer/",
+  "/vocab/",
 ];
 
 /** Encoding-table basenames that are false positives regardless of path (uploaded ZIPs lose directory context). */
@@ -46,6 +51,13 @@ const SKIP_FILE_NAMES = new Set([
   "iso2022jp.json",
   "iso2022kr.json",
   "iso2022cn.json",
+  // ML tokenizer/model config files — numeric values are model weights, not KPIs
+  "tokenizer.json",
+  "tokenizer_config.json",
+  "config.json",
+  "special_tokens_map.json",
+  "vocab.json",
+  "merges.txt",
 ]);
 const REPO_WALK_MAX_DEPTH = 24;
 const JSON_MAX_BYTES = 512000;

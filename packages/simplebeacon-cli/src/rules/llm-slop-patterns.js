@@ -271,6 +271,10 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
         continue;
       if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
       if (rule.id === "SB-FICTION-002" && isJSDocLine(line)) continue;
+      // SB-FICTION-001 (AI placeholder) should still scan inline comments but
+      // skip JSDoc documentation blocks — patterns like YOUR_API_KEY_HERE in
+      // JSDoc are documentation examples, not AI slop.
+      if (rule.id === "SB-FICTION-001" && isJSDocLine(line)) continue;
       if (
         isCommentLine(line, ext) &&
         rule.id !== "SB-FICTION-002" &&

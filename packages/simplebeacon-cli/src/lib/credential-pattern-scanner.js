@@ -104,6 +104,9 @@ const ALLOWLIST_SNIPPETS = [
   "insert_secret_here",
   "your_api_key_here",
   "insert-api-key-here",
+  "test-api-key",
+  "test-key",
+  "test_token",
 ];
 
 const SCANNABLE_EXTENSIONS = new Set([
@@ -182,6 +185,21 @@ function isAllowlisted(match, content, fileName = "") {
 
   // Ignore placeholder bearer tokens in test fixture modules.
   if (/bearer\s+test-token-placeholder/i.test(match[0])) {
+    return true;
+  }
+
+  // Test files commonly use placeholder API keys like "test-api-key", "test-key",
+  // etc. These are not real credentials — skip credential scanning for test files.
+  if (
+    /\.test\./i.test(fileName) ||
+    /\.spec\./i.test(fileName) ||
+    /\.vitest\./i.test(fileName) ||
+    /(^|[\/])__tests__[\/]/i.test(fileName) ||
+    /(^|[\/])tests[\/]/i.test(fileName) ||
+    /(^|[\/])test[\/]/i.test(fileName) ||
+    /(^|[\/])e2e[\/]/i.test(fileName) ||
+    /(^|[\/])fixtures[\/]/i.test(fileName)
+  ) {
     return true;
   }
 

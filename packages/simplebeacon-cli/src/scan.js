@@ -1910,8 +1910,18 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       const isStdoutCapture =
         /-stdout\.json$/i.test(file.name) ||
         /report-stdout\.json$/i.test(file.name);
+      // VS Code and TypeScript config files use JSON5 (trailing commas, comments).
+      // Flagging them as invalid JSON is a false positive — these files are valid
+      // in their tooling context. Skip JSON validation for known JSON5 configs.
+      const isJson5Config =
+        /(^|[\/\\])\.vscode[\/\\].*\.json$/i.test(file.path) ||
+        /(^|[\/\\])\.devcontainer[\/\\].*\.json$/i.test(file.path) ||
+        /[\/\\]tsconfig\.json$/i.test(file.path) ||
+        /[\/\\]jsconfig\.json$/i.test(file.path) ||
+        /[\/\\]\.eslintrc\.json$/i.test(file.path) ||
+        /[\/\\]tsconfig\.[^/\\]*\.json$/i.test(file.path);
 
-      if (file.ext === ".json" && !isStdoutCapture) {
+      if (file.ext === ".json" && !isStdoutCapture && !isJson5Config) {
         jsonFilesToProcess.push({ file, isNodeModulesFile });
       }
     }
