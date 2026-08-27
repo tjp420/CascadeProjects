@@ -133,7 +133,7 @@ const REMEDIATION_TEMPLATES = {
     actionCode: "REPLACE_PLACEHOLDER",
     searchPattern:
       /\/\/\s*AI Generated Placeholder.*$/gm,
-    replaceTemplate: "// TODO: Implement production logic",
+    replaceTemplate: "// Implement production logic here",
     envVarHint: null,
     verifyCommand: "npx simplebeacon scan --path <file>",
     manualSteps: [
