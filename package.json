@@ -63,7 +63,9 @@
     "build:ci": "node scripts/build-ci.js",
     "verify:deployment": "node ai-platform/tools/verify-deployment.cjs",
     "build:dashboard": "cd ai-platform/web/simplebeacon-dashboard && npm run build && cd ../../../simplebeacon-vscode-merged && node scripts/sync-dashboard-web.cjs && node scripts/verify-dashboard-sync.cjs",
-    "sync:website": "node scripts/sync-dashboard-to-website.cjs"
+    "sync:website": "node scripts/sync-dashboard-to-website.cjs",
+    "stripe-test": "node server/index.js",
+    "stripe-create-session": "node server/create-session.js"
   },
   "prepare": "husky install",
   "dependencies": {

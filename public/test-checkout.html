@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Staging Test Checkout</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 680px; margin: 2rem auto; padding: 1rem; }
+    label { display:block; margin-top: 0.75rem; }
+    input, button { font-size: 1rem; padding: 0.5rem; width: 100%; box-sizing: border-box; }
+    button { margin-top: 1rem; }
+    .hint { color: #666; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <h1>Staging Test Checkout</h1>
+  <p class="hint">This page is for staging-only testing. Use Stripe test keys on the staging environment. Do not use in production.</p>
+
+  <label>Product name
+    <input id="product" value="Staging Test Item" />
+  </label>
+
+  <label>Amount (in cents)
+    <input id="amount" type="number" value="500" />
+  </label>
+
+  <label>Return domain (leave blank to use current origin)
+    <input id="domain" placeholder="https://staging.simplebeacon.ai" />
+  </label>
+
+  <button id="buy">Create Checkout Session and Open Stripe</button>
+
+  <pre id="log" style="background:#f7f7f8;padding:0.75rem;margin-top:1rem;display:none;white-space:pre-wrap;border-radius:6px;border:1px solid #eee"></pre>
+
+  <script>
+    async function log(msg) {
+      const el = document.getElementById('log');
+      el.style.display = 'block';
+      el.textContent += msg + "\n";
+    }
+
+    document.getElementById('buy').addEventListener('click', async () => {
+      const product = document.getElementById('product').value || 'Staging Test Item';
+      const amount = parseInt(document.getElementById('amount').value || '500', 10);
+      let domain = document.getElementById('domain').value.trim();
+      if (!domain) domain = window.location.origin;
+
+      await log('Creating checkout session...');
+
+      try {
+        const res = await fetch('/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, product_name: product, domain })
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          await log('Server returned error: ' + res.status + ' ' + text);
+          return;
+        }
+
+        const data = await res.json();
+        await log('Session created: ' + (data.id || data.sessionId || 'unknown'));
+        await log('Opening Stripe Checkout...');
+
+        // Prefer session.url if returned (Stripe recent API), otherwise redirect via hostedCheckout
+        if (data.url) {
+          window.location.href = data.url;
+        } else if (data.id) {
+          // fallback: try to open /checkout?sessionId=...
+          window.location.href = '/checkout?session_id=' + encodeURIComponent(data.id);
+        } else {
+          await log('No URL returned by server. Response: ' + JSON.stringify(data));
+        }
+      } catch (err) {
+        await log('Error creating session: ' + (err && err.message ? err.message : err));
+      }
+    });
+  </script>
+</body>
+</html>
