@@ -5895,6 +5895,33 @@ ${
       return;
     }
 
+    // ── Dashboard SPA stub endpoints ──────────────────────────────────────
+    // These endpoints are called by the dashboard SPA on load. Return empty
+    ///default responses so the SPA doesn't crash with 404 errors.
+    const dashboardStubs: Record<string, unknown> = {
+      '/api/whitelabel/resolve': { success: false, whitelabel: null },
+      '/api/sso/resolve': { success: false, sso: null },
+      '/api/vault/consensus/status': { status: 'ok', consensus: false, nodes: 0 },
+      '/api/outreach/campaign-state': { campaigns: [], activeCount: 0 },
+      '/api/outreach/prospects': { prospects: [], total: 0 },
+      '/api/enterprise/organizations': { organizations: [], total: 0 },
+      '/api/workspace/sandbox-summary': { sandboxes: [], total: 0 },
+      '/api/workspace/budgets': { budgets: [], totalBudget: 0 },
+      '/api/trust/history': { history: [], total: 0 },
+      '/api/telemetry/collect': { data: [], total: 0 },
+      '/api/telemetry/datasets': { datasets: [], total: 0 },
+      '/api/webhook-events': { events: [], total: 0 },
+      '/api/webhook-events/stats': { stats: { total: 0, successful: 0, failed: 0 } },
+      '/api/ops-report/status': { status: 'ok', lastRun: null },
+      '/api/license/seats': { seats: { total: 0, used: 0, available: 0 } },
+      '/api/user/subscription': { subscription: null, tier: 'free' },
+    };
+    if (dashboardStubs[parsed.pathname]) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(dashboardStubs[parsed.pathname]));
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
   }
