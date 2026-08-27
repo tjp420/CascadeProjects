@@ -525,36 +525,75 @@ function createExoskeletonHandlers({
       tokenSavings: null,
     };
 
-    // Gate check: run the actual CLI gate scan on staged files
+    // Gate check: run staged-files-only gate scan (fast, catches custom heuristics)
     if (stagedFiles.length === 0) {
       result.gateCheck = { status: "no_staged_files" };
       result.verdict = "safe";
       result.reason = "No staged files to check";
     } else {
-      // Try the CLI gate scan first (catches custom heuristics + cross-file rules)
+      // Try staged-files-only gate scan (copies staged files to temp dir, scans that)
+      // This is the same approach as .simplebeacon/qa/pre-commit-gate.cjs but inline
       let blockingCount = 0;
       let warningCount = 0;
       const findings = [];
       let usedCliGate = false;
 
       try {
-        const stagedReportPath = path.join(root, ".simplebeacon", "staged-report.json");
+        const os = require("os");
+        const tempRoot = path.join(os.tmpdir(), `sb-guard-commit-${process.pid}`);
+        const tempConfigPath = path.join(tempRoot, ".simplebeacon", "config.json");
+
+        // Copy staged files to temp dir preserving structure
+        fs.mkdirSync(path.join(tempRoot, ".simplebeacon"), { recursive: true });
+        const SCANNABLE_EXT = /\.(js|cjs|mjs|ts|tsx|jsx|json|yml|yaml|sh|py|go|rs|java|rb|php|cs)$/i;
+        for (const relFile of stagedFiles) {
+          if (!SCANNABLE_EXT.test(relFile)) continue;
+          const src = path.resolve(root, relFile);
+          const dst = path.join(tempRoot, relFile);
+          if (!fs.existsSync(src)) continue;
+          fs.mkdirSync(path.dirname(dst), { recursive: true });
+          fs.copyFileSync(src, dst);
+        }
+
+        // Write minimal config for temp scan
+        const realConfigPath = path.join(root, ".simplebeacon", "config.json");
+        let realAllowlist = [];
+        let realIgnore = [];
+        try {
+          const realConfig = JSON.parse(fs.readFileSync(realConfigPath, "utf8"));
+          realAllowlist = realConfig.allowlist || [];
+          realIgnore = realConfig.ignore || [];
+        } catch { /* ignore */ }
+        const tempConfig = {
+          scanPaths: ["."],
+          productionPaths: ["."],
+          fullDirectoryScan: true,
+          fullDirectoryScanMaxFiles: 10000,
+          gate: { failOn: ["high"], warnOn: ["medium", "low"] },
+          allowlist: realAllowlist,
+          ignore: realIgnore,
+        };
+        fs.writeFileSync(tempConfigPath, JSON.stringify(tempConfig), "utf8");
+
+        // Run gate scan against temp dir
+        const cliBin = path.resolve(root, "packages", "simplebeacon-cli", "bin", "simplebeacon.js");
+        const binArg = fs.existsSync(cliBin) ? cliBin : "simplebeacon";
+        const stagedReportPath = path.join(tempRoot, "staged-report.json");
         execSync(
-          `npx simplebeacon scan --gate --offline --format json --output "${stagedReportPath}"`,
+          `node "${binArg}" scan --path "${tempRoot}" --config "${tempConfigPath}" --gate --offline --format json --output "${stagedReportPath}"`,
           {
             cwd: root,
             encoding: "utf8",
-            timeout: 30000,
-            stdio: "pipe", // Suppress output
+            timeout: 15000,
+            stdio: "pipe",
           },
         );
+
         const stagedReport = JSON.parse(fs.readFileSync(stagedReportPath, "utf8"));
         const gate = stagedReport.gate || {};
         blockingCount = gate.blockingCount || 0;
         warningCount = gate.warningCount || 0;
-        const blockingIssues = gate.blockingIssues || [];
-        const warningIssues = gate.warningIssues || [];
-        for (const issue of blockingIssues) {
+        for (const issue of (gate.blockingIssues || [])) {
           findings.push({
             file: issue.filePath || issue.file || "unknown",
             c: issue.id || issue.pattern || "UNKNOWN",
@@ -563,7 +602,7 @@ function createExoskeletonHandlers({
             m: (issue.description || "").slice(0, 120),
           });
         }
-        for (const issue of warningIssues.slice(0, 10)) {
+        for (const issue of (gate.warningIssues || []).slice(0, 10)) {
           findings.push({
             file: issue.filePath || issue.file || "unknown",
             c: issue.id || issue.pattern || "UNKNOWN",
@@ -573,6 +612,9 @@ function createExoskeletonHandlers({
           });
         }
         usedCliGate = true;
+
+        // Clean up temp dir
+        try { fs.rmSync(tempRoot, { recursive: true, force: true }); } catch { /* ignore */ }
       } catch {
         // Fall back to per-file scan if CLI gate scan fails or times out
       }

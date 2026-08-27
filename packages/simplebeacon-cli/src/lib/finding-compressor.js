@@ -68,6 +68,10 @@ const ACTION_CODES = {
 
   // General
   MANUAL_REVIEW: "Manual review required",
+
+  // Custom heuristic actions
+  ADD_ERROR_LOGGING: "Log the error, re-raise it, or handle it explicitly. Never silently swallow exceptions.",
+  ENABLE_SSL_VERIFY: "Enable SSL/TLS verification. For local development, use a self-signed CA certificate instead of disabling verification.",
 };
 
 // ── Reverse lookup: action string → code ─────────────────────────────────────
@@ -102,6 +106,8 @@ function resolveActionCode(recommendedAction) {
   if (lower.includes("hardcoded") && lower.includes("metric")) return "REPLACE_FAKE_METRIC";
   if (lower.includes("verify") && lower.includes("sdk")) return "VERIFY_SDK_EXISTS";
   if (lower.includes("conversational") || lower.includes("debris")) return "REMOVE_AI_DEBRIS";
+  if (lower.includes("log the error") || lower.includes("silently swallow")) return "ADD_ERROR_LOGGING";
+  if (lower.includes("ssl") || lower.includes("tls") && lower.includes("verification")) return "ENABLE_SSL_VERIFY";
   return "MANUAL_REVIEW";
 }
 

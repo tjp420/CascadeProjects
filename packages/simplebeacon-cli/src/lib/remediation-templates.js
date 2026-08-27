@@ -220,6 +220,37 @@ const REMEDIATION_TEMPLATES = {
     canAutoFix: false,
     playbookId: null,
   },
+
+  // ── Custom heuristic actions ─────────────────────────────────────────────
+  ADD_ERROR_LOGGING: {
+    actionCode: "ADD_ERROR_LOGGING",
+    searchPattern: /catch\s*(\(([^)]*)\))?\s*\{\s*(?:\/\*[^*]*\*\/\s*)?\}/g,
+    replaceTemplate: 'catch ($2) { console.error("[$1] Error:", $2); }',
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Add console.error(err) or console.warn(err) inside the empty catch block",
+      "If the error should be re-raised, use: catch (err) { console.error(err); throw err; }",
+      "If the error is truly safe to ignore, add an explicit comment: catch (err) { /* safe to ignore: <reason> */ }",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
+
+  ENABLE_SSL_VERIFY: {
+    actionCode: "ENABLE_SSL_VERIFY",
+    searchPattern: /rejectUnauthorized\s*:\s*false/g,
+    replaceTemplate: 'rejectUnauthorized: true // Use a self-signed CA cert for local dev',
+    envVarHint: null,
+    verifyCommand: "npx simplebeacon scan --path <file>",
+    manualSteps: [
+      "Remove rejectUnauthorized: false from HTTPS/TLS configuration",
+      "For local development, use NODE_EXTRA_CA_CERTS with a self-signed CA certificate",
+      "Never disable certificate verification in production code",
+    ],
+    canAutoFix: true,
+    playbookId: "custom-heuristic",
+  },
 };
 
 /**
