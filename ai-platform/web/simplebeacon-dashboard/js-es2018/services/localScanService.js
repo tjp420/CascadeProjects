@@ -57,6 +57,46 @@ function resolveScanWorkerUrl() {
   }
   return `/app/assets/scan-worker-v2.js?v=${v}`;
 }
+
+// Prefetch the worker script text during page load (when DNS is working)
+// and cache it. This eliminates the need for a network request when the
+// scan starts later, which may fail if DNS cache has expired.
+let _cachedWorkerScript = null;
+let _cachedWorkerBaseUrl = null;
+let _prefetchPromise = null;
+
+function prefetchWorkerScript() {
+  if (_prefetchPromise) return _prefetchPromise;
+  if (_cachedWorkerScript) return Promise.resolve(_cachedWorkerScript);
+  _prefetchPromise = (async () => {
+    try {
+      const url = resolveScanWorkerUrl();
+      const fetchUrl = new URL(String(url.href || url));
+      fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
+      const resp = await fetch(fetchUrl.href);
+      if (!resp.ok) return null;
+      const ct = String(resp.headers.get("content-type") || "").toLowerCase();
+      const text = await resp.text();
+      if (ct.includes("text/html") || /^\s*</.test(text)) return null;
+      _cachedWorkerScript = text;
+      _cachedWorkerBaseUrl = new URL("./", url);
+      console.warn("[localScan] Prefetched and cached worker script:", text.length, "bytes");
+      return text;
+    } catch (e) {
+      console.warn("[localScan] Worker prefetch failed (will retry at scan time):", e?.message || e);
+      return null;
+    } finally {
+      _prefetchPromise = null;
+    }
+  })();
+  return _prefetchPromise;
+}
+
+// Start prefetch immediately on module load (during page initialization when DNS works)
+if (typeof window !== "undefined") {
+  // Defer slightly to not block initial render
+  setTimeout(prefetchWorkerScript, 100);
+}
 const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
 const SCAN_BATCH_SIZE = 400;
@@ -1078,39 +1118,74 @@ export async function runLocalScan(options = {}) {
     );
     console.warn("[localScan] Creating module worker from:", workerUrlStr);
 
-    // Strategy: Use an inline blob worker that imports the actual worker module
-    // via an absolute URL. This eliminates all module resolution issues in
-    // Firefox (which has buggy module worker support for relative imports from
-    // same-origin URLs) while still allowing the worker to be cache-busted.
-    const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+    // Strategy: Use prefetched worker script (cached during page load) to create
+    // a blob worker. This eliminates DNS resolution issues that occur when DNS
+    // cache expires between page load and scan start.
+    // Falls back to fetch+blob, then inline shim, then direct Worker.
     let workerCreated = false;
 
-    // Approach 1: Inline shim blob worker (works in both Firefox and Chrome)
-    // Create a tiny module that imports the real worker via absolute URL.
-    // The blob URL is same-origin so CSP worker-src 'self' allows it.
-    // The absolute import URL bypasses Firefox's relative path resolution bugs.
-    try {
-      const absWorkerUrl = new URL(workerUrlStr);
-      absWorkerUrl.search = ""; // strip query params for Firefox compat
-      // Add cache-bust param only for non-Firefox (Firefox strips it internally)
-      if (!isFirefox) {
-        absWorkerUrl.searchParams.set("_sbcb", `${Date.now()}`);
+    // Approach 1: Use prefetched/cached worker script (no network request needed)
+    if (!workerCreated) {
+      try {
+        // Ensure prefetch has completed (it was started on module load)
+        let scriptText = _cachedWorkerScript;
+        if (!scriptText) {
+          console.warn("[localScan] Waiting for worker prefetch...");
+          scriptText = await prefetchWorkerScript();
+        }
+        if (scriptText) {
+          // Rewrite relative imports to absolute URLs using the cached base URL
+          const workerBaseUrl = _cachedWorkerBaseUrl || new URL("./", resolvedWorkerUrl);
+          const rewritten = scriptText.replace(
+            /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
+            (match, relPath, _query) => {
+              try {
+                const absUrl = new URL(relPath, workerBaseUrl);
+                absUrl.search = ""; // strip query params for Firefox module worker compat
+                return `from "${absUrl.href}"`;
+              } catch (_e) {
+                return match;
+              }
+            },
+          );
+          const blob = new Blob([rewritten], { type: "application/javascript" });
+          blobUrlForWorker = URL.createObjectURL(blob);
+          console.warn(
+            "[localScan] Created blob worker from prefetched script (no network request needed)",
+          );
+          worker = new Worker(blobUrlForWorker, { type: "module" });
+          workerCreated = true;
+        }
+      } catch (cacheErr) {
+        console.error("[localScan] Cached script blob worker failed:", cacheErr);
       }
-      const shimCode = `// Inline shim — imports the real worker module\nimport "${absWorkerUrl.href}";\n`;
-      const shimBlob = new Blob([shimCode], { type: "application/javascript" });
-      blobUrlForWorker = URL.createObjectURL(shimBlob);
-      console.warn(
-        `[localScan] ${isFirefox ? "Firefox" : "Chrome/Edge"}: inline shim blob worker importing:`,
-        absWorkerUrl.href,
-      );
-      worker = new Worker(blobUrlForWorker, { type: "module" });
-      workerCreated = true;
-    } catch (shimErr) {
-      console.error("[localScan] Inline shim blob worker failed:", shimErr);
     }
 
+    // Approach 2: Inline shim blob worker (import via absolute URL)
     if (!workerCreated) {
-      // Approach 2: fetch+blob with import rewriting (Chrome/Edge fallback)
+      const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+      try {
+        const absWorkerUrl = new URL(workerUrlStr);
+        absWorkerUrl.search = "";
+        if (!isFirefox) {
+          absWorkerUrl.searchParams.set("_sbcb", `${Date.now()}`);
+        }
+        const shimCode = `// Inline shim — imports the real worker module\nimport "${absWorkerUrl.href}";\n`;
+        const shimBlob = new Blob([shimCode], { type: "application/javascript" });
+        blobUrlForWorker = URL.createObjectURL(shimBlob);
+        console.warn(
+          `[localScan] ${isFirefox ? "Firefox" : "Chrome/Edge"}: inline shim blob worker importing:`,
+          absWorkerUrl.href,
+        );
+        worker = new Worker(blobUrlForWorker, { type: "module" });
+        workerCreated = true;
+      } catch (shimErr) {
+        console.error("[localScan] Inline shim blob worker failed:", shimErr);
+      }
+    }
+
+    // Approach 3: fetch+blob with import rewriting
+    if (!workerCreated) {
       try {
         const fetchUrl = new URL(workerUrlStr);
         fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
@@ -1125,14 +1200,13 @@ export async function runLocalScan(options = {}) {
             `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
           );
         }
-        // Rewrite relative imports to absolute URLs (strip query params for Firefox compat)
         const workerBaseUrl = new URL("./", resolvedWorkerUrl);
         scriptText = scriptText.replace(
           /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
           (match, relPath, _query) => {
             try {
               const absUrl = new URL(relPath, workerBaseUrl);
-              absUrl.search = ""; // strip query params for Firefox module worker compat
+              absUrl.search = "";
               return `from "${absUrl.href}"`;
             } catch (_e) {
               return match;
@@ -1151,8 +1225,8 @@ export async function runLocalScan(options = {}) {
       }
     }
 
+    // Approach 4: direct Worker construction (last resort)
     if (!workerCreated) {
-      // Approach 3: direct Worker construction (last resort)
       try {
         const directUrl = new URL(workerUrlStr);
         directUrl.search = "";
