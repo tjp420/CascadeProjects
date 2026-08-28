@@ -71,6 +71,16 @@ const TIER_CAPABILITIES: Record<string, TierCapabilities> = {
     canUseAdvancedAnalyzers: true,
     canUseSso: false,
   },
+  early_access: {
+    tier: "early_access",
+    maxScans: Infinity,
+    canExportCertificates: true,
+    canUseCiGate: true,
+    canMapEuAiAct: true,
+    canExportBoardPdf: true,
+    canUseAdvancedAnalyzers: true,
+    canUseSso: false,
+  },
   team_pro: {
     tier: "team_pro",
     maxScans: Infinity,

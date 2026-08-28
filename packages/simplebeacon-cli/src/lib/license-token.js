@@ -28,6 +28,8 @@ const TIER_QUOTAS = Object.freeze({
   developer: Infinity,
   team_pro: Infinity,
   enterprise: Infinity,
+  // Early access beta tier (grandfathered pricing, full features)
+  early_access: Infinity,
   // One-time purchase tiers
   one_time_certificate: 1,
   executive_clearance: 1,

@@ -198,6 +198,7 @@ router.post('/api/test-checkout', async (req, res) => {
             runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'runtime_shield' },
             custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom_plan' },
             pro: { label: 'SimpleBeacon Pro', days: 365, tier: 'pro' },
+            early_access: { label: 'SimpleBeacon Early Access', days: 365, tier: 'early_access' },
             team: { label: 'SimpleBeacon Team', days: 365, tier: 'team_pro' },
             enterprise: { label: 'SimpleBeacon Enterprise', days: 365, tier: 'enterprise' }
         };
@@ -503,6 +504,7 @@ function setupCheckoutWebhook(app) {
             runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'runtime_shield' },
             custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom_plan' },
             one_time_certificate: { label: 'Board-Ready Audit Certificate', days: 365, tier: 'one_time_certificate' },
+            early_access: { label: 'SimpleBeacon Early Access', days: 365, tier: 'early_access' },
             team: { label: 'SimpleBeacon Team', days: 365, tier: 'team_pro' },
             enterprise: { label: 'SimpleBeacon Enterprise', days: 365, tier: 'enterprise' }
         };

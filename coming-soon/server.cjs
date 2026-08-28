@@ -1356,6 +1356,83 @@ app.post('/api/contact', express.json({ limit: '1mb' }), async (req, res) => {
     }
 });
 
+// ── Early Access waitlist endpoint ──
+const earlyAccessRateLog = new Map();
+const EARLY_ACCESS_RATE_LIMIT_MS = 60 * 60 * 1000;
+const EARLY_ACCESS_RATE_LIMIT_MAX = 3;
+
+app.post('/api/early-access', express.json({ limit: '1mb' }), async (req, res) => {
+    try {
+        const data = req.body || {};
+        if (String(data.website || '').trim()) {
+            return res.status(400).json({ error: 'Spam detected' });
+        }
+
+        const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+        const now = Date.now();
+        const entry = earlyAccessRateLog.get(clientIp);
+        if (entry && now < entry.resetAt) {
+            if (entry.count >= EARLY_ACCESS_RATE_LIMIT_MAX) {
+                return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+            }
+            entry.count++;
+        } else {
+            earlyAccessRateLog.set(clientIp, { count: 1, resetAt: now + EARLY_ACCESS_RATE_LIMIT_MS });
+        }
+
+        const email = String(data.email || '').trim().toLowerCase();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: 'A valid email address is required.' });
+        }
+
+        const company = String(data.company || '').trim().slice(0, 200);
+        const teamSize = String(data.teamSize || '').trim().slice(0, 50);
+        const useCase = String(data.useCase || '').trim().slice(0, 500);
+
+        try {
+            db.prepare(
+                'INSERT OR IGNORE INTO early_access_waitlist (email, company, team_size, use_case, status) VALUES (?, ?, ?, ?, ?)'
+            ).run(email, company, teamSize, useCase, 'pending');
+        } catch (dbErr) {
+            logger.error('[Early Access] DB error:', dbErr.message);
+            return res.status(500).json({ error: 'Failed to join waitlist' });
+        }
+
+        const notifyEmail = process.env.CONTACT_NOTIFY_EMAIL || process.env.SMTP_USER || '';
+        if (notifyEmail) {
+            try {
+                const { sendEmail } = require('./services/email.cjs');
+                await sendEmail({
+                    to: notifyEmail,
+                    subject: '[Early Access] New waitlist signup',
+                    text: `New early access signup:\nEmail: ${email}\nCompany: ${company || '(none)'}\nTeam size: ${teamSize || '(none)'}\nUse case: ${useCase || '(none)'}`,
+                    html: `<h3>New early access signup</h3><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || '(none)'}</p><p><strong>Team size:</strong> ${teamSize || '(none)'}</p><p><strong>Use case:</strong> ${useCase || '(none)'}</p>`,
+                });
+            } catch (emailErr) {
+                logger.warn('[Early Access] Notification email failed:', emailErr.message);
+            }
+        }
+
+        try {
+            const { sendEmail } = require('./services/email.cjs');
+            await sendEmail({
+                to: email,
+                subject: 'You\'re on the SimpleBeacon Early Access list',
+                text: `Thanks for joining the SimpleBeacon Early Access program.\n\nWe're onboarding a limited cohort of engineering teams ahead of our Fall 2026 public launch. As a Beta Price Lock member, you'll get:\n\n- Full Developer + Team Pro features (unlimited scans, CI gate, EU AI Act mapping, board-ready certificates)\n- Grandfathered pricing at $29/month (40% off the standard Developer tier)\n- Direct support from the SimpleBeacon engineering team\n\nWe'll send your invitation with a checkout link within 1-2 business days.\n\nIn the meantime, you can try the free offline scan right now:\nhttps://simplebeacon.ai/dashboard/#/analyze\n\n--\nThe SimpleBeacon Team\nhttps://simplebeacon.ai`,
+                html: `<h2>You're on the SimpleBeacon Early Access list</h2><p>Thanks for joining the SimpleBeacon Early Access program.</p><p>We're onboarding a limited cohort of engineering teams ahead of our Fall 2026 public launch. As a <strong>Beta Price Lock</strong> member, you'll get:</p><ul><li>Full Developer + Team Pro features (unlimited scans, CI gate, EU AI Act mapping, board-ready certificates)</li><li>Grandfathered pricing at <strong>$29/month</strong> (40% off the standard Developer tier)</li><li>Direct support from the SimpleBeacon engineering team</li></ul><p>We'll send your invitation with a checkout link within 1-2 business days.</p><p>In the meantime, you can try the free offline scan right now:<br><a href="https://simplebeacon.ai/dashboard/#/analyze">https://simplebeacon.ai/dashboard/#/analyze</a></p><hr><p style="color:#888;font-size:12px;">The SimpleBeacon Team — <a href="https://simplebeacon.ai">https://simplebeacon.ai</a></p>`,
+            });
+        } catch (emailErr) {
+            logger.warn('[Early Access] Confirmation email to user failed:', emailErr.message);
+        }
+
+        logger.info(`[Early Access] New signup: ${email} (${company || 'no company'})`);
+        res.json({ success: true, message: 'You\'re on the list! Check your email for confirmation.' });
+    } catch (err) {
+        logger.error('[Early Access] Unexpected error:', err.message);
+        res.status(500).json({ error: 'Failed to join waitlist' });
+    }
+});
+
 // ── CLI upload pipeline ──
 function getSessionEmail(req) {
     const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();

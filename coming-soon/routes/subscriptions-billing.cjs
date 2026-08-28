@@ -35,6 +35,8 @@ const PRICE_ENTERPRISE_MONTHLY = 49900;
 const PRICE_ENTERPRISE_ANNUAL = 499000;
 const PRICE_DEVELOPER_MONTHLY = 4900;
 const PRICE_DEVELOPER_ANNUAL = 49000;
+const PRICE_EARLY_ACCESS_MONTHLY = 2900;   // $29/mo — Beta Price Lock (40% off Developer)
+const PRICE_EARLY_ACCESS_ANNUAL = 29000;   // $290/yr — Beta Price Lock annual
 const PRICE_TEAM_PRO_MONTHLY = 14900;
 const PRICE_TEAM_PRO_ANNUAL = 149000;
 const PRICE_EXTRA_SEAT_MONTHLY = 1500;
@@ -127,6 +129,12 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 desc: 'SimpleBeacon Developer — unlimited scans, CI gate, 48 analyzer modules',
                 monthly: PRICE_DEVELOPER_MONTHLY,
                 annual: PRICE_DEVELOPER_ANNUAL
+            },
+            early_access: {
+                name: 'SimpleBeacon Early Access (Beta Price Lock)',
+                desc: 'SimpleBeacon Early Access — Beta Price Lock: full Developer + Team Pro features at 40% off. Grandfathered for life.',
+                monthly: PRICE_EARLY_ACCESS_MONTHLY,
+                annual: PRICE_EARLY_ACCESS_ANNUAL
             },
             team_pro: {
                 name: 'SimpleBeacon Team Pro',

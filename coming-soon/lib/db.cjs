@@ -188,6 +188,19 @@ function getDb() {
             );
             CREATE INDEX IF NOT EXISTS idx_ref_rewards_referrer ON referral_rewards(referrer_id);
             CREATE INDEX IF NOT EXISTS idx_ref_rewards_attribution ON referral_rewards(attribution_id);
+            CREATE TABLE IF NOT EXISTS early_access_waitlist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE,
+                company TEXT,
+                team_size TEXT,
+                use_case TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                invited_at TEXT,
+                converted_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_early_access_email ON early_access_waitlist(email);
+            CREATE INDEX IF NOT EXISTS idx_early_access_status ON early_access_waitlist(status);
         `);
     }
     // Schema migrations for existing databases

@@ -804,6 +804,28 @@
         <a href="contact.html?topic=audit">Contact</a>
       </div>
     </div>
+
+    <!-- Early Access Waitlist -->
+    <div id="earlyAccessSection" style="max-width:680px;margin:40px auto 0;padding:36px;background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(99,102,241,0.06));border:1px solid rgba(34,197,94,0.25);border-radius:18px;text-align:center;" data-animate="fade-up" data-delay="100">
+      <span style="display:inline-block;padding:4px 14px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:12px;font-weight:600;letter-spacing:0.5px;margin-bottom:14px;">Early Access Program</span>
+      <h2 style="margin:0 0 10px;font-size:1.5rem;color:var(--text-primary);">Beta Price Lock — 40% Off Forever</h2>
+      <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;margin:0 0 24px;max-width:520px;margin-left:auto;margin-right:auto;">Join our early access cohort before the Fall 2026 public launch. Get full Developer + Team Pro features at <strong style="color:var(--text-primary);">$29/month for life</strong> (regular $49). Limited to 25 teams.</p>
+      <form id="earlyAccessForm" style="display:flex;flex-direction:column;gap:12px;max-width:440px;margin:0 auto;">
+        <input type="email" id="eaEmail" placeholder="work@email.com" required style="padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-primary);font-size:0.9rem;outline:none;" />
+        <input type="text" id="eaCompany" placeholder="Company (optional)" style="padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-primary);font-size:0.9rem;outline:none;" />
+        <select id="eaTeamSize" style="padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-primary);font-size:0.9rem;outline:none;">
+          <option value="">Team size (optional)</option>
+          <option value="1-5">1-5 developers</option>
+          <option value="6-20">6-20 developers</option>
+          <option value="21-50">21-50 developers</option>
+          <option value="50+">50+ developers</option>
+        </select>
+        <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off" />
+        <button type="submit" id="eaSubmitBtn" style="padding:14px 28px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;">Request Early Access &rarr;</button>
+        <p id="eaMsg" style="min-height:1.2rem;font-size:0.85rem;margin:4px 0 0;"></p>
+      </form>
+      <p style="color:var(--text-muted);font-size:0.75rem;margin:18px 0 0;">No credit card required to join the waitlist. We'll send your invitation within 1-2 business days.</p>
+    </div>
   </main>
 
   <!-- Sign-in Modal -->
@@ -1813,5 +1835,6 @@ updateAuthNav();
 </footer>
   <script>(function(){try{var params=new URLSearchParams(window.location.search);var ref=params.get('ref');if(!ref)return;try{localStorage.setItem('sb_ref_slug',ref);}catch(_){}fetch('/api/referral/capture',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ref:ref,channel:'web'})}).catch(function(){});}catch(_){}})();</script>
   <script src="/js-es2018/referral-capture.js" defer></script>
+  <script>(function(){var form=document.getElementById('earlyAccessForm');if(!form)return;form.addEventListener('submit',function(e){e.preventDefault();var btn=document.getElementById('eaSubmitBtn');var msg=document.getElementById('eaMsg');var email=document.getElementById('eaEmail').value.trim();if(!email||!email.includes('@')){msg.textContent='Please enter a valid email.';msg.style.color='#ef4444';return;}btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';fetch('/api/early-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,company:document.getElementById('eaCompany').value.trim(),teamSize:document.getElementById('eaTeamSize').value,useCase:''})}).then(function(r){return r.json();}).then(function(data){if(data.success){msg.textContent=data.message||'You are on the list! Check your email.';msg.style.color='#22c55e';form.querySelector('input,select,button').forEach(function(el){el.style.display='none';});}else{msg.textContent=data.error||'Something went wrong.';msg.style.color='#ef4444';btn.disabled=false;btn.textContent='Request Early Access →';}}).catch(function(){msg.textContent='Network error. Please try again.';msg.style.color='#ef4444';btn.disabled=false;btn.textContent='Request Early Access →';});});})();</script>
 </body>
 </html>
