@@ -3,6 +3,10 @@
     'use strict';
 
     var TOKEN_KEYS = [
+        'sb_auth_token',
+        'sb_token',
+        'sb-token',
+        'auth_token',
         'cascadeAuthToken',
         'cascadeAuthUser',
         'access_token',

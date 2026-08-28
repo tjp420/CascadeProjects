@@ -59,10 +59,20 @@ export function getApiBase(): string {
 /**
  * Auth token helpers — separates JWT auth tokens from license tokens.
  *
- * Storage keys:
- *   sb_auth_token — JWT auth token (from login/register), used for API Bearer auth
- *   sb_license    — License token (from Stripe payment / admin generation), used for feature gating
- *   sb_token      — Legacy fallback (old sessions may have either token here)
+ * Storage keys (checked in priority order):
+ *   sb_auth_token        — JWT auth token (dashboard primary, from login/register)
+ *   sb_token             — Legacy fallback
+ *   sb-token             — Legacy fallback (audit page writes here)
+ *   auth_token           — Legacy fallback
+ *   simplebeacon_token   — Marketing pages (audit, pricing, faq, etc.)
+ *   cascadeAuthToken     — Legacy marketing pages
+ *   access_token         — Legacy OAuth flow
+ *   token                — Generic fallback
+ *   authToken            — Legacy fallback
+ *
+ * User data keys:
+ *   sb_user              — Dashboard primary
+ *   sb-user              — Legacy fallback (audit page writes here)
  */
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -70,7 +80,12 @@ function getAuthToken(): string | null {
     localStorage.getItem("sb_auth_token") ||
     localStorage.getItem("sb_token") ||
     localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token")
+    localStorage.getItem("auth_token") ||
+    localStorage.getItem("simplebeacon_token") ||
+    localStorage.getItem("cascadeAuthToken") ||
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken")
   );
 }
 
@@ -100,11 +115,21 @@ export function setAuthToken(token: string): void {
 
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("sb_auth_token");
-  // Also clear legacy keys to prevent stale token confusion
-  localStorage.removeItem("sb_token");
-  localStorage.removeItem("sb-token");
-  localStorage.removeItem("auth_token");
+  // Clear all token keys across dashboard + marketing pages
+  const allKeys = [
+    "sb_auth_token",
+    "sb_token",
+    "sb-token",
+    "auth_token",
+    "simplebeacon_token",
+    "cascadeAuthToken",
+    "access_token",
+    "token",
+    "authToken",
+  ];
+  for (const key of allKeys) {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
+  }
 }
 
 /**
@@ -122,8 +147,11 @@ export function isTokenExpired(): boolean {
   if (!token) return true;
   try {
     const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1]));
+    // 2-part license tokens (data.signature) — decode first part as payload
+    // 3-part JWT tokens (header.data.signature) — decode second part as payload
+    if (parts.length !== 2 && parts.length !== 3) return true;
+    const payloadPart = parts.length === 2 ? parts[0] : parts[1];
+    const payload = JSON.parse(atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")));
     if (payload.exp && Date.now() >= payload.exp * 1000) return true;
     return false;
   } catch {

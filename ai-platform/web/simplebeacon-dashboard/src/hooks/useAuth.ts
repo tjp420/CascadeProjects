@@ -9,8 +9,11 @@ import { isTokenExpired, clearAuthToken } from "../config";
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(atob(parts[1]));
+    // 2-part license tokens (data.signature) — payload is first part
+    // 3-part JWT tokens (header.data.signature) — payload is second part
+    if (parts.length !== 2 && parts.length !== 3) return null;
+    const payloadPart = parts.length === 2 ? parts[0] : parts[1];
+    return JSON.parse(atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")));
   } catch {
     return null;
   }
@@ -38,9 +41,9 @@ export function useAuth() {
           localStorage.getItem("auth_token");
         if (token && !isTokenExpired()) {
           setIsAuthenticated(true);
-          // Start with sb_user localStorage data
+          // Start with sb_user localStorage data, fall back to sb-user (legacy)
           let userData: Record<string, unknown> = {};
-          const stored = localStorage.getItem("sb_user");
+          const stored = localStorage.getItem("sb_user") || localStorage.getItem("sb-user");
           if (stored) {
             try {
               userData = JSON.parse(stored);
@@ -111,6 +114,7 @@ export function useAuth() {
   const signOut = useCallback(() => {
     clearAuthToken();
     localStorage.removeItem("sb_user");
+    localStorage.removeItem("sb-user");
     setIsAuthenticated(false);
     setUser(null);
     try {
