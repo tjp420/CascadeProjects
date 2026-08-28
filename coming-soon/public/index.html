@@ -2055,7 +2055,7 @@
 
         <!-- DEMO: editor proof -->
         <section
-            id="demo"
+            id="editor-proof"
             class="section"
             style="background: linear-gradient(180deg, var(--bg-main), #0a0e18); padding-top: 72px"
         >
@@ -2080,15 +2080,16 @@
                                 border: 1px solid var(--border);
                                 border-radius: 10px;
                                 padding: 14px;
-                                font-family: monospace;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
                                 font-size: 12px;
                                 color: #c9d1d9;
-                                line-height: 1.7;
+                                line-height: 1.8;
                             "
                         >
-                            const METRICS_DATA_PATH = './fixtures/sample-metrics.json';<br />
-                            const USER_ANALYTICS_PATH = './mock/user-analytics-sample.json';<br />
-                            const conversionRate = '75 %';
+                            <div style="display: flex; gap: 12px"><span style="color: #484f58; min-width: 16px">1</span><span><span style="color: #ff7b72">const</span> METRICS_DATA_PATH = <span style="color: #a5d6ff">'./fixtures/sample-metrics.json'</span>;</span></div>
+                            <div style="display: flex; gap: 12px"><span style="color: #484f58; min-width: 16px">2</span><span><span style="color: #ff7b72">const</span> USER_ANALYTICS_PATH = <span style="color: #a5d6ff">'./mock/user-analytics-sample.json'</span>;</span></div>
+                            <div style="display: flex; gap: 12px; background: rgba(239,68,68,0.08); border-radius: 4px; padding: 2px 0"><span style="color: #484f58; min-width: 16px">3</span><span><span style="color: #ff7b72">const</span> conversionRate = <span style="color: #a5d6ff">'75 %'</span>; <span style="color: #f85149">// ← fake KPI</span></span></div>
+                            <div style="display: flex; gap: 12px"><span style="color: #484f58; min-width: 16px">4</span><span style="color: #8b949e">// TODO: wire to real analytics</span></div>
                         </div>
                     </div>
                     <div class="feature-card" style="min-height: 260px">
@@ -2105,17 +2106,21 @@
                                 border: 1px solid var(--border);
                                 border-radius: 10px;
                                 padding: 14px;
-                                font-family: monospace;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
                                 font-size: 12px;
                                 color: #c9d1d9;
-                                line-height: 1.7;
+                                line-height: 1.8;
                             "
                         >
-                            <span style="color: #f85149">SimpleBeacon AI Slop Cop</span><br />
-                            <span style="color: #f85149">FAIL (5 block)</span><br />
-                            mock/sample path detected<br />
-                            fake KPI logic detected<br />
-                            placeholder TODO/FIXME found
+                            <div style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px">
+                                <span style="color: #f85149">● SimpleBeacon AI Slop Cop</span>
+                            </div>
+                            <div style="color: #f85149">✖ FAIL (5 blocking)</div>
+                            <div style="color: #d29922; margin-top: 4px">⚠ mock/sample path detected (line 1)</div>
+                            <div style="color: #d29922">⚠ mock/sample path detected (line 2)</div>
+                            <div style="color: #f85149">✖ fake KPI logic detected (line 3)</div>
+                            <div style="color: #d29922">⚠ placeholder TODO found (line 4)</div>
+                            <div style="color: #8b949e; margin-top: 8px; font-size: 11px">→ 4 issues · 1 critical · 3 warnings</div>
                         </div>
                     </div>
                 </div>
@@ -2839,6 +2844,67 @@
                     redundancy before they reach your main branch.
                 </p>
 
+                <!-- Demo controls -->
+                <div style="text-align: center; margin-bottom: 24px">
+                    <button
+                        id="demoRunBtn"
+                        onclick="runDemoScan()"
+                        style="
+                            background: var(--accent);
+                            color: white;
+                            border: none;
+                            padding: 10px 28px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        "
+                        onmouseover="this.style.opacity='0.85'"
+                        onmouseout="this.style.opacity='1'"
+                    >
+                        ▶ Run Scan
+                    </button>
+                    <button
+                        id="demoFixBtn"
+                        onclick="runDemoFix()"
+                        style="
+                            background: transparent;
+                            color: var(--success);
+                            border: 1px solid var(--success);
+                            padding: 10px 28px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            margin-left: 12px;
+                            display: none;
+                            transition: all 0.2s;
+                        "
+                        onmouseover="this.style.background='rgba(16,185,129,0.1)'"
+                        onmouseout="this.style.background='transparent'"
+                    >
+                        🔧 Fix Issues
+                    </button>
+                    <button
+                        id="demoResetBtn"
+                        onclick="resetDemo()"
+                        style="
+                            background: transparent;
+                            color: var(--text-muted);
+                            border: 1px solid var(--border);
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            font-size: 13px;
+                            cursor: pointer;
+                            margin-left: 8px;
+                            display: none;
+                        "
+                    >
+                        ↻ Reset
+                    </button>
+                </div>
+
                 <!-- Split view: code editor (left) + log console (right) -->
                 <div class="scan-split">
                     <!-- Left: simulated code editor with slop highlighting -->
@@ -2856,34 +2922,17 @@
                                 class="tw-dot tw-green"
                                 style="width: 10px; height: 10px; border-radius: 50%; background: #3fb950"
                             ></div>
-                            <span style="margin-left: 8px">src/api/handler.ts — Code Editor</span>
+                            <span style="margin-left: 8px" id="demoFileName">src/api/handler.ts — Code Editor</span>
                         </div>
                         <div class="scan-pane-body" id="scanCodePane">
-                            <span class="code-line"
-                                ><span style="color: #8b949e">// AI-generated handler — contains slop</span></span
-                            >
-                            <span class="code-line"
-                                ><span style="color: #ff7b72">export async function</span>
-                                <span style="color: #d2a8ff">handleRequest</span>(req: Request) {</span
-                            >
-                            <span class="code-line highlight">
-                                <span style="color: #ff7b72">const</span> apiKey =
-                                <span style="color: #a5d6ff">"sk-ant-api03-xxxxx"</span>;
-                                <span style="color: #f85149">// ← leaked credential</span></span
-                            >
-                            <span class="code-line">
-                                <span style="color: #ff7b72">const</span> data =
-                                <span style="color: #79c0ff">await</span> fetch(apiKey);</span
-                            >
-                            <span class="code-line highlight">
-                                <span style="color: #8b949e">// TODO: implement error handling</span>
-                                <span style="color: #f85149">// ← placeholder</span></span
-                            >
-                            <span class="code-line">
-                                <span style="color: #ff7b72">return</span> Response.json(data);</span
-                            >
-                            <span class="code-line">}</span>
-                            <span class="code-line" style="margin-top: 12px; color: #8b949e">— scanning —</span>
+                            <span class="code-line" id="line1"><span style="color: #8b949e">// AI-generated handler — contains slop</span></span>
+                            <span class="code-line" id="line2"><span style="color: #ff7b72">export async function</span> <span style="color: #d2a8ff">handleRequest</span>(req: Request) {</span>
+                            <span class="code-line" id="line3" data-issue="credential"><span style="color: #ff7b72">const</span> apiKey = <span style="color: #a5d6ff">"sk-ant-api03-xxxxx"</span>; <span style="color: #f85149; display:none" class="issue-tag">// ← leaked credential</span></span>
+                            <span class="code-line" id="line4"><span style="color: #ff7b72">const</span> data = <span style="color: #79c0ff">await</span> fetch(apiKey);</span>
+                            <span class="code-line" id="line5" data-issue="placeholder"><span style="color: #8b949e">// TODO: implement error handling</span> <span style="color: #f85149; display:none" class="issue-tag">// ← placeholder</span></span>
+                            <span class="code-line" id="line6"><span style="color: #ff7b72">return</span> Response.json(data);</span>
+                            <span class="code-line" id="line7">}</span>
+                            <span class="code-line" id="line8" style="margin-top: 12px; color: #8b949e"></span>
                         </div>
                     </div>
                     <!-- Right: rolling log console with security warnings -->
@@ -2904,15 +2953,7 @@
                             <span style="margin-left: 8px">simplebeacon — scan log</span>
                         </div>
                         <div class="scan-pane-body" id="scanLogPane">
-                            <div style="color: #3fb950">$ simplebeacon scan . --gate --format json</div>
-                            <div style="color: #8b949e">→ Loading 52 rule engines...</div>
-                            <div style="color: #8b949e">→ Scanning src/api/handler.ts</div>
-                            <div style="color: #f85149">⚠ CRITICAL: Hardcoded API key (sk-ant-*)</div>
-                            <div style="color: #d29922">⚠ MEDIUM: Unimplemented TODO placeholder</div>
-                            <div style="color: #3fb950">✓ Auto-fix: credential quarantined to .env</div>
-                            <div style="color: #3fb950">✓ Auto-fix: placeholder flagged for remediation</div>
-                            <div style="color: #3fb950">→ Gate: PASS (2 fixed, 0 blocking)</div>
-                            <div style="color: #58a6ff">→ Certificate ready: B+ grade</div>
+                            <div style="color: #8b949e" id="logPlaceholder">Click "Run Scan" to start…</div>
                         </div>
                     </div>
                 </div>
@@ -3000,6 +3041,149 @@
                 </p>
             </div>
         </section>
+
+        <script>
+        // ─── Interactive Demo Scan Animation ─────────────────────────────
+        (function () {
+            var demoPlayed = false;
+            var scanRunning = false;
+
+            // Auto-play when scrolled into view
+            if (typeof IntersectionObserver !== 'undefined') {
+                var demoSection = document.getElementById('demo');
+                if (demoSection) {
+                    var observer = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (entry) {
+                            if (entry.isIntersecting && !demoPlayed && !scanRunning) {
+                                demoPlayed = true;
+                                setTimeout(runDemoScan, 600);
+                            }
+                        });
+                    }, { threshold: 0.3 });
+                    observer.observe(demoSection);
+                }
+            }
+
+            window.resetDemo = function () {
+                var logPane = document.getElementById('scanLogPane');
+                logPane.innerHTML = '<div style="color: #8b949e">Click "Run Scan" to start…</div>';
+                // Reset code highlighting
+                document.querySelectorAll('.code-line[data-issue]').forEach(function (line) {
+                    line.style.background = '';
+                    line.style.borderLeft = '';
+                    line.style.paddingLeft = '';
+                    var tag = line.querySelector('.issue-tag');
+                    if (tag) tag.style.display = 'none';
+                });
+                document.getElementById('demoRunBtn').style.display = '';
+                document.getElementById('demoFixBtn').style.display = 'none';
+                document.getElementById('demoResetBtn').style.display = 'none';
+                demoPlayed = false;
+            };
+
+            window.runDemoScan = function () {
+                if (scanRunning) return;
+                scanRunning = true;
+                var runBtn = document.getElementById('demoRunBtn');
+                runBtn.style.display = 'none';
+                runBtn.style.opacity = '0.5';
+
+                var logPane = document.getElementById('scanLogPane');
+                logPane.innerHTML = '';
+
+                var steps = [
+                    { text: '$ simplebeacon scan . --gate --format json', color: '#3fb950', delay: 0 },
+                    { text: '→ Loading 52 rule engines...', color: '#8b949e', delay: 400 },
+                    { text: '→ Scanning src/api/handler.ts', color: '#8b949e', delay: 800 },
+                    { text: '⚠ CRITICAL: Hardcoded API key (sk-ant-*)', color: '#f85149', delay: 1400, highlight: 'line3' },
+                    { text: '⚠ MEDIUM: Unimplemented TODO placeholder', color: '#d29922', delay: 1900, highlight: 'line5' },
+                    { text: '✓ Auto-fix available: credential quarantine', color: '#3fb950', delay: 2400 },
+                    { text: '✓ Auto-fix available: placeholder removal', color: '#3fb950', delay: 2800 },
+                    { text: '→ Gate: FAIL (2 blocking, 0 fixed)', color: '#f85149', delay: 3200 },
+                    { text: '→ Run "simplebeacon fix" to resolve', color: '#58a6ff', delay: 3600 },
+                ];
+
+                steps.forEach(function (step) {
+                    setTimeout(function () {
+                        var div = document.createElement('div');
+                        div.style.color = step.color;
+                        div.style.opacity = '0';
+                        div.style.transition = 'opacity 0.3s';
+                        div.textContent = step.text;
+                        logPane.appendChild(div);
+                        requestAnimationFrame(function () { div.style.opacity = '1'; });
+                        logPane.scrollTop = logPane.scrollHeight;
+
+                        // Highlight code line
+                        if (step.highlight) {
+                            var line = document.getElementById(step.highlight);
+                            if (line) {
+                                line.style.background = 'rgba(239, 68, 68, 0.12)';
+                                line.style.borderLeft = '3px solid #f85149';
+                                line.style.paddingLeft = '6px';
+                                line.style.marginLeft = '-9px';
+                                line.style.transition = 'all 0.3s';
+                                var tag = line.querySelector('.issue-tag');
+                                if (tag) tag.style.display = '';
+                            }
+                        }
+                    }, step.delay);
+                });
+
+                // Show Fix button after scan completes
+                setTimeout(function () {
+                    scanRunning = false;
+                    document.getElementById('demoFixBtn').style.display = '';
+                    document.getElementById('demoResetBtn').style.display = '';
+                }, 4000);
+            };
+
+            window.runDemoFix = function () {
+                var logPane = document.getElementById('scanLogPane');
+                var fixSteps = [
+                    { text: '$ simplebeacon fix --apply', color: '#3fb950', delay: 0 },
+                    { text: '→ Quarantining credential to .env', color: '#8b949e', delay: 500 },
+                    { text: '✓ apiKey moved to process.env.API_KEY', color: '#3fb950', delay: 1000, fixLine: 'line3' },
+                    { text: '→ Removing TODO placeholder', color: '#8b949e', delay: 1400 },
+                    { text: '✓ Error handling implemented', color: '#3fb950', delay: 1800, fixLine: 'line5' },
+                    { text: '→ Re-running gate scan...', color: '#8b949e', delay: 2200 },
+                    { text: '✓ Gate: PASS (2 fixed, 0 blocking)', color: '#3fb950', delay: 2800 },
+                    { text: '→ Certificate ready: A grade', color: '#58a6ff', delay: 3200 },
+                ];
+
+                // Clear log and run fix animation
+                logPane.innerHTML = '';
+                document.getElementById('demoFixBtn').style.display = 'none';
+
+                fixSteps.forEach(function (step) {
+                    setTimeout(function () {
+                        var div = document.createElement('div');
+                        div.style.color = step.color;
+                        div.style.opacity = '0';
+                        div.style.transition = 'opacity 0.3s';
+                        div.textContent = step.text;
+                        logPane.appendChild(div);
+                        requestAnimationFrame(function () { div.style.opacity = '1'; });
+                        logPane.scrollTop = logPane.scrollHeight;
+
+                        // Fix code line — swap to clean version
+                        if (step.fixLine === 'line3') {
+                            var line = document.getElementById('line3');
+                            line.style.background = 'rgba(16, 185, 129, 0.08)';
+                            line.style.borderLeft = '3px solid #3fb950';
+                            line.innerHTML = '<span style="color: #ff7b72">const</span> apiKey = process.env.<span style="color: #79c0ff">API_KEY</span>; <span style="color: #3fb950">// ✓ quarantined</span>';
+                        }
+                        if (step.fixLine === 'line5') {
+                            var line2 = document.getElementById('line5');
+                            line2.style.background = 'rgba(16, 185, 129, 0.08)';
+                            line2.style.borderLeft = '3px solid #3fb950';
+                            line2.innerHTML = '<span style="color: #ff7b72">if</span> (!data) <span style="color: #ff7b72">throw new</span> <span style="color: #d2a8ff">Error</span>(<span style="color: #a5d6ff">"Request failed"</span>); <span style="color: #3fb950">// ✓ handled</span>';
+                        }
+                    }, step.delay);
+                });
+            };
+        })();
+        </script>
 
         <!-- THE PROBLEM: TECHNICAL DEBT & REGULATORY RISK -->
         <section class="section">
