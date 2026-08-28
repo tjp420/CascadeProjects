@@ -38,6 +38,15 @@ const {
 const { calculateProration } = require("../lib/proration-calculator.cjs");
 const { sendError } = require("../lib/response-helpers.cjs");
 
+// Session token store — shared with coming-soon checkout and ai-platform billing API
+// so the dashboard can retrieve the license token after Stripe checkout redirect.
+let sessionTokenStore = null;
+try {
+  sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+} catch (e) {
+  logger.warn("[StripeWebhook] session-token-store not loaded:", e.message);
+}
+
 const router = express.Router();
 
 // Use raw body for Stripe signature verification
@@ -324,8 +333,30 @@ async function handleCheckoutCompleted(event, headers = {}) {
     extraSeats: extraSeatsCount,
   });
 
-  // Build email content using centralized template
+  // Store license token in session-token store so the post-checkout redirect
+  // can retrieve it via GET /api/session-token/:sessionId on the ai-platform server.
   const licenseToken = headers.licenseToken || "";
+  if (licenseToken && sessionTokenStore && session.id) {
+    try {
+      sessionTokenStore.set(session.id, {
+        token: licenseToken,
+        email: customerEmail,
+        projectName: session.metadata?.projectName || "default-project",
+        tier,
+      });
+      logger.info(
+        "[StripeWebhook] Stored license token in session-token store for session",
+        session.id,
+      );
+    } catch (storeErr) {
+      logger.warn(
+        "[StripeWebhook] Failed to store token in session-token store:",
+        storeErr.message,
+      );
+    }
+  }
+
+  // Build email content using centralized template
   const licenseTier = headers.licenseTier || tier;
 
   const { subject, text, html } = renderSubscriptionActivated({
