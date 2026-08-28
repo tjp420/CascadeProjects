@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 function generateLicenseToken(payload, secret, expiresInMinutes) {
     const tokenPayload = {
         email: payload.email || '',
-        tier: payload.tier || 'executive',
+        tier: payload.tier || 'community',
         features: payload.features || [],
         clientName: payload.clientName || payload.email || 'Client',
         projectName: payload.projectName || 'Project'

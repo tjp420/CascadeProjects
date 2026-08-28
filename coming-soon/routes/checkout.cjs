@@ -190,14 +190,15 @@ router.post('/api/test-checkout', async (req, res) => {
         }
 
         const tierMap = {
-            instant_report: { label: 'Instant Report', days: 7, tier: 'instant' },
-            executive_clearance: { label: 'Executive Risk Certificate', days: 90, tier: 'executive' },
-            eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'euai' },
-            runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'universal' },
-            custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom' },
-            pro: { label: 'SimpleBeacon Pro', days: 30, tier: 'pro' },
-            team: { label: 'SimpleBeacon Team', days: 30, tier: 'team' },
-            enterprise: { label: 'AI Slop Cop Enterprise', days: 30, tier: 'enterprise' }
+            instant_report: { label: 'Instant Report', days: 7, tier: 'instant_report' },
+            executive_clearance: { label: 'Executive Risk Certificate', days: 90, tier: 'executive_clearance' },
+            eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'eu_ai_act_sprint' },
+            one_time_certificate: { label: 'Board-Ready Audit Certificate', days: 365, tier: 'one_time_certificate' },
+            runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'runtime_shield' },
+            custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom_plan' },
+            pro: { label: 'SimpleBeacon Pro', days: 365, tier: 'pro' },
+            team: { label: 'SimpleBeacon Team', days: 365, tier: 'team_pro' },
+            enterprise: { label: 'SimpleBeacon Enterprise', days: 365, tier: 'enterprise' }
         };
         const VALID_TIERS = Object.keys(tierMap);
         const isCustom = Array.isArray(scans) && scans.length > 0;
@@ -494,14 +495,14 @@ function setupCheckoutWebhook(app) {
         const product = meta.product || 'custom_plan';
 
         const tierMap = {
-            instant_report: { label: 'Instant Report', days: 7, tier: 'instant' },
-            executive_clearance: { label: 'Executive Risk Certificate', days: 90, tier: 'executive' },
-            eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'euai' },
-            runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'universal' },
-            custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom' },
-            one_time_certificate: { label: 'Board-Ready Audit Certificate', days: 365, tier: 'certificate' },
-            team: { label: 'AI Slop Cop Team', days: 30, tier: 'team' },
-            enterprise: { label: 'AI Slop Cop Enterprise', days: 30, tier: 'enterprise' }
+            instant_report: { label: 'Instant Report', days: 7, tier: 'instant_report' },
+            executive_clearance: { label: 'Executive Risk Certificate', days: 90, tier: 'executive_clearance' },
+            eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'eu_ai_act_sprint' },
+            runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'runtime_shield' },
+            custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom_plan' },
+            one_time_certificate: { label: 'Board-Ready Audit Certificate', days: 365, tier: 'one_time_certificate' },
+            team: { label: 'SimpleBeacon Team', days: 365, tier: 'team_pro' },
+            enterprise: { label: 'SimpleBeacon Enterprise', days: 365, tier: 'enterprise' }
         };
         const config = tierMap[product] || tierMap.custom_plan;
         const minutes = config.days * 24 * 60;
