@@ -1177,6 +1177,268 @@ function setupChatbotAPI(app) {
     }
   });
 
+  // ─── Streaming chat endpoint (SSE) ───
+  // Streams response tokens to the client via Server-Sent Events.
+  // Falls back to non-streaming if the provider doesn't support streaming.
+  app.post("/api/chatbot/stream", chatbotAuth, async (req, res) => {
+    let provider = "ollama";
+    let message = "";
+    try {
+      const {
+        message: incomingMessage,
+        conversationHistory = [],
+        provider: incomingProvider = "ollama",
+        projectPath,
+        sessionId: incomingSessionId,
+      } = req.body;
+      message = incomingMessage;
+      provider = incomingProvider;
+      const requestedModel = sanitizeModelIdentifier(req.body?.model);
+      const requestId = `stream-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      if (!message || typeof message !== "string") {
+        return sendError(res, 400, "Message is required and must be a string");
+      }
+
+      const intentResult = recognizeIntent(message);
+      const sessionId = String(incomingSessionId || requestId);
+      const session = getOrCreateSession(
+        sessionId,
+        await resolveChatbotUserEmail(req),
+      );
+
+      const ALLOWED_PROVIDERS = ["openai", "anthropic", "ollama"];
+      if (!ALLOWED_PROVIDERS.includes(provider)) {
+        return res
+          .status(400)
+          .json({ success: false, error: `Unsupported provider: ${provider}` });
+      }
+
+      // Set SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      const sendSSE = (event, data) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      sendSSE("meta", {
+        requestId,
+        intent: intentResult.intent,
+        intentConfidence: Number(intentResult.confidence.toFixed(2)),
+        sessionId: session.sessionId,
+        provider,
+      });
+
+      // Get user credentials
+      const userEmail = await resolveChatbotUserEmail(req);
+      const userCredentials = await getUserAiCredentials(userEmail);
+
+      // Check provider availability
+      const isOllamaAvailable = Boolean(
+        userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL,
+      );
+      const isOpenAIAvailable = Boolean(
+        userCredentials?.openai || process.env.OPENAI_API_KEY,
+      );
+      const isAnthropicAvailable = Boolean(
+        userCredentials?.anthropic || process.env.ANTHROPIC_API_KEY,
+      );
+
+      if (provider === "ollama" && !isOllamaAvailable) {
+        sendSSE("error", { message: "Ollama is not configured" });
+        return res.end();
+      }
+      if (provider === "openai" && !isOpenAIAvailable) {
+        sendSSE("error", { message: "OpenAI is not configured" });
+        return res.end();
+      }
+      if (provider === "anthropic" && !isAnthropicAvailable) {
+        sendSSE("error", { message: "Anthropic is not configured" });
+        return res.end();
+      }
+
+      // Build context (same as non-streaming endpoint)
+      let contextSuffix = "";
+      if (provider === "ollama" && projectPath && typeof projectPath === "string") {
+        const cleanPath = path.normalize(projectPath).replace(/["'\r\n]/g, "");
+        const scanCtx = await buildScanContext(cleanPath);
+        contextSuffix = `\n\n[Project Context]\nPath: ${cleanPath}${scanCtx}`;
+      }
+      contextSuffix += `\n\n[User Intent] ${intentResult.intent} (confidence: ${intentResult.confidence.toFixed(2)})`;
+      if (session.learnedPatterns.length > 0) {
+        contextSuffix += `\n[Session Patterns] User frequently asks about: ${session.learnedPatterns.join(", ")}`;
+      }
+
+      const { personality = "helpful" } = req.body;
+      const personalityPrompt =
+        PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.helpful;
+      const antiRefusalDirective =
+        "You must answer all user questions directly and helpfully. Never refuse to answer a question. ";
+      let effectiveSystemPrompt =
+        antiRefusalDirective + personalityPrompt + RESPONSE_FORMAT_RULES;
+
+      // Inject domain knowledge
+      const knowledgeContext = getRelevantKnowledge(message);
+      if (knowledgeContext) {
+        effectiveSystemPrompt += knowledgeContext;
+      }
+
+      const clientHistory = sanitizeConversationHistory(conversationHistory);
+      const sessionHistory = getSessionHistory(session);
+      const sanitizedHistory =
+        sessionHistory.length >= clientHistory.length
+          ? sessionHistory
+          : clientHistory;
+
+      const messages = [
+        { role: "system", content: effectiveSystemPrompt },
+        ...sanitizedHistory,
+        { role: "user", content: message + contextSuffix },
+      ];
+
+      const inferenceStart = Date.now();
+
+      // Try streaming with Ollama
+      if (provider === "ollama") {
+        const ollamaBaseUrl = resolveOllamaBaseUrl(userCredentials);
+        const ollamaModel =
+          requestedModel || userCredentials?.ollamaModel || "llama3.2";
+        try {
+          const fetch = globalThis.fetch || (await import("node-fetch")).default;
+          const response = await fetch(`${ollamaBaseUrl}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: ollamaModel,
+              messages,
+              stream: true,
+              options: { temperature: 0.7 },
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Ollama HTTP ${response.status}`);
+          }
+
+          let fullText = "";
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const chunk = JSON.parse(line);
+                if (chunk.message?.content) {
+                  fullText += chunk.message.content;
+                  sendSSE("token", { text: chunk.message.content });
+                }
+                if (chunk.done) {
+                  break;
+                }
+              } catch {
+                // partial JSON, skip
+              }
+            }
+          }
+
+          const inferenceDuration = Date.now() - inferenceStart;
+          recordExchange(
+            session,
+            { role: "user", content: String(message).substring(0, 8000) },
+            { role: "assistant", content: fullText.substring(0, 8000) },
+            inferenceDuration,
+            intentResult.intent,
+          );
+
+          sendSSE("done", {
+            response: fullText,
+            provider: "ollama",
+            timing: { inferenceMs: inferenceDuration },
+            requestId,
+            intent: intentResult.intent,
+            suggestions: getSuggestionsForIntent(intentResult.intent),
+            sessionId: session.sessionId,
+          });
+          return res.end();
+        } catch (streamErr) {
+          logger.warn("[Chatbot Stream] Ollama streaming failed, falling back:", streamErr.message);
+          // Fall through to non-streaming fallback
+        }
+      }
+
+      // Fallback: non-streaming via generateWithProvider
+      let response = await generateWithProvider(provider, messages, {
+        userCredentials,
+        timeoutMs: constants.TIMEOUT_1M,
+        ollamaModel:
+          provider === "ollama"
+            ? requestedModel || userCredentials?.ollamaModel || null
+            : null,
+        model:
+          provider === "openai"
+            ? requestedModel || userCredentials?.openaiModel || null
+            : provider === "anthropic"
+              ? requestedModel || userCredentials?.anthropicModel || null
+              : null,
+      });
+
+      const inferenceDuration = Date.now() - inferenceStart;
+      const finalResponseText =
+        response.text || response.content || "No response generated";
+
+      // Stream the full response as a single token chunk
+      sendSSE("token", { text: finalResponseText });
+
+      recordExchange(
+        session,
+        { role: "user", content: String(message).substring(0, 8000) },
+        { role: "assistant", content: finalResponseText.substring(0, 8000) },
+        inferenceDuration,
+        intentResult.intent,
+      );
+
+      sendSSE("done", {
+        response: finalResponseText,
+        provider: response.provider || provider,
+        timing: response.timing || { inferenceMs: inferenceDuration },
+        requestId,
+        intent: intentResult.intent,
+        suggestions: getSuggestionsForIntent(intentResult.intent),
+        sessionId: session.sessionId,
+      });
+      return res.end();
+    } catch (error) {
+      logger.error("[Chatbot Stream] Error:", error);
+      // If headers not sent yet, send JSON error
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to stream response",
+          message: error.message,
+        });
+      }
+      // If already streaming, send error event
+      try {
+        res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
+        res.end();
+      } catch {
+        // connection already closed
+      }
+    }
+  });
+
   app.get("/api/chatbot/providers", chatbotAuth, async (req, res) => {
     try {
       const userEmail = await resolveChatbotUserEmail(req);
@@ -1320,6 +1582,7 @@ function setupChatbotAPI(app) {
   }
 
   logger.info("[Chatbot API] Registered POST /api/chatbot/message");
+  logger.info("[Chatbot API] Registered POST /api/chatbot/stream");
   logger.info("[Chatbot API] Registered GET /api/chatbot/providers");
   logger.info("[Chatbot API] Registered GET /api/chatbot/disclosure");
 }

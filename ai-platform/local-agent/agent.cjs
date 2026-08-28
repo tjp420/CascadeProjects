@@ -469,6 +469,304 @@ app.post("/summary", async (req, res) => {
   }
 });
 
+// ─── Deterministic fix endpoint ───
+// Runs the AST remediator against a specific finding and returns the patch.
+// No LLM needed — pure deterministic search/replace with syntax verification.
+app.post("/fix", async (req, res) => {
+  try {
+    const rawPath = req.body?.projectPath;
+    const targetPath = validateTargetPath(rawPath);
+    const findingIndex = Number(req.body?.findingIndex);
+    const applyFix = req.body?.apply === true;
+
+    // Load the AST remediator
+    let remediator = null;
+    try {
+      remediator = require(
+        path.join(
+          AGENT_ROOT,
+          "packages",
+          "simplebeacon-cli",
+          "src",
+          "lib",
+          "ast-remediator.js",
+        ),
+      );
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: "AST remediator not available",
+        details: e.message,
+      });
+    }
+
+    // Load the latest scan report
+    const reportPath = path.join(targetPath, ".simplebeacon", "report.json");
+    if (!fs.existsSync(reportPath)) {
+      return res.status(400).json({
+        success: false,
+        error: "No scan report found. Run a scan first.",
+      });
+    }
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    const issues = report.detectedIssues || report.rawIssues || [];
+    const finding = issues[findingIndex];
+    if (!finding) {
+      return res.status(400).json({
+        success: false,
+        error: `Finding at index ${findingIndex} not found. Report has ${issues.length} issues.`,
+      });
+    }
+
+    // Run deterministic remediation
+    const result = remediator.remediateFinding(finding, {
+      projectRoot: targetPath,
+      applyFix,
+    });
+
+    res.json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "fix",
+      success: true,
+      deterministic: true,
+      provider: "ast-remediator",
+      result,
+      finding: {
+        severity: finding.severity,
+        type: finding.type,
+        filePath: finding.filePath,
+        line: finding.line,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "fix",
+      success: false,
+      deterministic: true,
+      provider: "ast-remediator",
+      error: err.message,
+    });
+  }
+});
+
+// ─── Explain finding endpoint ───
+// Returns a structured explanation of a finding from the scan report.
+// No LLM needed — pulls from the deterministic rule catalog.
+app.post("/explain", async (req, res) => {
+  try {
+    const rawPath = req.body?.projectPath;
+    const targetPath = validateTargetPath(rawPath);
+    const findingIndex = Number(req.body?.findingIndex);
+
+    // Load the latest scan report
+    const reportPath = path.join(targetPath, ".simplebeacon", "report.json");
+    if (!fs.existsSync(reportPath)) {
+      return res.status(400).json({
+        success: false,
+        error: "No scan report found. Run a scan first.",
+      });
+    }
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    const issues = report.detectedIssues || report.rawIssues || [];
+    const finding = issues[findingIndex];
+    if (!finding) {
+      return res.status(400).json({
+        success: false,
+        error: `Finding at index ${findingIndex} not found. Report has ${issues.length} issues.`,
+      });
+    }
+
+    // Build structured explanation
+    const explanation = {
+      severity: finding.severity || "low",
+      type: finding.type || "Unknown",
+      rule: finding.pattern || finding.rule || finding.type || "unknown",
+      filePath: finding.filePath || finding.path || "unknown",
+      line: finding.line || finding.metadata?.line || null,
+      description: finding.description || finding.impact || "",
+      recommendation:
+        finding.recommendation ||
+        finding.recommendedAction ||
+        finding.fix ||
+        "Manual review required",
+      category: finding.category || "general",
+      confidence: finding.confidence || null,
+      cwe: finding.cwe || finding.metadata?.cwe || null,
+      owasp: finding.owasp || finding.metadata?.owasp || null,
+      euAiActRelevance: finding.euAiAct || finding.metadata?.euAiAct || null,
+      deterministic: true,
+    };
+
+    // Add context snippet if file exists
+    if (explanation.filePath && explanation.filePath !== "unknown") {
+      try {
+        const fullPath = path.resolve(targetPath, explanation.filePath);
+        if (fs.existsSync(fullPath)) {
+          const content = fs.readFileSync(fullPath, "utf8");
+          const lines = content.split("\n");
+          const lineNum = explanation.line || 1;
+          const start = Math.max(0, lineNum - 4);
+          const end = Math.min(lines.length, lineNum + 4);
+          explanation.snippet = lines.slice(start, end).join("\n");
+          explanation.snippetStartLine = start + 1;
+        }
+      } catch {
+        // ignore snippet errors
+      }
+    }
+
+    res.json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "explain",
+      success: true,
+      deterministic: true,
+      provider: "rule-catalog",
+      result: explanation,
+    });
+  } catch (err) {
+    res.status(400).json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "explain",
+      success: false,
+      deterministic: true,
+      provider: "rule-catalog",
+      error: err.message,
+    });
+  }
+});
+
+// ─── Local chat endpoint ───
+// Multi-turn conversation that routes to Ollama (if available) or falls back
+// to deterministic responses based on scan report data. Keeps everything local.
+app.post("/chat", async (req, res) => {
+  try {
+    const rawPath = req.body?.projectPath;
+    const targetPath = validateTargetPath(rawPath);
+    const message = String(req.body?.message || "").trim();
+    const history = Array.isArray(req.body?.history) ? req.body.history : [];
+
+    if (!message) {
+      return res.status(400).json({
+        agent: "simplebeacon",
+        source: "local-agent",
+        action: "chat",
+        success: false,
+        error: "Message is required",
+      });
+    }
+
+    // Try Ollama first for natural language responses
+    const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+    const ollamaModel = process.env.OLLAMA_MODEL || "llama3.2";
+
+    // Build scan context for the prompt
+    let scanContext = "";
+    const reportPath = path.join(targetPath, ".simplebeacon", "report.json");
+    if (fs.existsSync(reportPath)) {
+      try {
+        const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+        const gate = report.gate || {};
+        const issues = report.detectedIssues || [];
+        scanContext = `\n\n[Project Scan Context]\nPath: ${path.basename(targetPath)}\nGate: ${gate.pass === true ? "PASS" : "FAIL"}\nBlocking: ${gate.blockingCount ?? 0}\nIssues: ${issues.length}\nQuality Score: ${report.qualityScore ?? "N/A"}/100`;
+        if (issues.length > 0) {
+          scanContext += "\nTop findings:";
+          for (const issue of issues.slice(0, 5)) {
+            scanContext += `\n- [${issue.severity || "low"}] ${issue.type || "issue"}: ${(issue.description || "").slice(0, 100)}`;
+          }
+        }
+      } catch {
+        // ignore report errors
+      }
+    }
+
+    try {
+      const fetch = globalThis.fetch || (await import("node-fetch")).default;
+      const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: ollamaModel,
+          messages: [
+            {
+              role: "system",
+              content: `You are a helpful code assistant for the SimpleBeacon platform. You help developers understand scan findings, fix issues, and improve code quality. Always answer directly and concisely.${scanContext}`,
+            },
+            ...history.slice(-10).map((h) => ({
+              role: h.role === "assistant" ? "assistant" : "user",
+              content: String(h.content || "").slice(0, 4000),
+            })),
+            { role: "user", content: message },
+          ],
+          stream: false,
+          options: { temperature: 0.3 },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (ollamaResponse.ok) {
+        const data = await ollamaResponse.json();
+        const responseText = data.response || data.message?.content || "";
+        return res.json({
+          agent: "simplebeacon",
+          source: "local-agent",
+          action: "chat",
+          success: true,
+          deterministic: false,
+          provider: "ollama",
+          result: { response: responseText, model: ollamaModel },
+        });
+      }
+    } catch (ollamaErr) {
+      process.stderr.write(`[agent] Ollama chat failed: ${ollamaErr.message}\n`);
+    }
+
+    // Fallback: deterministic response based on scan data
+    let fallbackResponse = "";
+    const lowerMsg = message.toLowerCase();
+
+    if (lowerMsg.includes("gate") || lowerMsg.includes("status")) {
+      if (fs.existsSync(reportPath)) {
+        const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+        const gate = report.gate || {};
+        fallbackResponse = `Gate status: ${gate.pass === true ? "PASS" : "FAIL"}\nBlocking issues: ${gate.blockingCount ?? 0}\nTotal issues: ${report.issueCount ?? 0}\nQuality score: ${report.qualityScore ?? "N/A"}/100`;
+      } else {
+        fallbackResponse = "No scan report found. Run a scan first to check gate status.";
+      }
+    } else if (lowerMsg.includes("fix") || lowerMsg.includes("resolve")) {
+      fallbackResponse = "I can help with fixes. Use the /fix endpoint with a findingIndex to get a deterministic patch. Run a scan first to identify findings.";
+    } else if (lowerMsg.includes("explain") || lowerMsg.includes("what is")) {
+      fallbackResponse = "I can explain any finding from your scan report. Use the /explain endpoint with a findingIndex to get a detailed explanation.";
+    } else if (lowerMsg.includes("scan") || lowerMsg.includes("analyze")) {
+      fallbackResponse = `Ready to scan ${path.basename(targetPath)}. Use the /scan endpoint to run a full SimpleBeacon scan.`;
+    } else {
+      fallbackResponse = `I'm the SimpleBeacon local agent. I can help you scan your project, explain findings, and suggest fixes. Ollama is not running, so I'm using deterministic responses.\n\nAvailable endpoints:\n- POST /scan — Run a scan\n- POST /fix — Get a deterministic fix for a finding\n- POST /explain — Get an explanation of a finding\n- POST /chat — Chat with AI (requires Ollama) or deterministic fallback`;
+    }
+
+    res.json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "chat",
+      success: true,
+      deterministic: true,
+      provider: "deterministic-fallback",
+      result: { response: fallbackResponse },
+    });
+  } catch (err) {
+    res.status(400).json({
+      agent: "simplebeacon",
+      source: "local-agent",
+      action: "chat",
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
 // Error handler.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
