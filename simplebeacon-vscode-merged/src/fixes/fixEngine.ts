@@ -131,7 +131,7 @@ export class SimpleBeaconFixEngine {
   private async runStructuredFixDryRun(rootPath: string, reportPath: string): Promise<void> {
     const cli = this.resolveCli();
     if (!cli) {
-      vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
+      vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon');
       return;
     }
 
@@ -180,7 +180,7 @@ export class SimpleBeaconFixEngine {
   private async runCliFix(rootPath: string, isDryRun: boolean, targetFile?: string): Promise<void> {
     const cli = this.resolveCli();
     if (!cli) {
-      vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
+      vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon');
       return;
     }
 

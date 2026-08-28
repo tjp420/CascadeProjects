@@ -1,6 +1,6 @@
 {
   "name": "simplebeacon",
-  "version": "1.1.6",
+  "version": "3.0.552",
   "description": "Local release-hygiene gate for AI-assisted code — MCP snippet scans, full-repo --gate for CI, credential patterns, sample JSON in prod routes, fiction KPIs. Offline by default.",
   "author": "SimpleBeacon",
   "license": "MIT",
@@ -57,7 +57,6 @@
     "release:dry-run": "node scripts/release.cjs patch --dry-run --skip-tests"
   },
   "keywords": [
-    "simplebeacon",
     "simplebeacon",
     "mock-data",
     "ai-fiction",

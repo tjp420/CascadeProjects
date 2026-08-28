@@ -21,7 +21,7 @@ variables:
 .simplebeacon_base:
   image: node:22-alpine
   before_script:
-    - npm install -g simplebeacon-cli
+    - npm install -g simplebeacon
     - mkdir -p .simplebeacon
   artifacts:
     when: always
@@ -32,7 +32,7 @@ variables:
   cache:
     key: simplebeacon-cli
     paths:
-      - /usr/local/lib/node_modules/simplebeacon-cli/
+      - /usr/local/lib/node_modules/simplebeacon/
 
 # ───────────────────────────────────────────────
 # Main scan job — runs on every commit / MR

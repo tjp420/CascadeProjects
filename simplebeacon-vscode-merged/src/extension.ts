@@ -4496,12 +4496,12 @@ async function runScan(
     scanInProgress = false;
     updateServerState({ scanStatus: 'idle', scanMessage: 'No scanner available' });
     const install = await vscode.window.showWarningMessage(
-      'SimpleBeacon CLI not found. Install it with: npm install -g simplebeacon-cli',
+      'SimpleBeacon CLI not found. Install it with: npm install -g simplebeacon',
       'Copy Command',
       'Dismiss'
     );
     if (install === 'Copy Command') {
-      await vscode.env.clipboard.writeText('npm install -g simplebeacon-cli');
+      await vscode.env.clipboard.writeText('npm install -g simplebeacon');
       showQuietMessage('Install command copied to clipboard');
     }
     return;
@@ -4815,7 +4815,7 @@ async function runScan(
   }
 
   if (!cliResolved) {
-    vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
+    vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon');
     scanInProgress = false;
     updateServerState({ scanStatus: 'idle', scanMessage: 'CLI not found' });
     return;
@@ -4952,7 +4952,7 @@ async function runScan(
             const output = stdout.trim() || stderr.trim();
             if (code !== 0 && code !== null && !output) {
               scanInProgress = false;
-              const errDetail = 'No output from CLI. Ensure simplebeacon is installed: npm install -g simplebeacon-cli';
+              const errDetail = 'No output from CLI. Ensure simplebeacon is installed: npm install -g simplebeacon';
               outputChannel.appendLine(`[SimpleBeacon] Scan failed (exit ${code}): ${errDetail}`);
               vscode.window.showErrorMessage(`Scan failed (exit ${code}): ${errDetail}`);
               reject(new Error(`Exit code ${code}: ${errDetail}`));
