@@ -202,6 +202,24 @@ function formatTextReport(report, gateResult = null) {
     lines.push(
       `  ${paint(sev.toUpperCase(), severityColor(sev))} (${list.length})`,
     );
+  }
+  lines.push("");
+
+  // Findings table — clean aligned columns for quick scanning
+  const tableLines = formatFindingsTable(sortedIssues.slice(0, displayLimit));
+  if (tableLines.length > 0) {
+    lines.push(paint("Findings Table:", "cyan"));
+    lines.push(...tableLines);
+    lines.push("");
+  }
+
+  // Detailed breakdown with remediation steps
+  for (const sev of buckets) {
+    const list = grouped.get(sev);
+    if (!list || list.length === 0) continue;
+    lines.push(
+      `  ${paint(sev.toUpperCase(), severityColor(sev))} (${list.length})`,
+    );
     for (const issue of list) {
       const title = alertTitle(issue);
       const label = title
@@ -231,6 +249,57 @@ function formatTextReport(report, gateResult = null) {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Format findings as a scannable terminal table with aligned columns.
+ * Columns: SEVERITY | TYPE | FILE | LINE | DESCRIPTION
+ * @param {Array} issues
+ * @returns {string[]} array of table lines
+ */
+function formatFindingsTable(issues) {
+  if (!issues || issues.length === 0) return [];
+
+  const rows = issues.map((issue) => {
+    const sev = String(issue.severity || "low").toUpperCase();
+    const type = String(issue.type || issue.pattern || "unknown");
+    const file =
+      issue.filePath || issue.file || issue.affectedFiles?.[0] || "—";
+    const shortFile = String(file).replace(/\\/g, "/").split("/").slice(-2).join("/");
+    const line = issue.line || issue.metadata?.line || "—";
+    const desc = String(issue.description || "").slice(0, 60);
+    return { sev, type, shortFile, line, desc, severity: issue.severity };
+  });
+
+  const sevWidth = Math.max(8, ...rows.map((r) => r.sev.length));
+  const typeWidth = Math.min(30, Math.max(4, ...rows.map((r) => r.type.length)));
+  const fileWidth = Math.min(35, Math.max(4, ...rows.map((r) => r.shortFile.length)));
+  const lineWidth = Math.max(4, ...rows.map((r) => String(r.line).length));
+  const descWidth = 60;
+
+  const pad = (str, width) => String(str).padEnd(width).slice(0, width);
+
+  const lines = [];
+  // Header
+  const header =
+    pad("SEVERITY", sevWidth) + "  " +
+    pad("TYPE", typeWidth) + "  " +
+    pad("FILE", fileWidth) + "  " +
+    pad("LINE", lineWidth) + "  " +
+    "DESCRIPTION";
+  lines.push(paint(header, "dim"));
+  lines.push(paint("─".repeat(sevWidth + typeWidth + fileWidth + lineWidth + descWidth + 8), "dim"));
+
+  for (const row of rows) {
+    const sevStr = paint(pad(row.sev, sevWidth), severityColor(row.severity));
+    const typeStr = pad(row.type, typeWidth);
+    const fileStr = pad(row.shortFile, fileWidth);
+    const lineStr = pad(String(row.line), lineWidth);
+    const descStr = row.desc;
+    lines.push(`${sevStr}  ${typeStr}  ${fileStr}  ${lineStr}  ${descStr}`);
+  }
+
+  return lines;
 }
 
 function formatActionPlanReport(report, gateResult = null) {
@@ -404,6 +473,7 @@ module.exports = {
   formatTextReport,
   formatActionPlanReport,
   formatReferralNudgeBanner,
+  formatFindingsTable,
   paint,
   colorEnabled,
 };

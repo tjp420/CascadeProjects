@@ -3408,6 +3408,164 @@
             </div>
         </section>
 
+        <!-- ANALYZER ARCHITECTURE — technical breakdown of 48 analyzers + 25 scan engines -->
+        <section class="section" id="analyzer-architecture" style="background: linear-gradient(180deg, #0a0e18, #0d1220); padding: 64px 24px">
+            <div class="container">
+                <h2>The 48-Analyzer Engine Architecture</h2>
+                <p class="section-subtitle">
+                    Deterministic AST parsing, regex signature catalogs, and dependency-graph traversal &mdash; zero probabilistic LLM checks, zero false positives from hallucinated grading.
+                </p>
+
+                <!-- Architecture Flow Diagram (CSS-only) -->
+                <div style="margin: 32px 0; padding: 24px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border)">
+                    <div style="text-align: center; margin-bottom: 20px">
+                        <div style="display: inline-block; padding: 10px 24px; background: rgba(6,182,212,0.12); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--accent)">
+                            Source Files (Local Disk)
+                        </div>
+                        <div style="font-size: 20px; color: var(--text-muted); margin: 8px 0">&darr;</div>
+                        <div style="display: inline-block; padding: 10px 24px; background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.3); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--accent-blue)">
+                            File Walker + Path Exclusion Filter
+                        </div>
+                        <div style="font-size: 20px; color: var(--text-muted); margin: 8px 0">&darr;</div>
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap">
+                            <div style="padding: 10px 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 6px; font-size: 12px; color: var(--success)">Babel AST Parser</div>
+                            <div style="padding: 10px 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 6px; font-size: 12px; color: var(--success)">Regex Signature Catalog</div>
+                            <div style="padding: 10px 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 6px; font-size: 12px; color: var(--success)">Dependency Graph Walker</div>
+                            <div style="padding: 10px 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 6px; font-size: 12px; color: var(--success)">CVE / npm Audit Bridge</div>
+                        </div>
+                        <div style="font-size: 20px; color: var(--text-muted); margin: 8px 0">&darr;</div>
+                        <div style="display: inline-block; padding: 10px 24px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--danger)">
+                            Gate Evaluation (pass / fail / warn)
+                        </div>
+                        <div style="font-size: 20px; color: var(--text-muted); margin: 8px 0">&darr;</div>
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap">
+                            <div style="padding: 8px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted)">JSON Report</div>
+                            <div style="padding: 8px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted)">Executive Risk Certificate (PDF)</div>
+                            <div style="padding: 8px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted)">CI Gate Block / Pass</div>
+                            <div style="padding: 8px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted)">SBOM Artifact</div>
+                        </div>
+                    </div>
+                    <p style="text-align: center; font-size: 12px; color: var(--text-muted); margin: 0">
+                        No network calls. No cloud inference. No source code leaves the developer's machine.
+                    </p>
+                </div>
+
+                <!-- Analyzer Category Grid -->
+                <h3 style="margin-top: 36px; color: var(--text-main)">AI Slop &amp; Hallucination Detection</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    Catches fabricated variables, placeholder debris, markdown fences leaked into source, and hardcoded AI-default metrics that LLMs inject into production code.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>LLM Slop Patterns</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Placeholder debris, markdown code fences in source, AI-default metrics.</p></div>
+                    <div class="feature-card-3"><strong>Fiction KPI Detection</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Hardcoded completion rates, confidence scores, and metrics that may be fabricated.</p></div>
+                    <div class="feature-card-3"><strong>AI Placeholder Comments</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">TODO: implement, TODO: add validation &mdash; AI-generated stubs left in production.</p></div>
+                    <div class="feature-card-3"><strong>Empty Stub Functions</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Empty function bodies and arrow functions returning empty objects.</p></div>
+                    <div class="feature-card-3"><strong>Markdown Fence Leak</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Triple-backtick code fences leaked from LLM output into source files.</p></div>
+                    <div class="feature-card-3"><strong>Production Leak Detector</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Mock, fixture, and sample data paths referenced in production source.</p></div>
+                </div>
+
+                <h3 style="margin-top: 28px; color: var(--text-main)">Credential &amp; Secret Exposure</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    Pattern-matching against Stripe, AWS, GitHub, GitLab, OpenAI, Slack, Azure, and GCP key formats. Git history scanning for secrets committed in prior commits.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>Credential Pattern Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Stripe, AWS, GitHub PAT, GitLab, OpenAI, Slack token signatures.</p></div>
+                    <div class="feature-card-3"><strong>Secret-in-Comments</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">API keys and passwords embedded in code comments and documentation.</p></div>
+                    <div class="feature-card-3"><strong>Git History Secret Scan</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Walks up to 1,000 commits looking for secrets introduced and later removed.</p></div>
+                    <div class="feature-card-3"><strong>Env-in-Git Detection</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">.env files staged in version control with live connection strings.</p></div>
+                    <div class="feature-card-3"><strong>PII Logging Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Email, phone, SSN patterns written to log statements.</p></div>
+                    <div class="feature-card-3"><strong>Config Drift Detector</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Literal endpoint values and credentials in configuration files.</p></div>
+                </div>
+
+                <h3 style="margin-top: 28px; color: var(--text-main)">Compliance &amp; Regulatory Mapping</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    Direct pattern-to-framework mapping for EU AI Act (Annex III), OWASP LLM Top 10, NIST AI RMF, and SOC 2 Type II control objectives.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>EU AI Act Patterns</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">AI system indicators, transparency obligations, risk classification markers.</p></div>
+                    <div class="feature-card-3"><strong>OWASP LLM Top 10</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Prompt injection, insecure output handling, training data poisoning indicators.</p></div>
+                    <div class="feature-card-3"><strong>Agency Handoff Patterns</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Handoff brief integrity, missing lockfiles, root env files, merge conflict markers.</p></div>
+                    <div class="feature-card-3"><strong>Governance Markers</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">License headers, copyright notices, and open-source compliance markers.</p></div>
+                    <div class="feature-card-3"><strong>Architecture Drift</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Hybrid/SSM model identifiers without schema validators and unguarded LLM calls.</p></div>
+                    <div class="feature-card-3"><strong>Deployment Readiness</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Missing health checks, Dockerfile USER root, hardcoded secrets in Docker ENV.</p></div>
+                </div>
+
+                <h3 style="margin-top: 28px; color: var(--text-main)">Code Quality &amp; Structural Integrity</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    Babel AST traversal for nested try/catch depth, unparameterized database queries, and hallucinated imports. Regex catalogs for magic numbers, sync I/O, and weak crypto.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>AST Structural Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Babel parser + traverse: triple-nested try/catch, unparameterized db.query, console.* calls.</p></div>
+                    <div class="feature-card-3"><strong>Hallucinated Imports</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Import statements for packages not in package.json or node_modules.</p></div>
+                    <div class="feature-card-3"><strong>Token Bleed Patterns</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">LLM API calls without max_tokens, unchunked long strings in prompts.</p></div>
+                    <div class="feature-card-3"><strong>Dead Code Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Unreachable code, unused exports, orphaned functions.</p></div>
+                    <div class="feature-card-3"><strong>Memory Leak Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Event listener leaks, unclosed connections, growing data structures.</p></div>
+                    <div class="feature-card-3"><strong>Type Safety Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Any types, missing PropTypes, runtime typeof checks, parameter bloat.</p></div>
+                </div>
+
+                <h3 style="margin-top: 28px; color: var(--text-main)">Supply Chain &amp; Dependency Hygiene</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    CVE database cross-referencing, SBOM generation, typosquatting detection, and suspicious install script auditing.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>CVE Dependency Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Cross-references package-lock.json against known vulnerability databases.</p></div>
+                    <div class="feature-card-3"><strong>SBOM Generator</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Software Bill of Materials in SPDX/CycloneDX format for procurement teams.</p></div>
+                    <div class="feature-card-3"><strong>Dependency Graph Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Circular imports, version mismatches, missing shared configs in monorepos.</p></div>
+                    <div class="feature-card-3"><strong>Security Pattern Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Missing CSP, HSTS, X-Frame-Options, Referrer-Policy in server configs.</p></div>
+                    <div class="feature-card-3"><strong>Weak Crypto Detection</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">MD5, SHA1, DES usage in production code paths.</p></div>
+                    <div class="feature-card-3"><strong>ReDoS Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Catastrophic backtracking regex patterns that can hang the event loop.</p></div>
+                </div>
+
+                <h3 style="margin-top: 28px; color: var(--text-main)">Runtime Safety &amp; Performance</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+                    Synchronous I/O blocking, eval injection, innerHTML XSS, prototype pollution, unhandled promise rejections, and missing rate limits.
+                </p>
+                <div class="feature-grid-3" style="margin-bottom: 28px">
+                    <div class="feature-card-3"><strong>Sync I/O Detector</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">fs.readFileSync, fs.writeFileSync in hot paths that block the event loop.</p></div>
+                    <div class="feature-card-3"><strong>Eval Danger Scanner</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">eval(), new Function(), setTimeout(string) &mdash; code injection risk.</p></div>
+                    <div class="feature-card-3"><strong>innerHTML XSS</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Unsanitized innerHTML assignments creating cross-site scripting vectors.</p></div>
+                    <div class="feature-card-3"><strong>Prototype Pollution</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Object.prototype or __proto__ modification risks in merge/assign operations.</p></div>
+                    <div class="feature-card-3"><strong>Unhandled Promises</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">Promise chains missing .catch() handlers &mdash; silent failure risk.</p></div>
+                    <div class="feature-card-3"><strong>Missing Rate Limit</strong><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">API endpoints without rate limiting &mdash; DoS exposure.</p></div>
+                </div>
+
+                <!-- Engine Pipeline Summary -->
+                <div style="margin-top: 36px; padding: 20px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border)">
+                    <h3 style="margin: 0 0 12px; font-size: 15px">25 Scan Engine Pipeline</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 12px">
+                        Each engine is independently toggleable via <code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent)">.simplebeacon/config.json</code>. The gate evaluates all enabled engines and aggregates findings into a single pass/fail verdict.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px">
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">roadmap</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">sample-consistency</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">credentials</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">production-leak</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">fiction-kpi</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">llm-slop</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">agency-handoff</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">eu-ai-act</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">owasp-llm</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">token-bleed</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">architecture-drift</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">file-reduction</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">security-patterns</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">hardcoded-url</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">weak-crypto</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">secret-in-comments</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">sync-io</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">env-in-git</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">redos</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">pii-logging</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">dead-code</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">memory-leak</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">type-safety</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">hallucinated-import</span>
+                        <span style="padding: 4px 10px; background: var(--bg-elevated); border-radius: 4px; color: var(--text-muted)">ast-structural</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- CERTIFICATE PREVIEW — dashboard mockup with large metric badges -->
         <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18)">
             <div class="container">
