@@ -1277,6 +1277,14 @@ ai-platform/ai-platform-test-output.txt
 test-output*.txt
 ai-platform-test-output*.txt
 
+# Vendored dependencies (renamed node_modules) — third-party code, not project source
+node_modules_host/
+**/node_modules_host/
+
+# Wrangler temporary build artifacts — generated, not source code
+.wrangler/
+**/.wrangler/
+
 # Generated roadmap data JSON (not source code)
 ai-platform/data/
 ai-platform/data/**
