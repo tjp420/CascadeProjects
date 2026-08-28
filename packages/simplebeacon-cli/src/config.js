@@ -91,6 +91,7 @@ const PROFILE_RULES = {
     "architecture-drift-patterns": { enabled: true, severity: "medium" },
     "security-patterns": { enabled: true, severity: "high" },
     "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "ast-structural": { enabled: true, severity: "medium" },
     "file-reduction": { enabled: true, dryRun: true },
     "cve-dependency": { enabled: true, includeDev: true },
     "sbom-generator": { enabled: true, includeDev: true },
@@ -117,6 +118,7 @@ const PROFILE_RULES = {
     "architecture-drift-patterns": { enabled: true, severity: "medium" },
     "security-patterns": { enabled: true, severity: "high" },
     "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "ast-structural": { enabled: true, severity: "medium" },
     "file-reduction": { enabled: true, dryRun: true },
     "cve-dependency": { enabled: true, includeDev: true },
     "sbom-generator": { enabled: true, includeDev: true },
@@ -158,6 +160,7 @@ const PROFILE_RULES = {
     "architecture-drift-patterns": { enabled: true, severity: "medium" },
     "security-patterns": { enabled: true, severity: "high" },
     "javascript-ast-patterns": { enabled: true, severity: "critical" },
+    "ast-structural": { enabled: true, severity: "medium" },
     "file-reduction": { enabled: true, dryRun: true },
     "deployment-readiness": { enabled: true },
     "custom-heuristic": { enabled: true },
@@ -512,6 +515,7 @@ const FREE_RULE_ENGINES = new Set([
   "deployment-readiness",
   "custom-heuristic",
   "gzdoom-integrity-patterns",
+  "ast-structural",
 ]);
 
 function sanitizeConfigForTier(config, tier) {

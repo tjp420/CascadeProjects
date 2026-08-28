@@ -2580,7 +2580,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       memoryLeakScan,
       typeSafetyScan,
       hallucinatedImportScan,
-      _astStructuralScan,
+      astStructuralScan,
       dependencyGraphScan,
       comprehensiveScan,
       cveDependencyScan,
@@ -2702,6 +2702,14 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       "ai-residue",
       "SB-FICTION-004",
       "Import of package not in package.json",
+    );
+    normalizeScannerOutput(
+      issues,
+      astStructuralScan,
+      "ast-structural",
+      null,
+      null,
+      (getRuleOptions(config, "ast-structural") || {}).severity || "medium",
     );
     normalizeScannerOutput(issues, comprehensiveScan);
     normalizeScannerOutput(

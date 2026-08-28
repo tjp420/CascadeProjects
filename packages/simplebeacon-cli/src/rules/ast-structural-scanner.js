@@ -214,6 +214,47 @@ function analyzeRedundantTryCatch(ast, _relativePath) {
   return findings;
 }
 
+function analyzeTripleNestedTryCatch(ast, _relativePath) {
+  if (!ast || !babelTraverse) return [];
+  const findings = [];
+
+  try {
+    babelTraverse(ast, {
+      TryStatement: {
+        enter(path) {
+          // Count nesting depth by walking up parent TryStatement chain
+          let depth = 0;
+          let current = path.parentPath;
+          while (current) {
+            if (current.node && current.node.type === "TryStatement") {
+              depth++;
+            }
+            current = current.parentPath;
+          }
+          // Also check if this TryStatement contains nested TryStatements
+          // by looking at the handler body for nested try blocks
+          if (depth >= 2) {
+            // This is at least triple-nested (depth=2 means 3 levels: this + 2 parents)
+            const line = path.node.loc ? path.node.loc.start.line : 0;
+            findings.push({
+              ruleId: "SB-QUAL-006",
+              ruleName: "Excessive Nested Try/Catch",
+              severity: "medium",
+              line,
+              match: `depth=${depth + 1}`,
+              snippet: `Try/catch nested ${depth + 1} levels deep — redundant error handling structure, likely LLM-generated boilerplate`,
+            });
+          }
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
+
+  return findings;
+}
+
 function analyzePromiseChains(ast, _relativePath) {
   if (!ast || !babelTraverse) return [];
   let chainCount = 0;
@@ -319,6 +360,7 @@ async function scanFile(filePath, rootDir) {
   const findings = [
     ...analyzeDeadweightFunctions(ast, relativePath),
     ...analyzeRedundantTryCatch(ast, relativePath),
+    ...analyzeTripleNestedTryCatch(ast, relativePath),
     ...analyzePromiseChains(ast, relativePath),
   ];
 
@@ -355,7 +397,17 @@ async function walkFiles(dir, files, options = {}) {
 async function scanAstStructural(baseDir, options = {}) {
   const sourcePaths = options.sourcePaths || ["src", "lib", "server", "web"];
   const productionPaths = options.productionPaths || sourcePaths;
-  const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];
+  let pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];
+
+  // If none of the configured source paths exist, fall back to scanning
+  // the project root directly (handles monorepos, flat layouts, and test fixtures)
+  const existingPaths = pathsToWalk.filter((rel) => {
+    const abs = path.isAbsolute(rel) ? rel : path.join(baseDir, ...rel.split("/"));
+    return fs.existsSync(abs);
+  });
+  if (existingPaths.length === 0) {
+    pathsToWalk = ["."];
+  }
 
   const files = [];
   for (const rel of pathsToWalk) {
@@ -392,7 +444,9 @@ async function scanAstStructural(baseDir, options = {}) {
             ? "Remove unused export or add a call site. If intentionally exported for external use, suppress with // simplebeacon-ignore ast-structural"
             : f.ruleId === "SB-QUAL-004"
               ? "Consolidate error handling into a single wrapper or middleware instead of per-function try/catch boilerplate."
-              : "Extract shared catch logic into a reusable error handler function.",
+              : f.ruleId === "SB-QUAL-006"
+                ? "Flatten nested try/catch blocks into a single error boundary. Use promise .catch() or a wrapper function instead of deeply nested try/catch."
+                : "Extract shared catch logic into a reusable error handler function.",
         affectedFiles: [relativePath],
         metadata: {
           ruleId: f.ruleId,
