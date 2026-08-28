@@ -169,9 +169,10 @@ app.use((req, res, next) => {
     if (!res.getHeader || !res.getHeader('Content-Security-Policy')) {
         res.setHeader(
             'Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" +
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net" +
                 cfScript +
-                "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' " +
+                "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://simplebeacon.ai https://*.simplebeacon.ai" +
+                ' ' +
                 renderOrigins +
                 ' http://127.0.0.1:' +
                 SCANNER_BRIDGE_PORT +
