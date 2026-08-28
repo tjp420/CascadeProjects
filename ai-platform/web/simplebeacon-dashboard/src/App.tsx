@@ -168,7 +168,7 @@ const viewMap: Record<string, React.ComponentType> = {
 };
 
 export default function App() {
-  // Process agent URL params (sb_auth, sb_license_token, sb_agent) on first load
+  // Process agent URL params (sb_auth, sb_license_token, sb_agent, sb_agent_token) on first load
   useEffect(() => {
     processAgentParams();
   }, []);

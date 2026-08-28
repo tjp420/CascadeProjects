@@ -139,17 +139,45 @@ export function isTokenExpired(): boolean {
  *   sb_auth         — JWT auth token, stored to sb_auth_token
  *   sb_license_token — License token, stored to sb_license
  *   sb_agent        — Set to "1" to enable agent mode (skips local API probe, suppresses toast noise)
+ *   sb_agent_token  — Single-use exchange token (new preferred method)
  *
- * Example:
+ * Example (new — single-use token):
+ *   https://simplebeacon.ai/dashboard/?sb_agent_token=abc123…#/admin
+ *
+ * Example (legacy — direct token embedding, being phased out):
  *   https://simplebeacon.ai/dashboard/?sb_api_base=https://simplebeacon.ai&sb_auth=eyJ...&sb_license_token=eyJ...&sb_agent=1#/admin
  *
  * Tokens are injected into localStorage on load so the dashboard treats the
  * agent as a signed-in Enterprise user with full feature access.
  */
-export function processAgentParams(): void {
+export async function processAgentParams(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     const params = new URLSearchParams(window.location.search);
+
+    // New: single-use agent token exchange
+    const agentToken = params.get("sb_agent_token");
+    if (agentToken) {
+      try {
+        const res = await fetch(apiUrl(`/agent-access/${agentToken}`));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.authToken) {
+            setAuthToken(data.authToken);
+            if (data.licenseToken) setLicenseToken(data.licenseToken);
+            try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+            // Clean the URL — remove the token param
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, "", cleanUrl);
+            return;
+          }
+        }
+      } catch {
+        // Exchange failed — fall through to legacy params
+      }
+    }
+
+    // Legacy: direct token embedding
     const authToken = params.get("sb_auth");
     const licenseToken = params.get("sb_license_token");
     const agentMode = params.get("sb_agent");

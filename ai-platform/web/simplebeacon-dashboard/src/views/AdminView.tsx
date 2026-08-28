@@ -39,6 +39,7 @@ import {
   X,
   Copy,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
@@ -282,6 +283,11 @@ export function AdminView() {
     revoked: Array<{ token?: string; email?: string; jti?: string }>;
   } | null>(null);
 
+  // ─── Agent Access Link State ──────────────────────────────────────
+  const [agentLink, setAgentLink] = useState<string | null>(null);
+  const [agentLinkCopied, setAgentLinkCopied] = useState(false);
+  const [generatingAgentLink, setGeneratingAgentLink] = useState(false);
+
   // ─── User Management Action State ─────────────────────────────────
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
   const [actionDialog, setActionDialog] = useState<
@@ -522,6 +528,29 @@ export function AdminView() {
     search: "",
     hash: "",
   });
+
+  // ─── Agent Access Link ────────────────────────────────────────────
+  const handleGenerateAgentLink = async () => {
+    setGeneratingAgentLink(true);
+    setAgentLink(null);
+    try {
+      const res = await fetch(apiUrl("/admin/agent-access"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ ttlMinutes: 5 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Failed to generate link");
+      }
+      setAgentLink(data.url);
+      toast.success("Agent review link generated (expires in 5 minutes)");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate agent link");
+    } finally {
+      setGeneratingAgentLink(false);
+    }
+  };
 
   // ─── License Revocation ───────────────────────────────────────────
   const handleRevokeLicense = async () => {
@@ -1612,6 +1641,59 @@ export function AdminView() {
                     >
                       <Copy className="h-3.5 w-3.5" />
                       {licenseCopied ? "Copied!" : "Copy Token"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Agent Access Link */}
+          <Card className="border-blue-500/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-blue-600">
+                <ExternalLink className="h-4 w-4" />
+                Generate Agent Review Link
+              </CardTitle>
+              <CardDescription>
+                Creates a single-use, 5-minute link that exchanges for your auth + license tokens.
+                Safer than embedding tokens directly in the URL.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={handleGenerateAgentLink}
+                disabled={generatingAgentLink}
+              >
+                {generatingAgentLink ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4" />
+                )}
+                Generate Link (5 min TTL)
+              </Button>
+
+              {agentLink && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Link generated — expires in 5 minutes
+                  </div>
+                  <div className="rounded-md bg-muted p-3 font-mono text-xs break-all max-h-32 overflow-y-auto">
+                    {agentLink}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(agentLink);
+                        setAgentLinkCopied(true);
+                        setTimeout(() => setAgentLinkCopied(false), 2000);
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {agentLinkCopied ? "Copied!" : "Copy Link"}
                     </Button>
                   </div>
                 </div>

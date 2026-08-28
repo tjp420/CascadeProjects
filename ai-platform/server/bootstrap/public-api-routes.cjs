@@ -104,6 +104,8 @@ const PUBLIC_API_PATHS = new Set([
   "license/validate",
   // License token status — dashboard sign-in flow validates token before activating
   "auth/token-status",
+  // Agent access token exchange — single-use, short-lived (the accessId is the credential)
+  "agent-access",
   // Subscription webhook — Stripe signs requests, no JWT auth
   "subscription/webhook",
   "create-subscription-session",
@@ -254,6 +256,7 @@ function isPublicApiRoute(relativePath, method) {
   return (
     PUBLIC_API_PATHS.has(pathKey) ||
     pathKey.startsWith("session-token/") ||
+    pathKey.startsWith("agent-access/") ||
     pathKey.startsWith("health") ||
     isPublicAssessmentRoute(pathKey, method) ||
     isPublicOptimizationRoute(pathKey, method) ||

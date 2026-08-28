@@ -1357,6 +1357,86 @@ function setupAdminAPI(app, options = {}) {
     },
   );
 
+  // ─── Agent Access Tokens (single-use, short-lived) ────────────────
+  // Replaces URL-embedded JWT+license tokens with a single-use exchange token.
+  // Admin generates a short-lived token → shares URL → agent visits URL →
+  // dashboard exchanges token for auth+license tokens via API.
+  const agentAccessStore = new Map();
+
+  // POST /api/admin/agent-access — generate a single-use agent access token
+  router.post("/agent-access", async (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    const { ttlMinutes = 5 } = req.body || {};
+    const adminEmail = req.user?.email;
+    const authToken = req.user?.token || "";
+    const licenseToken = req.user?.licenseToken || "";
+
+    if (!authToken) {
+      return sendError(res, 400, "No auth token available for agent access");
+    }
+
+    const accessId = crypto.randomBytes(24).toString("hex");
+    const expiresAt = Date.now() + Math.min(60, Math.max(1, ttlMinutes)) * 60 * 1000;
+
+    agentAccessStore.set(accessId, {
+      authToken,
+      licenseToken,
+      adminEmail,
+      expiresAt,
+      used: false,
+    });
+
+    // Auto-cleanup after expiry
+    setTimeout(() => agentAccessStore.delete(accessId), expiresAt - Date.now() + 5000);
+
+    logger.info("[AdminAPI] agent access token generated", {
+      admin: adminEmail,
+      ttlMinutes,
+      accessId: accessId.slice(0, 8) + "…",
+    });
+
+    return res.json({
+      success: true,
+      accessId,
+      expiresAt: new Date(expiresAt).toISOString(),
+      url: `${process.env.PUBLIC_URL || "https://simplebeacon.ai"}/dashboard/?sb_agent_token=${accessId}`,
+    });
+  });
+
+  // GET /api/agent-access/:accessId — exchange single-use token for auth+license
+  // This is a PUBLIC endpoint (no admin auth required) — the accessId itself is the credential
+  router.get("/agent-access/:accessId", (req, res) => {
+    const { accessId } = req.params;
+    if (!accessId) return sendError(res, 400, "Missing accessId");
+
+    const entry = agentAccessStore.get(accessId);
+    if (!entry) {
+      return sendError(res, 404, "Agent access token not found or expired");
+    }
+    if (entry.used) {
+      return sendError(res, 410, "Agent access token already used");
+    }
+    if (Date.now() > entry.expiresAt) {
+      agentAccessStore.delete(accessId);
+      return sendError(res, 410, "Agent access token expired");
+    }
+
+    // Mark as used (single-use)
+    entry.used = true;
+    agentAccessStore.delete(accessId);
+
+    logger.info("[AdminAPI] agent access token exchanged", {
+      admin: entry.adminEmail,
+      accessId: accessId.slice(0, 8) + "…",
+    });
+
+    return res.json({
+      success: true,
+      authToken: entry.authToken,
+      licenseToken: entry.licenseToken || null,
+    });
+  });
+
   // ─── License Revocation ───────────────────────────────────────────
   router.post("/licenses/revoke", async (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
