@@ -83,9 +83,6 @@ if (rootEl) {
       "/auth/refresh",
       "/auth/session",
       "/users/me",
-      "/api/admin/users",
-      "/api/admin/stats",
-      "/api/admin/sessions",
     ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).fetch = async function (input: any, init?: any) {

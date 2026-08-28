@@ -45,7 +45,7 @@ import {
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
 import { WhitelabelAdminView } from "./WhitelabelAdminView";
-import { apiUrl, authHeaders, getApiBase } from "@/config";
+import { apiUrl, authHeaders, getApiBase, clearAuthAndRedirect } from "@/config";
 import { navigate } from "@/router/HashRouter";
 import { toast } from "sonner";
 
@@ -706,7 +706,14 @@ export function AdminView() {
         return;
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Action failed");
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error("Your session has expired. Please sign in again.");
+          setTimeout(() => clearAuthAndRedirect(), 1500);
+          throw new Error("Session expired");
+        }
+        throw new Error(data.message || data.error || "Action failed");
+      }
       toast.success(
         actionDialog === "contact" ? "Email sent to user" : `User ${actionDialog} successful`
       );
