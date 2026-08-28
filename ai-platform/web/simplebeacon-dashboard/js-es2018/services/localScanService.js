@@ -1078,32 +1078,39 @@ export async function runLocalScan(options = {}) {
     );
     console.warn("[localScan] Creating module worker from:", workerUrlStr);
 
-    // Strategy: Try direct Worker construction first (most reliable in Firefox),
-    // then fall back to fetch+blob for CDN cache-busting in Chrome/Edge.
+    // Strategy: Use an inline blob worker that imports the actual worker module
+    // via an absolute URL. This eliminates all module resolution issues in
+    // Firefox (which has buggy module worker support for relative imports from
+    // same-origin URLs) while still allowing the worker to be cache-busted.
     const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
     let workerCreated = false;
 
-    if (isFirefox) {
-      // Firefox: direct Worker construction is more reliable than fetch+blob.
-      // Firefox strips query params from module worker URLs internally, which
-      // means the worker loads without cache-bust, but it works reliably.
-      try {
-        // Strip query params for Firefox — it does this internally anyway,
-        // but doing it explicitly avoids console warnings.
-        const firefoxUrl = new URL(workerUrlStr);
-        firefoxUrl.search = "";
-        console.warn("[localScan] Firefox: direct module worker (no query params):", firefoxUrl.href);
-        worker = new Worker(firefoxUrl, { type: "module" });
-        workerCreated = true;
-      } catch (ctorErr) {
-        console.error("[localScan] Firefox direct Worker construction failed:", ctorErr);
+    // Approach 1: Inline shim blob worker (works in both Firefox and Chrome)
+    // Create a tiny module that imports the real worker via absolute URL.
+    // The blob URL is same-origin so CSP worker-src 'self' allows it.
+    // The absolute import URL bypasses Firefox's relative path resolution bugs.
+    try {
+      const absWorkerUrl = new URL(workerUrlStr);
+      absWorkerUrl.search = ""; // strip query params for Firefox compat
+      // Add cache-bust param only for non-Firefox (Firefox strips it internally)
+      if (!isFirefox) {
+        absWorkerUrl.searchParams.set("_sbcb", `${Date.now()}`);
       }
+      const shimCode = `// Inline shim — imports the real worker module\nimport "${absWorkerUrl.href}";\n`;
+      const shimBlob = new Blob([shimCode], { type: "application/javascript" });
+      blobUrlForWorker = URL.createObjectURL(shimBlob);
+      console.warn(
+        `[localScan] ${isFirefox ? "Firefox" : "Chrome/Edge"}: inline shim blob worker importing:`,
+        absWorkerUrl.href,
+      );
+      worker = new Worker(blobUrlForWorker, { type: "module" });
+      workerCreated = true;
+    } catch (shimErr) {
+      console.error("[localScan] Inline shim blob worker failed:", shimErr);
     }
 
     if (!workerCreated) {
-      // Chrome/Edge or Firefox fallback: use fetch+blob approach to bypass
-      // edge-cached stale copies (via cache-bust query param) and rewrite
-      // relative imports to absolute URLs for blob worker compatibility.
+      // Approach 2: fetch+blob with import rewriting (Chrome/Edge fallback)
       try {
         const fetchUrl = new URL(workerUrlStr);
         fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
@@ -1145,7 +1152,7 @@ export async function runLocalScan(options = {}) {
     }
 
     if (!workerCreated) {
-      // Last resort: try direct Worker construction (no query params)
+      // Approach 3: direct Worker construction (last resort)
       try {
         const directUrl = new URL(workerUrlStr);
         directUrl.search = "";
@@ -1173,6 +1180,13 @@ export async function runLocalScan(options = {}) {
   }
 
   // If we created a blob URL for the worker script, keep it alive until the worker posts its first message or errors.
+  // Also add an early error listener to catch module loading failures before runBatchedWorkerScan sets up its own handler.
+  let earlyWorkerError = null;
+  worker.addEventListener("error", (err) => {
+    console.error("[localScan] Early worker error:", err.message || err, err.filename, err.lineno, err.colno);
+    earlyWorkerError = err;
+  }, { once: true });
+
   if (blobUrlForWorker) {
     const cleanupBlobUrl = () => {
       try {
