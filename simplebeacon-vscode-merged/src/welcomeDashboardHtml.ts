@@ -3633,6 +3633,21 @@ body{font-family:var(--vscode-font-family,system-ui,-apple-system,BlinkMacSystem
         <button class="st-btn" id="stResetBtn">Reset</button>
       </div>
     </div>
+    <div class="st-section">
+      <div class="st-section-title">Debug &amp; Diagnostics</div>
+      <div class="st-row">
+        <div class="st-row-label">Export Diagnostic Log<div class="st-row-desc">Generate a log file with extension state, scan results, and errors to share with AI or support</div></div>
+        <button class="st-btn" id="stExportDiagBtn">Export Log</button>
+      </div>
+      <div class="st-row">
+        <div class="st-row-label">Open Output Panel<div class="st-row-desc">View real-time SimpleBeacon output and errors</div></div>
+        <button class="st-btn" id="stOpenOutputBtn">Open Output</button>
+      </div>
+      <div class="st-row">
+        <div class="st-row-label">Run Sidebar Diagnose<div class="st-row-desc">Check sidebar health, API connectivity, and webview state</div></div>
+        <button class="st-btn" id="stDiagnoseBtn">Diagnose</button>
+      </div>
+    </div>
   </div>
 </div>
 <script nonce="${nonce}">
@@ -3810,6 +3825,12 @@ function initWelcomeButtons() {
   bindBtn('openTeam','teamPane','openTeam');
   bindBtn('openScan','scanPane','openScan');
   bindBtn('openSettings','settingsPane','openSettings');
+  const exportDiagBtn = document.getElementById('stExportDiagBtn');
+  if (exportDiagBtn) exportDiagBtn.addEventListener('click', () => vscode.postMessage({ command: 'exportDiagnosticLog' }));
+  const openOutputBtn = document.getElementById('stOpenOutputBtn');
+  if (openOutputBtn) openOutputBtn.addEventListener('click', () => vscode.postMessage({ command: 'openOutputChannel' }));
+  const diagnoseBtn = document.getElementById('stDiagnoseBtn');
+  if (diagnoseBtn) diagnoseBtn.addEventListener('click', () => vscode.postMessage({ command: 'diagnoseSidebar' }));
   const profileSaveBtn = document.getElementById('profileSaveBtn');
   if (profileSaveBtn) profileSaveBtn.addEventListener('click', () => {
     const name = document.getElementById('profileName');

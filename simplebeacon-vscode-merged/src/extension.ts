@@ -2975,6 +2975,144 @@ export function activate(context: vscode.ExtensionContext) {
         diagChannel.appendLine('=== End Diagnose ===');
         diagChannel.show(true);
       }),
+      registerCmd('simplebeacon.exportDiagnosticLog', async () => {
+        const lines: string[] = [];
+        lines.push('=== SimpleBeacon Diagnostic Log ===');
+        lines.push(`Generated: ${new Date().toISOString()}`);
+        lines.push(`Extension version: ${context.extension.packageJSON?.version || 'unknown'}`);
+        lines.push(`VS Code version: ${vscode.version}`);
+        lines.push(`Node.js version: ${process.version}`);
+        lines.push(`Platform: ${process.platform} ${process.arch}`);
+        lines.push(`Workspace folder: ${vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'No workspace'}`);
+        lines.push('');
+
+        // Extension state
+        lines.push('--- Extension State ---');
+        lines.push(`ModernSidebarProvider registered: ${!!modernSidebarProvider}`);
+        lines.push(`Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`);
+        lines.push(`Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`);
+        lines.push(`Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`);
+        const view = (modernSidebarProvider as unknown as { _view?: vscode.WebviewView & { _isDisposed?: boolean } })._view;
+        lines.push(`Webview view set: ${!!view}`);
+        if (view) {
+          lines.push(`Webview view visible: ${view.visible ?? 'unknown'}`);
+          lines.push(`Webview view disposed: ${!!view._isDisposed}`);
+          lines.push(`Webview HTML length: ${view.webview?.html?.length ?? 'N/A'}`);
+        }
+        lines.push('');
+
+        // Configuration
+        lines.push('--- Configuration ---');
+        const cfg = getSbConfig();
+        const cfgKeys = ['autoScanOnOpen', 'offlineMode', 'showWelcomeOnLoad', 'displayMode', 'analysisProfile', 'maxFiles', 'confidenceThreshold', 'preferredAIProvider', 'enableRealtime', 'preset'];
+        for (const key of cfgKeys) {
+          try {
+            const val = cfg.get(key);
+            lines.push(`${key}: ${JSON.stringify(val)}`);
+          } catch { /* skip */ }
+        }
+        const excludePatterns = cfg.get<string[]>('excludePatterns');
+        lines.push(`excludePatterns: ${JSON.stringify(excludePatterns)}`);
+        lines.push('');
+
+        // API connectivity
+        lines.push('--- API Connectivity ---');
+        const apiUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
+        lines.push(`Configured API URL: ${apiUrl}`);
+        const relayPort = (ModernSidebarProvider as any)._relayPort;
+        lines.push(`Relay port: ${relayPort || 'NOT STARTED'}`);
+        try {
+          const reachable = await checkServerReachable(apiUrl, 3000);
+          lines.push(`API reachable: ${reachable ? 'YES' : 'NO'}`);
+        } catch (e) {
+          lines.push(`API reachable: ERROR (${e instanceof Error ? e.message : String(e)})`);
+        }
+        lines.push('');
+
+        // CLI availability
+        lines.push('--- CLI Status ---');
+        try {
+          const cliPath = path.join(context.extensionPath, 'node_modules', 'simplebeacon', 'bin', 'simplebeacon.js');
+          const cliExists = fs.existsSync(cliPath);
+          lines.push(`Bundled CLI at ${cliPath}: ${cliExists ? 'EXISTS' : 'NOT FOUND'}`);
+          const globalCli = await new Promise<string>((resolve) => {
+            const cp = require('child_process');
+            cp.exec('simplebeacon --version', { timeout: 5000 }, (err: any, stdout: string) => {
+              if (err) { resolve('NOT AVAILABLE (' + (err.message || 'error') + ')'); }
+              else { resolve(stdout.trim() || 'empty'); }
+            });
+          });
+          lines.push(`Global CLI version: ${globalCli}`);
+        } catch (e) {
+          lines.push(`CLI check failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        lines.push('');
+
+        // Current scan report summary
+        lines.push('--- Last Scan Report ---');
+        if (currentReport) {
+          const r = currentReport as any;
+          lines.push(`Quality score: ${r.qualityScore ?? 'N/A'}`);
+          lines.push(`Gate pass: ${r.gate?.pass ?? 'N/A'}`);
+          lines.push(`Total files: ${r.totalFilesScanned ?? r.totalFiles ?? 'N/A'}`);
+          lines.push(`Total issues: ${r.totalIssues ?? r.issueCount ?? 'N/A'}`);
+          lines.push(`Fiction patterns: ${r.fictionPatternsFound ?? 'N/A'}`);
+          const findings = r.findings || r.issues || [];
+          if (Array.isArray(findings)) {
+            lines.push(`Findings count: ${findings.length}`);
+            const bySeverity: Record<string, number> = {};
+            for (const f of findings) {
+              const sev = (f as any).severity || 'unknown';
+              bySeverity[sev] = (bySeverity[sev] || 0) + 1;
+            }
+            lines.push(`By severity: ${JSON.stringify(bySeverity)}`);
+            const blocking = findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high');
+            if (blocking.length > 0) {
+              lines.push(`Blocking findings (first 10):`);
+              for (const f of blocking.slice(0, 10)) {
+                lines.push(`  [${f.severity}] ${f.patternId || f.type || 'unknown'}: ${f.file || 'unknown'}:${f.line || '?'} — ${f.message || ''}`);
+              }
+            }
+          }
+        } else {
+          lines.push('No scan report available');
+        }
+        lines.push('');
+
+        // Recent errors from output channel (if accessible)
+        lines.push('--- Recent Log Entries ---');
+        lines.push('(See VS Code Output panel → SimpleBeacon for full real-time logs)');
+        lines.push('');
+
+        lines.push('=== End Diagnostic Log ===');
+
+        // Save to file
+        const fileName = `simplebeacon-diagnostic-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.log`;
+        const saveUri = await vscode.window.showSaveDialog({
+          saveLabel: 'Save Diagnostic Log',
+          filters: { 'Log Files': ['log', 'txt'], 'All Files': ['*'] },
+          defaultUri: vscode.Uri.file(fileName),
+        });
+
+        if (saveUri && saveUri.fsPath) {
+          try {
+            fs.writeFileSync(saveUri.fsPath, lines.join('\n'), 'utf8');
+            const openFile = await vscode.window.showInformationMessage(
+              `Diagnostic log saved: ${saveUri.fsPath}`,
+              'Open File',
+              'Copy Path'
+            );
+            if (openFile === 'Open File') {
+              vscode.commands.executeCommand('vscode.open', saveUri);
+            } else if (openFile === 'Copy Path') {
+              vscode.env.clipboard.writeText(saveUri.fsPath);
+              showQuietMessage('Path copied to clipboard');
+            }
+          } catch (e) {
+            vscode.window.showErrorMessage(`Failed to save diagnostic log: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+      }),
       registerCmd('simplebeacon.openTrustPage', async () => {
         const report = currentReport as any;
         const gate = report?.gate || {};

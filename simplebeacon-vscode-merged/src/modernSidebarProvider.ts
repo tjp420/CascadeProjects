@@ -1666,6 +1666,26 @@ $('cancelBtn').addEventListener('click', () => {
               vscode.window.showErrorMessage('Export failed: ' + msg);
             });
             break;
+          case 'exportDiagnosticLog':
+            Promise.resolve(vscode.commands.executeCommand('simplebeacon.exportDiagnosticLog')).catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              vscode.window.showErrorMessage('Diagnostic log export failed: ' + msg);
+            });
+            break;
+          case 'openOutputChannel':
+            try {
+              const ch = vscode.window.createOutputChannel('SimpleBeacon');
+              ch.show(true);
+            } catch (e) {
+              ModernSidebarProvider.logRelay('openOutputChannel failed: ' + (e instanceof Error ? e.message : String(e)));
+            }
+            break;
+          case 'diagnoseSidebar':
+            Promise.resolve(vscode.commands.executeCommand('simplebeacon.diagnoseSidebar')).catch((err: unknown) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              vscode.window.showErrorMessage('Diagnose failed: ' + msg);
+            });
+            break;
           case 'updateDisplayMode':
           case 'updateShowWelcome':
           case 'updateAutoScan':
