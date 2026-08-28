@@ -253,6 +253,7 @@ function isPublicApiRoute(relativePath, method) {
   const pathKey = String(relativePath || "").replace(/^\/+/, "");
   return (
     PUBLIC_API_PATHS.has(pathKey) ||
+    pathKey.startsWith("session-token/") ||
     pathKey.startsWith("health") ||
     isPublicAssessmentRoute(pathKey, method) ||
     isPublicOptimizationRoute(pathKey, method) ||
