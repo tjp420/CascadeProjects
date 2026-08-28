@@ -2139,10 +2139,11 @@ async function startServer() {
             renderLicenseConfirmation,
           } = require("../coming-soon/services/email-templates/license-confirmation-email.cjs");
 
-          const dashboardUrl =
+          const dashboardUrl = (
             process.env.PUBLIC_URL ||
             process.env.SIMPLEBEACON_APP_URL ||
-            "https://simplebeacon.ai/dashboard/";
+            "https://simplebeacon.ai/dashboard/"
+          ).replace(/\/?$/, "/");
           const signInUrl = dashboardUrl + "signin";
 
           const emailContent = renderLicenseConfirmation({
