@@ -2033,6 +2033,174 @@ async function startServer() {
     }
   });
 
+  // Admin license token generation — generates a production-signed license
+  // token and emails it to the specified address. Admin-only (SUPER_ADMIN_EMAIL).
+  app.post(
+    "/api/admin/generate-license",
+    authenticate,
+    express.json(),
+    async (req, res) => {
+      try {
+        const userEmail = (req.user && (req.user.email || req.user.sub)) || "";
+        const superAdminEmail =
+          process.env.SUPER_ADMIN_EMAIL || "admin@simplebeacon.ai";
+        if (userEmail.toLowerCase() !== superAdminEmail.toLowerCase()) {
+          return res.status(403).json({
+            error: "admin_required",
+            message: "Admin access required.",
+          });
+        }
+
+        const {
+          email: targetEmail,
+          tier: targetTier = "pro",
+          days = 365,
+          projectName = "SimpleBeacon",
+        } = req.body || {};
+
+        if (!targetEmail || typeof targetEmail !== "string") {
+          return res.status(400).json({
+            success: false,
+            error: "email is required",
+          });
+        }
+
+        const secret = String(
+          process.env.SIMPLEBEACON_LICENSE_SECRET || "",
+        ).trim();
+        if (!secret) {
+          return res.status(503).json({
+            success: false,
+            error:
+              "SIMPLEBEACON_LICENSE_SECRET is not configured in production",
+          });
+        }
+
+        const { generateLicenseToken } = require("./server/lib/simplebeacon-proxy.cjs");
+        const { insertLicenseToken } = require("./server/lib/token-db.cjs");
+
+        const tier = String(targetTier).toLowerCase();
+        const ttlMinutes = Math.min(
+          525600,
+          Math.max(1, Number(days) * 1440),
+        );
+
+        const features =
+          tier === "enterprise" ||
+          tier === "compliance" ||
+          tier === "team_pro" ||
+          tier === "team"
+            ? [
+                "continuous_shield",
+                "team_dashboard",
+                "ci_integration",
+                "compliance_certificate",
+                "eu_ai_act",
+                "analyst_support",
+              ]
+            : ["continuous_shield", "ci_integration", "export_reports"];
+
+        const tierLabel =
+          tier === "enterprise" || tier === "team_pro" || tier === "team"
+            ? "SimpleBeacon Team Pro"
+            : "SimpleBeacon Developer";
+
+        const claims = {
+          email: targetEmail,
+          tier,
+          features,
+          projectName,
+          clientName: targetEmail,
+        };
+
+        const token = generateLicenseToken(claims, secret, ttlMinutes);
+
+        // Register in token DB so /api/auth/token-status and /api/license/validate recognize it
+        try {
+          insertLicenseToken({
+            token,
+            email: targetEmail,
+            tier,
+            registered_at: new Date().toISOString(),
+          });
+        } catch (dbErr) {
+          logger.warn(
+            "[AdminLicense] Token DB insert failed (non-blocking): " +
+              dbErr.message,
+          );
+        }
+
+        // Send the license confirmation email
+        let emailSent = false;
+        let emailError = null;
+        try {
+          const { sendEmail } = require("../coming-soon/services/email.cjs");
+          const {
+            renderLicenseConfirmation,
+          } = require("../coming-soon/services/email-templates/license-confirmation-email.cjs");
+
+          const dashboardUrl =
+            process.env.PUBLIC_URL ||
+            process.env.SIMPLEBEACON_APP_URL ||
+            "https://simplebeacon.ai/dashboard/";
+          const signInUrl = dashboardUrl + "signin";
+
+          const emailContent = renderLicenseConfirmation({
+            tierLabel,
+            token,
+            apiKey: "(use your dashboard API key)",
+            ttlLabel: `${days} days`,
+            customerEmail: targetEmail,
+            features,
+            dashboardUrl,
+            signInUrl,
+          });
+
+          const emailResult = await sendEmail({
+            to: targetEmail,
+            subject: emailContent.subject,
+            text: emailContent.text,
+            html: emailContent.html,
+          });
+
+          emailSent = !!(emailResult.sent || emailResult.queued);
+          if (!emailSent) {
+            emailError = emailResult.error || "Email could not be sent or queued";
+          }
+        } catch (sendErr) {
+          emailError = sendErr.message;
+          logger.error(
+            "[AdminLicense] Email send failed: " + sendErr.message,
+          );
+        }
+
+        logger.info(
+          `[AdminLicense] Token generated for ${targetEmail} (tier=${tier}, days=${days}) by ${userEmail}`,
+        );
+
+        return res.json({
+          success: true,
+          token,
+          email: targetEmail,
+          tier,
+          features,
+          ttlDays: days,
+          emailSent,
+          emailError,
+        });
+      } catch (error) {
+        logger.error(
+          "[AdminLicense] Generate failed: " +
+            (error && error.message ? error.message : error),
+        );
+        return res.status(500).json({
+          success: false,
+          error: "Could not generate license token",
+        });
+      }
+    },
+  );
+
   // Copy the bundled report shipped with the repo into the runtime .simplebeacon directory
   // so the dashboard has data even though .simplebeacon/*.json is gitignored.
   const bundledReportPath = path.join(
