@@ -2101,9 +2101,13 @@ async function startServer() {
             : ["continuous_shield", "ci_integration", "export_reports"];
 
         const tierLabel =
-          tier === "enterprise" || tier === "team_pro" || tier === "team"
-            ? "SimpleBeacon Team Pro"
-            : "SimpleBeacon Developer";
+          tier === "enterprise"
+            ? "SimpleBeacon Enterprise"
+            : tier === "team_pro" || tier === "team"
+              ? "SimpleBeacon Team Pro"
+              : tier === "developer" || tier === "pro" || tier === "startup"
+                ? "SimpleBeacon Developer"
+                : "SimpleBeacon " + tier;
 
         const claims = {
           email: targetEmail,

@@ -36,6 +36,7 @@ import {
   waitForApiBase,
   getLicenseToken,
   setLicenseToken,
+  clearLicenseToken,
 } from "@/config";
 import { toast } from "sonner";
 
@@ -135,6 +136,7 @@ export function LicenseManagerView() {
   const [activating, setActivating] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [copiedLicense, setCopiedLicense] = useState(false);
+  const [showReplaceForm, setShowReplaceForm] = useState(false);
 
   const currentToken = getLicenseToken() || "";
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
@@ -289,6 +291,23 @@ export function LicenseManagerView() {
     } finally {
       setActivating(false);
     }
+  };
+
+  const handleRemoveLicense = () => {
+    if (!confirm("Remove the current license token? You'll need to activate a new one to use license-gated features.")) {
+      return;
+    }
+    clearLicenseToken();
+    setLicenseStatus(null);
+    setRoster(null);
+    setShowReplaceForm(false);
+    setActivateKey("");
+    try {
+      window.dispatchEvent(new Event("sb:license"));
+    } catch {
+      /* ignore */
+    }
+    toast.success("License token removed");
   };
 
   const handleInvite = async () => {
@@ -592,21 +611,33 @@ export function LicenseManagerView() {
         </Card>
       )}
 
-      {/* Activate License */}
-      {!hasLicense && (
+      {/* Activate / Replace / Upgrade License */}
+      {(!hasLicense || showReplaceForm) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <KeyRound className="h-4 w-4" />
-              Activate License
+              {hasLicense ? "Replace License" : "Activate License"}
             </CardTitle>
             <CardDescription>
-              Paste the license key from your confirmation email to unlock
-              dashboard features
+              {hasLicense
+                ? "Paste a new license key to upgrade or replace your current one"
+                : "Paste the license key from your confirmation email to unlock dashboard features"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
+              {hasLicense && (
+                <div className="rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3 text-sm">
+                  <strong>Current tier:</strong>{" "}
+                  {tierDisplayName(licenseStatus?.tier || "free")}
+                  <br />
+                  <span className="text-muted-foreground">
+                    Replacing your license will overwrite the current token. Make
+                    sure the new key is valid before activating.
+                  </span>
+                </div>
+              )}
               <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground-muted">
                 Your source code never leaves this machine. The license key
                 unlocks dashboard features — no code is uploaded during scans.
@@ -634,9 +665,67 @@ export function LicenseManagerView() {
                   ) : (
                     <KeyRound className="h-4 w-4" />
                   )}
-                  Activate
+                  {hasLicense ? "Replace" : "Activate"}
                 </Button>
+                {hasLicense && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowReplaceForm(false);
+                      setActivateKey("");
+                    }}
+                    disabled={activating}
+                  >
+                    Cancel
+                  </Button>
+                )}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upgrade / Replace / Remove buttons — shown when license is active */}
+      {hasLicense && !showReplaceForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              License Actions
+            </CardTitle>
+            <CardDescription>
+              Upgrade, replace, or remove your current license token
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setActivateKey("");
+                  setShowReplaceForm(true);
+                }}
+              >
+                <KeyRound className="h-4 w-4" />
+                Upgrade / Replace License
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm("Go to pricing page to purchase a new plan?")) {
+                    window.open("/pricing", "_blank");
+                  }
+                }}
+              >
+                View Pricing
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRemoveLicense}
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove License
+              </Button>
             </div>
           </CardContent>
         </Card>

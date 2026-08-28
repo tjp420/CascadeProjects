@@ -15,6 +15,7 @@ export async function onRequest(context) {
         if (pathname.endsWith('/assets/main.js')) {
             // Try hashed filenames first (newest build), fall back to main.js
             const hashedCandidates = [
+                '/assets/main-BL7lRUHI.js',
                 '/assets/main-CPuWfkEH.js',
                 '/assets/main-CUKrBhPx.js',
                 '/assets/main-v30min.js',
