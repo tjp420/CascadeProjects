@@ -39,6 +39,11 @@ const PRICE_TEAM_PRO_ANNUAL = 149000;
 const PRICE_EXTRA_SEAT_MONTHLY = 1500;
 const PRICE_EXTRA_SEAT_ANNUAL = 15000;
 
+// One-time purchase prices (no recurring billing)
+const PRICE_ONE_TIME_CERTIFICATE = 14900;   // $149 one-time
+const PRICE_EXECUTIVE_CLEARANCE = 49900;     // $499 one-time
+const PRICE_EU_AI_ACT_SPRINT = 249900;       // $2,499 one-time
+
 const logger = {
     error: (...a) => {
         const c = globalThis.console;
@@ -151,40 +156,61 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 desc: 'SimpleBeacon Enterprise — EU AI Act, quarterly certs, analyst support',
                 monthly: PRICE_ENTERPRISE_MONTHLY,
                 annual: PRICE_ENTERPRISE_ANNUAL
+            },
+            one_time_certificate: {
+                name: 'Audit Certificate',
+                desc: 'SimpleBeacon Audit Certificate — 1 board-ready certificate, PDF + JSON + remediation roadmap, EU AI Act + SOC 2 alignment. Valid for 12 months.',
+                oneTime: PRICE_ONE_TIME_CERTIFICATE,
+                displayPrice: '$149 one-time'
+            },
+            executive_clearance: {
+                name: 'Executive Risk Certificate',
+                desc: 'SimpleBeacon Executive Risk Certificate — signed certificate, A–F hygiene grade + liability estimate, remediation checklist + evidence pack. Valid for 90 days.',
+                oneTime: PRICE_EXECUTIVE_CLEARANCE,
+                displayPrice: '$499 one-time'
+            },
+            eu_ai_act_sprint: {
+                name: 'EU AI Act Sprint',
+                desc: 'SimpleBeacon EU AI Act Sprint — readiness audit, Annex III + Article 14 + Article 50 checks, verified evidence pack, 30-day analyst support.',
+                oneTime: PRICE_EU_AI_ACT_SPRINT,
+                displayPrice: '$2,499 one-time'
             }
         };
 
         const selectedTier = tierConfig[tier] || tierConfig.developer;
+        const isOneTime = !!selectedTier.oneTime;
         const isAnnual = mode === 'annual';
-        const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
-        const interval = isAnnual ? 'year' : 'month';
-        const displayPrice = isAnnual
-            ? tier === 'enterprise'
-                ? '$4,990/yr'
-                : tier === 'compliance'
-                  ? '$3,990/yr'
-                  : tier === 'team_pro'
-                    ? '$1,490/yr'
-                    : tier === 'team'
-                      ? '$990/yr'
-                      : tier === 'pro'
-                        ? '$90/yr'
-                        : tier === 'developer'
-                          ? '$490/yr'
-                          : '$490/yr'
-            : tier === 'enterprise'
-              ? '$499/mo'
-              : tier === 'compliance'
-                ? '$399/mo'
-                : tier === 'team_pro'
-                  ? '$149/mo'
-                  : tier === 'team'
-                    ? '$99/mo'
-                    : tier === 'pro'
-                      ? '$9/mo'
-                      : tier === 'developer'
-                        ? '$49/mo'
-                        : '$49/mo';
+        const unitAmount = isOneTime ? selectedTier.oneTime : (isAnnual ? selectedTier.annual : selectedTier.monthly);
+        const checkoutMode = isOneTime ? 'payment' : 'subscription';
+        const displayPrice = isOneTime
+            ? selectedTier.displayPrice
+            : isAnnual
+                ? tier === 'enterprise'
+                    ? '$4,990/yr'
+                    : tier === 'compliance'
+                      ? '$3,990/yr'
+                      : tier === 'team_pro'
+                        ? '$1,490/yr'
+                        : tier === 'team'
+                          ? '$990/yr'
+                          : tier === 'pro'
+                            ? '$90/yr'
+                            : tier === 'developer'
+                              ? '$490/yr'
+                              : '$490/yr'
+                : tier === 'enterprise'
+                  ? '$499/mo'
+                  : tier === 'compliance'
+                    ? '$399/mo'
+                    : tier === 'team_pro'
+                      ? '$149/mo'
+                      : tier === 'team'
+                        ? '$99/mo'
+                        : tier === 'pro'
+                          ? '$9/mo'
+                          : tier === 'developer'
+                            ? '$49/mo'
+                            : '$49/mo';
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -209,7 +235,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
-        // Build line items: base subscription + optional extra seat add-on
+        // Build line items: base subscription or one-time payment + optional extra seat add-on
         const lineItems = [
             {
                 price_data: {
@@ -219,7 +245,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
                         description: selectedTier.desc + ' — ' + displayPrice
                     },
                     unit_amount: unitAmount,
-                    recurring: { interval: interval }
+                    ...(isOneTime ? {} : { recurring: { interval: isAnnual ? 'year' : 'month' } })
                 },
                 quantity: 1
             }
@@ -244,14 +270,14 @@ router.post('/api/create-subscription-session', async (req, res) => {
         }
 
         const session = await stripe.checkout.sessions.create({
-            mode: 'subscription',
+            mode: checkoutMode,
             customer: stripeCustomerId,
             line_items: lineItems,
             success_url: successUrl,
             cancel_url: cancelUrl,
             metadata: {
                 product: tier || 'continuous_shield',
-                billing: isAnnual ? 'annual' : 'monthly',
+                billing: isOneTime ? 'one-time' : (isAnnual ? 'annual' : 'monthly'),
                 email: cleanEmail,
                 projectName: cleanProjectName,
                 clientName: cleanClientName,

@@ -21,22 +21,34 @@ const os = require("os");
 const ALG = "HS256";
 const TYP = "JWT";
 
-/** Default scan quotas per tier. */
+/** Default scan quotas per tier — matches pricing page + token generator. */
 const TIER_QUOTAS = Object.freeze({
-  developer: 100,
+  // Current purchasable tiers
+  community: 3,
+  developer: Infinity,
+  team_pro: Infinity,
+  enterprise: Infinity,
+  // One-time purchase tiers
+  one_time_certificate: 1,
+  executive_clearance: 1,
+  eu_ai_act_sprint: 20,
+  // Legacy / internal tiers
+  pro: 500,
+  sandbox: 50,
+  free: 3,
+  // Legacy aliases (kept for backward compat)
   startup: 500,
   growth: 2000,
-  enterprise: Infinity,
-  pro: 500,
   team: 2000,
-  free: 100,
 });
 
-/** Tier alias map for unified 4-tier model (canonical -> legacy alias). */
+/** Tier alias map for backward compat (legacy -> canonical). */
 const TIER_ALIASES = Object.freeze({
-  free: "developer",
-  pro: "startup",
-  team: "growth",
+  free: "community",
+  pro: "pro",
+  team: "team_pro",
+  startup: "pro",
+  growth: "team_pro",
 });
 
 /**
