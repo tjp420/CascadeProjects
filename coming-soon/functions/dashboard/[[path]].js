@@ -4,6 +4,8 @@
  * Static asset requests (CSS, JS, images, fonts) are passed through to the
  * Pages asset handler. All other /dashboard/* routes return the dashboard
  * entry HTML so the client-side router can render the requested view.
+ *
+ * Cache-bust version: 20260828-v2
  */
 export async function onRequest(context) {
     const { request, env } = context;
@@ -76,11 +78,23 @@ export async function onRequest(context) {
     if (!response) {
         return new Response('Dashboard entry not found', { status: 404 });
     }
+    // Read the body and inject a dynamic nonce to prevent CDN caching
+    let html = await response.text();
+    // Inject a unique comment before </head> to bust CDN cache
+    const nonce = `<!-- sb-${Date.now()}-${Math.random().toString(36).slice(2,8)} -->`;
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${nonce}</head>`);
+    } else if (html.includes('</body>')) {
+      html = html.replace('</body>', `${nonce}</body>`);
+    }
     const headers = new Headers(response.headers);
     headers.set('Content-Type', 'text/html; charset=utf-8');
     headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    headers.set('CDN-Cache-Control', 'no-store');
+    headers.set('CDN-Cache-Control', 'no-store, max-age=0');
     headers.set('Surrogate-Control', 'no-store');
+    headers.set('Pragma', 'no-cache');
+    headers.set('Expires', '0');
+    headers.set('X-Deploy-Version', '20260828-v2');
     // When embedded in VS Code (detect via sb_parent_urlbar or sb_website_mode),
     // override frame-ancestors so the webview iframe can load the page.
     if (url.searchParams.has('sb_parent_urlbar') || url.searchParams.has('sb_website_mode')) {
@@ -89,5 +103,5 @@ export async function onRequest(context) {
             headers.set('Content-Security-Policy', csp.replace(/frame-ancestors\s+'none'\s*;/, 'frame-ancestors *;'));
         }
     }
-    return new Response(response.body, { status: response.status, headers });
+    return new Response(html, { status: response.status, headers });
 }
