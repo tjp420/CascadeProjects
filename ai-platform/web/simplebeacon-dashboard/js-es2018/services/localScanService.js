@@ -15,7 +15,7 @@ import {
   getBrowserBuiltinIgnorePatterns,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
-} from "../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1";
+} from "../utils-lib/simplebeaconignore.browser.js";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.

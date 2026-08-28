@@ -8,8 +8,8 @@
 import {
   analyzeFileChunks,
   findingsToIssues,
-} from "./scan-wasm-bridge.js?v=20260716cachefix1";
-import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1";
+} from "./scan-wasm-bridge.js";
+import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js";
 const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
