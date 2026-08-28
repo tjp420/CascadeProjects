@@ -57,24 +57,68 @@ export function getApiBase(): string {
 }
 
 /**
- * Build a safe API URL for a given path segment.
- * Ensures the base has no trailing `/api` and the returned URL contains exactly one `/api` prefix.
+ * Auth token helpers — separates JWT auth tokens from license tokens.
+ *
+ * Storage keys:
+ *   sb_auth_token — JWT auth token (from login/register), used for API Bearer auth
+ *   sb_license    — License token (from Stripe payment / admin generation), used for feature gating
+ *   sb_token      — Legacy fallback (old sessions may have either token here)
  */
-export function authHeaders(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const token =
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    localStorage.getItem("sb_auth_token") ||
     localStorage.getItem("sb_token") ||
     localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token");
+    localStorage.getItem("auth_token")
+  );
+}
+
+export function getLicenseToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    localStorage.getItem("sb_license") ||
+    localStorage.getItem("sb-license")
+  );
+}
+
+export function setLicenseToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("sb_license", token);
+}
+
+export function clearLicenseToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("sb_license");
+  localStorage.removeItem("sb-license");
+}
+
+export function setAuthToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("sb_auth_token", token);
+}
+
+export function clearAuthToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("sb_auth_token");
+  // Also clear legacy keys to prevent stale token confusion
+  localStorage.removeItem("sb_token");
+  localStorage.removeItem("sb-token");
+  localStorage.removeItem("auth_token");
+}
+
+/**
+ * Build auth headers for API calls. Uses the JWT auth token (not the license token).
+ * Falls back to legacy sb_token for backward compatibility with existing sessions.
+ */
+export function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function isTokenExpired(): boolean {
   if (typeof window === "undefined") return false;
-  const token =
-    localStorage.getItem("sb_token") ||
-    localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token");
+  const token = getAuthToken();
   if (!token) return true;
   try {
     const parts = token.split(".");
@@ -89,9 +133,7 @@ export function isTokenExpired(): boolean {
 
 export function clearAuthAndRedirect(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("sb_token");
-  localStorage.removeItem("sb-token");
-  localStorage.removeItem("auth_token");
+  clearAuthToken();
   localStorage.removeItem("sb_user");
   if (window.location.hash && window.location.hash.includes("signin")) return;
   window.location.hash = "#/signin";

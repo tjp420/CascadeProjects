@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { navigate } from "@/router/HashRouter";
 import { toast } from "sonner";
-import { apiUrl, waitForApiBase } from "@/config";
+import { apiUrl, waitForApiBase, setAuthToken, setLicenseToken } from "@/config";
 
 type SsoProvider = {
   found: boolean;
@@ -48,7 +48,7 @@ export function SignInView() {
     const ssoToken = params.get("sso_token");
     const ssoError = params.get("sso_error");
     if (ssoToken) {
-      localStorage.setItem("sb_token", ssoToken);
+      setAuthToken(ssoToken);
       const ssoProviderId = params.get("sso_provider") || "";
       localStorage.setItem("sb_sso_provider", ssoProviderId);
       try {
@@ -186,7 +186,7 @@ export function SignInView() {
       }
       const data = await resp.json();
       if (data.token) {
-        localStorage.setItem("sb_token", data.token);
+        setAuthToken(data.token);
         if (data.user)
           localStorage.setItem("sb_user", JSON.stringify(data.user));
         try {
@@ -237,23 +237,21 @@ export function SignInView() {
       }
       const data = await resp.json();
       if (data.valid && data.registered) {
-        localStorage.setItem("sb_token", trimmed);
+        setLicenseToken(trimmed);
         const userData = {
           email: data.email || "",
           tier: data.tier || "developer",
           plan: data.tier || "developer",
-          // Use role from server response if available, otherwise default to 'user'.
-          // The useAuth hook will also decode the JWT as a fallback to get the correct role.
           role: data.role || data.user?.role || "user",
         };
         localStorage.setItem("sb_user", JSON.stringify(userData));
         try {
-          window.dispatchEvent(new Event("sb:login"));
+          window.dispatchEvent(new Event("sb:license"));
         } catch {
           /* ignore */
         }
         toast.success(`License activated — ${data.tier} tier`);
-        navigate("dashboard");
+        navigate("license-manager");
       } else if (data.registered && !data.valid) {
         toast.error(
           "License key found but no longer valid. It may have expired.",

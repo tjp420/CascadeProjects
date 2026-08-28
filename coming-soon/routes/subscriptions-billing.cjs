@@ -205,7 +205,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             db.updateCustomerStripeId(cleanEmail, stripeCustomerId);
         }
 
-        const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
+        const successUrl = `${PUBLIC_URL}/dashboard/#/license-manager?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
         const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
@@ -605,6 +605,18 @@ function setupSubscriptionWebhook(app) {
                         previousToken: previousToken || undefined
                     };
                     const token = generateLicenseToken(tokenPayload, licenseSecret, ttlMinutes);
+                    // Store token in session-token store so the post-checkout redirect can retrieve it
+                    try {
+                        const sessionTokenStore = require('./session-token-store.cjs');
+                        sessionTokenStore.set(session.id, {
+                            token,
+                            email: customer.email,
+                            projectName: customer.email,
+                            tier: finalTier,
+                        });
+                    } catch (storeErr) {
+                        logger.warn('[SubscriptionWebhook] Session token store failed:', storeErr.message);
+                    }
                     // Register subscription token in chain registry
                     try {
                         const { createTokenChain, activateToken, hashToken } = require('../lib/token-chain-store.cjs');

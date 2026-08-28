@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { navigate } from "../router/HashRouter";
-import { isTokenExpired } from "../config";
+import { isTokenExpired, clearAuthToken } from "../config";
 
 /**
  * Decode a JWT payload without verifying (verification happens server-side).
@@ -32,6 +32,7 @@ export function useAuth() {
     const checkAuth = () => {
       try {
         const token =
+          localStorage.getItem("sb_auth_token") ||
           localStorage.getItem("sb_token") ||
           localStorage.getItem("sb-token") ||
           localStorage.getItem("auth_token");
@@ -98,18 +99,18 @@ export function useAuth() {
     // Listen for same-tab login/logout events dispatched by SignInView
     window.addEventListener("sb:login", checkAuth);
     window.addEventListener("sb:logout", checkAuth);
+    window.addEventListener("sb:license", checkAuth);
     return () => {
       window.removeEventListener("storage", checkAuth);
       window.removeEventListener("sb:login", checkAuth);
       window.removeEventListener("sb:logout", checkAuth);
+      window.removeEventListener("sb:license", checkAuth);
     };
   }, []);
 
   const signOut = useCallback(() => {
-    localStorage.removeItem("sb_token");
-    localStorage.removeItem("sb-token");
+    clearAuthToken();
     localStorage.removeItem("sb_user");
-    localStorage.removeItem("auth_token");
     setIsAuthenticated(false);
     setUser(null);
     try {

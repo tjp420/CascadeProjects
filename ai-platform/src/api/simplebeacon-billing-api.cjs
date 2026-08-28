@@ -432,6 +432,19 @@ function setupSimplebeaconBillingWebhook(app) {
               });
               await syncSubscriptionToDb(db, record);
 
+              // Store token in session-token store so the post-checkout redirect can retrieve it
+              try {
+                const sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+                sessionTokenStore.set(session.id, {
+                  token: licenseToken,
+                  email,
+                  projectName: session.metadata?.projectName || "default-project",
+                  tier: subTier,
+                });
+              } catch (storeErr) {
+                logger.warn("[Simplebeacon billing] Session token store failed:", storeErr.message);
+              }
+
               // Register license token so /api/auth/token-status recognizes it as known
               insertLicenseToken({
                 token: licenseToken,
@@ -751,7 +764,7 @@ function setupSimplebeaconBillingRoutes(app) {
         "team_pro_annual",
       ]);
       const successPath = teamCheckoutProducts.has(product)
-        ? "/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+        ? "/dashboard/#/license-manager?checkout=success&session_id={CHECKOUT_SESSION_ID}"
         : "/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}";
 
       try {

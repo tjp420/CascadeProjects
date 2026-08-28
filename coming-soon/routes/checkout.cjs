@@ -123,18 +123,11 @@ function parseRawWebhookJson(rawBody) {
     return JSON.parse(text);
 }
 
-// In-memory store: sessionId -> { token, email, projectName, createdAt }
-const sessionTokenStore = new Map();
-const MS_PER_HOUR = 60 * 60 * 1000;
-const SESSION_TOKEN_TTL_MS = 24 * MS_PER_HOUR; // 24 hours
+// Shared session-token store (used by checkout.cjs and subscriptions-billing.cjs)
+const sessionTokenStore = require('./session-token-store.cjs');
 
-function cleanupSessionTokens() {
-    const now = Date.now();
-    for (const [sid, entry] of sessionTokenStore) {
-        if (now - entry.createdAt > SESSION_TOKEN_TTL_MS) sessionTokenStore.delete(sid);
-    }
-}
-setInterval(cleanupSessionTokens, 60 * 60 * 1000);
+// Legacy in-memory map kept for backward compat — delegates to shared store
+const _legacyStore = new Map();
 
 // Test-checkout rate limiter: max 3 per IP per hour
 const TEST_CHECKOUT_RATE_LIMIT_MS = 60 * 60 * 1000;

@@ -30,7 +30,13 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { apiUrl, authHeaders, waitForApiBase } from "@/config";
+import {
+  apiUrl,
+  authHeaders,
+  waitForApiBase,
+  getLicenseToken,
+  setLicenseToken,
+} from "@/config";
 import { toast } from "sonner";
 
 interface Seat {
@@ -130,10 +136,9 @@ export function LicenseManagerView() {
   const [showToken, setShowToken] = useState(false);
   const [copiedLicense, setCopiedLicense] = useState(false);
 
-  const currentToken =
-    (typeof window !== "undefined" &&
-      (localStorage.getItem("sb_token") || localStorage.getItem("sb-token"))) ||
-    "";
+  const currentToken = getLicenseToken() || "";
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [sessionTokenLoading, setSessionTokenLoading] = useState(false);
 
   const fetchLicenseStatus = useCallback(async () => {
     if (!currentToken) {
@@ -193,7 +198,40 @@ export function LicenseManagerView() {
   useEffect(() => {
     fetchLicenseStatus();
     fetchRoster();
-  }, [fetchLicenseStatus, fetchRoster]);
+
+    // Check for checkout=success in URL (post-Stripe redirect)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutSuccess = params.get("checkout") === "success";
+      const sessionId = params.get("session_id");
+      if (checkoutSuccess) {
+        setCheckoutSuccess(true);
+      }
+      // If session_id is present, try to fetch the token from the session-token store
+      if (sessionId && !currentToken) {
+        setSessionTokenLoading(true);
+        (async () => {
+          try {
+            await waitForApiBase();
+            const res = await fetch(apiUrl(`/session-token/${encodeURIComponent(sessionId)}`));
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.token) {
+                setActivateKey(data.token);
+                toast.success("License token retrieved from checkout session");
+              }
+            }
+          } catch {
+            /* non-blocking — user can paste manually */
+          } finally {
+            setSessionTokenLoading(false);
+          }
+        })();
+      }
+    } catch {
+      /* ignore URL parse errors */
+    }
+  }, [fetchLicenseStatus, fetchRoster, currentToken]);
 
   const handleActivate = async () => {
     const trimmed = activateKey.trim();
@@ -224,7 +262,7 @@ export function LicenseManagerView() {
       }
       const data = await resp.json();
       if (data.valid && data.registered) {
-        localStorage.setItem("sb_token", trimmed);
+        setLicenseToken(trimmed);
         const userData = {
           email: data.email || "",
           tier: data.tier || "developer",
@@ -233,7 +271,7 @@ export function LicenseManagerView() {
         };
         localStorage.setItem("sb_user", JSON.stringify(userData));
         try {
-          window.dispatchEvent(new Event("sb:login"));
+          window.dispatchEvent(new Event("sb:license"));
         } catch {
           /* ignore */
         }
@@ -371,6 +409,37 @@ export function LicenseManagerView() {
 
   return (
     <div className="space-y-6">
+      {/* Checkout Success Banner */}
+      {checkoutSuccess && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                  Payment successful!
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {sessionTokenLoading
+                    ? "Retrieving your license token..."
+                    : activateKey
+                      ? "Your license token is ready below — click Activate to unlock your features."
+                      : "Check your email for the license token, then paste it in the Activate section below."}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCheckoutSuccess(false)}
+                className="text-muted-foreground"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* License Status Card */}
       <Card>
         <CardHeader>
