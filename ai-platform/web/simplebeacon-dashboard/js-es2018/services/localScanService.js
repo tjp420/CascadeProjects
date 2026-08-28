@@ -66,8 +66,45 @@ function resolveScanWorkerUrl() {
 //   ../utils-lib/simplebeaconignore.browser.js
 // We fetch all three, rewrite imports to reference inlined blob URLs, and cache
 // the final self-contained script.
+//
+// Offline persistence: After a successful prefetch, the inlined script is stored in
+// the Cache API. When the user is offline (or DNS fails), we read from cache so the
+// scan worker can still be created without any network request.
+const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v1";
 let _cachedWorkerScript = null; // fully inlined, self-contained script
 let _prefetchPromise = null;
+
+async function persistWorkerToCache(scriptText) {
+  try {
+    if (typeof caches === "undefined") return;
+    const cache = await caches.open(WORKER_CACHE_NAME);
+    const resp = new Response(scriptText, {
+      headers: { "Content-Type": "application/javascript" },
+    });
+    await cache.put("simplebeacon-scan-worker-inlined", resp);
+    console.warn("[localScan] Worker script persisted to Cache API for offline use");
+  } catch (e) {
+    console.warn("[localScan] Cache API persist failed:", e?.message || e);
+  }
+}
+
+async function loadWorkerFromCache() {
+  try {
+    if (typeof caches === "undefined") return null;
+    const cache = await caches.open(WORKER_CACHE_NAME);
+    const resp = await cache.match("simplebeacon-scan-worker-inlined");
+    if (resp && resp.ok) {
+      const text = await resp.text();
+      if (text && text.length > 100) {
+        console.warn(`[localScan] Loaded worker from Cache API (${text.length} bytes) — offline-ready`);
+        return text;
+      }
+    }
+  } catch (e) {
+    console.warn("[localScan] Cache API load failed:", e?.message || e);
+  }
+  return null;
+}
 
 async function fetchScriptText(url) {
   const fetchUrl = new URL(String(url.href || url));
@@ -132,9 +169,18 @@ function prefetchWorkerScript() {
         workerText.length, "+", bridgeText.length, "+", ignoreLibText.length,
         "= ", inlinedScript.length, "bytes (self-contained)",
       );
+      // Persist to Cache API for offline use across sessions
+      await persistWorkerToCache(inlinedScript);
       return inlinedScript;
     } catch (e) {
       console.warn("[localScan] Worker prefetch failed (will retry at scan time):", e?.message || e);
+      // Try loading from Cache API as fallback (offline scenario)
+      const cached = await loadWorkerFromCache();
+      if (cached) {
+        _cachedWorkerScript = cached;
+        console.warn("[localScan] Using Cache API fallback for worker script");
+        return cached;
+      }
       return null;
     } finally {
       _prefetchPromise = null;
@@ -1183,6 +1229,11 @@ export async function runLocalScan(options = {}) {
         if (!scriptText) {
           console.warn("[localScan] Waiting for worker prefetch...");
           scriptText = await prefetchWorkerScript();
+        }
+        // If prefetch failed (offline), try Cache API directly
+        if (!scriptText) {
+          console.warn("[localScan] Prefetch returned nothing — trying Cache API fallback...");
+          scriptText = await loadWorkerFromCache();
         }
         if (scriptText) {
           // The cached script already has imports inlined as blob URLs — no rewriting needed
