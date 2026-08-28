@@ -1,0 +1,59 @@
+# SimpleBeacon CI Gate — Fail builds on AI slop
+
+# Drop this into .github/workflows/simplebeacon-gate.yml
+# It runs the SimpleBeacon scanner in gate mode and fails the build
+# if any blocking findings (critical/high severity) are detected.
+
+name: SimpleBeacon Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  simplebeacon-gate:
+    name: AI Slop Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install SimpleBeacon
+        run: npm install -g @simplebeacon/cli
+
+      - name: Run gate scan
+        run: |
+          npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json
+          npx simplebeacon gate status
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-report
+          path: .simplebeacon/report.json
+          retention-days: 30
+
+      - name: Fail on blocking findings
+        if: always()
+        run: |
+          BLOCKING=$(node -e "
+            const r = require('./.simplebeacon/report.json');
+            const blocking = (r.findings || []).filter(f => f.severity === 'critical' || f.severity === 'high');
+            console.log(blocking.length);
+          ")
+          if [ "$BLOCKING" -gt 0 ]; then
+            echo "::error::SimpleBeacon gate found $BLOCKING blocking finding(s). Fix critical/high issues before merging."
+            exit 1
+          fi
+          echo "::notice::SimpleBeacon gate passed — no blocking findings."

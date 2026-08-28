@@ -43,6 +43,8 @@
     "deploy:coming-soon": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1",
     "deploy:coming-soon:lighthouse": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -RunLighthouse",
     "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",
+    "deploy:dashboard": "cd coming-soon && npx wrangler pages deploy public --project-name=simplebeacon --branch=main --commit-dirty && cd .. && node scripts/purge-cloudflare-cache.cjs",
+    "cache:purge": "node scripts/purge-cloudflare-cache.cjs",
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\"",
     "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs",

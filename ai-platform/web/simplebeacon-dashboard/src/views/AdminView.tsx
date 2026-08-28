@@ -171,6 +171,12 @@ function daysUntil(iso: string): number {
 export function AdminView() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(0);
+  const [userHasMore, setUserHasMore] = useState(false);
+  const [userNextCursor, setUserNextCursor] = useState<string | null>(null);
+  const [userTotal, setUserTotal] = useState(0);
+  const userSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -826,6 +832,46 @@ export function AdminView() {
       });
   }, []);
 
+  // ─── User Search + Pagination ─────────────────────────────────────
+  const fetchUsers = useCallback(
+    async (opts?: { search?: string; cursor?: string | null; append?: boolean }) => {
+      const search = opts?.search ?? userSearch;
+      const cursor = opts?.cursor ?? null;
+      const append = opts?.append ?? false;
+      try {
+        const params = new URLSearchParams({ limit: "20" });
+        if (search) params.set("q", search);
+        if (cursor) params.set("cursor", cursor);
+        const res = await fetch(apiUrl(`/admin/users?${params.toString()}`), {
+          headers: authHeaders(),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.users) {
+          setUsers((prev) => (append ? [...prev, ...data.users] : data.users));
+          setUserHasMore(!!data.hasMore);
+          setUserNextCursor(data.nextCursor || null);
+          setUserTotal(data.total || data.users.length);
+        }
+      } catch {
+        // ignore — non-critical
+      }
+    },
+    [userSearch],
+  );
+
+  // Debounced search trigger
+  useEffect(() => {
+    if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
+    userSearchTimer.current = setTimeout(() => {
+      setUserPage(0);
+      fetchUsers({ search: userSearch, cursor: null, append: false });
+    }, 300);
+    return () => {
+      if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
+    };
+  }, [userSearch, fetchUsers]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -833,12 +879,8 @@ export function AdminView() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
-      const [statsResp, usersResp] = await Promise.allSettled([
+      const statsResp = await Promise.allSettled([
         fetch(apiUrl("/admin/stats"), {
-          headers: authHeaders(),
-          signal: controller.signal,
-        }),
-        fetch(apiUrl("/admin/users?limit=20"), {
           headers: authHeaders(),
           signal: controller.signal,
         }),
@@ -857,14 +899,7 @@ export function AdminView() {
         }
       }
 
-      if (usersResp.status === "fulfilled") {
-        if (usersResp.value.ok) {
-          const data = await usersResp.value.json();
-          if (data.success && data.users) setUsers(data.users);
-        }
-      }
-
-      if (statsResp.status === "rejected" && usersResp.status === "rejected") {
+      if (statsResp.status === "rejected") {
         throw new Error("Failed to fetch admin data");
       }
     } catch (e: any) {
@@ -1240,9 +1275,31 @@ export function AdminView() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Users</CardTitle>
-              <CardDescription>Recent registered users</CardDescription>
+              <CardDescription>
+                {userTotal > 0 ? `${userTotal} total` : "Recent registered users"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Search + Load More */}
+              <div className="flex items-center gap-2 mb-4">
+                <Input
+                  type="text"
+                  placeholder="Search by email or name…"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="max-w-xs"
+                />
+                {userSearch && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setUserSearch("")}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+
               {users.length === 0 ? (
                 <p className="text-sm text-foreground-muted text-center py-4">
                   No users found
@@ -1352,6 +1409,23 @@ export function AdminView() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Load More */}
+              {userHasMore && (
+                <div className="flex justify-center mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const next = userPage + 1;
+                      setUserPage(next);
+                      fetchUsers({ search: userSearch, cursor: userNextCursor, append: true });
+                    }}
+                  >
+                    Load More
+                  </Button>
                 </div>
               )}
             </CardContent>
