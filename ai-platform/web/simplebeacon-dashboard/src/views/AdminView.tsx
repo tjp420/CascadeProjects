@@ -263,6 +263,19 @@ export function AdminView() {
   } | null>(null);
   const [licenseCopied, setLicenseCopied] = useState(false);
 
+  // ─── License Revocation State ─────────────────────────────────────
+  const [revokeForm, setRevokeForm] = useState({
+    token: "",
+    email: "",
+    reason: "",
+    password: "",
+  });
+  const [revoking, setRevoking] = useState(false);
+  const [revokeResult, setRevokeResult] = useState<{
+    revokedCount: number;
+    revoked: Array<{ token?: string; email?: string; jti?: string }>;
+  } | null>(null);
+
   // ─── User Management Action State ─────────────────────────────────
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
   const [actionDialog, setActionDialog] = useState<
@@ -503,6 +516,43 @@ export function AdminView() {
     search: "",
     hash: "",
   });
+
+  // ─── License Revocation ───────────────────────────────────────────
+  const handleRevokeLicense = async () => {
+    if (!revokeForm.password) {
+      toast.error("Admin password required");
+      return;
+    }
+    if (!revokeForm.token && !revokeForm.email) {
+      toast.error("Provide a token or email to revoke");
+      return;
+    }
+    setRevoking(true);
+    setRevokeResult(null);
+    try {
+      const res = await fetch(apiUrl("/admin/licenses/revoke"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          token: revokeForm.token || undefined,
+          email: revokeForm.email || undefined,
+          reason: revokeForm.reason || undefined,
+          password: revokeForm.password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Revoke failed");
+      }
+      setRevokeResult(data);
+      toast.success(`Revoked ${data.revokedCount} license token(s)`);
+      setRevokeForm({ token: "", email: "", reason: "", password: "" });
+    } catch (err: any) {
+      toast.error(err.message || "Revoke failed");
+    } finally {
+      setRevoking(false);
+    }
+  };
 
   // ─── License Generation ───────────────────────────────────────────
   const handleGenerateLicense = async () => {
@@ -1490,6 +1540,88 @@ export function AdminView() {
                       {licenseCopied ? "Copied!" : "Copy Token"}
                     </Button>
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* License Revocation */}
+          <Card className="border-red-500/20">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-red-600">
+                <Ban className="h-4 w-4" />
+                Revoke License Token
+              </CardTitle>
+              <CardDescription>
+                Invalidate a license token by token string or email (revokes all tokens for that email)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Token (paste full token)</label>
+                  <Input
+                    type="text"
+                    placeholder="eyJhbGciOiJIUzI1NiIs..."
+                    value={revokeForm.token}
+                    onChange={(e) => setRevokeForm({ ...revokeForm, token: e.target.value })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">OR Email (revokes all tokens)</label>
+                  <Input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={revokeForm.email}
+                    onChange={(e) => setRevokeForm({ ...revokeForm, email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Reason (optional)</label>
+                  <Input
+                    type="text"
+                    placeholder="Exposed in URL, customer refund, etc."
+                    value={revokeForm.reason}
+                    onChange={(e) => setRevokeForm({ ...revokeForm, reason: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Admin Password</label>
+                  <Input
+                    type="password"
+                    placeholder="Enter your admin password"
+                    value={revokeForm.password}
+                    onChange={(e) => setRevokeForm({ ...revokeForm, password: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={handleRevokeLicense}
+                disabled={revoking || !revokeForm.password || (!revokeForm.token && !revokeForm.email)}
+              >
+                {revoking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Ban className="h-4 w-4" />
+                )}
+                Revoke License
+              </Button>
+
+              {revokeResult && (
+                <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-orange-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Revoked {revokeResult.revokedCount} token(s)
+                  </div>
+                  {revokeResult.revoked.map((r, i) => (
+                    <div key={i} className="text-xs text-muted-foreground">
+                      {r.email} — {r.token || r.jti}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

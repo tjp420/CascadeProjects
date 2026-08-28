@@ -2677,7 +2677,7 @@ async function startServer() {
         });
       }
       const { verifyLicenseToken } = require("./server/lib/simplebeacon-proxy.cjs");
-      const { getLicenseToken } = require("./server/lib/token-db.cjs");
+      const { getLicenseToken, isLicenseTokenRevoked } = require("./server/lib/token-db.cjs");
       let secret = null;
       try {
         secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim() || null;
@@ -2695,8 +2695,9 @@ async function startServer() {
       }
       const claims = verifyLicenseToken(token, secret);
       const entry = getLicenseToken(token);
+      const revoked = isLicenseTokenRevoked(token);
       const registered = !!claims || !!entry;
-      const active = registered && claims !== null;
+      const active = registered && claims !== null && !revoked;
       const tier = entry?.tier || claims?.tier || "developer";
       const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || "https://simplebeacon.ai/pricing";
       return res.json({
@@ -2704,6 +2705,7 @@ async function startServer() {
         sandbox: !active,
         registered,
         valid: !!claims,
+        revoked,
         email: entry?.email || claims?.sub || claims?.email || null,
         tier,
         features: claims?.features || [],

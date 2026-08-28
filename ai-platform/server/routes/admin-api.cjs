@@ -1357,6 +1357,67 @@ function setupAdminAPI(app, options = {}) {
     },
   );
 
+  // ─── License Revocation ───────────────────────────────────────────
+  router.post("/licenses/revoke", async (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    const { token, jti, email, reason, password } = req.body || {};
+    if (!password) return sendError(res, 400, "Admin password required");
+    if (!token && !jti && !email) {
+      return sendError(res, 400, "Provide token, jti, or email to revoke");
+    }
+    const adminEmail = req.user?.email;
+    const sqlite = getSqliteDb();
+    const passwordValid = await verifyAdminPassword(
+      adminEmail,
+      password,
+      db,
+      sqlite,
+    );
+    if (!passwordValid) return sendError(res, 401, "Invalid admin password");
+    try {
+      let revokedCount = 0;
+      const revokedEntries = [];
+
+      if (token) {
+        const result = tokenDb.revokeLicenseToken(token, reason);
+        if (result) {
+          revokedCount++;
+          revokedEntries.push({ token: maskToken(token), email: result.email });
+        }
+      } else if (jti) {
+        const result = tokenDb.revokeLicenseTokenByJti(jti, reason);
+        if (result) {
+          revokedCount++;
+          revokedEntries.push({ jti, email: result.email });
+        }
+      } else if (email) {
+        const tokens = tokenDb.getLicenseTokensByEmail(email);
+        for (const t of tokens) {
+          if (t.revoked_at) continue;
+          const result = tokenDb.revokeLicenseToken(t.token, reason);
+          if (result) {
+            revokedCount++;
+            revokedEntries.push({ token: maskToken(t.token), email: t.email });
+          }
+        }
+      }
+
+      logger.info("[AdminAPI] license revoked", {
+        revokedCount,
+        admin: adminEmail,
+        reason: reason || "Admin revocation",
+      });
+      return res.json({
+        success: true,
+        revokedCount,
+        revoked: revokedEntries,
+      });
+    } catch (err) {
+      logger.warn("[AdminAPI] license revoke failed:", err.message);
+      return sendError(res, 500, err.message);
+    }
+  });
+
   // ─── Billing & Subscriptions ──────────────────────────────────────
   router.get("/billing/subscriptions", async (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");

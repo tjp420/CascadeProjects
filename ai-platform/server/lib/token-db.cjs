@@ -369,6 +369,49 @@ function updateLicenseToken(token, updates) {
   });
 }
 
+function revokeLicenseToken(token, reason) {
+  return withDbQueued((db) => {
+    const idx = db.license_tokens.findIndex((t) => t.token === token);
+    if (idx === -1) return null;
+    db.license_tokens[idx] = {
+      ...db.license_tokens[idx],
+      revoked_at: new Date().toISOString(),
+      revoked_reason: reason || "Admin revocation",
+      updated_at: new Date().toISOString(),
+    };
+    return db.license_tokens[idx];
+  });
+}
+
+function isLicenseTokenRevoked(token) {
+  const db = loadDb();
+  const entry = db.license_tokens.find((t) => t.token === token);
+  return !!(entry && entry.revoked_at);
+}
+
+function revokeLicenseTokenByJti(jti, reason) {
+  return withDbQueued((db) => {
+    const idx = db.license_tokens.findIndex((t) => {
+      try {
+        const parts = t.token.split(".");
+        if (parts.length !== 3) return false;
+        const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+        return payload.jti === jti;
+      } catch {
+        return false;
+      }
+    });
+    if (idx === -1) return null;
+    db.license_tokens[idx] = {
+      ...db.license_tokens[idx],
+      revoked_at: new Date().toISOString(),
+      revoked_reason: reason || "Admin revocation",
+      updated_at: new Date().toISOString(),
+    };
+    return db.license_tokens[idx];
+  });
+}
+
 module.exports = {
   // Accounts
   getAccount,
@@ -407,6 +450,9 @@ module.exports = {
   getAllLicenseTokens,
   insertLicenseToken,
   updateLicenseToken,
+  revokeLicenseToken,
+  revokeLicenseTokenByJti,
+  isLicenseTokenRevoked,
   // Audit
   insertAuditLog,
 };
