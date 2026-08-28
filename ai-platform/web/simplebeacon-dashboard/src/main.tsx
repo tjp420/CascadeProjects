@@ -86,6 +86,37 @@ if (rootEl) {
     ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).fetch = async function (input: any, init?: any) {
+      // Offline guard: short-circuit API calls when the browser is offline.
+      // Returns a synthetic empty JSON response so views don't spam DNS
+      // lookups that all fail with NS_ERROR_UNKNOWN_HOST.
+      try {
+        const url = String(
+          typeof input === "string"
+            ? input
+            : input?.url || input?.href || "",
+        );
+        const isApiCall = url.includes("/api/") || url.includes("/api?");
+        if (isApiCall && typeof navigator !== "undefined" && !navigator.onLine) {
+          const body = JSON.stringify({
+            ok: false,
+            offline: true,
+            error: "Browser is offline. Scans still run locally — dashboard data is unavailable until connectivity returns.",
+            data: null,
+            results: [],
+            items: [],
+            entries: [],
+            stats: {},
+            total: 0,
+          });
+          return new Response(body, {
+            status: 503,
+            statusText: "Offline",
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      } catch (_) {
+        // best-effort — fall through to real fetch
+      }
       try {
         const resp = await _origFetch(input, init);
         try {

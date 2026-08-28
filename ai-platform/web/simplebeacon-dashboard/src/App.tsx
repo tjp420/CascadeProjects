@@ -4,6 +4,7 @@ import { AppShell } from "./layout/AppShell";
 import { ToastProvider } from "./components/ToastProvider";
 import { BrandProvider } from "./contexts/BrandContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { OfflineBanner } from "./components/OfflineBanner";
 import { useAuth } from "./hooks/useAuth";
 import { useTheme } from "./hooks/useTheme";
 import { isTokenExpired, processAgentParams } from "./config";
@@ -224,6 +225,7 @@ export default function App() {
   return (
     <BrandProvider>
       <ToastProvider>
+        <OfflineBanner />
         <AppShell
           currentView={route.view}
           onNavigate={handleNavigate}

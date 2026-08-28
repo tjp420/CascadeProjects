@@ -987,19 +987,20 @@ export function AdminView() {
       ]);
       clearTimeout(timeout);
 
-      if (statsResp.status === "fulfilled") {
-        if (statsResp.value.status === 401 || statsResp.value.status === 403) {
+      const result = statsResp[0];
+      if (result.status === "fulfilled") {
+        if (result.value.status === 401 || result.value.status === 403) {
           setForbidden(true);
           setLoading(false);
           return;
         }
-        if (statsResp.value.ok) {
-          const data = await statsResp.value.json();
+        if (result.value.ok) {
+          const data = await result.value.json();
           if (data.success) setStats(data.stats);
         }
       }
 
-      if (statsResp.status === "rejected") {
+      if (result.status === "rejected") {
         throw new Error("Failed to fetch admin data");
       }
     } catch (e: any) {

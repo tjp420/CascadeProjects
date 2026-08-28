@@ -5,10 +5,18 @@
  * for chunked file analysis. If it is missing or fails to load, a pure-JS
  * chunk analyzer is used instead so the scan still works in development.
  */
-const WASM_PKG_URL = new URL(
-  "../../wasm/pkg/simplebeacon_scan_wasm.js",
-  import.meta.url,
-);
+// Wrap in try/catch — this throws when import.meta.url is a blob URL
+// (which happens when the worker is loaded from a prefetched inlined blob).
+// WASM_ENABLED is false anyway, so the URL is never used.
+let WASM_PKG_URL = null;
+try {
+  WASM_PKG_URL = new URL(
+    "../../wasm/pkg/simplebeacon_scan_wasm.js",
+    import.meta.url,
+  );
+} catch (_e) {
+  // Blob worker context — WASM path not resolvable, but WASM is disabled anyway
+}
 const WASM_ENABLED = false; // Set to true after building and deploying wasm/pkg/
 const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1 MB
 const SEVERITY_MAP = {
