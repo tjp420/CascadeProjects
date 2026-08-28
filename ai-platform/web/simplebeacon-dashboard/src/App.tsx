@@ -6,7 +6,7 @@ import { BrandProvider } from "./contexts/BrandContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
 import { useTheme } from "./hooks/useTheme";
-import { isTokenExpired } from "./config";
+import { isTokenExpired, processAgentParams } from "./config";
 
 // P1 views
 import { DashboardView } from "./views/DashboardView";
@@ -168,6 +168,11 @@ const viewMap: Record<string, React.ComponentType> = {
 };
 
 export default function App() {
+  // Process agent URL params (sb_auth, sb_license_token, sb_agent) on first load
+  useEffect(() => {
+    processAgentParams();
+  }, []);
+
   const [route, setRoute] = useState(getCurrentRoute());
   const { isAuthenticated, isFreeTier, user } = useAuth();
   useTheme();

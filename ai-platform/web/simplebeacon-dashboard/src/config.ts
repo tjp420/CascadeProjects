@@ -131,6 +131,52 @@ export function isTokenExpired(): boolean {
   }
 }
 
+/**
+ * Process URL query params for AI agent / automated reviewer access.
+ *
+ * Supported params (all optional):
+ *   sb_api_base     — API base URL (e.g. https://simplebeacon.ai)
+ *   sb_auth         — JWT auth token, stored to sb_auth_token
+ *   sb_license_token — License token, stored to sb_license
+ *   sb_agent        — Set to "1" to enable agent mode (skips local API probe, suppresses toast noise)
+ *
+ * Example:
+ *   https://simplebeacon.ai/dashboard/?sb_api_base=https://simplebeacon.ai&sb_auth=eyJ...&sb_license_token=eyJ...&sb_agent=1#/admin
+ *
+ * Tokens are injected into localStorage on load so the dashboard treats the
+ * agent as a signed-in Enterprise user with full feature access.
+ */
+export function processAgentParams(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const authToken = params.get("sb_auth");
+    const licenseToken = params.get("sb_license_token");
+    const agentMode = params.get("sb_agent");
+
+    if (authToken) {
+      setAuthToken(authToken);
+    }
+    if (licenseToken) {
+      setLicenseToken(licenseToken);
+    }
+    if (agentMode === "1") {
+      try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isAgentMode(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem("sb_agent_mode") === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function clearAuthAndRedirect(): void {
   if (typeof window === "undefined") return;
   clearAuthToken();
