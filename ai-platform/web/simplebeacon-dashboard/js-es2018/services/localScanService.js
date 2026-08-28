@@ -1078,54 +1078,84 @@ export async function runLocalScan(options = {}) {
     );
     console.warn("[localScan] Creating module worker from:", workerUrlStr);
 
-    // Always use fetch+blob approach for maximum browser compatibility.
-    // This bypasses edge-cached stale copies (via cache-bust query param) and
-    // Firefox's module worker query param issue (blob URL has no query params).
-    // Relative imports in the worker script are rewritten to absolute URLs
-    // (without query params) so they resolve correctly from the blob URL.
-    try {
-      const fetchUrl = new URL(workerUrlStr);
-      fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
-      console.warn("[localScan] Fetching worker script (cache-busted):", fetchUrl.href);
-      const resp = await fetch(fetchUrl.href);
-      if (!resp.ok)
-        throw new Error(`Fetch failed with status ${resp.status}`);
-      const ct = String(resp.headers.get("content-type") || "").toLowerCase();
-      let scriptText = await resp.text();
-      if (ct.includes("text/html") || /^\s*</.test(scriptText)) {
-        throw new Error(
-          `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
-        );
-      }
-      // Rewrite relative imports to absolute URLs (strip query params for Firefox compat)
-      const workerBaseUrl = new URL("./", resolvedWorkerUrl);
-      scriptText = scriptText.replace(
-        /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
-        (match, relPath, _query) => {
-          try {
-            const absUrl = new URL(relPath, workerBaseUrl);
-            absUrl.search = ""; // strip query params for Firefox module worker compat
-            return `from "${absUrl.href}"`;
-          } catch (_e) {
-            return match;
-          }
-        },
-      );
-      const blob = new Blob([scriptText], { type: "application/javascript" });
-      blobUrlForWorker = URL.createObjectURL(blob);
-      console.warn(
-        "[localScan] Created blob URL for worker (imports rewritten to absolute URLs)",
-      );
-      worker = new Worker(blobUrlForWorker, { type: "module" });
-    } catch (fbErr) {
-      console.error("[localScan] fetch+blob worker creation failed:", fbErr);
-      // Last resort: try direct Worker construction (Chrome/Edge handle query params)
+    // Strategy: Try direct Worker construction first (most reliable in Firefox),
+    // then fall back to fetch+blob for CDN cache-busting in Chrome/Edge.
+    const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+    let workerCreated = false;
+
+    if (isFirefox) {
+      // Firefox: direct Worker construction is more reliable than fetch+blob.
+      // Firefox strips query params from module worker URLs internally, which
+      // means the worker loads without cache-bust, but it works reliably.
       try {
-        worker = new Worker(resolvedWorkerUrl, { type: "module" });
+        // Strip query params for Firefox — it does this internally anyway,
+        // but doing it explicitly avoids console warnings.
+        const firefoxUrl = new URL(workerUrlStr);
+        firefoxUrl.search = "";
+        console.warn("[localScan] Firefox: direct module worker (no query params):", firefoxUrl.href);
+        worker = new Worker(firefoxUrl, { type: "module" });
+        workerCreated = true;
+      } catch (ctorErr) {
+        console.error("[localScan] Firefox direct Worker construction failed:", ctorErr);
+      }
+    }
+
+    if (!workerCreated) {
+      // Chrome/Edge or Firefox fallback: use fetch+blob approach to bypass
+      // edge-cached stale copies (via cache-bust query param) and rewrite
+      // relative imports to absolute URLs for blob worker compatibility.
+      try {
+        const fetchUrl = new URL(workerUrlStr);
+        fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
+        console.warn("[localScan] Fetching worker script (cache-busted):", fetchUrl.href);
+        const resp = await fetch(fetchUrl.href);
+        if (!resp.ok)
+          throw new Error(`Fetch failed with status ${resp.status}`);
+        const ct = String(resp.headers.get("content-type") || "").toLowerCase();
+        let scriptText = await resp.text();
+        if (ct.includes("text/html") || /^\s*</.test(scriptText)) {
+          throw new Error(
+            `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
+          );
+        }
+        // Rewrite relative imports to absolute URLs (strip query params for Firefox compat)
+        const workerBaseUrl = new URL("./", resolvedWorkerUrl);
+        scriptText = scriptText.replace(
+          /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
+          (match, relPath, _query) => {
+            try {
+              const absUrl = new URL(relPath, workerBaseUrl);
+              absUrl.search = ""; // strip query params for Firefox module worker compat
+              return `from "${absUrl.href}"`;
+            } catch (_e) {
+              return match;
+            }
+          },
+        );
+        const blob = new Blob([scriptText], { type: "application/javascript" });
+        blobUrlForWorker = URL.createObjectURL(blob);
+        console.warn(
+          "[localScan] Created blob URL for worker (imports rewritten to absolute URLs)",
+        );
+        worker = new Worker(blobUrlForWorker, { type: "module" });
+        workerCreated = true;
+      } catch (fbErr) {
+        console.error("[localScan] fetch+blob worker creation failed:", fbErr);
+      }
+    }
+
+    if (!workerCreated) {
+      // Last resort: try direct Worker construction (no query params)
+      try {
+        const directUrl = new URL(workerUrlStr);
+        directUrl.search = "";
+        console.warn("[localScan] Fallback: direct module worker:", directUrl.href);
+        worker = new Worker(directUrl, { type: "module" });
+        workerCreated = true;
       } catch (ctorErr) {
         console.error("[localScan] direct Worker construction also failed:", ctorErr);
         throw new Error(
-          `Failed to create module worker from ${workerUrlStr}: ${fbErr?.message || fbErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`,
+          `Failed to create module worker from ${workerUrlStr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`,
         );
       }
     }
