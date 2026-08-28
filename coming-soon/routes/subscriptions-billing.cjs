@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const db = require('../lib/db.cjs');
+const { captureException: sentryCapture } = require('../lib/sentry.cjs');
 const { buildReferralCheckoutMetadata, processStripeReferralAttribution } = require('../lib/referral-webhook.cjs');
 
 let stripe = null;
@@ -290,6 +291,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
         res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (error) {
         logger.error('[CreateSubscriptionSession] Error:', error.message);
+        sentryCapture(error, { endpoint: 'create-subscription-session' });
         res.status(500).json({ error: 'Failed to create subscription session.', message: error.message });
     }
 });
@@ -395,6 +397,7 @@ function setupSubscriptionWebhook(app) {
             event = stripe.webhooks.constructEvent(req.body, sig, secret);
         } catch (err) {
             logger.error('[SubscriptionWebhook] Signature verification failed:', err.message);
+            sentryCapture(err, { endpoint: 'subscription-webhook', stage: 'signature-verification' });
             return res.status(400).send('Webhook Error: ' + err.message);
         }
 

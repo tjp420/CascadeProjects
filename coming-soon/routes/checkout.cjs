@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const { sendEmail } = require('../services/email.cjs');
 const { generateLicenseToken, escapeHtml } = require('../lib/license-utils.cjs');
+const { captureException: sentryCapture } = require('../lib/sentry.cjs');
 const db = require('../lib/db.cjs');
 const { buildReferralCheckoutMetadata, processStripeReferralAttribution } = require('../lib/referral-webhook.cjs');
 
@@ -427,6 +428,7 @@ router.post('/api/create-checkout-session', async (req, res) => {
         res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (error) {
         logger.error('[CreateCheckoutSession] Error:', error.message);
+        sentryCapture(error, { endpoint: 'create-checkout-session' });
         res.status(500).json({ error: 'Failed to create checkout session.', message: error.message });
     }
 });
@@ -675,6 +677,7 @@ router.get('/api/receipt/:sessionId', async (req, res) => {
         res.send(buffer);
     } catch (error) {
         logger.error('[ReceiptDownload] Error:', error.message);
+        sentryCapture(error, { endpoint: 'receipt-download' });
         res.status(500).json({ error: 'Failed to generate receipt.' });
     }
 });

@@ -40,6 +40,20 @@ if (fs.existsSync(envPath)) {
 const { validateEnvironment } = require("./config/validate-env.cjs");
 validateEnvironment();
 
+// Initialize Sentry (no-op if SENTRY_DSN not set)
+const { initSentry, captureException: sentryCapture } = require("./lib/sentry.cjs");
+initSentry();
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[UnhandledRejection]", reason);
+  sentryCapture(reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[UncaughtException]", err);
+  sentryCapture(err);
+  process.exit(1);
+});
+
 // Diagnostic: log presence of REPORT_SIGNING_KEY (do not log the key value)
 try {
   const logger = require("./lib/app-logger.cjs");

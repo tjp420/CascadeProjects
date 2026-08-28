@@ -18,6 +18,21 @@ try {
     /* .env missing — proceed with process.env */
 }
 
+// Initialize Sentry as early as possible (no-op if SENTRY_DSN not set)
+const { initSentry, captureException: sentryCapture } = require('./lib/sentry.cjs');
+initSentry();
+
+// Catch unhandled errors and report to Sentry before crashing
+process.on('unhandledRejection', (reason) => {
+    console.error('[UnhandledRejection]', reason);
+    sentryCapture(reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[UncaughtException]', err);
+    sentryCapture(err);
+    process.exit(1);
+});
+
 // Ensure critical env vars have fallbacks for local dev
 if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
     console.error('[Env] FATAL: SIMPLEBEACON_LICENSE_SECRET not set. Server requires a secure secret.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
