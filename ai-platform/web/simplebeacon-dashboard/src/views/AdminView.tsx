@@ -70,6 +70,14 @@ type AdminUser = {
   online?: boolean;
   lastSeen?: string | null;
   createdAt?: string;
+  hasLicenseToken?: boolean;
+  hasActiveSubscription?: boolean;
+  tokenTier?: string;
+  subscriptionStatus?: string;
+  plan?: string;
+  tokenValid?: boolean;
+  tokenRegistered?: boolean;
+  tokenExpired?: boolean;
 };
 
 type EnterpriseOrg = {
@@ -297,6 +305,11 @@ export function AdminView() {
   const [actionTier, setActionTier] = useState("bronze");
   const [actionConfirmEmail, setActionConfirmEmail] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ─── User Details Drawer ──────────────────────────────────────────
+  const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null);
+  const [userDetails, setUserDetails] = useState<Record<string, any> | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   // ─── Billing State ────────────────────────────────────────────────
   const [billingData, setBillingData] = useState<{
@@ -889,6 +902,28 @@ export function AdminView() {
     [userSearch],
   );
 
+  // ─── User Details Drawer ──────────────────────────────────────────
+  const openUserDetails = useCallback(async (user: AdminUser) => {
+    setDetailsUser(user);
+    setUserDetails(null);
+    setDetailsLoading(true);
+    try {
+      if (user.id) {
+        const res = await fetch(apiUrl(`/admin/users/${user.id}/details`), {
+          headers: authHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setUserDetails(data);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, []);
+
   // Debounced search trigger
   useEffect(() => {
     if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
@@ -1337,103 +1372,166 @@ export function AdminView() {
                 <div className="space-y-2">
                   {users.map((user, i) => {
                     const { variant, icon: Icon } = tierBadge(user.trustLevel);
+                    const subActive = user.hasActiveSubscription;
+                    const hasLicense = user.hasLicenseToken;
+                    const tokenOk = user.tokenValid;
+                    const tokenExp = user.tokenExpired;
+                    const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
+                    const lastSeen = user.lastSeen ? new Date(user.lastSeen).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
                     return (
                       <div
                         key={user.id || i}
-                        className="flex items-center gap-3 rounded-lg border p-3"
+                        className="rounded-lg border p-3 hover:border-primary/30 transition-colors cursor-pointer"
+                        onClick={() => openUserDetails(user)}
                       >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">
-                              {user.name || user.email || "Unknown"}
+                        {/* Row 1: identity + badges */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium truncate">
+                                {user.name || user.email || "Unknown"}
+                              </span>
+                              {user.online && (
+                                <span
+                                  className="h-2 w-2 rounded-full bg-green-500 shrink-0"
+                                  title="Online now"
+                                />
+                              )}
+                            </div>
+                            <span className="text-xs text-foreground-muted truncate block">
+                              {user.email || "—"}
                             </span>
-                            {user.online && (
-                              <span
-                                className="h-2 w-2 rounded-full bg-green-500 shrink-0"
-                                title="Online"
-                              />
-                            )}
                           </div>
-                          <span className="text-xs text-foreground-muted truncate block">
-                            {user.email || "—"}
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge variant={variant} className="text-xs capitalize">
+                              {user.trustLevel || "bronze"}
+                            </Badge>
+                            <Badge
+                              variant={user.status === "active" ? "success" : "danger"}
+                              className="text-xs capitalize"
+                            >
+                              {user.status || "active"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Badge
-                            variant={variant}
-                            className="text-xs capitalize"
+
+                        {/* Row 2: account feature chips */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5 ml-12">
+                          {/* Subscription status */}
+                          {subActive ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-600">
+                              <DollarSign className="h-3 w-3" />
+                              {user.plan || user.tokenTier || "paid"}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
+                              <DollarSign className="h-3 w-3" />
+                              free tier
+                            </span>
+                          )}
+
+                          {/* License token */}
+                          {hasLicense && (
+                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${tokenOk ? "bg-blue-500/10 text-blue-600" : tokenExp ? "bg-orange-500/10 text-orange-600" : "bg-muted text-foreground-muted"}`}>
+                              <Key className="h-3 w-3" />
+                              {tokenOk ? "license active" : tokenExp ? "license expired" : "license invalid"}
+                            </span>
+                          )}
+
+                          {/* Subscription status label */}
+                          {user.subscriptionStatus && user.subscriptionStatus !== "inactive" && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted capitalize">
+                              <Activity className="h-3 w-3" />
+                              {user.subscriptionStatus}
+                            </span>
+                          )}
+
+                          {/* Created date */}
+                          {created && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
+                              <Clock className="h-3 w-3" />
+                              joined {created}
+                            </span>
+                          )}
+
+                          {/* Last seen */}
+                          {lastSeen && !user.online && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
+                              last seen {lastSeen}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 3: action buttons */}
+                        <div className="flex items-center gap-1 ml-12 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => {
+                              setActionUser(user);
+                              setActionTier(user.trustLevel || "bronze");
+                              setActionDialog("upgrade");
+                              setActionPassword("");
+                            }}
+                            title="Upgrade tier"
                           >
-                            {user.trustLevel || "bronze"}
-                          </Badge>
-                          <Badge
-                            variant={
-                              user.status === "active" ? "success" : "danger"
-                            }
-                            className="text-xs capitalize"
-                          >
-                            {user.status || "active"}
-                          </Badge>
-                          <div className="flex items-center gap-1 ml-2">
+                            <Crown className="h-3 w-3" />
+                          </Button>
+                          {user.status === "active" ? (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs"
+                              className="h-7 px-2 text-xs text-orange-600"
                               onClick={() => {
                                 setActionUser(user);
-                                setActionTier(user.trustLevel || "bronze");
-                                setActionDialog("upgrade");
+                                setActionDialog("suspend");
                                 setActionPassword("");
                               }}
-                              title="Upgrade tier"
+                              title="Suspend user"
                             >
-                              <Crown className="h-3 w-3" />
+                              <Ban className="h-3 w-3" />
                             </Button>
-                            {user.status === "active" ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-orange-600"
-                                onClick={() => {
-                                  setActionUser(user);
-                                  setActionDialog("suspend");
-                                  setActionPassword("");
-                                }}
-                                title="Suspend user"
-                              >
-                                <Ban className="h-3 w-3" />
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs text-green-600"
-                                onClick={() => {
-                                  setActionUser(user);
-                                  setActionDialog("unsuspend");
-                                }}
-                                title="Unsuspend user"
-                              >
-                                <CheckCircle2 className="h-3 w-3" />
-                              </Button>
-                            )}
+                          ) : (
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs text-red-600"
+                              className="h-7 px-2 text-xs text-green-600"
                               onClick={() => {
                                 setActionUser(user);
-                                setActionDialog("delete");
-                                setActionPassword("");
-                                setActionConfirmEmail("");
+                                setActionDialog("unsuspend");
                               }}
-                              title="Delete user"
+                              title="Unsuspend user"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <CheckCircle2 className="h-3 w-3" />
                             </Button>
-                          </div>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-red-600"
+                            onClick={() => {
+                              setActionUser(user);
+                              setActionDialog("delete");
+                              setActionPassword("");
+                              setActionConfirmEmail("");
+                            }}
+                            title="Delete user"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => openUserDetails(user)}
+                            title="View details"
+                          >
+                            <ChevronRight className="h-3 w-3" />
+                          </Button>
                         </div>
                       </div>
                     );
@@ -1556,9 +1654,202 @@ export function AdminView() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
 
-        {/* Licenses Tab */}
+          {/* User Details Drawer */}
+          {detailsUser && (
+            <Card className="border-2 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <UserCircle className="h-4 w-4" />
+                    Account Details
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2"
+                    onClick={() => {
+                      setDetailsUser(null);
+                      setUserDetails(null);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <CardDescription>
+                  {detailsUser.email} — ID: {detailsUser.id || "—"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {detailsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-foreground-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading details…
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Account Summary */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xs text-foreground-muted mb-1">Trust Level</div>
+                        <div className="text-sm font-medium capitalize">{detailsUser.trustLevel || "bronze"}</div>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xs text-foreground-muted mb-1">Status</div>
+                        <div className="text-sm font-medium capitalize">{detailsUser.status || "active"}</div>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xs text-foreground-muted mb-1">Plan</div>
+                        <div className="text-sm font-medium capitalize">{detailsUser.plan || detailsUser.tokenTier || "community"}</div>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xs text-foreground-muted mb-1">Subscription</div>
+                        <div className="text-sm font-medium capitalize">
+                          {detailsUser.subscriptionStatus || "inactive"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* License Token Status */}
+                    <div className="rounded-lg border p-3">
+                      <div className="text-xs text-foreground-muted mb-2">License Token</div>
+                      {detailsUser.hasLicenseToken ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={detailsUser.tokenValid ? "success" : detailsUser.tokenExpired ? "default" : "danger"} className="text-xs">
+                            {detailsUser.tokenValid ? "Valid" : detailsUser.tokenExpired ? "Expired" : "Invalid"}
+                          </Badge>
+                          {detailsUser.tokenRegistered && (
+                            <Badge variant="default" className="text-xs">Registered</Badge>
+                          )}
+                          {detailsUser.tokenTier && (
+                            <span className="text-xs text-foreground-muted capitalize">
+                              Tier: {detailsUser.tokenTier}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-foreground-muted">No license token issued</span>
+                      )}
+                    </div>
+
+                    {/* Activity Timeline */}
+                    <div className="rounded-lg border p-3">
+                      <div className="text-xs text-foreground-muted mb-2">Activity</div>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-foreground-muted">Online now</span>
+                          <span className={detailsUser.online ? "text-green-600 font-medium" : "text-foreground-muted"}>
+                            {detailsUser.online ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        {detailsUser.lastSeen && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-foreground-muted">Last seen</span>
+                            <span className="font-medium">
+                              {new Date(detailsUser.lastSeen).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {detailsUser.createdAt && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-foreground-muted">Joined</span>
+                            <span className="font-medium">
+                              {new Date(detailsUser.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Extended details from server */}
+                    {userDetails && (
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xs text-foreground-muted mb-2">Extended Details</div>
+                        <div className="space-y-1.5 text-xs">
+                          {userDetails.verificationStatus && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground-muted">Verification</span>
+                              <span className="font-medium capitalize">{userDetails.verificationStatus}</span>
+                            </div>
+                          )}
+                          {typeof userDetails.successfulAnalyses === "number" && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground-muted">Successful analyses</span>
+                              <span className="font-medium">{userDetails.successfulAnalyses}</span>
+                            </div>
+                          )}
+                          {typeof userDetails.securityIncidents === "number" && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground-muted">Security incidents</span>
+                              <span className="font-medium">{userDetails.securityIncidents}</span>
+                            </div>
+                          )}
+                          {typeof userDetails.communityContributions === "number" && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground-muted">Community contributions</span>
+                              <span className="font-medium">{userDetails.communityContributions}</span>
+                            </div>
+                          )}
+                          {userDetails.subscriptionTier && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground-muted">Subscription tier</span>
+                              <span className="font-medium capitalize">{userDetails.subscriptionTier}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Actions */}
+                    <div className="flex items-center gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setActionUser(detailsUser);
+                          setActionTier(detailsUser.trustLevel || "bronze");
+                          setActionDialog("upgrade");
+                          setActionPassword("");
+                        }}
+                      >
+                        <Crown className="h-3.5 w-3.5" />
+                        Upgrade
+                      </Button>
+                      {detailsUser.status === "active" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-orange-600"
+                          onClick={() => {
+                            setActionUser(detailsUser);
+                            setActionDialog("suspend");
+                            setActionPassword("");
+                          }}
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                          Suspend
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600"
+                          onClick={() => {
+                            setActionUser(detailsUser);
+                            setActionDialog("unsuspend");
+                          }}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Unsuspend
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
         <TabsContent value="licenses" className="space-y-4">
           <Card>
             <CardHeader>
