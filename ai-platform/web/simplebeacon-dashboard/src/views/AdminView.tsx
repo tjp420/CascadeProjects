@@ -40,6 +40,7 @@ import {
   Copy,
   Loader2,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
@@ -299,12 +300,16 @@ export function AdminView() {
   // ─── User Management Action State ─────────────────────────────────
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
   const [actionDialog, setActionDialog] = useState<
-    null | "suspend" | "unsuspend" | "delete" | "upgrade"
+    null | "suspend" | "unsuspend" | "delete" | "upgrade" | "contact"
   >(null);
   const [actionPassword, setActionPassword] = useState("");
-  const [actionTier, setActionTier] = useState("bronze");
+  const [actionTier, setActionTier] = useState("community");
   const [actionConfirmEmail, setActionConfirmEmail] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ─── Contact User State ───────────────────────────────────────────
+  const [contactSubject, setContactSubject] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
 
   // ─── User Details Drawer ──────────────────────────────────────────
   const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null);
@@ -641,12 +646,16 @@ export function AdminView() {
   // ─── User Management Actions ──────────────────────────────────────
   const handleUserAction = async () => {
     if (!actionUser) return;
-    if (!actionPassword && actionDialog !== "unsuspend") {
+    if (!actionPassword && actionDialog !== "unsuspend" && actionDialog !== "contact") {
       toast.error("Admin password required");
       return;
     }
     if (actionDialog === "delete" && actionConfirmEmail !== actionUser.email) {
       toast.error("Email confirmation does not match");
+      return;
+    }
+    if (actionDialog === "contact" && (!contactSubject.trim() || !contactMessage.trim())) {
+      toast.error("Subject and message are required");
       return;
     }
     setActionLoading(true);
@@ -669,12 +678,28 @@ export function AdminView() {
           body: JSON.stringify({ password: actionPassword, confirmEmail: actionConfirmEmail }),
         });
       } else if (actionDialog === "upgrade") {
+        // Map pricing tier to trust level for backward compat
+        const trustLevelMap: Record<string, string> = {
+          community: "bronze",
+          developer: "silver",
+          team_pro: "gold",
+          enterprise: "gold",
+        };
         res = await fetch(`${base}/users/${actionUser.id}/trust-level`, {
           method: "POST", headers,
           body: JSON.stringify({
             password: actionPassword,
-            trustLevel: actionTier,
-            subscriptionTier: actionTier === "bronze" ? "community" : actionTier === "silver" ? "developer" : "team_pro",
+            trustLevel: trustLevelMap[actionTier] || "bronze",
+            subscriptionTier: actionTier,
+          }),
+        });
+      } else if (actionDialog === "contact") {
+        res = await fetch(`${base}/users/${actionUser.id}/contact`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            password: actionPassword,
+            subject: contactSubject,
+            message: contactMessage,
           }),
         });
       } else {
@@ -682,10 +707,14 @@ export function AdminView() {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "Action failed");
-      toast.success(`User ${actionDialog} successful`);
+      toast.success(
+        actionDialog === "contact" ? "Email sent to user" : `User ${actionDialog} successful`
+      );
       setActionDialog(null);
       setActionPassword("");
       setActionConfirmEmail("");
+      setContactSubject("");
+      setContactMessage("");
       setActionUser(null);
       // Refresh user list
       fetchData();
@@ -1473,13 +1502,31 @@ export function AdminView() {
                             className="h-7 px-2 text-xs"
                             onClick={() => {
                               setActionUser(user);
-                              setActionTier(user.trustLevel || "bronze");
+                              const currentTier = user.plan || user.tokenTier || "community";
+                              setActionTier(currentTier);
                               setActionDialog("upgrade");
                               setActionPassword("");
                             }}
-                            title="Upgrade tier"
+                            title="Set tier"
                           >
                             <Crown className="h-3 w-3" />
+                            <span className="ml-1">Tier</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => {
+                              setActionUser(user);
+                              setContactSubject("");
+                              setContactMessage("");
+                              setActionPassword("");
+                              setActionDialog("contact");
+                            }}
+                            title="Contact user"
+                          >
+                            <Mail className="h-3 w-3" />
+                            <span className="ml-1">Contact</span>
                           </Button>
                           {user.status === "active" ? (
                             <Button
@@ -1528,9 +1575,10 @@ export function AdminView() {
                             variant="ghost"
                             className="h-7 px-2 text-xs"
                             onClick={() => openUserDetails(user)}
-                            title="View details"
+                            title="View profile"
                           >
-                            <ChevronRight className="h-3 w-3" />
+                            <UserCircle className="h-3 w-3" />
+                            <span className="ml-1">Profile</span>
                           </Button>
                         </div>
                       </div>
@@ -1567,29 +1615,57 @@ export function AdminView() {
                   {actionDialog === "unsuspend" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                   {actionDialog === "delete" && <Trash2 className="h-4 w-4 text-red-600" />}
                   {actionDialog === "upgrade" && <Crown className="h-4 w-4 text-amber-600" />}
+                  {actionDialog === "contact" && <Mail className="h-4 w-4 text-blue-600" />}
                   {actionDialog === "suspend" && "Suspend User"}
                   {actionDialog === "unsuspend" && "Unsuspend User"}
                   {actionDialog === "delete" && "Delete User"}
-                  {actionDialog === "upgrade" && "Upgrade User Tier"}
+                  {actionDialog === "upgrade" && "Set Account Tier"}
+                  {actionDialog === "contact" && "Contact User"}
                 </CardTitle>
                 <CardDescription>
-                  {actionUser.email} — current tier: {actionUser.trustLevel}, status: {actionUser.status}
+                  {actionUser.email} — current tier: {actionUser.plan || actionUser.tokenTier || actionUser.trustLevel || "community"}, status: {actionUser.status}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {actionDialog === "upgrade" && (
                   <div>
-                    <label className="text-sm font-medium mb-1 block">New Tier</label>
+                    <label className="text-sm font-medium mb-1 block">Account Tier</label>
                     <select
                       className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                       value={actionTier}
                       onChange={(e) => setActionTier(e.target.value)}
                     >
-                      <option value="bronze">Bronze (Free)</option>
-                      <option value="silver">Silver (Developer)</option>
-                      <option value="gold">Gold (Team Pro)</option>
+                      <option value="community">Free / Community ($0)</option>
+                      <option value="developer">Developer ($49/mo)</option>
+                      <option value="team_pro">Team Pro ($149/mo)</option>
+                      <option value="enterprise">Enterprise ($499/mo)</option>
                     </select>
+                    <p className="text-xs text-foreground-muted mt-1">
+                      This sets the user's subscription tier and feature access level.
+                    </p>
                   </div>
+                )}
+                {actionDialog === "contact" && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Subject</label>
+                      <Input
+                        type="text"
+                        placeholder="Email subject"
+                        value={contactSubject}
+                        onChange={(e) => setContactSubject(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Message</label>
+                      <textarea
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm min-h-[120px] resize-y"
+                        placeholder="Type your message to the user…"
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
+                      />
+                    </div>
+                  </>
                 )}
                 {actionDialog === "delete" && (
                   <div>
@@ -1620,7 +1696,11 @@ export function AdminView() {
                   <Button
                     variant={actionDialog === "delete" ? "destructive" : "default"}
                     onClick={handleUserAction}
-                    disabled={actionLoading || (actionDialog !== "unsuspend" && !actionPassword)}
+                    disabled={
+                      actionLoading ||
+                      (actionDialog !== "unsuspend" && actionDialog !== "contact" && !actionPassword) ||
+                      (actionDialog === "contact" && (!contactSubject.trim() || !contactMessage.trim()))
+                    }
                   >
                     {actionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1630,13 +1710,16 @@ export function AdminView() {
                       <Ban className="h-4 w-4" />
                     ) : actionDialog === "upgrade" ? (
                       <Crown className="h-4 w-4" />
+                    ) : actionDialog === "contact" ? (
+                      <Mail className="h-4 w-4" />
                     ) : (
                       <CheckCircle2 className="h-4 w-4" />
                     )}
                     {actionDialog === "suspend" && "Suspend"}
                     {actionDialog === "unsuspend" && "Unsuspend"}
                     {actionDialog === "delete" && "Delete Permanently"}
-                    {actionDialog === "upgrade" && "Upgrade"}
+                    {actionDialog === "upgrade" && "Set Tier"}
+                    {actionDialog === "contact" && "Send Email"}
                   </Button>
                   <Button
                     variant="outline"
@@ -1645,6 +1728,8 @@ export function AdminView() {
                       setActionUser(null);
                       setActionPassword("");
                       setActionConfirmEmail("");
+                      setContactSubject("");
+                      setContactMessage("");
                     }}
                     disabled={actionLoading}
                   >

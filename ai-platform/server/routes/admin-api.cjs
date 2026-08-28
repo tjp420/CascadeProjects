@@ -1357,6 +1357,79 @@ function setupAdminAPI(app, options = {}) {
     },
   );
 
+  // ─── Contact User (admin sends email to a user) ───────────────────
+  router.post(
+    "/users/:id/contact",
+    validateParam("id", VALIDATION_PATTERNS.userId),
+    async (req, res) => {
+      if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+      const { id } = req.params;
+      const { password, subject, message } = req.body || {};
+      if (!password)
+        return sendError(res, 400, "Admin password required");
+      if (!subject || !subject.trim())
+        return sendError(res, 400, "Subject is required");
+      if (!message || !message.trim())
+        return sendError(res, 400, "Message is required");
+
+      const adminEmail = req.user?.email;
+      const sqlite = getSqliteDb();
+      const passwordValid = await verifyAdminPassword(
+        adminEmail,
+        password,
+        db,
+        sqlite,
+      );
+      if (!passwordValid) return sendError(res, 401, "Invalid admin password");
+
+      try {
+        const users = await loadAdminUsers(db);
+        const target = users.find((u) => String(u.id) === String(id));
+        if (!target) return sendError(res, 404, "User not found");
+        if (!target.email) return sendError(res, 400, "User has no email address");
+
+        // Send email via the email service
+        let emailSent = false;
+        let emailError = null;
+        try {
+          const { sendEmail } = require("../lib/email-service.cjs");
+          const result = await sendEmail({
+            to: target.email,
+            subject: `[SimpleBeacon] ${subject.trim()}`,
+            text: `Hello${target.name ? ` ${target.name}` : ""},\n\nYou received a message from the SimpleBeacon team:\n\n${message.trim()}\n\n— SimpleBeacon Admin (${adminEmail})\n${new Date().toISOString()}`,
+            html: `<p>Hello${target.name ? ` ${target.name}` : ""},</p><p>You received a message from the SimpleBeacon team:</p><blockquote style="border-left:3px solid #6366f1;padding-left:16px;margin:16px 0;color:#374151;">${message.trim().replace(/\n/g, "<br/>")}</blockquote><p>— SimpleBeacon Admin (${adminEmail})<br/>${new Date().toISOString()}</p>`,
+          });
+          emailSent = result.sent || result.queued;
+          if (!emailSent) emailError = result.error || "Email delivery failed";
+        } catch (mailErr) {
+          emailError = mailErr.message;
+          logger.error("[AdminAPI] contact user email failed:", mailErr.message);
+        }
+
+        if (emailSent) {
+          logger.info(
+            `[AdminAPI] Admin ${adminEmail} contacted user ${target.email}`,
+          );
+          return res.json({
+            success: true,
+            message: `Email sent to ${target.email}`,
+            emailed: true,
+          });
+        } else {
+          return res.json({
+            success: false,
+            message: `Email could not be sent: ${emailError}`,
+            emailed: false,
+            error: emailError,
+          });
+        }
+      } catch (err) {
+        logger.error("[AdminAPI] contact user failed:", err.message);
+        return sendError(res, 500, err.message);
+      }
+    },
+  );
+
   // ─── Agent Access Tokens (single-use, short-lived) ────────────────
   // Replaces URL-embedded JWT+license tokens with a single-use exchange token.
   // Admin generates a short-lived token → shares URL → agent visits URL →
