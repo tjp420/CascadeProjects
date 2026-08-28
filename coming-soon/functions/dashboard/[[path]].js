@@ -15,7 +15,7 @@ export async function onRequest(context) {
         if (pathname.endsWith('/assets/main.js')) {
             // Try hashed filenames first (newest build), fall back to main.js
             const hashedCandidates = [
-                '/assets/main-DUxV9EhZ.js',
+                '/assets/main-DbN_rRrl.js',
             ];
             for (const candidate of hashedCandidates) {
                 const newUrl = new URL(pathname.replace('/assets/main.js', candidate), url.origin);

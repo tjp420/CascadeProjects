@@ -67,20 +67,43 @@ const rootEl =
   document.getElementById("app-main") || document.getElementById("root");
 
 if (rootEl) {
-  // Wrap global fetch so any 401 from API triggers auth clear + redirect to signin.
-  // This ensures hosted preview pages gracefully redirect users to sign-in
-  // instead of silently failing with repeated 401 errors.
+  // Wrap global fetch so 401 from auth-specific API endpoints triggers auth clear + redirect to signin.
+  // Background sync calls (e.g. /scans/count) and non-auth endpoints should NOT trigger
+  // a full auth clear — they may return 401 for sandbox/free tokens without meaning the
+  // session is invalid. Only auth verification endpoints are authoritative for session state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== "undefined" && (window as any).fetch) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const _origFetch = (window as any).fetch;
+    // Auth endpoints that authoritatively indicate session invalidity on 401.
+    const AUTH_ENDPOINTS = [
+      "/auth/me",
+      "/auth/verify",
+      "/auth/token-status",
+      "/auth/refresh",
+      "/auth/session",
+      "/users/me",
+    ];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).fetch = async function (input: any, init?: any) {
       try {
         const resp = await _origFetch(input, init);
         try {
           if (resp && resp.status === 401) {
-            clearAuthAndRedirect();
+            // Only clear auth + redirect for auth-specific endpoints.
+            // Background calls (scans/count, scans/increment, etc.) may return 401
+            // for sandbox/free tokens — that doesn't mean the session is invalid.
+            const url = String(
+              typeof input === "string"
+                ? input
+                : input?.url || input?.href || "",
+            );
+            const isAuthEndpoint = AUTH_ENDPOINTS.some((ep) =>
+              url.includes(ep),
+            );
+            if (isAuthEndpoint) {
+              clearAuthAndRedirect();
+            }
           }
         } catch (e) {
           console.error("main.tsx error:", e);
