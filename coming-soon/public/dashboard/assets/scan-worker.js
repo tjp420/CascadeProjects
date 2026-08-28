@@ -1135,3 +1135,5 @@ self.onmessage = async (e) => {
     self.scanState = null;
   }
 };
+
+// firefox-fix-v2 20260828012942

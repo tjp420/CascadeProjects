@@ -15,10 +15,7 @@ export async function onRequest(context) {
         if (pathname.endsWith('/assets/main.js')) {
             // Try hashed filenames first (newest build), fall back to main.js
             const hashedCandidates = [
-                '/assets/main-BL7lRUHI.js',
-                '/assets/main-CPuWfkEH.js',
-                '/assets/main-CUKrBhPx.js',
-                '/assets/main-v30min.js',
+                '/assets/main-DUxV9EhZ.js',
             ];
             for (const candidate of hashedCandidates) {
                 const newUrl = new URL(pathname.replace('/assets/main.js', candidate), url.origin);
@@ -33,6 +30,21 @@ export async function onRequest(context) {
                 }
             }
             // Fall back to serving main.js directly with no-cache headers
+            const assetResp = await env.ASSETS.fetch(request);
+            if (assetResp.ok) {
+                const headers = new Headers(assetResp.headers);
+                headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+                headers.set('CDN-Cache-Control', 'no-store');
+                headers.set('Surrogate-Control', 'no-store');
+                return new Response(assetResp.body, { status: assetResp.status, headers });
+            }
+        }
+        // Serve scan-worker.js and its dependencies with no-cache headers to prevent
+        // stale edge-cached copies from breaking the browser-local scan.
+        if (pathname.endsWith('/assets/scan-worker.js') ||
+            pathname.endsWith('/assets/scan-worker-v2.js') ||
+            pathname.endsWith('/assets/scan-wasm-bridge.js') ||
+            pathname.includes('/utils-lib/simplebeaconignore.browser.js')) {
             const assetResp = await env.ASSETS.fetch(request);
             if (assetResp.ok) {
                 const headers = new Headers(assetResp.headers);

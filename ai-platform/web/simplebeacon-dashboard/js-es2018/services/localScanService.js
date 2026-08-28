@@ -19,7 +19,7 @@ import {
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260804worker1";
+const WORKER_ASSET_VERSION = "20260828firefoxfix1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -32,7 +32,7 @@ function resolveScanWorkerUrl() {
           : null;
       if (mount) {
         return new URL(
-          `${mount}/assets/scan-worker.js?v=${v}`,
+          `${mount}/assets/scan-worker-v2.js?v=${v}`,
           location.origin,
         );
       }
@@ -47,7 +47,7 @@ function resolveScanWorkerUrl() {
         ? import.meta.url
         : "";
     if (base.includes("/assets/")) {
-      return new URL(`./scan-worker.js?v=${v}`, base);
+      return new URL(`./scan-worker-v2.js?v=${v}`, base);
     }
     if (base) {
       return new URL(`../workers/scan-worker.js?v=${v}`, base);
@@ -55,7 +55,7 @@ function resolveScanWorkerUrl() {
   } catch (_metaErr) {
     /* fall through */
   }
-  return `/app/assets/scan-worker.js?v=${v}`;
+  return `/app/assets/scan-worker-v2.js?v=${v}`;
 }
 const MAX_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MIN_FILES_FOR_PASS = 3; // Below this, gate cannot PASS — likely incomplete folder drop
@@ -1077,56 +1077,56 @@ export async function runLocalScan(options = {}) {
         : resolvedWorkerUrl,
     );
     console.warn("[localScan] Creating module worker from:", workerUrlStr);
-    // Firefox has issues with query parameters in module worker URLs — strip them as a fallback
-    let workerUrlForCreation = resolvedWorkerUrl;
-    try {
-      const parsed = new URL(workerUrlStr);
-      if (
-        parsed.search &&
-        navigator.userAgent.toLowerCase().includes("firefox")
-      ) {
-        parsed.search = "";
-        const cleanUrl = parsed.href;
-        console.warn(
-          "[localScan] Firefox detected — stripping query param from worker URL:",
-          cleanUrl,
-        );
-        workerUrlForCreation = cleanUrl;
-      }
-    } catch (_e) {
-      /* ignore URL parse errors */
-    }
 
+    // Always use fetch+blob approach for maximum browser compatibility.
+    // This bypasses edge-cached stale copies (via cache-bust query param) and
+    // Firefox's module worker query param issue (blob URL has no query params).
+    // Relative imports in the worker script are rewritten to absolute URLs
+    // (without query params) so they resolve correctly from the blob URL.
     try {
-      // Try normal worker construction first
-      worker = new Worker(workerUrlForCreation, { type: "module" });
-    } catch (ctorErr) {
-      console.error("localScanService.js error:", ctorErr);
-      // If construction fails (CORS, Firefox module query issues, or other), attempt a fetch+blob fallback
+      const fetchUrl = new URL(workerUrlStr);
+      fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
+      console.warn("[localScan] Fetching worker script (cache-busted):", fetchUrl.href);
+      const resp = await fetch(fetchUrl.href);
+      if (!resp.ok)
+        throw new Error(`Fetch failed with status ${resp.status}`);
+      const ct = String(resp.headers.get("content-type") || "").toLowerCase();
+      let scriptText = await resp.text();
+      if (ct.includes("text/html") || /^\s*</.test(scriptText)) {
+        throw new Error(
+          `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
+        );
+      }
+      // Rewrite relative imports to absolute URLs (strip query params for Firefox compat)
+      const workerBaseUrl = new URL("./", resolvedWorkerUrl);
+      scriptText = scriptText.replace(
+        /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
+        (match, relPath, _query) => {
+          try {
+            const absUrl = new URL(relPath, workerBaseUrl);
+            absUrl.search = ""; // strip query params for Firefox module worker compat
+            return `from "${absUrl.href}"`;
+          } catch (_e) {
+            return match;
+          }
+        },
+      );
+      const blob = new Blob([scriptText], { type: "application/javascript" });
+      blobUrlForWorker = URL.createObjectURL(blob);
+      console.warn(
+        "[localScan] Created blob URL for worker (imports rewritten to absolute URLs)",
+      );
+      worker = new Worker(blobUrlForWorker, { type: "module" });
+    } catch (fbErr) {
+      console.error("[localScan] fetch+blob worker creation failed:", fbErr);
+      // Last resort: try direct Worker construction (Chrome/Edge handle query params)
       try {
-        console.warn(
-          "[localScan] Worker construction failed, attempting fetch+blob fallback:",
-          ctorErr?.message || ctorErr,
+        worker = new Worker(resolvedWorkerUrl, { type: "module" });
+      } catch (ctorErr) {
+        console.error("[localScan] direct Worker construction also failed:", ctorErr);
+        throw new Error(
+          `Failed to create module worker from ${workerUrlStr}: ${fbErr?.message || fbErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`,
         );
-        const resp = await fetch(String(workerUrlForCreation));
-        if (!resp.ok)
-          throw new Error(`Fetch failed with status ${resp.status}`);
-        const ct = String(resp.headers.get("content-type") || "").toLowerCase();
-        const scriptText = await resp.text();
-        if (ct.includes("text/html") || /^\s*</.test(scriptText)) {
-          throw new Error(
-            `Worker URL returned HTML instead of JavaScript (${workerUrlStr})`,
-          );
-        }
-        const blob = new Blob([scriptText], { type: "application/javascript" });
-        blobUrlForWorker = URL.createObjectURL(blob);
-        console.warn(
-          "[localScan] Created blob URL for worker; will keep alive until worker confirms start",
-        );
-        worker = new Worker(blobUrlForWorker, { type: "module" });
-      } catch (fbErr) {
-        console.error("[localScan] fetch+blob fallback failed:", fbErr);
-        throw ctorErr; // rethrow original constructor error to surface the root cause
       }
     }
   } catch (workerCtorErr) {
