@@ -64,7 +64,6 @@ const PUBLIC_VIEWS = new Set([
 const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([
   "dashboard",
-  "analyze",
   "upload",
   "settings",
   "admin",
