@@ -1412,6 +1412,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/api/test-checkout")) return next();
   if (req.path.startsWith("/api/config/pricing")) return next();
   if (req.path.startsWith("/api/auth/")) return next();
+  if (req.path.startsWith("/api/session-token/")) return next();
   if (req.path.startsWith("/api/user/")) return next();
   if (req.path === "/api/platform/status") return next();
   if (req.path === "/api/health" || req.path === "/health") return next();
@@ -2717,6 +2718,41 @@ async function startServer() {
         valid: false,
         error: "Internal error",
       });
+    }
+  });
+
+  // Public session-token retrieval — used by dashboard post-Stripe-checkout redirect
+  // No JWT auth required — the sessionId is an opaque single-use identifier
+  let sessionTokenStore = null;
+  try {
+    sessionTokenStore = require("../coming-soon/routes/session-token-store.cjs");
+  } catch (e) {
+    logger.warn("[SessionToken] Store module not loaded:", e.message);
+  }
+
+  app.get("/api/session-token/:sessionId", (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      if (!sessionId || typeof sessionId !== "string") {
+        return res.status(400).json({ error: "Missing sessionId" });
+      }
+      if (!sessionTokenStore) {
+        return res.status(503).json({ error: "Session token store unavailable" });
+      }
+      const entry = sessionTokenStore.get(sessionId);
+      if (!entry) {
+        return res.status(404).json({ error: "Session not found or expired." });
+      }
+      return res.json({
+        success: true,
+        token: entry.token,
+        email: entry.email,
+        projectName: entry.projectName,
+        tier: entry.tier,
+      });
+    } catch (err) {
+      logger.warn("[SessionToken] Retrieval failed:", err.message);
+      return res.status(500).json({ error: "Internal error" });
     }
   });
 
