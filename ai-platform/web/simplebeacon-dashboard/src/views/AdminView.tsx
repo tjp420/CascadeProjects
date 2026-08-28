@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Users,
@@ -37,6 +38,7 @@ import {
   UserPlus,
   X,
   Copy,
+  Loader2,
 } from "lucide-react";
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
@@ -247,6 +249,55 @@ export function AdminView() {
     oidcIssuer: "",
   });
 
+  // ─── License Generation State ─────────────────────────────────────
+  const [licenseForm, setLicenseForm] = useState({
+    email: "",
+    tier: "enterprise" as "enterprise" | "team_pro" | "developer" | "pro",
+    days: "365",
+  });
+  const [licenseGenerating, setLicenseGenerating] = useState(false);
+  const [licenseResult, setLicenseResult] = useState<{
+    token: string;
+    tier: string;
+    emailSent: boolean;
+  } | null>(null);
+  const [licenseCopied, setLicenseCopied] = useState(false);
+
+  // ─── User Management Action State ─────────────────────────────────
+  const [actionUser, setActionUser] = useState<AdminUser | null>(null);
+  const [actionDialog, setActionDialog] = useState<
+    null | "suspend" | "unsuspend" | "delete" | "upgrade"
+  >(null);
+  const [actionPassword, setActionPassword] = useState("");
+  const [actionTier, setActionTier] = useState("bronze");
+  const [actionConfirmEmail, setActionConfirmEmail] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // ─── Billing State ────────────────────────────────────────────────
+  const [billingData, setBillingData] = useState<{
+    subscriptions: Array<{
+      id: number;
+      email: string;
+      stripeSubscriptionId: string | null;
+      stripePriceId: string | null;
+      status: string;
+      tier: string;
+      amountCents: number;
+      isAnnual: boolean;
+      periodStart: string | null;
+      periodEnd: string | null;
+      createdAt: string;
+    }>;
+    revenue: {
+      totalCents: number;
+      activeCents: number;
+      monthlyRecurringCents: number;
+      activeCount: number;
+      totalCount: number;
+    };
+  } | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+
   const fetchSsoConfigs = useCallback(async () => {
     setSsoLoading(true);
     try {
@@ -452,6 +503,118 @@ export function AdminView() {
     search: "",
     hash: "",
   });
+
+  // ─── License Generation ───────────────────────────────────────────
+  const handleGenerateLicense = async () => {
+    if (!licenseForm.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    setLicenseGenerating(true);
+    setLicenseResult(null);
+    setLicenseCopied(false);
+    try {
+      const res = await fetch(apiUrl("/admin/generate-license"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          email: licenseForm.email,
+          tier: licenseForm.tier,
+          days: Number(licenseForm.days) || 365,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || "Failed to generate license");
+      }
+      setLicenseResult({
+        token: data.token,
+        tier: data.tier,
+        emailSent: data.emailSent,
+      });
+      toast.success(`${licenseForm.tier} license generated and emailed to ${licenseForm.email}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate license");
+    } finally {
+      setLicenseGenerating(false);
+    }
+  };
+
+  // ─── User Management Actions ──────────────────────────────────────
+  const handleUserAction = async () => {
+    if (!actionUser) return;
+    if (!actionPassword && actionDialog !== "unsuspend") {
+      toast.error("Admin password required");
+      return;
+    }
+    if (actionDialog === "delete" && actionConfirmEmail !== actionUser.email) {
+      toast.error("Email confirmation does not match");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const base = apiUrl("/admin");
+      const headers = { "Content-Type": "application/json", ...authHeaders() };
+      let res: Response;
+      if (actionDialog === "suspend") {
+        res = await fetch(`${base}/users/${actionUser.id}/suspend`, {
+          method: "POST", headers,
+          body: JSON.stringify({ password: actionPassword }),
+        });
+      } else if (actionDialog === "unsuspend") {
+        res = await fetch(`${base}/users/${actionUser.id}/unsuspend`, {
+          method: "POST", headers,
+        });
+      } else if (actionDialog === "delete") {
+        res = await fetch(`${base}/users/${actionUser.id}`, {
+          method: "DELETE", headers,
+          body: JSON.stringify({ password: actionPassword, confirmEmail: actionConfirmEmail }),
+        });
+      } else if (actionDialog === "upgrade") {
+        res = await fetch(`${base}/users/${actionUser.id}/trust-level`, {
+          method: "POST", headers,
+          body: JSON.stringify({
+            password: actionPassword,
+            trustLevel: actionTier,
+            subscriptionTier: actionTier === "bronze" ? "community" : actionTier === "silver" ? "developer" : "team_pro",
+          }),
+        });
+      } else {
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Action failed");
+      toast.success(`User ${actionDialog} successful`);
+      setActionDialog(null);
+      setActionPassword("");
+      setActionConfirmEmail("");
+      setActionUser(null);
+      // Refresh user list
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Action failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ─── Fetch Billing ────────────────────────────────────────────────
+  const fetchBilling = useCallback(async () => {
+    setBillingLoading(true);
+    try {
+      const res = await fetch(apiUrl("/admin/billing/subscriptions"), {
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBillingData(data);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
 
   const fetchEnterpriseOrgs = useCallback(async () => {
     if (enterpriseErrorRef.current) return;
@@ -707,7 +870,8 @@ export function AdminView() {
 
   useEffect(() => {
     if (adminTab === "audit") fetchAuditLogs();
-  }, [adminTab, fetchAuditLogs]);
+    if (adminTab === "billing") fetchBilling();
+  }, [adminTab, fetchAuditLogs, fetchBilling]);
 
   useEffect(() => {
     if (adminTab === "sso") fetchSsoConfigs();
@@ -954,6 +1118,8 @@ export function AdminView() {
       <Tabs value={adminTab} onValueChange={setAdminTab}>
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="licenses">Licenses</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="tenants">Enterprise Tenants</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="sso">SSO</TabsTrigger>
@@ -1074,6 +1240,64 @@ export function AdminView() {
                           >
                             {user.status || "active"}
                           </Badge>
+                          <div className="flex items-center gap-1 ml-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => {
+                                setActionUser(user);
+                                setActionTier(user.trustLevel || "bronze");
+                                setActionDialog("upgrade");
+                                setActionPassword("");
+                              }}
+                              title="Upgrade tier"
+                            >
+                              <Crown className="h-3 w-3" />
+                            </Button>
+                            {user.status === "active" ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-orange-600"
+                                onClick={() => {
+                                  setActionUser(user);
+                                  setActionDialog("suspend");
+                                  setActionPassword("");
+                                }}
+                                title="Suspend user"
+                              >
+                                <Ban className="h-3 w-3" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-green-600"
+                                onClick={() => {
+                                  setActionUser(user);
+                                  setActionDialog("unsuspend");
+                                }}
+                                title="Unsuspend user"
+                              >
+                                <CheckCircle2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-red-600"
+                              onClick={() => {
+                                setActionUser(user);
+                                setActionDialog("delete");
+                                setActionPassword("");
+                                setActionConfirmEmail("");
+                              }}
+                              title="Delete user"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1082,6 +1306,304 @@ export function AdminView() {
               )}
             </CardContent>
           </Card>
+
+          {/* User Action Dialog */}
+          {actionUser && actionDialog && (
+            <Card className="border-2 border-primary/30">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {actionDialog === "suspend" && <Ban className="h-4 w-4 text-orange-600" />}
+                  {actionDialog === "unsuspend" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {actionDialog === "delete" && <Trash2 className="h-4 w-4 text-red-600" />}
+                  {actionDialog === "upgrade" && <Crown className="h-4 w-4 text-amber-600" />}
+                  {actionDialog === "suspend" && "Suspend User"}
+                  {actionDialog === "unsuspend" && "Unsuspend User"}
+                  {actionDialog === "delete" && "Delete User"}
+                  {actionDialog === "upgrade" && "Upgrade User Tier"}
+                </CardTitle>
+                <CardDescription>
+                  {actionUser.email} — current tier: {actionUser.trustLevel}, status: {actionUser.status}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {actionDialog === "upgrade" && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">New Tier</label>
+                    <select
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      value={actionTier}
+                      onChange={(e) => setActionTier(e.target.value)}
+                    >
+                      <option value="bronze">Bronze (Free)</option>
+                      <option value="silver">Silver (Developer)</option>
+                      <option value="gold">Gold (Team Pro)</option>
+                    </select>
+                  </div>
+                )}
+                {actionDialog === "delete" && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">
+                      Type <code className="font-mono">{actionUser.email}</code> to confirm deletion
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder={actionUser.email}
+                      value={actionConfirmEmail}
+                      onChange={(e) => setActionConfirmEmail(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                )}
+                {actionDialog !== "unsuspend" && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Admin Password</label>
+                    <Input
+                      type="password"
+                      placeholder="Enter your admin password"
+                      value={actionPassword}
+                      onChange={(e) => setActionPassword(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={actionDialog === "delete" ? "destructive" : "default"}
+                    onClick={handleUserAction}
+                    disabled={actionLoading || (actionDialog !== "unsuspend" && !actionPassword)}
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : actionDialog === "delete" ? (
+                      <Trash2 className="h-4 w-4" />
+                    ) : actionDialog === "suspend" ? (
+                      <Ban className="h-4 w-4" />
+                    ) : actionDialog === "upgrade" ? (
+                      <Crown className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    {actionDialog === "suspend" && "Suspend"}
+                    {actionDialog === "unsuspend" && "Unsuspend"}
+                    {actionDialog === "delete" && "Delete Permanently"}
+                    {actionDialog === "upgrade" && "Upgrade"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setActionDialog(null);
+                      setActionUser(null);
+                      setActionPassword("");
+                      setActionConfirmEmail("");
+                    }}
+                    disabled={actionLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Licenses Tab */}
+        <TabsContent value="licenses" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Generate License Token
+              </CardTitle>
+              <CardDescription>
+                Create a new license token for a customer and email it directly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Customer Email</label>
+                  <Input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={licenseForm.email}
+                    onChange={(e) => setLicenseForm({ ...licenseForm, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Tier</label>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={licenseForm.tier}
+                    onChange={(e) => setLicenseForm({ ...licenseForm, tier: e.target.value as any })}
+                  >
+                    <option value="enterprise">Enterprise ($499/mo)</option>
+                    <option value="team_pro">Team Pro ($149/mo)</option>
+                    <option value="developer">Developer ($49/mo)</option>
+                    <option value="pro">Legacy Pro ($9/mo)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Validity (days)</label>
+                  <Input
+                    type="number"
+                    placeholder="365"
+                    value={licenseForm.days}
+                    onChange={(e) => setLicenseForm({ ...licenseForm, days: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleGenerateLicense}
+                disabled={licenseGenerating || !licenseForm.email.trim()}
+              >
+                {licenseGenerating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Key className="h-4 w-4" />
+                )}
+                Generate & Email License
+              </Button>
+
+              {licenseResult && (
+                <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-green-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    License generated successfully
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Tier: <Badge variant="default" className="ml-1 capitalize">{licenseResult.tier}</Badge>
+                    {" — "}Email sent: {licenseResult.emailSent ? "Yes" : "No"}
+                  </div>
+                  <div className="rounded-md bg-muted p-3 font-mono text-xs break-all max-h-32 overflow-y-auto">
+                    {licenseResult.token}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(licenseResult.token);
+                        setLicenseCopied(true);
+                        setTimeout(() => setLicenseCopied(false), 2000);
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {licenseCopied ? "Copied!" : "Copy Token"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Billing Tab */}
+        <TabsContent value="billing" className="space-y-4">
+          {billingLoading ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Loading billing data…
+              </CardContent>
+            </Card>
+          ) : billingData ? (
+            <>
+              {/* Revenue Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Monthly Recurring</CardDescription>
+                    <CardTitle className="text-2xl">
+                      ${(billingData.revenue.monthlyRecurringCents / 100).toFixed(2)}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Active Revenue</CardDescription>
+                    <CardTitle className="text-2xl">
+                      ${(billingData.revenue.activeCents / 100).toFixed(2)}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Active Subs</CardDescription>
+                    <CardTitle className="text-2xl">
+                      {billingData.revenue.activeCount}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Total Subs</CardDescription>
+                    <CardTitle className="text-2xl">
+                      {billingData.revenue.totalCount}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              </div>
+
+              {/* Subscription List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Subscriptions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {billingData.subscriptions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No paid subscriptions found
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {billingData.subscriptions.map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="flex items-center gap-3 rounded-lg border p-3"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                            <DollarSign className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {sub.email}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {sub.stripeSubscriptionId || "No Stripe ID"}
+                              {sub.periodEnd && ` — renews ${formatDate(sub.periodEnd)}`}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="default" className="text-xs capitalize">
+                              {sub.tier}
+                            </Badge>
+                            <Badge
+                              variant={sub.status === "active" ? "success" : "danger"}
+                              className="text-xs capitalize"
+                            >
+                              {sub.status}
+                            </Badge>
+                            <span className="text-xs font-medium">
+                              ${(sub.amountCents / 100).toFixed(2)}
+                              {sub.isAnnual ? "/yr" : "/mo"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No billing data available
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Enterprise Tenants Tab */}

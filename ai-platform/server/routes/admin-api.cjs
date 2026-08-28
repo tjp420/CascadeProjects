@@ -1357,8 +1357,83 @@ function setupAdminAPI(app, options = {}) {
     },
   );
 
-  router.post("/customers/:email/refund", async (req, res) => {
+  // ─── Billing & Subscriptions ──────────────────────────────────────
+  router.get("/billing/subscriptions", async (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    try {
+      const sqlite = getSqliteDb();
+      if (!sqlite?.getAllPaidSubscriptions) {
+        return res.json({ success: true, subscriptions: [], revenue: { totalCents: 0, activeCents: 0, monthlyRecurringCents: 0 } });
+      }
+      const subs = sqlite.getAllPaidSubscriptions();
+      const customers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
+
+      // Price map (cents) — matches AGENTS.md pricing constants
+      const PRICE_MAP = {
+        developer: { monthly: 4900, annual: 49000 },
+        team_pro: { monthly: 14900, annual: 149000 },
+        pro: { monthly: 900, annual: 9000 },
+        compliance: { monthly: 39900, annual: 399000 },
+        enterprise: { monthly: 49900, annual: 499000 },
+      };
+
+      const customerMap = new Map();
+      for (const c of customers) {
+        customerMap.set(String(c.email || "").toLowerCase(), c);
+      }
+
+      let totalCents = 0;
+      let activeCents = 0;
+      let monthlyRecurringCents = 0;
+
+      const enriched = subs.map((s) => {
+        const email = String(s.customer_email || "").toLowerCase();
+        const customer = customerMap.get(email);
+        const tier = String(customer?.tier || s.tier || "community").toLowerCase();
+        const status = String(s.status || "active").toLowerCase();
+        const isAnnual = s.stripe_price_id && /yearly|annual/i.test(s.stripe_price_id);
+        const price = PRICE_MAP[tier];
+        const amount = price ? (isAnnual ? price.annual : price.monthly) : 0;
+
+        if (amount > 0) totalCents += amount;
+        if (status === "active" && amount > 0) {
+          activeCents += amount;
+          monthlyRecurringCents += isAnnual ? Math.round(amount / 12) : amount;
+        }
+
+        return {
+          id: s.id,
+          email: s.customer_email,
+          stripeSubscriptionId: s.stripe_subscription_id,
+          stripePriceId: s.stripe_price_id,
+          status,
+          tier,
+          amountCents: amount,
+          isAnnual,
+          periodStart: s.current_period_start,
+          periodEnd: s.current_period_end,
+          createdAt: s.created_at,
+        };
+      });
+
+      return res.json({
+        success: true,
+        subscriptions: enriched,
+        revenue: {
+          totalCents,
+          activeCents,
+          monthlyRecurringCents,
+          activeCount: enriched.filter((s) => s.status === "active").length,
+          totalCount: enriched.length,
+        },
+      });
+    } catch (err) {
+      logger.warn("[AdminAPI] billing list failed:", err.message);
+      return sendError(res, 500, err.message);
+    }
+  });
+
+  router.post("/customers/:email/refund", async (req, res) => {    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
     const { email } = req.params;
     const { reason, password } = req.body || {};
     if (!email) return sendError(res, 400, "Email required");
