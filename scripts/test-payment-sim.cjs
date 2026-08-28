@@ -152,6 +152,18 @@ const server = app.listen(0, () => {
       expectedCents: 900,
       label: "Legacy Pro monthly ($9/mo, backward compat)",
     },
+    {
+      tier: "early_access",
+      mode: "monthly",
+      expectedCents: 2900,
+      label: "Early Access monthly ($29/mo, Beta Price Lock)",
+    },
+    {
+      tier: "early_access",
+      mode: "annual",
+      expectedCents: 29000,
+      label: "Early Access annual ($290/yr, Beta Price Lock)",
+    },
     // Extra seat add-on tests
     {
       tier: "team_pro",

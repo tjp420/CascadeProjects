@@ -200,26 +200,30 @@ router.post('/api/create-subscription-session', async (req, res) => {
                       ? '$3,990/yr'
                       : tier === 'team_pro'
                         ? '$1,490/yr'
-                        : tier === 'team'
-                          ? '$990/yr'
-                          : tier === 'pro'
-                            ? '$90/yr'
-                            : tier === 'developer'
-                              ? '$490/yr'
-                              : '$490/yr'
+                        : tier === 'early_access'
+                          ? '$290/yr'
+                          : tier === 'team'
+                            ? '$990/yr'
+                            : tier === 'pro'
+                              ? '$90/yr'
+                              : tier === 'developer'
+                                ? '$490/yr'
+                                : '$490/yr'
                 : tier === 'enterprise'
                   ? '$499/mo'
                   : tier === 'compliance'
                     ? '$399/mo'
                     : tier === 'team_pro'
                       ? '$149/mo'
-                      : tier === 'team'
-                        ? '$99/mo'
-                        : tier === 'pro'
-                          ? '$9/mo'
-                          : tier === 'developer'
-                            ? '$49/mo'
-                            : '$49/mo';
+                      : tier === 'early_access'
+                        ? '$29/mo'
+                        : tier === 'team'
+                          ? '$99/mo'
+                          : tier === 'pro'
+                            ? '$9/mo'
+                            : tier === 'developer'
+                              ? '$49/mo'
+                              : '$49/mo';
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -272,7 +276,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
                             'Additional seat beyond the 5 included in Team Pro — ' + seatDisplayPrice + ' per seat'
                     },
                     unit_amount: seatUnitAmount,
-                    recurring: { interval: interval }
+                    recurring: { interval: isAnnual ? 'year' : 'month' }
                 },
                 quantity: seatCount
             });
@@ -512,6 +516,8 @@ function setupSubscriptionWebhook(app) {
             const PRICE_TIER_MAP = {
                 [PRICE_DEVELOPER_MONTHLY]: 'developer',
                 [PRICE_DEVELOPER_ANNUAL]: 'developer',
+                [PRICE_EARLY_ACCESS_MONTHLY]: 'early_access',
+                [PRICE_EARLY_ACCESS_ANNUAL]: 'early_access',
                 [PRICE_TEAM_PRO_MONTHLY]: 'team_pro',
                 [PRICE_TEAM_PRO_ANNUAL]: 'team_pro',
                 [PRICE_TEAM_MONTHLY]: 'team',
@@ -532,13 +538,15 @@ function setupSubscriptionWebhook(app) {
                       ? 'Compliance Suite'
                       : finalTier === 'team_pro'
                         ? 'SimpleBeacon Team Pro'
-                        : finalTier === 'team'
-                          ? 'Continuous Shield Team'
-                          : finalTier === 'developer'
-                            ? 'SimpleBeacon Developer'
-                            : 'AI Slop Cop Pro';
+                        : finalTier === 'early_access'
+                          ? 'SimpleBeacon Early Access (Beta Price Lock)'
+                          : finalTier === 'team'
+                            ? 'Continuous Shield Team'
+                            : finalTier === 'developer'
+                              ? 'SimpleBeacon Developer'
+                              : 'AI Slop Cop Pro';
             const features =
-                finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro'
+                finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro' || finalTier === 'early_access'
                     ? [
                           'continuous_shield',
                           'team_dashboard',
@@ -572,6 +580,7 @@ function setupSubscriptionWebhook(app) {
                     const { sendEmail } = require('../services/email.cjs');
                     const TIER_PRICES = {
                         developer: { monthly: 4900, annual: 49000 },
+                        early_access: { monthly: 2900, annual: 29000 },
                         team_pro: { monthly: 14900, annual: 149000 },
                         team: { monthly: 1500, annual: 15000 },
                         compliance: { monthly: 39900, annual: 399000 },
