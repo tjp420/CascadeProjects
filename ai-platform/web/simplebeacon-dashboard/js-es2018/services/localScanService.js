@@ -58,30 +58,81 @@ function resolveScanWorkerUrl() {
   return `/app/assets/scan-worker-v2.js?v=${v}`;
 }
 
-// Prefetch the worker script text during page load (when DNS is working)
-// and cache it. This eliminates the need for a network request when the
-// scan starts later, which may fail if DNS cache has expired.
-let _cachedWorkerScript = null;
-let _cachedWorkerBaseUrl = null;
+// Prefetch the worker script AND its imports during page load (when DNS is working)
+// and inline them into a single self-contained blob. This eliminates the need for
+// ANY network request when the scan starts later, which may fail if DNS cache has
+// expired. The worker imports two files:
+//   ./scan-wasm-bridge.js
+//   ../utils-lib/simplebeaconignore.browser.js
+// We fetch all three, rewrite imports to reference inlined blob URLs, and cache
+// the final self-contained script.
+let _cachedWorkerScript = null; // fully inlined, self-contained script
 let _prefetchPromise = null;
+
+async function fetchScriptText(url) {
+  const fetchUrl = new URL(String(url.href || url));
+  fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
+  const resp = await fetch(fetchUrl.href);
+  if (!resp.ok) throw new Error(`Fetch ${url} failed: ${resp.status}`);
+  const ct = String(resp.headers.get("content-type") || "").toLowerCase();
+  const text = await resp.text();
+  if (ct.includes("text/html") || /^\s*</.test(text)) {
+    throw new Error(`Fetch ${url} returned HTML, not JS`);
+  }
+  return text;
+}
 
 function prefetchWorkerScript() {
   if (_prefetchPromise) return _prefetchPromise;
   if (_cachedWorkerScript) return Promise.resolve(_cachedWorkerScript);
   _prefetchPromise = (async () => {
     try {
-      const url = resolveScanWorkerUrl();
-      const fetchUrl = new URL(String(url.href || url));
-      fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
-      const resp = await fetch(fetchUrl.href);
-      if (!resp.ok) return null;
-      const ct = String(resp.headers.get("content-type") || "").toLowerCase();
-      const text = await resp.text();
-      if (ct.includes("text/html") || /^\s*</.test(text)) return null;
-      _cachedWorkerScript = text;
-      _cachedWorkerBaseUrl = new URL("./", url);
-      console.warn("[localScan] Prefetched and cached worker script:", text.length, "bytes");
-      return text;
+      const workerUrl = resolveScanWorkerUrl();
+      const workerBaseUrl = new URL("./", workerUrl);
+
+      // Fetch the worker script and all its imports in parallel
+      const bridgeUrl = new URL("./scan-wasm-bridge.js", workerBaseUrl);
+      const ignoreLibUrl = new URL("../utils-lib/simplebeaconignore.browser.js", workerBaseUrl);
+
+      console.warn("[localScan] Prefetching worker + imports...");
+      const [workerText, bridgeText, ignoreLibText] = await Promise.all([
+        fetchScriptText(workerUrl),
+        fetchScriptText(bridgeUrl),
+        fetchScriptText(ignoreLibUrl),
+      ]);
+
+      // Create blob URLs for the imported modules (these are in-memory, no DNS needed)
+      const bridgeBlob = new Blob([bridgeText], { type: "application/javascript" });
+      const bridgeBlobUrl = URL.createObjectURL(bridgeBlob);
+      const ignoreLibBlob = new Blob([ignoreLibText], { type: "application/javascript" });
+      const ignoreLibBlobUrl = URL.createObjectURL(ignoreLibBlob);
+
+      // Rewrite the worker script's imports to use blob URLs
+      let inlinedScript = workerText
+        .replace(/from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g, `from "${bridgeBlobUrl}"`)
+        .replace(/from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g, `from "${ignoreLibBlobUrl}"`);
+
+      // Also rewrite any other relative imports to absolute URLs as a safety net
+      inlinedScript = inlinedScript.replace(
+        /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
+        (match, relPath, _query) => {
+          try {
+            const absUrl = new URL(relPath, workerBaseUrl);
+            absUrl.search = "";
+            return `from "${absUrl.href}"`;
+          } catch (_e) {
+            return match;
+          }
+        },
+      );
+
+      _cachedWorkerScript = inlinedScript;
+      console.warn(
+        "[localScan] Prefetched and inlined worker + imports:",
+        workerText.length, "+", bridgeText.length, "+", ignoreLibText.length,
+        "= ", inlinedScript.length, "bytes (self-contained)",
+      );
+      return inlinedScript;
     } catch (e) {
       console.warn("[localScan] Worker prefetch failed (will retry at scan time):", e?.message || e);
       return null;
@@ -1124,7 +1175,7 @@ export async function runLocalScan(options = {}) {
     // Falls back to fetch+blob, then inline shim, then direct Worker.
     let workerCreated = false;
 
-    // Approach 1: Use prefetched/cached worker script (no network request needed)
+    // Approach 1: Use prefetched/cached self-contained worker script (no network request needed)
     if (!workerCreated) {
       try {
         // Ensure prefetch has completed (it was started on module load)
@@ -1134,24 +1185,11 @@ export async function runLocalScan(options = {}) {
           scriptText = await prefetchWorkerScript();
         }
         if (scriptText) {
-          // Rewrite relative imports to absolute URLs using the cached base URL
-          const workerBaseUrl = _cachedWorkerBaseUrl || new URL("./", resolvedWorkerUrl);
-          const rewritten = scriptText.replace(
-            /from\s+["'](\.\.?\/[^"']+)(\?[^"']*)?["']/g,
-            (match, relPath, _query) => {
-              try {
-                const absUrl = new URL(relPath, workerBaseUrl);
-                absUrl.search = ""; // strip query params for Firefox module worker compat
-                return `from "${absUrl.href}"`;
-              } catch (_e) {
-                return match;
-              }
-            },
-          );
-          const blob = new Blob([rewritten], { type: "application/javascript" });
+          // The cached script already has imports inlined as blob URLs — no rewriting needed
+          const blob = new Blob([scriptText], { type: "application/javascript" });
           blobUrlForWorker = URL.createObjectURL(blob);
           console.warn(
-            "[localScan] Created blob worker from prefetched script (no network request needed)",
+            "[localScan] Created blob worker from prefetched self-contained script (no network request needed)",
           );
           worker = new Worker(blobUrlForWorker, { type: "module" });
           workerCreated = true;
