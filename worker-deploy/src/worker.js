@@ -1087,8 +1087,9 @@ export default {
           const proxyResponse = await fetch(targetUrl, fetchOpts);
 
           // Retry on 502/503/504 from backend (Render overload/cold-start)
+          // POST/PUT/DELETE are also retried since the body is already
+          // extracted as text (line 990) and rebuilt fresh per attempt.
           if (
-            isGetOrHead &&
             (proxyResponse.status === 502 ||
               proxyResponse.status === 503 ||
               proxyResponse.status === 504) &&
