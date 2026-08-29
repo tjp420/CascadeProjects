@@ -376,6 +376,10 @@ deploy() {
   log "Step 4/4: Starting Docker Compose stack..."
   cd "$target_dir"
 
+  # Export ENV_FILE so docker-compose.enterprise.yml's env_file directive
+  # (${ENV_FILE:-.env.enterprise}) resolves to the user-specified file
+  export ENV_FILE="$env_file"
+
   # Check for GPU availability
   if docker info 2>/dev/null | grep -q "Runtimes:.*nvidia"; then
     info "NVIDIA GPU runtime detected — starting with GPU support."
@@ -416,8 +420,18 @@ deploy() {
 # ── Verify Phase ───────────────────────────────────────────────────────────
 
 verify() {
-  local validate_script="$SCRIPT_DIR/validate-airgap-deploy.sh"
-  if [ -f "$validate_script" ]; then
+  local validate_script=""
+  # Look for validate-airgap-deploy.sh in both layouts:
+  # 1. Repo layout: scripts/validate-airgap-deploy.sh (SCRIPT_DIR is scripts/)
+  # 2. Archive layout: scripts/validate-airgap-deploy.sh (SCRIPT_DIR is the
+  #    archive root, so the script is in $SCRIPT_DIR/scripts/)
+  if [ -f "$SCRIPT_DIR/validate-airgap-deploy.sh" ]; then
+    validate_script="$SCRIPT_DIR/validate-airgap-deploy.sh"
+  elif [ -f "$SCRIPT_DIR/scripts/validate-airgap-deploy.sh" ]; then
+    validate_script="$SCRIPT_DIR/scripts/validate-airgap-deploy.sh"
+  fi
+
+  if [ -n "$validate_script" ] && [ -f "$validate_script" ]; then
     log "Running comprehensive validation suite..."
     bash "$validate_script" "$@"
   else
@@ -498,7 +512,8 @@ case "${1:-help}" in
     deploy "${2:-}" "${3:-}"
     ;;
   verify)
-    verify
+    shift  # Remove the "verify" subcommand from $@
+    verify "$@"
     ;;
   help|--help|-h)
     show_help
