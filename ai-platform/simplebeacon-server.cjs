@@ -709,6 +709,28 @@ app.get(/^\/demo(\/.*)?$/, async (req, res) =>
 app.get(/^\/signin(\/.*)?$/, async (req, res) =>
   redirectPublicToLanding(req, res),
 );
+
+// Dashboard static asset directories — defined early so /app/ and /dashboard/
+// static handlers below can reference them before the SPA catch-all routes.
+const dashboardStaticDir = path.join(webRoot, "simplebeacon-dashboard");
+const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, "dashboard"))
+  ? path.join(landingRoot, "dashboard")
+  : null;
+const dashboardStaticOpts = {
+  fallthrough: true,
+  dotfiles: "deny",
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".js"))
+      res.set("Content-Type", "application/javascript; charset=utf-8");
+    if (filePath.endsWith(".css"))
+      res.set("Content-Type", "text/css; charset=utf-8");
+    if (filePath.endsWith(".json"))
+      res.set("Content-Type", "application/json; charset=utf-8");
+    if (filePath.endsWith(".wasm")) res.set("Content-Type", "application/wasm");
+  },
+};
+const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
+
 // Serve dashboard assets under the /app prefix BEFORE the /app/* SPA catch-all
 // so that /app/assets/scan-worker.js etc. resolve as JS, not SPA HTML.
 [
@@ -751,25 +773,6 @@ app.get(/^\/trust(\/.*)?$/, (req, res) => {
 });
 
 // Serve dashboard assets under the /dashboard prefix for clients using absolute dashboard paths
-const dashboardStaticDir = path.join(webRoot, "simplebeacon-dashboard");
-// Fallback: also check coming-soon/public/dashboard for vendor files that may not be in ai-platform/web
-const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, "dashboard"))
-  ? path.join(landingRoot, "dashboard")
-  : null;
-const dashboardStaticOpts = {
-  fallthrough: true,
-  dotfiles: "deny",
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith(".js"))
-      res.set("Content-Type", "application/javascript; charset=utf-8");
-    if (filePath.endsWith(".css"))
-      res.set("Content-Type", "text/css; charset=utf-8");
-    if (filePath.endsWith(".json"))
-      res.set("Content-Type", "application/json; charset=utf-8");
-    if (filePath.endsWith(".wasm")) res.set("Content-Type", "application/wasm");
-  },
-};
-const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
 [
   "/dashboard/css",
   "/dashboard/js",
