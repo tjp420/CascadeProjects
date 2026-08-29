@@ -6,7 +6,7 @@ import {
   browserFolderCapMessage,
   isEmbeddedDashboardFrame,
   browserLocalScanCapMessage,
-} from "../utils-lib/dom.js?v=20260804largefolder1";
+} from "../utils-lib/dom.js?v=20260829exportfix1";
 import { normalizeSimplebeaconReport } from "./analyzeService.js?v=20260726sevfix1";
 import {
   createIgnoreContext,
