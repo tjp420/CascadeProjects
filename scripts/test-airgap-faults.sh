@@ -589,15 +589,15 @@ run_scenario_6() {
   fi
 
   info "  Running validation with --recover (destructive)..."
-  local recover_args="--recover --yes"
+  local -a recover_args=("--recover" "--yes")
   if [ -n "$ARCHIVE_PATH" ]; then
-    recover_args="$recover_args --archive $ARCHIVE_PATH"
+    recover_args+=("--archive" "$ARCHIVE_PATH")
   fi
   if $VERBOSE; then
-    recover_args="$recover_args --verbose"
+    recover_args+=("--verbose")
   fi
 
-  bash "$VALIDATE_SCRIPT" $recover_args > /dev/null 2>&1 || true
+  bash "$VALIDATE_SCRIPT" "${recover_args[@]}" > /dev/null 2>&1 || true
 
   sleep 15
 
@@ -656,15 +656,15 @@ run_scenario_7() {
   sleep 1
 
   info "  Running validation with --recover (destructive)..."
-  local recover_args="--recover --yes"
+  local -a recover_args=("--recover" "--yes")
   if [ -n "$ARCHIVE_PATH" ]; then
-    recover_args="$recover_args --archive $ARCHIVE_PATH"
+    recover_args+=("--archive" "$ARCHIVE_PATH")
   fi
   if $VERBOSE; then
-    recover_args="$recover_args --verbose"
+    recover_args+=("--verbose")
   fi
 
-  bash "$VALIDATE_SCRIPT" $recover_args > /dev/null 2>&1 || true
+  bash "$VALIDATE_SCRIPT" "${recover_args[@]}" > /dev/null 2>&1 || true
 
   sleep 15
 
