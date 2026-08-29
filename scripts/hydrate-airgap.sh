@@ -157,17 +157,25 @@ package() {
 
   # Wait for Ollama to be ready
   info "Waiting for Ollama daemon..."
+  local ollama_ready=false
   for i in $(seq 1 60); do
     if docker exec sb-ollama-bake curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
       info "Ollama daemon is ready."
-      break
-    fi
-    if [ $i -eq 60 ]; then
-      warn "Ollama daemon not ready after 60s — models will be created on first boot."
+      ollama_ready=true
       break
     fi
     sleep 1
   done
+
+  if ! $ollama_ready; then
+    warn "Ollama daemon not ready after 60s — skipping model pull and creation."
+    warn "Models will need to be created manually on the target machine."
+    # Stop and clean up the bake container before exiting the model step
+    docker stop sb-ollama-bake 2>/dev/null || true
+    docker rm sb-ollama-bake 2>/dev/null || true
+    # Continue to image save step — the archive will still have the images,
+    # just without pre-baked models
+  fi
 
   # Pull base models with explicit quantization tags (requires internet on build machine)
   # Quantization tags ensure reproducible builds — without them, Ollama may resolve
@@ -176,45 +184,52 @@ package() {
   #   - ~4.4 GB VRAM for 7B models
   #   - Minimal quality loss vs FP16
   #   - Fits on 6GB VRAM cards (RTX 3060, RTX 4060, A2000)
-  info "Pulling base models with Q4_K_M quantization..."
-  for model in \
-    "llama3.2:3b-instruct-q4_K_M" \
-    "mistral:7b-instruct-q4_K_M" \
-    "qwen2.5-coder:7b-instruct-q4_K_M"; do
-    info "  Pulling $model..."
-    docker exec sb-ollama-bake ollama pull "$model" || warn "  Failed to pull $model — it may need to be pulled manually."
-  done
+  if $ollama_ready; then
+    info "Pulling base models with Q4_K_M quantization..."
+    for model in \
+      "llama3.2:3b-instruct-q4_K_M" \
+      "mistral:7b-instruct-q4_K_M" \
+      "qwen2.5-coder:7b-instruct-q4_K_M"; do
+      info "  Pulling $model..."
+      docker exec sb-ollama-bake ollama pull "$model" || warn "  Failed to pull $model — it may need to be pulled manually."
+    done
 
-  # Create SimpleBeacon-optimized models
-  info "Creating SimpleBeacon-optimized models from Modelfiles..."
-  docker exec sb-ollama-bake ollama create unbreakable-oracle -f /models/Modelfile 2>&1 || warn "Failed to create unbreakable-oracle"
-  docker exec sb-ollama-bake ollama create simplebeacon-llama32 -f /models/Modelfile.llama32 2>&1 || warn "Failed to create simplebeacon-llama32"
-  docker exec sb-ollama-bake ollama create simplebeacon-mistral -f /models/Modelfile.mistral 2>&1 || warn "Failed to create simplebeacon-mistral"
-  docker exec sb-ollama-bake ollama create simplebeacon-qwen-coder -f /models/Modelfile.qwen25-coder 2>&1 || warn "Failed to create simplebeacon-qwen-coder"
+    # Create SimpleBeacon-optimized models
+    info "Creating SimpleBeacon-optimized models from Modelfiles..."
+    docker exec sb-ollama-bake ollama create unbreakable-oracle -f /models/Modelfile 2>&1 || warn "Failed to create unbreakable-oracle"
+    docker exec sb-ollama-bake ollama create simplebeacon-llama32 -f /models/Modelfile.llama32 2>&1 || warn "Failed to create simplebeacon-llama32"
+    docker exec sb-ollama-bake ollama create simplebeacon-mistral -f /models/Modelfile.mistral 2>&1 || warn "Failed to create simplebeacon-mistral"
+    docker exec sb-ollama-bake ollama create simplebeacon-qwen-coder -f /models/Modelfile.qwen25-coder 2>&1 || warn "Failed to create simplebeacon-qwen-coder"
 
-  # List created models
-  info "Created models:"
-  docker exec sb-ollama-bake ollama list 2>&1 || true
+    # List created models
+    info "Created models:"
+    docker exec sb-ollama-bake ollama list 2>&1 || true
+  fi
 
   # Verify all 4 required models were created before exporting
-  info "Verifying required models..."
-  local required_models=("unbreakable-oracle" "simplebeacon-llama32" "simplebeacon-mistral" "simplebeacon-qwen-coder")
-  local missing_models=()
-  local model_list
-  model_list=$(docker exec sb-ollama-bake ollama list 2>/dev/null || echo "")
-  for req_model in "${required_models[@]}"; do
-    if echo "$model_list" | grep -q "$req_model"; then
-      info "  ✓ $req_model"
-    else
-      warn "  ✗ $req_model — MISSING"
-      missing_models+=("$req_model")
-    fi
-  done
+  if $ollama_ready; then
+    info "Verifying required models..."
+    local required_models=("unbreakable-oracle" "simplebeacon-llama32" "simplebeacon-mistral" "simplebeacon-qwen-coder")
+    local missing_models=()
+    local model_list
+    model_list=$(docker exec sb-ollama-bake ollama list 2>/dev/null || echo "")
+    for req_model in "${required_models[@]}"; do
+      if echo "$model_list" | grep -q "$req_model"; then
+        info "  ✓ $req_model"
+      else
+        warn "  ✗ $req_model — MISSING"
+        missing_models+=("$req_model")
+      fi
+    done
 
-  if [ ${#missing_models[@]} -gt 0 ]; then
-    warn "WARNING: ${#missing_models[@]} model(s) missing from the archive."
-    warn "The air-gapped deployment may not have all required models."
-    warn "Missing: ${missing_models[*]}"
+    if [ ${#missing_models[@]} -gt 0 ]; then
+      warn "WARNING: ${#missing_models[@]} model(s) missing from the archive."
+      warn "The air-gapped deployment may not have all required models."
+      warn "Missing: ${missing_models[*]}"
+    fi
+  else
+    warn "Skipping model verification — Ollama daemon was not ready."
+    warn "All 4 models will be missing from the archive."
   fi
 
   # Stop the bake container BEFORE exporting the volume to prevent

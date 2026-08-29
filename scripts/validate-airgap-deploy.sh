@@ -394,19 +394,55 @@ restart_container() {
   fi
 
   if docker compose -f "$compose_file" restart "$compose_service" > /dev/null 2>&1; then
-    # Wait for container to be ready
+    # Wait for container to be running, then wait for service readiness
     local waited=0
     while [ $waited -lt 30 ]; do
       if is_running "$container_name"; then
-        sleep 3  # Give it a moment to initialize
-        recovery_ok "$container_name" "restart" "Container restarted successfully"
-        return 0
+        break
       fi
       sleep 1
       waited=$((waited + 1))
     done
-    recovery_fail "$container_name" "restart" "Container did not start within 30s"
-    return 1
+
+    if ! is_running "$container_name"; then
+      recovery_fail "$container_name" "restart" "Container did not start within 30s"
+      return 1
+    fi
+
+    # Wait for the service to be actually ready (not just container running)
+    # This prevents recovery from claiming success before the service accepts connections
+    local service_ready=false
+    local ready_waited=0
+    while [ $ready_waited -lt 30 ]; do
+      case "$compose_service" in
+        simplebeacon-engine)
+          check_engine_health 2>/dev/null && service_ready=true
+          ;;
+        simplebeacon-ollama)
+          check_ollama_api 2>/dev/null && service_ready=true
+          ;;
+        simplebeacon-db)
+          check_pg_ready 2>/dev/null && service_ready=true
+          ;;
+        *)
+          # Unknown service — just verify container is running
+          service_ready=true
+          ;;
+      esac
+      if $service_ready; then
+        break
+      fi
+      sleep 2
+      ready_waited=$((ready_waited + 1))
+    done
+
+    if $service_ready; then
+      recovery_ok "$container_name" "restart" "Container restarted and service ready"
+      return 0
+    else
+      recovery_fail "$container_name" "restart" "Container running but service not ready within 30s"
+      return 1
+    fi
   else
     recovery_fail "$container_name" "restart" "docker compose restart failed"
     return 1
@@ -1235,9 +1271,16 @@ if [ "$RECOVER_MODE" != "none" ] && [ -n "$failed_checks" ] && [ $failures -gt 0
         ;;
 
       # ── Destructive: re-import models from archive ─────────────────────────
+      # reimport_models purges and re-imports the ENTIRE volume, so only call
+      # it once even if multiple models are missing
       model-unbreakable-oracle|model-simplebeacon-llama32|model-simplebeacon-mistral|model-simplebeacon-qwen-coder)
         if [ "$RECOVER_MODE" = "all" ]; then
-          reimport_models
+          if [ -z "${models_reimported:-}" ]; then
+            reimport_models
+            models_reimported=1
+          else
+            recovery_skip "$check_id" "reimport" "Volume already re-imported by a previous model check"
+          fi
         else
           recovery_skip "$check_id" "reimport" "Destructive operation — use --recover to enable"
         fi
@@ -1403,11 +1446,17 @@ if [ "$RECOVER_MODE" != "none" ] && [ -n "$failed_checks" ] && [ $failures -gt 0
       esac
 
       if $recheck_passed; then
-        ok "recheck-$check_id: Recovered — check now passes"
+        # Do NOT call ok() here — it would double-count passed_checks and
+        # total_checks (the original check already counted them).
+        # Just decrement failures and print a non-counting success message.
+        if [ "$OUTPUT_FORMAT" = "text" ]; then
+          echo -e "  ${GREEN}✓${NC} recheck-$check_id: Recovered — check now passes"
+        fi
         failures=$((failures - 1))
-        passed_checks=$((passed_checks + 1))
       else
-        echo -e "  ${RED}✗${NC} recheck-$check_id: Still failing after recovery"
+        if [ "$OUTPUT_FORMAT" = "text" ]; then
+          echo -e "  ${RED}✗${NC} recheck-$check_id: Still failing after recovery"
+        fi
         recheck_failures=$((recheck_failures + 1))
       fi
     done
