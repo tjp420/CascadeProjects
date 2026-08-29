@@ -101,6 +101,43 @@
                 color: var(--primary);
                 font-size: 1.4rem;
             }
+            .video-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+                gap: 24px;
+                margin-top: 20px;
+            }
+            .video-item {
+                background: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .video-item .video-wrap {
+                position: relative;
+                padding-bottom: 56.25%;
+                height: 0;
+                overflow: hidden;
+            }
+            .video-item iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border: 0;
+            }
+            .video-item .video-caption {
+                padding: 12px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: var(--primary);
+            }
+            @media (max-width: 640px) {
+                .video-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
             .code-input {
                 width: 100%;
                 min-height: 180px;
@@ -357,40 +394,58 @@
             </div>
 
             <div class="demo-card">
-                <h2>Watch the Demo</h2>
+                <h2>Watch the Demos</h2>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px">
-                    See SimpleBeacon in action — catching AI code debt in a real project.
+                    See SimpleBeacon in action — catching AI code debt, scanning real projects, and integrating with your workflow.
                 </p>
-                <div
-                    style="
-                        max-width: 640px;
-                        margin: 0 auto;
-                        background: var(--card-bg);
-                        border: 1px solid var(--border);
-                        border-radius: 8px;
-                        overflow: hidden;
-                    "
-                >
-                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden">
-                        <iframe
-                            src="https://www.youtube.com/embed/t_YbhexyRpA"
-                            title="SimpleBeacon"
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0"
-                            allow="
-                                accelerometer;
-                                autoplay;
-                                clipboard-write;
-                                encrypted-media;
-                                gyroscope;
-                                picture-in-picture;
-                                web-share;
-                            "
-                            allowfullscreen
-                            loading="lazy"
-                        ></iframe>
+                <div class="video-grid">
+                    <div class="video-item">
+                        <div class="video-wrap">
+                            <iframe
+                                src="https://www.youtube.com/embed/kqR3H19NGPw"
+                                title="SimpleBeacon Demo 1"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                loading="lazy"
+                            ></iframe>
+                        </div>
+                        <div class="video-caption">SimpleBeacon Demo</div>
                     </div>
-                    <div style="padding: 12px">
-                        <strong style="font-size: 0.9rem">SimpleBeacon Demo</strong>
+                    <div class="video-item">
+                        <div class="video-wrap">
+                            <iframe
+                                src="https://www.youtube.com/embed/sIEKANs8IYU"
+                                title="SimpleBeacon Demo 2"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                loading="lazy"
+                            ></iframe>
+                        </div>
+                        <div class="video-caption">SimpleBeacon Walkthrough</div>
+                    </div>
+                    <div class="video-item">
+                        <div class="video-wrap">
+                            <iframe
+                                src="https://www.youtube.com/embed/aNKSFDovJnA"
+                                title="SimpleBeacon Demo 3"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                loading="lazy"
+                            ></iframe>
+                        </div>
+                        <div class="video-caption">SimpleBeacon In Action</div>
+                    </div>
+                    <div class="video-item">
+                        <div class="video-wrap">
+                            <iframe
+                                src="https://www.youtube.com/embed/JPSC5RKcKD0"
+                                title="SimpleBeacon Demo 4"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                loading="lazy"
+                            ></iframe>
+                        </div>
+                        <div class="video-caption">SimpleBeacon Deep Dive</div>
                     </div>
                 </div>
             </div>
