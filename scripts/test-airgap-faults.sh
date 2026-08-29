@@ -35,6 +35,37 @@
 
 set -u
 
+# ── Cross-platform shell gating ─────────────────────────────────────────────
+# These scripts require a POSIX bash environment. On Windows, use Git Bash
+# (MSYS2) or WSL2. Native CMD/PowerShell will silently mangle paths and break
+# docker exec, network disconnect, and sub-shell interpolations.
+
+# Detect native Windows shells that lack POSIX support
+if [ -n "${COMSPEC:-}" ] && [ -z "${BASH_VERSION:-}" ]; then
+  echo "[FATAL] This script requires a POSIX bash shell." >&2
+  echo "  On Windows, use Git Bash (https://git-scm.com) or WSL2." >&2
+  echo "  Do not run via CMD or PowerShell." >&2
+  exit 2
+fi
+
+# Ensure we're actually running bash (not sh/dash/ash)
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "[FATAL] This script requires bash. Current shell: ${0##*/}" >&2
+  echo "  On Windows, use Git Bash or WSL2." >&2
+  exit 2
+fi
+
+# Prevent MSYS2/Git Bash from converting container paths
+export MSYS_NO_PATHCONV=1
+
+# Warn if running in WSL2 — Docker Desktop integration may need configuration
+if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] 2>/dev/null; then
+  if ! docker info > /dev/null 2>&1; then
+    echo "[WARN] Running in WSL2 but Docker daemon is not reachable." >&2
+    echo "  Ensure Docker Desktop has WSL2 integration enabled for this distro." >&2
+  fi
+fi
+
 # ── Configuration ───────────────────────────────────────────────────────────
 
 OLLAMA_CONTAINER="simplebeacon-ollama"
