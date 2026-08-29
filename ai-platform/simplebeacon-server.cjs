@@ -768,6 +768,34 @@ const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
     );
   }
 });
+
+// Serve dashboard assets under the /app prefix (mirrors /dashboard above)
+// so that /app/assets/scan-worker.js etc. resolve as JS, not SPA HTML.
+[
+  "/app/css",
+  "/app/js",
+  "/app/js-es2018",
+  "/app/images",
+  "/app/fonts",
+  "/app/assets",
+  "/app/utils-lib",
+].forEach((p) => {
+  const sub = p.substring("/app/".length);
+  app.use(
+    p,
+    express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts),
+  );
+  if (dashboardFallbackDir) {
+    app.use(
+      p,
+      express.static(
+        path.join(dashboardFallbackDir, sub),
+        dashboardStaticOptsFinal,
+      ),
+    );
+  }
+});
+
 function serveRootFile(relativePath, contentType) {
   return (req, res, next) => {
     const candidates = [
