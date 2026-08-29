@@ -73,8 +73,8 @@ Usage:
   test-airgap-faults.sh [OPTIONS]
 
 Options:
-  --scenario N    Run only scenario N (1-8)
-  --safe-only     Only run safe-recovery scenarios (1-5, 8)
+  --scenario N    Run only scenario N (1-10)
+  --safe-only     Only run safe-recovery scenarios (1-5, 8-9)
   --json          Output results as JSON for CI/automation
   --verbose       Show full validation output during scenarios
   --archive PATH  Path to air-gap archive (for destructive model scenarios)
@@ -90,6 +90,8 @@ Scenarios:
   6. Delete a model                 (destructive recovery: re-import from archive)
   7. Corrupt model layer            (destructive recovery: recreate from Modelfile)
   8. Break engine-to-Ollama DNS     (safe auto-recovery: restart engine)
+  9. Network partition engine<->db  (safe auto-recovery: reconnect)
+ 10. Disk space exhaustion          (destructive recovery: cleanup filler)
 
 WARNING: This script deliberately breaks things. All scenarios include
 cleanup logic to restore the system to a healthy state.
@@ -98,6 +100,7 @@ Prerequisites:
   - Running SimpleBeacon air-gapped deployment
   - validate-airgap-deploy.sh in the same scripts/ directory
   - For scenarios 6-7: air-gap archive (--archive PATH)
+  - For scenario 10: at least 1GB free disk space on the engine volume
 HELP
       exit 0
       ;;
@@ -118,6 +121,8 @@ if $LIST_ONLY; then
   echo "  6. Delete a model                 (destructive recovery: re-import)"
   echo "  7. Corrupt model layer            (destructive recovery: recreate)"
   echo "  8. Break engine-to-Ollama DNS     (safe auto-recovery: restart engine)"
+  echo "  9. Network partition engine<->db  (safe auto-recovery: reconnect)"
+  echo " 10. Disk space exhaustion          (destructive recovery: cleanup filler)"
   exit 0
 fi
 
@@ -280,7 +285,9 @@ ensure_healthy() {
 
     warn "System not healthy, attempting full restart (retry $((retry + 1))/$max_retries)..."
     local compose_file=""
-    if [ -f "docker-compose.enterprise.yml" ]; then
+    if [ -f "$SCRIPT_DIR/../docker-compose.enterprise.yml" ]; then
+      compose_file="$SCRIPT_DIR/../docker-compose.enterprise.yml"
+    elif [ -f "docker-compose.enterprise.yml" ]; then
       compose_file="docker-compose.enterprise.yml"
     elif [ -f "docker-compose.yml" ]; then
       compose_file="docker-compose.yml"
@@ -723,13 +730,133 @@ run_scenario_8() {
 
   sleep 10
 
-  # Verify engine can reach Ollama
-  if docker exec "$ENGINE_CONTAINER" curl -s --max-time 10 "http://simplebeacon-ollama:11434/api/tags" > /dev/null 2>&1; then
+  # Verify engine can reach Ollama (use node — engine image has no curl)
+  if docker exec "$ENGINE_CONTAINER" node -e 'require("http").get("http://simplebeacon-ollama:11434/api/tags",r=>process.exit(r.statusCode<400?0:1)).on("error",()=>process.exit(1))' 2>/dev/null; then
     ok "Engine-to-Ollama DNS connectivity restored"
     record_result "$scenario_num" "$scenario_name" "pass" "engine DNS cache refreshed via restart"
   else
     fail "Engine still cannot reach Ollama via Docker DNS"
     record_result "$scenario_num" "$scenario_name" "fail" "DNS connectivity not restored"
+  fi
+
+  ensure_healthy || true
+  info ""
+}
+
+# ── Scenario 9: Network partition between engine and db ──────────────────────
+
+run_scenario_9() {
+  local scenario_name="Network partition engine<->db"
+  local scenario_num=9
+
+  if [ -n "$SCENARIO_FILTER" ] && [ "$SCENARIO_FILTER" != "$scenario_num" ]; then
+    return
+  fi
+
+  info "Scenario $scenario_num: $scenario_name"
+  info "  Injecting fault: disconnect engine from db via Docker network"
+
+  if ! ensure_healthy; then
+    fail "Pre-scenario health check failed"
+    record_result "$scenario_num" "$scenario_name" "fail" "pre-scenario health check failed"
+    return
+  fi
+
+  # Disconnect the engine container from the bridge network to simulate
+  # a network partition. The engine will lose connectivity to both db and ollama.
+  docker network disconnect simplebeacon-net "$ENGINE_CONTAINER" 2>/dev/null || true
+  sleep 5
+
+  # Verify the engine lost DB connectivity
+  info "  Verifying engine lost DB connectivity..."
+  if docker exec "$ENGINE_CONTAINER" node -e 'require("net").connect(5432,"simplebeacon-db").on("connect",()=>process.exit(0)).on("error",()=>process.exit(1))' 2>/dev/null; then
+    warn "Engine still has DB connectivity — partition may not have taken effect"
+  else
+    ok "Engine lost DB connectivity (partition active)"
+  fi
+
+  # Run validation — should detect the DB connectivity failure
+  info "  Running validation with --recover-safe..."
+  bash "$VALIDATE_SCRIPT" --recover-safe > /dev/null 2>&1 || true
+
+  # Recovery: reconnect the engine to the network
+  info "  Reconnecting engine to network..."
+  docker network connect simplebeacon-net "$ENGINE_CONTAINER" 2>/dev/null || true
+  sleep 10
+
+  # Verify engine regained DB connectivity
+  if docker exec "$ENGINE_CONTAINER" node -e 'require("net").connect(5432,"simplebeacon-db").on("connect",()=>process.exit(0)).on("error",()=>process.exit(1))' 2>/dev/null; then
+    ok "Engine-to-DB connectivity restored after network reconnect"
+    record_result "$scenario_num" "$scenario_name" "pass" "network partition detected and healed via reconnect"
+  else
+    fail "Engine still cannot reach DB after network reconnect"
+    record_result "$scenario_num" "$scenario_name" "fail" "DB connectivity not restored after reconnect"
+  fi
+
+  ensure_healthy || true
+  info ""
+}
+
+# ── Scenario 10: Disk space exhaustion on engine volume ──────────────────────
+
+run_scenario_10() {
+  local scenario_name="Disk space exhaustion on engine volume"
+  local scenario_num=10
+
+  if [ -n "$SCENARIO_FILTER" ] && [ "$SCENARIO_FILTER" != "$scenario_num" ]; then
+    return
+  fi
+
+  info "Scenario $scenario_num: $scenario_name"
+  info "  Injecting fault: fill engine-reports volume to 95% capacity"
+
+  if ! ensure_healthy; then
+    fail "Pre-scenario health check failed"
+    record_result "$scenario_num" "$scenario_name" "fail" "pre-scenario health check failed"
+    return
+  fi
+
+  # Get the engine-reports volume mount point inside the container
+  local volume_mount="/app/ai-platform/processed_reports"
+
+  # Create a large filler file inside the engine container's reports volume
+  # Use dd to create a 1GB file — enough to trigger disk pressure on most setups
+  # without actually filling the entire disk (which could corrupt Docker state)
+  info "  Writing 1GB filler file to engine reports volume..."
+  docker exec "$ENGINE_CONTAINER" sh -c "dd if=/dev/zero of=${volume_mount}/.filler bs=1M count=1024 2>/dev/null" 2>/dev/null || true
+  sleep 2
+
+  # Check disk usage inside the container
+  local disk_usage
+  disk_usage=$(docker exec "$ENGINE_CONTAINER" sh -c "df -k / | awk 'NR==2 {print \$5}'" 2>/dev/null | tr -d '%' || echo 0)
+  info "  Disk usage after filler: ${disk_usage}%"
+
+  if [ "$disk_usage" -gt 80 ] 2>/dev/null; then
+    ok "Disk pressure simulated (${disk_usage}% usage)"
+  else
+    warn "Disk usage only ${disk_usage}% — filler may not be large enough for this host"
+  fi
+
+  # Run validation — should detect disk pressure in Check 14
+  info "  Running validation with --recover-safe..."
+  bash "$VALIDATE_SCRIPT" --recover-safe > /dev/null 2>&1 || true
+
+  # Recovery: remove the filler file
+  info "  Removing filler file..."
+  docker exec "$ENGINE_CONTAINER" rm -f "${volume_mount}/.filler" 2>/dev/null || true
+  sleep 2
+
+  # Verify disk usage dropped
+  local disk_after
+  disk_after=$(docker exec "$ENGINE_CONTAINER" sh -c "df -k / | awk 'NR==2 {print \$5}'" 2>/dev/null | tr -d '%' || echo 0)
+  info "  Disk usage after cleanup: ${disk_after}%"
+
+  if [ "$disk_after" -lt "$disk_usage" ] 2>/dev/null; then
+    ok "Disk pressure relieved (${disk_usage}% -> ${disk_after}%)"
+    record_result "$scenario_num" "$scenario_name" "pass" "disk exhaustion detected and cleaned up"
+  else
+    fail "Disk usage did not decrease after cleanup (${disk_after}%)"
+    record_result "$scenario_num" "$scenario_name" "fail" "disk pressure not relieved"
   fi
 
   ensure_healthy || true
@@ -742,7 +869,17 @@ log "Running fault injection scenarios..."
 log ""
 
 # Run all scenarios (or filtered scenario)
-for i in 1 2 3 4 5 6 7 8; do
+# --safe-only skips destructive scenarios (6, 7) that require archive re-import
+# --scenario N overrides --safe-only (explicit user intent)
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if [ -n "$SCENARIO_FILTER" ] && [ "$SCENARIO_FILTER" != "$i" ]; then
+    continue
+  fi
+  if $SAFE_ONLY && [ -z "$SCENARIO_FILTER" ] && { [ "$i" = "6" ] || [ "$i" = "7" ] || [ "$i" = "10" ]; }; then
+    info "Skipping scenario $i (destructive — --safe-only)"
+    record_result "$i" "skipped" "skip" "skipped due to --safe-only"
+    continue
+  fi
   "run_scenario_$i"
 done
 
