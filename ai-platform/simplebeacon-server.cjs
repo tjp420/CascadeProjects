@@ -1078,6 +1078,28 @@ if (landingRootExists) {
     );
   }
 
+  // Pretty URLs for blog posts: /blog/case-study-ai-slop-1-25m -> blog/case-study-ai-slop-1-25m.html
+  app.get("/blog/:post", (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    const post = req.params.post;
+    if (!post || post.includes(".") || post.includes("/")) return next();
+    if (sendLandingFile(res, `blog/${post}.html`, "text/html")) return;
+    next();
+  });
+
+  // Pretty URLs for remaining marketing pages: /faq -> faq.html, /security -> security.html, etc.
+  // Only handles single-segment paths not already handled by explicit routes above.
+  app.get("/:page", (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    const page = req.params.page;
+    if (!page || page.includes("/") || page.includes(".")) return next();
+    // Skip paths already handled by explicit routes
+    const alreadyHandled = ["pricing", "roadmap", "audit", "terms", "privacy", "refund", "community", "landing", "demo", "dashboard", "app", "signin", "admin"].includes(page);
+    if (alreadyHandled) return next();
+    if (sendLandingFile(res, `${page}.html`, "text/html")) return;
+    next();
+  });
+
   const waitlistRateLimiter = rateLimit({
     windowMs: constants.ONE_MINUTE_MS || 60 * 1000,
     max: 10,
