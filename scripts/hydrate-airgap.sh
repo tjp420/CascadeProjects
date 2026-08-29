@@ -148,6 +148,10 @@ package() {
   # Step 2: Start Ollama and pre-load models
   log "Step 2/5: Pre-loading Ollama models..."
   info "Starting temporary Ollama container for model baking..."
+
+  # Purge any stale bake container from a previous interrupted run
+  docker rm -f sb-ollama-bake 2>/dev/null || true
+
   docker run -d --name sb-ollama-bake --entrypoint ollama -v ollama-models:/home/ollama/.ollama simplebeacon-ollama:latest serve
   sleep 10
 
@@ -192,14 +196,40 @@ package() {
   info "Created models:"
   docker exec sb-ollama-bake ollama list 2>&1 || true
 
-  # Step 3: Export Ollama model volume
+  # Verify all 4 required models were created before exporting
+  info "Verifying required models..."
+  local required_models=("unbreakable-oracle" "simplebeacon-llama32" "simplebeacon-mistral" "simplebeacon-qwen-coder")
+  local missing_models=()
+  local model_list
+  model_list=$(docker exec sb-ollama-bake ollama list 2>/dev/null || echo "")
+  for req_model in "${required_models[@]}"; do
+    if echo "$model_list" | grep -q "$req_model"; then
+      info "  ✓ $req_model"
+    else
+      warn "  ✗ $req_model — MISSING"
+      missing_models+=("$req_model")
+    fi
+  done
+
+  if [ ${#missing_models[@]} -gt 0 ]; then
+    warn "WARNING: ${#missing_models[@]} model(s) missing from the archive."
+    warn "The air-gapped deployment may not have all required models."
+    warn "Missing: ${missing_models[*]}"
+  fi
+
+  # Stop the bake container BEFORE exporting the volume to prevent
+  # concurrent writes from corrupting the tar archive
+  info "Stopping Ollama bake container..."
+  docker stop sb-ollama-bake 2>/dev/null || true
+  docker rm sb-ollama-bake 2>/dev/null || true
+  sleep 2
+
+  # Step 3: Export Ollama model volume (container stopped — no concurrent writes)
   log "Step 3/5: Exporting Ollama model data..."
   local win_output_dir
   win_output_dir=$(cygpath -m "$output_dir" 2>/dev/null || echo "$output_dir")
   docker run --rm -v ollama-models:/data -v "$win_output_dir":/out alpine:latest tar -czf /out/ollama-models.tar.gz -C /data .
   info "Exported Ollama models to: $output_dir/ollama-models.tar.gz"
-  docker stop sb-ollama-bake 2>/dev/null || true
-  docker rm sb-ollama-bake 2>/dev/null || true
 
   # Step 4: Save Docker images to archive
   log "Step 4/5: Saving Docker images to archive..."
