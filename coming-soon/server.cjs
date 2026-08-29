@@ -1937,6 +1937,17 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
 });
 
+// Pretty URLs for blog posts: /blog/case-study-ai-slop-1-25m -> public/blog/case-study-ai-slop-1-25m.html
+app.get('/blog/:post', (req, res, next) => {
+    const post = req.params.post;
+    if (!post || post.includes('.') || post.includes('/')) return next();
+    const htmlPath = path.join(__dirname, 'public', 'blog', `${post}.html`);
+    if (fsSync.existsSync(htmlPath)) {
+        return res.sendFile(htmlPath);
+    }
+    next();
+});
+
 // Pretty URLs for marketing pages: /audit -> public/audit.html, /roadmap -> public/roadmap.html, etc.
 app.get('/:page', (req, res, next) => {
     const page = req.params.page;
