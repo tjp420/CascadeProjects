@@ -23,5 +23,6 @@ services:
               capabilities: [gpu]
     environment:
       # Ollama auto-detects GPU when NVIDIA runtime is active
-      OLLAMA_GPU_LAYERS: "0"
+      # OLLAMA_NUM_GPU: 999 forces maximum GPU layer offload
+      OLLAMA_NUM_GPU: "999"
       OLLAMA_NUM_PARALLEL: "1"

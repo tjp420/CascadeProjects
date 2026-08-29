@@ -148,7 +148,7 @@ package() {
   # Step 2: Start Ollama and pre-load models
   log "Step 2/5: Pre-loading Ollama models..."
   info "Starting temporary Ollama container for model baking..."
-  docker run -d --name sb-ollama-bake --entrypoint ollama -v ollama-models:/root/.ollama simplebeacon-ollama:latest serve
+  docker run -d --name sb-ollama-bake --entrypoint ollama -v ollama-models:/home/ollama/.ollama simplebeacon-ollama:latest serve
   sleep 10
 
   # Wait for Ollama to be ready

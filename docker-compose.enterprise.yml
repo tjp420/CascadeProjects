@@ -50,11 +50,12 @@ services:
       OLLAMA_TIMEOUT_MS: "120000"
       SIMPLEBEACON_OFFLINE: "true"
       # ── Report Signing ───────────────────────────────────────────────────
-      REPORT_SIGNING_KEY_ID: "1"
+      # REPORT_SIGNING_KEY and REPORT_SIGNING_KEY_ID loaded from .env.enterprise
       # ── Feature Flags ────────────────────────────────────────────────────
       SIMPLEBEACON_LANDING: "true"
-      SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION: "true"
-      SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE: "true"
+      # Enterprise: disable public registration — provision accounts manually or via SSO
+      SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION: "false"
+      SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE: "false"
       SIMPLEBEACON_ENABLE_DEMO_REPORT: "false"
       ENABLE_EXTERNAL_APIS: "false"
       SIMPLEBEACON_IMPROVEMENT_REPORT_ENABLED: "true"
@@ -104,6 +105,8 @@ services:
       # Signal to init-models.sh that this is an air-gapped deployment —
       # skip ollama pull attempts for base models (they're pre-loaded in the volume)
       SIMPLEBEACON_OFFLINE: "true"
+      # Model storage path (matches Dockerfile.ollama non-root user setup)
+      OLLAMA_MODELS: /home/ollama/.ollama
       # ── Memory Budget Profile ─────────────────────────────────────────────
       # Selects quantization and context window based on available hardware.
       # Run scripts/detect-hardware-profile.sh to auto-detect the best profile.
@@ -127,10 +130,12 @@ services:
       # Keep model memory-mapped (faster startup, lower RSS)
       OLLAMA_USE_MMAP: "true"
     ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+      # Bind to loopback only — Ollama API is accessed via internal Docker DNS
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
     volumes:
       # Persistent model storage — survives container restarts
-      - ollama-models:/root/.ollama
+      # Path matches OLLAMA_MODELS env in Dockerfile.ollama (non-root user)
+      - ollama-models:/home/ollama/.ollama
     networks:
       - simplebeacon-net
     healthcheck:
@@ -148,9 +153,10 @@ services:
     environment:
       POSTGRES_DB: simplebeacon
       POSTGRES_USER: simplebeacon_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-simplebeacon_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.enterprise}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Bind to loopback only — DB is accessed via internal Docker DNS
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       # Persistent database storage
       - db-data:/var/lib/postgresql/data
@@ -182,3 +188,7 @@ volumes:
 networks:
   simplebeacon-net:
     driver: bridge
+    # internal: true prevents outbound internet access from all containers
+    # on this network. Safe for air-gapped deployments where
+    # SIMPLEBEACON_OFFLINE=true and ENABLE_EXTERNAL_APIS=false.
+    internal: true

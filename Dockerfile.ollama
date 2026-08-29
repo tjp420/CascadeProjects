@@ -20,8 +20,14 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for security (base image runs as root by default).
+# Added to the video group for GPU device access when NVIDIA runtime is active.
+RUN addgroup --system ollama && \
+    adduser --system --ingroup ollama --home /home/ollama ollama && \
+    adduser ollama video 2>/dev/null || true
+
 # Create directories
-RUN mkdir -p /models /scripts
+RUN mkdir -p /models /scripts /home/ollama/.ollama
 
 # Copy Modelfiles and manifest
 COPY coming-soon/public/models/Modelfile /models/Modelfile
@@ -35,6 +41,14 @@ COPY coming-soon/public/models/memory-profiles.json /models/memory-profiles.json
 # init-models.sh runs `ollama create` for each Modelfile at container startup
 COPY scripts/init-models.sh ./scripts/init-models.sh
 RUN chmod +x ./scripts/init-models.sh
+
+# Set ownership for non-root user (must be after COPY, which creates files as root)
+RUN chown -R ollama:ollama /models /scripts /home/ollama
+
+# Set OLLAMA_MODELS to the non-root user's data directory
+ENV OLLAMA_MODELS=/home/ollama/.ollama
+
+USER ollama
 
 # Expose Ollama API port
 EXPOSE 11434

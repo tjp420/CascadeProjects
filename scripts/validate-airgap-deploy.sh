@@ -905,7 +905,7 @@ else
 fi
 
 if is_running "$OLLAMA_CONTAINER"; then
-  model_dir_size=$(docker exec "$OLLAMA_CONTAINER" du -sb /root/.ollama 2>/dev/null | awk '{print $1}' || echo 0)
+  model_dir_size=$(docker exec "$OLLAMA_CONTAINER" du -sb /home/ollama/.ollama 2>/dev/null | awk '{print $1}' || echo 0)
   if [ "$model_dir_size" -gt 0 ] 2>/dev/null; then
     model_dir_gb=$(echo "scale=2; $model_dir_size / 1073741824" | bc 2>/dev/null || echo "?")
     ok "model-volume-size: Ollama models directory is ${model_dir_gb}GB"
