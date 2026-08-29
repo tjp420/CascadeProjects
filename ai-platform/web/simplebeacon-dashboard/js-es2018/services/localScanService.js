@@ -19,7 +19,7 @@ import {
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260828firefoxfix1";
+const WORKER_ASSET_VERSION = "20260828workerfix1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -32,7 +32,7 @@ function resolveScanWorkerUrl() {
           : null;
       if (mount) {
         return new URL(
-          `${mount}/assets/scan-worker-v2.js?v=${v}`,
+          `${mount}/assets/scan-worker.js?v=${v}`,
           location.origin,
         );
       }
@@ -47,7 +47,7 @@ function resolveScanWorkerUrl() {
         ? import.meta.url
         : "";
     if (base.includes("/assets/")) {
-      return new URL(`./scan-worker-v2.js?v=${v}`, base);
+      return new URL(`./scan-worker.js?v=${v}`, base);
     }
     if (base) {
       return new URL(`../workers/scan-worker.js?v=${v}`, base);
@@ -55,7 +55,7 @@ function resolveScanWorkerUrl() {
   } catch (_metaErr) {
     /* fall through */
   }
-  return `/app/assets/scan-worker-v2.js?v=${v}`;
+  return `/app/assets/scan-worker.js?v=${v}`;
 }
 
 // Prefetch the worker script AND its imports during page load (when DNS is working)
