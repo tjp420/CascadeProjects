@@ -709,6 +709,32 @@ app.get(/^\/demo(\/.*)?$/, async (req, res) =>
 app.get(/^\/signin(\/.*)?$/, async (req, res) =>
   redirectPublicToLanding(req, res),
 );
+// Serve dashboard assets under the /app prefix BEFORE the /app/* SPA catch-all
+// so that /app/assets/scan-worker.js etc. resolve as JS, not SPA HTML.
+[
+  "/app/css",
+  "/app/js",
+  "/app/js-es2018",
+  "/app/images",
+  "/app/fonts",
+  "/app/assets",
+  "/app/utils-lib",
+].forEach((p) => {
+  const sub = p.substring("/app/".length);
+  app.use(
+    p,
+    express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts),
+  );
+  if (dashboardFallbackDir) {
+    app.use(
+      p,
+      express.static(
+        path.join(dashboardFallbackDir, sub),
+        dashboardStaticOptsFinal,
+      ),
+    );
+  }
+});
 app.get(/^\/app(\/.*)?$/, async (req, res) =>
   redirectPublicToLanding(req, res),
 );
@@ -754,33 +780,6 @@ const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
   "/dashboard/utils-lib",
 ].forEach((p) => {
   const sub = p.substring("/dashboard/".length);
-  app.use(
-    p,
-    express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts),
-  );
-  if (dashboardFallbackDir) {
-    app.use(
-      p,
-      express.static(
-        path.join(dashboardFallbackDir, sub),
-        dashboardStaticOptsFinal,
-      ),
-    );
-  }
-});
-
-// Serve dashboard assets under the /app prefix (mirrors /dashboard above)
-// so that /app/assets/scan-worker.js etc. resolve as JS, not SPA HTML.
-[
-  "/app/css",
-  "/app/js",
-  "/app/js-es2018",
-  "/app/images",
-  "/app/fonts",
-  "/app/assets",
-  "/app/utils-lib",
-].forEach((p) => {
-  const sub = p.substring("/app/".length);
   app.use(
     p,
     express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts),
