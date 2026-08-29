@@ -25,10 +25,10 @@
                 "totalGB": 4.4
             },
             "models": {
-                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
-                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 2048 },
-                "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 2048 },
-                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 2048 }
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-instruct-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-instruct-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-instruct-q4_K_M", "num_ctx": 2048 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-instruct-q4_K_M", "num_ctx": 2048 }
             }
         },
         "balanced": {
@@ -54,10 +54,10 @@
                 "totalGB": 5.5
             },
             "models": {
-                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 8192 },
-                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q4_K_M", "num_ctx": 4096 },
-                "simplebeacon-mistral": { "baseModel": "mistral:7b-q4_K_M", "num_ctx": 8192 },
-                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q4_K_M", "num_ctx": 8192 }
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-instruct-q4_K_M", "num_ctx": 8192 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-instruct-q4_K_M", "num_ctx": 4096 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-instruct-q4_K_M", "num_ctx": 8192 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-instruct-q4_K_M", "num_ctx": 8192 }
             }
         },
         "maximum": {
@@ -83,10 +83,10 @@
                 "totalGB": 6.5
             },
             "models": {
-                "unbreakable-oracle": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 8192 },
-                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-q5_K_M", "num_ctx": 4096 },
-                "simplebeacon-mistral": { "baseModel": "mistral:7b-q5_K_M", "num_ctx": 32768 },
-                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-q5_K_M", "num_ctx": 32768 }
+                "unbreakable-oracle": { "baseModel": "llama3.2:3b-instruct-q5_K_M", "num_ctx": 8192 },
+                "simplebeacon-llama32": { "baseModel": "llama3.2:3b-instruct-q5_K_M", "num_ctx": 4096 },
+                "simplebeacon-mistral": { "baseModel": "mistral:7b-instruct-q5_K_M", "num_ctx": 32768 },
+                "simplebeacon-qwen-coder": { "baseModel": "qwen2.5-coder:7b-instruct-q5_K_M", "num_ctx": 32768 }
             }
         }
     },

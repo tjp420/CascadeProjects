@@ -34,6 +34,11 @@ services:
       # ── Database (host is internal Docker DNS, not a real production host) ─
       ENABLE_DATABASE: "true"
       ENABLE_DB_AUTO_MIGRATE: "true"
+      DB_HOST: simplebeacon-db
+      DB_PORT: "5432"
+      DB_NAME: simplebeacon
+      DB_USER: simplebeacon_user
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.enterprise}
       # ── Security & Auth ──────────────────────────────────────────────────
       REQUIRE_AUTH: "true"
       SEED_DEMO_USERS: "false"
@@ -65,7 +70,7 @@ services:
     # ── Secrets loaded from .env.enterprise (not inline) ───────────────────
     env_file:
       - path: ${ENV_FILE:-.env.enterprise}
-        required: false
+        required: true
     volumes:
       # Persistent storage for scan reports, processed data, and telemetry
       - engine-data:/app/data

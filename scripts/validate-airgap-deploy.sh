@@ -264,6 +264,12 @@ warn_msg() {
   json_results="${json_results}{\"name\":\"$1\",\"status\":\"warn\",\"message\":\"$2\"},"
 }
 
+warn() {
+  if [ "$OUTPUT_FORMAT" = "text" ]; then
+    echo -e "  ${YELLOW}!${NC} $*" >&2
+  fi
+}
+
 fail() {
   failures=$((failures + 1))
   total_checks=$((total_checks + 1))
@@ -537,7 +543,7 @@ check_engine_health() {
 }
 
 check_engine_to_ollama() {
-  docker exec "$ENGINE_CONTAINER" curl -s --max-time 10 "http://simplebeacon-ollama:11434/api/tags" > /dev/null 2>&1
+  docker exec "$ENGINE_CONTAINER" node -e 'require("http").get("http://simplebeacon-ollama:11434/api/tags",r=>process.exit(r.statusCode<400?0:1)).on("error",()=>process.exit(1))' 2>/dev/null
 }
 
 check_pg_ready() {

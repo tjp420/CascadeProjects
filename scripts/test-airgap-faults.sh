@@ -150,16 +150,18 @@ skipped_scenarios=0
 json_scenarios=""
 
 record_result() {
-  local name="$1"
-  local status="$2"
-  local detail="$3"
+  local scenario="$1"
+  local name="$2"
+  local status="$3"
+  local detail="$4"
   total_scenarios=$((total_scenarios + 1))
   case "$status" in
     pass) passed_scenarios=$((passed_scenarios + 1)) ;;
     fail) failed_scenarios=$((failed_scenarios + 1)) ;;
     skip) skipped_scenarios=$((skipped_scenarios + 1)) ;;
+    *)    failed_scenarios=$((failed_scenarios + 1)) ;;
   esac
-  json_scenarios="${json_scenarios}{\"scenario\":$1,\"name\":\"$name\",\"status\":\"$status\",\"detail\":\"$detail\"},"
+  json_scenarios="${json_scenarios}{\"scenario\":${scenario},\"name\":\"${name}\",\"status\":\"${status}\",\"detail\":\"${detail}\"},"
 }
 
 # Check if a container is running

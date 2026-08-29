@@ -496,7 +496,6 @@ TARBALL="$OUTPUT_DIR/${BUNDLE_NAME}.tar.gz"
 
 tar -czf "$TARBALL" -C "$WORK_DIR" "$BUNDLE_NAME"
 
-local_size
 size=$(du -h "$TARBALL" | cut -f1)
 
 log "Diagnostics bundle created: $TARBALL ($size)"

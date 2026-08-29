@@ -14,6 +14,12 @@ LABEL org.opencontainers.image.title="SimpleBeacon Ollama Intelligence"
 LABEL org.opencontainers.image.description="Ollama with SimpleBeacon's code analysis Modelfiles pre-baked"
 LABEL org.opencontainers.image.source="https://github.com/tjp420/CascadeProjects"
 
+# Install curl — the upstream ollama/ollama image does not include it,
+# but the healthcheck, init-models.sh, and validation scripts all depend on it.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create directories
 RUN mkdir -p /models /scripts
 

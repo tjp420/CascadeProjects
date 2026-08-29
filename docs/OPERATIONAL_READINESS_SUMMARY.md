@@ -132,10 +132,10 @@ simplebeacon-airgap-v1.tar.gz
 
 | Model Name                | Base Model                | Purpose                                    |
 | ------------------------- | ------------------------- | ------------------------------------------ |
-| `unbreakable-oracle`      | `llama3.2:3b-q4_K_M`      | Primary inference (smoke test + benchmark) |
-| `simplebeacon-llama32`    | `llama3.2:3b-q4_K_M`      | General-purpose LLM                        |
-| `simplebeacon-mistral`    | `mistral:7b-q4_K_M`       | Advanced reasoning                         |
-| `simplebeacon-qwen-coder` | `qwen2.5-coder:7b-q4_K_M` | Code analysis and remediation              |
+| `unbreakable-oracle`      | `llama3.2:3b-instruct-q4_K_M`      | Primary inference (smoke test + benchmark) |
+| `simplebeacon-llama32`    | `llama3.2:3b-instruct-q4_K_M`      | General-purpose LLM                        |
+| `simplebeacon-mistral`    | `mistral:7b-instruct-q4_K_M`       | Advanced reasoning                         |
+| `simplebeacon-qwen-coder` | `qwen2.5-coder:7b-instruct-q4_K_M` | Code analysis and remediation              |
 
 ---
 

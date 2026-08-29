@@ -58,10 +58,13 @@ RUN apk add --no-cache tini
 RUN addgroup -S sbgroup && adduser -S sbuser -G sbgroup
 
 # Copy package files and install production dependencies only
+# Both ai-platform and coming-soon workspaces are required — the server
+# requires coming-soon modules (email, routes, lib) at runtime.
 COPY package.json package-lock.json* ./
 COPY ai-platform/package.json ./ai-platform/
+COPY coming-soon/package.json ./coming-soon/
 COPY packages/simplebeacon-cli/package.json ./packages/simplebeacon-cli/
-RUN npm ci --omit=dev --ignore-scripts --workspace=ai-platform 2>/dev/null || npm install --omit=dev --ignore-scripts --workspace=ai-platform 2>/dev/null || (cd ai-platform && npm install --omit=dev --ignore-scripts)
+RUN npm ci --omit=dev --ignore-scripts --workspace=ai-platform --workspace=coming-soon 2>/dev/null || npm install --omit=dev --ignore-scripts --workspace=ai-platform --workspace=coming-soon 2>/dev/null || (cd ai-platform && npm install --omit=dev --ignore-scripts && cd ../coming-soon && npm install --omit=dev --ignore-scripts)
 
 # Copy built server code
 COPY --from=server-builder /app/ai-platform ./ai-platform

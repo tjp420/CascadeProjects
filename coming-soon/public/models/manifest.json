@@ -8,7 +8,7 @@
         "unbreakable-oracle": {
             "modelfile": "Modelfile",
             "ollamaModel": "unbreakable-oracle",
-            "baseModel": "llama3.2:3b-q4_K_M",
+            "baseModel": "llama3.2:3b-instruct-q4_K_M",
             "contextWindow": 8192,
             "numPredict": 2048,
             "temperature": 0.1,
@@ -29,7 +29,7 @@
         "simplebeacon-llama32": {
             "modelfile": "Modelfile.llama32",
             "ollamaModel": "simplebeacon-llama32",
-            "baseModel": "llama3.2:3b-q4_K_M",
+            "baseModel": "llama3.2:3b-instruct-q4_K_M",
             "contextWindow": 4096,
             "numPredict": 2048,
             "temperature": 0.1,
@@ -50,7 +50,7 @@
         "simplebeacon-mistral": {
             "modelfile": "Modelfile.mistral",
             "ollamaModel": "simplebeacon-mistral",
-            "baseModel": "mistral:7b-q4_K_M",
+            "baseModel": "mistral:7b-instruct-q4_K_M",
             "contextWindow": 32768,
             "numPredict": 2048,
             "temperature": 0.1,
@@ -71,7 +71,7 @@
         "simplebeacon-qwen-coder": {
             "modelfile": "Modelfile.qwen25-coder",
             "ollamaModel": "simplebeacon-qwen-coder",
-            "baseModel": "qwen2.5-coder:7b-q4_K_M",
+            "baseModel": "qwen2.5-coder:7b-instruct-q4_K_M",
             "contextWindow": 32768,
             "numPredict": 2048,
             "temperature": 0.1,

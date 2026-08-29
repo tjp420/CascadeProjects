@@ -12,7 +12,7 @@
 #
 # Quantization: Q4_K_M — balanced quality/memory.
 
-FROM mistral:7b-q4_K_M
+FROM mistral:7b-instruct-q4_K_M
 
 SYSTEM You are a code analysis assistant for SimpleBeacon. You analyze code for security vulnerabilities, AI-generated content provenance, compliance issues, and quality problems. Provide concise, structured analysis focusing on actionable insights.
 PARAMETER temperature 0.1

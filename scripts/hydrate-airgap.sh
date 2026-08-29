@@ -62,7 +62,7 @@ COMPOSE_FILE="docker-compose.enterprise.yml"
 GPU_OVERRIDE="docker-compose.enterprise.gpu.yml"
 ENV_TEMPLATE=".env.enterprise.example"
 ARCHIVE_NAME="simplebeacon-airgap-v1.tar.gz"
-IMAGE_NAMES=("simplebeacon-engine:latest" "simplebeacon-ollama:latest" "postgres:16-alpine")
+IMAGE_NAMES=("simplebeacon-engine:latest" "simplebeacon-ollama:latest" "postgres:16-alpine" "alpine:latest")
 
 # Colors for output
 RED='\033[0;31m'
@@ -141,6 +141,10 @@ package() {
   info "Pulling postgres:16-alpine..."
   docker pull postgres:16-alpine
 
+  # Pull alpine image (used for volume archive/restore in air-gapped deploy)
+  info "Pulling alpine:latest..."
+  docker pull alpine:latest
+
   # Step 2: Start Ollama and pre-load models
   log "Step 2/5: Pre-loading Ollama models..."
   info "Starting temporary Ollama container for model baking..."
@@ -170,9 +174,9 @@ package() {
   #   - Fits on 6GB VRAM cards (RTX 3060, RTX 4060, A2000)
   info "Pulling base models with Q4_K_M quantization..."
   for model in \
-    "llama3.2:3b-q4_K_M" \
-    "mistral:7b-q4_K_M" \
-    "qwen2.5-coder:7b-q4_K_M"; do
+    "llama3.2:3b-instruct-q4_K_M" \
+    "mistral:7b-instruct-q4_K_M" \
+    "qwen2.5-coder:7b-instruct-q4_K_M"; do
     info "  Pulling $model..."
     docker exec sb-ollama-bake ollama pull "$model" || warn "  Failed to pull $model — it may need to be pulled manually."
   done
