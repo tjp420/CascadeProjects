@@ -1,0 +1,14 @@
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "description": "A sample package.json with no secrets",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "pg": "^8.11.0"
+  }
+}

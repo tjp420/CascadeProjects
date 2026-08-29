@@ -34,6 +34,8 @@ const SKIP_GLOBS = [
   ".github/workflows/simplebeacon-action-stress-test.yml",
   // True-positive scanner fixtures — intentionally contain fake AWS keys, Stripe keys, etc.
   "packages/simplebeacon-cli/tests/fixtures/true-positives/**",
+  // Benchmark corpus — intentionally contains fake secrets for precision/recall testing
+  "scripts/benchmark/corpus/true-positives/**",
   // MCP test fixtures — contains fake AWS key pattern for credential detection tests
   "packages/simplebeacon-cli/tests/mcp.test.js",
 ];

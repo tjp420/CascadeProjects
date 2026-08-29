@@ -1,0 +1,51 @@
+{
+  "description": "Ground-truth labels for the SimpleBeacon benchmark corpus. Each file is labeled as either a true-positive (contains a real secret that should be detected) or true-negative (clean code that should not trigger findings).",
+  "categories": {
+    "aws-key": "AWS access key ID or secret access key",
+    "stripe-key": "Stripe live or test secret key",
+    "github-pat": "GitHub personal access token",
+    "openai-key": "OpenAI API key",
+    "db-conn": "Database connection string with embedded credentials",
+    "jwt": "Hardcoded JWT token",
+    "slack-token": "Slack bot/user token",
+    "sendgrid-key": "SendGrid API key",
+    "private-key": "PEM-encoded private key block",
+    "generic-api-key": "Generic API key or secret key assignment",
+    "resend-key": "Resend API key"
+  },
+  "truePositives": [
+    { "file": "aws-key-01.js", "category": "aws-key", "expectedSecretCount": 1 },
+    { "file": "aws-key-02.js", "category": "aws-key", "expectedSecretCount": 1 },
+    { "file": "stripe-key-01.js", "category": "stripe-key", "expectedSecretCount": 1 },
+    { "file": "stripe-key-02.js", "category": "stripe-key", "expectedSecretCount": 1 },
+    { "file": "github-pat-01.js", "category": "github-pat", "expectedSecretCount": 1 },
+    { "file": "openai-key-01.js", "category": "openai-key", "expectedSecretCount": 1 },
+    { "file": "openai-key-02.js", "category": "openai-key", "expectedSecretCount": 1 },
+    { "file": "db-conn-01.js", "category": "db-conn", "expectedSecretCount": 1 },
+    { "file": "db-conn-02.js", "category": "db-conn", "expectedSecretCount": 1 },
+    { "file": "jwt-01.js", "category": "jwt", "expectedSecretCount": 1 },
+    { "file": "slack-token-01.js", "category": "slack-token", "expectedSecretCount": 1 },
+    { "file": "sendgrid-key-01.js", "category": "sendgrid-key", "expectedSecretCount": 1 },
+    { "file": "private-key-01.js", "category": "private-key", "expectedSecretCount": 1 },
+    { "file": "generic-api-key-01.js", "category": "generic-api-key", "expectedSecretCount": 1 },
+    { "file": "generic-api-key-02.js", "category": "generic-api-key", "expectedSecretCount": 1 },
+    { "file": "resend-key-01.js", "category": "resend-key", "expectedSecretCount": 1 }
+  ],
+  "trueNegatives": [
+    { "file": "crypto-hash-01.js", "reason": "Runtime crypto hash, not a secret" },
+    { "file": "config-env-01.js", "reason": "Environment variable references, no hardcoded values" },
+    { "file": "file-io-01.js", "reason": "File I/O with no secrets" },
+    { "file": "placeholders-01.js", "reason": "Documentation placeholders (your-api-key-here, etc.)" },
+    { "file": "express-server-01.js", "reason": "Basic Express server with no secrets" },
+    { "file": "css-hash-01.js", "reason": "High-entropy string that is a CSS color hash, not a secret" },
+    { "file": "localhost-db-01.js", "reason": "Local test database URL, not a production credential" },
+    { "file": "jwt-runtime-01.js", "reason": "JWT generated at runtime via jwt.sign(), not hardcoded" },
+    { "file": "version-string-01.js", "reason": "Version and build strings, not secrets" },
+    { "file": "uuid-01.js", "reason": "UUIDs are not secrets" },
+    { "file": "base64-config-01.js", "reason": "Base64-encoded non-secret configuration" },
+    { "file": "file-hash-01.js", "reason": "File checksum hash, not a secret" },
+    { "file": "web-crypto-01.js", "reason": "Runtime-generated key via Web Crypto API" },
+    { "file": "readme-01.md", "reason": "Documentation file with env var instructions" },
+    { "file": "package-json-01.json", "reason": "Standard package.json with no secrets" }
+  ]
+}

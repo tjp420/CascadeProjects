@@ -199,7 +199,7 @@ for (const relPath of staged) {
 // Check 2: Scan staged files for production connection strings
 
 // Paths that contain intentional test fixtures with fake secrets — skip scanning
-const FIXTURE_ALLOWLIST = /tests\/fixtures\/|__tests__\/|\.test\.|\.spec\.|test-credentials|mock-|fixture-/i;
+const FIXTURE_ALLOWLIST = /tests\/fixtures\/|__tests__\/|\.test\.|\.spec\.|test-credentials|mock-|fixture-|benchmark\/corpus\/true-positives\//i;
 
 for (const relPath of staged) {
   // Skip .env.example files (safe templates)
