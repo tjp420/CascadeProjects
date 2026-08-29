@@ -14,7 +14,7 @@
 #   ./scripts/validate-airgap-deploy.sh --recover --yes # Auto-confirm destructive prompts
 #   ./scripts/validate-airgap-deploy.sh --export-bundle # Create diagnostics bundle after validation
 #   ./scripts/validate-airgap-deploy.sh --recover --export-bundle --json  # Full automation
-#   ./scripts/validate-airgap-deploy.sh --benchmark     # Run throughput benchmark (Check 15)
+#   ./scripts/validate-airgap-deploy.sh --benchmark     # Run throughput benchmark (Check 17)
 #   ./scripts/validate-airgap-deploy.sh --benchmark --benchmark-runs 5  # Multiple runs for variance
 #
 # Exit codes:
@@ -67,7 +67,7 @@ RECOVER_MODE="none"    # none | safe | all
 AUTO_YES=false         # skip confirmation prompts for destructive recovery
 ARCHIVE_PATH=""        # path to air-gap archive (for model re-import)
 EXPORT_BUNDLE=false    # create diagnostics bundle after validation
-BENCHMARK=false        # run throughput benchmark (Check 15)
+BENCHMARK=false        # run throughput benchmark (Check 17)
 BENCHMARK_RUNS=3       # number of benchmark runs for variance calculation
 BENCHMARK_TOKENS=100   # target tokens to generate per run
 BENCHMARK_MODEL="unbreakable-oracle"  # model to benchmark
@@ -170,7 +170,7 @@ Options:
   --yes, -y         Auto-confirm destructive recovery prompts (use with --recover)
   --archive PATH    Path to air-gap archive (for model re-import recovery)
   --export-bundle   Create a diagnostics bundle after validation (logs, specs, env)
-  --benchmark       Run throughput benchmark (Check 15: tok/s vs profile expectation)
+  --benchmark       Run throughput benchmark (Check 17: tok/s vs profile expectation)
   --benchmark-runs N  Number of benchmark runs for variance (default: 3)
   --benchmark-tokens N  Target tokens to generate per run (default: 100)
   --help, -h        Show this help message
@@ -636,7 +636,7 @@ info ""
 
 # ── Check 1: Docker daemon reachable ────────────────────────────────────────
 
-info "Check 1/14: Docker daemon"
+info "Check 1/16: Docker daemon"
 if docker info > /dev/null 2>&1; then
   ok "docker-daemon: Docker daemon is reachable"
 else
@@ -654,7 +654,7 @@ fi
 
 # ── Check 2: Required containers running ────────────────────────────────────
 
-info "Check 2/14: Container status"
+info "Check 2/16: Container status"
 for c in "$ENGINE_CONTAINER" "$OLLAMA_CONTAINER" "$DB_CONTAINER"; do
   if check_container_running "$c"; then
     ok "container-$c: $c container is running"
@@ -666,7 +666,7 @@ done
 
 # ── Check 3: Exposed ports ──────────────────────────────────────────────────
 
-info "Check 3/14: Exposed ports"
+info "Check 3/16: Exposed ports"
 ollama_host_port=""
 engine_host_port=""
 
@@ -698,7 +698,7 @@ fi
 
 # ── Check 4: Ollama API health ──────────────────────────────────────────────
 
-info "Check 4/14: Ollama API health"
+info "Check 4/16: Ollama API health"
 if is_running "$OLLAMA_CONTAINER"; then
   if check_ollama_api; then
     ok "ollama-api: Ollama daemon responds on /"
@@ -722,7 +722,7 @@ fi
 
 # ── Check 5: Required models present ────────────────────────────────────────
 
-info "Check 5/14: Required models"
+info "Check 5/16: Required models"
 if is_running "$OLLAMA_CONTAINER" && check_ollama_tags; then
   for model in "${REQUIRED_MODELS[@]}"; do
     if check_model_present "$model"; then
@@ -741,7 +741,7 @@ fi
 
 # ── Check 6: Model layer integrity ──────────────────────────────────────────
 
-info "Check 6/14: Model layer integrity"
+info "Check 6/16: Model layer integrity"
 if is_running "$OLLAMA_CONTAINER"; then
   for model in "${REQUIRED_MODELS[@]}"; do
     if check_model_layers "$model"; then
@@ -760,7 +760,7 @@ fi
 
 # ── Check 7: Inference smoke test ───────────────────────────────────────────
 
-info "Check 7/14: Inference smoke test (timeout: ${INFERENCE_TIMEOUT}s)"
+info "Check 7/16: Inference smoke test (timeout: ${INFERENCE_TIMEOUT}s)"
 if is_running "$OLLAMA_CONTAINER"; then
   inference_response=$(docker exec "$OLLAMA_CONTAINER" curl -s --max-time "$INFERENCE_TIMEOUT" \
     -X POST "http://localhost:11434/api/generate" \
@@ -792,7 +792,7 @@ fi
 
 # ── Check 8: Engine health endpoint ─────────────────────────────────────────
 
-info "Check 8/14: Engine health endpoint"
+info "Check 8/16: Engine health endpoint"
 if is_running "$ENGINE_CONTAINER"; then
   if check_engine_health; then
     ok "engine-health: Engine /health responds"
@@ -807,7 +807,7 @@ fi
 
 # ── Check 9: Engine-to-Ollama connectivity (Docker DNS) ─────────────────────
 
-info "Check 9/14: Engine-to-Ollama connectivity (Docker DNS)"
+info "Check 9/16: Engine-to-Ollama connectivity (Docker DNS)"
 if is_running "$ENGINE_CONTAINER"; then
   if check_engine_to_ollama; then
     ok "engine-to-ollama: Engine can reach Ollama via Docker DNS"
@@ -833,7 +833,7 @@ fi
 
 # ── Check 10: PostgreSQL readiness ──────────────────────────────────────────
 
-info "Check 10/14: PostgreSQL readiness"
+info "Check 10/16: PostgreSQL readiness"
 if is_running "$DB_CONTAINER"; then
   if check_pg_ready; then
     ok "pg-ready: PostgreSQL is ready"
@@ -848,7 +848,7 @@ fi
 
 # ── Check 11: PostgreSQL schema readiness ───────────────────────────────────
 
-info "Check 11/14: PostgreSQL schema readiness"
+info "Check 11/16: PostgreSQL schema readiness"
 if is_running "$DB_CONTAINER" && check_pg_ready; then
   for table in "${REQUIRED_TABLES[@]}"; do
     if check_pg_table "$table"; then
@@ -867,7 +867,7 @@ fi
 
 # ── Check 12: Memory profile validation ─────────────────────────────────────
 
-info "Check 12/14: Memory profile validation"
+info "Check 12/16: Memory profile validation"
 if is_running "$OLLAMA_CONTAINER"; then
   configured_profile=$(docker exec "$OLLAMA_CONTAINER" printenv OLLAMA_MEMORY_PROFILE 2>/dev/null || echo "balanced")
   configured_num_gpu=$(docker exec "$OLLAMA_CONTAINER" printenv OLLAMA_NUM_GPU 2>/dev/null || echo "-1")
@@ -899,7 +899,7 @@ fi
 
 # ── Check 13: Offline mode verification ─────────────────────────────────────
 
-info "Check 13/14: Offline mode verification"
+info "Check 13/16: Offline mode verification"
 for c in "$ENGINE_CONTAINER" "$OLLAMA_CONTAINER"; do
   if is_running "$c"; then
     offline_flag=$(docker exec "$c" printenv SIMPLEBEACON_OFFLINE 2>/dev/null || echo "")
@@ -947,7 +947,7 @@ fi
 
 # ── Check 14: Disk space check ──────────────────────────────────────────────
 
-info "Check 14/14: Disk space check"
+info "Check 14/16: Disk space check"
 
 docker_info=$(docker info 2>/dev/null)
 docker_root=$(echo "$docker_info" | grep "Docker Root Dir" | awk '{print $NF}' || echo "/var/lib/docker")
@@ -979,13 +979,64 @@ if is_running "$OLLAMA_CONTAINER"; then
   fi
 fi
 
-# ── Check 15: Throughput benchmark (optional, requires --benchmark) ─────────
+# ── Check 15/16: Archive checksum verification ───────────────────────────────
+
+info "Check 15/16: Archive checksum verification"
+
+if [ -n "$ARCHIVE_PATH" ] && [ -f "$ARCHIVE_PATH" ]; then
+  local_checksum_file="${ARCHIVE_PATH}.sha256"
+  if [ -f "$local_checksum_file" ]; then
+    if sha256sum -c "$local_checksum_file" > /dev/null 2>&1; then
+      ok "archive-checksum: SHA256 checksum verified"
+    else
+      fail "archive-checksum" "SHA256 checksum verification failed — archive may be corrupted"
+      record_fail "archive-checksum"
+    fi
+  else
+    warn_msg "archive-checksum" "No .sha256 file found alongside archive — cannot verify integrity"
+  fi
+else
+  warn_msg "archive-checksum" "No archive path provided (--archive PATH) — skipping checksum verification"
+fi
+
+# ── Check 16/16: Image provenance verification ───────────────────────────────
+
+info "Check 16/16: Image provenance verification"
+
+# Verify that loaded images match expected names and have valid metadata
+for image in "${ENGINE_CONTAINER}:latest" "${OLLAMA_CONTAINER}:latest" "postgres:16-alpine"; do
+  # Strip container name prefix to get image name (simplebeacon-engine:latest etc.)
+  local image_id
+  image_id=$(docker image inspect "$image" --format '{{.Id}}' 2>/dev/null || echo "")
+  if [ -n "$image_id" ]; then
+    local image_created
+    image_created=$(docker image inspect "$image" --format '{{.Created}}' 2>/dev/null || echo "unknown")
+    local image_size
+    image_size=$(docker image inspect "$image" --format '{{.Size}}' 2>/dev/null || echo "0")
+    ok "provenance-$image: Image present (ID: ${image_id:0:19}..., Size: $(( ${image_size:-0} / 1024 / 1024 ))MB)"
+  else
+    fail "provenance-$image" "Image not found — may not have been loaded from archive"
+    record_fail "provenance-$image"
+  fi
+done
+
+# Verify no unexpected images are present (supply chain check)
+local unexpected_images
+unexpected_images=$(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | \
+  grep -v -E '^(simplebeacon-engine|simplebeacon-ollama|postgres|alpine|ollama/ollama)' || echo "")
+if [ -z "$unexpected_images" ]; then
+  ok "provenance-clean: No unexpected images detected"
+else
+  warn_msg "provenance-unexpected" "Unexpected images present: $unexpected_images"
+fi
+
+# ── Check 17: Throughput benchmark (optional, requires --benchmark) ─────────
 
 json_benchmark=""
 
 if $BENCHMARK; then
   info ""
-  info "Check 15/15: Throughput benchmark (${BENCHMARK_RUNS} runs × ${BENCHMARK_TOKENS} tokens)"
+  info "Check 17/17: Throughput benchmark (${BENCHMARK_RUNS} runs × ${BENCHMARK_TOKENS} tokens)"
 
   if ! is_running "$OLLAMA_CONTAINER"; then
     fail "benchmark" "Ollama container not running — cannot benchmark"

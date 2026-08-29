@@ -25,7 +25,7 @@
 # ── Verify Phase (on air-gapped target machine) ───────────────────────────
 #   ./hydrate-airgap.sh verify [--json] [--verbose]
 #
-#   Delegates to validate-airgap-deploy.sh which runs 14 checks:
+#   Delegates to validate-airgap-deploy.sh which runs 16 checks:
 #   1. Docker daemon reachable
 #   2. Required containers running
 #   3. Container exposed ports
@@ -40,6 +40,8 @@
 #  12. Memory profile validation
 #  13. Offline mode verification
 #  14. Disk space check
+#  15. Archive checksum verification (SHA256)
+#  16. Image provenance verification
 #
 # Requirements:
 #   - Docker 24+ with BuildKit
@@ -291,15 +293,25 @@ package() {
 
   rm -f "$images_archive"  # Remove intermediate tar
 
+  # Generate SHA256 checksum for archive integrity verification on deploy
+  log "Generating SHA256 checksum..."
+  local checksum_file="$output_dir/${ARCHIVE_NAME}.sha256"
+  sha256sum "$output_dir/$ARCHIVE_NAME" > "$checksum_file"
+  info "Checksum: $checksum_file"
+
   local archive_size
   archive_size=$(du -h "$output_dir/$ARCHIVE_NAME" | cut -f1)
   log "Packaging complete!"
   info "Archive: $output_dir/$ARCHIVE_NAME ($archive_size)"
+  info "Checksum: $output_dir/${ARCHIVE_NAME}.sha256"
   info ""
-  info "Transfer this archive to the air-gapped target machine via:"
+  info "Transfer BOTH files to the air-gapped target machine via:"
   info "  - USB drive"
   info "  - Internal secure file share"
   info "  - Physical media (DVD/Blu-ray)"
+  info ""
+  info "  Archive:  $ARCHIVE_NAME"
+  info "  Checksum: ${ARCHIVE_NAME}.sha256"
   info ""
   info "Then run on the target machine:"
   info "  ./hydrate-airgap.sh deploy $ARCHIVE_NAME .env.enterprise"
@@ -320,6 +332,22 @@ deploy() {
   if [ ! -f "$archive_path" ]; then
     err "Archive not found: $archive_path"
     exit 1
+  fi
+
+  # Verify archive integrity via SHA256 checksum (if .sha256 file exists)
+  local checksum_file="${archive_path}.sha256"
+  if [ -f "$checksum_file" ]; then
+    info "Verifying archive integrity (SHA256)..."
+    if sha256sum -c "$checksum_file" 2>/dev/null; then
+      info "  ✓ Archive checksum verified"
+    else
+      err "  ✗ Archive checksum verification FAILED — archive may be corrupted or tampered with"
+      err "  Re-transfer the archive and checksum file from the build machine"
+      exit 1
+    fi
+  else
+    warn "No checksum file found at: $checksum_file"
+    warn "Archive integrity cannot be verified — proceed with caution"
   fi
 
   # Step 1: Extract archive
