@@ -317,7 +317,7 @@ app.use((req, res, next) => {
       ]).join(""); // simplebeacon-ignore hardcoded-url — localhost dev CSP origins, never production
   const csp =
     process.env.NODE_ENV === "production"
-      ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins} https://*.cloudflareinsights.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';`
+      ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://img.youtube.com; connect-src ${prodConnectOrigins} https://*.cloudflareinsights.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';`
       : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors *;`;
   res.setHeader("Content-Security-Policy", csp);
   next();
