@@ -13,6 +13,7 @@ let createExtendedAnalyzers = function () {
         });
     }
     catch (e) {
+    console.error('aiProblemAnalyzerSuite.mjs error:', e);
     }
 })();
 const CATEGORY_DEFINITIONS = [

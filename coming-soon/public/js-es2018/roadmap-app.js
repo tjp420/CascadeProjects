@@ -1,16 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-let currentReport = null,
-    currentRoadmap = null;
-const dropzone = document.getElementById('dropzone'),
-    fileInput = document.getElementById('fileInput'),
-    app = document.getElementById('app'),
-    emptyState = document.getElementById('emptyState');
-const scorecardsEl = document.getElementById('scorecards'),
-    timelineEl = document.getElementById('timeline'),
-    projectNameEl = document.getElementById('projectName'),
-    scanDateEl = document.getElementById('scanDate'),
-    jsonPreviewEl = document.getElementById('jsonPreview'),
-    toastEl = document.getElementById('toast');
+let currentReport = null, currentRoadmap = null;
+const dropzone = document.getElementById('dropzone'), fileInput = document.getElementById('fileInput'), app = document.getElementById('app'), emptyState = document.getElementById('emptyState');
+const scorecardsEl = document.getElementById('scorecards'), timelineEl = document.getElementById('timeline'), projectNameEl = document.getElementById('projectName'), scanDateEl = document.getElementById('scanDate'), jsonPreviewEl = document.getElementById('jsonPreview'), toastEl = document.getElementById('toast');
 dropzone.addEventListener('click', () => fileInput.click());
 let dragCounter = 0;
 dropzone.addEventListener('dragenter', e => {
@@ -24,7 +15,8 @@ dropzone.addEventListener('dragover', e => {
     e.stopPropagation();
     try {
         e.dataTransfer.dropEffect = 'copy';
-    } catch (_) {}
+    }
+    catch (_) { }
     dropzone.classList.add('dragover');
 });
 dropzone.addEventListener('dragleave', e => {
@@ -44,29 +36,32 @@ dropzone.addEventListener('drop', e => {
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
         loadFile(files[0]);
-    } else if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    }
+    else if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
         const item = e.dataTransfer.items[0];
         if (item.kind === 'file') {
             const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
             const file = item.getAsFile();
-            if (file) loadFile(file);
+            if (file)
+                loadFile(file);
             else if (entry && entry.isFile) {
-                entry.file(
-                    file => loadFile(file),
-                    err => showToast('Drop read error: ' + err.message, 'error')
-                );
-            } else {
+                entry.file(file => loadFile(file), err => showToast('Drop read error: ' + err.message, 'error'));
+            }
+            else {
                 showToast('Dropped item is not a file', 'error');
             }
-        } else {
+        }
+        else {
             showToast('Drop a file here, not text or a URL', 'error');
         }
-    } else {
+    }
+    else {
         showToast('No file detected in drop', 'error');
     }
 });
 fileInput.addEventListener('change', e => {
-    if (e.target.files[0]) loadFile(e.target.files[0]);
+    if (e.target.files[0])
+        loadFile(e.target.files[0]);
 });
 // Address bar handlers
 const browseReportBtn = document.getElementById('browseReportBtn');
@@ -91,7 +86,8 @@ if (analyzeReportBtn && reportUrlInput) {
                     return;
                 }
                 json = await res.json();
-            } else {
+            }
+            else {
                 const res = await fetch('/api/file/read?path=' + encodeURIComponent(url));
                 const data = await res.json();
                 if (!data.success) {
@@ -102,25 +98,28 @@ if (analyzeReportBtn && reportUrlInput) {
             }
             if (json && json.type === 'simplebeacon-report') {
                 loadReport(json);
-            } else {
+            }
+            else {
                 showToast('Invalid SimpleBeacon report format', 'error');
             }
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Error loading report: ' + err.message, 'error');
         }
     });
     reportUrlInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') analyzeReportBtn.click();
+        if (e.key === 'Enter')
+            analyzeReportBtn.click();
     });
 }
 // Paste JSON handler
-const jsonPasteInput = document.getElementById('jsonPasteInput'),
-    jsonPasteBtn = document.getElementById('jsonPasteBtn');
+const jsonPasteInput = document.getElementById('jsonPasteInput'), jsonPasteBtn = document.getElementById('jsonPasteBtn');
 if (jsonPasteInput) {
     jsonPasteInput.addEventListener('keydown', e => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            if (jsonPasteBtn) jsonPasteBtn.click();
+            if (jsonPasteBtn)
+                jsonPasteBtn.click();
         }
     });
 }
@@ -134,7 +133,8 @@ if (jsonPasteBtn && jsonPasteInput) {
         try {
             const parsedJson = JSON.parse(text);
             loadReport(parsedJson);
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Invalid JSON: ' + err.message, 'error');
         }
     });
@@ -151,7 +151,8 @@ if (loadTestReportBtn) {
             }
             const parsedJson = await res.json();
             loadReport(parsedJson);
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Error loading test report: ' + err.message, 'error');
         }
     });
@@ -162,9 +163,11 @@ if (loadTestReportBtn) {
         const params = new URLSearchParams(location.search);
         ['sb_notify_base', 'sb_api_base', 'sb_website_mode', 'sb_parent_urlbar'].forEach(function (key) {
             const value = params.get(key);
-            if (value) sessionStorage.setItem(key, value);
+            if (value)
+                sessionStorage.setItem(key, value);
         });
-    } catch (_) {}
+    }
+    catch (_) { }
 })();
 // Auto-load from audit handoff, extension data server, or VS Code notify bridge
 (async function autoLoadFromExtension() {
@@ -179,7 +182,8 @@ if (loadTestReportBtn) {
                 return;
             }
         }
-    } catch (_) {
+    }
+    catch (_) {
         /* ignore bad handoff payload */
     }
     const env = window.__SIMPLEBEACON_ENV__;
@@ -187,24 +191,29 @@ if (loadTestReportBtn) {
         try {
             const params = new URLSearchParams(location.search);
             return params.get('sb_notify_base') || sessionStorage.getItem('sb_notify_base') || '';
-        } catch (_) {
+        }
+        catch (_) {
             return '';
         }
     })();
     const apiBase = (env && env.API_BASE_URL) || (notifyBase ? String(notifyBase).replace(/\/+$/, '') : '');
-    if (!apiBase) return;
+    if (!apiBase)
+        return;
     try {
         const res = await fetch(apiBase + '/simplebeacon/report');
-        if (!res.ok) return;
+        if (!res.ok)
+            return;
         const parsedJson = await res.json();
         const report = parsedJson && parsedJson.report && parsedJson.success === true ? parsedJson.report : parsedJson;
         const issues = report && (report.rawIssues || report.findings || report.detectedIssues || report.issues || []);
         if (report && Array.isArray(issues) && issues.length > 0) {
-            if (!report.type) report.type = 'simplebeacon-report';
+            if (!report.type)
+                report.type = 'simplebeacon-report';
             loadReport(report);
             showToast('Loaded scan report from extension', 'success');
         }
-    } catch (_) {
+    }
+    catch (_) {
         /* silent fail — user can still load manually */
     }
 })();
@@ -236,10 +245,12 @@ async function loadFile(file) {
             try {
                 const parsedJson = JSON.parse(text);
                 loadReport(parsedJson);
-            } catch (err) {
+            }
+            catch (err) {
                 showToast('Invalid JSON inside ZIP: ' + err.message, 'error');
             }
-        } catch (err) {
+        }
+        catch (err) {
             showToast('ZIP read error: ' + (err && err.message ? err.message : String(err)), 'error');
         }
         return;
@@ -249,7 +260,8 @@ async function loadFile(file) {
         try {
             const parsedJson = JSON.parse(e.target.result);
             loadReport(parsedJson);
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Invalid JSON: ' + err.message, 'error');
         }
     };
@@ -262,8 +274,7 @@ function loadReport(report) {
         report = report.report;
     }
     // Extract project name from various report structures (flat scan, all-reports wrapper, etc.)
-    const src =
-        report.sourceReport || ((_a = report.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) || report;
+    const src = report.sourceReport || ((_a = report.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) || report;
     // Stale-report guard: check top-level, sourceReport, and results.simplebeacon for metrics
     const qualityScore = report.qualityScore != null ? report.qualityScore : src.qualityScore;
     const schemaComplianceScore = report.schemaCompliance != null ? report.schemaCompliance : src.schemaCompliance;
@@ -275,16 +286,17 @@ function loadReport(report) {
         }
         return;
     }
-    const extractedName =
-        src.projectRoot ||
+    const extractedName = src.projectRoot ||
         src.projectPath ||
         src.projectName ||
         src.scanTargetRoot ||
         ((_b = report.metadata) === null || _b === void 0 ? void 0 : _b.project) ||
         ((_c = report.metadata) === null || _c === void 0 ? void 0 : _c.projectName) ||
         'Unknown';
-    if (!report.projectName) report.projectName = extractedName;
-    if (!report.projectRoot) report.projectRoot = extractedName;
+    if (!report.projectName)
+        report.projectName = extractedName;
+    if (!report.projectRoot)
+        report.projectRoot = extractedName;
     currentReport = report;
     currentRoadmap = generateRoadmap(report);
     renderDashboard(report, currentRoadmap);
@@ -298,14 +310,16 @@ function getTaskKey(project, phaseId, taskIdx) {
 function loadTaskState(project, phaseId, taskIdx) {
     try {
         return localStorage.getItem(getTaskKey(project, phaseId, taskIdx)) === '1';
-    } catch (e) {
+    }
+    catch (e) {
         return false;
     }
 }
 function saveTaskState(project, phaseId, taskIdx, done) {
     try {
         localStorage.setItem(getTaskKey(project, phaseId, taskIdx), done ? '1' : '0');
-    } catch (e) {}
+    }
+    catch (e) { }
 }
 function getTimeKey(project, phaseId, taskIdx) {
     return getTaskKey(project, phaseId, taskIdx) + '_time';
@@ -314,19 +328,19 @@ function loadTaskTime(project, phaseId, taskIdx) {
     try {
         const v = localStorage.getItem(getTimeKey(project, phaseId, taskIdx));
         return v ? parseInt(v, 10) : 0;
-    } catch (e) {
+    }
+    catch (e) {
         return 0;
     }
 }
 function saveTaskTime(project, phaseId, taskIdx, seconds) {
     try {
         localStorage.setItem(getTimeKey(project, phaseId, taskIdx), String(seconds));
-    } catch (e) {}
+    }
+    catch (e) { }
 }
 function formatTime(sec) {
-    const h = Math.floor(sec / 3600),
-        m = Math.floor((sec % 3600) / 60),
-        s = sec % 60;
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     return (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's';
 }
 function escapeHtml(str) {
@@ -341,7 +355,8 @@ function htmlToFragment(html) {
     return document.createRange().createContextualFragment(html.trim());
 }
 function fireConfetti(container) {
-    if (!container) return;
+    if (!container)
+        return;
     const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#60A5FA', '#A78BFA'];
     const rect = container.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -360,16 +375,17 @@ function fireConfetti(container) {
             piece.style.transition = 'transform 0.8s cubic-bezier(0.25,1,0.5,1), opacity 0.8s ease';
             piece.style.transform =
                 'translate(' +
-                Math.cos(angle) * dist +
-                'px,' +
-                Math.sin(angle) * dist +
-                'px) rotate(' +
-                (Math.random() * 360 + 180) +
-                'deg) scale(0)';
+                    Math.cos(angle) * dist +
+                    'px,' +
+                    Math.sin(angle) * dist +
+                    'px) rotate(' +
+                    (Math.random() * 360 + 180) +
+                    'deg) scale(0)';
             piece.style.opacity = '0';
         });
         setTimeout(() => {
-            if (piece.parentNode) piece.parentNode.removeChild(piece);
+            if (piece.parentNode)
+                piece.parentNode.removeChild(piece);
         }, 900);
     }
 }
@@ -384,23 +400,17 @@ function buildStructuredTaskHtml(task) {
             doc: { bg: 'rgba(6,182,212,0.15)', color: '#22D3EE' }
         };
         const style = typeColors[task.type] || { bg: 'rgba(100,116,139,0.15)', color: 'var(--text-dim)' };
-        parts.push(
-            `<span class="task-type-badge" style="background:${style.bg};color:${style.color};">${escapeHtml(task.type)}</span>`
-        );
+        parts.push(`<span class="task-type-badge" style="background:${style.bg};color:${style.color};">${escapeHtml(task.type)}</span>`);
     }
     parts.push(`<span class="task-desc">${escapeHtml(task.description || '')}</span>`);
     if (task.location) {
         const shortLoc = String(task.location).split(/[\\/]/).slice(-2).join('/');
-        parts.push(
-            `<span class="task-loc-chip" title="${escapeHtml(task.location)}">📄 ${escapeHtml(shortLoc)}</span>`
-        );
+        parts.push(`<span class="task-loc-chip" title="${escapeHtml(task.location)}">📄 ${escapeHtml(shortLoc)}</span>`);
     }
     if (task.codeSnippet) {
         const lines = task.codeSnippet.split('\n').length;
         const expandBtn = lines > 3 ? '<span class="task-code-expand" title="Toggle expand">+more</span>' : '';
-        parts.push(
-            `<div class="task-code-block"><code>${escapeHtml(task.codeSnippet)}</code>${expandBtn}<span class="task-code-copy" title="Copy command">📋</span></div>`
-        );
+        parts.push(`<div class="task-code-block"><code>${escapeHtml(task.codeSnippet)}</code>${expandBtn}<span class="task-code-copy" title="Copy command">📋</span></div>`);
     }
     if (task.patch) {
         parts.push(`<div style="margin-top:4px;font-size:0.7rem;color:var(--text-dim);">🛠 Patch available</div>`);
@@ -409,22 +419,19 @@ function buildStructuredTaskHtml(task) {
 }
 function buildPhaseCardHtml(phase, phaseIdx, projectKey, roadmap) {
     var _a;
-    const statusClass =
-        phase.status === 'completed'
-            ? 'completed'
-            : phase.status === 'blocked'
-              ? 'blocked'
-              : phase.status === 'in-progress'
+    const statusClass = phase.status === 'completed'
+        ? 'completed'
+        : phase.status === 'blocked'
+            ? 'blocked'
+            : phase.status === 'in-progress'
                 ? 'in-progress'
                 : '';
-    const extraClass =
-        phase.status === 'blocked' || (phase.status === 'pending' && phase.severity === 'critical') ? ' blocked' : '';
-    const pt =
-        phase.status === 'completed'
-            ? 'Complete'
-            : phase.status === 'blocked'
-              ? 'Blocked'
-              : phase.status === 'in-progress'
+    const extraClass = phase.status === 'blocked' || (phase.status === 'pending' && phase.severity === 'critical') ? ' blocked' : '';
+    const pt = phase.status === 'completed'
+        ? 'Complete'
+        : phase.status === 'blocked'
+            ? 'Blocked'
+            : phase.status === 'in-progress'
                 ? 'In Progress'
                 : 'Not Started';
     const collapsed = phaseIdx > 0 && phase.status === 'completed' ? ' collapsed' : '';
@@ -433,102 +440,91 @@ function buildPhaseCardHtml(phase, phaseIdx, projectKey, roadmap) {
         ? `<div class="dep-line"><span class="dep-arrow">↳</span> Depends on <strong>${escapeHtml(((_a = roadmap.phases.find(x => x.id === phase.dependsOn)) === null || _a === void 0 ? void 0 : _a.title) || phase.dependsOn)}</strong></div>`
         : '';
     const depClass = phase.dependsOn ? ' depends-on-critical' : '';
-    const completedMark =
-        phase.status === 'completed' ? ' <span style="color:var(--success);margin-left:4px;">✓</span>' : '';
-    const statusBadgeClass =
-        phase.status === 'completed'
-            ? 'complete'
-            : phase.status === 'blocked'
-              ? 'blocked'
-              : phase.status === 'in-progress'
+    const completedMark = phase.status === 'completed' ? ' <span style="color:var(--success);margin-left:4px;">✓</span>' : '';
+    const statusBadgeClass = phase.status === 'completed'
+        ? 'complete'
+        : phase.status === 'blocked'
+            ? 'blocked'
+            : phase.status === 'in-progress'
                 ? 'in-progress'
                 : 'incomplete';
-    const statusBadgeText =
-        phase.status === 'completed'
-            ? 'COMPLETE'
-            : phase.status === 'blocked'
-              ? 'BLOCKED'
-              : phase.status === 'in-progress'
+    const statusBadgeText = phase.status === 'completed'
+        ? 'COMPLETE'
+        : phase.status === 'blocked'
+            ? 'BLOCKED'
+            : phase.status === 'in-progress'
                 ? 'IN PROGRESS'
                 : 'INCOMPLETE';
     const statusBadgeHtml = '<span class="phase-status-badge ' + statusBadgeClass + '">' + statusBadgeText + '</span>';
-    const progressFillStyle =
-        phase.status === 'completed'
-            ? 'background:var(--success)'
-            : phase.status === 'blocked'
-              ? 'background:var(--error)'
-              : 'background:linear-gradient(90deg,var(--accent),var(--info))';
-    const markAllBtn =
-        phase.status === 'completed'
-            ? ''
-            : `<button class="phase-action-btn done" data-action="markall" data-phase="${phase.id}">✓ Mark All Done</button>`;
+    const progressFillStyle = phase.status === 'completed'
+        ? 'background:var(--success)'
+        : phase.status === 'blocked'
+            ? 'background:var(--error)'
+            : 'background:linear-gradient(90deg,var(--accent),var(--info))';
+    const markAllBtn = phase.status === 'completed'
+        ? ''
+        : `<button class="phase-action-btn done" data-action="markall" data-phase="${phase.id}">✓ Mark All Done</button>`;
     const taskTypeBar = buildPhaseTaskTypeBar(phase.tasks);
     const TASK_OVERFLOW_LIMIT = 10;
     const totalTasks = phase.tasks.length;
     const hasOverflow = totalTasks > TASK_OVERFLOW_LIMIT;
     const taskItemsHtml = (() => {
-        return (
-            phase.tasks
-                .map((task, taskIdx) => {
-                    const done =
-                        phase.status === 'completed'
-                            ? true
-                            : task && task.done
-                              ? true
-                              : loadTaskState(projectKey, phase.id, taskIdx);
-                    if (phase.status === 'completed') saveTaskState(projectKey, phase.id, taskIdx, true);
-                    if (typeof task === 'object' && task != null) task.done = done;
-                    const timeSpent = loadTaskTime(projectKey, phase.id, taskIdx);
-                    const taskText =
-                        typeof task === 'object' && task.html
-                            ? task.html
-                            : typeof task === 'object' && task != null && task.description
-                              ? buildStructuredTaskHtml(task)
-                              : escapeHtml(task);
-                    const copyBtn =
-                        '<span class="task-copy" data-phase="' +
-                        phase.id +
-                        '" data-task="' +
-                        taskIdx +
-                        '" title="Copy task">&#128203;</span>';
-                    const overflowClass = hasOverflow && taskIdx >= TASK_OVERFLOW_LIMIT ? ' phase-task-overflow' : '';
-                    return (
-                        '<li tabindex="0" class="' +
-                        (done ? 'done ' : '') +
-                        overflowClass +
-                        '" data-phase="' +
-                        phase.id +
-                        '" data-task="' +
-                        taskIdx +
-                        '"><span class="task-check' +
-                        (done ? ' checked' : '') +
-                        '"></span><span class="task-text">' +
-                        taskText +
-                        '</span>' +
-                        copyBtn +
-                        '<span class="task-timer" data-phase="' +
-                        phase.id +
-                        '" data-task="' +
-                        taskIdx +
-                        '"><span class="timer-btn">\u25B6</span><span class="timer-display">' +
-                        formatTime(timeSpent) +
-                        '</span></span></li>'
-                    );
-                })
-                .join('') +
+        return (phase.tasks
+            .map((task, taskIdx) => {
+            const done = phase.status === 'completed'
+                ? true
+                : task && task.done
+                    ? true
+                    : loadTaskState(projectKey, phase.id, taskIdx);
+            if (phase.status === 'completed')
+                saveTaskState(projectKey, phase.id, taskIdx, true);
+            if (typeof task === 'object' && task != null)
+                task.done = done;
+            const timeSpent = loadTaskTime(projectKey, phase.id, taskIdx);
+            const taskText = typeof task === 'object' && task.html
+                ? task.html
+                : typeof task === 'object' && task != null && task.description
+                    ? buildStructuredTaskHtml(task)
+                    : escapeHtml(task);
+            const copyBtn = '<span class="task-copy" data-phase="' +
+                phase.id +
+                '" data-task="' +
+                taskIdx +
+                '" title="Copy task">&#128203;</span>';
+            const overflowClass = hasOverflow && taskIdx >= TASK_OVERFLOW_LIMIT ? ' phase-task-overflow' : '';
+            return ('<li tabindex="0" class="' +
+                (done ? 'done ' : '') +
+                overflowClass +
+                '" data-phase="' +
+                phase.id +
+                '" data-task="' +
+                taskIdx +
+                '"><span class="task-check' +
+                (done ? ' checked' : '') +
+                '"></span><span class="task-text">' +
+                taskText +
+                '</span>' +
+                copyBtn +
+                '<span class="task-timer" data-phase="' +
+                phase.id +
+                '" data-task="' +
+                taskIdx +
+                '"><span class="timer-btn">\u25B6</span><span class="timer-display">' +
+                formatTime(timeSpent) +
+                '</span></span></li>');
+        })
+            .join('') +
             (hasOverflow
                 ? '<li class="phase-expand-li" style="list-style:none;padding-left:0;margin-left:-8px;border-bottom:none;"><button class="phase-action-btn phase-expand-btn" data-action="expand-tasks" data-phase="' +
-                  phase.id +
-                  '">Show ' +
-                  (totalTasks - TASK_OVERFLOW_LIMIT) +
-                  ' more tasks</button></li>'
-                : '')
-        );
+                    phase.id +
+                    '">Show ' +
+                    (totalTasks - TASK_OVERFLOW_LIMIT) +
+                    ' more tasks</button></li>'
+                : ''));
     })();
     // Guard progress values to avoid injecting NaN into CSS styles
     const safeProgress = Number.isFinite(phase.progress) ? Math.round(phase.progress) : 0;
-    return (
-        '<div class="timeline-phase ' +
+    return ('<div class="timeline-phase ' +
         statusClass +
         extraClass +
         depClass +
@@ -580,11 +576,11 @@ function buildPhaseCardHtml(phase, phaseIdx, projectKey, roadmap) {
         phase.id +
         '">Download JSON</button><button class="phase-action-btn" data-action="collapse" data-phase="' +
         phase.id +
-        '" aria-label="Toggle phase details">Toggle Details</button></div></div></div>'
-    );
+        '" aria-label="Toggle phase details">Toggle Details</button></div></div></div>');
 }
 function buildPhaseTaskTypeBar(tasks) {
-    if (!Array.isArray(tasks) || tasks.length === 0) return '';
+    if (!Array.isArray(tasks) || tasks.length === 0)
+        return '';
     const counts = {};
     tasks.forEach(task => {
         if (typeof task === 'object' && task != null && task.type) {
@@ -592,10 +588,9 @@ function buildPhaseTaskTypeBar(tasks) {
         }
     });
     const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    if (entries.length === 0) return '';
-    const chips = entries.map(
-        ([type, count]) => `<span class="task-type-count ${escapeHtml(type)}">${escapeHtml(type)} ${count}</span>`
-    );
+    if (entries.length === 0)
+        return '';
+    const chips = entries.map(([type, count]) => `<span class="task-type-count ${escapeHtml(type)}">${escapeHtml(type)} ${count}</span>`);
     return `<div class="phase-task-types">${chips.join('')}</div>`;
 }
 /**
@@ -605,15 +600,12 @@ function buildPhaseTaskTypeBar(tasks) {
 function buildPhasesFromAiContext(aiCtx, report) {
     const fixes = (aiCtx.suggestedFixes || []).filter(f => {
         const fp = f.file || '';
-        return (
-            !/(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(
-                fp
-            ) &&
+        return (!/(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(fp) &&
             !/(^|\/)vscode-extension\/out\//i.test(fp) &&
-            !/\.map$/i.test(fp)
-        );
+            !/\.map$/i.test(fp));
     });
-    if (!fixes.length) return [];
+    if (!fixes.length)
+        return [];
     const typeToPhaseId = {
         'Credential Pattern': 'security',
         'Sensitive Data Exposure': 'security',
@@ -678,10 +670,12 @@ function buildPhasesFromAiContext(aiCtx, report) {
         // Build rich task with code context
         const taskHtml = buildAiTaskHtml(f);
         g.tasks.push(taskHtml);
-        if (f.autoFixable) g.autoFixableCount++;
+        if (f.autoFixable)
+            g.autoFixableCount++;
         // Update severity to highest found
         const sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        if ((sevOrder[f.severity] || 99) < (sevOrder[g.severity] || 99)) g.severity = f.severity;
+        if ((sevOrder[f.severity] || 99) < (sevOrder[g.severity] || 99))
+            g.severity = f.severity;
     });
     // Add completion criteria from aiContext
     const criteriaMap = (aiCtx.completionCriteria || []).reduce((m, c) => {
@@ -695,7 +689,8 @@ function buildPhasesFromAiContext(aiCtx, report) {
         }
         if (g.autoFixableCount > 0) {
             g.description = `${g.tasks.length} finding(s) — ${g.autoFixableCount} auto-fixable.`;
-        } else {
+        }
+        else {
             g.description = `${g.tasks.length} finding(s) requiring manual review.`;
         }
         // Compute progress from existing report data if available
@@ -705,8 +700,10 @@ function buildPhasesFromAiContext(aiCtx, report) {
             const hits = modData[Object.keys(modData).find(k => /Hits$/.test(k))] || 0;
             g.progress = hits === 0 ? 100 : Math.max(5, Math.round(100 - hits * 5));
         }
-        if (g.progress >= 95) g.status = 'completed';
-        else if (g.progress > 0) g.status = 'in-progress';
+        if (g.progress >= 95)
+            g.status = 'completed';
+        else if (g.progress > 0)
+            g.status = 'in-progress';
     });
     const phases = Object.values(groups);
     // Re-apply dependency blocking
@@ -727,33 +724,33 @@ function buildPhasesFromAiContext(aiCtx, report) {
     // Sort by severity then status
     const sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     const statusOrder = { blocked: 0, pending: 1, 'in-progress': 2, completed: 3 };
-    phases.sort(
-        (a, b) =>
-            (sevOrder[a.severity] || 99) - (sevOrder[b.severity] || 99) ||
-            (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0)
-    );
+    phases.sort((a, b) => (sevOrder[a.severity] || 99) - (sevOrder[b.severity] || 99) ||
+        (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0));
     return phases;
 }
 function buildPatchDiffHtml(patchText) {
-    if (!patchText) return '';
+    if (!patchText)
+        return '';
     const lines = patchText.split('\n');
     const oldLines = [];
     const newLines = [];
-    let oldIdx = 0,
-        newIdx = 0;
+    let oldIdx = 0, newIdx = 0;
     for (const line of lines) {
         if (line.startsWith('@@')) {
             oldLines.push({ cls: 'ctx', text: line, gutter: '@@' });
             newLines.push({ cls: 'ctx', text: line, gutter: '@@' });
-        } else if (line.startsWith('+') && !line.startsWith('+++')) {
+        }
+        else if (line.startsWith('+') && !line.startsWith('+++')) {
             newLines.push({ cls: 'add', text: line.slice(1), gutter: '+' });
             oldLines.push({ cls: 'ctx', text: '', gutter: ' ' });
             newIdx++;
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
+        }
+        else if (line.startsWith('-') && !line.startsWith('---')) {
             oldLines.push({ cls: 'del', text: line.slice(1), gutter: '-' });
             newLines.push({ cls: 'ctx', text: '', gutter: ' ' });
             oldIdx++;
-        } else {
+        }
+        else {
             oldLines.push({ cls: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line, gutter: ' ' });
             newLines.push({ cls: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line, gutter: ' ' });
             oldIdx++;
@@ -762,10 +759,7 @@ function buildPatchDiffHtml(patchText) {
     }
     const renderCol = (title, rows) => {
         const rowHtml = rows
-            .map(
-                r =>
-                    `<div class="patch-diff-line ${r.cls}"><span class="diff-gutter">${escapeHtml(r.gutter)}</span>${escapeHtml(r.text)}</div>`
-            )
+            .map(r => `<div class="patch-diff-line ${r.cls}"><span class="diff-gutter">${escapeHtml(r.gutter)}</span>${escapeHtml(r.text)}</div>`)
             .join('');
         return `<div class="patch-diff-col"><div class="patch-diff-header">${title}</div>${rowHtml}</div>`;
     };
@@ -775,76 +769,29 @@ function buildAiTaskHtml(fix) {
     const parts = [];
     parts.push(`<span class="task-meta">${escapeHtml(fix.type)}</span>`);
     if (fix.autoFixable)
-        parts.push(
-            `<span class="task-meta" style="background:rgba(16,185,129,0.15);color:var(--success);">AUTO</span>`
-        );
+        parts.push(`<span class="task-meta" style="background:rgba(16,185,129,0.15);color:var(--success);">AUTO</span>`);
     parts.push(`<code class="task-snippet">${escapeHtml((fix.snippet || fix.currentCode || '').slice(0, 100))}</code>`);
     parts.push(`<span class="task-loc">${escapeHtml(fix.file)}:${fix.line}</span>`);
     if (fix.replacement) {
-        parts.push(
-            `<div style="margin:4px 0;padding:4px 8px;background:rgba(16,185,129,0.05);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.7rem;color:var(--success);">→ ${escapeHtml(fix.replacement.slice(0, 100))}</div>`
-        );
+        parts.push(`<div style="margin:4px 0;padding:4px 8px;background:rgba(16,185,129,0.05);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.7rem;color:var(--success);">→ ${escapeHtml(fix.replacement.slice(0, 100))}</div>`);
     }
     if (fix.context && fix.context.length) {
         const ctx = fix.context.map(c => escapeHtml(c.slice(0, 120))).join('<br>');
-        parts.push(
-            `<div style="margin:4px 0;padding:6px 10px;background:#0a0e17;border:1px solid var(--border);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.7rem;color:var(--text-dim);line-height:1.4;">${ctx}</div>`
-        );
+        parts.push(`<div style="margin:4px 0;padding:6px 10px;background:#0a0e17;border:1px solid var(--border);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.7rem;color:var(--text-dim);line-height:1.4;">${ctx}</div>`);
     }
     if (fix.patch || fix.suggestedPatch) {
-        parts.push(
-            `<div style="margin:4px 0;font-size:0.7rem;color:var(--info);font-weight:600;">🔍 Patch Preview</div>`
-        );
+        parts.push(`<div style="margin:4px 0;font-size:0.7rem;color:var(--info);font-weight:600;">🔍 Patch Preview</div>`);
         parts.push(buildPatchDiffHtml(fix.patch || fix.suggestedPatch));
     }
     if (fix.verificationCommand) {
-        parts.push(
-            `<div style="margin:4px 0;font-size:0.7rem;color:var(--info);">Verify: <code style="background:#0a0e17;padding:2px 6px;border-radius:3px;">${escapeHtml(fix.verificationCommand)}</code></div>`
-        );
+        parts.push(`<div style="margin:4px 0;font-size:0.7rem;color:var(--info);">Verify: <code style="background:#0a0e17;padding:2px 6px;border-radius:3px;">${escapeHtml(fix.verificationCommand)}</code></div>`);
     }
     return { html: parts.join(''), aiData: fix };
 }
 function generateRoadmap(report) {
-    var _a,
-        _b,
-        _c,
-        _d,
-        _e,
-        _f,
-        _g,
-        _h,
-        _j,
-        _k,
-        _l,
-        _m,
-        _o,
-        _p,
-        _q,
-        _r,
-        _s,
-        _t,
-        _u,
-        _v,
-        _w,
-        _x,
-        _y,
-        _z,
-        _0,
-        _1,
-        _2,
-        _3,
-        _4,
-        _5,
-        _6,
-        _7,
-        _8,
-        _9,
-        _10,
-        _11,
-        _12;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12;
     // Sanitize old reports: strip findings from build artifacts (minified JS, source maps)
-    const isBuildArtifactPath = p =>
-        p &&
+    const isBuildArtifactPath = p => p &&
         (/(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build)\//i.test(p) ||
             /(^|\/)vscode-extension\/out\//i.test(p) ||
             /\.map$/i.test(p));
@@ -854,10 +801,10 @@ function generateRoadmap(report) {
     if (Array.isArray(report.detectedIssues)) {
         report.detectedIssues = report.detectedIssues
             .map(issue => {
-                const files = Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : [];
-                const cleanFiles = files.filter(f => !isBuildArtifactPath(f));
-                return { ...issue, filePath: cleanFiles };
-            })
+            const files = Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : [];
+            const cleanFiles = files.filter(f => !isBuildArtifactPath(f));
+            return { ...issue, filePath: cleanFiles };
+        })
             .filter(issue => Array.isArray(issue.filePath) && issue.filePath.length > 0);
     }
     // Prefer server-computed remediationPhases when available (most accurate)
@@ -891,7 +838,8 @@ function generateRoadmap(report) {
         });
         // Re-apply dependency blocking logic
         phases.forEach(phase => {
-            if (!phase.dependsOn || phase.progress >= 100) return;
+            if (!phase.dependsOn || phase.progress >= 100)
+                return;
             const dep = phases.find(x => x.id === phase.dependsOn);
             if (dep && dep.progress < 95) {
                 phase.status = 'blocked';
@@ -911,118 +859,89 @@ function generateRoadmap(report) {
     }
     const phases = [];
     // Use null for missing fields so we can distinguish "not measured" from "zero"
-    const src =
-        report.sourceReport || ((_a = report.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) || report;
+    const src = report.sourceReport || ((_a = report.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) || report;
     const qualityScore = src.qualityScore != null ? Number(src.qualityScore) : null;
     const issues = src.issueCount != null ? Number(src.issueCount) : null;
     const invalidJson = src.invalidJson != null ? Number(src.invalidJson) : null;
-    const emptyFiles =
-        src.emptyFiles != null
-            ? Number(src.emptyFiles)
-            : ((_b = src.dataQuality) === null || _b === void 0 ? void 0 : _b.emptyJsonCount) != null
-              ? Number(src.dataQuality.emptyJsonCount)
-              : null;
+    const emptyFiles = src.emptyFiles != null
+        ? Number(src.emptyFiles)
+        : ((_b = src.dataQuality) === null || _b === void 0 ? void 0 : _b.emptyJsonCount) != null
+            ? Number(src.dataQuality.emptyJsonCount)
+            : null;
     const schemaComp = src.schemaCompliance != null ? Number(src.schemaCompliance) : null;
     const schemaChecked = src.schemaChecked != null ? Number(src.schemaChecked) : null;
     const schemaPassed = src.schemaPassed != null ? Number(src.schemaPassed) : null;
-    const dupes =
-        src.duplicateGroups != null
-            ? Number(src.duplicateGroups)
-            : ((_c = src.consolidation) === null || _c === void 0 ? void 0 : _c.duplicateGroups) != null
-              ? Number(src.consolidation.duplicateGroups)
-              : null;
-    const consistency =
-        src.consistencyScore != null
-            ? Number(src.consistencyScore)
-            : ((_d = src.consolidation) === null || _d === void 0 ? void 0 : _d.duplicateGroups) != null
-              ? src.consolidation.duplicateGroups === 0
-                  ? 100
-                  : 50
-              : null;
+    const dupes = src.duplicateGroups != null
+        ? Number(src.duplicateGroups)
+        : ((_c = src.consolidation) === null || _c === void 0 ? void 0 : _c.duplicateGroups) != null
+            ? Number(src.consolidation.duplicateGroups)
+            : null;
+    const consistency = src.consistencyScore != null
+        ? Number(src.consistencyScore)
+        : ((_d = src.consolidation) === null || _d === void 0 ? void 0 : _d.duplicateGroups) != null
+            ? src.consolidation.duplicateGroups === 0
+                ? 100
+                : 50
+            : null;
     const consistencyChecked = src.consistencyChecked != null ? Number(src.consistencyChecked) : null;
     const consistencyPassed = src.consistencyPassed != null ? Number(src.consistencyPassed) : null;
-    const credFindings =
-        src.credentialFindings != null
-            ? Number(src.credentialFindings)
-            : ((_e = src.gate) === null || _e === void 0 ? void 0 : _e.blockingCount) != null
-              ? Number(src.gate.blockingCount)
-              : null;
+    const credFindings = src.credentialFindings != null
+        ? Number(src.credentialFindings)
+        : ((_e = src.gate) === null || _e === void 0 ? void 0 : _e.blockingCount) != null
+            ? Number(src.gate.blockingCount)
+            : null;
     const leakFindings = src.productionLeakFindings != null ? Number(src.productionLeakFindings) : null;
-    const euAiAct =
-        src.euAiActFindings != null
-            ? Number(src.euAiActFindings)
-            : ((_f = src.euAiActSummary) === null || _f === void 0 ? void 0 : _f.aiSystemIndicators) != null
-              ? Number(src.euAiActSummary.aiSystemIndicators)
-              : null;
-    const todoMarkers =
-        src.todoMarkerCount != null
-            ? Number(src.todoMarkerCount)
-            : ((_g = src.roadmap) === null || _g === void 0 ? void 0 : _g.todoCount) != null
-              ? Number(src.roadmap.todoCount)
-              : null;
+    const euAiAct = src.euAiActFindings != null
+        ? Number(src.euAiActFindings)
+        : ((_f = src.euAiActSummary) === null || _f === void 0 ? void 0 : _f.aiSystemIndicators) != null
+            ? Number(src.euAiActSummary.aiSystemIndicators)
+            : null;
+    const todoMarkers = src.todoMarkerCount != null
+        ? Number(src.todoMarkerCount)
+        : ((_g = src.roadmap) === null || _g === void 0 ? void 0 : _g.todoCount) != null
+            ? Number(src.roadmap.todoCount)
+            : null;
     const issueCount = src.issueCount != null ? Number(src.issueCount) : 0;
     // Auto-complete helper: gate passed, quality 100, no issues = structural duplicates only
-    const scanIsClean =
-        qualityScore === 100 &&
-        (((_h = src.gate) === null || _h === void 0 ? void 0 : _h.pass) === true ||
-            ((_j = src.gate) === null || _j === void 0 ? void 0 : _j.blockingCount) === 0) &&
-        issueCount === 0;
+    const scanIsClean = qualityScore === 100 && (((_h = src.gate) === null || _h === void 0 ? void 0 : _h.pass) === true || ((_j = src.gate) === null || _j === void 0 ? void 0 : _j.blockingCount) === 0) && issueCount === 0;
     // --- Detailed findings analysis (when unredacted data is available) ---
     function isRestricted(str) {
         return typeof str === 'string' && str.includes('***REDACTED***');
     }
     function anyRestricted(arr) {
-        return (
-            Array.isArray(arr) &&
-            arr.some(f => isRestricted(f.snippet) || isRestricted(f.text) || isRestricted(f.message))
-        );
+        return (Array.isArray(arr) &&
+            arr.some(f => isRestricted(f.snippet) || isRestricted(f.text) || isRestricted(f.message)));
     }
     function collectFindings(pathArr, snippetKey = 'snippet') {
         const out = [];
-        if (!Array.isArray(pathArr)) return out;
+        if (!Array.isArray(pathArr))
+            return out;
         for (const item of pathArr) {
-            if (typeof item === 'string') out.push({ file: item });
+            if (typeof item === 'string')
+                out.push({ file: item });
             else if (item && typeof item === 'object') {
                 const file = item.file || item.path || item.filename || '';
                 const line = item.line || item.lineNumber || '';
                 const text = item[snippetKey] || item.text || item.message || item.reason || '';
-                if (file) out.push({ file, line, text });
+                if (file)
+                    out.push({ file, line, text });
             }
         }
         return out;
     }
-    const gateFindings = collectFindings(
-        ((_k = report.gate) === null || _k === void 0 ? void 0 : _k.blockingFindings) || []
-    );
+    const gateFindings = collectFindings(((_k = report.gate) === null || _k === void 0 ? void 0 : _k.blockingFindings) || []);
     const credDetail = gateFindings.filter(f => /credential|secret|token|password|api_key|auth/i.test(f.text || ''));
     const leakDetail = gateFindings.filter(f => /production|prod|staging|deploy|\.env/i.test(f.text || ''));
     const hasRestrictedCred = anyRestricted((_l = src.gate) === null || _l === void 0 ? void 0 : _l.blockingFindings);
-    const emptyFileDetail = collectFindings(
-        (_m = src.dataQuality) === null || _m === void 0 ? void 0 : _m.emptyJsonFiles
-    );
-    const invalidJsonDetail = collectFindings(
-        (_o = src.dataQuality) === null || _o === void 0 ? void 0 : _o.invalidJsonFiles
-    );
-    const dupeDetail = collectFindings(
-        (_p = src.consolidation) === null || _p === void 0 ? void 0 : _p.duplicateGroups
-    );
+    const emptyFileDetail = collectFindings((_m = src.dataQuality) === null || _m === void 0 ? void 0 : _m.emptyJsonFiles);
+    const invalidJsonDetail = collectFindings((_o = src.dataQuality) === null || _o === void 0 ? void 0 : _o.invalidJsonFiles);
+    const dupeDetail = collectFindings((_p = src.consolidation) === null || _p === void 0 ? void 0 : _p.duplicateGroups);
     // roadmap.todoFiles is array of path strings, not object findings
-    const todoDetail = (((_q = src.roadmap) === null || _q === void 0 ? void 0 : _q.todoFiles) || []).map(p =>
-        typeof p === 'string' ? { file: p } : p
-    );
+    const todoDetail = (((_q = src.roadmap) === null || _q === void 0 ? void 0 : _q.todoFiles) || []).map(p => (typeof p === 'string' ? { file: p } : p));
     const debugDetail = collectFindings((_r = src.cleanup) === null || _r === void 0 ? void 0 : _r.debugFindings);
-    const junkDetail = collectFindings(
-        ((_s = src.junkFiles) === null || _s === void 0 ? void 0 : _s.findings) ||
-            ((_t = src.junkFiles) === null || _t === void 0 ? void 0 : _t.files)
-    );
-    const buildDetail = collectFindings(
-        ((_u = src.buildReadiness) === null || _u === void 0 ? void 0 : _u.findings) ||
-            ((_v = src.buildReadiness) === null || _v === void 0 ? void 0 : _v.issues)
-    );
-    const vulnDetail = collectFindings(
-        ((_w = src.dependencyAudit) === null || _w === void 0 ? void 0 : _w.vulnerabilities) ||
-            ((_x = src.dependencyAudit) === null || _x === void 0 ? void 0 : _x.findings)
-    );
+    const junkDetail = collectFindings(((_s = src.junkFiles) === null || _s === void 0 ? void 0 : _s.findings) || ((_t = src.junkFiles) === null || _t === void 0 ? void 0 : _t.files));
+    const buildDetail = collectFindings(((_u = src.buildReadiness) === null || _u === void 0 ? void 0 : _u.findings) || ((_v = src.buildReadiness) === null || _v === void 0 ? void 0 : _v.issues));
+    const vulnDetail = collectFindings(((_w = src.dependencyAudit) === null || _w === void 0 ? void 0 : _w.vulnerabilities) || ((_x = src.dependencyAudit) === null || _x === void 0 ? void 0 : _x.findings));
     // Per-phase detail gate: gate detail only when not redacted; other phases use their own data presence
     const useGateDetail = gateFindings.length > 0 && !hasRestrictedCred;
     // Phase 1: Security — always show
@@ -1035,7 +954,8 @@ function generateRoadmap(report) {
                     t.push({ type: 'review', location: bf.filePath, codeSnippet: m.snippet || '', isStructured: true });
                 });
             });
-        } else if ((credFindings || 0) > 0) {
+        }
+        else if ((credFindings || 0) > 0) {
             t.push({ description: `Rotate ${credFindings} exposed credential(s)`, type: 'fix', isStructured: true });
         }
         if ((leakFindings || 0) > 0) {
@@ -1050,43 +970,34 @@ function generateRoadmap(report) {
                 done: secClean,
                 isStructured: true
             });
-        t.push(
-            {
-                description: 'Add .env to .gitignore',
-                type: 'fix',
-                codeSnippet: 'echo ".env" >> .gitignore',
-                done: secClean,
-                isStructured: true
-            },
-            {
-                description: 'Re-run gate scan',
-                type: 'verify',
-                codeSnippet: 'npx simplebeacon scan --gate',
-                done: secClean,
-                isStructured: true
-            }
-        );
+        t.push({
+            description: 'Add .env to .gitignore',
+            type: 'fix',
+            codeSnippet: 'echo ".env" >> .gitignore',
+            done: secClean,
+            isStructured: true
+        }, {
+            description: 'Re-run gate scan',
+            type: 'verify',
+            codeSnippet: 'npx simplebeacon scan --gate',
+            done: secClean,
+            isStructured: true
+        });
         const progress = totalIssues === 0 ? 100 : Math.max(5, Math.round((1 - totalIssues / (totalIssues + 3)) * 100));
         const status = progress >= 95 ? 'completed' : progress > 0 ? 'in-progress' : 'pending';
-        const credIssue =
-            (_z = src.detectedIssues) === null || _z === void 0
-                ? void 0
-                : _z.find(i => i.type === 'Credential Pattern');
+        const credIssue = (_z = src.detectedIssues) === null || _z === void 0 ? void 0 : _z.find(i => i.type === 'Credential Pattern');
         const impactHtml = (credIssue === null || credIssue === void 0 ? void 0 : credIssue.impact)
             ? `<div class="phase-impact">Impact: ${escapeHtml(credIssue.impact)}</div>`
             : '';
-        const fixHtml = (credIssue === null || credIssue === void 0 ? void 0 : credIssue.fix)
-            ? `<div class="phase-fix">Fix: ${escapeHtml(credIssue.fix)}</div>`
-            : '';
+        const fixHtml = (credIssue === null || credIssue === void 0 ? void 0 : credIssue.fix) ? `<div class="phase-fix">Fix: ${escapeHtml(credIssue.fix)}</div>` : '';
         phases.push({
             id: 'security',
             title: 'Security Hardening',
             severity: totalIssues === 0 ? 'low' : 'critical',
             effort: '1–2 days',
-            description:
-                totalIssues === 0
-                    ? 'No security issues detected — credentials && secrets verified.'
-                    : `Address ${credFindings || 0} credential and ${leakFindings || 0} production leak finding(s).`,
+            description: totalIssues === 0
+                ? 'No security issues detected — credentials && secrets verified.'
+                : `Address ${credFindings || 0} credential and ${leakFindings || 0} production leak finding(s).`,
             tasks: t,
             progress,
             status,
@@ -1095,8 +1006,7 @@ function generateRoadmap(report) {
     }
     // Phase 2: Data Integrity — always show
     {
-        const allClean =
-            (invalidJson === 0 || invalidJson == null) &&
+        const allClean = (invalidJson === 0 || invalidJson == null) &&
             (emptyFiles === 0 || emptyFiles == null) &&
             (schemaComp === 100 || schemaComp == null) &&
             invalidJsonDetail.length === 0 &&
@@ -1111,7 +1021,8 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (invalidJson > 0) {
+        }
+        else if (invalidJson > 0) {
             t.push({ description: `Fix ${invalidJson} invalid JSON file(s)`, type: 'fix', isStructured: true });
         }
         if (emptyFileDetail.length > 0) {
@@ -1123,7 +1034,8 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (emptyFiles > 0) {
+        }
+        else if (emptyFiles > 0) {
             t.push({ description: `Remove ${emptyFiles} empty file(s)`, type: 'fix', isStructured: true });
         }
         if (schemaComp != null && schemaComp < 100 && schemaChecked != null) {
@@ -1133,22 +1045,19 @@ function generateRoadmap(report) {
         }
         if (schemaComp != null && schemaComp < 100 && schemaChecked == null)
             t.push({ description: 'Review schema compliance failures', type: 'review', isStructured: true });
-        t.push(
-            {
-                description: 'Validate all JSON',
-                type: 'verify',
-                codeSnippet: 'npx simplebeacon scan --json',
-                done: allClean,
-                isStructured: true
-            },
-            {
-                description: 'Re-run scan',
-                type: 'verify',
-                codeSnippet: 'npx simplebeacon scan',
-                done: allClean,
-                isStructured: true
-            }
-        );
+        t.push({
+            description: 'Validate all JSON',
+            type: 'verify',
+            codeSnippet: 'npx simplebeacon scan --json',
+            done: allClean,
+            isStructured: true
+        }, {
+            description: 'Re-run scan',
+            type: 'verify',
+            codeSnippet: 'npx simplebeacon scan',
+            done: allClean,
+            isStructured: true
+        });
         const sameEmptyCount = invalidJson === emptyFiles && invalidJson != null;
         const dirtyDesc = sameEmptyCount
             ? `Resolve structural issues: ${invalidJson} empty/invalid JSON file(s).`
@@ -1156,10 +1065,9 @@ function generateRoadmap(report) {
         phases.push({
             id: 'integrity',
             title: 'Data Integrity',
-            severity:
-                invalidJson > 0 || emptyFiles > 0 || invalidJsonDetail.length > 0 || emptyFileDetail.length > 0
-                    ? 'high'
-                    : 'low',
+            severity: invalidJson > 0 || emptyFiles > 0 || invalidJsonDetail.length > 0 || emptyFileDetail.length > 0
+                ? 'high'
+                : 'low',
             effort: '2–4 days',
             description: allClean ? 'Data integrity verified — no structural issues detected.' : dirtyDesc,
             tasks: t,
@@ -1172,13 +1080,9 @@ function generateRoadmap(report) {
         // Auto-complete if scan is otherwise clean (gate passed, qualityScore 100)
         // Duplicates in full-file scans are typically structural (node_modules, .git, Domain mirrors)
         const dupFiles = ((_0 = src.consolidation) === null || _0 === void 0 ? void 0 : _0.duplicateFiles) || [];
-        const isMirrorOnly =
-            dupFiles.length > 0 &&
-            dupFiles.every(
-                g => Array.isArray(g) && g.every(f => /^(coming-soon\/|Domain\/|packages\/|[^\/]+$)/.test(f))
-            );
-        const allClean =
-            (dupes === 0 || dupes == null) && (consistency === 100 || consistency == null) && dupeDetail.length === 0;
+        const isMirrorOnly = dupFiles.length > 0 &&
+            dupFiles.every(g => Array.isArray(g) && g.every(f => /^(coming-soon\/|Domain\/|packages\/|[^\/]+$)/.test(f)));
+        const allClean = (dupes === 0 || dupes == null) && (consistency === 100 || consistency == null) && dupeDetail.length === 0;
         const autoComplete = allClean || isMirrorOnly || (dupes <= 1 && consistency >= 95);
         const t = [];
         if (dupeDetail.length > 0) {
@@ -1190,7 +1094,8 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (dupes > 0 && !autoComplete) {
+        }
+        else if (dupes > 0 && !autoComplete) {
             t.push({ description: `Consolidate ${dupes} duplicate group(s)`, type: 'fix', isStructured: true });
         }
         if (consistency != null && consistency < 100 && consistencyChecked != null) {
@@ -1201,15 +1106,12 @@ function generateRoadmap(report) {
         if (consistency != null && consistency < 100 && consistencyChecked == null)
             t.push({ description: 'Review consistency check failures', type: 'review', isStructured: true });
         if (!autoComplete)
-            t.push(
-                { description: 'Standardize naming conventions', type: 'doc', done: autoComplete, isStructured: true },
-                {
-                    description: 'Document canonical file locations',
-                    type: 'doc',
-                    done: autoComplete,
-                    isStructured: true
-                }
-            );
+            t.push({ description: 'Standardize naming conventions', type: 'doc', done: autoComplete, isStructured: true }, {
+                description: 'Document canonical file locations',
+                type: 'doc',
+                done: autoComplete,
+                isStructured: true
+            });
         if (autoComplete)
             t.push({
                 description: 'Verified — duplicates are structural/intentional',
@@ -1240,22 +1142,33 @@ function generateRoadmap(report) {
         if (debugFindings.length > 0) {
             const groups = {};
             function classifyArtifact(s) {
-                if (/\bprint\s*\(/.test(s)) return 'Python print';
-                if (/\bpprint\s*\(/.test(s)) return 'Python pprint';
-                if (/\bbreakpoint\s*\(/.test(s)) return 'Python breakpoint';
-                if (/\bDEBUG\s*=\s*True\b/.test(s)) return 'Flask DEBUG';
-                if (/\bSystem\.(out|err)\.(print|println)/.test(s)) return 'Java sysout';
-                if (/\be\.printStackTrace/.test(s)) return 'Java stacktrace';
-                if (/\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)/.test(s)) return 'console.log';
-                if (/\bdebugger\b/.test(s)) return 'debugger';
-                if (/\balert\s*\(/.test(s)) return 'alert()';
-                if (/\bprompt\s*\(/.test(s)) return 'prompt()';
+                if (/\bprint\s*\(/.test(s))
+                    return 'Python print';
+                if (/\bpprint\s*\(/.test(s))
+                    return 'Python pprint';
+                if (/\bbreakpoint\s*\(/.test(s))
+                    return 'Python breakpoint';
+                if (/\bDEBUG\s*=\s*True\b/.test(s))
+                    return 'Flask DEBUG';
+                if (/\bSystem\.(out|err)\.(print|println)/.test(s))
+                    return 'Java sysout';
+                if (/\be\.printStackTrace/.test(s))
+                    return 'Java stacktrace';
+                if (/\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)/.test(s))
+                    return 'console.log';
+                if (/\bdebugger\b/.test(s))
+                    return 'debugger';
+                if (/\balert\s*\(/.test(s))
+                    return 'alert()';
+                if (/\bprompt\s*\(/.test(s))
+                    return 'prompt()';
                 return 'debug artifact';
             }
             debugFindings.forEach(f => {
                 (f.matches || []).forEach(m => {
                     const type = classifyArtifact(m.snippet || '');
-                    if (!groups[type]) groups[type] = [];
+                    if (!groups[type])
+                        groups[type] = [];
                     groups[type].push({ file: f.file, line: m.line || '', snippet: m.snippet || '' });
                 });
             });
@@ -1264,7 +1177,8 @@ function generateRoadmap(report) {
                     t.push({ type: 'fix', location: item.file, codeSnippet: item.snippet || '', isStructured: true });
                 });
             });
-        } else if (dc > 0) {
+        }
+        else if (dc > 0) {
             t.push({
                 description: `Remove ${dc} debug artifact${dc === 1 ? '' : 's'} (console.log, debugger, alert)`,
                 type: 'fix',
@@ -1272,47 +1186,37 @@ function generateRoadmap(report) {
             });
         }
         if (bloatCount > 0) {
-            const bloatFiles = (((_4 = src.cleanup) === null || _4 === void 0 ? void 0 : _4.bloatArtifacts) || []).map(
-                b => b.file
-            );
-            bloatFiles.forEach(f =>
-                t.push({
-                    description: `Delete self-generated bloat: ${f}`,
-                    type: 'fix',
-                    location: f,
-                    isStructured: true
-                })
-            );
-            t.push(
-                {
-                    description: 'Add bloat patterns to .simplebeaconignore',
-                    type: 'fix',
-                    codeSnippet: 'echo "*.simplebeacon-backup.*" >> .simplebeaconignore',
-                    isStructured: true
-                },
-                {
-                    description: 'Purge old scan backups with retention policy',
-                    type: 'fix',
-                    codeSnippet: 'find .simplebeacon -name "*.simplebeacon-backup.*" -mtime +30 -delete',
-                    isStructured: true
-                }
-            );
+            const bloatFiles = (((_4 = src.cleanup) === null || _4 === void 0 ? void 0 : _4.bloatArtifacts) || []).map(b => b.file);
+            bloatFiles.forEach(f => t.push({
+                description: `Delete self-generated bloat: ${f}`,
+                type: 'fix',
+                location: f,
+                isStructured: true
+            }));
+            t.push({
+                description: 'Add bloat patterns to .simplebeaconignore',
+                type: 'fix',
+                codeSnippet: 'echo "*.simplebeacon-backup.*" >> .simplebeaconignore',
+                isStructured: true
+            }, {
+                description: 'Purge old scan backups with retention policy',
+                type: 'fix',
+                codeSnippet: 'find .simplebeacon -name "*.simplebeacon-backup.*" -mtime +30 -delete',
+                isStructured: true
+            });
         }
         if (dc > 0)
-            t.push(
-                {
-                    description: 'Install eslint-plugin-no-console for CI',
-                    type: 'fix',
-                    codeSnippet: 'npm install eslint-plugin-no-console --save-dev',
-                    isStructured: true
-                },
-                {
-                    description: 'Add pre-commit hook to reject console.log',
-                    type: 'fix',
-                    codeSnippet: 'npx husky add .husky/pre-commit "npx eslint --rule \'no-console: error\' src/"',
-                    isStructured: true
-                }
-            );
+            t.push({
+                description: 'Install eslint-plugin-no-console for CI',
+                type: 'fix',
+                codeSnippet: 'npm install eslint-plugin-no-console --save-dev',
+                isStructured: true
+            }, {
+                description: 'Add pre-commit hook to reject console.log',
+                type: 'fix',
+                codeSnippet: 'npx husky add .husky/pre-commit "npx eslint --rule \'no-console: error\' src/"',
+                isStructured: true
+            });
         if (t.length === 0)
             t.push({
                 description: 'No debug artifacts or bloat detected — codebase is clean.',
@@ -1321,47 +1225,35 @@ function generateRoadmap(report) {
                 isStructured: true
             });
         const totalCleanupItems = dc + bloatCount;
-        const pk = (
-            src.projectRoot ||
+        const pk = (src.projectRoot ||
             src.projectPath ||
             src.projectName ||
             report.projectRoot ||
             report.projectPath ||
             report.projectName ||
-            'project'
-        ).replace(/[^a-z0-9]/gi, '_');
-        const cleanupDoneCount = t.reduce(
-            (n, task, idx) =>
-                n + (loadTaskState(pk, 'cleanup', idx) || (typeof task === 'object' && task.done) ? 1 : 0),
-            0
-        );
-        const cleanupProgress =
-            totalCleanupItems === 0 ? 100 : t.length ? Math.round((cleanupDoneCount / t.length) * 100) : 100;
-        const cleanupStatus =
-            totalCleanupItems === 0
+            'project').replace(/[^a-z0-9]/gi, '_');
+        const cleanupDoneCount = t.reduce((n, task, idx) => n + (loadTaskState(pk, 'cleanup', idx) || (typeof task === 'object' && task.done) ? 1 : 0), 0);
+        const cleanupProgress = totalCleanupItems === 0 ? 100 : t.length ? Math.round((cleanupDoneCount / t.length) * 100) : 100;
+        const cleanupStatus = totalCleanupItems === 0
+            ? 'completed'
+            : cleanupProgress >= 95
                 ? 'completed'
-                : cleanupProgress >= 95
-                  ? 'completed'
-                  : cleanupProgress > 0
+                : cleanupProgress > 0
                     ? 'in-progress'
                     : 'pending';
-        const debugIssue =
-            (_5 = src.detectedIssues) === null || _5 === void 0 ? void 0 : _5.find(i => i.type === 'Debug Artifact');
+        const debugIssue = (_5 = src.detectedIssues) === null || _5 === void 0 ? void 0 : _5.find(i => i.type === 'Debug Artifact');
         const impactHtml = (debugIssue === null || debugIssue === void 0 ? void 0 : debugIssue.impact)
             ? `<div class="phase-impact">Impact: ${escapeHtml(debugIssue.impact)}</div>`
             : '';
-        const fixHtml = (debugIssue === null || debugIssue === void 0 ? void 0 : debugIssue.fix)
-            ? `<div class="phase-fix">Fix: ${escapeHtml(debugIssue.fix)}</div>`
-            : '';
+        const fixHtml = (debugIssue === null || debugIssue === void 0 ? void 0 : debugIssue.fix) ? `<div class="phase-fix">Fix: ${escapeHtml(debugIssue.fix)}</div>` : '';
         phases.push({
             id: 'cleanup',
             title: 'Cleanup & Hygiene',
             severity: debugCount > 50 || bloatCount > 0 ? 'high' : 'low',
             effort: '1–2 days',
-            description:
-                totalCleanupItems === 0
-                    ? 'No debug artifacts or bloat detected — codebase is clean.'
-                    : `${dc} debug artifact${dc === 1 ? '' : 's'}${bloatCount > 0 ? ` + ${bloatCount} bloat file(s)` : ''} detected.`,
+            description: totalCleanupItems === 0
+                ? 'No debug artifacts or bloat detected — codebase is clean.'
+                : `${dc} debug artifact${dc === 1 ? '' : 's'}${bloatCount > 0 ? ` + ${bloatCount} bloat file(s)` : ''} detected.`,
             tasks: t,
             progress: cleanupProgress,
             status: cleanupStatus,
@@ -1393,11 +1285,9 @@ function generateRoadmap(report) {
                 });
             });
         }
-        const euDocs =
-            ((_6 = report.euAiActSummary) === null || _6 === void 0 ? void 0 : _6.documentationArtifacts) || 0;
+        const euDocs = ((_6 = report.euAiActSummary) === null || _6 === void 0 ? void 0 : _6.documentationArtifacts) || 0;
         const govClean = govScore != null && govScore >= 2;
-        const scanIsClean =
-            ((_7 = src.gate) === null || _7 === void 0 ? void 0 : _7.pass) === true && (src.issueCount || 0) === 0;
+        const scanIsClean = ((_7 = src.gate) === null || _7 === void 0 ? void 0 : _7.pass) === true && (src.issueCount || 0) === 0;
         const hasGovDocs = govClean || euDocs >= 2 || foundGovCount > 0 || scanIsClean;
         if (licenseCount > 0)
             t.push({
@@ -1431,25 +1321,20 @@ function generateRoadmap(report) {
             });
         const missingGov = (comp.missingGovernanceFiles || []).slice(0, 3);
         if (missingGov.length > 0)
-            missingGov.forEach(f =>
-                t.push({
-                    description: `Add ${f}`,
-                    type: 'fix',
-                    codeSnippet: `touch ${f}`,
-                    done: false,
-                    isStructured: true
-                })
-            );
-        t.push(
-            {
-                description: 'Verify license compatibility with distribution model',
-                type: 'verify',
-                codeSnippet: 'npx license-checker --summary',
-                done: hasGovDocs,
+            missingGov.forEach(f => t.push({
+                description: `Add ${f}`,
+                type: 'fix',
+                codeSnippet: `touch ${f}`,
+                done: false,
                 isStructured: true
-            },
-            { description: 'Document governance policies', type: 'doc', done: hasGovDocs, isStructured: true }
-        );
+            }));
+        t.push({
+            description: 'Verify license compatibility with distribution model',
+            type: 'verify',
+            codeSnippet: 'npx license-checker --summary',
+            done: hasGovDocs,
+            isStructured: true
+        }, { description: 'Document governance policies', type: 'doc', done: hasGovDocs, isStructured: true });
         if (t.length === 0)
             t.push({
                 description: 'Governance files verified — all standard policies present.',
@@ -1460,21 +1345,15 @@ function generateRoadmap(report) {
         const baseProgress = hasGovDocs
             ? 100
             : govScore != null
-              ? Math.min(100, Math.round((govScore / standardGovFiles.length) * 100))
-              : Math.min(100, Math.round((foundGovCount / standardGovFiles.length) * 100));
+                ? Math.min(100, Math.round((govScore / standardGovFiles.length) * 100))
+                : Math.min(100, Math.round((foundGovCount / standardGovFiles.length) * 100));
         const progress = baseProgress || 0;
-        const status =
-            progress >= 95 ? 'completed' : progress > 0 ? 'in-progress' : foundGovCount > 0 ? 'in-progress' : 'pending';
-        const govIssue =
-            (_8 = src.detectedIssues) === null || _8 === void 0
-                ? void 0
-                : _8.find(i => i.type === 'License/Governance Marker');
+        const status = progress >= 95 ? 'completed' : progress > 0 ? 'in-progress' : foundGovCount > 0 ? 'in-progress' : 'pending';
+        const govIssue = (_8 = src.detectedIssues) === null || _8 === void 0 ? void 0 : _8.find(i => i.type === 'License/Governance Marker');
         const impactHtml = (govIssue === null || govIssue === void 0 ? void 0 : govIssue.impact)
             ? `<div class="phase-impact">Impact: ${escapeHtml(govIssue.impact)}</div>`
             : '';
-        const fixHtml = (govIssue === null || govIssue === void 0 ? void 0 : govIssue.fix)
-            ? `<div class="phase-fix">Fix: ${escapeHtml(govIssue.fix)}</div>`
-            : '';
+        const fixHtml = (govIssue === null || govIssue === void 0 ? void 0 : govIssue.fix) ? `<div class="phase-fix">Fix: ${escapeHtml(govIssue.fix)}</div>` : '';
         phases.push({
             id: 'compliance',
             title: 'Governance & Compliance',
@@ -1489,11 +1368,7 @@ function generateRoadmap(report) {
     }
     // Phase 5: EU AI Act — always show
     {
-        const s = src.euAiActSummary || {},
-            hr = Number(s.highRiskIndicators) || 0,
-            tg = Number(s.transparencyGaps) || 0,
-            ai = Number(s.aiSystemIndicators) || 0,
-            art = Number(s.documentationArtifacts) || 0;
+        const s = src.euAiActSummary || {}, hr = Number(s.highRiskIndicators) || 0, tg = Number(s.transparencyGaps) || 0, ai = Number(s.aiSystemIndicators) || 0, art = Number(s.documentationArtifacts) || 0;
         const clean = hr === 0 && tg === 0 && ai === 0;
         const t = [];
         if (hr > 0)
@@ -1512,16 +1387,12 @@ function generateRoadmap(report) {
                 done: false,
                 isStructured: true
             });
-        t.push(
-            { description: 'Generate documentation artifacts', type: 'doc', done: clean, isStructured: true },
-            {
-                description: 'Review AI system classification (Art. 6)',
-                type: 'review',
-                done: clean,
-                isStructured: true
-            },
-            { description: 'Schedule legal review', type: 'review', done: clean, isStructured: true }
-        );
+        t.push({ description: 'Generate documentation artifacts', type: 'doc', done: clean, isStructured: true }, {
+            description: 'Review AI system classification (Art. 6)',
+            type: 'review',
+            done: clean,
+            isStructured: true
+        }, { description: 'Schedule legal review', type: 'review', done: clean, isStructured: true });
         const artifactBonus = art > 0 ? Math.min(30, art * 6) : 0;
         const penalty = hr * 15 + tg * 10 + ai * 5;
         const progress = clean ? 100 : Math.max(10, Math.min(100, 50 + artifactBonus - penalty));
@@ -1547,27 +1418,20 @@ function generateRoadmap(report) {
     }
     // Phase 5.5: Mock Data Review — always show
     const mockCats = src.mockDataCategories || [];
-    const mockTotal =
-        (_9 = src.mockSampleFiles) !== null && _9 !== void 0
-            ? _9
-            : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
+    const mockTotal = (_9 = src.mockSampleFiles) !== null && _9 !== void 0 ? _9 : mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
     // Check if all mock files are legitimate demo data or known false positives
     const mockAffected = mockCats.flatMap(c => c.affectedFiles || []);
-    const isLegitimateDemo =
-        mockAffected.length > 0 &&
-        mockAffected.every(
-            f =>
-                /web\/data\/.*-sample\.json$/.test(f) ||
-                /Domain\/.*\/sample-/.test(f) ||
-                /docs\/SAMPLE_REPORT\.md$/.test(f) ||
-                /sample-report\.html$/.test(f) ||
-                /mock-data-(scanner|schema-validator|action-plan|report)\.c?js$/.test(f) ||
-                /page-sample-specs\.c?js$/.test(f) ||
-                /test-cert\//.test(f) ||
-                /\.sample\./.test(f) ||
-                /-sample\./.test(f) ||
-                /sample-\./.test(f)
-        );
+    const isLegitimateDemo = mockAffected.length > 0 &&
+        mockAffected.every(f => /web\/data\/.*-sample\.json$/.test(f) ||
+            /Domain\/.*\/sample-/.test(f) ||
+            /docs\/SAMPLE_REPORT\.md$/.test(f) ||
+            /sample-report\.html$/.test(f) ||
+            /mock-data-(scanner|schema-validator|action-plan|report)\.c?js$/.test(f) ||
+            /page-sample-specs\.c?js$/.test(f) ||
+            /test-cert\//.test(f) ||
+            /\.sample\./.test(f) ||
+            /-sample\./.test(f) ||
+            /sample-\./.test(f));
     const mockAutoComplete = isLegitimateDemo || scanIsClean || mockTotal === 0;
     {
         const t = [];
@@ -1579,19 +1443,17 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else {
+        }
+        else {
             t.push({ description: `Review ${mockTotal} mock/fixture file(s)`, type: 'review', isStructured: true });
         }
         if (!mockAutoComplete)
-            t.push(
-                {
-                    description: 'Add .simplebeaconignore patterns for fixtures',
-                    type: 'fix',
-                    codeSnippet: 'echo "*.fixture.*" >> .simplebeaconignore',
-                    isStructured: true
-                },
-                { description: 'Exclude test data from production builds', type: 'fix', isStructured: true }
-            );
+            t.push({
+                description: 'Add .simplebeaconignore patterns for fixtures',
+                type: 'fix',
+                codeSnippet: 'echo "*.fixture.*" >> .simplebeaconignore',
+                isStructured: true
+            }, { description: 'Exclude test data from production builds', type: 'fix', isStructured: true });
         if (mockAutoComplete)
             t.push({
                 description: 'Demo data verified — excluded from production builds',
@@ -1627,15 +1489,14 @@ function generateRoadmap(report) {
         const pkgList = packages.length > 0 ? packages : (npm.packageJsonFiles || []).map(f => ({ path: f }));
         pkgList.forEach(p => {
             const shortName = p.path ? p.path.split('/').slice(-2).join('/') : String(p);
-            const deps =
-                p.depCount != null
-                    ? ` — ${p.depCount} deps${p.devDepCount > 0 ? ' + ' + p.devDepCount + ' devDeps' : ''}`
-                    : '';
+            const deps = p.depCount != null
+                ? ` — ${p.depCount} deps${p.devDepCount > 0 ? ' + ' + p.devDepCount + ' devDeps' : ''}`
+                : '';
             const lock = p.hasLockfile
                 ? `, lockfile: ${p.lockfileType || 'yes'}`
                 : p.hasLockfile === false
-                  ? ', **missing lockfile**'
-                  : '';
+                    ? ', **missing lockfile**'
+                    : '';
             t.push({
                 description: `Review ${shortName}${deps}${lock}`,
                 type: 'review',
@@ -1672,45 +1533,33 @@ function generateRoadmap(report) {
                 done: false,
                 isStructured: true
             });
-        t.push(
-            {
-                description: 'Run npm audit',
-                type: 'audit',
-                codeSnippet: 'npm audit',
-                done: npmClean,
-                isStructured: true
-            },
-            {
-                description: 'Verify lockfile integrity',
-                type: 'verify',
-                codeSnippet: 'npm ci',
-                done: npmClean,
-                isStructured: true
-            },
-            { description: 'Review dependency update policy', type: 'review', done: npmClean, isStructured: true }
-        );
-        const pk2 = (
-            src.projectRoot ||
+        t.push({
+            description: 'Run npm audit',
+            type: 'audit',
+            codeSnippet: 'npm audit',
+            done: npmClean,
+            isStructured: true
+        }, {
+            description: 'Verify lockfile integrity',
+            type: 'verify',
+            codeSnippet: 'npm ci',
+            done: npmClean,
+            isStructured: true
+        }, { description: 'Review dependency update policy', type: 'review', done: npmClean, isStructured: true });
+        const pk2 = (src.projectRoot ||
             src.projectPath ||
             src.projectName ||
             report.projectRoot ||
             report.projectPath ||
             report.projectName ||
-            'project'
-        ).replace(/[^a-z0-9]/gi, '_');
-        const doneCount = t.reduce(
-            (n, task, idx) =>
-                n + (loadTaskState(pk2, 'npmaudit', idx) || (typeof task === 'object' && task.done) ? 1 : 0),
-            0
-        );
-        const progress =
-            pkgCount === 0 && depCount === 0 ? 100 : t.length ? Math.round((doneCount / t.length) * 100) : 0;
-        const status =
-            pkgCount === 0 && depCount === 0
+            'project').replace(/[^a-z0-9]/gi, '_');
+        const doneCount = t.reduce((n, task, idx) => n + (loadTaskState(pk2, 'npmaudit', idx) || (typeof task === 'object' && task.done) ? 1 : 0), 0);
+        const progress = pkgCount === 0 && depCount === 0 ? 100 : t.length ? Math.round((doneCount / t.length) * 100) : 0;
+        const status = pkgCount === 0 && depCount === 0
+            ? 'completed'
+            : progress >= 95
                 ? 'completed'
-                : progress >= 95
-                  ? 'completed'
-                  : progress > 0
+                : progress > 0
                     ? 'in-progress'
                     : 'pending';
         if (t.length === 0)
@@ -1724,10 +1573,9 @@ function generateRoadmap(report) {
             title: 'npm Audit',
             severity: outdatedCount > 0 || missingLockfiles > 0 ? 'medium' : 'low',
             effort: '1 day',
-            description:
-                pkgCount === 0 && depCount === 0
-                    ? 'No package.json detected — this project does not use npm dependencies.'
-                    : `${pkgCount} package.json file(s), ${depCount} total dependencies${missingLockfiles > 0 ? ', ' + missingLockfiles + ' missing lockfile(s)' : ''}${outdatedCount > 0 ? ', ' + outdatedCount + ' outdated' : ''}.`,
+            description: pkgCount === 0 && depCount === 0
+                ? 'No package.json detected — this project does not use npm dependencies.'
+                : `${pkgCount} package.json file(s), ${depCount} total dependencies${missingLockfiles > 0 ? ', ' + missingLockfiles + ' missing lockfile(s)' : ''}${outdatedCount > 0 ? ', ' + outdatedCount + ' outdated' : ''}.`,
             tasks: t,
             progress,
             status
@@ -1745,7 +1593,8 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (todoMarkers != null && todoMarkers > 0) {
+        }
+        else if (todoMarkers != null && todoMarkers > 0) {
             t.push({
                 description: `Address ${todoMarkers} TODO/FIXME marker(s) in source code`,
                 type: 'fix',
@@ -1769,40 +1618,33 @@ function generateRoadmap(report) {
                 done: false,
                 isStructured: true
             });
-        t.push(
-            {
-                description: 'Add test coverage for uncovered modules',
-                type: 'fix',
-                codeSnippet: 'npm test -- --coverage',
-                done: qs >= 90,
-                isStructured: true
-            },
-            {
-                description: 'Install pre-commit hooks for automated scanning',
-                type: 'fix',
-                codeSnippet: 'npx husky install',
-                done: qs >= 90,
-                isStructured: true
-            },
-            { description: 'Schedule monthly quality gate reviews', type: 'review', done: qs >= 90, isStructured: true }
-        );
-        const penalty =
-            (todoDetail.length > 0 ? Math.min(20, todoDetail.length * 2) : 0) +
+        t.push({
+            description: 'Add test coverage for uncovered modules',
+            type: 'fix',
+            codeSnippet: 'npm test -- --coverage',
+            done: qs >= 90,
+            isStructured: true
+        }, {
+            description: 'Install pre-commit hooks for automated scanning',
+            type: 'fix',
+            codeSnippet: 'npx husky install',
+            done: qs >= 90,
+            isStructured: true
+        }, { description: 'Schedule monthly quality gate reviews', type: 'review', done: qs >= 90, isStructured: true });
+        const penalty = (todoDetail.length > 0 ? Math.min(20, todoDetail.length * 2) : 0) +
             (debugDetail.length > 0 ? Math.min(20, debugDetail.length * 3) : 0);
         const rawProgress = Math.round(qs || 0);
         const progress = Math.max(0, Math.min(100, rawProgress - penalty));
         const status = progress >= 90 ? 'completed' : progress > 0 ? 'in-progress' : 'pending';
-        const optDesc =
-            qs >= 90
-                ? `Maintain quality score at ${qs}/100 (currently above 90+).`
-                : `Drive quality score from ${qs || 0}/100 toward 90+.`;
+        const optDesc = qs >= 90
+            ? `Maintain quality score at ${qs}/100 (currently above 90+).`
+            : `Drive quality score from ${qs || 0}/100 toward 90+.`;
         phases.push({
             id: 'optimization',
             title: 'Quality Optimization',
             severity: qs < 70 ? 'high' : 'low',
             effort: 'Ongoing',
-            description:
-                optDesc +
+            description: optDesc +
                 `${todoDetail.length > 0 ? ' ' + todoDetail.length + ' TODO marker(s).' : ''}${debugDetail.length > 0 ? ' ' + debugDetail.length + ' debug artifact(s).' : ''}`,
             tasks: t,
             progress,
@@ -1811,8 +1653,7 @@ function generateRoadmap(report) {
     }
     // Phase 6: Junk & Temporary Files — always show
     {
-        const jCount =
-            junkDetail.length || Number((_10 = report.junkFiles) === null || _10 === void 0 ? void 0 : _10.count) || 0;
+        const jCount = junkDetail.length || Number((_10 = report.junkFiles) === null || _10 === void 0 ? void 0 : _10.count) || 0;
         const t = [];
         if (junkDetail.length > 0) {
             junkDetail.forEach(f => {
@@ -1823,27 +1664,24 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (jCount > 0) {
+        }
+        else if (jCount > 0) {
             t.push({ description: `Remove ${jCount} junk / temporary file(s)`, type: 'fix', isStructured: true });
         }
         const junkClean = jCount === 0;
-        t.push(
-            {
-                description: 'Add .simplebeaconignore patterns for temp files',
-                type: 'fix',
-                codeSnippet: 'echo "*.tmp" >> .simplebeaconignore',
-                done: junkClean,
-                isStructured: true
-            },
-            { description: 'Schedule monthly cleanup sweep', type: 'review', done: junkClean, isStructured: true }
-        );
+        t.push({
+            description: 'Add .simplebeaconignore patterns for temp files',
+            type: 'fix',
+            codeSnippet: 'echo "*.tmp" >> .simplebeaconignore',
+            done: junkClean,
+            isStructured: true
+        }, { description: 'Schedule monthly cleanup sweep', type: 'review', done: junkClean, isStructured: true });
         phases.push({
             id: 'junkfiles',
             title: 'Junk & Temporary Files',
             severity: 'low',
             effort: '1 day',
-            description:
-                jCount === 0 ? 'No junk or temporary files detected.' : `${jCount} junk / temporary file(s) detected.`,
+            description: jCount === 0 ? 'No junk or temporary files detected.' : `${jCount} junk / temporary file(s) detected.`,
             tasks: t,
             progress: jCount === 0 ? 100 : Math.max(10, Math.round(100 - jCount * 2)),
             status: jCount === 0 ? 'completed' : 'pending'
@@ -1851,10 +1689,7 @@ function generateRoadmap(report) {
     }
     // Phase 7: Build Readiness — always show
     {
-        const brScore =
-            ((_11 = src.buildReadiness) === null || _11 === void 0 ? void 0 : _11.score) != null
-                ? Number(src.buildReadiness.score)
-                : null;
+        const brScore = ((_11 = src.buildReadiness) === null || _11 === void 0 ? void 0 : _11.score) != null ? Number(src.buildReadiness.score) : null;
         const t = [];
         if (buildDetail.length > 0) {
             buildDetail.forEach(f => {
@@ -1865,25 +1700,21 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else {
+        }
+        else {
             const brClean = buildDetail.length === 0;
-            t.push(
-                { description: 'Review build configuration', type: 'review', done: brClean, isStructured: true },
-                { description: 'Verify CI/CD pipeline health', type: 'verify', done: brClean, isStructured: true },
-                { description: 'Update build scripts', type: 'fix', done: brClean, isStructured: true }
-            );
+            t.push({ description: 'Review build configuration', type: 'review', done: brClean, isStructured: true }, { description: 'Verify CI/CD pipeline health', type: 'verify', done: brClean, isStructured: true }, { description: 'Update build scripts', type: 'fix', done: brClean, isStructured: true });
         }
         phases.push({
             id: 'buildreadiness',
             title: 'Build Readiness',
             severity: 'medium',
             effort: '2–3 days',
-            description:
-                brScore != null
-                    ? `Build readiness: ${brScore}%.`
-                    : buildDetail.length === 0
-                      ? 'Build readiness verified — no issues detected.'
-                      : `Build readiness — ${buildDetail.length} issue(s) detected.`,
+            description: brScore != null
+                ? `Build readiness: ${brScore}%.`
+                : buildDetail.length === 0
+                    ? 'Build readiness verified — no issues detected.'
+                    : `Build readiness — ${buildDetail.length} issue(s) detected.`,
             tasks: t,
             progress: brScore != null ? Math.min(100, Math.round(brScore)) : buildDetail.length === 0 ? 100 : 50,
             status: (brScore != null && brScore >= 80) || buildDetail.length === 0 ? 'completed' : 'pending'
@@ -1891,10 +1722,7 @@ function generateRoadmap(report) {
     }
     // Phase 8: Dependency Vulnerability Audit — always show
     {
-        const vCount =
-            vulnDetail.length ||
-            Number((_12 = src.dependencyAudit) === null || _12 === void 0 ? void 0 : _12.vulnerabilityCount) ||
-            0;
+        const vCount = vulnDetail.length || Number((_12 = src.dependencyAudit) === null || _12 === void 0 ? void 0 : _12.vulnerabilityCount) || 0;
         const t = [];
         if (vulnDetail.length > 0) {
             vulnDetail.forEach(f => {
@@ -1905,36 +1733,32 @@ function generateRoadmap(report) {
                     isStructured: true
                 });
             });
-        } else if (vCount > 0) {
+        }
+        else if (vCount > 0) {
             t.push({ description: `Patch ${vCount} vulnerable dependency(ies)`, type: 'fix', isStructured: true });
         }
         const vulnClean = vCount === 0;
-        t.push(
-            {
-                description: 'Run npm audit fix',
-                type: 'fix',
-                codeSnippet: 'npm audit fix',
-                done: vulnClean,
-                isStructured: true
-            },
-            { description: 'Review dependency update policy', type: 'review', done: vulnClean, isStructured: true },
-            {
-                description: 'Enable Dependabot or Snyx',
-                type: 'fix',
-                codeSnippet: 'Enable Dependabot in repo settings',
-                done: vulnClean,
-                isStructured: true
-            }
-        );
+        t.push({
+            description: 'Run npm audit fix',
+            type: 'fix',
+            codeSnippet: 'npm audit fix',
+            done: vulnClean,
+            isStructured: true
+        }, { description: 'Review dependency update policy', type: 'review', done: vulnClean, isStructured: true }, {
+            description: 'Enable Dependabot or Snyx',
+            type: 'fix',
+            codeSnippet: 'Enable Dependabot in repo settings',
+            done: vulnClean,
+            isStructured: true
+        });
         phases.push({
             id: 'vulns',
             title: 'Dependency Vulnerability Audit',
             severity: vCount > 0 ? 'high' : 'low',
             effort: '1–3 days',
-            description:
-                vCount === 0
-                    ? 'No vulnerable dependencies detected.'
-                    : `${vCount} vulnerable dependency(ies) detected.`,
+            description: vCount === 0
+                ? 'No vulnerable dependencies detected.'
+                : `${vCount} vulnerable dependency(ies) detected.`,
             tasks: t,
             progress: vCount === 0 ? 100 : Math.max(10, Math.round(100 - vCount * 15)),
             status: vCount === 0 ? 'completed' : 'pending'
@@ -1948,8 +1772,7 @@ function generateRoadmap(report) {
                 title: 'Scan Complete — Quality Metrics Not Present',
                 severity: 'low',
                 effort: 'Review scan config',
-                description:
-                    'This scan report does not contain data-quality metrics. The scanner may have run in a lightweight mode (e.g., gate scan only). Re-run with --complete or check that the report includes qualityScore, schemaCompliance, and consistencyScore fields.',
+                description: 'This scan report does not contain data-quality metrics. The scanner may have run in a lightweight mode (e.g., gate scan only). Re-run with --complete or check that the report includes qualityScore, schemaCompliance, and consistencyScore fields.',
                 tasks: [
                     {
                         description: 'Re-run scan with full analysis enabled',
@@ -1963,8 +1786,7 @@ function generateRoadmap(report) {
                         isStructured: true
                     },
                     {
-                        description:
-                            'Check that the report JSON includes qualityScore, schemaCompliance, consistencyScore',
+                        description: 'Check that the report JSON includes qualityScore, schemaCompliance, consistencyScore',
                         type: 'verify',
                         isStructured: true
                     }
@@ -1972,7 +1794,8 @@ function generateRoadmap(report) {
                 progress: 0,
                 status: 'pending'
             });
-        } else {
+        }
+        else {
             phases.push({
                 id: 'perfect',
                 title: 'All Systems Green',
@@ -1998,7 +1821,8 @@ function generateRoadmap(report) {
     });
     // Enforce dependency blocking: if dependsOn phase is not complete, cap status to blocked
     phases.forEach(p => {
-        if (!p.dependsOn || p.progress >= 100) return;
+        if (!p.dependsOn || p.progress >= 100)
+            return;
         const dep = phases.find(x => x.id === p.dependsOn);
         if (dep && dep.status === 'blocked') {
             p.status = 'blocked';
@@ -2009,29 +1833,30 @@ function generateRoadmap(report) {
     phases.forEach(p => {
         if (p.status === 'completed' && Array.isArray(p.tasks)) {
             p.tasks.forEach(t => {
-                if (t && (t.type === 'verify' || t.type === 'review')) t.done = true;
+                if (t && (t.type === 'verify' || t.type === 'review'))
+                    t.done = true;
             });
         }
     });
     // Apply localStorage task states and recompute progress/status from actual task completion
-    const projectKey = (
-        src.projectRoot ||
+    const projectKey = (src.projectRoot ||
         src.projectPath ||
         src.projectName ||
         report.projectRoot ||
         report.projectPath ||
         report.projectName ||
-        'project'
-    ).replace(/[^a-z0-9]/gi, '_');
+        'project').replace(/[^a-z0-9]/gi, '_');
     phases.forEach(p => {
-        if (!Array.isArray(p.tasks) || p.tasks.length === 0) return;
+        if (!Array.isArray(p.tasks) || p.tasks.length === 0)
+            return;
         let doneCount = 0;
         p.tasks.forEach((task, idx) => {
             const lsDone = loadTaskState(projectKey, p.id, idx);
             if (typeof task === 'object' && task != null) {
                 task.done = !!(task.done || lsDone);
             }
-            if (task.done) doneCount++;
+            if (task.done)
+                doneCount++;
         });
         const taskPercent = p.tasks.length ? Math.round((doneCount / p.tasks.length) * 100) : 100;
         const taskStatus = taskPercent >= 95 ? 'completed' : taskPercent > 0 ? 'in-progress' : 'pending';
@@ -2047,7 +1872,8 @@ function generateRoadmap(report) {
     const statusOrder = { blocked: 0, pending: 1, 'in-progress': 2, completed: 3 };
     phases.sort((a, b) => {
         const sevDiff = (sevOrder[a.severity] || 99) - (sevOrder[b.severity] || 99);
-        if (sevDiff !== 0) return sevDiff;
+        if (sevDiff !== 0)
+            return sevDiff;
         // Within same severity: blocked → pending → in-progress → completed
         return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
     });
@@ -2064,14 +1890,14 @@ function renderDashboard(report, roadmap) {
         roadmap.phases.forEach(phase => {
             if ((phase.status === 'completed' || phase.progress >= 95) && Array.isArray(phase.tasks)) {
                 phase.tasks.forEach(task => {
-                    if (task && (task.type === 'verify' || task.type === 'review')) task.done = true;
+                    if (task && (task.type === 'verify' || task.type === 'review'))
+                        task.done = true;
                 });
             }
         });
     }
     const src = report.sourceReport || report;
-    const pn =
-        src.projectRoot ||
+    const pn = src.projectRoot ||
         src.projectPath ||
         src.projectName ||
         report.projectRoot ||
@@ -2079,37 +1905,27 @@ function renderDashboard(report, roadmap) {
         report.projectName ||
         'Unknown';
     const srcIssues = report.rawIssues || report.issues || report.detectedIssues || [];
-    const isBuildArtifactPath = path =>
-        /(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(
-            path
-        ) ||
+    const isBuildArtifactPath = path => /(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(path) ||
         /(^|\/)vscode-extension\/out\//i.test(path) ||
         /\.map$/i.test(path);
     const allIssues = (Array.isArray(srcIssues) ? srcIssues : [])
         .map(issue => {
-            const sev = issue.severity || issue.severityBand || 'low';
-            const type = issue.type || 'Unknown';
-            const count = issue.count || 1;
-            const files = (
-                Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : []
-            ).filter(f => !isBuildArtifactPath(f));
-            return {
-                sev,
-                type,
-                count,
-                files,
-                impact: issue.impact || '',
-                fix: issue.fix || '',
-                humanReadable: issue.humanReadable || ''
-            };
-        })
-        .filter(
-            issue =>
-                issue.files.length > 0 ||
-                !(Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : []).some(
-                    isBuildArtifactPath
-                )
-        );
+        const sev = issue.severity || issue.severityBand || 'low';
+        const type = issue.type || 'Unknown';
+        const count = issue.count || 1;
+        const files = (Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : []).filter(f => !isBuildArtifactPath(f));
+        return {
+            sev,
+            type,
+            count,
+            files,
+            impact: issue.impact || '',
+            fix: issue.fix || '',
+            humanReadable: issue.humanReadable || ''
+        };
+    })
+        .filter(issue => issue.files.length > 0 ||
+        !(Array.isArray(issue.filePath) ? issue.filePath : issue.filePath ? [issue.filePath] : []).some(isBuildArtifactPath));
     const projectKey = String(pn).replace(/[^a-z0-9]/gi, '_');
     projectNameEl.textContent = 'Project: ' + pn;
     scanDateEl.textContent = report.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : '—';
@@ -2118,66 +1934,63 @@ function renderDashboard(report, roadmap) {
     const consistencyScore = src.consistencyScore != null ? Number(src.consistencyScore) : null;
     const issues = allIssues.length;
     const dupes = src.duplicateGroups != null ? Number(src.duplicateGroups) : null;
-    const filesAnalyzed =
-        src.filesAnalyzed != null ? Number(src.filesAnalyzed) : src.totalFiles != null ? Number(src.totalFiles) : null;
+    const filesAnalyzed = src.filesAnalyzed != null ? Number(src.filesAnalyzed) : src.totalFiles != null ? Number(src.totalFiles) : null;
     const cards = [
         qualityScore != null
             ? {
-                  label: 'Quality Score',
-                  value: qualityScore + '/100',
-                  pct: qualityScore,
-                  cls: qualityScore >= 85 ? 'score-good' : qualityScore >= 70 ? 'score-warn' : 'score-bad'
-              }
+                label: 'Quality Score',
+                value: qualityScore + '/100',
+                pct: qualityScore,
+                cls: qualityScore >= 85 ? 'score-good' : qualityScore >= 70 ? 'score-warn' : 'score-bad'
+            }
             : null,
         schemaComplianceScore != null
             ? {
-                  label: 'Schema Compliance',
-                  value: schemaComplianceScore + '%',
-                  pct: schemaComplianceScore,
-                  cls:
-                      schemaComplianceScore === 100
-                          ? 'score-good'
-                          : schemaComplianceScore >= 80
-                            ? 'score-warn'
-                            : 'score-bad'
-              }
+                label: 'Schema Compliance',
+                value: schemaComplianceScore + '%',
+                pct: schemaComplianceScore,
+                cls: schemaComplianceScore === 100
+                    ? 'score-good'
+                    : schemaComplianceScore >= 80
+                        ? 'score-warn'
+                        : 'score-bad'
+            }
             : null,
         consistencyScore != null
             ? {
-                  label: 'Consistency',
-                  value: consistencyScore + '%',
-                  pct: consistencyScore,
-                  cls: consistencyScore === 100 ? 'score-good' : consistencyScore >= 80 ? 'score-warn' : 'score-bad'
-              }
+                label: 'Consistency',
+                value: consistencyScore + '%',
+                pct: consistencyScore,
+                cls: consistencyScore === 100 ? 'score-good' : consistencyScore >= 80 ? 'score-warn' : 'score-bad'
+            }
             : null,
         issues != null
             ? {
-                  label: 'Total Issues',
-                  value: String(issues),
-                  pct: Math.max(0, 100 - issues * 3),
-                  cls: issues === 0 ? 'score-good' : issues < 10 ? 'score-warn' : 'score-bad'
-              }
+                label: 'Total Issues',
+                value: String(issues),
+                pct: Math.max(0, 100 - issues * 3),
+                cls: issues === 0 ? 'score-good' : issues < 10 ? 'score-warn' : 'score-bad'
+            }
             : null,
         dupes != null
             ? {
-                  label: 'Duplicate Groups',
-                  value: String(dupes),
-                  pct: dupes === 0 ? 100 : Math.max(0, 100 - dupes * 10),
-                  cls: dupes === 0 ? 'score-good' : dupes < 5 ? 'score-warn' : 'score-bad'
-              }
+                label: 'Duplicate Groups',
+                value: String(dupes),
+                pct: dupes === 0 ? 100 : Math.max(0, 100 - dupes * 10),
+                cls: dupes === 0 ? 'score-good' : dupes < 5 ? 'score-warn' : 'score-bad'
+            }
             : null,
         filesAnalyzed != null
             ? {
-                  label: 'Files Analyzed',
-                  value: String(filesAnalyzed),
-                  rawValue:
-                      String(filesAnalyzed) +
-                      (src.excludedCount != null && src.excludedCount > 0
-                          ? ` <span style="font-size:0.7rem;color:var(--text-dim);">(${src.excludedCount} excluded)</span>`
-                          : ''),
-                  pct: 100,
-                  cls: 'score-info'
-              }
+                label: 'Files Analyzed',
+                value: String(filesAnalyzed),
+                rawValue: String(filesAnalyzed) +
+                    (src.excludedCount != null && src.excludedCount > 0
+                        ? ` <span style="font-size:0.7rem;color:var(--text-dim);">(${src.excludedCount} excluded)</span>`
+                        : ''),
+                pct: 100,
+                cls: 'score-info'
+            }
             : null
     ].filter(Boolean);
     scorecardsEl.textContent = '';
@@ -2207,13 +2020,8 @@ function renderDashboard(report, roadmap) {
     });
     // Overall health ring
     const completedCount = roadmap.phases.filter(phase => phase.status === 'completed').length;
-    const blockedCount = roadmap.phases.filter(
-        phase => phase.status === 'pending' && phase.severity === 'critical'
-    ).length;
-    const totalWeight = roadmap.phases.reduce(
-        (acc, phase) => acc + (phase.status === 'completed' ? 1 : phase.status === 'in-progress' ? 0.5 : 0),
-        0
-    );
+    const blockedCount = roadmap.phases.filter(phase => phase.status === 'pending' && phase.severity === 'critical').length;
+    const totalWeight = roadmap.phases.reduce((acc, phase) => acc + (phase.status === 'completed' ? 1 : phase.status === 'in-progress' ? 0.5 : 0), 0);
     const overallPctRaw = roadmap.phases.length ? Math.round((totalWeight / roadmap.phases.length) * 100) : 0;
     const overallPct = Number.isFinite(overallPctRaw) ? Math.max(0, Math.min(100, overallPctRaw)) : 0;
     const ringColor = overallPct >= 85 ? '#10B981' : overallPct >= 60 ? '#F59E0B' : '#EF4444';
@@ -2260,10 +2068,10 @@ function renderDashboard(report, roadmap) {
         hs.className = 'health-subtitle';
         hs.textContent =
             completedCount +
-            ' of ' +
-            roadmap.phases.length +
-            ' phases completed' +
-            (blockedCount > 0 ? '; ' + blockedCount + ' blocked by critical issues' : '');
+                ' of ' +
+                roadmap.phases.length +
+                ' phases completed' +
+                (blockedCount > 0 ? '; ' + blockedCount + ' blocked by critical issues' : '');
         details.appendChild(hs);
         const he = document.createElement('div');
         he.className = 'health-eta';
@@ -2284,11 +2092,16 @@ function renderDashboard(report, roadmap) {
             .reduce((a, i) => a + (i.count || 1), 0);
         const debug = ((_a = report.cleanup) === null || _a === void 0 ? void 0 : _a.debugArtifactCount) || 0;
         const vuln = ((_b = report.dependencyAudit) === null || _b === void 0 ? void 0 : _b.vulnerabilityCount) || 0;
-        if (bc > 0) chips.push(`<div class="finding-chip critical">${bc} Blocking</div>`);
-        if (cred > 0) chips.push(`<div class="finding-chip high">${cred} Credential</div>`);
-        if (vuln > 0) chips.push(`<div class="finding-chip high">${vuln} Vuln</div>`);
-        if (wc > 0) chips.push(`<div class="finding-chip medium">${wc} Warning</div>`);
-        if (debug > 0) chips.push(`<div class="finding-chip low">${debug} Debug</div>`);
+        if (bc > 0)
+            chips.push(`<div class="finding-chip critical">${bc} Blocking</div>`);
+        if (cred > 0)
+            chips.push(`<div class="finding-chip high">${cred} Credential</div>`);
+        if (vuln > 0)
+            chips.push(`<div class="finding-chip high">${vuln} Vuln</div>`);
+        if (wc > 0)
+            chips.push(`<div class="finding-chip medium">${wc} Warning</div>`);
+        if (debug > 0)
+            chips.push(`<div class="finding-chip low">${debug} Debug</div>`);
         bannerEl.textContent = '';
         if (chips.length > 0) {
             const bannerWrap = document.createElement('div');
@@ -2305,9 +2118,7 @@ function renderDashboard(report, roadmap) {
     const globalProgressText = document.getElementById('globalProgressText');
     if (globalProgressEl && globalProgressFill && globalProgressText) {
         const overallPct = roadmap.phases.length
-            ? Math.round(
-                  (roadmap.phases.filter(phase => phase.status === 'completed').length / roadmap.phases.length) * 100
-              )
+            ? Math.round((roadmap.phases.filter(phase => phase.status === 'completed').length / roadmap.phases.length) * 100)
             : 0;
         globalProgressEl.style.display = 'block';
         globalProgressFill.style.width = overallPct + '%';
@@ -2345,11 +2156,10 @@ function renderDashboard(report, roadmap) {
     let _issuesObserver = null;
     function buildIssueHtml(issue) {
         const sevClass = issue.sev;
-        const fileHtml =
-            issue.files
-                .slice(0, 5)
-                .map(f => `<code>${escapeHtml(f)}</code>`)
-                .join(', ') +
+        const fileHtml = issue.files
+            .slice(0, 5)
+            .map(f => `<code>${escapeHtml(f)}</code>`)
+            .join(', ') +
             (issue.files.length > 5
                 ? ` <span style="color:var(--text-dim);font-size:0.7rem;">+${issue.files.length - 5} more</span>`
                 : '');
@@ -2366,7 +2176,8 @@ function renderDashboard(report, roadmap) {
         </div>`;
     }
     function renderIssues() {
-        if (!allIssuesListEl) return;
+        if (!allIssuesListEl)
+            return;
         if (_issuesObserver) {
             _issuesObserver.disconnect();
             _issuesObserver = null;
@@ -2374,13 +2185,10 @@ function renderDashboard(report, roadmap) {
         let filtered = allIssues.filter(i => activeIssueFilter === 'all' || i.sev === activeIssueFilter);
         if (activeIssueQuery) {
             const q = activeIssueQuery.toLowerCase();
-            filtered = filtered.filter(
-                i =>
-                    i.type.toLowerCase().includes(q) ||
-                    i.files.some(f => f.toLowerCase().includes(q)) ||
-                    (i.impact && i.impact.toLowerCase().includes(q)) ||
-                    (i.fix && i.fix.toLowerCase().includes(q))
-            );
+            filtered = filtered.filter(i => i.type.toLowerCase().includes(q) ||
+                i.files.some(f => f.toLowerCase().includes(q)) ||
+                (i.impact && i.impact.toLowerCase().includes(q)) ||
+                (i.fix && i.fix.toLowerCase().includes(q)));
         }
         if (filtered.length === 0) {
             allIssuesListEl.textContent = '';
@@ -2388,7 +2196,8 @@ function renderDashboard(report, roadmap) {
             emptyDiv.className = 'issue-empty';
             emptyDiv.textContent = 'No issues match the current filter.';
             allIssuesListEl.appendChild(emptyDiv);
-            if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing 0 of ' + allIssues.length + ' issues';
+            if (issueSearchHitsEl)
+                issueSearchHitsEl.textContent = 'Showing 0 of ' + allIssues.length + ' issues';
             return;
         }
         const sentinelId = 'issue-sentinel-' + Date.now();
@@ -2405,37 +2214,36 @@ function renderDashboard(report, roadmap) {
         if (issueSearchHitsEl)
             issueSearchHitsEl.textContent =
                 'Showing ' + Math.min(_issuesChunkSize, filtered.length) + ' of ' + filtered.length + ' issues (lazy)';
-        if (filtered.length <= _issuesChunkSize) return;
+        if (filtered.length <= _issuesChunkSize)
+            return;
         let nextIdx = _issuesChunkSize;
-        _issuesObserver = new IntersectionObserver(
-            entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const chunk = filtered.slice(nextIdx, nextIdx + _issuesChunkSize);
-                        if (chunk.length === 0) {
-                            _issuesObserver.disconnect();
-                            return;
-                        }
-                        const frag = document.createDocumentFragment();
-                        chunk.forEach(issue => {
-                            frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
-                        });
-                        allIssuesListEl.insertBefore(frag, entry.target);
-                        nextIdx += _issuesChunkSize;
-                        if (issueSearchHitsEl)
-                            issueSearchHitsEl.textContent =
-                                'Showing ' + Math.min(nextIdx, filtered.length) + ' of ' + filtered.length + ' issues';
-                        if (nextIdx >= filtered.length) {
-                            _issuesObserver.disconnect();
-                            entry.target.remove();
-                        }
+        _issuesObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const chunk = filtered.slice(nextIdx, nextIdx + _issuesChunkSize);
+                    if (chunk.length === 0) {
+                        _issuesObserver.disconnect();
+                        return;
                     }
-                });
-            },
-            { root: allIssuesListEl, rootMargin: '200px 0px' }
-        );
+                    const frag = document.createDocumentFragment();
+                    chunk.forEach(issue => {
+                        frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
+                    });
+                    allIssuesListEl.insertBefore(frag, entry.target);
+                    nextIdx += _issuesChunkSize;
+                    if (issueSearchHitsEl)
+                        issueSearchHitsEl.textContent =
+                            'Showing ' + Math.min(nextIdx, filtered.length) + ' of ' + filtered.length + ' issues';
+                    if (nextIdx >= filtered.length) {
+                        _issuesObserver.disconnect();
+                        entry.target.remove();
+                    }
+                }
+            });
+        }, { root: allIssuesListEl, rootMargin: '200px 0px' });
         const sentinelEl = document.getElementById(sentinelId);
-        if (sentinelEl) _issuesObserver.observe(sentinelEl);
+        if (sentinelEl)
+            _issuesObserver.observe(sentinelEl);
     }
     if (issueSeverityFiltersEl) {
         issueSeverityFiltersEl.textContent = '';
@@ -2461,20 +2269,18 @@ function renderDashboard(report, roadmap) {
         });
     }
     if (issueSearchInput) {
-        issueSearchInput.addEventListener(
-            'input',
-            debounce(() => {
-                activeIssueQuery = issueSearchInput.value.trim();
-                renderIssues();
-            }, 150)
-        );
+        issueSearchInput.addEventListener('input', debounce(() => {
+            activeIssueQuery = issueSearchInput.value.trim();
+            renderIssues();
+        }, 150));
     }
     renderIssues();
     // Show All / Show Less toggle for issues list
     (function () {
         const toggleBtn = document.getElementById('toggleShowAllIssues');
         const listEl = document.getElementById('allIssuesList');
-        if (!toggleBtn || !listEl) return;
+        if (!toggleBtn || !listEl)
+            return;
         let expanded = false;
         toggleBtn.addEventListener('click', () => {
             expanded = !expanded;
@@ -2485,7 +2291,8 @@ function renderDashboard(report, roadmap) {
     // Show All / Collapse All toggle for timeline phases
     (function () {
         const toggleBtn = document.getElementById('toggleShowAllTimeline');
-        if (!toggleBtn) return;
+        if (!toggleBtn)
+            return;
         let allExpanded = false;
         toggleBtn.addEventListener('click', () => {
             allExpanded = !allExpanded;
@@ -2503,13 +2310,10 @@ function renderDashboard(report, roadmap) {
             let filtered = allIssues.filter(i => activeIssueFilter === 'all' || i.sev === activeIssueFilter);
             if (activeIssueQuery) {
                 const q = activeIssueQuery.toLowerCase();
-                filtered = filtered.filter(
-                    i =>
-                        i.type.toLowerCase().includes(q) ||
-                        i.files.some(f => f.toLowerCase().includes(q)) ||
-                        (i.impact && i.impact.toLowerCase().includes(q)) ||
-                        (i.fix && i.fix.toLowerCase().includes(q))
-                );
+                filtered = filtered.filter(i => i.type.toLowerCase().includes(q) ||
+                    i.files.some(f => f.toLowerCase().includes(q)) ||
+                    (i.impact && i.impact.toLowerCase().includes(q)) ||
+                    (i.fix && i.fix.toLowerCase().includes(q)));
             }
             const payload = {
                 exportedAt: new Date().toISOString(),
@@ -2525,10 +2329,10 @@ function renderDashboard(report, roadmap) {
             a.href = url;
             a.download =
                 'issues-' +
-                (activeIssueFilter === 'all' ? 'all' : activeIssueFilter) +
-                '-' +
-                new Date().toISOString().slice(0, 10) +
-                '.json';
+                    (activeIssueFilter === 'all' ? 'all' : activeIssueFilter) +
+                    '-' +
+                    new Date().toISOString().slice(0, 10) +
+                    '.json';
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
@@ -2562,7 +2366,8 @@ function renderDashboard(report, roadmap) {
 let currentFilter = 'all';
 function estimateEta(roadmap) {
     const pending = roadmap.phases.filter(p => p.status !== 'completed');
-    if (!pending.length) return 'All done!';
+    if (!pending.length)
+        return 'All done!';
     // Account for dependency chains: only count effort of root phases + longest chain
     const depMap = new Map(roadmap.phases.map(p => [p.id, p]));
     function effortOf(p) {
@@ -2570,13 +2375,16 @@ function estimateEta(roadmap) {
         return m ? parseInt(m[1], 10) : 1;
     }
     function chainDays(pid, seen = new Set()) {
-        if (seen.has(pid)) return 0;
+        if (seen.has(pid))
+            return 0;
         seen.add(pid);
         const p = depMap.get(pid);
-        if (!p) return 0;
+        if (!p)
+            return 0;
         const own = effortOf(p);
         const depId = p.dependsOn;
-        if (!depId) return own;
+        if (!depId)
+            return own;
         return own + chainDays(depId, new Set(seen));
     }
     const rootPending = pending.filter(p => !p.dependsOn || !depMap.get(p.dependsOn));
@@ -2585,28 +2393,31 @@ function estimateEta(roadmap) {
     const days = Math.max(rootDays, chainDaysMax);
     const d = new Date();
     d.setDate(d.getDate() + days);
-    return (
-        days +
+    return (days +
         ' day' +
         (days === 1 ? '' : 's') +
         ' (' +
         d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-        ')'
-    );
+        ')');
 }
 function updatePhaseState(phaseId) {
-    if (!window._currentRoadmap) return;
+    if (!window._currentRoadmap)
+        return;
     const phase = window._currentRoadmap.phases.find(p => p.id === phaseId);
-    if (!phase) return;
+    if (!phase)
+        return;
     const pk = window._roadmapProjectKey || 'project';
     const card = document.querySelector('.timeline-phase[data-phase="' + phaseId + '"] .phase-card');
-    if (!card) return;
+    if (!card)
+        return;
     const tasks = card.querySelectorAll('.phase-tasks li');
     tasks.forEach((li, idx) => {
         const isDone = li.classList.contains('done');
         if (phase.tasks[idx]) {
-            if (typeof phase.tasks[idx] === 'object') phase.tasks[idx].done = isDone;
-            else phase.tasks[idx] = { description: phase.tasks[idx], done: isDone };
+            if (typeof phase.tasks[idx] === 'object')
+                phase.tasks[idx].done = isDone;
+            else
+                phase.tasks[idx] = { description: phase.tasks[idx], done: isDone };
         }
         saveTaskState(pk, phaseId, idx, isDone);
     });
@@ -2615,7 +2426,8 @@ function updatePhaseState(phaseId) {
     phase.status = phase.progress >= 95 ? 'completed' : phase.progress > 0 ? 'in-progress' : 'pending';
 }
 function updateOverallHealth() {
-    if (!window._currentRoadmap) return;
+    if (!window._currentRoadmap)
+        return;
     const rm = window._currentRoadmap;
     const pk = window._roadmapProjectKey || 'project';
     const completedCount = rm.phases.filter(phase => phase.status === 'completed').length;
@@ -2629,7 +2441,8 @@ function updateOverallHealth() {
             const doneCount = card.querySelectorAll('.phase-tasks li.done').length;
             const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
             totalWeight += pct >= 95 ? 1 : pct > 0 ? 0.5 : 0;
-        } else {
+        }
+        else {
             totalWeight += phase.status === 'completed' ? 1 : phase.status === 'in-progress' ? 0.5 : 0;
         }
     });
@@ -2678,10 +2491,10 @@ function updateOverallHealth() {
         hs.className = 'health-subtitle';
         hs.textContent =
             completedCount +
-            ' of ' +
-            rm.phases.length +
-            ' phases completed' +
-            (blockedCount > 0 ? '; ' + blockedCount + ' blocked by critical issues' : '');
+                ' of ' +
+                rm.phases.length +
+                ' phases completed' +
+                (blockedCount > 0 ? '; ' + blockedCount + ' blocked by critical issues' : '');
         details.appendChild(hs);
         const he = document.createElement('div');
         he.className = 'health-eta';
@@ -2725,14 +2538,17 @@ function debounce(callback, delayMs) {
     };
 }
 function highlightText(node, q) {
-    if (!q) return;
+    if (!q)
+        return;
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
     const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
+    while (walker.nextNode())
+        nodes.push(walker.currentNode);
     nodes.forEach(textNode => {
         const text = textNode.textContent;
         const index = text.toLowerCase().indexOf(q);
-        if (index === -1) return;
+        if (index === -1)
+            return;
         const span = document.createElement('span');
         span.className = 'search-highlight';
         span.style.background = 'rgba(245,158,11,0.3)';
@@ -2742,10 +2558,12 @@ function highlightText(node, q) {
         const match = text.slice(index, index + q.length);
         const after = text.slice(index + q.length);
         const parent = textNode.parentNode;
-        if (before) parent.insertBefore(document.createTextNode(before), textNode);
+        if (before)
+            parent.insertBefore(document.createTextNode(before), textNode);
         span.textContent = match;
         parent.insertBefore(span, textNode);
-        if (after) parent.insertBefore(document.createTextNode(after), textNode);
+        if (after)
+            parent.insertBefore(document.createTextNode(after), textNode);
         parent.removeChild(textNode);
     });
 }
@@ -2760,7 +2578,8 @@ function clearHighlights(container) {
 function wireSearchFilter() {
     const searchEl = document.getElementById('taskSearch');
     const hitsEl = document.getElementById('searchHits');
-    if (!searchEl) return;
+    if (!searchEl)
+        return;
     const doSearch = () => {
         const q = searchEl.value.trim().toLowerCase();
         document.querySelectorAll('.timeline-phase').forEach(el => clearHighlights(el));
@@ -2790,14 +2609,14 @@ function wireSearchFilter() {
     searchEl.addEventListener('input', debounce(doSearch, 150));
 }
 function computeSprintMetrics() {
-    if (!window._currentRoadmap) return;
+    if (!window._currentRoadmap)
+        return;
     const rm = window._currentRoadmap;
     const pk = window._roadmapProjectKey || 'project';
-    let totalTasks = 0,
-        doneTasks = 0,
-        totalSeconds = 0;
+    let totalTasks = 0, doneTasks = 0, totalSeconds = 0;
     rm.phases.forEach(p => {
-        if (!Array.isArray(p.tasks)) return;
+        if (!Array.isArray(p.tasks))
+            return;
         p.tasks.forEach((t, idx) => {
             totalTasks++;
             const lsDone = loadTaskState(pk, p.id, idx);
@@ -2810,12 +2629,11 @@ function computeSprintMetrics() {
     const remaining = totalTasks - doneTasks;
     const burnedMinutes = Math.round(totalSeconds / 60);
     // Velocity = tasks per hour (assume avg 5 min per task if no timer data)
-    const velocity =
-        totalSeconds > 0
-            ? Math.round((doneTasks / (totalSeconds / 3600)) * 10) / 10
-            : doneTasks > 0
-              ? Math.round((doneTasks / ((doneTasks * 5) / 60)) * 10) / 10
-              : 0;
+    const velocity = totalSeconds > 0
+        ? Math.round((doneTasks / (totalSeconds / 3600)) * 10) / 10
+        : doneTasks > 0
+            ? Math.round((doneTasks / ((doneTasks * 5) / 60)) * 10) / 10
+            : 0;
     const etaHours = velocity > 0 ? Math.ceil(remaining / velocity) : 0;
     const etaDays = Math.ceil(etaHours / 8);
     return { totalTasks, doneTasks, remaining, burnedMinutes, velocity, etaHours, etaDays };
@@ -2828,18 +2646,24 @@ function updateSprintTracker() {
     const remBar = document.getElementById('sprintRemainingBar');
     const etaEl = document.getElementById('sprintEta');
     const etaLabel = document.getElementById('sprintEtaLabel');
-    if (velEl) velEl.textContent = m.velocity;
-    if (burnedEl) burnedEl.textContent = m.burnedMinutes + 'm';
-    if (remEl) remEl.textContent = m.remaining;
-    if (remBar) remBar.style.width = (m.totalTasks ? (m.remaining / m.totalTasks) * 100 : 0) + '%';
+    if (velEl)
+        velEl.textContent = m.velocity;
+    if (burnedEl)
+        burnedEl.textContent = m.burnedMinutes + 'm';
+    if (remEl)
+        remEl.textContent = m.remaining;
+    if (remBar)
+        remBar.style.width = (m.totalTasks ? (m.remaining / m.totalTasks) * 100 : 0) + '%';
     if (etaEl) {
         if (m.remaining === 0) {
             etaEl.textContent = 'Done';
             etaLabel.textContent = 'all tasks complete';
-        } else if (m.velocity === 0) {
+        }
+        else if (m.velocity === 0) {
             etaEl.textContent = '—';
             etaLabel.textContent = 'complete a task to estimate';
-        } else {
+        }
+        else {
             etaEl.textContent = m.etaDays + 'd';
             etaLabel.textContent = m.etaHours + ' hours at current velocity';
         }
@@ -2848,14 +2672,16 @@ function updateSprintTracker() {
 function wirePhaseInteractions(projectKey) {
     document.querySelectorAll('.phase-card').forEach(card => {
         card.addEventListener('click', e => {
-            if (e.target.closest('.phase-tasks')) return;
+            if (e.target.closest('.phase-tasks'))
+                return;
             card.classList.toggle('collapsed');
             card.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
         });
     });
     document.querySelectorAll('.phase-tasks li').forEach(li => {
         li.addEventListener('click', e => {
-            if (e.target.closest('.task-timer')) return;
+            if (e.target.closest('.task-timer'))
+                return;
             e.stopPropagation();
             const phaseId = li.dataset.phase;
             const taskIdx = parseInt(li.dataset.task, 10);
@@ -2873,8 +2699,10 @@ function wirePhaseInteractions(projectKey) {
             const pct = Math.round((doneCount / tasks.length) * 100);
             const fill = card.querySelector('.phase-progress-fill');
             const label = card.querySelector('.phase-progress-label span:last-child');
-            if (fill) fill.style.width = pct + '%';
-            if (label) label.textContent = pct + '%';
+            if (fill)
+                fill.style.width = pct + '%';
+            if (label)
+                label.textContent = pct + '%';
             // Update in-memory roadmap and overall health ring
             updatePhaseState(phaseId);
             updateOverallHealth();
@@ -2893,13 +2721,15 @@ function wirePhaseInteractions(projectKey) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 li.click();
-            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            }
+            else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 const card = li.closest('.phase-card');
                 const allTasks = Array.from(card.querySelectorAll('.phase-tasks li'));
                 const visible = allTasks.filter(t => t.style.display !== 'none');
                 const idx = visible.indexOf(li);
-                if (idx === -1) return;
+                if (idx === -1)
+                    return;
                 const next = e.key === 'ArrowUp' ? visible[idx - 1] : visible[idx + 1];
                 if (next) {
                     next.focus();
@@ -2921,12 +2751,13 @@ function wirePhaseInteractions(projectKey) {
                 saveTaskTime(projectKey, phaseId, taskIdx, prev + elapsed);
                 timer.querySelector('.timer-btn').textContent = '\u25B6';
                 const disp = timer.querySelector('.timer-display');
-                if (disp) disp.textContent = formatTime(prev + elapsed);
+                if (disp)
+                    disp.textContent = formatTime(prev + elapsed);
                 showToast('Timer stopped — ' + formatTime(prev + elapsed) + ' total', 'success');
-            } else {
+            }
+            else {
                 document.querySelectorAll('.task-timer.running').forEach(runningTimer => {
-                    const phaseId = runningTimer.dataset.phase,
-                        index = parseInt(runningTimer.dataset.task, 10);
+                    const phaseId = runningTimer.dataset.phase, index = parseInt(runningTimer.dataset.task, 10);
                     const s = parseInt(runningTimer.dataset.startedAt, 10);
                     const elapsedSeconds = Math.floor((Date.now() - s) / 1000);
                     const prevTime = loadTaskTime(projectKey, phaseId, index);
@@ -2934,7 +2765,8 @@ function wirePhaseInteractions(projectKey) {
                     runningTimer.classList.remove('running');
                     runningTimer.querySelector('.timer-btn').textContent = '\u25B6';
                     const disp = runningTimer.querySelector('.timer-display');
-                    if (disp) disp.textContent = formatTime(prevTime + elapsedSeconds);
+                    if (disp)
+                        disp.textContent = formatTime(prevTime + elapsedSeconds);
                 });
                 timer.classList.add('running');
                 timer.dataset.startedAt = String(Date.now());
@@ -2949,15 +2781,17 @@ function wirePhaseInteractions(projectKey) {
             const phaseId = btn.dataset.phase;
             const taskIdx = parseInt(btn.dataset.task, 10);
             const phase = window._currentRoadmap.phases.find(p => p.id === phaseId);
-            if (!phase) return;
+            if (!phase)
+                return;
             const t = phase.tasks[taskIdx];
             let clean;
             if (typeof t === 'object' && t != null && t.description) {
                 clean =
                     t.description +
-                    (t.location ? ' [' + t.location + ']' : '') +
-                    (t.codeSnippet ? '\n' + t.codeSnippet : '');
-            } else {
+                        (t.location ? ' [' + t.location + ']' : '') +
+                        (t.codeSnippet ? '\n' + t.codeSnippet : '');
+            }
+            else {
                 const raw = typeof t === 'string' ? t : t.html || t.text || '';
                 clean = raw
                     .replace(/<[^>]+>/g, ' ')
@@ -2974,14 +2808,9 @@ function wirePhaseInteractions(projectKey) {
         btn.addEventListener('click', e => {
             var _a, _b;
             e.stopPropagation();
-            const code =
-                ((_b =
-                    (_a = btn.closest('.task-code-block')) === null || _a === void 0
-                        ? void 0
-                        : _a.querySelector('code')) === null || _b === void 0
-                    ? void 0
-                    : _b.textContent) || '';
-            if (!code) return;
+            const code = ((_b = (_a = btn.closest('.task-code-block')) === null || _a === void 0 ? void 0 : _a.querySelector('code')) === null || _b === void 0 ? void 0 : _b.textContent) || '';
+            if (!code)
+                return;
             navigator.clipboard
                 .writeText(code)
                 .then(() => showToast('Command copied', 'success'))
@@ -2992,7 +2821,8 @@ function wirePhaseInteractions(projectKey) {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             const block = btn.closest('.task-code-block');
-            if (!block) return;
+            if (!block)
+                return;
             const isExpanded = block.classList.toggle('expanded');
             btn.textContent = isExpanded ? '−less' : '+more';
         });
@@ -3009,7 +2839,8 @@ function wirePhaseInteractions(projectKey) {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             const ul = btn.closest('.phase-tasks');
-            if (ul) ul.classList.add('expanded');
+            if (ul)
+                ul.classList.add('expanded');
         });
     });
     document.querySelectorAll('.phase-action-btn').forEach(btn => {
@@ -3025,15 +2856,18 @@ function wirePhaseInteractions(projectKey) {
                     const isDone = !allDone;
                     li.classList.toggle('done', isDone);
                     const check = li.querySelector('.task-check');
-                    if (check) check.classList.toggle('checked', isDone);
+                    if (check)
+                        check.classList.toggle('checked', isDone);
                     saveTaskState(projectKey, phaseId, parseInt(li.dataset.task, 10), isDone);
                 });
                 const doneCount = card.querySelectorAll('.phase-tasks li.done').length;
                 const pct = Math.round((doneCount / tasks.length) * 100);
                 const fill = card.querySelector('.phase-progress-fill');
                 const label = card.querySelector('.phase-progress-label span:last-child');
-                if (fill) fill.style.width = pct + '%';
-                if (label) label.textContent = pct + '%';
+                if (fill)
+                    fill.style.width = pct + '%';
+                if (label)
+                    label.textContent = pct + '%';
                 btn.textContent = allDone ? '✓ Mark All Done' : '↺ Undo All';
                 updatePhaseState(phaseId);
                 updateOverallHealth();
@@ -3045,21 +2879,26 @@ function wirePhaseInteractions(projectKey) {
                         setTimeout(() => phaseEl.classList.remove('phase-complete-flash'), 900);
                     }
                 }
-            } else if (action === 'collapse') {
+            }
+            else if (action === 'collapse') {
                 const card = btn.closest('.phase-card');
                 card.classList.toggle('collapsed');
                 card.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
-            } else if (action === 'download-json') {
+            }
+            else if (action === 'download-json') {
                 exportPhaseJson(phaseId);
-            } else if (action === 'copy-phase') {
+            }
+            else if (action === 'copy-phase') {
                 const phase = window._currentRoadmap.phases.find(p => p.id === phaseId);
-                if (!phase) return;
+                if (!phase)
+                    return;
                 const lines = phase.tasks.map((t, idx) => {
                     const done = loadTaskState(projectKey, phaseId, idx);
                     let text = '';
                     if (typeof t === 'object' && t != null && t.description) {
                         text = t.description + (t.location ? ' [' + t.location + ']' : '');
-                    } else {
+                    }
+                    else {
                         const raw = typeof t === 'string' ? t : t.html || t.text || '';
                         text = raw
                             .replace(/<[^>]+>/g, ' ')
@@ -3079,9 +2918,7 @@ function wirePhaseInteractions(projectKey) {
     // Keyboard navigation for task items
     document.querySelectorAll('.phase-tasks li').forEach(li => {
         li.addEventListener('keydown', e => {
-            const items = Array.from(document.querySelectorAll('.phase-tasks li')).filter(
-                it => it.offsetParent !== null
-            );
+            const items = Array.from(document.querySelectorAll('.phase-tasks li')).filter(it => it.offsetParent !== null);
             const idx = items.indexOf(li);
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -3090,14 +2927,16 @@ function wirePhaseInteractions(projectKey) {
                     next.focus();
                     next.scrollIntoView({ block: 'nearest' });
                 }
-            } else if (e.key === 'ArrowUp') {
+            }
+            else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 const prev = items[idx - 1];
                 if (prev) {
                     prev.focus();
                     prev.scrollIntoView({ block: 'nearest' });
                 }
-            } else if (e.key === ' ' || e.key === 'Enter') {
+            }
+            else if (e.key === ' ' || e.key === 'Enter') {
                 e.preventDefault();
                 li.click();
             }
@@ -3109,10 +2948,14 @@ function applyPhaseFilter(filter) {
         const status = el.dataset.status;
         const isBlocked = status === 'blocked' || (status === 'pending' && el.querySelector('.badge-critical'));
         let show = false;
-        if (filter === 'all') show = true;
-        else if (filter === 'pending') show = status === 'pending' || status === 'in-progress';
-        else if (filter === 'completed') show = status === 'completed';
-        else if (filter === 'blocked') show = !!isBlocked;
+        if (filter === 'all')
+            show = true;
+        else if (filter === 'pending')
+            show = status === 'pending' || status === 'in-progress';
+        else if (filter === 'completed')
+            show = status === 'completed';
+        else if (filter === 'blocked')
+            show = !!isBlocked;
         el.style.display = show ? 'block' : 'none';
     });
 }
@@ -3125,9 +2968,7 @@ function generatePdf() {
         showToast('PDF library not loaded. Check your connection.', 'error');
         return;
     }
-    const rawName = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    );
+    const rawName = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown');
     const baseName = rawName.split(/[\\/]/).pop();
     const pk = baseName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const clone = document.getElementById('app').cloneNode(true);
@@ -3228,11 +3069,10 @@ function generatePdf() {
     };
     clone.querySelectorAll('*').forEach(el => {
         const s = window.getComputedStyle(el);
-        const c = s.color,
-            bg = s.backgroundColor,
-            bc = s.borderColor;
+        const c = s.color, bg = s.backgroundColor, bc = s.borderColor;
         const fix = (val, map) => {
-            if (!val || val === 'transparent' || val === 'rgba(0, 0, 0, 0)') return;
+            if (!val || val === 'transparent' || val === 'rgba(0, 0, 0, 0)')
+                return;
             const rgb = val.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
             if (rgb) {
                 const hex = '#' + [1, 2, 3].map(i => ('0' + parseInt(rgb[i]).toString(16)).slice(-2)).join('');
@@ -3241,11 +3081,15 @@ function generatePdf() {
                 }
             }
             const short = Object.keys(map).find(k => val.includes(k));
-            if (short) el.style.color = map[short];
+            if (short)
+                el.style.color = map[short];
         };
-        if (c) fix(c, darkToLight);
-        if (bg && darkToLight[bg]) el.style.backgroundColor = darkToLight[bg];
-        if (bc && darkToLight[bc]) el.style.borderColor = darkToLight[bc];
+        if (c)
+            fix(c, darkToLight);
+        if (bg && darkToLight[bg])
+            el.style.backgroundColor = darkToLight[bg];
+        if (bc && darkToLight[bc])
+            el.style.borderColor = darkToLight[bc];
     });
     wrapper.appendChild(clone);
     const footer = document.createElement('div');
@@ -3270,38 +3114,41 @@ function generatePdf() {
         .from(wrapper)
         .save()
         .then(() => {
-            document.body.removeChild(wrapper);
-            showToast('PDF downloaded', 'success');
-        })
+        document.body.removeChild(wrapper);
+        showToast('PDF downloaded', 'success');
+    })
         .catch(err => {
-            if (wrapper.parentNode) document.body.removeChild(wrapper);
-            console.error('PDF error:', err);
-            showToast('PDF generation failed: ' + (err && err.message ? err.message : 'unknown'), 'error');
-        });
+        if (wrapper.parentNode)
+            document.body.removeChild(wrapper);
+        console.error('PDF error:', err);
+        showToast('PDF generation failed: ' + (err && err.message ? err.message : 'unknown'), 'error');
+    });
 }
 // Data is only generated when JSON is explicitly entered via dropzone or paste
 function sanitizeTaskLocation(t) {
-    const isBuildArtifactPath = p =>
-        p &&
+    const isBuildArtifactPath = p => p &&
         (/(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build)\//i.test(p) ||
             /(^|\/)vscode-extension\/out\//i.test(p) ||
             /\.map$/i.test(p));
     if (typeof t === 'object' && t != null) {
-        if (isBuildArtifactPath(t.location) || isBuildArtifactPath(t.codeSnippet)) return null;
-        if (t.description && /vscode-extension\/out\/extension\.js/.test(t.description)) return null;
+        if (isBuildArtifactPath(t.location) || isBuildArtifactPath(t.codeSnippet))
+            return null;
+        if (t.description && /vscode-extension\/out\/extension\.js/.test(t.description))
+            return null;
     }
-    if (typeof t === 'string' && /vscode-extension\/out\/extension\.js/.test(t)) return null;
+    if (typeof t === 'string' && /vscode-extension\/out\/extension\.js/.test(t))
+        return null;
     return t;
 }
 function exportRoadmapJson() {
     var _a, _b;
-    if (!currentRoadmap) return;
+    if (!currentRoadmap)
+        return;
     // Strip build-artifact tasks from cached phases before export
     currentRoadmap.phases.forEach(p => {
         p.tasks = p.tasks.map(t => sanitizeTaskLocation(t)).filter(Boolean);
     });
-    const projectName =
-        currentReport.projectRoot ||
+    const projectName = currentReport.projectRoot ||
         currentReport.projectPath ||
         currentReport.projectName ||
         currentReport.scanTargetRoot ||
@@ -3367,12 +3214,12 @@ function exportRoadmapJson() {
             .trim();
         let codeSnippet = codeMatch
             ? codeMatch[1]
-                  .replace(/&#039;/g, "'")
-                  .replace(/&quot;/g, '"')
-                  .replace(/&amp;/g, '&')
-                  .replace(/&lt;/g, '<')
-                  .replace(/&gt;/g, '>')
-                  .trim()
+                .replace(/&#039;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .trim()
             : null;
         let location = locMatch ? locMatch[1].trim() : null;
         if (location && /trello-board-.*\.json|roadmap-.*\.json|github-issues-.*\.md|jira-.*\.csv/i.test(location)) {
@@ -3392,8 +3239,7 @@ function exportRoadmapJson() {
         const doneCount = tasks.filter(t => t.done).length;
         const todoCount = tasks.length - doneCount;
         // Parse extraHtml into structured impact/fix
-        let impact = null,
-            fix = null;
+        let impact = null, fix = null;
         if (p.extraHtml) {
             const imp = p.extraHtml.match(/Impact:\s*([^<]+)/);
             const fx = p.extraHtml.match(/Fix:\s*([^<]+)/);
@@ -3412,7 +3258,8 @@ function exportRoadmapJson() {
         let dependsOnTitle = null;
         if (p.dependsOn) {
             const dep = currentRoadmap.phases.find(x => x.id === p.dependsOn);
-            if (dep) dependsOnTitle = dep.title;
+            if (dep)
+                dependsOnTitle = dep.title;
         }
         const taskPercent = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 100;
         const taskStatus = taskPercent >= 95 ? 'completed' : taskPercent > 0 ? 'in-progress' : 'pending';
@@ -3475,13 +3322,13 @@ function exportRoadmapJson() {
 }
 function exportPhaseJson(phaseId) {
     var _a, _b;
-    if (!currentRoadmap || !currentReport) return;
+    if (!currentRoadmap || !currentReport)
+        return;
     // Strip build-artifact tasks from cached phases before export
     currentRoadmap.phases.forEach(p => {
         p.tasks = p.tasks.map(t => sanitizeTaskLocation(t)).filter(Boolean);
     });
-    const projectName =
-        currentReport.projectRoot ||
+    const projectName = currentReport.projectRoot ||
         currentReport.projectPath ||
         currentReport.projectName ||
         currentReport.scanTargetRoot ||
@@ -3491,7 +3338,8 @@ function exportPhaseJson(phaseId) {
         'Unknown';
     const pk = String(projectName).replace(/[^a-z0-9]/gi, '_');
     const p = currentRoadmap.phases.find(x => x.id === phaseId);
-    if (!p) return;
+    if (!p)
+        return;
     function normalizeTask(t, idx, phaseStatus) {
         const isObj = typeof t === 'object' && t != null;
         const lsDone = loadTaskState(pk, phaseId, idx);
@@ -3548,12 +3396,12 @@ function exportPhaseJson(phaseId) {
             .trim();
         let codeSnippet = codeMatch
             ? codeMatch[1]
-                  .replace(/&#039;/g, "'")
-                  .replace(/&quot;/g, '"')
-                  .replace(/&amp;/g, '&')
-                  .replace(/&lt;/g, '<')
-                  .replace(/&gt;/g, '>')
-                  .trim()
+                .replace(/&#039;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .trim()
             : null;
         let location = locMatch ? locMatch[1].trim() : null;
         if (location && /trello-board-.*\.json|roadmap-.*\.json|github-issues-.*\.md|jira-.*\.csv/i.test(location)) {
@@ -3570,8 +3418,7 @@ function exportPhaseJson(phaseId) {
     }
     const tasks = p.tasks.map((t, idx) => normalizeTask(t, idx, p.status));
     const doneCount = tasks.filter(t => t.done).length;
-    let impact = null,
-        fix = null;
+    let impact = null, fix = null;
     if (p.extraHtml) {
         const imp = p.extraHtml.match(/Impact:\s*([^<]+)/);
         const fx = p.extraHtml.match(/Fix:\s*([^<]+)/);
@@ -3589,7 +3436,8 @@ function exportPhaseJson(phaseId) {
     let dependsOnTitle = null;
     if (p.dependsOn) {
         const dep = currentRoadmap.phases.find(x => x.id === p.dependsOn);
-        if (dep) dependsOnTitle = dep.title;
+        if (dep)
+            dependsOnTitle = dep.title;
     }
     const phasePayload = {
         project: projectName,
@@ -3633,14 +3481,13 @@ function importPhaseJson(file) {
             const phases = Array.isArray(data.phases)
                 ? data.phases
                 : data.roadmap && Array.isArray(data.roadmap.phases)
-                  ? data.roadmap.phases
-                  : null;
+                    ? data.roadmap.phases
+                    : null;
             if (phases) {
-                const rawProject =
-                    (data.sourceReport &&
-                        (data.sourceReport.projectRoot ||
-                            data.sourceReport.projectPath ||
-                            data.sourceReport.projectName)) ||
+                const rawProject = (data.sourceReport &&
+                    (data.sourceReport.projectRoot ||
+                        data.sourceReport.projectPath ||
+                        data.sourceReport.projectName)) ||
                     (data.metadata && data.metadata.project) ||
                     (data.summary && data.summary.project) ||
                     (data.roadmap && data.roadmap.summary && data.roadmap.summary.project) ||
@@ -3648,8 +3495,7 @@ function importPhaseJson(file) {
                     'unknown';
                 let projectName = String(rawProject);
                 if (projectName.startsWith('.') && projectName.length < 12) {
-                    const currentProject =
-                        currentReport &&
+                    const currentProject = currentReport &&
                         (currentReport.projectRoot || currentReport.projectPath || currentReport.projectName);
                     if (currentProject) {
                         projectName = String(currentProject);
@@ -3657,10 +3503,10 @@ function importPhaseJson(file) {
                     }
                 }
                 const pk = projectName.replace(/[^a-z0-9]/gi, '_');
-                let totalImported = 0,
-                    totalPhases = 0;
+                let totalImported = 0, totalPhases = 0;
                 phases.forEach(function (phase) {
-                    if (!phase.id || !Array.isArray(phase.tasks)) return;
+                    if (!phase.id || !Array.isArray(phase.tasks))
+                        return;
                     phase.tasks.forEach(function (task, idx) {
                         const done = !!task.done;
                         saveTaskState(pk, phase.id, idx, done);
@@ -3675,10 +3521,7 @@ function importPhaseJson(file) {
                     phase.status = phase.progress >= 95 ? 'completed' : phase.progress > 0 ? 'in-progress' : 'pending';
                     totalPhases++;
                 });
-                showToast(
-                    'Imported ' + totalImported + ' task states across ' + totalPhases + ' phases for ' + pk,
-                    'success'
-                );
+                showToast('Imported ' + totalImported + ' task states across ' + totalPhases + ' phases for ' + pk, 'success');
                 if (currentRoadmap && currentReport) {
                     renderDashboard(currentReport, currentRoadmap);
                     showToast('View refreshed', 'info');
@@ -3693,8 +3536,7 @@ function importPhaseJson(file) {
             let rawProject = String(data.project);
             // Hidden dirs like .husky, .git are subfolders, not project roots — correct them
             if (rawProject.startsWith('.') && rawProject.length < 12) {
-                const currentProject =
-                    currentReport &&
+                const currentProject = currentReport &&
                     (currentReport.projectRoot || currentReport.projectPath || currentReport.projectName);
                 if (currentProject) {
                     rawProject = String(currentProject);
@@ -3709,16 +3551,14 @@ function importPhaseJson(file) {
                 saveTaskState(pk, phaseId, idx, done);
                 imported++;
             });
-            showToast(
-                'Imported ' + imported + ' task states for phase "' + data.phase.title + '" (' + pk + ')',
-                'success'
-            );
+            showToast('Imported ' + imported + ' task states for phase "' + data.phase.title + '" (' + pk + ')', 'success');
             // Refresh current view if the loaded report matches
             if (currentRoadmap && currentReport) {
                 renderDashboard(currentReport, currentRoadmap);
                 showToast('View refreshed', 'info');
             }
-        } catch (err) {
+        }
+        catch (err) {
             showToast('Failed to parse phase JSON: ' + err.message, 'error');
         }
     };
@@ -3726,9 +3566,9 @@ function importPhaseJson(file) {
 }
 function exportAllReportsJson() {
     var _a, _b;
-    if (!currentRoadmap || !currentReport) return;
-    const projectName =
-        currentReport.projectRoot ||
+    if (!currentRoadmap || !currentReport)
+        return;
+    const projectName = currentReport.projectRoot ||
         currentReport.projectPath ||
         currentReport.projectName ||
         currentReport.scanTargetRoot ||
@@ -3769,9 +3609,9 @@ function exportAllReportsJson() {
             type: typeMatch ? typeMatch[1].trim() : null,
             codeSnippet: codeMatch
                 ? codeMatch[1]
-                      .replace(/&#039;/g, "'")
-                      .replace(/&quot;/g, '"')
-                      .replace(/&amp;/g, '&')
+                    .replace(/&#039;/g, "'")
+                    .replace(/&quot;/g, '"')
+                    .replace(/&amp;/g, '&')
                 : null,
             location: locMatch ? locMatch[1].trim() : null,
             done: !!done,
@@ -3781,8 +3621,7 @@ function exportAllReportsJson() {
     const phasesWithState = currentRoadmap.phases.map(p => {
         const tasks = p.tasks.map((t, idx) => normalizeTask(t, p.id, idx, p.status));
         const doneCount = tasks.filter(t => t.done).length;
-        let impact = null,
-            fix = null;
+        let impact = null, fix = null;
         if (p.extraHtml) {
             const imp = p.extraHtml.match(/Impact:\s*([^<]+)/);
             const fx = p.extraHtml.match(/Fix:\s*([^<]+)/);
@@ -3870,11 +3709,10 @@ function exportAllReportsJson() {
 document.getElementById('exportJsonBtn').addEventListener('click', exportRoadmapJson);
 document.getElementById('exportRoadmapJsonBtn').addEventListener('click', exportRoadmapJson);
 document.getElementById('copyReportBtn').addEventListener('click', () => {
-    if (!currentRoadmap) return;
+    if (!currentRoadmap)
+        return;
     const lines = ['# Data Quality Roadmap', 'Generated ' + new Date().toLocaleDateString(), ''];
-    const pk = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    ).replace(/[^a-z0-9]/gi, '_');
+    const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
     currentRoadmap.phases.forEach(p => {
         const statusIcon = p.status === 'completed' ? '✅' : p.status === 'in-progress' ? '🟡' : '⬜';
         lines.push(`## ${statusIcon} ${p.title}`);
@@ -3885,17 +3723,17 @@ document.getElementById('copyReportBtn').addEventListener('click', () => {
         lines.push('### Tasks');
         p.tasks.forEach((t, idx) => {
             const done = loadTaskState(pk, p.id, idx);
-            const taskStr =
-                typeof t === 'string'
-                    ? t
-                    : typeof t === 'object' && t != null && t.description
-                      ? t.description
-                      : t.html || t.text || '';
+            const taskStr = typeof t === 'string'
+                ? t
+                : typeof t === 'object' && t != null && t.description
+                    ? t.description
+                    : t.html || t.text || '';
             lines.push(`- [${done ? 'x' : ' '}] ${taskStr}`);
         });
         if (p.dependsOn) {
             const dep = currentRoadmap.phases.find(x => x.id === p.dependsOn);
-            if (dep) lines.push(`\n> ⛓️ Depends on: ${dep.title}`);
+            if (dep)
+                lines.push(`\n> ⛓️ Depends on: ${dep.title}`);
         }
         lines.push('');
     });
@@ -3907,18 +3745,16 @@ document.getElementById('copyReportBtn').addEventListener('click', () => {
         .writeText(lines.join('\n'))
         .then(() => showToast('Markdown summary copied', 'success'))
         .catch(err => {
-            console.error('Clipboard error:', err);
-            showToast('Clipboard failed — ' + err.message, 'error');
-        });
+        console.error('Clipboard error:', err);
+        showToast('Clipboard failed — ' + err.message, 'error');
+    });
 });
 document.getElementById('copySummaryBtn').addEventListener('click', () => {
     if (!currentRoadmap || !currentReport) {
         showToast('Load a report first', 'warning');
         return;
     }
-    const pk = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    ).replace(/[^a-z0-9]/gi, '_');
+    const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
     const total = currentRoadmap.phases.length;
     const completed = currentRoadmap.phases.filter(p => p.status === 'completed').length;
     const blocked = currentRoadmap.phases.filter(p => p.status === 'blocked').length;
@@ -3942,29 +3778,20 @@ document.getElementById('copySummaryBtn').addEventListener('click', () => {
         ''
     ];
     currentRoadmap.phases.forEach(p => {
-        const icon =
-            p.status === 'completed' ? '✅' : p.status === 'blocked' ? '🚫' : p.status === 'in-progress' ? '🟡' : '⬜';
+        const icon = p.status === 'completed' ? '✅' : p.status === 'blocked' ? '🚫' : p.status === 'in-progress' ? '🟡' : '⬜';
         lines.push(icon + ' ' + p.title + ' — ' + p.status + ' (' + p.progress + '%) — ' + p.severity);
         if (p.tasks.length > 0) {
             const done = p.tasks.filter((t, idx) => loadTaskState(pk, p.id, idx)).length;
             lines.push('   Tasks: ' + done + '/' + p.tasks.length + ' done');
         }
     });
-    lines.push(
-        '',
-        'Overall Health: ' +
-            (currentRoadmap.phases.length
-                ? Math.round(
-                      (currentRoadmap.phases.reduce(
-                          (a, p) => a + (p.status === 'completed' ? 1 : p.status === 'in-progress' ? 0.5 : 0),
-                          0
-                      ) /
-                          currentRoadmap.phases.length) *
-                          100
-                  )
-                : 0) +
-            '%'
-    );
+    lines.push('', 'Overall Health: ' +
+        (currentRoadmap.phases.length
+            ? Math.round((currentRoadmap.phases.reduce((a, p) => a + (p.status === 'completed' ? 1 : p.status === 'in-progress' ? 0.5 : 0), 0) /
+                currentRoadmap.phases.length) *
+                100)
+            : 0) +
+        '%');
     if (!navigator.clipboard) {
         showToast('Clipboard not available — use HTTPS or copy manually', 'error');
         return;
@@ -3973,30 +3800,31 @@ document.getElementById('copySummaryBtn').addEventListener('click', () => {
         .writeText(lines.join('\n'))
         .then(() => showToast('Summary copied to clipboard', 'success'))
         .catch(err => {
-            console.error('Clipboard error:', err);
-            showToast('Clipboard failed — ' + err.message, 'error');
-        });
+        console.error('Clipboard error:', err);
+        showToast('Clipboard failed — ' + err.message, 'error');
+    });
 });
 document.getElementById('exportGitHubBtn').addEventListener('click', () => {
-    if (!currentRoadmap) return;
-    const pk = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    ).replace(/[^a-z0-9]/gi, '_');
+    if (!currentRoadmap)
+        return;
+    const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
     let issueCount = 0;
     const files = [];
     currentRoadmap.phases.forEach(p => {
-        if (p.status === 'completed') return;
+        if (p.status === 'completed')
+            return;
         p.tasks.forEach((t, taskIdx) => {
             var _a;
             const done = loadTaskState(pk, p.id, taskIdx);
-            if (done) return;
-            const taskStr =
-                typeof t === 'string'
-                    ? t
-                    : typeof t === 'object' && t != null && t.description
-                      ? t.description
-                      : t.html || t.text || '';
-            if (/^\.\.\.and\s+\d+\s+more/.test(taskStr)) return;
+            if (done)
+                return;
+            const taskStr = typeof t === 'string'
+                ? t
+                : typeof t === 'object' && t != null && t.description
+                    ? t.description
+                    : t.html || t.text || '';
+            if (/^\.\.\.and\s+\d+\s+more/.test(taskStr))
+                return;
             issueCount++;
             const shortTask = taskStr.length > 80 ? taskStr.slice(0, 77) + '...' : taskStr;
             const title = '[' + p.title + '] ' + shortTask;
@@ -4010,10 +3838,7 @@ document.getElementById('exportGitHubBtn').addEventListener('click', () => {
                 p.description
             ];
             if (p.dependsOn) {
-                const depTitle =
-                    ((_a = currentRoadmap.phases.find(x => x.id === p.dependsOn)) === null || _a === void 0
-                        ? void 0
-                        : _a.title) || p.dependsOn;
+                const depTitle = ((_a = currentRoadmap.phases.find(x => x.id === p.dependsOn)) === null || _a === void 0 ? void 0 : _a.title) || p.dependsOn;
                 bodyParts.push('', '> Depends on: ' + depTitle);
             }
             bodyParts.push('', '---', '*Generated by SimpleBeacon Roadmap*');
@@ -4021,8 +3846,7 @@ document.getElementById('exportGitHubBtn').addEventListener('click', () => {
             const safeTitle = title.replace(/"/g, '\\"');
             const labels = 'simplebeacon, ' + p.severity + (p.dependsOn ? ', blocked' : '');
             const frontMatter = ['---', 'title: "' + safeTitle + '"', 'labels: ' + labels, '---'].join('\n');
-            const fileName =
-                'issue-' +
+            const fileName = 'issue-' +
                 String(issueCount).padStart(3, '0') +
                 '-' +
                 taskStr.replace(/[^a-z0-9]+/gi, '-').slice(0, 40) +
@@ -4044,50 +3868,48 @@ document.getElementById('exportGitHubBtn').addEventListener('click', () => {
     showToast(issueCount + ' GitHub issue(s) exported', 'success');
 });
 document.getElementById('exportJiraBtn').addEventListener('click', () => {
-    if (!currentRoadmap) return;
-    const pk = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    ).replace(/[^a-z0-9]/gi, '_');
+    if (!currentRoadmap)
+        return;
+    const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
     const lines = ['Issue Type,Summary,Description,Priority,Status,Labels,Linked Issues'];
     currentRoadmap.phases.forEach(p => {
-        if (p.status === 'completed') return;
-        const jiraPriority =
-            p.severity === 'critical'
-                ? 'Highest'
-                : p.severity === 'high'
-                  ? 'High'
-                  : p.severity === 'medium'
+        if (p.status === 'completed')
+            return;
+        const jiraPriority = p.severity === 'critical'
+            ? 'Highest'
+            : p.severity === 'high'
+                ? 'High'
+                : p.severity === 'medium'
                     ? 'Medium'
                     : 'Low';
         const jiraStatus = p.status === 'blocked' ? 'Blocked' : p.status === 'in-progress' ? 'In Progress' : 'To Do';
         p.tasks.forEach((t, taskIdx) => {
             const done = loadTaskState(pk, p.id, taskIdx);
-            if (done) return;
-            const taskStr =
-                typeof t === 'string'
-                    ? t
-                    : typeof t === 'object' && t != null && t.description
-                      ? t.description
-                      : t.html || t.text || '';
-            if (/^\.\.\.and\s+\d+\s+more/.test(taskStr)) return;
+            if (done)
+                return;
+            const taskStr = typeof t === 'string'
+                ? t
+                : typeof t === 'object' && t != null && t.description
+                    ? t.description
+                    : t.html || t.text || '';
+            if (/^\.\.\.and\s+\d+\s+more/.test(taskStr))
+                return;
             const summary = '[' + p.title + '] ' + taskStr;
             const desc = p.description + (p.dependsOn ? ' Depends on: ' + p.dependsOn : '');
             const labels = 'simplebeacon ' + p.severity;
             const linked = p.dependsOn || '';
-            lines.push(
-                'Task,"' +
-                    summary.replace(/"/g, '""') +
-                    '","' +
-                    desc.replace(/"/g, '""') +
-                    '",' +
-                    jiraPriority +
-                    ',' +
-                    jiraStatus +
-                    ',' +
-                    labels +
-                    ',' +
-                    linked
-            );
+            lines.push('Task,"' +
+                summary.replace(/"/g, '""') +
+                '","' +
+                desc.replace(/"/g, '""') +
+                '",' +
+                jiraPriority +
+                ',' +
+                jiraStatus +
+                ',' +
+                labels +
+                ',' +
+                linked);
         });
     });
     if (lines.length === 1) {
@@ -4118,9 +3940,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         showToast('Load a report first', 'warning');
         return;
     }
-    const pk = String(
-        currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown'
-    ).replace(/[^a-z0-9]/gi, '_');
+    const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
     const rows = [
         [
             'Phase',
@@ -4138,16 +3958,16 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
     currentRoadmap.phases.forEach(p => {
         p.tasks.forEach((t, idx) => {
             const done = loadTaskState(pk, p.id, idx);
-            let desc = '',
-                type = '',
-                loc = '';
+            let desc = '', type = '', loc = '';
             if (typeof t === 'object' && t != null) {
                 desc = t.description || '';
                 type = t.type || '';
                 loc = t.location || '';
-            } else if (typeof t === 'string') {
+            }
+            else if (typeof t === 'string') {
                 desc = t;
-            } else if (t && t.html) {
+            }
+            else if (t && t.html) {
                 desc = t.html
                     .replace(/<[^>]+>/g, ' ')
                     .replace(/\s+/g, ' ')
@@ -4168,14 +3988,12 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         });
     });
     const csv = rows
-        .map(r =>
-            r
-                .map(c => {
-                    const s = String(c).replace(/"/g, '""');
-                    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s + '"' : s;
-                })
-                .join(',')
-        )
+        .map(r => r
+        .map(c => {
+        const s = String(c).replace(/"/g, '""');
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s + '"' : s;
+    })
+        .join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -4198,23 +4016,23 @@ document.getElementById('phaseImportInput').addEventListener('change', e => {
 // --- Sticky Action Bar ---
 (function () {
     const actionBar = document.querySelector('.action-bar');
-    if (!actionBar) return;
-    const observer = new IntersectionObserver(
-        entries => {
-            entries.forEach(entry => {
-                actionBar.classList.toggle('sticky', !entry.isIntersecting);
-            });
-        },
-        { threshold: 0, rootMargin: '-56px 0px 0px 0px' }
-    );
+    if (!actionBar)
+        return;
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            actionBar.classList.toggle('sticky', !entry.isIntersecting);
+        });
+    }, { threshold: 0, rootMargin: '-56px 0px 0px 0px' });
     const hero = document.querySelector('.hero');
-    if (hero) observer.observe(hero);
+    if (hero)
+        observer.observe(hero);
 })();
 // --- Collapsible Panels ---
 function wireCollapseToggle(toggleId, panelId) {
     const toggle = document.getElementById(toggleId);
     const panel = document.getElementById(panelId);
-    if (!toggle || !panel) return;
+    if (!toggle || !panel)
+        return;
     toggle.addEventListener('click', () => {
         const isExpanded = toggle.getAttribute('aria-expanded') !== 'false';
         toggle.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
@@ -4262,7 +4080,8 @@ async function compressSharePayload(jsonStr) {
         const chunks = [];
         while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done)
+                break;
             chunks.push(value);
         }
         const blob = new Blob(chunks);
@@ -4273,7 +4092,8 @@ async function compressSharePayload(jsonStr) {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
-    } catch (e) {
+    }
+    catch (e) {
         // Fallback to raw base64 if CompressionStream unsupported
         return btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p)));
     }
@@ -4293,19 +4113,19 @@ async function decompressSharePayload(b64) {
         const chunks = [];
         while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done)
+                break;
             chunks.push(value);
         }
         const blob = new Blob(chunks);
         return await blob.text();
-    } catch (e) {
+    }
+    catch (e) {
         // Fallback to legacy decompression
-        return decodeURIComponent(
-            atob(b64)
-                .split('')
-                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-        );
+        return decodeURIComponent(atob(b64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join(''));
     }
 }
 document.getElementById('shareUrlBtn').addEventListener('click', async () => {
@@ -4324,7 +4144,8 @@ document.getElementById('shareUrlBtn').addEventListener('click', async () => {
     });
 });
 (async function () {
-    if (location.hash.length <= 1) return;
+    if (location.hash.length <= 1)
+        return;
     try {
         const payload = await decompressSharePayload(location.hash.slice(1));
         const report = JSON.parse(payload);
@@ -4332,11 +4153,13 @@ document.getElementById('shareUrlBtn').addEventListener('click', async () => {
         if (src.qualityScore == null && src.schemaCompliance == null && src.consistencyScore == null) {
             history.replaceState(null, '', location.pathname + location.search);
             showToast('Cleared stale report — re-run scan with updated scanner.', 'warning');
-        } else {
+        }
+        else {
             loadReport(report);
             showToast('Roadmap restored from URL', 'success');
         }
-    } catch (e) {
+    }
+    catch (e) {
         showToast('Invalid share URL', 'error');
     }
 })();

@@ -1,90 +1,94 @@
 {
-    "exportedAt": "2026-07-24T02:18:52.339Z",
-    "success": true,
-    "live": {
-        "verificationId": "sb-local-pass",
-        "score": 100,
-        "gatePass": true,
-        "generatedAt": "2026-07-24T02:18:47.445Z",
-        "platform": {
-            "gatePass": true,
-            "projectRoot": "c:\\Users\\Trevor\\CascadeProjects",
-            "platformRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-            "generatedAt": "2026-07-24T02:18:28.967Z",
-            "qualityScore": 100,
-            "issueCount": 0,
-            "schemaPassed": 0,
-            "schemaChecked": 0,
-            "consistencyScore": null,
-            "repositoryFilesTotal": 1358,
-            "ruleScopedFilesAnalyzed": 3393,
-            "mockSampleFiles": 74,
-            "fictionJsonFilesScanned": 0,
-            "fictionSampleFilesScanned": 0,
-            "scopeNote": "Gate rules apply to configured scanPaths and production directories — not every file in the repository tree."
-        },
-        "monorepo": null,
-        "headline": {
-            "primary": "All configured quality gates passed.",
-            "source": "local-extension-scan",
-            "reason": "Scan passed with trust score 100."
-        },
-        "disclaimers": ["Trust snapshot generated from local VS Code extension scan."],
-        "methodology": ["Run Simplebeacon scan from the VS Code command palette to refresh."],
-        "fictionScope": {
-            "mode": "repository-json",
-            "fictionJsonFilesScanned": 0,
-            "fictionSampleFilesScanned": 0,
-            "walkRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform"
-        },
-        "factors": [
-            {
-                "text": "Code quality gate",
-                "status": "Pass"
-            },
-            {
-                "text": "Security scan clear",
-                "status": "Pass"
-            },
-            {
-                "text": "No secrets leaked",
-                "status": "Pass"
-            },
-            {
-                "text": "Dependency audit",
-                "status": "Pass"
-            },
-            {
-                "text": "No critical vulnerabilities",
-                "status": "Pass"
-            },
-            {
-                "text": "Repository scanned",
-                "status": "Pass"
-            }
-        ],
-        "badges": [
-            {
-                "name": "Verified",
-                "icon": "✔",
-                "unlocked": true
-            },
-            {
-                "name": "Clean Scan",
-                "icon": "✅",
-                "unlocked": true
-            },
-            {
-                "name": "Secure",
-                "icon": "🔒",
-                "unlocked": true
-            },
-            {
-                "name": "Compliant",
-                "icon": "📜",
-                "unlocked": true
-            }
-        ]
+  "exportedAt": "2026-07-24T02:18:52.339Z",
+  "success": true,
+  "live": {
+    "verificationId": "sb-local-pass",
+    "score": 100,
+    "gatePass": true,
+    "generatedAt": "2026-07-24T02:18:47.445Z",
+    "platform": {
+      "gatePass": true,
+      "projectRoot": "c:\\Users\\Trevor\\CascadeProjects",
+      "platformRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+      "generatedAt": "2026-07-24T02:18:28.967Z",
+      "qualityScore": 100,
+      "issueCount": 0,
+      "schemaPassed": 0,
+      "schemaChecked": 0,
+      "consistencyScore": null,
+      "repositoryFilesTotal": 1358,
+      "ruleScopedFilesAnalyzed": 3393,
+      "mockSampleFiles": 74,
+      "fictionJsonFilesScanned": 0,
+      "fictionSampleFilesScanned": 0,
+      "scopeNote": "Gate rules apply to configured scanPaths and production directories — not every file in the repository tree."
     },
-    "publishedAt": null
+    "monorepo": null,
+    "headline": {
+      "primary": "All configured quality gates passed.",
+      "source": "local-extension-scan",
+      "reason": "Scan passed with trust score 100."
+    },
+    "disclaimers": [
+      "Trust snapshot generated from local VS Code extension scan."
+    ],
+    "methodology": [
+      "Run Simplebeacon scan from the VS Code command palette to refresh."
+    ],
+    "fictionScope": {
+      "mode": "repository-json",
+      "fictionJsonFilesScanned": 0,
+      "fictionSampleFilesScanned": 0,
+      "walkRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform"
+    },
+    "factors": [
+      {
+        "text": "Code quality gate",
+        "status": "Pass"
+      },
+      {
+        "text": "Security scan clear",
+        "status": "Pass"
+      },
+      {
+        "text": "No secrets leaked",
+        "status": "Pass"
+      },
+      {
+        "text": "Dependency audit",
+        "status": "Pass"
+      },
+      {
+        "text": "No critical vulnerabilities",
+        "status": "Pass"
+      },
+      {
+        "text": "Repository scanned",
+        "status": "Pass"
+      }
+    ],
+    "badges": [
+      {
+        "name": "Verified",
+        "icon": "✔",
+        "unlocked": true
+      },
+      {
+        "name": "Clean Scan",
+        "icon": "✅",
+        "unlocked": true
+      },
+      {
+        "name": "Secure",
+        "icon": "🔒",
+        "unlocked": true
+      },
+      {
+        "name": "Compliant",
+        "icon": "📜",
+        "unlocked": true
+      }
+    ]
+  },
+  "publishedAt": null
 }

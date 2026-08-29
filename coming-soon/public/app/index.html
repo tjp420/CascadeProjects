@@ -422,8 +422,8 @@
             location.hostname.endsWith(".onrender.com"))
             ? ""
             : "https://simplebeacon.ai",
-        dashboardUrl: "/dashboard/",
-        dashboardAppUrl: "/dashboard/",
+        dashboardUrl: "/app/",
+        dashboardAppUrl: "/app/",
         stagingMode: false,
         paymentsEnabled: true,
         closedSource: false,
@@ -481,7 +481,10 @@
         } catch (_) {}
       })();
     </script>
-  </head>
+    <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+</head>
   <body>
     <noscript
       ><div style="padding: 40px; text-align: center">
@@ -699,14 +702,14 @@
         var s = document.createElement("script");
         s.defer = true;
         if (devHost)
-          s.src = "/dashboard/js/vendor/jszip.min.js?v=20260726react1";
-        else s.src = "/dashboard/js/vendor/jszip.min.js?v=20260726react1";
+          s.src = "/app/js/vendor/jszip.min.js?v=20260726react1";
+        else s.src = "/app/js/vendor/jszip.min.js?v=20260726react1";
         document.head.appendChild(s);
       })();
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="./assets/main-v30min.js"></script>
+    <script type="module" src="./assets/main.js"></script>
     <script>
       (function () {
         try {

@@ -116,9 +116,11 @@ export function ToolSchemaValidationDashboard() {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  const allSchemas = schemas ? { ...schemas.builtin, ...schemas.custom } : {};
-  const builtinCount = schemas ? Object.keys(schemas.builtin).length : 0;
-  const customCount = schemas ? Object.keys(schemas.custom).length : 0;
+  const builtinSchemas = schemas?.builtin || {};
+  const customSchemas = schemas?.custom || {};
+  const allSchemas = { ...builtinSchemas, ...customSchemas };
+  const builtinCount = Object.keys(builtinSchemas).length;
+  const customCount = Object.keys(customSchemas).length;
 
   const selectToolSchema = (toolId: string) => {
     setSelectedTool(toolId);

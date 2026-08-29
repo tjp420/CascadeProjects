@@ -1,4 +1,3 @@
-<!-- deploy-v2 20260828 -->
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
@@ -121,8 +120,8 @@
           location.port === "5173";
         var l = document.createElement("link");
         l.rel = "stylesheet";
-        if (devHost) l.href = "./assets/main-BGvOfj_1.css";
-        else l.href = "./assets/main-BGvOfj_1.css";
+        if (devHost) l.href = "./assets/main.css";
+        else l.href = "./assets/main.css";
         document.head.appendChild(l);
       })();
     </script>
@@ -482,9 +481,10 @@
         } catch (_) {}
       })();
     </script>
-  
-    <!-- SB-DEPLOY-ID: 20260828013526 -->
-  </head>
+    <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+</head>
   <body>
     <noscript
       ><div style="padding: 40px; text-align: center">
@@ -709,7 +709,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="./assets/main-DIM5tLYB.js"></script>
+    <script type="module" src="./assets/main.js"></script>
     <script>
       (function () {
         try {
