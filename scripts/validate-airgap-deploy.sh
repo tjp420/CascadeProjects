@@ -247,13 +247,23 @@ info() {
   fi
 }
 
+# Escape a string for safe inclusion in JSON string values.
+# Handles backslash, double-quote, and control characters (tab, newline, etc.)
+escape_json() {
+  printf '%s' "$1" | sed \
+    -e 's/\\/\\\\/g' \
+    -e 's/"/\\"/g' \
+    -e 's/	/\\t/g' | tr '\n' ' ' | tr '\r' ' '
+}
+
 ok() {
   passed_checks=$((passed_checks + 1))
   total_checks=$((total_checks + 1))
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "  ${GREEN}✓${NC} $*"
   fi
-  json_results="${json_results}{\"name\":\"$1\",\"status\":\"pass\"},"
+  local esc_name; esc_name=$(escape_json "$1")
+  json_results="${json_results}{\"name\":\"${esc_name}\",\"status\":\"pass\"},"
 }
 
 warn_msg() {
@@ -261,7 +271,9 @@ warn_msg() {
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "  ${YELLOW}!${NC} $*"
   fi
-  json_results="${json_results}{\"name\":\"$1\",\"status\":\"warn\",\"message\":\"$2\"},"
+  local esc_name; esc_name=$(escape_json "$1")
+  local esc_msg; esc_msg=$(escape_json "$2")
+  json_results="${json_results}{\"name\":\"${esc_name}\",\"status\":\"warn\",\"message\":\"${esc_msg}\"},"
 }
 
 warn() {
@@ -276,14 +288,17 @@ fail() {
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "  ${RED}✗${NC} $*"
   fi
-  json_results="${json_results}{\"name\":\"$1\",\"status\":\"fail\",\"message\":\"$2\"},"
+  local esc_name; esc_name=$(escape_json "$1")
+  local esc_msg; esc_msg=$(escape_json "$2")
+  json_results="${json_results}{\"name\":\"${esc_name}\",\"status\":\"fail\",\"message\":\"${esc_msg}\"},"
 }
 
 die() {
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "${RED}[FATAL]${NC} $*" >&2
   else
-    echo "{\"fatal\":\"$*\",\"checks\":[]}"
+    local esc_msg; esc_msg=$(escape_json "$*")
+    echo "{\"fatal\":\"${esc_msg}\",\"checks\":[]}"
   fi
   exit 2
 }
@@ -299,14 +314,19 @@ recovery_ok() {
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "  ${GREEN}[RECOVER OK]${NC} $*"
   fi
-  json_recoveries="${json_recoveries}{\"check\":\"$1\",\"action\":\"$2\",\"status\":\"success\"},"
+  local esc_check; esc_check=$(escape_json "$1")
+  local esc_action; esc_action=$(escape_json "$2")
+  json_recoveries="${json_recoveries}{\"check\":\"${esc_check}\",\"action\":\"${esc_action}\",\"status\":\"success\"},"
 }
 
 recovery_fail() {
   if [ "$OUTPUT_FORMAT" = "text" ]; then
     echo -e "  ${RED}[RECOVER FAIL]${NC} $*"
   fi
-  json_recoveries="${json_recoveries}{\"check\":\"$1\",\"action\":\"$2\",\"status\":\"failed\",\"error\":\"$3\"},"
+  local esc_check; esc_check=$(escape_json "$1")
+  local esc_action; esc_action=$(escape_json "$2")
+  local esc_error; esc_error=$(escape_json "$3")
+  json_recoveries="${json_recoveries}{\"check\":\"${esc_check}\",\"action\":\"${esc_action}\",\"status\":\"failed\",\"error\":\"${esc_error}\"},"
 }
 
 recovery_skip() {
@@ -857,14 +877,25 @@ for c in "$ENGINE_CONTAINER" "$OLLAMA_CONTAINER"; do
 done
 
 if is_running "$OLLAMA_CONTAINER"; then
-  external_conns=$(docker exec "$OLLAMA_CONTAINER" sh -c \
-    "cat /proc/net/tcp 2>/dev/null | awk 'NR>1 {split(\$3,a,\":\"); ip=strtonum(\"0x\"substr(a[1],7,2))\".\"strtonum(\"0x\"substr(a[1],5,2))\".\"strtonum(\"0x\"substr(a[1],3,2))\".\"strtonum(\"0x\"substr(a[1],1,2)); if (ip != \"0.0.0.0\" && ip != \"127.0.0.1\" && ip != \"172.17.0.1\" && \$4 == \"01\") print ip}' 2>/dev/null | head -5" \
-    2>/dev/null || echo "")
+  external_conns=""
+  for c in "$ENGINE_CONTAINER" "$OLLAMA_CONTAINER" "$DB_CONTAINER"; do
+    if ! is_running "$c"; then
+      continue
+    fi
+    # Check /proc/net/tcp for established (state 01) connections to non-local IPs
+    # Also check /proc/net/tcp6 for IPv6 connections
+    container_conns=$(docker exec "$c" sh -c \
+      "cat /proc/net/tcp 2>/dev/null | awk 'NR>1 {split(\$3,a,\":\"); ip=strtonum(\"0x\"substr(a[1],7,2))\".\"strtonum(\"0x\"substr(a[1],5,2))\".\"strtonum(\"0x\"substr(a[1],3,2))\".\"strtonum(\"0x\"substr(a[1],1,2)); if (ip != \"0.0.0.0\" && ip != \"127.0.0.1\" && ip != \"172.17.0.1\" && ip != \"10.\" && ip != \"172.\" && ip != \"192.168.\" && \$4 == \"01\") print ip}' 2>/dev/null | head -5" \
+      2>/dev/null || echo "")
+    if [ -n "$container_conns" ]; then
+      external_conns="${external_conns}${c}: ${container_conns}; "
+    fi
+  done
 
   if [ -z "$external_conns" ]; then
-    ok "offline-no-external: No external network connections detected from Ollama"
+    ok "offline-no-external: No external network connections detected from any container"
   else
-    warn_msg "offline-external-conns" "Ollama has external connections to: $external_conns"
+    warn_msg "offline-external-conns" "Containers have external connections: $external_conns"
   fi
 fi
 
