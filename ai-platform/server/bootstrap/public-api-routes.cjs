@@ -27,6 +27,7 @@ const PUBLIC_API_PATHS = new Set([
   "waitlist",
   "waitlist/count",
   "waitlist/event",
+  "early-access",
   "audit-booking",
   "audit-bookings",
   "free-token",
