@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+    <title>Why Your AI Coding Agent Is Burning Money — And How to Stop It — SimpleBeacon</title>
+    <meta name="description" content="AI coding agents burn 75% of your tokens on rework. SimpleBeacon's 48 MCP tools, Semantic Lighthouse, and deterministic compliance gate cut agent tool calls by 75% — all local, all offline.">
+    <link rel="canonical" href="https://simplebeacon.ai/blog/agent-token-burn.html">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Why Your AI Coding Agent Is Burning Money — And How to Stop It — SimpleBeacon">
+    <meta property="og:description" content="AI coding agents burn 75% of your tokens on rework. SimpleBeacon's 48 MCP tools, Semantic Lighthouse, and deterministic compliance gate cut agent tool calls by 75% — all local, all offline.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://simplebeacon.ai/blog/agent-token-burn.html">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Why Your AI Coding Agent Is Burning Money — And How to Stop It — SimpleBeacon">
+    <meta name="twitter:description" content="AI coding agents burn 75% of your tokens on rework. SimpleBeacon's 48 MCP tools, Semantic Lighthouse, and deterministic compliance gate cut agent tool calls by 75% — all local, all offline.">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#0d1117" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <style>
+            :root {
+                --bg: #0b0f19;
+                --bg-card: #151d30;
+                --text: #f3f4f6;
+                --muted: #9ca3af;
+                --border: #1e293b;
+                --accent: #2563eb;
+                --accent-hover: #1d4ed8;
+                --code-bg: #0d1117;
+                --warning: #f59e0b;
+                --danger: #ef4444;
+                --success: #10b981;
+            }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.7;
+                min-height: 100vh;
+            }
+            .container { max-width: 760px; margin: 0 auto; padding: 48px 24px; }
+            .back {
+                display: inline-flex; align-items: center; gap: 6px;
+                color: var(--muted); font-size: 14px; text-decoration: none; margin-bottom: 24px;
+            }
+            .back:hover { color: var(--text); }
+            .tag {
+                display: inline-block; background: rgba(37, 99, 235, 0.1); color: #60a5fa;
+                border: 1px solid rgba(37, 99, 235, 0.2); padding: 4px 12px; border-radius: 999px;
+                font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+                margin-bottom: 16px;
+            }
+            h1 {
+                font-size: 36px; font-weight: 800; line-height: 1.2; letter-spacing: -0.025em;
+                margin-bottom: 16px;
+                background: linear-gradient(to right, #ffffff, #9ca3af);
+                -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            }
+            .lead {
+                color: var(--muted); font-size: 18px; font-style: italic;
+                border-left: 3px solid var(--accent); padding-left: 16px; margin-bottom: 40px;
+            }
+            .meta { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
+            h2 { font-size: 24px; font-weight: 700; margin: 48px 0 20px; color: var(--text); }
+            h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; color: var(--text); }
+            p { margin-bottom: 16px; color: var(--muted); }
+            p strong, li strong { color: var(--text); }
+            ul, ol { margin: 0 0 16px 20px; color: var(--muted); }
+            li { margin-bottom: 8px; }
+            code {
+                background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+                font-family: 'SF Mono', Monaco, monospace; font-size: 14px; color: #e5e7eb;
+            }
+            pre {
+                background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+                padding: 16px; overflow-x: auto; margin: 20px 0;
+            }
+            pre code { padding: 0; background: none; }
+            blockquote {
+                border-left: 3px solid var(--accent); padding-left: 16px;
+                margin: 20px 0; color: var(--muted); font-style: italic;
+            }
+            .cta {
+                background: linear-gradient(145deg, var(--bg-card), #0f1626);
+                border: 1px solid var(--border); border-radius: 12px; padding: 24px;
+                margin: 40px 0; text-align: center;
+            }
+            .cta h3 { margin-top: 0; }
+            .btn {
+                display: inline-block; background: var(--accent); color: white;
+                text-decoration: none; padding: 12px 24px; border-radius: 8px;
+                font-weight: 600; margin-top: 12px;
+            }
+            .btn:hover { background: var(--accent-hover); }
+            .footer {
+                border-top: 1px solid var(--border); margin-top: 64px; padding-top: 24px;
+                text-align: center; color: var(--muted); font-size: 14px;
+            }
+            .footer a { color: var(--muted); }
+            .footer a:hover { color: var(--text); }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+            th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+            th { color: var(--text); font-weight: 600; }
+            td { color: var(--muted); }
+            tr:last-child td { border-bottom: none; }
+            .stat-grid {
+                display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 16px; margin: 24px 0;
+            }
+            .stat-card {
+                background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+                padding: 16px; text-align: center;
+            }
+            .stat-num { font-size: 24px; font-weight: 800; color: var(--text); }
+            .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        </style>
+    </head>
+    <body>
+<nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
+  <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
+  <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
+    <div class="sb-nav-more-wrap">
+      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">
+      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>
+      <div class="sb-nav-more-menu">
+    <a href="/roadmap" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3"/></svg>Roadmap</a>
+    <a href="/pricing" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Pricing</a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z"/></svg>Install</a>
+    <a href="/blog/" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>Blog</a>
+    <a href="/faq" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>FAQ</a>
+    <a href="/contact" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Contact</a>
+      </div>
+    </div>
+    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#6366f1;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>
+    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>
+  </div>
+</nav>
+<style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
+        <div class="container">
+            <div class="tag">Engineering</div>
+            <h1>Why Your AI Coding Agent Is Burning Money — And How to Stop It</h1>
+            <p class="lead">
+                48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline, no source upload.
+            </p>
+            <p class="meta">Published August 2026 &middot; 8 min read</p>
+
+            <h2>The problem nobody is talking about</h2>
+            <p>
+                AI coding agents are incredible. They write code at superhuman speed, run tests, read errors, and iterate.
+                But they have a dirty secret: <strong>they burn tokens like a bonfire</strong>.
+            </p>
+            <p>
+                A typical agent session involves 30-40 tool calls. Each one sends context to an LLM. The agent reads files
+                it doesn't need, searches for things it already found, and repeats mistakes because it lacks contextual
+                memory. When it gets stuck in a hallucination loop — writing the same broken code three times because
+                nobody told it the package doesn't exist — you pay for every single failed attempt.
+            </p>
+            <p>The math is brutal:</p>
+            <table>
+                <thead><tr><th>Approach</th><th>Tool calls</th><th>Rework calls</th><th>Total tokens burned</th></tr></thead>
+                <tbody>
+                    <tr><td>No guardrails</td><td>30</td><td>8-12</td><td>~50K-80K</td></tr>
+                    <tr><td>Verification only (scan after)</td><td>40</td><td>8-12</td><td>~65K-100K</td></tr>
+                    <tr><td><strong>Prevention + investigation (SimpleBeacon)</strong></td><td><strong>10</strong></td><td><strong>0-2</strong></td><td><strong>~15K-25K</strong></td></tr>
+                </tbody>
+            </table>
+            <p>
+                Verification-only doesn't just fail to save tokens — it <strong>increases</strong> token consumption by
+                20-30% because you're adding scan calls on top of the same broken workflow.
+            </p>
+            <p>
+                The fix isn't more scanning after the fact. It's <strong>front-loaded prevention</strong> — give the agent
+                deterministic guardrails before it writes a single line of code.
+            </p>
+
+            <h2>Three layers, one tool</h2>
+            <p>
+                SimpleBeacon operates as three integrated layers that work together to make AI agents faster, cheaper,
+                and safer.
+            </p>
+
+            <h3>Layer 1: Agent infrastructure (the guardrails)</h3>
+            <p>
+                SimpleBeacon ships as an MCP server with <strong>48 tools</strong> that any AI agent can call natively —
+                Cursor, Windsurf, Claude, Cline, GitHub Copilot, Aider, and Devin. No source code leaves your machine.
+                Everything runs locally.
+            </p>
+            <p>The <strong>Exoskeleton</strong> wraps every edit and commit with pre-scan and post-scan verification:</p>
+            <pre><code>Agent wants to edit a file
+  &rarr; exoskeleton_guard_edit(action=check) scans the new content
+  &rarr; If verdict=blocked: agent gets structured JSON with the exact problem + fix hint
+  &rarr; Agent fixes the code in its next thought cycle
+  &rarr; exoskeleton_guard_edit(action=verify) confirms the fix
+  &rarr; File is safe to write</code></pre>
+            <p>The agent never writes secrets, fiction KPIs, mock paths, or LLM placeholder slop to disk — because the guardrail catches it <strong>before</strong> the edit is applied. The feedback is structured JSON, not prose:</p>
+            <pre><code>{
+  "verdict": "blocked",
+  "findings": [{
+    "pattern": "hallucinated_dependency",
+    "severity": "critical",
+    "line": 42,
+    "match": "npm-fake-kpi-tracker",
+    "actionCode": "REMOVE_IMPORT",
+    "fix": "Remove this import and use native fetch instead."
+  }]
+}</code></pre>
+            <p>The agent reads this, auto-corrects, and tries again. No human intervention needed.</p>
+            <p><strong>Agent-specific rules</strong> catch the mistakes agents make — not the mistakes humans make:</p>
+            <ul>
+                <li><strong>Hallucinated dependencies</strong>: Flags packages that don't exist in npm/PyPI</li>
+                <li><strong>Fiction KPIs</strong>: Catches fabricated metrics in code (e.g., <code>users: 1250000</code> with no data source)</li>
+                <li><strong>Mock paths in production</strong>: Detects <code>mock-</code>, <code>test-</code>, <code>fixture-</code> paths in production code</li>
+                <li><strong>Credential bleed</strong>: Hard blocks on API keys, tokens, and secrets committed to repos</li>
+                <li><strong>LLM placeholder slop</strong>: Catches <code>TODO: implement this</code>, <code>// your code here</code>, <code>return null // placeholder</code></li>
+            </ul>
+
+            <h3>Layer 2: Token efficiency (the Semantic Lighthouse)</h3>
+            <p>
+                The newest layer is the <strong>Semantic Lighthouse</strong> — a token-sipping structural search engine
+                that indexes your entire codebase into lightweight "beacons" (classes, functions, TODOs, signatures
+                with line numbers).
+            </p>
+            <p>
+                Instead of reading a 10,000-token file to find one bug, the agent scans a 200-token beacon index using
+                a cheap model, locates the exact <code>file:line</code> coordinate, then activates deep retrieval only
+                on the 20-line window surrounding the target.
+            </p>
+            <p><strong>Measured results from the SimpleBeacon CLI codebase:</strong></p>
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-num">336</div><div class="stat-label">Files indexed</div></div>
+                <div class="stat-card"><div class="stat-num">5,158</div><div class="stat-label">Total beacons</div></div>
+                <div class="stat-card"><div class="stat-num">836,681</div><div class="stat-label">Raw file tokens</div></div>
+                <div class="stat-card"><div class="stat-num">42,873</div><div class="stat-label">Beacon tokens</div></div>
+                <div class="stat-card"><div class="stat-num" style="color:var(--success)">94.88%</div><div class="stat-label">Token reduction</div></div>
+            </div>
+            <p>The agent navigates the entire codebase inside a single context window without filling it up — preserving memory for actual engineering work.</p>
+            <p><strong>The full token-saving toolkit:</strong></p>
+            <ul>
+                <li><code>simplebeacon summarize</code> — Per-file summaries + repo index (replaces reading whole files)</li>
+                <li><code>simplebeacon embed</code> — Offline TF-IDF embeddings for semantic search</li>
+                <li><code>simplebeacon search</code> — Retrieve top-K matching passages without an LLM</li>
+                <li><code>simplebeacon beacon</code> — Structural beacon index for token-sipping navigation</li>
+                <li><code>simplebeacon telemetry</code> — Local token-usage ROI dashboard</li>
+            </ul>
+            <p>All offline. All deterministic. No source upload. No LLM calls.</p>
+
+            <h3>Layer 3: Compliance &amp; audit (the evidence)</h3>
+            <p>
+                When regulators come knocking — and with the EU AI Act now in force, they will — you need evidence,
+                not promises.
+            </p>
+            <p>
+                SimpleBeacon generates <strong>board-ready compliance documentation</strong> from the same scans that
+                guard your agents:
+            </p>
+            <ul>
+                <li><strong>EU AI Act mapping</strong>: Article 5 prohibited practices, Article 10 transparency requirements, conformity assessment gaps</li>
+                <li><strong>SOC 2 Type II evidence</strong>: Change management controls, access reviews, security scanning records</li>
+                <li><strong>48-analyzer AI Problem Analyzer Suite</strong>: Risk classification across security, privacy, AI safety, and operational dimensions</li>
+                <li><strong>Board-ready certificates</strong>: Sovereign compliance certificates with cryptographic IDs, generated locally</li>
+                <li><strong>CI/CD gate enforcement</strong>: <code>simplebeacon scan --gate</code> blocks merges on critical/high findings</li>
+            </ul>
+            <p>
+                The same gate that prevents your agent from committing a hallucinated package also produces the audit
+                trail your compliance team needs. One tool, two outcomes.
+            </p>
+
+            <h2>How it works in practice</h2>
+            <h3>Session start (1 call)</h3>
+            <pre><code>supercharge_agent() &rarr; gate state, top issues, code suggestions, next mission</code></pre>
+            <p>Replaces 5-15 exploratory tool calls with one compressed payload.</p>
+            <h3>Before every edit (1 call per edit)</h3>
+            <pre><code>scan_snippet(content) &rarr; verdict + findings + fix hints</code></pre>
+            <p>Prevents 3-5 rework calls per edit. The agent fixes issues before writing to disk.</p>
+            <h3>On crash (1 call)</h3>
+            <pre><code>diagnose_error(stackTrace) &rarr; root cause + likely file + fix template</code></pre>
+            <p>Replaces 4-8 debugging calls with one deterministic diagnosis.</p>
+            <h3>Before commit (1 call)</h3>
+            <pre><code>exoskeleton_guard_commit() &rarr; scans all staged files, returns safe/blocked/warning</code></pre>
+            <p>Prevents bad commits from shipping. Stores commit memory for the next session.</p>
+            <h3>Before claiming done (1 call)</h3>
+            <pre><code>handoff_check() &rarr; ready=true/false + handoff brief for next session</code></pre>
+            <p>One false "done" claim costs more tokens than 10 handoff_check calls.</p>
+            <p><strong>Total for a typical 30-tool-call session: 10-12 calls instead of 38-52.</strong></p>
+
+            <h2>Who is this for?</h2>
+            <ul>
+                <li><strong>AI agent developers</strong> using Cursor, Windsurf, Claude, Cline, Copilot, or Aider who want their agents to write better code faster without burning premium tokens on rework loops.</li>
+                <li><strong>Engineering teams</strong> building with LLMs who need deterministic guardrails against AI-generated slop — fiction KPIs, hallucinated packages, mock paths, and credential leaks.</li>
+                <li><strong>Compliance teams</strong> in regulated industries (fintech, healthcare, government) who need audit evidence for AI-generated code under EU AI Act, SOC 2, and emerging regulatory frameworks.</li>
+                <li><strong>Solo developers and small teams</strong> who can't afford to burn $50-100 in LLM tokens per agent session on rework that deterministic rules could prevent for free.</li>
+            </ul>
+
+            <h2>Get started in 60 seconds</h2>
+            <pre><code># Install and initialize
+npx simplebeacon init --starter
+
+# Scan your project
+npx simplebeacon scan --gate
+
+# Generate a beacon index for token-sipping search
+npx simplebeacon beacon --path .
+
+# Find any target without reading full files
+npx simplebeacon beacon --query "refund bug fixme" --k 10</code></pre>
+            <p>For MCP integration with your AI agent:</p>
+            <pre><code># Install MCP config + CI gate for your project
+npx simplebeacon init --starter --with-mcp</code></pre>
+            <p>Sets up .cursor/mcp.json for Cursor. For other agents, see the docs.</p>
+
+            <div class="cta">
+                <h3>Stop your agents from burning tokens on hallucination loops</h3>
+                <p>48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline.</p>
+                <a href="/pricing" class="btn">Get started free &rarr;</a>
+            </div>
+
+            <h2>Pricing</h2>
+            <table>
+                <thead><tr><th>Tier</th><th>Price</th><th>Includes</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Free</strong></td><td>$0</td><td>Local scans, no upload, forever</td></tr>
+                    <tr><td><strong>Developer</strong></td><td>$49/mo</td><td>Unlimited scans, CI gate, 48 analyzers, all MCP tools</td></tr>
+                    <tr><td><strong>Team Pro</strong></td><td>$149/mo</td><td>EU AI Act mapping, SOC 2, board-ready certificates, 5 seats</td></tr>
+                    <tr><td><strong>Enterprise</strong></td><td>Custom</td><td>Air-gapped, SSO/SAML, dedicated analyst</td></tr>
+                </tbody>
+            </table>
+            <p><a href="/pricing">See full pricing &rarr;</a></p>
+
+            <div class="footer">
+                <p>SimpleBeacon &middot; <a href="/">simplebeacon.ai</a> &middot; <a href="/blog/case-study-ai-slop-1-25m">Read our fintech case study &rarr;</a></p>
+                <p>&copy; 2026 SimpleBeacon. All local. All offline. No source upload.</p>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,36 +1,65 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-    <title>SimpleBeacon — Terms of Service for Enterprise AI Compliance Auditing</title>
-    <meta name="description" content="SimpleBeacon terms of service for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, and enterprise compliance contracts.">
-    <link rel="canonical" href="https://simplebeacon.ai/terms.html">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="SimpleBeacon — Terms of Service for Enterprise AI Compliance Auditing">
-    <meta property="og:description" content="SimpleBeacon terms of service for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, and enterprise compliance contracts.">
+<head>
+<meta charset="UTF-8">
+    <title>SimpleBeacon Dashboard 2.0 — Preview</title>
+    <meta name="description" content="Preview the SimpleBeacon dashboard with sample scan metrics, grade, and remediation insights.">
+    <link rel="canonical" href="https://simplebeacon.ai/dashboard-preview.html">
+    <meta name="robots" content="noindex, nofollow">
+    <meta property="og:title" content="SimpleBeacon Dashboard 2.0 — Preview">
+    <meta property="og:description" content="Preview the SimpleBeacon dashboard with sample scan metrics, grade, and remediation insights.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://simplebeacon.ai/terms.html">
+    <meta property="og:url" content="https://simplebeacon.ai/dashboard-preview.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Terms of Service for Enterprise AI Compliance Auditing">
-    <meta name="twitter:description" content="SimpleBeacon terms of service for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, and enterprise compliance contracts.">
+    <meta name="twitter:title" content="SimpleBeacon Dashboard 2.0 — Preview">
+    <meta name="twitter:description" content="Preview the SimpleBeacon dashboard with sample scan metrics, grade, and remediation insights.">
 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        
-        
-        <meta name="theme-color" content="#0d1117" />
-        
-        
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
-        />
-        <link rel="stylesheet" href="styles.css" />
-    </head>
-    <body>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<style>
+:root{
+  --pass:#10B981;--fail:#EF4444;--warn:#F59E0B;--info:#3B82F6;
+  --bg:#0f172a;--fg:#f1f5f9;--panel:#1e293b;--border:#334155;
+  --muted:#94a3b8;--font:ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:24px 20px}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.header h1{font-size:1.5rem;font-weight:800}
+.badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.badge.pass{background:rgba(16,185,129,.15);color:var(--pass);border:1px solid rgba(16,185,129,.3)}
+.badge.fail{background:rgba(239,68,68,.15);color:var(--fail);border:1px solid rgba(239,68,68,.3)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+.metric-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.metric-card .value{font-size:2rem;font-weight:800}
+.metric-card .sub{font-size:13px;color:var(--muted);margin-top:4px}
+.score-ring{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:6px solid var(--pass);font-size:1.4rem;font-weight:800;color:var(--pass);background:rgba(16,185,129,.08)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sev-bar{display:flex;gap:8px;margin-bottom:12px}
+.sev-pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px}
+.sev-pill.critical{background:rgba(239,68,68,.15);color:#ef4444}
+.sev-pill.high{background:rgba(249,115,22,.15);color:#f97316}
+.sev-pill.medium{background:rgba(245,158,11,.15);color:#f59e0b}
+.sev-pill.low{background:rgba(59,130,246,.15);color:#3b82f6}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+td{padding:10px 12px;border-bottom:1px solid rgba(51,65,85,.4)}
+tr:hover td{background:rgba(148,163,184,.05)}
+.file{font-family:monospace;font-size:12px;color:#60a5fa}
+.type-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(59,130,246,.12);color:#60a5fa}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.export-btn{background:var(--panel);color:var(--fg);border:1px solid var(--border);padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.export-btn:hover{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4)}
+</style>
+</head>
+<body>
 <nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
   <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>
   <div style="display:flex;align-items:center;gap:4px;"><a href="/audit" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Audit</a><a href="/app/" style="color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">Dashboard</a>
@@ -52,177 +81,118 @@
 </nav>
 <style>.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}</style>
 <script>(function(){var TOKEN_KEYS=['sb_token','cascadeAuthToken','access_token','token','authToken','simplebeacon_token','sb-token-vault'];var USER_KEYS=['sb_user','sb-user','cascadeAuthUser'];var FREE_TIERS=['free','community','sandbox',''];function getCookieVal(n){var m=document.cookie.match('(?:^|; )'+n.replace(/[-/\^$*+?.()|[]{}]/g,'\<body>')+'=([^;]*)');return m?decodeURIComponent(m[1]):'';}function isJwtExpired(t){try{var parts=t.split('.');if(parts.length!==3)return false;var p=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));return !!(p.exp&&p.exp*1000<Date.now());}catch(_){return false;}}function hasAnyToken(){try{for(var i=0;i<TOKEN_KEYS.length;i++){var k=TOKEN_KEYS[i];var v=localStorage.getItem(k)||getCookieVal(k);if(!v)continue;if(isJwtExpired(v)){try{localStorage.removeItem(k);}catch(_){}clearCookie(k);continue;}return true;}}catch(_){}return false;}function getUserTier(){try{var u=null;for(var i=0;i<USER_KEYS.length;i++){u=localStorage.getItem(USER_KEYS[i]);if(u)break;}if(!u)return '';var p=JSON.parse(u);var role=String(p.role||'').toLowerCase();if(role==='admin'||role==='superuser')return 'enterprise';return (p.tier||p.plan||'').toLowerCase();}catch(_){}return '';}function isPaidTier(){var t=getUserTier();return t&&FREE_TIERS.indexOf(t)===-1;}function clearCookie(k){document.cookie=k+'=;path=/;max-age=0;SameSite=Lax;';}function updateAuthNav(){var authed=hasAnyToken();var paid=isPaidTier();var signinBtn=document.getElementById('nav-signin-btn');var signoutBtn=document.getElementById('nav-signout-btn');if(signinBtn)signinBtn.style.display=authed?'none':'inline-block';if(signoutBtn)signoutBtn.style.display=authed?'inline-block':'none';var pricingLinks=document.querySelectorAll('.sb-nav-more-link[href="/pricing"]');for(var i=0;i<pricingLinks.length;i++){pricingLinks[i].style.display=paid?'none':'flex';}}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.sb-site-nav a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}function initSignout(){var signoutBtn=document.getElementById('nav-signout-btn');if(signoutBtn){signoutBtn.addEventListener('click',function(){for(var i=0;i<TOKEN_KEYS.length;i++){try{localStorage.removeItem(TOKEN_KEYS[i]);}catch(_){}clearCookie(TOKEN_KEYS[i]);}for(var i=0;i<USER_KEYS.length;i++){try{localStorage.removeItem(USER_KEYS[i]);}catch(_){}clearCookie(USER_KEYS[i]);}try{sessionStorage.clear();}catch(_){}window.location.reload();});}}function initDropdownClose(){document.addEventListener('click',function(e){var toggle=document.getElementById('sb-nav-more-toggle');if(!toggle||!toggle.checked)return;var wrap=toggle.parentNode;if(wrap&&!wrap.contains(e.target))toggle.checked=false;});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var toggle=document.getElementById('sb-nav-more-toggle');if(toggle)toggle.checked=false;}});}function initSignIn(){var signinBtn=document.getElementById('nav-signin-btn');if(!signinBtn)return;signinBtn.addEventListener('click',function(){var overlay=document.getElementById('auth-modal-overlay');if(overlay){overlay.style.display='flex';overlay.classList.add('active');return;}var signinOverlay=document.getElementById('signinOverlay');if(signinOverlay){signinOverlay.style.display='flex';return;}window.location.href='/app/#/signin';});}function initStorageSync(){window.addEventListener('storage',function(e){if(e.key===null||(TOKEN_KEYS.indexOf(e.key)!==-1&&!e.newValue)||(USER_KEYS.indexOf(e.key)!==-1&&!e.newValue)){updateAuthNav();}});}function init(){updateAuthNav();propagateTokenToLinks();initSignout();initSignIn();initDropdownClose();initStorageSync();}if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',init);}else{init();}})();</script>
-        <main class="page-centered">
-            <a href="index.html" class="back-link">← SimpleBeacon home</a>
+<div class="container">
+  <div class="header">
+    <h1>SimpleBeacon Dashboard 2.0</h1>
+    <span class="badge pass">PASSED</span>
+  </div>
 
-            <article class="legal-doc">
-                <h1>Terms of Service</h1>
-                <p class="signin-note">Last updated: June 2026</p>
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="label">Quality Score</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="score-ring">100</div>
+        <div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--pass)">Excellent</div>
+          <div class="sub">Gate: PASS</div>
+        </div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Files Analyzed</div>
+      <div class="value">1,294</div>
+      <div class="sub">252 folders scanned</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Total Findings</div>
+      <div class="value" style="color:var(--warn)">22</div>
+      <div class="sub">0 critical / 0 high / 18 medium / 4 low</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Project Size</div>
+      <div class="value">45.0MB</div>
+      <div class="sub">SimpleBeacon Report v2</div>
+    </div>
+  </div>
 
-                <h2>1. Acceptance of Terms</h2>
-                <p>
-                    By accessing or using SimpleBeacon, you agree to be bound by these Terms of Service. If you do not
-                    agree to these terms, please do not use our service. These terms apply to all visitors, clients, and
-                    enterprise partners.
-                </p>
+  <div class="card">
+    <h3>Findings by Severity</h3>
+    <div class="sev-bar">
+      <span class="sev-pill critical">Critical: 0</span>
+      <span class="sev-pill high">High: 0</span>
+      <span class="sev-pill medium">Medium: 18</span>
+      <span class="sev-pill low">Low: 4</span>
+    </div>
+  </div>
 
-                <h2>2. Service Description</h2>
-                <p>
-                    SimpleBeacon provides independent, offline AI compliance auditing services for enterprises. Our
-                    offerings include:
-                </p>
-                <ul>
-                    <li>Complimentary AI Slop Audit with Executive Risk Certificate</li>
-                    <li>Executive Risk Certificate generation ($499 flat fee)</li>
-                    <li>Quarterly and Annual Protection Packs</li>
-                    <li>EU AI Act Readiness Sprint ($2,499)</li>
-                    <li>Continuous Shield — automated compliance monitoring ($1,499/month)</li>
-                    <li>Custom enterprise contracts ($50,000+ annual)</li>
-                </ul>
+  <div class="card">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">Detected Issues <button id="exportBtn" class="export-btn" onclick="exportData()">Export JSON</button></h3>
+    <table>
+      <thead><tr><th>Type</th><th>Severity</th><th>File</th><th>Count</th></tr></thead>
+      <tbody>
+        <tr><td><span class="type-badge">missing-env-key</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">.env</td><td>2</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">landing.html</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">lib/time-tokens.cjs</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">test-audit-report.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-ai_agent-1780863316487.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent-full.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent-v2.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-export-1780859087255.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-roadmap-export.js</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">vscode-extension-roadmap.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">zip-for-upload.js</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill low">low</span></td><td class="file">archive/...</td><td>2</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill low">low</span></td><td class="file">test/...</td><td>2</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-                <h2>3. Complimentary AI Slop Audit</h2>
-                <p>The complimentary audit is provided at no cost for initial risk assessment purposes. It includes:</p>
-                <ul>
-                    <li>Offline deterministic scan on your local machine</li>
-                    <li>Executive Risk Certificate with A–F grade and estimated liability</li>
-                    <li>Plain-language remediation checklist</li>
-                    <li>10-minute activation call with a compliance analyst</li>
-                </ul>
-                <p>The complimentary audit does not include:</p>
-                <ul>
-                    <li>Cryptographically signed boardroom deliverable</li>
-                    <li>Co-branded or white-label certificates</li>
-                    <li>Recurring monitoring or quarterly updates</li>
-                    <li>Priority support or direct analyst access</li>
-                </ul>
+  <div class="card">
+    <h3>Scan Summary</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px;color:var(--muted)">
+      <div><strong style="color:var(--fg)">Scan ID:</strong> sb_scan_dv8vt1j6u</div>
+      <div><strong style="color:var(--fg)">Timestamp:</strong> 2026-06-18T01:57:08.113Z</div>
+      <div><strong style="color:var(--fg)">Tier:</strong> developer</div>
+      <div><strong style="color:var(--fg)">Scans Remaining:</strong> 70</div>
+      <div><strong style="color:var(--fg)">Project Root:</strong> C:\Users\Trevor\CascadeProjects\coming-soon</div>
+      <div><strong style="color:var(--fg)">Estimated Cost Saved:</strong> $110,000</div>
+    </div>
+  </div>
 
-                <h2>4. Paid Services & Enterprise Contracts</h2>
-                <p>
-                    Paid services (Executive Risk Certificates, Protection Packs, EU AI Act Sprints, Continuous Shield,
-                    and enterprise contracts) are subject to additional terms. Payment is processed through Stripe.
-                    Enterprise contracts are negotiated separately and may include custom service-level agreements,
-                    on-premise deployment, and dedicated compliance analysts.
-                </p>
-
-                <h2>5. Zero-Upload Guarantee & Data Privacy</h2>
-                <p>
-                    SimpleBeacon is designed to run entirely offline on your machine. No source code, file paths, or
-                    proprietary intellectual property is transmitted to SimpleBeacon or any third party. For paid
-                    services, you may optionally share an anonymized report JSON (severity counts and pattern IDs only —
-                    no code snippets, no file paths) for certificate generation. We do not retain, index, or share your
-                    data.
-                </p>
-
-                <h2>6. Disclaimer of Warranties</h2>
-                <p>
-                    SimpleBeacon services are provided "as is" without warranties of any kind. Our scans are
-                    deterministic pattern reviews, not legal conformity assessments. We do not guarantee detection of
-                    all issues. SimpleBeacon is not a substitute for professional legal counsel, SOC 2 auditors, or
-                    formal EU AI Act conformity certification under Regulation (EU) 2024/1689.
-                </p>
-
-                <h2>7. Limitation of Liability</h2>
-                <p>
-                    In no event shall SimpleBeacon be liable for regulatory fines, legal costs, reputational damage, or
-                    any indirect, incidental, special, consequential, or punitive damages arising from your use of our
-                    services. For complimentary audits, liability is capped at $0. For paid services, liability is
-                    capped at the amount paid for the specific service.
-                </p>
-
-                <h2>8. Intellectual Property</h2>
-                <p>
-                    All SimpleBeacon scanning logic, rule engines, certificate templates, and branding remain our
-                    exclusive intellectual property. You may not reverse-engineer, redistribute, or resell our
-                    deterministic rule sets or certificate generation logic. You retain full ownership of your codebase,
-                    scan results, and generated certificates.
-                </p>
-
-                <h2>9. Confidentiality</h2>
-                <p>
-                    Both parties agree to treat all audit findings, reports, and business discussions as confidential.
-                    SimpleBeacon will not disclose your company name, findings, or engagement details to any third party
-                    without your written consent.
-                </p>
-
-                <h2>10. Governing Law</h2>
-                <p>
-                    These terms are governed by the laws of the State of Delaware, United States, without regard to
-                    conflict of law principles.
-                </p>
-
-                <h2>11. Contact</h2>
-                <p>
-                    For questions about these terms, please <a href="contact.html">contact us</a> or email
-                    admin@simplebeacon.ai.
-                </p>
-
-                <p class="cli-note" style="margin-top: 2rem">
-                    <a href="index.html">← Back to SimpleBeacon home</a>
-                </p>
-                <div
-                    style="
-                        margin-top: 1.5rem;
-                        padding-top: 1rem;
-                        border-top: 1px solid var(--border-muted);
-                        text-align: center;
-                        font-size: 0.8rem;
-                        color: var(--text-dim);
-                    "
-                >
-                    <a href="pricing.html" style="color: var(--text-muted); text-decoration: none; margin: 0 8px"
-                        >Pricing</a
-                    >
-                    ·
-                    <a href="contact.html" style="color: var(--text-muted); text-decoration: none; margin: 0 8px"
-                        >Contact</a
-                    >
-                    ·
-                    <a href="privacy.html" style="color: var(--text-muted); text-decoration: none; margin: 0 8px"
-                        >Privacy</a
-                    >
-                    ·
-                    <a href="refund.html" style="color: var(--text-muted); text-decoration: none; margin: 0 8px"
-                        >Refunds</a
-                    >
-                </div>
-            </article>
-        </main>
-
-        <script>
-            // Only load Cloudflare analytics when a token is configured and on the production origin
-            (function () {
-                var host = window.location.hostname;
-                var isProduction = /^(www\.)?simplebeacon\.ai$/.test(host);
-                var token = window.CF_BEACON_TOKEN;
-                if (!isProduction || !token) return;
-                // Brave and aggressive tracker blockers return an empty body for beacon.min.js,
-                // which triggers SRI console errors. Skip loading in those environments.
-                var isBrave = typeof navigator.brave !== 'undefined';
-                var ua = navigator.userAgent || '';
-                if (isBrave || /Brave/.test(ua)) return;
-                var script = document.createElement('script');
-                script.defer = true;
-                script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
-                script.setAttribute('data-cf-beacon', '{"token":"' + token + '"}');
-                script.onerror = function () {
-                    if (script.parentNode) script.parentNode.removeChild(script);
-                };
-                document.body.appendChild(script);
-            })();
-        </script>
-    <footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">
-  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
-  <p style="margin:0;">
-    <a href="/sample-report" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;
-    <a href="/pricing" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;
-    <a href="/contact" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;
-    <a href="/faq" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">FAQ</a> &middot;
-    <a href="/blog/case-study-ai-slop-1-25m" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Blog</a> &middot;
-    <a href="/roadmap" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Roadmap</a> &middot;
-    <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;
-    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>
-  </p>
-</footer>
+  <div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">
+    Preview generated from simplebeacon-report.json | Dashboard 2.0 Preview
+  </div>
+</div>
+<script>
+function exportData() {
+  const data = [
+    {type:"missing-env-key",severity:"medium",file:".env",count:2},
+    {type:"unused-file",severity:"medium",file:"landing.html",count:1},
+    {type:"unused-file",severity:"medium",file:"lib/time-tokens.cjs",count:1},
+    {type:"unused-file",severity:"medium",file:"test-audit-report.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-ai_agent-1780863316487.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent-full.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent-v2.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-export-1780859087255.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-roadmap-export.js",count:1},
+    {type:"unused-file",severity:"medium",file:"vscode-extension-roadmap.json",count:1},
+    {type:"unused-file",severity:"medium",file:"zip-for-upload.js",count:1},
+    {type:"unused-file",severity:"low",file:"archive/...",count:2},
+    {type:"unused-file",severity:"low",file:"test/...",count:2}
+  ];
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'simplebeacon-findings.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
   <script src="/js-es2018/referral-capture.js" defer></script>
 </body>
 </html>
