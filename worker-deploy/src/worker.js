@@ -77,17 +77,30 @@ function withCookieBanner(response, pathname) {
 /**
  * Inject Cloudflare Web Analytics beacon before </body> if CF_ANALYTICS_TOKEN is set.
  * The token is obtained from Cloudflare Dashboard → Analytics & Logs → Web Analytics.
+ * Also strips integrity/crossorigin attributes from any auto-injected Cloudflare
+ * beacon scripts to prevent SRI hash mismatch errors when the CDN returns 204.
  */
 function withCfAnalytics(response, env) {
   const token = String(env.CF_ANALYTICS_TOKEN || "").trim();
-  if (!token) return response;
+  // Strip integrity/crossorigin from Cloudflare beacon scripts (auto-injected by CF)
+  const stripRewriter = new HTMLRewriter().on(
+    "script[src*='cloudflareinsights.com/beacon.min.js']",
+    {
+      element(el) {
+        el.removeAttribute("integrity");
+        el.removeAttribute("crossorigin");
+      },
+    },
+  );
+  let r = stripRewriter.transform(response);
+  if (!token) return r;
   const beacon = `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;:&quot;${token.replace(/[^a-zA-Z0-9]/g, "")}&quot;}"></script>`;
   const rewriter = new HTMLRewriter().on("body", {
     element(element) {
       element.append(beacon, { html: true });
     },
   });
-  return rewriter.transform(response);
+  return rewriter.transform(r);
 }
 
 /**
