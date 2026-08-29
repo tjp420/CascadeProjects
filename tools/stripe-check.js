@@ -1,7 +1,7 @@
 const { chromium } = require("playwright");
 (async () => {
   const url =
-    "https://checkout.stripe.com/g/pay/cs_live_a1odySNdcM8loGCWWQhXl8dT9PVzvZvjyqzU6ZKNMg2hHVhR9HJ69KnGSL#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8ncXdgZHFoYGtxWjcnKSdicGRmZGhqaWBMa2xxVXdgY2BxZm1TZHdsZGtxJz8nZmprcXdqaScpJ2JwZGZkaGppYElqZGFsa2JWZndgYGtTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWmlsc2BaMDRRVWd%2FdERUNWA3NW5%2FTD1vfEg1cU1hV0E0d39UMGRqZ0tXRENfNEp2QUt0am1cdUJNXE9fYjFqdzYwS2hpMDFwV1NsPG9JTmIxZ2hLSndCTk5PV2B9bF81NW5AYHNJbHcxJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
+    "https://checkout.stripe.com/g/pay/cs_test_placeholder#fidplaceholder";
   const out = { console: [], requests: [], responses: [] };
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ ignoreHTTPSErrors: true });

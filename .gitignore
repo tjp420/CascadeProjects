@@ -10,6 +10,7 @@ java-ai-vulnerable/
 
 # Test repo for scanner stress-testing (contains intentional secrets/AI slop)
 simplebeacon-test-repo/
+stress-test-monorepo/
 
 # Backup snapshots
 backups/

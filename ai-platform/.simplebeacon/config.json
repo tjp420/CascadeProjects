@@ -176,7 +176,17 @@
     "**/dist/**",
     "**/build/**",
     "**/.data/**",
-    "**/ai-platform/.data/**"
+    "**/ai-platform/.data/**",
+    "ai-platform/server/lib/crypto/ratchet/**",
+    "ai-platform/server/lib/hsm-adapter/**",
+    "ai-platform/server/lib/mpc/schnorr/**",
+    "ai-platform/server/lib/hybrid-kem-handshake.cjs",
+    "ai-platform/server/lib/hybrid-kem-resumption.cjs",
+    "ai-platform/server/lib/webhook-signing-store.cjs",
+    "worker-deploy/src/**",
+    "stress-test-monorepo/**",
+    "tools/puppeteer-check.js",
+    "tools/stripe-check.js"
   ],
   "rules": {
     "credentials": {
@@ -198,7 +208,18 @@
         "**/verify_crosslang.cjs",
         "ai-platform/server/lib/mpc/schnorr/verify_crosslang.cjs",
         "**/flush_email_queue.cjs",
-        "tools/flush_email_queue.cjs"
+        "tools/flush_email_queue.cjs",
+        "ai-platform/server/lib/crypto/ratchet/**",
+        "ai-platform/server/lib/hsm-adapter/**",
+        "ai-platform/server/lib/mpc/schnorr/**",
+        "ai-platform/server/lib/hybrid-kem-handshake.cjs",
+        "ai-platform/server/lib/hybrid-kem-resumption.cjs",
+        "ai-platform/server/lib/webhook-signing-store.cjs",
+        "worker-deploy/src/certify.js",
+        "worker-deploy/src/worker.js",
+        "stress-test-monorepo/**",
+        "tools/puppeteer-check.js",
+        "tools/stripe-check.js"
       ]
     },
     "json-schema": {

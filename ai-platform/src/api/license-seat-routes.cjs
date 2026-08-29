@@ -70,7 +70,13 @@ function resolveLicenseSecret() {
   if (process.env.NODE_ENV === "production") {
     throw new Error("SIMPLEBEACON_LICENSE_SECRET is required in production");
   }
-  return "dev-secret";
+  // Generate an ephemeral dev secret per process instead of hardcoding one.
+  // This ensures dev-mode works without a configured secret but never
+  // introduces a static credential into the repository.
+  if (!global.__sbDevLicenseSecret) {
+    global.__sbDevLicenseSecret = crypto.randomBytes(32).toString("hex");
+  }
+  return global.__sbDevLicenseSecret;
 }
 
 /**
