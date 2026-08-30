@@ -20,6 +20,7 @@ const {
   buildTrustTrend,
 } = require("../../server/lib/trust-history-store.cjs");
 const { readJsonFileCached } = require("../../server/lib/json-file-cache.cjs");
+const { authenticate } = require("../../server/middleware/auth.cjs");
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
 const PUBLIC_TRUST_PATH = path.join(
@@ -182,7 +183,6 @@ function setupTrustAPI(app, options = {}) {
   );
 
   // Rate limiter for trust publish endpoint — mutation that writes to public dir.
-  // TODO(#816): Add authentication middleware (requireAuth) before exposing beyond localhost.
   const trustPublishRateLimit = require("express-rate-limit")({
     windowMs: 60 * 1000,
     max: 5,
@@ -362,7 +362,7 @@ function setupTrustAPI(app, options = {}) {
     }
   });
 
-  app.post("/api/trust/publish", trustPublishRateLimit, (req, res) => {
+  app.post("/api/trust/publish", trustPublishRateLimit, authenticate, (req, res) => {
     try {
       const result = publishTrustVerification({
         platformRoot,

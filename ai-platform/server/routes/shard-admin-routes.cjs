@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const { ShardReconciler } = require("../lib/storage/shard-reconciler.cjs");
+const { authenticate } = require("../middleware/auth.cjs");
 
 // Lightweight in-memory reconciler instance for admin endpoints
 const reconciler = new ShardReconciler({ pollIntervalMs: 60_000 });
 reconciler.start();
 
-// Middleware placeholder for tenant/auth checks
+// Tenant guard — requires an x-tenant-id header after authentication.
 function tenantGuard(req, res, next) {
-  // TODO(#815): integrate real auth/tenant resolution
   if (!req.headers || !req.headers["x-tenant-id"])
     return res.status(403).json({ error: "tenant-required" });
   req.tenantId = req.headers["x-tenant-id"];
@@ -16,7 +16,7 @@ function tenantGuard(req, res, next) {
 }
 
 // POST /api/admin/shard/reconcile
-router.post("/api/admin/shard/reconcile", tenantGuard, async (req, res) => {
+router.post("/api/admin/shard/reconcile", authenticate, tenantGuard, async (req, res) => {
   try {
     const { shardIds } = req.body || {};
     if (!Array.isArray(shardIds))

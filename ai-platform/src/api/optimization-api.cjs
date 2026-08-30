@@ -25,6 +25,7 @@ const {
   sanitizeConsolidationExport,
   resolvePlatformRoot,
 } = require("../../server/lib/simplebeacon-proxy.cjs");
+const { authenticate } = require("../../server/middleware/auth.cjs");
 
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
 
@@ -93,8 +94,6 @@ function setupOptimizationAPI(app, options = {}) {
           message: "Too many requests, please try again later.",
         }),
   });
-  // TODO(#816): Add authentication middleware (requireAuth) to merge-execute and merge-rollback
-  // before exposing these endpoints beyond localhost/Render internal network.
 
   app.get("/api/optimization/health", (req, res) => {
     try {
@@ -254,6 +253,7 @@ function setupOptimizationAPI(app, options = {}) {
   app.post(
     "/api/optimization/merge-execute",
     optimizationRateLimit,
+    authenticate,
     async (req, res) => {
       try {
         const projectRoot = resolveProjectPath(
@@ -277,6 +277,7 @@ function setupOptimizationAPI(app, options = {}) {
   app.post(
     "/api/optimization/merge-rollback",
     optimizationRateLimit,
+    authenticate,
     async (req, res) => {
       try {
         const projectRoot = resolveProjectPath(
