@@ -20,7 +20,17 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 }
 
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Initialize synchronously from localStorage so the route guard doesn't
+  // bounce authenticated users to signin on page refresh. The useEffect
+  // below still runs to populate user/tier details and listen for events.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !isTokenExpired();
+    } catch {
+      return false;
+    }
+  });
   const [isFreeTier, setIsFreeTier] = useState(true);
   const [user, setUser] = useState<{
     email?: string;
