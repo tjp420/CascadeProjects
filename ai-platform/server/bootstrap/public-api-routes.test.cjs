@@ -81,4 +81,22 @@ describe("public-api-routes", () => {
     assert.strictEqual(mod.isPublicApiRoute("sso/saml/login", "GET"), true);
     assert.strictEqual(mod.isPublicApiRoute("sso/saml/acs", "POST"), true);
   });
+
+  it("allows Stripe webhook without auth gate (Stripe signs requests)", () => {
+    assert.strictEqual(
+      mod.isPublicApiRoute("stripe/webhook", "POST"),
+      true,
+      "stripe/webhook must be in PUBLIC_API_PATHS so REQUIRE_AUTH gate lets it through",
+    );
+    assert.strictEqual(
+      mod.isPublicApiRoute("simplebeacon/billing/webhook", "POST"),
+      true,
+      "simplebeacon/billing/webhook must also be public",
+    );
+    assert.strictEqual(
+      mod.isPublicApiRoute("subscription/webhook", "POST"),
+      true,
+      "subscription/webhook must also be public",
+    );
+  });
 });

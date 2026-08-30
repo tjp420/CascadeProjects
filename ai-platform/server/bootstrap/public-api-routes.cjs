@@ -109,6 +109,8 @@ const PUBLIC_API_PATHS = new Set([
   "agent-access",
   // Subscription webhook — Stripe signs requests, no JWT auth
   "subscription/webhook",
+  // Stripe webhook — Stripe signs requests via Stripe-Signature header, no JWT auth
+  "stripe/webhook",
   "create-subscription-session",
 ]);
 
