@@ -6,8 +6,11 @@ import { BrandProvider } from "./contexts/BrandContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { useAuth } from "./hooks/useAuth";
+import { useFeatureAccess } from "./hooks/useFeatureAccess";
 import { useTheme } from "./hooks/useTheme";
 import { isTokenExpired, processAgentParams } from "./config";
+import { getViewUpgradeInfo } from "./config/viewAccess";
+import { ViewPaywall } from "./components/ViewPaywall";
 
 // P1 views
 import { DashboardView } from "./views/DashboardView";
@@ -169,6 +172,7 @@ export default function App() {
 
   const [route, setRoute] = useState(getCurrentRoute());
   const { isAuthenticated, isFreeTier, user } = useAuth();
+  const { hasFeature } = useFeatureAccess();
   useTheme();
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
@@ -212,6 +216,11 @@ export default function App() {
   const CurrentView = viewMap[route.view] || DashboardView;
   const isPublic = PUBLIC_VIEWS.has(route.view);
 
+  // Tier gate: if the view requires a feature the user's tier doesn't
+  // include, render the inline paywall instead of the view.
+  const upgradeInfo = getViewUpgradeInfo(route.view);
+  const isTierLocked = upgradeInfo ? !hasFeature(upgradeInfo.flag) : false;
+
   return (
     <BrandProvider>
       <ToastProvider>
@@ -231,7 +240,7 @@ export default function App() {
                 </div>
               }
             >
-              <CurrentView />
+              {isTierLocked ? <ViewPaywall view={route.view} /> : <CurrentView />}
             </Suspense>
           </ErrorBoundary>
         </AppShell>

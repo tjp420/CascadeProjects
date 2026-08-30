@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   LayoutDashboard,
   FolderSearch,
@@ -36,6 +37,9 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { getViewUpgradeInfo } from '@/config/viewAccess';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 interface SidebarProps {
   currentView: string;
@@ -116,6 +120,25 @@ const navGroups: NavGroup[] = [
 ];
 
 export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: SidebarProps) {
+  const { hasFeature } = useFeatureAccess();
+  const [upgradeView, setUpgradeView] = useState<string | null>(null);
+
+  const handleNavigate = (view: string) => {
+    const info = getViewUpgradeInfo(view);
+    if (info && !hasFeature(info.flag)) {
+      setUpgradeView(view);
+      return;
+    }
+    onNavigate(view);
+  };
+
+  const upgradeInfo = upgradeView ? getViewUpgradeInfo(upgradeView) : null;
+  const upgradeLabel = upgradeView
+    ? navGroups
+        .flatMap((g) => g.items)
+        .find((i) => i.view === upgradeView)?.label
+    : undefined;
+
   return (
     <>
       {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
@@ -149,8 +172,9 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
               key={group.label}
               group={group}
               currentView={currentView}
-              onNavigate={onNavigate}
+              onNavigate={handleNavigate}
               isAdmin={!!isAdmin}
+              hasFeature={hasFeature}
             />
           ))}
         </nav>
@@ -183,7 +207,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
           </button>
           <button
             type="button"
-            onClick={() => onNavigate('about')}
+            onClick={() => handleNavigate('about')}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="About"
           >
@@ -191,6 +215,13 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
           </button>
         </div>
       </aside>
+
+      <UpgradeModal
+        open={upgradeView !== null}
+        onOpenChange={(o) => { if (!o) setUpgradeView(null); }}
+        viewLabel={upgradeLabel}
+        info={upgradeInfo}
+      />
     </>
   );
 }
@@ -200,11 +231,13 @@ function NavGroupSection({
   currentView,
   onNavigate,
   isAdmin,
+  hasFeature,
 }: {
   group: NavGroup;
   currentView: string;
   onNavigate: (v: string) => void;
   isAdmin: boolean;
+  hasFeature: (f: import('@/hooks/useFeatureAccess').FeatureFlag) => boolean;
 }) {
   return (
     <div className="mb-2">
@@ -222,6 +255,8 @@ function NavGroupSection({
           .map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.view;
+            const info = getViewUpgradeInfo(item.view);
+            const isLocked = info ? !hasFeature(info.flag) : false;
             return (
               <button
                 key={item.view}
@@ -231,11 +266,13 @@ function NavGroupSection({
                   'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-primary-subtle text-primary'
-                    : 'text-foreground-secondary hover:bg-muted hover:text-foreground'
+                    : 'text-foreground-secondary hover:bg-muted hover:text-foreground',
+                  isLocked && 'opacity-70'
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="flex-1 text-left">{item.label}</span>
+                {isLocked && <Lock className="h-3 w-3 shrink-0 text-foreground-muted" />}
               </button>
             );
           })}
