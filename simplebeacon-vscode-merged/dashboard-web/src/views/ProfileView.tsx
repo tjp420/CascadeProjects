@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Mail, Shield, Crown, LogOut, Settings as SettingsIcon, Download, RefreshCw } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserData {
   email?: string;
@@ -15,8 +16,7 @@ interface UserData {
 }
 
 export function ProfileView() {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, user, signOut } = useAuth();
   const [subscription, setSubscription] = useState<{
     plan?: string;
     scansRemaining?: string | number;
@@ -26,40 +26,26 @@ export function ProfileView() {
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
-    try {
-      const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
-      if (token) {
-        setIsAuthenticated(true);
-        const userData = localStorage.getItem('sb_user');
-        if (userData) {
-          setUser(JSON.parse(userData));
+    if (!isAuthenticated) return;
+    // Fetch subscription data from server
+    (async () => {
+      try {
+        const resp = await fetch(apiUrl('/user/subscription'), { headers: authHeaders() });
+        if (resp.status === 404) {
+          setSubscriptionUnavailable(true);
         }
-        // Fetch subscription data from server
-        (async () => {
-          try {
-            const resp = await fetch(apiUrl('/user/subscription'), { headers: authHeaders() });
-            if (resp.status === 404) {
-              setSubscriptionUnavailable(true);
-            }
-            if (resp.ok) {
-              const body = await resp.json();
-              if (body && body.subscription) setSubscription(body.subscription);
-            }
-          } catch {
-            setSubscriptionUnavailable(true);
-          }
-        })();
+        if (resp.ok) {
+          const body = await resp.json();
+          if (body && body.subscription) setSubscription(body.subscription);
+        }
+      } catch {
+        setSubscriptionUnavailable(true);
       }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+    })();
+  }, [isAuthenticated]);
 
   const handleSignOut = () => {
-    localStorage.removeItem('sb_token');
-    localStorage.removeItem('sb_user');
-    localStorage.removeItem('auth_token');
-    navigate('signin');
+    signOut();
   };
 
   const [exporting, setExporting] = useState(false);

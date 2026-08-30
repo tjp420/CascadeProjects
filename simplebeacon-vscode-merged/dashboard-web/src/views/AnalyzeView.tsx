@@ -1514,6 +1514,11 @@ export function AnalyzeView() {
             toast.error('Your session has expired. Please sign in again.');
             return;
           }
+          if (resp.status === 400) {
+            const errBody = await resp.json().catch(() => ({}));
+            const errMsg = errBody?.error || errBody?.message || 'Invalid project path';
+            throw new Error(`Scan failed: ${errMsg}`);
+          }
           throw new Error(`Server returned ${resp.status}`);
         }
         const data = await resp.json();

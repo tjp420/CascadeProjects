@@ -911,6 +911,7 @@ export function AdminView() {
   }, []);
 
   // ─── User Search + Pagination ─────────────────────────────────────
+  const [userError, setUserError] = useState<string | null>(null);
   const fetchUsers = useCallback(
     async (opts?: { search?: string; cursor?: string | null; append?: boolean }) => {
       const search = opts?.search ?? userSearch;
@@ -923,16 +924,29 @@ export function AdminView() {
         const res = await fetch(apiUrl(`/admin/users?${params.toString()}`), {
           headers: authHeaders(),
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (res.status === 401) {
+            setUserError("Authentication required. Please sign in again.");
+            setTimeout(() => clearAuthAndRedirect(), 1500);
+          } else if (res.status === 403) {
+            setUserError("Admin access required to view users.");
+          } else {
+            setUserError(`Failed to load users (HTTP ${res.status}).`);
+          }
+          return;
+        }
         const data = await res.json();
         if (data.success && data.users) {
+          setUserError(null);
           setUsers((prev) => (append ? [...prev, ...data.users] : data.users));
           setUserHasMore(!!data.hasMore);
           setUserNextCursor(data.nextCursor || null);
           setUserTotal(data.total || data.users.length);
+        } else {
+          setUserError("Server returned unexpected response format.");
         }
-      } catch {
-        // ignore — non-critical
+      } catch (err: any) {
+        setUserError(err?.message || "Network error loading users.");
       }
     },
     [userSearch],
@@ -1008,7 +1022,10 @@ export function AdminView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Explicitly fetch users on initial load (the debounced search effect
+    // also fires, but this ensures users load even if the timer is cleared)
+    fetchUsers({ search: "", cursor: null, append: false });
+  }, [fetchUsers]);
 
   useEffect(() => {
     fetchData();
@@ -1402,9 +1419,18 @@ export function AdminView() {
               </div>
 
               {users.length === 0 ? (
-                <p className="text-sm text-foreground-muted text-center py-4">
-                  No users found
-                </p>
+                <div className="text-sm text-foreground-muted text-center py-4 space-y-2">
+                  {userError ? (
+                    <>
+                      <p className="text-danger">{userError}</p>
+                      <Button size="sm" variant="outline" onClick={() => fetchUsers({ search: userSearch, cursor: null, append: false })}>
+                        <RefreshCw className="h-4 w-4 mr-2" /> Retry
+                      </Button>
+                    </>
+                  ) : (
+                    <p>No users found</p>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-2">
                   {users.map((user, i) => {

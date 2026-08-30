@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { navigate } from "../router/HashRouter";
-import { isTokenExpired, clearAuthToken } from "../config";
+import { isTokenExpired, clearAuthToken, clearLicenseToken, apiUrl, authHeaders } from "../config";
 
 /**
  * Decode a JWT payload without verifying (verification happens server-side).
@@ -111,12 +111,42 @@ export function useAuth() {
     };
   }, []);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    // Call backend logout to invalidate session server-side (non-blocking)
+    try {
+      await fetch(apiUrl("/auth/logout"), {
+        method: "POST",
+        headers: { ...authHeaders() },
+      });
+    } catch {
+      /* non-blocking — proceed with local cleanup */
+    }
+    // Clear all auth token keys (9 keys across dashboard + marketing pages)
     clearAuthToken();
+    // Clear license tokens
+    clearLicenseToken();
+    // Clear user data keys
     localStorage.removeItem("sb_user");
     localStorage.removeItem("sb-user");
+    // Clear session storage
+    try { sessionStorage.clear(); } catch { /* ignore */ }
+    // Clear auth cookies by setting them expired
+    try {
+      const cookieKeys = [
+        "sb_auth_token", "sb_token", "sb-token", "auth_token",
+        "simplebeacon_token", "cascadeAuthToken", "access_token",
+        "token", "authToken", "sb_user", "sb-user",
+      ];
+      for (const key of cookieKeys) {
+        document.cookie = `${key}=;path=/;max-age=0;SameSite=Lax`;
+        document.cookie = `${key}=;path=/;max-age=0;SameSite=Lax;domain=${window.location.hostname}`;
+      }
+    } catch { /* ignore */ }
+    // Reset React state
     setIsAuthenticated(false);
     setUser(null);
+    setIsFreeTier(true);
+    // Notify other tabs/components
     try {
       window.dispatchEvent(new Event("sb:logout"));
     } catch {

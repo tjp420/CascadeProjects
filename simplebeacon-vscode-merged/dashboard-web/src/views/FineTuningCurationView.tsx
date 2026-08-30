@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { getApiBase } from '@/config';
+import { getApiBase, authHeaders as centralizedAuthHeaders, isTokenExpired } from '@/config';
 import { toast } from 'sonner';
 import { Database, Search, ChevronLeft, ChevronRight, Download, Tag } from 'lucide-react';
 
@@ -46,16 +46,15 @@ function apiUrl(path: string): string {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return centralizedAuthHeaders();
 }
 
 const LABELS = ['include', 'exclude', 'review', 'golden'];
 const FORMATS = ['jsonl', 'alpaca', 'chatml'];
 
 export function FineTuningCurationView() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = isAuthenticated && (user?.role === 'admin' || user?.role === 'superuser');
   const [orgId, setOrgId] = useState<string>('default');
 
   const [filters, setFilters] = useState({

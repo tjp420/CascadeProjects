@@ -61,7 +61,6 @@ const PUBLIC_VIEWS = new Set([
   "about",
   "getting-started",
 ]);
-const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([
   "dashboard",
   "upload",
@@ -69,11 +68,6 @@ const WRITE_HEAVY_VIEWS = new Set([
   "admin",
   "chatbot",
 ]);
-
-function isHostedDashboard(): boolean {
-  if (typeof window === "undefined") return false;
-  return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
 
 function isIdeEmbedSurface(): boolean {
   if (typeof window === "undefined") return false;
@@ -199,16 +193,13 @@ export default function App() {
   }, [route.view]);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  // Strict route guard: all routes require authentication unless explicitly
+  // listed in PUBLIC_VIEWS. IDE embed surfaces bypass auth (local bridge).
   useEffect(() => {
     if (PUBLIC_VIEWS.has(route.view)) return;
-    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
-      navigate("signin");
-      setRoute(getCurrentRoute());
-      return;
-    }
-    if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
-    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
-    if (!isTokenExpired()) return;
+    if (isIdeEmbedSurface()) return;
+    if (isAuthenticated && !isTokenExpired()) return;
+    // Block all non-public routes for unauthenticated users
     navigate("signin");
     setRoute(getCurrentRoute());
   }, [route.view, isAuthenticated]);
