@@ -22,6 +22,18 @@ import {
   Github,
   BookOpen,
   Download,
+  Upload,
+  ScrollText,
+  Building2,
+  Server,
+  TrendingUp,
+  Radio,
+  Megaphone,
+  Layers,
+  SlidersHorizontal,
+  Zap,
+  FileBarChart,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +64,7 @@ const navGroups: NavGroup[] = [
       { view: 'analyze', label: 'Analyze', icon: FolderSearch },
       { view: 'results', label: 'Results', icon: ClipboardList },
       { view: 'repository-health', label: 'Repo Health', icon: Package },
+      { view: 'upload', label: 'Upload', icon: Upload },
     ],
   },
   {
@@ -61,6 +74,7 @@ const navGroups: NavGroup[] = [
       { view: 'security', label: 'Security', icon: Lock },
       { view: 'quality', label: 'Quality', icon: Award },
       { view: 'trust', label: 'Trust', icon: BadgeCheck },
+      { view: 'compliance', label: 'Compliance', icon: ScrollText },
     ],
   },
   {
@@ -69,8 +83,22 @@ const navGroups: NavGroup[] = [
       { view: 'assessments', label: 'Assessments', icon: FileText },
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
+      { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Megaphone },
+      { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
+      { view: 'workspace', label: 'Workspace', icon: Layers },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
+    ],
+  },
+  {
+    label: 'Team & Enterprise',
+    items: [
+      { view: 'organization', label: 'Organization', icon: Building2 },
+      { view: 'enterprise', label: 'Enterprise', icon: Server },
+      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
+      { view: 'telemetry', label: 'Advanced Telemetry', icon: Radio },
+      { view: 'fine-tuning', label: 'Fine-Tuning Curation', icon: SlidersHorizontal },
+      { view: 'webhook-events', label: 'Webhook Events', icon: Zap },
     ],
   },
   {
@@ -78,6 +106,7 @@ const navGroups: NavGroup[] = [
     items: [
       { view: 'tools', label: 'Tools', icon: Wrench },
       { view: 'settings', label: 'Settings', icon: Settings },
+      { view: 'license-manager', label: 'License Manager', icon: KeyRound },
       { view: 'help', label: 'Help', icon: HelpCircle },
       { view: 'getting-started', label: 'Getting Started', icon: Rocket },
       { view: 'chatbot', label: 'Chatbot', icon: Bot },
