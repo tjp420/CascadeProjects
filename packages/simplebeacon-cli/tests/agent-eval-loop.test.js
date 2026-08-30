@@ -230,30 +230,62 @@ describe("saveOutputToWorkspace", () => {
     assert.ok(fs.existsSync(path.join(workspace, "valid.ts")));
   });
 
-  test("path traversal via .. is contained within workspace by path.join", () => {
-    // path.join normalizes .. — on most systems this resolves inside the workspace
-    // but if the model outputs ../../etc/passwd, path.join(workspace, "../../etc/passwd")
-    // would resolve outside. This test documents the current behavior.
+  test("path traversal via .. is blocked and flattened to workspace root", () => {
+    // Model output with .. segments that would escape the workspace.
+    // The safeResolvePath guard should flatten to basename inside workspace.
     const output = [
       { path: "subdir/../../../escape.txt", content: "traversal attempt" },
     ];
     const files = mod.saveOutputToWorkspace(workspace, output);
     assert.equal(files.length, 1);
-    // The file is written at the resolved path. path.join will normalize this
-    // to a path that may escape workspace. This test verifies the file is written
-    // (documenting current behavior) — a security fix should sanitize .. segments.
-    const resolved = path.resolve(
+
+    // The file should be contained inside the workspace as escape.txt
+    const safePath = path.join(workspace, "escape.txt");
+    assert.ok(fs.existsSync(safePath), "File should be flattened to workspace root");
+    assert.equal(
+      fs.readFileSync(safePath, "utf8"),
+      "traversal attempt",
+    );
+
+    // The file should NOT exist at the traversed path outside workspace
+    const escapedPath = path.resolve(
       path.join(workspace, "subdir/../../../escape.txt"),
     );
-    // The resolved path should be outside the workspace (documenting the risk)
-    // Verify the file exists at the resolved location
-    assert.ok(fs.existsSync(resolved), "File was written at traversed path");
-    // Clean up the escaped file if it exists
-    try {
-      fs.unlinkSync(resolved);
-    } catch {
-      // may not exist if path was contained
-    }
+    assert.ok(
+      !escapedPath.startsWith(path.resolve(workspace) + path.sep),
+      "Traversed path should resolve outside workspace",
+    );
+    assert.ok(!fs.existsSync(escapedPath), "File must not escape workspace boundary");
+  });
+
+  test("absolute path in model output is contained within workspace", () => {
+    // An absolute path like /etc/passwd should not write outside workspace.
+    // path.resolve(workspaceRoot, "/etc/passwd") returns "/etc/passwd" on Unix
+    // which does not start with workspaceRoot — so it gets flattened.
+    const output = [
+      { path: "/etc/passwd", content: "should not write here" },
+    ];
+    const files = mod.saveOutputToWorkspace(workspace, output);
+    assert.equal(files.length, 1);
+
+    // Should be flattened to basename inside workspace
+    const safePath = path.join(workspace, "passwd");
+    assert.ok(fs.existsSync(safePath), "Absolute path should be flattened to workspace root");
+    assert.equal(fs.readFileSync(safePath, "utf8"), "should not write here");
+  });
+
+  test("legitimate nested paths still work after containment guard", () => {
+    // Normal relative paths without .. should work as before
+    const output = [
+      { path: "src/handler.ts", content: "export const x = 1;" },
+      { path: "deep/nested/dir/file.js", content: "module.exports = 1;" },
+    ];
+    const files = mod.saveOutputToWorkspace(workspace, output);
+    assert.equal(files.length, 2);
+    assert.ok(fs.existsSync(path.join(workspace, "src", "handler.ts")));
+    assert.ok(
+      fs.existsSync(path.join(workspace, "deep", "nested", "dir", "file.js")),
+    );
   });
 });
 

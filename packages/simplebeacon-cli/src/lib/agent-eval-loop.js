@@ -62,12 +62,31 @@ function createWorkspace(prefix = "sb-eval-") {
  */
 function saveOutputToWorkspace(workspace, output) {
   const writtenFiles = [];
+  const workspaceRoot = path.resolve(workspace);
+
+  /**
+   * Resolve a file path inside the workspace, enforcing boundary containment.
+   * If the resolved path escapes the workspace root (via .. segments or
+   * absolute paths), the file is flattened to its basename inside the
+   * workspace root. This prevents path traversal from model output.
+   * @param {string} relativePath - Path from model output
+   * @returns {string} Safe absolute path inside workspace
+   */
+  function safeResolvePath(relativePath) {
+    const resolved = path.resolve(workspaceRoot, relativePath);
+    if (resolved.startsWith(workspaceRoot + path.sep) || resolved === workspaceRoot) {
+      return resolved;
+    }
+    // Traversal attempt — flatten to basename inside workspace root
+    const safeBaseName = path.basename(relativePath) || "traversal-blocked.txt";
+    return path.join(workspaceRoot, safeBaseName);
+  }
 
   if (Array.isArray(output)) {
     // Array of {path, content} — save each file
     for (const file of output) {
       if (!file.path || !file.content) continue;
-      const fullPath = path.join(workspace, file.path);
+      const fullPath = safeResolvePath(file.path);
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
       fs.writeFileSync(fullPath, file.content, "utf8");
       writtenFiles.push(fullPath);
@@ -76,7 +95,7 @@ function saveOutputToWorkspace(workspace, output) {
   }
 
   // String output — save as response.txt, then extract code blocks
-  const responsePath = path.join(workspace, "response.txt");
+  const responsePath = path.join(workspaceRoot, "response.txt");
   fs.writeFileSync(responsePath, String(output), "utf8");
   writtenFiles.push(responsePath);
 
@@ -85,7 +104,7 @@ function saveOutputToWorkspace(workspace, output) {
   for (let i = 0; i < codeBlocks.length; i++) {
     const block = codeBlocks[i];
     const ext = block.language || "txt";
-    const blockPath = path.join(workspace, `block-${i + 1}.${ext}`);
+    const blockPath = path.join(workspaceRoot, `block-${i + 1}.${ext}`);
     fs.writeFileSync(blockPath, block.code, "utf8");
     writtenFiles.push(blockPath);
   }
