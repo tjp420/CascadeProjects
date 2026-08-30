@@ -119,7 +119,7 @@ function extractCodeBlocks(text) {
  * @returns {Promise<Object>} Scan result with findings
  */
 async function scanWorkspace(workspace, options = {}) {
-  const { runScan } = require("./scan");
+  const { runScan } = require("../scan");
   const scanRoot = path.resolve(workspace);
 
   const report = await runScan(scanRoot, {
