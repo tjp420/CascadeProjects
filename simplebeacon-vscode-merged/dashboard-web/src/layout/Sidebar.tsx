@@ -215,8 +215,8 @@ function NavGroupSection({
       <div className="space-y-0.5">
         {group.items
           .filter((item) => {
-            // Hide Assessments from non-admin users
-            if (item.view === 'assessments' && !isAdmin) return false;
+            // Hide admin-only views from non-admin users
+            if ((item.view === 'assessments' || item.view === 'admin') && !isAdmin) return false;
             return true;
           })
           .map((item) => {
