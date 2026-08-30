@@ -50,6 +50,39 @@ const STRIPE_TIER_MAP = {
     basePrice: null, // custom negotiated
     metered: false,
   },
+  // --- Test/development placeholder aliases (match fixture price IDs) ---
+  price_developer_monthly: {
+    tier: "developer",
+    expiryDays: 30,
+    product: "developer",
+    basePrice: 4900,
+    metered: false,
+    testAlias: true,
+  },
+  price_developer_annual: {
+    tier: "developer",
+    expiryDays: 365,
+    product: "developer_annual",
+    basePrice: 49000,
+    metered: false,
+    testAlias: true,
+  },
+  price_team_pro_monthly: {
+    tier: "team_pro",
+    expiryDays: 30,
+    product: "team_pro",
+    basePrice: 14900,
+    metered: false,
+    testAlias: true,
+  },
+  price_team_pro_annual: {
+    tier: "team_pro",
+    expiryDays: 365,
+    product: "team_pro_annual",
+    basePrice: 149000,
+    metered: false,
+    testAlias: true,
+  },
   // --- Legacy (pre-2026-01) — preserved for migration ---
   price_startup_monthly: {
     tier: "developer", // migrated to developer tier
