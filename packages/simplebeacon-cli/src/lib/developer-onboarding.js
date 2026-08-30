@@ -5,7 +5,11 @@
 
 const fs = require("fs");
 const path = require("path");
-const { installCursorMcpConfig } = require("../mcp/install-cursor-config");
+const {
+  installCursorMcpConfig,
+  installVscodeMcpConfig,
+  installClaudeDesktopMcpConfig,
+} = require("../mcp/install-cursor-config");
 
 const PACKAGE_ROOT = path.join(__dirname, "..", "..");
 const CURSOR_RULE_TEMPLATE = path.join(
@@ -155,34 +159,62 @@ function installDeveloperStack(projectRoot, options = {}) {
     ciWorkflow: null,
     vscodeMcp: null,
     vscodeCopilotInstructions: null,
+    claudeDesktop: null,
   };
 
-  // Only install .cursor/mcp.json when explicitly requested
-  if (options.withMcp) {
+  // Determine which targets to install.
+  // options.target can be: "cursor", "vscode", "claude", "copilot", "all", or an array.
+  // Default (no target): install Cursor MCP + Cursor rule (backward compatible).
+  const target = options.target || (options.withMcp ? "cursor" : null);
+  const targets = Array.isArray(target)
+    ? target
+    : target
+      ? [target]
+      : options.withMcp
+        ? ["cursor"]
+        : [];
+
+  // "all" expands to every supported target
+  if (targets.includes("all")) {
+    targets.push("cursor", "vscode", "claude", "copilot");
+  }
+
+  const wantCursor = targets.includes("cursor") || options.withMcp;
+  const wantVscode = targets.includes("vscode") || options.withVscode;
+  const wantClaude = targets.includes("claude");
+  const wantCopilot = targets.includes("copilot") || options.withVscode;
+
+  // Cursor MCP config (.cursor/mcp.json)
+  if (wantCursor) {
     results.mcp = installCursorMcpConfig(projectRoot, options);
   }
 
-  if (options.withCursorRule) {
+  // Cursor rule (.cursor/rules/simplebeacon-scan-workflow.mdc)
+  if (wantCursor || options.withCursorRule) {
     results.cursorRule = installCursorRule(projectRoot, options);
   }
 
+  // CI workflow
   if (options.withCi) {
     results.ciWorkflow = installCiWorkflow(projectRoot, options);
   }
 
-  if (options.withVscode) {
-    // Write .vscode/mcp.json and .github/copilot-instructions.md
-    // Use the existing install logic where possible
-    // installVscodeMcpConfig is provided by install-cursor-config as a backward-compatible wrapper
-    const {
-      installVscodeMcpConfig: installVscode,
-      buildVscodeMcpJson: _buildVscodeMcpJson,
-    } = require("../mcp/install-cursor-config");
-    results.vscodeMcp = installVscode(projectRoot, options);
+  // VS Code MCP config (.vscode/mcp.json)
+  if (wantVscode) {
+    results.vscodeMcp = installVscodeMcpConfig(projectRoot, options);
+  }
+
+  // GitHub Copilot instructions (.github/copilot-instructions.md)
+  if (wantCopilot) {
     results.vscodeCopilotInstructions = installVscodeCopilotInstructions(
       projectRoot,
       options,
     );
+  }
+
+  // Claude Desktop config (~/Library/Application Support/Claude/...)
+  if (wantClaude) {
+    results.claudeDesktop = installClaudeDesktopMcpConfig(projectRoot, options);
   }
 
   return results;

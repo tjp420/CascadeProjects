@@ -129,11 +129,128 @@ function installVscodeMcpConfig(projectRoot, options = {}) {
   };
 }
 
+/**
+ * Install Claude Desktop MCP config.
+ * Writes to the Claude Desktop config directory:
+ *   - macOS:   ~/Library/Application Support/Claude/claude_desktop_config.json
+ *   - Windows: %APPDATA%\Claude\claude_desktop_config.json
+ *   - Linux:   ~/.config/Claude/claude_desktop_config.json
+ *
+ * If the file already exists, merges the simplebeacon server entry instead of overwriting.
+ * @param {string} projectRoot - Project root (used for SIMPLEBEACON_PROJECT_ROOT env)
+ * @param {Object} options - { force, dryRun, mode }
+ * @returns {Object} Result with created/skipped/merged status and configPath.
+ */
+function installClaudeDesktopMcpConfig(projectRoot, options = {}) {
+  const os = require("os");
+  const force = Boolean(options.force);
+  const dryRun = Boolean(options.dryRun);
+
+  // Resolve Claude Desktop config directory per OS
+  const platform = process.platform;
+  let configDir;
+  if (platform === "darwin") {
+    configDir = path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "Claude",
+    );
+  } else if (platform === "win32") {
+    configDir = path.join(process.env.APPDATA || os.homedir(), "Claude");
+  } else {
+    // Linux / WSL
+    configDir = path.join(
+      process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"),
+      "Claude",
+    );
+  }
+
+  const configPath = path.join(configDir, "claude_desktop_config.json");
+  const newEntry = buildClaudeDesktopMcpJson(options);
+
+  // If file exists and not forced, merge the simplebeacon server entry
+  if (fs.existsSync(configPath) && !force) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (existing.mcpServers && existing.mcpServers.simplebeacon) {
+        return {
+          skipped: true,
+          configPath,
+          message: "simplebeacon already configured in Claude Desktop config",
+        };
+      }
+      // Merge — preserve existing servers, add simplebeacon
+      const merged = {
+        ...existing,
+        mcpServers: {
+          ...(existing.mcpServers || {}),
+          simplebeacon: newEntry.mcpServers.simplebeacon,
+        },
+      };
+
+      if (dryRun) {
+        return {
+          dryRun: true,
+          configPath,
+          wouldWrite: JSON.stringify(merged, null, 2),
+          action: "merge",
+        };
+      }
+
+      fs.writeFileSync(
+        configPath,
+        `${JSON.stringify(merged, null, 2)}\n`,
+        "utf8",
+      );
+      return {
+        created: true,
+        configPath,
+        action: "merged",
+        mode: options.mode || "npx-local",
+      };
+    } catch (mergeErr) {
+      // Can't parse existing — fall through to overwrite if forced, else error
+      if (!force) {
+        return {
+          skipped: true,
+          configPath,
+          message: `Existing config unreadable — use --force to overwrite (${mergeErr.message})`,
+        };
+      }
+    }
+  }
+
+  if (dryRun) {
+    return {
+      dryRun: true,
+      configPath,
+      wouldWrite: JSON.stringify(newEntry, null, 2),
+      action: "create",
+    };
+  }
+
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.writeFileSync(
+    configPath,
+    `${JSON.stringify(newEntry, null, 2)}\n`,
+    "utf8",
+  );
+
+  return {
+    created: true,
+    configPath,
+    action: "created",
+    mode: options.mode || "npx-local",
+  };
+}
+
 module.exports = {
   buildCursorMcpJson,
   buildClaudeDesktopMcpJson,
   buildVscodeMcpJson,
   installCursorMcpConfig,
   installVscodeMcpConfig,
+  installClaudeDesktopMcpConfig,
   resolveMcpCommand,
 };

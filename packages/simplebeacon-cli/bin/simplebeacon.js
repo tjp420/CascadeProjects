@@ -105,6 +105,7 @@ const VALID_COMMANDS = new Set([
   "refer",
   "mcp",
   "ai-plan",
+  "eval-agent",
   "doctor",
   "upload",
   "cache",
@@ -333,6 +334,15 @@ function createDefaultOptions(command) {
     secretsOnly: false,
     certify: false,
     certifyUrl: null,
+    // eval-agent options
+    evalPrompt: null,
+    evalModel: "gpt-4o",
+    evalMaxAttempts: 3,
+    evalApiKey: null,
+    evalApiBaseUrl: null,
+    evalTemperature: 0.2,
+    evalWorkspace: null,
+    evalNoCleanup: false,
   };
 }
 
@@ -391,6 +401,7 @@ const FLAG_MAP = [
   { aliases: ["--with-mcp"], key: "withMcp", type: "boolean" },
   { aliases: ["--with-ci"], key: "withCi", type: "boolean" },
   { aliases: ["--ci-platform"], key: "ciPlatform", type: "string" },
+  { aliases: ["--target"], key: "target", type: "string" },
   {
     aliases: ["--starter"],
     key: "starter",
@@ -463,6 +474,15 @@ const FLAG_MAP = [
     },
   },
   { aliases: ["--invitee-email", "--to"], key: "inviteeEmail", type: "string" },
+  // eval-agent flags
+  { aliases: ["--prompt"], key: "evalPrompt", type: "string" },
+  { aliases: ["--model"], key: "evalModel", type: "string" },
+  { aliases: ["--max-attempts"], key: "evalMaxAttempts", type: "positive-number", fallback: 3 },
+  { aliases: ["--api-key"], key: "evalApiKey", type: "string" },
+  { aliases: ["--api-base-url"], key: "evalApiBaseUrl", type: "string" },
+  { aliases: ["--temperature"], key: "evalTemperature", type: "number", fallback: 0.2 },
+  { aliases: ["--workspace"], key: "evalWorkspace", type: "string" },
+  { aliases: ["--no-cleanup"], key: "evalNoCleanup", type: "boolean" },
 ];
 
 // Auto-derive knownFlags from FLAG_MAP so it never drifts
@@ -650,6 +670,7 @@ Usage:
   simplebeacon buy-clearance        Purchase executive clearance and receive license token
   simplebeacon refer [options]      Generate a local-only referral token and share link
   simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
+  simplebeacon eval-agent [opts]   Run AI model through SimpleBeacon eval loop (generate → scan → feedback → retry)
   simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
   simplebeacon team-metrics [opts]  Aggregate anonymous compliance metrics across local scan reports
 
@@ -680,6 +701,9 @@ Init options:
   --ci-platform <p>   Force CI platform: github-actions | gitlab-ci | bitbucket-pipelines
   --starter           Shorthand for --with-mcp --with-ci
   --mcp-mode MODE     npx-local (default) | npx-github | monorepo
+  --target <tool>     Install MCP config for a specific AI tool:
+                      cursor | vscode | claude | copilot | all
+                      (can be combined: --target cursor --target claude)
 
 Scan options:
   --path, -p <dir>    Project root (default: cwd)
@@ -1847,7 +1871,8 @@ function runInitCommand(options) {
   });
   const detected = created.detected || detectProjectProfile(root);
 
-  const onboarding = options.withMcp || options.withCi || options.starter;
+  const onboarding =
+    options.withMcp || options.withCi || options.starter || options.target;
   let stack = null;
   if (onboarding) {
     stack = installDeveloperStack(root, {
@@ -1858,6 +1883,7 @@ function runInitCommand(options) {
       withCursorRule: options.withMcp || options.starter,
       withCi: options.withCi || options.starter,
       platform: options.ciPlatform,
+      target: options.target || null,
     });
   }
 
@@ -1886,6 +1912,27 @@ function runInitCommand(options) {
         writeStdoutLine(
           `Would skip: ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`,
         );
+      }
+      if (stack.vscodeMcp?.dryRun) {
+        writeStdoutLine(`Would create: ${stack.vscodeMcp.configPath}`);
+      } else if (stack.vscodeMcp?.skipped) {
+        writeStdoutLine(`Would skip: ${stack.vscodeMcp.configPath}`);
+      }
+      if (stack.vscodeCopilotInstructions?.dryRun) {
+        writeStdoutLine(
+          `Would create: ${stack.vscodeCopilotInstructions.path} (GitHub Copilot instructions)`,
+        );
+      } else if (stack.vscodeCopilotInstructions?.skipped) {
+        writeStdoutLine(
+          `Would skip: ${stack.vscodeCopilotInstructions.path}`,
+        );
+      }
+      if (stack.claudeDesktop?.dryRun) {
+        writeStdoutLine(
+          `Would ${stack.claudeDesktop.action}: ${stack.claudeDesktop.configPath} (Claude Desktop MCP)`,
+        );
+      } else if (stack.claudeDesktop?.skipped) {
+        writeStdoutLine(`Claude Desktop: ${stack.claudeDesktop.message}`);
       }
     }
     writeStdoutLine("");
@@ -1940,6 +1987,28 @@ function runInitCommand(options) {
       writeStdoutLine(
         `Skipped existing ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`,
       );
+    }
+    if (stack.vscodeMcp?.created) {
+      writeStdoutLine(`Created ${stack.vscodeMcp.configPath}`);
+    } else if (stack.vscodeMcp?.skipped) {
+      writeStdoutLine(stack.vscodeMcp.message);
+    }
+    if (stack.vscodeCopilotInstructions?.created) {
+      writeStdoutLine(
+        `Created ${stack.vscodeCopilotInstructions.path} (GitHub Copilot instructions)`,
+      );
+    } else if (stack.vscodeCopilotInstructions?.skipped) {
+      writeStdoutLine(
+        `Skipped existing ${stack.vscodeCopilotInstructions.path}`,
+      );
+    }
+    if (stack.claudeDesktop?.created) {
+      writeStdoutLine(
+        `Created ${stack.claudeDesktop.configPath} (Claude Desktop MCP — ${stack.claudeDesktop.action})`,
+      );
+      writeStdoutLine("Restart Claude Desktop to load the simplebeacon MCP server");
+    } else if (stack.claudeDesktop?.skipped) {
+      writeStdoutLine(`Claude Desktop: ${stack.claudeDesktop.message}`);
     }
     if (options.withMcp || options.starter) {
       writeStdoutLine("Reload Cursor → Settings → MCP → enable simplebeacon");
@@ -2802,6 +2871,7 @@ const COMMAND_REGISTRY = {
     server.start();
   },
   "ai-plan": runAiPlanCommand,
+  "eval-agent": runEvalAgentCommand,
   scan: runScanCommand,
   fix: (options) => {
     if (options.dryRun) options.fixDryRun = true;
@@ -2971,6 +3041,83 @@ async function main() {
 function runDoctorCommand() {
   const { runDoctor } = require("../src/doctor");
   runDoctor();
+}
+
+/**
+ * Run the agent evaluation loop — orchestrates an external AI model through
+ * a SimpleBeacon-validated generate → scan → feed-back → retry cycle.
+ * @param {Object} options
+ * @returns {Promise<void>}
+ */
+async function runEvalAgentCommand(options) {
+  if (!options || typeof options !== "object")
+    throw new TypeError("runEvalAgentCommand requires an options object");
+
+  const prompt = options.evalPrompt;
+  if (!prompt) {
+    writeStdoutLine("Usage: simplebeacon eval-agent --prompt \"<your prompt>\" [--model gpt-4o] [--max-attempts 3]");
+    writeStdoutLine("");
+    writeStdoutLine("Options:");
+    writeStdoutLine("  --prompt <text>       The prompt for the AI model (required)");
+    writeStdoutLine("  --model <name>        Model name (default: gpt-4o)");
+    writeStdoutLine("  --max-attempts <n>    Maximum retry attempts (default: 3)");
+    writeStdoutLine("  --api-key <key>       API key (default: OPENAI_API_KEY env var)");
+    writeStdoutLine("  --api-base-url <url>  API base URL (default: OpenAI)");
+    writeStdoutLine("  --temperature <n>     Sampling temperature (default: 0.2)");
+    writeStdoutLine("  --workspace <dir>     Custom workspace directory (default: temp)");
+    writeStdoutLine("  --no-cleanup          Keep workspace after completion");
+    return 1;
+  }
+
+  const { runAgentEvalLoop } = require("../src/lib/agent-eval-loop");
+
+  writeStdoutLine("🔄 SimpleBeacon Agent Evaluation Loop");
+  writeStdoutLine(`   Model: ${options.evalModel}`);
+  writeStdoutLine(`   Max attempts: ${options.evalMaxAttempts}`);
+  writeStdoutLine("");
+
+  try {
+    const result = await runAgentEvalLoop({
+      prompt,
+      projectRoot: sanitizePath(options.path),
+      maxAttempts: options.evalMaxAttempts,
+      model: options.evalModel,
+      apiKey: options.evalApiKey || process.env.OPENAI_API_KEY,
+      apiBaseUrl: options.evalApiBaseUrl,
+      temperature: options.evalTemperature,
+      workspaceDir: options.evalWorkspace,
+      cleanup: !options.evalNoCleanup,
+      onAttempt: ({ attempt, maxAttempts }) => {
+        writeStdoutLine(`   Attempt ${attempt}/${maxAttempts} — generating...`);
+      },
+      onScanComplete: ({ attempt, scanResult }) => {
+        const status = scanResult.passed ? "✅ PASS" : "❌ FAIL";
+        writeStdoutLine(
+          `   Attempt ${attempt} scan: ${status} — ${scanResult.blockingCount} blocking, ${scanResult.highSeverityCount} high severity`,
+        );
+      },
+    });
+
+    writeStdoutLine("");
+    if (result.passed) {
+      writeStdoutLine(`✅ Code passed SimpleBeacon gate after ${result.attempts} attempt(s).`);
+    } else {
+      writeStdoutLine(`❌ Code did not pass after ${result.attempts} attempt(s).`);
+      writeStdoutLine("");
+      writeStdoutLine("Final scan summary:");
+      writeStdoutLine(result.scanResult.summary);
+    }
+
+    if (result.workspace) {
+      writeStdoutLine("");
+      writeStdoutLine(`Workspace preserved at: ${result.workspace}`);
+    }
+
+    return result.passed ? 0 : 1;
+  } catch (err) {
+    writeStdoutLine(`Error: ${err.message}`);
+    return 1;
+  }
 }
 
 /**
