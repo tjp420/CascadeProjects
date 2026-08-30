@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { getSbConfig } from '../utils/vscode';
-import { getDataServerPort } from '../dataServer';
 import { AccountTracker } from '../accountTracker';
 
 const TOKEN_KEY = 'simplebeacon.apiToken';
@@ -161,18 +160,18 @@ export class AuthManager {
    */
   async promptForToken(): Promise<string | undefined> {
     const raw = await vscode.window.showInputBox({
-      title: 'SimpleBeacon API Token',
-      prompt: 'Paste your token from the dashboard (localStorage "cascadeAuthToken")',
+      title: 'SimpleBeacon License Token',
+      prompt: 'Paste your token from https://simplebeacon.ai/dashboard/#/profile (sb_auth_token in localStorage)',
       password: true,
       ignoreFocusOut: true,
       validateInput: (value) => {
         const trimmed = (value || '').trim();
         if (!trimmed || trimmed.length < 10) {
-          return 'Token looks too short — copy the full JWT from your browser';
+          return 'Token looks too short — copy the full token from your dashboard profile page';
         }
         const parts = trimmed.split('.');
         if (parts.length !== 2 && parts.length !== 3) {
-          return 'Token must be a JWT (3 dots) or license key (1 dot) — ensure you copied only the token value, not the full JSON response';
+          return 'Token must be a JWT (3 parts) or license key (2 parts) — ensure you copied only the token value';
         }
         return undefined;
       },
@@ -183,37 +182,16 @@ export class AuthManager {
       return undefined;
     }
 
-    // Check if this token is already registered on the server
-    try {
-      const port = getDataServerPort();
-      const res = await fetch(`http://127.0.0.1:${port}/api/auth/token-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { registered?: boolean };
-        if (data.registered) {
-          vscode.window.showErrorMessage(
-            'This token is already registered. Use a different token or sign in with the existing one.'
-          );
-          return undefined;
-        }
-      }
-    } catch {
-      // Data server not running; allow local-only registration
-    }
-
-    // Also check local storage to prevent overwriting the same token
+    // Check local storage to prevent overwriting the same token
     const existingToken = await this.getToken();
     if (existingToken === token) {
-      vscode.window.showErrorMessage('This token is already saved locally.');
-      return undefined;
+      vscode.window.showInformationMessage('This token is already saved locally.');
+      return token;
     }
 
     await this.setToken(token);
     vscode.window.showInformationMessage(
-      'SimpleBeacon API token saved — complete registration in the panel that opens'
+      'SimpleBeacon token saved. Pro features will activate if the token is valid.'
     );
     return token;
   }

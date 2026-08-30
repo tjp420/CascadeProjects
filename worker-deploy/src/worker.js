@@ -312,6 +312,197 @@ async function signJwtHS256(claims, signingSecret) {
   return `${body}.${signaturePart}`;
 }
 
+/**
+ * Verify a JWT (HS256) using Web Crypto API.
+ * Returns the decoded payload if valid, null otherwise.
+ */
+async function verifyJwtHS256(token, signingSecret) {
+  try {
+    const parts = String(token).split(".");
+    if (parts.length !== 3) return null;
+    const [headerPart, payloadPart, signaturePart] = parts;
+    const body = `${headerPart}.${payloadPart}`;
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(signingSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    const signatureBytes = base64UrlToBytes(signaturePart);
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      signatureBytes,
+      new TextEncoder().encode(body),
+    );
+    if (!valid) return null;
+
+    const payload = JSON.parse(
+      new TextDecoder().decode(base64UrlToBytes(payloadPart)),
+    );
+    // Check expiry
+    if (payload.exp && Date.now() >= payload.exp * 1000) return null;
+    return payload;
+  } catch (_) {
+    return null;
+  }
+}
+
+function base64UrlToBytes(b64url) {
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - (b64.length % 4)) % 4);
+  const binary = atob(b64 + padding);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+// Rate limiting for attestation endpoint — per-token request counting
+const attestRateMap = new Map();
+const ATTEST_RATE_WINDOW_MS = 60 * 1000;
+const ATTEST_RATE_MAX = 10;
+const ATTEST_CLEANUP_INTERVAL_MS = 120000;
+let lastAttestCleanup = 0;
+
+function checkAttestRateLimit(tokenHash) {
+  const now = Date.now();
+  // Lazy cleanup — prune stale entries on each call rather than using setInterval
+  if (now - lastAttestCleanup > ATTEST_CLEANUP_INTERVAL_MS) {
+    const cutoff = now - ATTEST_RATE_WINDOW_MS * 2;
+    for (const [key, entry] of attestRateMap) {
+      if (entry.windowStart < cutoff) attestRateMap.delete(key);
+    }
+    lastAttestCleanup = now;
+  }
+  const entry = attestRateMap.get(tokenHash);
+  if (!entry || now - entry.windowStart > ATTEST_RATE_WINDOW_MS) {
+    attestRateMap.set(tokenHash, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= ATTEST_RATE_MAX;
+}
+
+/**
+ * Handle scan attestation requests.
+ *
+ * Validates the user's JWT auth token, then issues a short-lived (5-min)
+ * attestation JWT signed with SCAN_ATTEST_SECRET. The attestation is bound
+ * to a device fingerprint so it can't be shared across machines.
+ *
+ * Required body: { token: string, deviceFingerprint: string }
+ * Returns: { attestation: string, expiresAt: number, scanId: string }
+ */
+async function handleScanAttestation(request, env, corsOrigin) {
+  if (!corsOrigin) {
+    return json({ error: "Origin not allowed." }, 403, "");
+  }
+
+  const jwtSecret = env.JWT_SECRET || env.SIMPLEBEACON_JWT_SECRET;
+  const attestSecret =
+    env.SCAN_ATTEST_SECRET || jwtSecret || "sb-attest-fallback-dev";
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (_) {
+    return json({ error: "Invalid JSON body." }, 400, corsOrigin);
+  }
+
+  const { token, deviceFingerprint } = body || {};
+  if (!token || typeof token !== "string") {
+    return json({ error: "Auth token required." }, 401, corsOrigin);
+  }
+  if (
+    !deviceFingerprint ||
+    typeof deviceFingerprint !== "string" ||
+    deviceFingerprint.length < 8
+  ) {
+    return json({ error: "Device fingerprint required." }, 400, corsOrigin);
+  }
+
+  // Rate limit per token hash
+  const tokenHash = await hmacSha256Hex(attestSecret, token.slice(0, 32));
+  if (!checkAttestRateLimit(tokenHash)) {
+    return json(
+      { error: "Rate limit exceeded. Try again in a minute." },
+      429,
+      corsOrigin,
+    );
+  }
+
+  // Verify the JWT auth token.
+  // Mode 1: If JWT_SECRET is configured as a Worker secret, verify at the edge (fast).
+  // Mode 2: Otherwise, proxy to the Render backend for verification.
+  let payload = null;
+  if (jwtSecret) {
+    payload = await verifyJwtHS256(token, jwtSecret);
+  } else {
+    // Proxy to backend — use the existing /api/auth/verify endpoint
+    const backendUrl = String(env.API_BACKEND || "");
+    if (backendUrl) {
+      try {
+        const verifyResp = await fetch(
+          backendUrl.replace(/\/+$/, "") + "/api/auth/verify",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ token }),
+          },
+        );
+        if (verifyResp.ok) {
+          const data = await verifyResp.json();
+          if (data.valid || data.user) {
+            payload = data.user || data.payload || { email: data.email || "" };
+          }
+        }
+      } catch (_) {
+        // Backend unreachable — fall through to denial
+      }
+    }
+  }
+
+  if (!payload) {
+    return json({ error: "Invalid or expired auth token." }, 401, corsOrigin);
+  }
+
+  // Issue a short-lived attestation JWT (5-minute TTL)
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + 300;
+  const scanId = crypto.randomUUID();
+  const deviceHash = await hmacSha256Hex(attestSecret, deviceFingerprint);
+
+  const attestationClaims = {
+    sub: payload.sub || payload.email || "unknown",
+    email: payload.email || "",
+    tier: payload.tier || payload.plan || "developer",
+    role: payload.role || "user",
+    dev: deviceHash.slice(0, 16),
+    sid: scanId,
+    iat: now,
+    exp: expiresAt,
+    iss: "simplebeacon-edge",
+    aud: "simplebeacon-scan-worker",
+  };
+  const attestation = await signJwtHS256(attestationClaims, attestSecret);
+
+  return json(
+    {
+      attestation,
+      expiresAt: expiresAt * 1000,
+      scanId,
+      tier: attestationClaims.tier,
+    },
+    200,
+    corsOrigin,
+  );
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -968,6 +1159,22 @@ export default {
       request.method === "GET"
     ) {
       return await handlePublicKeyRequest(env, corsOrigin);
+    }
+
+    // Scan Attestation Endpoint — issues short-lived, device-bound attestation
+    // tokens that the local scan worker must present before running.
+    //
+    // Threat model: This prevents casual copying of the scan worker. A stolen
+    // worker cannot produce server-trusted scan results without a valid
+    // attestation. Tokens expire in 5 minutes and are bound to a device
+    // fingerprint, so they cannot be shared across machines.
+    //
+    // What this CANNOT prevent: a determined attacker with DevTools can
+    // modify the worker to skip the attestation check. This is an inherent
+    // limitation of all client-side software. The bar is raised, not made
+    // impossible.
+    if (url.pathname === "/api/scan/attest" && request.method === "POST") {
+      return await handleScanAttestation(request, env, corsOrigin);
     }
 
     // Dynamic Route 3: /api/* catch-all proxy to Render backend

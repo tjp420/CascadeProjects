@@ -16,10 +16,14 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
 } from "../utils-lib/simplebeaconignore.browser.js";
+import {
+  getAttestation,
+  isAttestationValid,
+} from "./scanAttestation.js";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260828firefoxfix1";
+const WORKER_ASSET_VERSION = "20260828workerfix1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -685,7 +689,7 @@ function buildReport(
  * @param {Object} options
  * @returns {Promise<Object>}
  */
-function runBatchedWorkerScan(worker, workerFiles, options = {}) {
+async function runBatchedWorkerScan(worker, workerFiles, options = {}) {
   const scanId = crypto.randomUUID();
   const totalFiles = workerFiles.length;
   const ignoreCtx = options.ignoreCtx || null;
@@ -693,6 +697,20 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
   let fileErrors = 0;
   const fileErrorExamples = [];
   const SCAN_OVERALL_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes overall safeguard
+  // Acquire scan attestation before starting the worker.
+  // The worker will refuse to run without a valid attestation token.
+  // This prevents casual copying of the scan worker to other sites.
+  let attestation = null;
+  let attestationScanId = null;
+  try {
+    const attestResult = await getAttestation();
+    if (attestResult && isAttestationValid(attestResult.attestation)) {
+      attestation = attestResult.attestation;
+      attestationScanId = attestResult.scanId;
+    }
+  } catch (e) {
+    console.warn("[localScan] Attestation fetch failed:", e?.message || e);
+  }
   return new Promise((resolve, reject) => {
     let settled = false;
     let workerStarted = false;
@@ -819,7 +837,15 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
       }
       if (type === "error") {
         cleanup();
-        reject(new Error(error || "Local scan failed"));
+        if (e.data.attestationRequired) {
+          reject(
+            new Error(
+              "Sign in required to run local scans. Your session may have expired — please sign in and try again.",
+            ),
+          );
+        } else {
+          reject(new Error(error || "Local scan failed"));
+        }
       }
       if (type === "complete") {
         cleanup();
@@ -866,11 +892,17 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
         );
       }
     };
+
+    // Acquire scan attestation before starting the worker.
+    // The worker will refuse to run without a valid attestation token.
+    // This prevents casual copying of the scan worker to other sites.
     worker.postMessage({
       type: "scan-start",
       scanId,
       totalFiles,
       deepScan,
+      attestation,
+      attestationScanId,
       ignoreCtx: ignoreCtx
         ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
         : null,

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/hooks/useTheme";
 import { navigate } from "@/router/HashRouter";
+import { clearAuthToken } from "@/config";
 import { OfflineStatusBadge } from "@/components/OfflineStatusBadge";
 
 interface HeaderProps {
@@ -157,9 +158,9 @@ export function Header({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  localStorage.removeItem("sb_token");
-                  localStorage.removeItem("sb-token");
+                  clearAuthToken();
                   localStorage.removeItem("sb_user");
+                  localStorage.removeItem("sb-user");
                   try {
                     window.dispatchEvent(new Event("sb:logout"));
                   } catch {

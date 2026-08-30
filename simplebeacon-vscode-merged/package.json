@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/tjp420/CascadeProjects.git"
   },
-  "version": "3.0.556",
+  "version": "3.0.559",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -156,6 +156,11 @@
     "configuration": {
       "title": "SimpleBeacon",
       "properties": {
+        "simplebeacon.licenseToken": {
+          "type": "string",
+          "default": "",
+          "description": "Paste your SimpleBeacon license token from https://simplebeacon.ai/dashboard/#/profile to unlock Pro/Team features. This is the same token stored as sb_auth_token in the dashboard localStorage."
+        },
         "simplebeacon.autoScanOnOpen": {
           "type": "boolean",
           "default": false,

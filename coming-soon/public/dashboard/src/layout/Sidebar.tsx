@@ -107,10 +107,28 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Views that require authentication — hidden from sidebar when signed out
-// Align with App.tsx AUTH_REQUIRED_VIEWS — only organization and workspace
-// truly require auth at the router level. Admin is handled separately below.
-const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
+// Views that require admin role — hidden from non-admin users
+const ADMIN_ONLY_VIEWS = new Set([
+  "admin",
+  "fine-tuning",
+  "webhook-events",
+  "ops-report",
+  "license-manager",
+  "outreach-analytics",
+  "telemetry",
+  "team-metrics",
+  "workspace",
+]);
+
+// Public views visible even when signed out
+const PUBLIC_VIEWS = new Set([
+  "signin",
+  "register",
+  "about",
+  "getting-started",
+  "help",
+  "features",
+]);
 
 export function Sidebar({
   currentView,
@@ -243,14 +261,9 @@ function NavGroupSection({
         {group.items
           .filter((item) => {
             // Hide admin-only items from non-admin users
-            if (
-              !isAdmin &&
-              (item.view === "admin" || item.view === "workspace")
-            )
-              return false;
-            // Hide auth-required items from signed-out users
-            if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view))
-              return false;
+            if (!isAdmin && ADMIN_ONLY_VIEWS.has(item.view)) return false;
+            // Hide all non-public items from signed-out users
+            if (!isAuthenticated && !PUBLIC_VIEWS.has(item.view)) return false;
             return true;
           })
           .map((item) => {

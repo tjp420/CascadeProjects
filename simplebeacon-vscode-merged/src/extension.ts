@@ -95,6 +95,24 @@ import { validateLicenseLocally, normalizeTier } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { getAccountTracker } from './accountTracker';
 import { PAID_TIERS, resolveTier } from './tierConstants';
+import {
+  hashReport,
+  getExportAuthorization,
+  embedServerSignature,
+  promptUpgradeForExport,
+  PREMIUM_EXPORT_TYPES,
+  tierCanExport,
+  minTierForExport,
+  normalizeAccountTier,
+  filterReportByTier,
+  buildFreeTierMarkdown,
+  buildDeveloperTierJson,
+  buildTeamTierJson,
+  calculateSummary,
+  type ExportType,
+  type ServerSignature,
+  type AccountTier,
+} from './exportGate';
 import { countLocalDirectoryInventory } from './routes/scanReport';
 import { ComplianceSidebarProvider } from './panels/ComplianceSidebar';
 
@@ -115,13 +133,31 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
 async function isPaidUser(): Promise<boolean> {
   const config = getSbConfig();
 
-  // 1. Check locally-configured license token
-  const licenseToken = config.get<string>('licenseKey', '') || config.get<string>('licenseToken', '');
+  // 1. Check locally-configured license token (settings: simplebeacon.licenseToken or licenseKey)
+  const licenseToken = config.get<string>('licenseToken', '') || config.get<string>('licenseKey', '');
   if (licenseToken) {
+    // License tokens (2-part, RSA-signed) validate locally
     const meta = validateLicenseLocally(licenseToken, PUBLIC_KEY_PEM);
     if (meta) {
       const tier = resolveTier(meta.tier);
       if (PAID_TIERS.has(tier)) return true;
+    }
+    // JWT tokens (3-part) — decode and check tier from payload
+    const jwtPayload = decodeJwtPayload(licenseToken);
+    if (jwtPayload) {
+      if (jwtPayload.exp && jwtPayload.exp * 1000 < Date.now()) {
+        // expired — don't return false yet, try other sources
+      } else {
+        const tier = String(
+          jwtPayload.tier ||
+            jwtPayload.plan ||
+            jwtPayload.role ||
+            jwtPayload.subscription?.tier ||
+            jwtPayload.subscription?.plan ||
+            ''
+        ).toLowerCase();
+        if (PAID_TIERS.has(resolveTier(tier))) return true;
+      }
     }
   }
 
@@ -137,6 +173,8 @@ async function isPaidUser(): Promise<boolean> {
   if (!apiToken) {
     apiToken =
       config.get<string>('apiToken', '') ||
+      config.get<string>('licenseKey', '') ||
+      config.get<string>('licenseToken', '') ||
       _extensionContext?.globalState.get<string>('simplebeacon.apiToken', '') ||
       '';
   }
@@ -177,6 +215,223 @@ async function promptUpgrade(featureName: string): Promise<void> {
   if (choice === 'Upgrade to Pro') {
     vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
   }
+}
+
+/**
+ * Export gate — authorize a premium local export.
+ *
+ * 1. Verify the user has a paid tier (client UX gate).
+ * 2. Compute a SHA-256 hash of the report (source code is never sent).
+ * 3. Request a server signature over the hash from /api/simplebeacon/user/sign-report.
+ * 4. Return the signature to embed into the locally-generated artifact.
+ *
+ * Returns `{ authorized, signature?, error? }`. When `authorized` is false,
+ * the caller must abort the export and surface `error` to the user.
+ */
+async function authorizePremiumExport(
+  reportType: ExportType,
+  report: unknown,
+  metadata?: Record<string, unknown>,
+): Promise<{ authorized: boolean; signature?: ServerSignature; error?: string }> {
+  if (!PREMIUM_EXPORT_TYPES.has(reportType)) {
+    // Basic export — no gate.
+    return { authorized: true };
+  }
+
+  // 1. Retrieve the auth token (JWT or license key).
+  let token = '';
+  try {
+    token = (await getAuthManager().getToken()) || '';
+  } catch {
+    token = '';
+  }
+  if (!token) {
+    const config = getSbConfig();
+    token =
+      config.get<string>('licenseToken', '') ||
+      config.get<string>('licenseKey', '') ||
+      config.get<string>('apiToken', '') ||
+      '';
+  }
+  if (!token) {
+    await promptUpgradeForExport(prettyExportName(reportType));
+    return { authorized: false, error: 'No auth token configured' };
+  }
+
+  // 2. Determine the user's tier from the token (client UX — not a
+  //    cryptographic boundary; the server enforces the real check).
+  const userTier = extractTierFromToken(token);
+  if (!tierCanExport(userTier, reportType)) {
+    const minTier = minTierForExport(reportType);
+    await promptUpgradeForTier(prettyExportName(reportType), minTier);
+    return {
+      authorized: false,
+      error: `${prettyExportName(reportType)} requires the ${minTier} tier or higher`,
+    };
+  }
+
+  // 3. Compute report hash + request server signature.
+  //    The server independently validates the JWT + tier, so a modified
+  //    client cannot bypass the gate to obtain a valid signature.
+  const reportHash = hashReport(report);
+  const auth = await getExportAuthorization(token, reportType, reportHash, metadata);
+  if (!auth.ok || !auth.signature) {
+    const msg = auth.error || 'Server signature request failed';
+    vscode.window.showErrorMessage(
+      `${prettyExportName(reportType)} could not be authorized: ${msg}`,
+    );
+    return { authorized: false, error: msg };
+  }
+
+  return { authorized: true, signature: auth.signature };
+}
+
+/**
+ * Extract the user's tier from a JWT or license token.
+ * This is a client-side hint for UX — the server independently verifies.
+ */
+function extractTierFromToken(token: string): string {
+  // Try JWT (3-part)
+  const payload = decodeJwtPayload(token);
+  if (payload) {
+    return String(
+      payload.tier ||
+        payload.plan ||
+        payload.role ||
+        payload.user?.tier ||
+        payload.user?.plan ||
+        payload.data?.tier ||
+        payload.data?.plan ||
+        payload.account?.tier ||
+        payload.account?.plan ||
+        payload.subscription?.tier ||
+        payload.subscription?.plan ||
+        ''
+    ).toLowerCase();
+  }
+  // Try license token (2-part, RSA-signed) — decode payload section
+  const parts = token.split('.');
+  if (parts.length === 2) {
+    try {
+      const base64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const meta = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+      return String(meta.tier || meta.plan || '').toLowerCase();
+    } catch {
+      // ignore
+    }
+  }
+  return 'free';
+}
+
+/**
+ * Get the current user's tier by checking all token sources.
+ * Returns 'free' if no token is found or the tier can't be determined.
+ */
+async function getCurrentUserTier(): Promise<string> {
+  let token = '';
+  try {
+    token = (await getAuthManager().getToken()) || '';
+  } catch {
+    token = '';
+  }
+  if (!token) {
+    const config = getSbConfig();
+    token =
+      config.get<string>('licenseToken', '') ||
+      config.get<string>('licenseKey', '') ||
+      config.get<string>('apiToken', '') ||
+      '';
+  }
+  if (!token) return 'free';
+  return extractTierFromToken(token);
+}
+
+/** Prompt the user to upgrade to a specific minimum tier. */
+async function promptUpgradeForTier(featureName: string, minTier: string): Promise<void> {
+  const tierLabel = minTier === 'developer' ? 'Developer ($49/mo)' : minTier === 'team' ? 'Team Pro ($149/mo)' : minTier;
+  const choice = await vscode.window.showInformationMessage(
+    `${featureName} requires the ${tierLabel} tier or higher. Upgrade to unlock this export.`,
+    'View Pricing',
+    'Maybe Later',
+  );
+  if (choice === 'View Pricing') {
+    vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
+  }
+}
+
+/** Human-readable name for an export type, used in UI messages. */
+function prettyExportName(reportType: ExportType): string {
+  switch (reportType) {
+    case 'certificate':
+      return 'Certificate export';
+    case 'trust-report':
+      return 'Trust report export';
+    case 'ai-report':
+      return 'AI report export';
+    case 'email-report':
+      return 'Email report export';
+    case 'report-json':
+      return 'JSON report export';
+    case 'report-pdf':
+      return 'PDF report export';
+    case 'report-html':
+      return 'HTML report export';
+    case 'report-csv':
+      return 'CSV report export';
+    case 'report-excel':
+      return 'Excel report export';
+    default:
+      return 'Premium export';
+  }
+}
+
+/**
+ * Format a server signature as a footer block for text-based exports
+ * (markdown/json/xml) so consumers can verify authenticity.
+ */
+function formatSignatureFooter(sig: ServerSignature, format: string | undefined): string {
+  const block = {
+    serverSignature: sig,
+  };
+  if (format === 'json') {
+    return '"serverSignature": ' + JSON.stringify(sig, null, 2);
+  }
+  // markdown / xml / plain
+  return [
+    '---',
+    '## Server Authorization',
+    '',
+    `Signed at: ${sig.signedAt}`,
+    `Expires at: ${sig.expiresAt}`,
+    `Tier: ${sig.tier}`,
+    `Server key: ${sig.serverKeyId}`,
+    `Signature: ${sig.signature}`,
+    `Report hash: ${sig.metadata.reportHash}`,
+    '',
+    'Verify at: https://simplebeacon.ai/verify',
+    '---',
+  ].join('\n');
+}
+
+/**
+ * Append a server signature block to an HTML report (email/board-ready export).
+ * Inserts a styled footer before </body>.
+ */
+function appendSignatureToHtml(html: string, sig: ServerSignature): string {
+  const footer = `
+<div style="border-top:1px solid #333;margin-top:32px;padding-top:16px;font-size:11px;color:#888;font-family:monospace">
+  <strong>Server Authorization</strong><br>
+  Signed: ${escapeHtml(sig.signedAt)} · Expires: ${escapeHtml(sig.expiresAt)}<br>
+  Tier: ${escapeHtml(sig.tier)} · Key: ${escapeHtml(sig.serverKeyId)}<br>
+  Signature: ${escapeHtml(sig.signature)}<br>
+  Report hash: ${escapeHtml(sig.metadata.reportHash)}<br>
+  Verify at: <a href="https://simplebeacon.ai/verify">https://simplebeacon.ai/verify</a>
+</div>`;
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, footer + '</body>');
+  }
+  return html + footer;
 }
 
 /** Severity-to-color mapping for dashboard badges. */
@@ -1640,7 +1895,7 @@ export function activate(context: vscode.ExtensionContext) {
           panel.showAnalyzePane();
         }
       }),
-      registerCmd('simplebeacon.generateCertificate', () => {
+      registerCmd('simplebeacon.generateCertificate', async () => {
         if (isGeneratingCertificate) {
           vscode.window.showWarningMessage('Certificate generation already in progress');
           return;
@@ -1649,7 +1904,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (panel) {
           panel.showCertificatePane();
         }
-        generateCertificate(enhancedAIProvider.getScanResult());
+        await generateCertificate(enhancedAIProvider.getScanResult());
       }),
       registerCmd('simplebeacon.exportCertificatePdf', async () => {
         const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -1663,7 +1918,7 @@ export function activate(context: vscode.ExtensionContext) {
             showQuietMessage('Certificate generation already in progress');
             return;
           }
-          generateCertificate(enhancedAIProvider.getScanResult());
+          await generateCertificate(enhancedAIProvider.getScanResult());
         }
         if (fs.existsSync(certHtmlPath)) {
           await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
@@ -1682,7 +1937,7 @@ export function activate(context: vscode.ExtensionContext) {
             showQuietMessage('Certificate generation already in progress');
             return;
           }
-          generateCertificate(enhancedAIProvider.getScanResult());
+          await generateCertificate(enhancedAIProvider.getScanResult());
         }
         if (fs.existsSync(certHtmlPath)) {
           await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
@@ -1916,14 +2171,24 @@ export function activate(context: vscode.ExtensionContext) {
           showQuietMessage('Run a scan first to export an email report');
           return;
         }
+        // Export gate — email report is a premium board-ready export.
+        const gate = await authorizePremiumExport('email-report', report, {
+          projectRoot: (report as any).projectRoot || (report as any).projectPath,
+        });
+        if (!gate.authorized) {
+          return;
+        }
         try {
           const html = renderEmailTemplate(report, context.extensionPath);
+          const signedHtml = gate.signature
+            ? appendSignatureToHtml(html, gate.signature)
+            : html;
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file('simplebeacon-report.html'),
             filters: { HTML: ['html'] },
           });
           if (uri) {
-            await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
+            await vscode.workspace.fs.writeFile(uri, Buffer.from(signedHtml, 'utf8'));
             showQuietMessage('Email report saved');
           }
         } catch (err: unknown) {
@@ -1975,7 +2240,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (!token) {
           const entered = await getAuthManager().promptForToken();
           if (!entered) {
-            // User cancelled — auto-generate a free community token via local data server
+            // User cancelled prompt — try auto-generating a free community token,
+            // but don't block sign-in if the data server is unavailable.
             try {
               const port = getDataServerPort();
               const res = await fetch(`http://127.0.0.1:${port}/api/free-token`);
@@ -1996,9 +2262,9 @@ export function activate(context: vscode.ExtensionContext) {
                 }
               }
             } catch (e) {
-              // Data server not running or free-token endpoint failed
-              vscode.window.showErrorMessage(
-                'Could not generate free token. Start SimpleBeacon data server first, or paste a token manually.'
+              // Data server not running — don't block, just inform the user
+              vscode.window.showInformationMessage(
+                'Sign in by pasting your token from https://simplebeacon.ai/dashboard/#/profile — click the Sign In button above and paste your token.'
               );
               await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
               return;
@@ -2017,13 +2283,24 @@ export function activate(context: vscode.ExtensionContext) {
         if (isLicense) {
           valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
         } else if (isJwt) {
-          valid = true; // Accept standard JWT auth tokens from the server
+          // Accept JWT tokens — structural validation only here.
+          // Server-side signature verification happens when the token
+          // is used for API calls (e.g. /api/auth/verify).
+          const payload = decodeJwtPayload(token);
+          if (payload) {
+            // Reject expired JWTs immediately
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              valid = false;
+            } else {
+              valid = true;
+            }
+          }
         }
         if (!valid) {
           await getAuthManager().clearToken();
           await getAuthManager().clearPassword();
           vscode.window.showErrorMessage(
-            'Invalid or expired license token. Get a valid token at https://simplebeacon.ai'
+            'Invalid or expired token. Get a valid token at https://simplebeacon.ai/dashboard/#/profile'
           );
           await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
           return;
@@ -6171,7 +6448,7 @@ async function importCodeMapGraph() {
   }
 }
 
-function generateCertificate(report?: unknown) {
+async function generateCertificate(report?: unknown) {
   if (isGeneratingCertificate) {
     return;
   }
@@ -6241,10 +6518,25 @@ function generateCertificate(report?: unknown) {
       },
     };
 
-    const html = buildCertificateHtml(certificate);
+    // Export gate — certificates are a premium export. Request a server
+    // signature over the certificate hash and embed it into the artifact.
+    // Source code is never sent; only the certificate hash + tiny metadata.
+    const gate = await authorizePremiumExport('certificate', certificate, {
+      projectPath: certificate.projectPath,
+      qualityScore: certificate.qualityScore,
+      gatePass: certificate.gatePass,
+    });
+    if (!gate.authorized) {
+      return;
+    }
+    const signedCertificate = gate.signature
+      ? embedServerSignature(certificate as unknown as Record<string, unknown>, gate.signature) as unknown as CertificateData
+      : certificate;
+
+    const html = buildCertificateHtml(signedCertificate as CertificateData);
 
     fs.mkdirSync(certDir, { recursive: true });
-    fs.writeFileSync(certPath, JSON.stringify(certificate, null, 2));
+    fs.writeFileSync(certPath, JSON.stringify(signedCertificate, null, 2));
     fs.writeFileSync(certHtmlPath, html);
     showQuietMessage(`Certificate saved to ${certPath}`);
     modernSidebarProvider?.addDownloadedFile('certificate.json', certPath);
@@ -6695,14 +6987,84 @@ async function exportReport(format?: string) {
   const issues = r.findings || r.detectedIssues || r.rawIssues || r.issues || [];
   const sevCounts = (summary.severityCounts || summary.severity_count || {}) as Record<string, number>;
 
+  // Export gate — markdown is the free basic export; all other formats
+  // (json, csv, html, pdf, excel) are premium and require a server signature.
+  const premiumFmtMap: Record<string, ExportType> = {
+    json: 'report-json',
+    csv: 'report-csv',
+    html: 'report-html',
+    pdf: 'report-pdf',
+    excel: 'report-excel',
+  };
+  let serverSig: ServerSignature | undefined;
+  if (premiumFmtMap[fmt]) {
+    const gate = await authorizePremiumExport(premiumFmtMap[fmt], report, {
+      projectRoot: r.projectRoot || r.projectPath,
+      totalFiles: r.totalFiles ?? summary.filesAnalyzed,
+    });
+    if (!gate.authorized) {
+      return;
+    }
+    serverSig = gate.signature;
+  }
+
   let content = '';
   let defaultName = 'simplebeacon-report';
   let filters: Record<string, string[]> = {};
 
-  if (fmt === 'json') {
+  if (fmt === 'markdown' || fmt === 'md') {
+    // Free basic Markdown summary — available to all users (signed-out/free/paid).
+    // Free tier: aggregated summary only — no file paths or line numbers.
+    // Paid tiers: full findings with file paths.
+    defaultName += '.md';
+    filters = { Markdown: ['md'] };
+    const userTier = await getCurrentUserTier();
+    if (normalizeAccountTier(userTier) === 'free') {
+      // Free tier — use the filtered summary that strips file paths/line numbers
+      content = buildFreeTierMarkdown(issues as any[], {
+        projectRoot: r.projectRoot || r.projectPath,
+        scanTime: new Date().toISOString(),
+      });
+    } else {
+      // Paid tier — full markdown with file paths
+      const score = summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2));
+      const gatePass = r.gate?.pass ?? ((sevCounts.critical || 0) === 0 && (sevCounts.high || 0) === 0 && score >= 80);
+      const lines = [
+        `# SimpleBeacon Scan Report`,
+        '',
+        `Generated: ${new Date().toLocaleString()}`,
+        `Quality Score: ${score}/100`,
+        `Gate: ${gatePass ? 'PASS' : 'FAIL'}`,
+        '',
+        '## Severity Counts',
+        `- Critical: ${sevCounts.critical || 0}`,
+        `- High: ${sevCounts.high || 0}`,
+        `- Medium: ${sevCounts.medium || 0}`,
+        `- Low: ${sevCounts.low || 0}`,
+        '',
+        '## Findings',
+        ...(issues as any[]).slice(0, 50).map((i: any) => {
+          const sev = (i.severity || 'low').toUpperCase();
+          const type = i.type || i.category || 'Unknown';
+          const file = i.file || i.filePath || i.path || '-';
+          const desc = (i.description || i.message || '').replace(/\n/g, ' ');
+          return `- [${sev}] ${type} — \`${file}\` — ${desc}`;
+        }),
+      ];
+      if ((issues as any[]).length === 0) {
+        lines.push('_No findings._');
+      }
+      content = lines.join('\n');
+    }
+  } else if (fmt === 'json') {
     defaultName += '.json';
     filters = { JSON: ['json'] };
-    content = exportScanResultToJson(report, true);
+    // Apply tier-based data filtering — free tier gets summary only,
+    // developer gets structural JSON, team+ gets full data.
+    const userTier = await getCurrentUserTier();
+    const filteredReport = filterReportByTier(report as any, userTier);
+    const signedReport = serverSig ? embedServerSignature(filteredReport, serverSig) : filteredReport;
+    content = exportScanResultToJson(signedReport, true);
   } else if (fmt === 'csv') {
     defaultName += '.csv';
     filters = { CSV: ['csv'] };
@@ -6786,6 +7148,16 @@ async function exportReport(format?: string) {
   } else {
     vscode.window.showWarningMessage(`Unknown export format: ${fmt}`);
     return;
+  }
+
+  // Embed server signature into HTML/PDF exports as a visible footer.
+  // CSV/Excel are tabular — append a signature comment row instead.
+  if (serverSig) {
+    if (fmt === 'html' || fmt === 'pdf') {
+      content = appendSignatureToHtml(content, serverSig);
+    } else if (fmt === 'csv' || fmt === 'excel') {
+      content += `\n# SimpleBeacon server signature: ${serverSig.signature} (signed ${serverSig.signedAt}, tier ${serverSig.tier})`;
+    }
   }
 
   const uri = await vscode.window.showSaveDialog({
@@ -6912,13 +7284,28 @@ async function exportReportJson() {
     return;
   }
 
+  // Export gate — JSON report is a premium export. Request a server signature
+  // over the report hash and embed it into the exported JSON.
+  const gate = await authorizePremiumExport('report-json', report, {
+    projectRoot: (report as any).projectRoot || (report as any).projectPath,
+    totalFiles: (report as any).totalFiles ?? (report as any).summary?.filesAnalyzed,
+  });
+  if (!gate.authorized) {
+    return;
+  }
+  // Apply tier-based data filtering — developer tier gets structural JSON,
+  // team+ gets full data including compliance mappings.
+  const userTier = await getCurrentUserTier();
+  const filteredReport = filterReportByTier(report as any, userTier);
+  const signedReport = gate.signature ? embedServerSignature(filteredReport, gate.signature) : filteredReport;
+
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file('simplebeacon-export.json'),
     filters: { JSON: ['json'] },
   });
 
   if (uri) {
-    fs.writeFileSync(uri.fsPath, exportScanResultToJson(report, true));
+    fs.writeFileSync(uri.fsPath, exportScanResultToJson(signedReport, true));
     showQuietMessage(`Structured report exported to ${uri.fsPath}`);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
@@ -6930,12 +7317,18 @@ async function exportTrustReport() {
     showQuietMessage('No trust data available. Run a scan first.');
     return;
   }
+  // Export gate — trust report is a premium compliance artifact.
+  const gate = await authorizePremiumExport('trust-report', trustData);
+  if (!gate.authorized) {
+    return;
+  }
+  const signedTrust = gate.signature ? embedServerSignature(trustData as any, gate.signature) : trustData;
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file('simplebeacon-trust-report.json'),
     filters: { JSON: ['json'] },
   });
   if (uri) {
-    fs.writeFileSync(uri.fsPath, JSON.stringify(trustData, null, 2));
+    fs.writeFileSync(uri.fsPath, JSON.stringify(signedTrust, null, 2));
     showQuietMessage(`Trust report exported to ${uri.fsPath}`);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
@@ -6944,6 +7337,15 @@ async function exportTrustReport() {
 async function exportAIReportCommand(context: vscode.ExtensionContext) {
   if (!currentReport) {
     showQuietMessage('Run a scan first');
+    return;
+  }
+
+  // Export gate — AI report is a premium export. Request a server signature
+  // over the report hash; embed it into the generated text as a footer block.
+  const gate = await authorizePremiumExport('ai-report', currentReport, {
+    projectRoot: (currentReport as any).projectRoot || (currentReport as any).projectPath,
+  });
+  if (!gate.authorized) {
     return;
   }
 
@@ -6978,8 +7380,14 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
 
   const reportText = exportAIReport(currentReport, projectRoot, opts);
 
+  // Append the server signature block so consumers can verify authenticity.
+  const signatureFooter = gate.signature
+    ? formatSignatureFooter(gate.signature, opts.format)
+    : '';
+  const signedReportText = signatureFooter ? reportText + '\n\n' + signatureFooter : reportText;
+
   const action = await vscode.window.showInformationMessage(
-    `AI report generated (${reportText.length} chars)`,
+    `AI report generated (${signedReportText.length} chars)`,
     'Send to AI Model',
     'Copy to Clipboard',
     'Save to File',
@@ -6987,9 +7395,9 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
   );
 
   if (action === 'Send to AI Model') {
-    await sendToAIModel(reportText, context);
+    await sendToAIModel(signedReportText, context);
   } else if (action === 'Copy to Clipboard') {
-    await vscode.env.clipboard.writeText(reportText);
+    await vscode.env.clipboard.writeText(signedReportText);
     showQuietMessage('AI report copied to clipboard');
   } else if (action === 'Save to File') {
     const ext = opts.format === 'markdown' ? 'md' : opts.format;
@@ -7002,14 +7410,14 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
       },
     });
     if (uri) {
-      fs.writeFileSync(uri.fsPath, reportText, 'utf8');
+      fs.writeFileSync(uri.fsPath, signedReportText, 'utf8');
       showQuietMessage(`AI report saved to ${uri.fsPath}`);
       modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
     }
   } else if (action === 'Open in Editor') {
     const doc = await vscode.workspace.openTextDocument({
       language: opts.format === 'markdown' ? 'markdown' : opts.format,
-      content: reportText,
+      content: signedReportText,
     });
     await vscode.window.showTextDocument(doc);
   }

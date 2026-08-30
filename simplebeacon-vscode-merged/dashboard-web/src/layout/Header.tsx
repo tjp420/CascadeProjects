@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from '@/hooks/useTheme';
 import { navigate } from '@/router/HashRouter';
+import { clearAuthToken } from '@/config';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -59,8 +60,14 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  localStorage.removeItem('sb_token');
+                  clearAuthToken();
                   localStorage.removeItem('sb_user');
+                  localStorage.removeItem('sb-user');
+                  try {
+                    window.dispatchEvent(new Event('sb:logout'));
+                  } catch {
+                    /* ignore */
+                  }
                   navigate('signin');
                 }}
               >

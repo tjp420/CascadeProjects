@@ -512,6 +512,107 @@ async function registerUser(email, password, name, options = {}) {
   return { user: toAuthUser(userRecord) };
 }
 
+/**
+ * Find a user by email only (not username) — used by password reset flow.
+ * Returns the user row from PostgreSQL, SQLite, or demo file.
+ * @param {any} db - Database adapter (optional)
+ * @param {string} email - Email to look up
+ * @returns {Promise<object|null>}
+ */
+async function findUserByEmailOnly(db, email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  // Try PostgreSQL
+  if (db) {
+    try {
+      const result = await db.query(
+        "SELECT id, email, name, trust_level, status FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1",
+        [normalizedEmail],
+      );
+      if (result.rows[0]) return result.rows[0];
+    } catch (err) {
+      logger.warn("[UserService] PostgreSQL findUserByEmailOnly failed:", err.message);
+    }
+  }
+
+  // Try SQLite
+  const sqlite = getSqliteDb();
+  if (sqlite) {
+    ensureSqliteDemoUsers();
+    const user = sqlite.getUserByEmail(normalizedEmail);
+    if (user) return user;
+  }
+
+  // Try demo file
+  const demoUsers = loadDemoUsers();
+  const match = demoUsers.find(
+    (u) => u.email.toLowerCase() === normalizedEmail,
+  );
+  return match || null;
+}
+
+/**
+ * Update a user's password in PostgreSQL, SQLite, or demo file.
+ * @param {any} db - Database adapter (optional)
+ * @param {string} email - User email
+ * @param {string} newPassword - New plaintext password (will be hashed)
+ * @returns {Promise<boolean>} true if password was updated
+ */
+async function updateUserPassword(db, email, newPassword) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail || !newPassword) return false;
+
+  // Try PostgreSQL
+  if (db) {
+    try {
+      const passwordHash = await hashPassword(newPassword);
+      const result = await db.query(
+        "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE LOWER(email) = LOWER($2)",
+        [passwordHash, normalizedEmail],
+      );
+      if (result.rowCount > 0) return true;
+    } catch (err) {
+      logger.warn("[UserService] PostgreSQL password update failed:", err.message);
+    }
+  }
+
+  // Try SQLite
+  const sqlite = getSqliteDb();
+  if (sqlite) {
+    ensureSqliteDemoUsers();
+    const user = sqlite.getUserByEmail(normalizedEmail);
+    if (user) {
+      const salt = crypto.randomBytes(16).toString("hex");
+      const passwordHash = crypto
+        .scryptSync(String(newPassword), salt, 64)
+        .toString("hex");
+      if (typeof sqlite.updateUserPassword === "function") {
+        sqlite.updateUserPassword(normalizedEmail, passwordHash, salt);
+        return true;
+      }
+    }
+  }
+
+  // Try demo file
+  const demoUsers = loadDemoUsers();
+  const match = demoUsers.find(
+    (u) => u.email.toLowerCase() === normalizedEmail,
+  );
+  if (match) {
+    match.passwordHash = await hashPassword(newPassword);
+    match.password = undefined; // Remove plaintext if it existed
+    try {
+      fs.writeFileSync(DEMO_USERS_PATH, JSON.stringify(demoUsers, null, 2));
+      return true;
+    } catch (err) {
+      logger.warn("[UserService] Demo file password update failed:", err.message);
+    }
+  }
+
+  return false;
+}
+
 module.exports = {
   loadDemoUsers,
   seedDemoUsers,
@@ -520,4 +621,6 @@ module.exports = {
   authenticateWithDemoFile,
   toAuthUser,
   registerUser,
+  updateUserPassword,
+  findUserByEmailOnly,
 };

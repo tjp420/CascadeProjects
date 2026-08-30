@@ -15,7 +15,8 @@ import {
   Zap,
   Download,
 } from "lucide-react";
-import { getApiBase, apiUrl, authHeaders, waitForApiBase } from "@/config";
+import { getApiBase, apiUrl, authHeaders, waitForApiBase, isTokenExpired } from "@/config";
+import { useAuth } from "@/hooks/useAuth";
 
 type CategoryInfo = {
   category: string;
@@ -74,8 +75,14 @@ export function RepoHealthView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const apiBase = getApiBase();
+  const { isAuthenticated } = useAuth();
 
   const fetchData = useCallback(async () => {
+    // Skip API calls if not authenticated — prevents 401 spam on mount
+    if (!isAuthenticated || isTokenExpired()) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

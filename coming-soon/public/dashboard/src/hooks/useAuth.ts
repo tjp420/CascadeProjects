@@ -21,7 +21,9 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [isFreeTier, setIsFreeTier] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<{
     email?: string;
     name?: string;
@@ -77,24 +79,28 @@ export function useAuth() {
           const tier =
             (userData.plan as string) || (userData.tier as string) || "";
           const role = String(userData.role || "").toLowerCase();
-          const isAdmin = [
+          const adminCheck = [
             "admin",
             "owner",
             "superuser",
             "superadmin",
           ].includes(role);
-          setIsFreeTier(!isAdmin && (tier === "free" || !tier));
+          setIsAdmin(adminCheck);
+          setIsFreeTier(!adminCheck && (tier === "free" || !tier));
         } else {
           // Token missing or expired — clear all auth state
           setIsAuthenticated(false);
           setUser(null);
           setIsFreeTier(true);
+          setIsAdmin(false);
         }
       } catch {
         setIsAuthenticated(false);
         setUser(null);
         setIsFreeTier(true);
+        setIsAdmin(false);
       }
+      setIsAuthReady(true);
     };
 
     checkAuth();
@@ -117,6 +123,7 @@ export function useAuth() {
     localStorage.removeItem("sb-user");
     setIsAuthenticated(false);
     setUser(null);
+    setIsAdmin(false);
     try {
       window.dispatchEvent(new Event("sb:logout"));
     } catch {
@@ -125,5 +132,5 @@ export function useAuth() {
     navigate("signin");
   }, []);
 
-  return { isAuthenticated, isFreeTier, user, signOut };
+  return { isAuthenticated, isAuthReady, isFreeTier, isAdmin, user, signOut };
 }

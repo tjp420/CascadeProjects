@@ -14,6 +14,14 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 
+// Suppress cosmetic export collision warnings from the SimpleBeacon CLI
+// namespace. These warnings are emitted when multiple submodules export
+// functions with the same name (e.g. `sleep`, `hash`, `formatBytes`).
+// The collisions are expected and resolved via the Simplebeacon namespace.
+if (!process.env.SIMPLEBEACON_DUP_WARN) {
+  process.env.SIMPLEBEACON_DUP_WARN = "0";
+}
+
 /**
  * Resolve the project root for the agent so it can locate the SimpleBeacon
  * scanner and config. The agent may be run from inside ai-platform/local-agent,
@@ -171,9 +179,6 @@ const FULL_TREE_INVENTORY_SKIP_DIRS = [
   "github-cache",
   ".simplebeacon",
   ".vscode-test",
-  "simplebeacon-vscode-merged",
-  "ai-tools",
-  "ai-agent",
   "node_modules",
   "dist",
   "build",

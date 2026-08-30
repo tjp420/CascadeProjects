@@ -118,7 +118,7 @@ export function SecurityView() {
   const [npmAudit, setNpmAudit] = useState<NpmAuditData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Enterprise dashboards (ProviderFailover, IdentityFederation, SemanticCache,
   // WebhookSigning, AgenticOrchestration, ToolSchemaValidation) require
@@ -130,6 +130,11 @@ export function SecurityView() {
     ["admin", "owner", "superuser", "superadmin"].includes(userRole);
 
   const fetchData = useCallback(async () => {
+    // Skip API calls if not authenticated — prevents 401 spam on mount
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
 
