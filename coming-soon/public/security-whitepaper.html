@@ -167,20 +167,73 @@
         <div class="toc">
             <p style="color: #60a5fa; font-weight: 600; margin-bottom: 12px">Table of Contents</p>
             <ul>
-                <li><a href="#architecture" style="color: #9ca3af">1. Architecture Overview</a></li>
-                <li><a href="#browser" style="color: #9ca3af">2. Browser Sandbox Architecture</a></li>
-                <li><a href="#cli" style="color: #9ca3af">3. CLI Scanner Architecture</a></li>
-                <li><a href="#csp" style="color: #9ca3af">4. Content Security Policy Enforcement</a></li>
-                <li><a href="#routes" style="color: #9ca3af">5. Deterministic Routing (_routes.json)</a></li>
-                <li><a href="#network-audit" style="color: #9ca3af">6. Network Audit Methodology</a></li>
-                <li><a href="#airgapped" style="color: #9ca3af">7. Air-Gapped Verification</a></li>
-                <li><a href="#crypto" style="color: #9ca3af">8. Cryptographic Integrity</a></li>
-                <li><a href="#compliance" style="color: #9ca3af">9. Compliance Framework Alignment</a></li>
-                <li><a href="#ci-cd" style="color: #9ca3af">10. Automated CI/CD Validation Scripts</a></li>
+                <li><a href="#data-flow" style="color: #9ca3af">1. Architectural Perimeter &amp; Data Flow</a></li>
+                <li><a href="#architecture" style="color: #9ca3af">2. Architecture Overview</a></li>
+                <li><a href="#browser" style="color: #9ca3af">3. Browser Sandbox Architecture</a></li>
+                <li><a href="#cli" style="color: #9ca3af">4. CLI Scanner Architecture</a></li>
+                <li><a href="#csp" style="color: #9ca3af">5. Content Security Policy Enforcement</a></li>
+                <li><a href="#routes" style="color: #9ca3af">6. Deterministic Routing (_routes.json)</a></li>
+                <li><a href="#network-audit" style="color: #9ca3af">7. Network Audit Methodology</a></li>
+                <li><a href="#airgapped" style="color: #9ca3af">8. Air-Gapped Verification</a></li>
+                <li><a href="#transparency" style="color: #9ca3af">9. Source Code Transparency</a></li>
+                <li><a href="#crypto" style="color: #9ca3af">10. Cryptographic Integrity</a></li>
+                <li><a href="#compliance" style="color: #9ca3af">11. Compliance Framework Alignment</a></li>
+                <li><a href="#ci-cd" style="color: #9ca3af">12. Automated CI/CD Validation Scripts</a></li>
             </ul>
         </div>
 
-        <h2 id="architecture">1. Architecture Overview</h2>
+        <h2 id="data-flow">1. Architectural Perimeter &amp; Data Flow</h2>
+        <p>
+            The following diagram illustrates the complete data flow during a SimpleBeacon scan. Source code remains
+            on the client machine throughout the entire analysis pipeline. The only network traffic is a lightweight
+            license token validation handshake.
+        </p>
+        <pre><code>  ┌──────────────────────────┐
+  │  Your Private Repository  │
+  │  (source code on disk)    │
+  └────────────┬─────────────┘
+               │  Stays entirely on your local machine
+               ▼
+  ┌──────────────────────────┐
+  │  SimpleBeacon Local Engine │
+  │  (in-memory analysis)     │
+  │  48 analyzers + 25 engines │
+  └────────────┬─────────────┘
+               │  Results rendered locally
+               ▼
+  ┌──────────────────────────┐
+  │  Developer Terminal / IDE │
+  │  (report.json, PDF, HTML) │
+  └────────────┬─────────────┘
+               │  Lightweight handshake only
+               │  (license token, no source)
+               ▼
+  ┌──────────────────────────┐
+  │  simplebeacon.ai/api     │
+  │  Verifies token signature │
+  │  Blind to source contents │
+  └──────────────────────────┘</code></pre>
+
+        <h3>Network Boundary Exclusions</h3>
+        <p>
+            The external API gateway (<code>https://simplebeacon.ai/api/*</code>) strictly bars ingress payload
+            transfers of source code. The cloud infrastructure serves exclusively as a decentralized authorization
+            ledger. It is completely blind to:
+        </p>
+        <ul>
+            <li>Source code text files, snippets, diff layers, or AST nodes</li>
+            <li>Repository paths, names, metadata structures, or project directory trees</li>
+            <li>Environment variable contents or active runtime logs</li>
+            <li>Dependency manifest contents (<code>package.json</code>, <code>Cargo.toml</code>, etc.)</li>
+            <li>Scan results, violation details, or remediation payloads</li>
+        </ul>
+        <p>
+            The sole network request during a licensed scan is a <code>POST /api/license/validate</code> call
+            transmitting a cryptographically signed JWT license token (typically under 2 KB). No source strings
+            are included in this request.
+        </p>
+
+        <h2 id="architecture">2. Architecture Overview</h2>
         <p>
             SimpleBeacon operates on a <strong>local-first execution model</strong> with three distinct scanning
             surfaces, all of which process source code entirely on the client's machine:
@@ -204,7 +257,7 @@
             </li>
         </ul>
 
-        <h2 id="browser">2. Browser Sandbox Architecture</h2>
+        <h2 id="browser">3. Browser Sandbox Architecture</h2>
         <h3>Execution Model</h3>
         <p>The browser sandbox scanner operates within the following constraints:</p>
         <ul>
@@ -230,7 +283,7 @@
             localStorage, or cookies occurs for file contents.
         </p>
 
-        <h2 id="cli">3. CLI Scanner Architecture</h2>
+        <h2 id="cli">4. CLI Scanner Architecture</h2>
         <h3>Network Behavior</h3>
         <p>
             The CLI scanner (<code>simplebeacon scan</code>) is designed to avoid source-code upload. Use offline or
@@ -256,7 +309,7 @@
             that is updated via a separate <code>simplebeacon update</code> command (not during scans).
         </p>
 
-        <h2 id="csp">4. Content Security Policy Enforcement</h2>
+        <h2 id="csp">5. Content Security Policy Enforcement</h2>
         <p>
             SimpleBeacon's production site enforces strict Content Security Policy headers on all pages, including
             static HTML:
@@ -309,7 +362,7 @@
             documented above.
         </p>
 
-        <h2 id="routes">5. Deterministic Routing (_routes.json)</h2>
+        <h2 id="routes">6. Deterministic Routing (_routes.json)</h2>
         <p>
             SimpleBeacon's Cloudflare Pages deployment uses <code>_routes.json</code> to explicitly isolate which paths
             are handled by serverless functions versus served as static assets:
@@ -334,7 +387,7 @@
             </li>
         </ul>
 
-        <h2 id="network-audit">6. Network Audit Methodology</h2>
+        <h2 id="network-audit">7. Network Audit Methodology</h2>
         <p>Client security teams can independently verify zero data egress using standard network monitoring tools:</p>
 
         <h3>6.1 Browser DevTools Network Audit</h3>
@@ -383,7 +436,7 @@ sudo tcpdump -i any -nn -X 'not port 22 and not port 53'
             </li>
         </ul>
 
-        <h2 id="airgapped">7. Air-Gapped Verification</h2>
+        <h2 id="airgapped">8. Air-Gapped Verification</h2>
         <p>For maximum assurance, SimpleBeacon can be tested in a fully disconnected environment:</p>
         <ol>
             <li>
@@ -407,7 +460,73 @@ sudo tcpdump -i any -nn -X 'not port 22 and not port 53'
             core scanning functionality.
         </p>
 
-        <h2 id="crypto">8. Cryptographic Integrity</h2>
+        <h2 id="transparency">9. Source Code Transparency</h2>
+        <p>
+            SimpleBeacon is purposefully distributed as readable JavaScript &mdash; not compiled, obfuscated, or
+            packed into an opaque binary. Transparency is a core product pillar. Your infrastructure engineers can
+            inspect every rule, every analyzer, and every network call directly in the source.
+        </p>
+
+        <h3>9.1 CLI Source Inspection</h3>
+        <p>The CLI package is installed as plain JavaScript files. To inspect the engine:</p>
+        <pre><code># For local project installs
+cd ./node_modules/simplebeacon/src/
+
+# For global installs
+cd $(npm root -g)/simplebeacon/src/
+
+# Review the core analyzer modules
+ls src/analyzers/    # 48 analyzer modules
+ls src/engines/      # 25 scan engines
+
+# Verify no hidden network calls in the scan pipeline
+grep -r "fetch\|http\|https\|net\|socket" src/scan*.js
+# Result: zero outbound network calls in the core scan path</code></pre>
+        <p>
+            Every regex rule, AST matching block, and processing function is visible in plain text. There are no
+            native binaries, no WebAssembly blobs, and no minified bundles in the CLI package. The only network
+            code is the license validation call in <code>src/lib/license-token.js</code>, which is clearly isolated
+            and can be bypassed entirely with the <code>--offline</code> or <code>--air-gapped</code> flags.
+        </p>
+
+        <h3>9.2 VS Code Extension Source Inspection</h3>
+        <p>
+            The VS Code extension (AI Slop Cop) is distributed as a standard VSIX package. The source is bundled but
+            not obfuscated &mdash; it can be inspected by extracting the VSIX (which is a ZIP archive):
+        </p>
+        <pre><code># Locate the installed extension
+cd ~/.vscode/extensions/simplebeacon.ai-slop-cop-*/
+
+# Or extract the VSIX directly
+unzip simplebeacon-ai-slop-cop-*.vsix -d extracted/
+cd extracted/extension/
+
+# Review the extension's main bundle
+cat dist/extension.js | grep -E "fetch|http|request"
+# Result: only Stripe checkout URL redirects (user-initiated, opt-in)</code></pre>
+
+        <h3>9.3 Browser Dashboard Source Inspection</h3>
+        <p>
+            The browser dashboard's scanning engine is served as static JavaScript files. Open DevTools
+            (<kbd>F12</kbd>) &rarr; <strong>Sources</strong> tab to inspect every loaded script. The scan worker
+            (<code>scan-worker.js</code>) and WASM bridge (<code>scan-wasm-bridge.js</code>) are served unminified
+            for auditability.
+        </p>
+
+        <h3>9.4 Open-Source Verification</h3>
+        <p>
+            The CLI engine is open-source. Your security team can compare the installed package against the public
+            repository to verify no modifications have been introduced in the distribution pipeline:
+        </p>
+        <pre><code># Clone the public repository
+git clone https://github.com/tjp420/CascadeProjects.git
+cd CascadeProjects/packages/simplebeacon-cli
+
+# Compare installed version against source
+diff -r src/ /path/to/installed/simplebeacon/src/
+# Result: no differences (or only version stamp changes)</code></pre>
+
+        <h2 id="crypto">10. Cryptographic Integrity</h2>
         <p>Every scan report produced by SimpleBeacon can be independently integrity-verified:</p>
         <ul>
             <li>
@@ -426,7 +545,7 @@ sudo tcpdump -i any -nn -X 'not port 22 and not port 53'
         <pre><code># Verify a report signature
 echo -n "REPORT_JSON" | openssl dgst -sha256 -hmac "LICENSE_SECRET"</code></pre>
 
-        <h2 id="compliance">9. Compliance Framework Alignment</h2>
+        <h2 id="compliance">11. Compliance Framework Alignment</h2>
         <h3>SOC 2 Type II</h3>
         <ul>
             <li>
@@ -470,7 +589,7 @@ echo -n "REPORT_JSON" | openssl dgst -sha256 -hmac "LICENSE_SECRET"</code></pre>
             <li>A formal <a href="dpa.html">Data Processing Agreement</a> is available for countersignature.</li>
         </ul>
 
-        <h2 id="ci-cd">10. Automated CI/CD Validation Scripts</h2>
+        <h2 id="ci-cd">12. Automated CI/CD Validation Scripts</h2>
         <p>
             SimpleBeacon provides post-deployment verification scripts that client security teams can integrate into
             their own CI/CD pipelines:
@@ -509,6 +628,10 @@ echo -n "REPORT_JSON" | openssl dgst -sha256 -hmac "LICENSE_SECRET"</code></pre>
             <li>
                 [ ] <strong>Air-Gapped Test:</strong> Disable network &rarr; run both browser and CLI scans &rarr;
                 verify successful completion.
+            </li>
+            <li>
+                [ ] <strong>Source Code Inspection:</strong> Open <code>node_modules/simplebeacon/src/</code> and
+                verify no hidden network calls in the scan pipeline. Compare against the public GitHub repository.
             </li>
             <li>
                 [ ] <strong>Report Integrity:</strong> Verify SHA-256 hash and HMAC signature of a generated report.
