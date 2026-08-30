@@ -710,6 +710,17 @@ export default {
           200,
           corsOrigin,
         );
+      if (url.pathname === "/api/status")
+        return json(
+          {
+            status: "healthy",
+            timestamp: new Date().toISOString(),
+            service: "simplebeacon-core",
+            version: "1.3.0",
+          },
+          200,
+          corsOrigin,
+        );
       if (url.pathname === "/api/health")
         return json({ status: "ok", service: "simplebeacon" }, 200, corsOrigin);
       if (url.pathname === "/api/vault/consensus/status")

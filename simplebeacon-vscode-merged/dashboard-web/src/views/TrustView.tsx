@@ -268,8 +268,8 @@ export function TrustView() {
     );
   }
 
-  const headline = verification.headline;
-  const trend = history?.trend;
+  const headline = verification?.headline ?? null;
+  const trend = history?.trend ?? null;
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
@@ -279,6 +279,7 @@ export function TrustView() {
       </div>
 
       {/* Headline Summary */}
+      {headline && (
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
@@ -334,6 +335,7 @@ export function TrustView() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Trend */}
       {trend && trend.latest && (
