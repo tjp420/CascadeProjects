@@ -19,10 +19,10 @@ describe("billing-email-templates", () => {
   describe("renderSubscriptionActivated", () => {
     it("returns subject, text, and html for developer tier", () => {
       const result = renderSubscriptionActivated({ tier: "developer" });
-      assert.ok(result.subject.includes("Subscription Activated"));
-      assert.ok(result.text.includes("developer"));
+      assert.ok(result.subject.includes("Welcome to SimpleBeacon"));
+      assert.ok(result.text.includes("Developer"));
       assert.ok(result.html.includes("<!DOCTYPE html>"));
-      assert.ok(result.html.includes("developer"));
+      assert.ok(result.html.includes("Developer"));
     });
 
     it("includes seat info for team_pro tier", () => {
@@ -50,7 +50,7 @@ describe("billing-email-templates", () => {
       });
       assert.ok(result.text.includes(token));
       assert.ok(result.html.includes(token));
-      assert.ok(result.html.includes("License Key"));
+      assert.ok(result.html.includes("License Token"));
     });
 
     it("omits license token section when not provided", () => {
