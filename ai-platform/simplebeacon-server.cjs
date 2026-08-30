@@ -487,6 +487,8 @@ if (process.env.NODE_ENV !== "test") {
 
 // Middleware — webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
+// Stripe webhook — must use raw body before JSON parser for signature verification
+app.use("/api/stripe", require("./server/routes/stripe-webhook-routes.cjs"));
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || "50mb" }));
 
 const {
