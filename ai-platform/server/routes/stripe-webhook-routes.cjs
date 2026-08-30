@@ -305,9 +305,13 @@ async function handleCheckoutCompleted(event, headers = {}) {
     return;
   }
 
-  // Resolve tier from price ID
+  // Resolve tier — try price ID first, then fall back to metadata.product
+  // (set by the coming-soon checkout as the tier key, e.g. "developer" or "team_pro").
+  // Ad-hoc price_data checkout sessions don't have a Stripe Price ID, so
+  // metadata.product is the reliable tier source.
   const tierConfig = priceId ? getTierConfigByPriceId(priceId) : null;
-  const tier = tierConfig?.tier || "pro";
+  const metadataProduct = String(session.metadata?.product || "").toLowerCase();
+  const tier = tierConfig?.tier || metadataProduct || "developer";
 
   logger.info(
     "[StripeWebhook] Activating subscription for",
@@ -316,6 +320,10 @@ async function handleCheckoutCompleted(event, headers = {}) {
     tier,
     "extraSeats:",
     extraSeatsCount,
+    "priceId:",
+    priceId || "(none)",
+    "metadataProduct:",
+    metadataProduct || "(none)",
   );
 
   // Activate subscription in store
@@ -333,9 +341,62 @@ async function handleCheckoutCompleted(event, headers = {}) {
     extraSeats: extraSeatsCount,
   });
 
+  // Mint a license token on the backend using the correct signing secret.
+  // The Worker no longer mints tokens — it's a pure proxy. This ensures
+  // the token is signed with SIMPLEBEACON_LICENSE_SECRET (the same secret
+  // used by verifyLicenseToken in auth-inline-routes and the CLI).
+  let licenseToken = headers.licenseToken || "";
+  if (!licenseToken) {
+    try {
+      const { generateLicenseToken } = require("../../../packages/simplebeacon-cli/src/lib/license-token.js");
+      const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+      if (licenseSecret) {
+        // Determine TTL from tier config (expiryDays) or default to 30 days
+        const expiryDays = tierConfig?.expiryDays || 30;
+        const ttlMinutes = expiryDays * 24 * 60;
+        const features =
+          tier === "team_pro" || tier === "enterprise"
+            ? [
+                "continuous_shield",
+                "team_dashboard",
+                "ci_integration",
+                "compliance_certificate",
+                "eu_ai_act",
+                "analyst_support",
+                "premium_exports",
+              ]
+            : ["continuous_shield", "ci_integration", "export_reports", "premium_exports"];
+        const tokenPayload = {
+          email: customerEmail,
+          tier,
+          projectName: session.metadata?.projectName || customerEmail,
+          clientName: session.metadata?.clientName || customerEmail,
+          features,
+        };
+        licenseToken = generateLicenseToken(tokenPayload, licenseSecret, ttlMinutes);
+        logger.info(
+          "[StripeWebhook] Minted license token on backend for",
+          customerEmail,
+          "tier:",
+          tier,
+          "TTL:",
+          expiryDays + " days",
+        );
+      } else {
+        logger.warn(
+          "[StripeWebhook] SIMPLEBEACON_LICENSE_SECRET not configured — cannot mint token",
+        );
+      }
+    } catch (mintErr) {
+      logger.error(
+        "[StripeWebhook] License token minting failed:",
+        mintErr.message,
+      );
+    }
+  }
+
   // Store license token in session-token store so the post-checkout redirect
   // can retrieve it via GET /api/session-token/:sessionId on the ai-platform server.
-  const licenseToken = headers.licenseToken || "";
   if (licenseToken && sessionTokenStore && session.id) {
     try {
       sessionTokenStore.set(session.id, {
@@ -357,8 +418,6 @@ async function handleCheckoutCompleted(event, headers = {}) {
   }
 
   // Build email content using centralized template
-  const licenseTier = headers.licenseTier || tier;
-
   const { subject, text, html } = renderSubscriptionActivated({
     tier,
     licenseToken,

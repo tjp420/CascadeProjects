@@ -941,8 +941,15 @@ export default {
     }
 
     // Dynamic Route 2: POST /api/stripe-webhook
-    // Listens for checkout completion, forwards to Express for subscription
-    // activation + email, then mints the signed JWT license key into KV.
+    // Pure proxy — verifies the Stripe signature at the edge, then forwards
+    // the raw payload to the Render backend for token minting, subscription
+    // activation, and email delivery.
+    //
+    // Token minting was previously done at the edge but caused silent failures
+    // because the Worker used outdated tier names, the wrong signing secret,
+    // and couldn't match price IDs from ad-hoc price_data checkout sessions.
+    // The backend has the correct SIMPLEBEACON_LICENSE_SECRET, the correct
+    // tier mapping, and the correct email templates — so all minting lives there now.
     if (url.pathname === "/api/stripe-webhook" && request.method === "POST") {
       try {
         const payload = await request.text();
@@ -963,118 +970,23 @@ export default {
           }
         }
 
-        // Mint license token FIRST (if checkout completed) so we can pass it to the backend
-        let licenseTokenForBackend = "";
-        let tierForBackend = "";
-        let capabilitiesForBackend = [];
-
-        if (body.type === "checkout.session.completed") {
-          const session = body.data.object;
-          const sessionId = session.id;
-          const userEmail =
-            session.customer_details?.email || session.customer_email || "";
-          const targetPriceId = session.metadata?.price_id;
-
-          if (
-            sessionId &&
-            isValidSessionId(sessionId) &&
-            userEmail &&
-            session.payment_status === "paid"
-          ) {
-            const agencyPriceId = String(
-              env.PRICE_ID_AGENCY || "price_agency_suite_99",
-            );
-            const enterprisePriceId = String(
-              env.PRICE_ID_ENTERPRISE || "price_enterprise_499",
-            );
-
-            let capabilities = ["markdown"];
-            let tierName = "free";
-
-            if (targetPriceId === agencyPriceId) {
-              tierName = "agency";
-              capabilities = ["markdown", "slop", "tokens"];
-            } else if (targetPriceId === enterprisePriceId) {
-              tierName = "enterprise";
-              capabilities = ["markdown", "slop", "tokens", "eu-ai-act"];
-            }
-
-            const signingSecret = String(
-              env.SIMPLEBEACON_SIGNING_PRIVATE_KEY || "",
-            );
-            if (signingSecret) {
-              const now = Math.floor(Date.now() / 1000);
-              const claims = {
-                iss: "simplebeacon.ai",
-                sub: userEmail,
-                sid: sessionId,
-                tier: tierName,
-                capabilities,
-                iat: now,
-                exp: now + ONE_YEAR_SECONDS,
-              };
-
-              const completeLicenseKey = await signJwtHS256(
-                claims,
-                signingSecret,
-              );
-
-              // Persist the license block to the Cloudflare Edge KV Store with a 24-hour expiration window
-              await env.LICENSE_STORE.put(
-                sessionId,
-                JSON.stringify({
-                  license: completeLicenseKey,
-                  tier: tierName,
-                  capabilities,
-                  generatedAt: new Date().toISOString(),
-                }),
-                { expirationTtl: LICENSE_TTL_SECONDS },
-              );
-
-              // Save for backend forwarding
-              licenseTokenForBackend = completeLicenseKey;
-              tierForBackend = tierName;
-              capabilitiesForBackend = capabilities;
-            }
-          } else {
-            // Mark as processed even for skipped sessions to prevent retry storms
-            if (eventId) {
-              await env.LICENSE_STORE.put(
-                `processed:${eventId}`,
-                JSON.stringify({
-                  processedAt: new Date().toISOString(),
-                  type: body.type,
-                  skipped: true,
-                }),
-                { expirationTtl: LICENSE_TTL_SECONDS },
-              );
-            }
-            return json(
-              { received: true, skipped: "invalid_or_unpaid_session" },
-              200,
-              "",
-            );
-          }
-        }
-
-        // Forward to Express backend for subscription activation + email
-        // Pass the minted license token as a header so the backend can include it in the email
+        // Forward the raw Stripe payload to the Express backend on Render.
+        // The backend verifies the Stripe signature again, resolves the tier
+        // from session.metadata.product, mints the license token with the
+        // correct SIMPLEBEACON_LICENSE_SECRET, stores it in the session-token
+        // store, and sends the welcome email — all in one place.
         const backendUrl = String(env.API_BACKEND || "");
         if (backendUrl) {
           try {
-            const forwardHeaders = {
-              "Content-Type": "application/json",
-              "stripe-signature": request.headers.get("Stripe-Signature") || "",
-            };
-            if (licenseTokenForBackend) {
-              forwardHeaders["X-License-Token"] = licenseTokenForBackend;
-              forwardHeaders["X-License-Tier"] = tierForBackend;
-            }
             const backendResponse = await fetch(
               `${backendUrl}/api/stripe/webhook`,
               {
                 method: "POST",
-                headers: forwardHeaders,
+                headers: {
+                  "Content-Type": "application/json",
+                  "stripe-signature":
+                    request.headers.get("Stripe-Signature") || "",
+                },
                 body: payload,
               },
             );
