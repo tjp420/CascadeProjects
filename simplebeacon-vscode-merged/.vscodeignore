@@ -77,6 +77,9 @@ dashboard-web/vite.config.ts
 dashboard-web/tsconfig.tsbuildinfo
 dashboard-web/package-lock.json
 dashboard-web/package.json
+dashboard-web/dist/**
+dashboard-web/assets/**/*.map
+dashboard-web/js/utils-lib/__tests__.mjs
 
 # Root-level dev scripts, hidden files, and leftovers
 .*
