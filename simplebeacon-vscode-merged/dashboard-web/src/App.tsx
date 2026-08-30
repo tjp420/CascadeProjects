@@ -8,7 +8,7 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import { useAuth } from "./hooks/useAuth";
 import { useFeatureAccess } from "./hooks/useFeatureAccess";
 import { useTheme } from "./hooks/useTheme";
-import { isTokenExpired, processAgentParams } from "./config";
+import { isTokenExpired, processAgentParams, install401Handler } from "./config";
 import { getViewUpgradeInfo } from "./config/viewAccess";
 import { ViewPaywall } from "./components/ViewPaywall";
 
@@ -165,8 +165,10 @@ const viewMap: Record<string, React.ComponentType> = {
 };
 
 export default function App() {
-  // Process agent URL params (sb_auth, sb_license_token, sb_agent, sb_agent_token) on first load
+  // Install global 401 interceptor once on startup — clears stale tokens
+  // and redirects to signin when the backend rejects an API request
   useEffect(() => {
+    install401Handler();
     processAgentParams();
   }, []);
 
