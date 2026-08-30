@@ -647,8 +647,43 @@ function signWithHmac(secret, canonical) {
   };
 }
 
-router.post("/simplebeacon/user/sign-report", authenticate, async (req, res) => {
-  const user = req.user;
+router.post("/simplebeacon/user/sign-report", optionalAuthenticate, async (req, res) => {
+  let user = req.user;
+
+  // If JWT auth didn't set req.user, try license token from Bearer header.
+  // License tokens (2-part) are different from JWTs (3-part) and are used
+  // by the VS Code extension when the user pastes a license key instead of
+  // signing in with email/password.
+  if (!user) {
+    const rawToken =
+      typeof req.headers.authorization === "string" &&
+      req.headers.authorization.startsWith("Bearer ")
+        ? req.headers.authorization.substring(7)
+        : "";
+    if (rawToken) {
+      const secret = resolveLicenseSecret();
+      if (secret) {
+        try {
+          const claims = verifyLicenseToken(rawToken, secret);
+          if (claims) {
+            const entry = getLicenseToken(rawToken);
+            user = {
+              id: claims.sub || claims.email || "license-user",
+              email: entry?.email || claims.sub || claims.email || "",
+              name: claims.name || "",
+              tier: entry?.tier || claims.tier || "developer",
+              plan: entry?.tier || claims.tier || "developer",
+              features: Array.isArray(claims.features) ? claims.features : [],
+              role: claims.role || "",
+            };
+          }
+        } catch (_) {
+          // license token verification failed
+        }
+      }
+    }
+  }
+
   if (!user) {
     return res
       .status(401)
