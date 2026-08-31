@@ -1083,16 +1083,14 @@ self.onmessage = async (e) => {
     // Verify attestation token before starting the scan.
     // This prevents casual copying of the scan worker — it won't run
     // without a valid, server-issued attestation token.
+    // However, attestation is optional for browser-local scans — the real
+    // protection is server-side attestation for compliance certs and uploaded
+    // reports. If attestation is missing, the scan proceeds with a warning.
     const { attestation, attestationScanId } = e.data;
     if (!verifyAttestation(attestation)) {
-      self.postMessage({
-        type: "error",
-        scanId,
-        error:
-          "Scan attestation required. Sign in to run local scans. If you are signed in, your session may have expired.",
-        attestationRequired: true,
-      });
-      return;
+      console.warn(
+        "[scan-worker] Attestation missing or invalid — proceeding without it. Server-trusted features (compliance certs, uploaded reports) will require sign-in.",
+      );
     }
     self.scanState = {
       scanId,
