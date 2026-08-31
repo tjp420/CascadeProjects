@@ -796,6 +796,12 @@ export function AnalyzeView() {
         setLastErrorMsg(errMsg);
         appendLog(`[SimpleBeacon] Browser-local scan failed: ${errMsg}`);
         toast.error(errMsg || 'Local scan failed');
+        // If the scan worker rejected due to missing/expired attestation,
+        // the user's session has expired — redirect to signin for re-auth.
+        if (errMsg.includes('Sign in required') || errMsg.includes('session may have expired')) {
+          clearAuthAndRedirect();
+          return;
+        }
         postBrowserError({
           source: 'dashboard',
           error: errMsg,
@@ -1622,6 +1628,12 @@ export function AnalyzeView() {
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error('[SimpleBeacon] Scan error:', err);
       toast.error(errMsg || 'Scan failed');
+      // If the scan worker rejected due to missing/expired attestation,
+      // the user's session has expired — redirect to signin for re-auth.
+      if (errMsg.includes('Sign in required') || errMsg.includes('session may have expired')) {
+        clearAuthAndRedirect();
+        return;
+      }
       postBrowserError({
         source: 'dashboard',
         error: errMsg,
@@ -1940,11 +1952,18 @@ export function AnalyzeView() {
       } catch (err: any) {
         console.error('[SimpleBeacon] Browser-local scan (file input) failed:', err);
         setScanState('error');
-        appendLog(`[SimpleBeacon] Browser-local scan failed: ${err?.message || err}`);
-        toast.error(err?.message || 'Local scan failed');
+        const errMsg = err?.message || String(err);
+        appendLog(`[SimpleBeacon] Browser-local scan failed: ${errMsg}`);
+        toast.error(errMsg || 'Local scan failed');
+        // If the scan worker rejected due to missing/expired attestation,
+        // the user's session has expired — redirect to signin for re-auth.
+        if (errMsg.includes('Sign in required') || errMsg.includes('session may have expired')) {
+          clearAuthAndRedirect();
+          return;
+        }
         postBrowserError({
           source: 'dashboard',
-          error: err?.message || String(err),
+          error: errMsg,
           filePath: dirName,
           stack: err?.stack || null,
           context: 'file-input-scan',
