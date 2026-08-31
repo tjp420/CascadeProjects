@@ -680,7 +680,7 @@ export default {
           headers.set("CDN-Cache-Control", "no-store");
           headers.set("Edge-Cache-TTL", "0");
           headers.set("X-SB-Worker-Entry", entryPath);
-          headers.set("X-SB-Worker-Deploy", "2026-08-13-touch-fix");
+          headers.set("X-SB-Worker-Deploy", "2026-08-31-pdfix1");
           return withSecurityHeaders(
             withHtmlInjections(
               new Response(candidate.body, {
