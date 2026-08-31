@@ -447,6 +447,135 @@ function getDistinctBranches(orgId, repository) {
   return branches.sort();
 }
 
+/**
+ * Get scan performance statistics — aggregates scan duration, success rates,
+ * error rates, and file volume metrics for post-launch monitoring.
+ *
+ * @param {Object} [filters]
+ * @param {string} [filters.orgId]
+ * @param {string} [filters.startDate] - ISO date string
+ * @param {string} [filters.endDate] - ISO date string
+ * @returns {Object} Performance stats including duration percentiles, success/error rates, and throughput.
+ */
+function getScanPerformanceStats(filters = {}) {
+  const store = readStore();
+  let scans = store.scans;
+
+  if (filters.orgId) scans = scans.filter((s) => s.orgId === filters.orgId);
+  if (filters.startDate)
+    scans = scans.filter((s) => s.timestamp >= filters.startDate);
+  if (filters.endDate)
+    scans = scans.filter((s) => s.timestamp <= filters.endDate);
+
+  const totalScans = scans.length;
+  if (totalScans === 0) {
+    return {
+      totalScans: 0,
+      successCount: 0,
+      errorCount: 0,
+      successRate: 0,
+      errorRate: 0,
+      durationMs: { min: 0, median: 0, p90: 0, p99: 0, max: 0, avg: 0 },
+      filesPerScan: { min: 0, median: 0, avg: 0, max: 0 },
+      totalFilesAnalyzed: 0,
+      throughputFilesPerSecond: 0,
+      gatePassCount: 0,
+      gateFailCount: 0,
+      gatePassRate: 0,
+      timeRange: { firstScanAt: null, lastScanAt: null },
+    };
+  }
+
+  // Duration stats
+  const durations = scans
+    .map((s) => s.scanDurationMs)
+    .filter((d) => d != null && d > 0)
+    .sort((a, b) => a - b);
+
+  // File volume stats
+  const fileCounts = scans
+    .map((s) => s.codeFilesAnalyzed)
+    .filter((f) => f != null && f > 0)
+    .sort((a, b) => a - b);
+
+  // Gate stats
+  const gatePasses = scans.filter((s) => s.gateStatus === "pass").length;
+  const gateFails = scans.filter((s) => s.gateStatus === "fail").length;
+  const gateTotal = gatePasses + gateFails;
+
+  // Success = scan completed and has a valid posture score (0-100)
+  const successCount = scans.filter(
+    (s) => s.postureScore != null && s.postureScore >= 0,
+  ).length;
+  const errorCount = totalScans - successCount;
+
+  // Percentile helper
+  function percentile(sortedArr, p) {
+    if (sortedArr.length === 0) return 0;
+    const idx = Math.min(
+      Math.floor((p / 100) * sortedArr.length),
+      sortedArr.length - 1,
+    );
+    return sortedArr[idx];
+  }
+
+  function avg(sortedArr) {
+    if (sortedArr.length === 0) return 0;
+    return Math.round(
+      sortedArr.reduce((a, b) => a + b, 0) / sortedArr.length,
+    );
+  }
+
+  const totalFilesAnalyzed = scans.reduce(
+    (sum, s) => sum + (s.codeFilesAnalyzed || 0),
+    0,
+  );
+
+  // Throughput: files per second across all scans with duration
+  const totalDurationSec =
+    durations.reduce((a, b) => a + b, 0) / 1000;
+  const throughputFilesPerSecond =
+    totalDurationSec > 0
+      ? Math.round(totalFilesAnalyzed / totalDurationSec)
+      : 0;
+
+  const timestamps = scans.map((s) => s.timestamp).sort();
+
+  return {
+    totalScans,
+    successCount,
+    errorCount,
+    successRate: Math.round((successCount / totalScans) * 1000) / 10,
+    errorRate: Math.round((errorCount / totalScans) * 1000) / 10,
+    durationMs: {
+      min: durations[0] || 0,
+      median: percentile(durations, 50),
+      p90: percentile(durations, 90),
+      p99: percentile(durations, 99),
+      max: durations[durations.length - 1] || 0,
+      avg: avg(durations),
+    },
+    filesPerScan: {
+      min: fileCounts[0] || 0,
+      median: percentile(fileCounts, 50),
+      avg: avg(fileCounts),
+      max: fileCounts[fileCounts.length - 1] || 0,
+    },
+    totalFilesAnalyzed,
+    throughputFilesPerSecond,
+    gatePassCount: gatePasses,
+    gateFailCount: gateFails,
+    gatePassRate:
+      gateTotal > 0
+        ? Math.round((gatePasses / gateTotal) * 1000) / 10
+        : 0,
+    timeRange: {
+      firstScanAt: timestamps[0] || null,
+      lastScanAt: timestamps[timestamps.length - 1] || null,
+    },
+  };
+}
+
 module.exports = {
   recordScan,
   getScans,
@@ -458,4 +587,5 @@ module.exports = {
   getDistinctRepositories,
   getDistinctBranches,
   calculatePostureScore,
+  getScanPerformanceStats,
 };

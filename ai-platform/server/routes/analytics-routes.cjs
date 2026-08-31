@@ -357,6 +357,24 @@ router.get("/trends", (req, res) => {
   }
 });
 
+// GET /api/analytics/performance — scan performance and health metrics
+// Returns duration percentiles, success/error rates, file throughput, and gate pass rates.
+// Query params: orgId, startDate, endDate (all optional)
+router.get("/performance", (req, res) => {
+  try {
+    const filters = {
+      orgId: req.query.orgId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+    };
+    const perf = analyticsStore.getScanPerformanceStats(filters);
+    res.json({ success: true, performance: perf });
+  } catch (err) {
+    logger.error("[Analytics] Performance stats failed:", err.message);
+    sendError(res, 500, "performance_failed", { message: err.message });
+  }
+});
+
 // GET /api/analytics/heatmap — violation heatmap by category
 router.get("/heatmap", (req, res) => {
   try {
