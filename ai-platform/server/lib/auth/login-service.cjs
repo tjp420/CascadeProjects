@@ -130,19 +130,82 @@ async function handleLogin(req, res, next) {
 
 function handleTokenRefresh(req, res, next) {
   try {
-    if (!req.user) {
+    // If the authenticate middleware succeeded, req.user is set.
+    if (req.user) {
+      const longLived =
+        req.body?.longLived === true ||
+        req.query?.longLived === "true" ||
+        req.query?.longLived === "1";
+      const tokenOptions = longLived ? { expiresIn: "4h" } : undefined;
+      const newToken = generateToken(req.user, tokenOptions);
+      auditAuth("token_refresh", req.user, req);
+      return res.json({
+        message: "Token refreshed successfully",
+        token: newToken,
+        longLived: Boolean(longLived),
+      });
+    }
+
+    // If authenticate failed (expired token), try to refresh with a grace period.
+    // Extract the token from the request and verify it with ignoreExpiration.
+    const jwt = require("jsonwebtoken");
+    const { jwtConfig } = require("../jwt-config.cjs");
+    const rawToken =
+      (req.body && req.body.token) ||
+      (req.headers.authorization || "").replace(/^Bearer\s+/i, "") ||
+      "";
+
+    if (!rawToken || typeof rawToken !== "string") {
       return res.status(401).json({
         error: "Authentication required",
         message: "Valid token required for refresh",
       });
     }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(rawToken, jwtConfig.secret, {
+        algorithms: [jwtConfig.algorithm],
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience,
+        ignoreExpiration: true,
+      });
+    } catch {
+      return res.status(401).json({
+        error: "Invalid token",
+        message: "Token could not be verified for refresh",
+      });
+    }
+
+    // Allow refresh within a 30-minute grace period after expiry
+    const REFRESH_GRACE_MS = 30 * 60 * 1000;
+    const expiredAt = decoded.exp ? decoded.exp * 1000 : 0;
+    const now = Date.now();
+    if (expiredAt > 0 && now - expiredAt > REFRESH_GRACE_MS) {
+      return res.status(401).json({
+        error: "Token expired beyond refresh grace period",
+        message: "Please sign in again",
+      });
+    }
+
+    // Reconstruct the user object from the decoded token
+    const user = {
+      id: decoded.sub,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded.role || "",
+      tier: decoded.tier || decoded.plan || "",
+      trustLevel: decoded.trustLevel || "bronze",
+      features: decoded.features || [],
+    };
+
     const longLived =
       req.body?.longLived === true ||
       req.query?.longLived === "true" ||
       req.query?.longLived === "1";
     const tokenOptions = longLived ? { expiresIn: "4h" } : undefined;
-    const newToken = generateToken(req.user, tokenOptions);
-    auditAuth("token_refresh", req.user, req);
+    const newToken = generateToken(user, tokenOptions);
+    auditAuth("token_refresh", user, req);
 
     res.json({
       message: "Token refreshed successfully",

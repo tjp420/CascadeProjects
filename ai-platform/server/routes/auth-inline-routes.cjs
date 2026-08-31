@@ -77,7 +77,7 @@ router.post("/auth/register", authLoginRateLimit, async (req, res, next) => {
   }
 });
 
-router.post("/auth/refresh", authenticate, handleTokenRefresh);
+router.post("/auth/refresh", optionalAuthenticate, handleTokenRefresh);
 
 router.get("/auth/me", optionalAuthenticate, (req, res) => {
   if (req.user) {

@@ -478,9 +478,16 @@ export class AuthService {
         return false;
       }
       if (payload.exp && payload.exp * 1000 < Date.now()) {
-        this.clearSession();
+        // Token is expired — schedule an async refresh attempt instead of
+        // immediately clearing the session. This prevents "random sign-outs"
+        // when the 15-minute JWT expires while the user is actively using the
+        // dashboard. The refresh endpoint accepts the expired token (within
+        // a grace period) and issues a new one.
+        this._tryRefreshExpiredToken();
         return false;
       }
+      // Schedule a pre-emptive refresh before the token expires
+      this._scheduleTokenRefresh(payload.exp);
       return true;
     }
     // Also accept legacy tokens directly for upload.html → vault cross-port flow
@@ -698,6 +705,67 @@ export class AuthService {
     }
     this.setSession(body.token, this.user || this.getUser());
     return body.token;
+  }
+  _refreshTimer = null;
+  _refreshingExpired = false;
+  /**
+   * Attempt to refresh an expired token asynchronously.
+   * If the refresh succeeds, the session is restored silently.
+   * If it fails, the session is cleared and a sign-out event is dispatched.
+   */
+  async _tryRefreshExpiredToken() {
+    if (this._refreshingExpired) return;
+    this._refreshingExpired = true;
+    try {
+      const res = await fetch(`${apiBase()}/api/auth/refresh`, {
+        method: "POST",
+        headers: { ...this.getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ longLived: false }),
+      });
+      const body = await readJsonResponseBody(res, {});
+      if (res.ok && body.token) {
+        this.setSession(body.token, this.user || this.getUser());
+        const payload = this._decodeJwtPayload(body.token);
+        if (payload?.exp) this._scheduleTokenRefresh(payload.exp);
+        window.dispatchEvent(
+          new CustomEvent("auth-token-refreshed", { detail: { silent: true } }),
+        );
+      } else {
+        this.clearSession();
+        window.dispatchEvent(
+          new CustomEvent("auth-signed-out", {
+            detail: { reason: "token_expired_refresh_failed" },
+          }),
+        );
+      }
+    } catch {
+      this.clearSession();
+      window.dispatchEvent(
+        new CustomEvent("auth-signed-out", {
+          detail: { reason: "token_expired_refresh_error" },
+        }),
+      );
+    } finally {
+      this._refreshingExpired = false;
+    }
+  }
+  /**
+   * Schedule a pre-emptive token refresh 2 minutes before expiry.
+   * This prevents the user from experiencing a brief sign-out window
+   * when the 15-minute JWT expires during active use.
+   */
+  _scheduleTokenRefresh(expSeconds) {
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    const refreshAt = expSeconds * 1000 - 2 * 60 * 1000; // 2 minutes before expiry
+    const delay = refreshAt - Date.now();
+    if (delay <= 0) return; // Already expired or about to — let isAuthenticated handle it
+    this._refreshTimer = setTimeout(async () => {
+      try {
+        await this.refreshToken(false);
+      } catch {
+        // Refresh failed — the next isAuthenticated() call will handle it
+      }
+    }, Math.min(delay, 13 * 60 * 1000)); // Cap at 13 minutes for 15-min tokens
   }
   _decodeJwtPayload(token) {
     try {
