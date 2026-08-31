@@ -350,6 +350,9 @@ async function scanFile(filePath, rootDir) {
     return null;
   }
 
+  // Skip files with a file-level simplebeacon-ignore comment in the first 500 chars
+  if (/simplebeacon-ignore/i.test(content.substring(0, 500))) return null;
+
   const ast = parseAst(content, filePath);
   if (!ast) return null;
 

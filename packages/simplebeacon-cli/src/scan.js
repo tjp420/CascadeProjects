@@ -2178,7 +2178,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         scanSourceFictionPatterns,
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           pathExclusions: config.pathExclusions || [],
           baseline: config.baseline,
         }),
@@ -2193,7 +2193,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
           return scanLlmSlopPatterns(root, {
             sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
             productionPaths: opts.productionPaths || config.productionPaths,
-            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
             registryCheck:
               opts.registryCheck === true ||
               process.env.SIMPLEBEACON_REGISTRY_CHECK === "true",
@@ -2209,7 +2209,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           severity: opts.severity || "medium",
         }),
       ),
@@ -2220,7 +2220,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           severity: opts.severity || "medium",
         }),
       ),
@@ -2231,7 +2231,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           severity: opts.severity || "high",
         }),
       ),
@@ -2255,7 +2255,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         scanTokenBleedPatterns,
         (opts) => ({
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           severity: opts.severity || "medium",
         }),
       ),
@@ -2266,7 +2266,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           severity: opts.severity || "medium",
         }),
       ),
@@ -2309,7 +2309,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       scannerEntry("type-safety", "typeSafetyScan", scanTypeSafety, (opts) => ({
         sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
         productionPaths: opts.productionPaths || config.productionPaths,
-        ignoreGlobs: opts.ignoreGlobs || config.ignore,
+        ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
       })),
       scannerEntry(
         "hallucinated-import",
@@ -2318,7 +2318,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
         }),
       ),
       scannerEntry(
@@ -2328,7 +2328,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [
+            ...(config.ignore || []),
+            ...(opts.ignoreGlobs || []),
+          ],
         }),
       ),
       scannerEntry(
@@ -2338,7 +2341,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
         }),
       ),
       {
@@ -2398,7 +2401,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         run: () => {
           const opts = getRuleOptions(config, "gzdoom-integrity-patterns");
           return scanGzdoomIntegrity(root, {
-            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
             logPath:
               options.gzdoomLog || options.gameLog || opts.logPath || null,
             severity: opts.severity || "high",
