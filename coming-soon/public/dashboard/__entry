@@ -709,7 +709,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="./assets/main.js?v=20260831attestfix1"></script>
+    <script type="module" src="./assets/main.js?v=20260831scanfix2"></script>
     <script>
       (function () {
         try {

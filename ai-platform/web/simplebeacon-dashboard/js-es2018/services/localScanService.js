@@ -1044,6 +1044,10 @@ export async function runLocalScan(options = {}) {
       onFilePrepProgress(0, fileArray.length, "Filtering files...");
     // Async filter to yield to UI every 5000 files (prevents freezing on large lists)
     files = [];
+    let _debugKept = 0;
+    let _debugExcluded = 0;
+    const _debugKeptSamples = [];
+    const _debugExcludedSamples = [];
     for (let i = 0; i < fileArray.length; i++) {
       const f = fileArray[i];
       if (onFilePrepProgress && i % 5000 === 0)
@@ -1053,8 +1057,44 @@ export async function runLocalScan(options = {}) {
         !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns)
       ) {
         files.push({ path, handle: f });
+        _debugKept++;
+        if (_debugKeptSamples.length < 5)
+          _debugKeptSamples.push(path);
+      } else {
+        _debugExcluded++;
+        if (_debugExcludedSamples.length < 5)
+          _debugExcludedSamples.push(path);
       }
       if (i % 5000 === 0 && i > 0) await new Promise((r) => setTimeout(r, 0));
+    }
+    if (files.length === 0 && fileArray.length > 0) {
+      console.warn(
+        "[localScan] All",
+        fileArray.length,
+        "files were excluded by",
+        ignoreCtx.source,
+        "rules. Kept=",
+        _debugKept,
+        "Excluded=",
+        _debugExcluded,
+        "\n  Excluded samples:",
+        _debugExcludedSamples,
+        "\n  scanRootName:",
+        ignoreCtx.scanRootName,
+        "\n  patternCount:",
+        ignoreCtx.patterns.length,
+        "\n  First 3 patterns:",
+        ignoreCtx.patterns.slice(0, 3),
+      );
+    } else {
+      console.warn(
+        "[localScan] Filter: kept",
+        _debugKept,
+        "of",
+        fileArray.length,
+        "files. Kept samples:",
+        _debugKeptSamples,
+      );
     }
     // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
     // cause the same file to appear multiple times during recursive directory traversal.
@@ -1081,11 +1121,7 @@ export async function runLocalScan(options = {}) {
     // exclusions so a misconfigured catch-all doesn't silently block the scan.
     if (files.length === 0 && fileArray.length > 0) {
       console.warn(
-        "[localScan] All",
-        fileArray.length,
-        "files were excluded by",
-        ignoreCtx.source,
-        "rules. Falling back to built-in ignore patterns.",
+        "[localScan] Falling back to built-in ignore patterns.",
       );
       ignoreCtx = createIgnoreContext(
         getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo),

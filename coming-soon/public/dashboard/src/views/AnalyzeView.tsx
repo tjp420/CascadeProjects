@@ -2286,6 +2286,16 @@ export function AnalyzeView() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
+      // Guard against duplicate change events — the hidden file input can
+      // fire onChange multiple times in some browsers/React versions, and
+      // the React StrictMode double-invoke can also trigger duplicates.
+      if (scanInFlightRef.current) {
+        console.warn(
+          "[SimpleBeacon] handleFileSelect: scan already in progress, ignoring duplicate change event",
+        );
+        e.target.value = "";
+        return;
+      }
       if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
         setScanState("auth_required");
         setLastErrorMsg(
@@ -2310,6 +2320,7 @@ export function AnalyzeView() {
       setPath(dirName);
 
       // Run a browser-local scan with the selected files — no server involved
+      scanInFlightRef.current = true;
       setScanState("scanning");
       setProgress(2);
       setProgressLabel(
@@ -2408,6 +2419,8 @@ export function AnalyzeView() {
           stack: err?.stack || null,
           context: "file-input-scan",
         });
+      } finally {
+        scanInFlightRef.current = false;
       }
       // Reset input so the same folder can be selected again
       e.target.value = "";
