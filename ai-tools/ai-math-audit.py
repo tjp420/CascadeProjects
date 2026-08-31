@@ -35,7 +35,7 @@ import numpy as np
 try:
     from audit_viz import generate_all_visualizations
     HAS_VIZ = True
-except Exception:
+except ImportError:
     HAS_VIZ = False
 
 
