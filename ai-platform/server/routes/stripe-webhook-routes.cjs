@@ -38,6 +38,14 @@ const {
 const { calculateProration } = require("../lib/proration-calculator.cjs");
 const { sendError } = require("../lib/response-helpers.cjs");
 
+// Onboarding drip — register new activations for the drip email sequence
+let onboardingDripStore = null;
+try {
+  onboardingDripStore = require("../lib/onboarding-drip-store.cjs");
+} catch (e) {
+  logger.warn("[StripeWebhook] onboarding-drip-store not loaded:", e.message);
+}
+
 // Session token store — shared with coming-soon checkout and ai-platform billing API
 // so the dashboard can retrieve the license token after Stripe checkout redirect.
 let sessionTokenStore = null;
@@ -441,6 +449,19 @@ async function handleCheckoutCompleted(event, headers = {}) {
     "token included:",
     !!licenseToken,
   );
+
+  // Register the activation in the onboarding drip store so the cron job
+  // can send day 1, day 3, and day 7 follow-up emails.
+  if (onboardingDripStore) {
+    try {
+      onboardingDripStore.registerActivation(customerEmail, tier);
+    } catch (dripErr) {
+      logger.warn(
+        "[StripeWebhook] Failed to register onboarding drip:",
+        dripErr?.message || dripErr,
+      );
+    }
+  }
 
   // Send Slack/Discord purchase notification (no-op if PURCHASE_ALERT_WEBHOOK not set)
   var alertAmount =

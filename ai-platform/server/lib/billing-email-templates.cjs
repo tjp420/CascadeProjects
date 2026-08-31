@@ -633,6 +633,213 @@ function renderSubscriptionResumed(opts = {}) {
   return { subject, text, html: wrapHtml("Subscription Resumed", bodyContent) };
 }
 
+/**
+ * Onboarding drip — Day 1 quickstart tips (sent ~24h after activation).
+ * @param {Object} opts
+ * @param {string} [opts.tier] - Subscription tier
+ * @param {string} [opts.customerEmail] - Customer email (for personalization)
+ * @returns {{subject:string,text:string,html:string}}
+ */
+function renderOnboardingDay1(opts = {}) {
+  const { tier = "developer", customerEmail = "" } = opts;
+  const tierName = tierDisplayName(tier);
+  const firstName = customerEmail
+    ? customerEmail.split("@")[0].split(/[._-]/)[0]
+    : "there";
+
+  const subject = `Quick tips for your first SimpleBeacon scan`;
+  const text = `Hi ${firstName},
+
+You activated SimpleBeacon ${tierName} yesterday. Here are three tips to get the most out of your first scans:
+
+1. Run a gate scan in your CI pipeline:
+   simplebeacon scan --gate --offline
+   This exits non-zero if critical issues are found — perfect for blocking bad PRs.
+
+2. Use --anonymize when sharing reports:
+   simplebeacon scan --anonymize --format json
+   Strips all file paths and code snippets from the output — safe to share externally.
+
+3. Try the VS Code extension for real-time squiggles:
+   Search "simplebeacon" in the Extensions marketplace.
+
+Your license token is in your welcome email. Retrieve it anytime from your dashboard:
+${PUBLIC_URL}/dashboard
+
+Reply to this email if you hit any snags — I read every response.
+
+— Trevor, SimpleBeacon`;
+
+  const bodyContent = `
+    <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Day 1 — Quick Tips</div></td></tr>
+    <tr><td class="content">
+      <p class="greeting">Hi ${firstName},</p>
+      <p class="body-text">You activated <strong>${tierName}</strong> yesterday. Here are three tips to get the most out of your first scans:</p>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">1</span>Block bad PRs with the gate</div>
+        <div class="code-block"><pre><span class="c"># Exit non-zero on critical issues</span>
+simplebeacon scan --gate --offline</pre></div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">2</span>Share reports safely with --anonymize</div>
+        <div class="code-block"><pre><span class="c"># Strips file paths and code snippets</span>
+simplebeacon scan --anonymize --format json</pre></div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">3</span>Get real-time squiggles in VS Code</div>
+        <p class="body-text" style="margin-top:8px;">Search "simplebeacon" in the Extensions marketplace.</p>
+      </div>
+
+      <div class="divider"></div>
+      <p class="body-text">Your license token is in your welcome email. Retrieve it anytime from your <a href="${PUBLIC_URL}/dashboard">dashboard</a>.</p>
+      <p class="body-text">Reply to this email if you hit any snags &mdash; I read every response.</p>
+      <p class="body-text" style="margin-top:24px;">&mdash; Trevor, SimpleBeacon</p>
+    </td></tr>
+    <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
+
+  return { subject, text, html: wrapHtml("Day 1 Quick Tips", bodyContent) };
+}
+
+/**
+ * Onboarding drip — Day 3 advanced features (sent ~3 days after activation).
+ * @param {Object} opts
+ * @param {string} [opts.tier] - Subscription tier
+ * @param {string} [opts.customerEmail] - Customer email
+ * @returns {{subject:string,text:string,html:string}}
+ */
+function renderOnboardingDay3(opts = {}) {
+  const { tier = "developer", customerEmail = "" } = opts;
+  const tierName = tierDisplayName(tier);
+  const firstName = customerEmail
+    ? customerEmail.split("@")[0].split(/[._-]/)[0]
+    : "there";
+
+  const subject = `3 SimpleBeacon features you might have missed`;
+  const text = `Hi ${firstName},
+
+You've had SimpleBeacon ${tierName} for a few days now. Here are three features that most users discover late:
+
+1. PDF Executive Risk Certificates
+   simplebeacon pdf --path ./your-project
+   Generates a board-ready PDF with your compliance score, severity distribution, and remediation roadmap.
+
+2. Compliance checklist evaluation
+   simplebeacon compliance --report .simplebeacon/report.json
+   Evaluates your scan against corporate safety policies (SOC 2, EU AI Act, OWASP).
+
+3. Pre-commit hook installation
+   simplebeacon hook install --type pre-commit
+   Blocks commits that contain secrets, AI slop, or critical violations.
+
+All of these run locally — no source code leaves your machine.
+
+Dashboard: ${PUBLIC_URL}/dashboard
+Docs: ${PUBLIC_URL}/docs
+
+— Trevor, SimpleBeacon`;
+
+  const bodyContent = `
+    <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Day 3 — Features You Might Have Missed</div></td></tr>
+    <tr><td class="content">
+      <p class="greeting">Hi ${firstName},</p>
+      <p class="body-text">You've had <strong>${tierName}</strong> for a few days now. Here are three features that most users discover late:</p>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">1</span>PDF Executive Risk Certificates</div>
+        <div class="code-block"><pre><span class="c"># Board-ready PDF in under 5 minutes</span>
+simplebeacon pdf --path ./your-project</pre></div>
+        <p class="body-text" style="margin-top:8px;font-size:13px;">Generates a PDF with your compliance score, severity distribution, and remediation roadmap.</p>
+      </div>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">2</span>Compliance checklist evaluation</div>
+        <div class="code-block"><pre><span class="c"># SOC 2, EU AI Act, OWASP checks</span>
+simplebeacon compliance --report .simplebeacon/report.json</pre></div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-header"><span class="num">3</span>Pre-commit hook installation</div>
+        <div class="code-block"><pre><span class="c"># Block bad commits before they land</span>
+simplebeacon hook install --type pre-commit</pre></div>
+      </div>
+
+      <div class="callout callout-info">
+        <p>All of these run locally &mdash; no source code leaves your machine.</p>
+      </div>
+
+      <div class="btn-container">
+        <a href="${PUBLIC_URL}/dashboard" class="btn">Open Dashboard</a>
+        <a href="${PUBLIC_URL}/docs" class="btn btn-secondary">Read Docs</a>
+      </div>
+
+      <p class="body-text" style="margin-top:24px;">&mdash; Trevor, SimpleBeacon</p>
+    </td></tr>
+    <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
+
+  return { subject, text, html: wrapHtml("Day 3 Features", bodyContent) };
+}
+
+/**
+ * Onboarding drip — Day 7 value check (sent ~7 days after activation).
+ * Asks the user if they've run a scan yet and offers help.
+ * @param {Object} opts
+ * @param {string} [opts.tier] - Subscription tier
+ * @param {string} [opts.customerEmail] - Customer email
+ * @returns {{subject:string,text:string,html:string}}
+ */
+function renderOnboardingDay7(opts = {}) {
+  const { tier = "developer", customerEmail = "" } = opts;
+  const tierName = tierDisplayName(tier);
+  const firstName = customerEmail
+    ? customerEmail.split("@")[0].split(/[._-]/)[0]
+    : "there";
+
+  const subject = `How's it going with SimpleBeacon ${tierName}?`;
+  const text = `Hi ${firstName},
+
+It's been a week since you activated SimpleBeacon ${tierName}. I wanted to check in — have you run your first scan yet?
+
+If you haven't, here's the fastest way to start:
+
+  npm install -g simplebeacon
+  simplebeacon scan --path ./your-project --gate
+
+If you've already scanned and have questions about the results, just reply to this email. I'm happy to walk through any findings with you.
+
+If you're stuck on something specific — CI integration, the VS Code extension, compliance reports — let me know and I'll point you to the right docs.
+
+— Trevor
+Founder, SimpleBeacon
+${PUBLIC_URL}`;
+
+  const bodyContent = `
+    <tr><td class="header"><h1>SimpleBeacon</h1><div class="tagline">Day 7 — How's it going?</div></td></tr>
+    <tr><td class="content">
+      <p class="greeting">Hi ${firstName},</p>
+      <p class="body-text">It's been a week since you activated <strong>${tierName}</strong>. I wanted to check in &mdash; have you run your first scan yet?</p>
+
+      <p class="body-text">If you haven't, here's the fastest way to start:</p>
+
+      <div class="code-block"><pre><span class="c"># Install and run in under 60 seconds</span>
+npm install -g simplebeacon
+simplebeacon scan --path ./your-project --gate</pre></div>
+
+      <div class="callout callout-info">
+        <p>If you've already scanned and have questions about the results, just reply to this email. I'm happy to walk through any findings with you.</p>
+      </div>
+
+      <p class="body-text">If you're stuck on something specific &mdash; CI integration, the VS Code extension, compliance reports &mdash; let me know and I'll point you to the right docs.</p>
+
+      <p class="body-text" style="margin-top:24px;">&mdash; Trevor<br>Founder, SimpleBeacon<br><a href="${PUBLIC_URL}">${PUBLIC_URL}</a></p>
+    </td></tr>
+    <tr><td class="footer"><p class="brand">SimpleBeacon</p><p>&copy; 2026 SimpleBeacon, Inc.</p></td></tr>`;
+
+  return { subject, text, html: wrapHtml("Day 7 Check-in", bodyContent) };
+}
+
 module.exports = {
   renderSubscriptionActivated,
   renderSubscriptionCanceled,
@@ -644,4 +851,7 @@ module.exports = {
   renderProrationNotice,
   renderSubscriptionPaused,
   renderSubscriptionResumed,
+  renderOnboardingDay1,
+  renderOnboardingDay3,
+  renderOnboardingDay7,
 };
