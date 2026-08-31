@@ -5,7 +5,7 @@
  * Pages asset handler. All other /dashboard/* routes return the dashboard
  * entry HTML so the client-side router can render the requested view.
  *
- * Cache-bust version: 20260828-v2
+ * Cache-bust version: 20260831attestfix1
  */
 export async function onRequest(context) {
     const { request, env } = context;
@@ -17,7 +17,7 @@ export async function onRequest(context) {
         if (pathname.endsWith('/assets/main.js')) {
             // Try hashed filenames first (newest build), fall back to main.js
             const hashedCandidates = [
-                '/assets/main-DIM5tLYB.js',
+                '/assets/main-yJqKihoG.js',
             ];
             for (const candidate of hashedCandidates) {
                 const newUrl = new URL(pathname.replace('/assets/main.js', candidate), url.origin);
