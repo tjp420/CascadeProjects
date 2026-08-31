@@ -417,6 +417,10 @@ simplebeacon-vscode-merged/report-extract.json
 
 # Stress-test workflow — intentionally generates fake credentials in synthetic repos
 .github/workflows/simplebeacon-action-stress-test.yml
+stress-test-monorepo/
+
+# D3.js vendor library — third-party minified library, not our source code
+simplebeacon-vscode-merged/media/d3.v7.min.js
 
 # Generated copy of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
 simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json

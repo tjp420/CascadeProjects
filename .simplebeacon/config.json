@@ -192,7 +192,9 @@
     "ai-platform/scripts/watch-restart-prism.js",
     "ai-agent/consistency-score.cjs",
     "ai-agent/orchestrator.cjs",
-    "coming-soon/public/index.html"
+    "coming-soon/public/index.html",
+    "stress-test-monorepo/**",
+    "simplebeacon-vscode-merged/media/d3.v7.min.js"
   ],
   "rules": {
     "credentials": {

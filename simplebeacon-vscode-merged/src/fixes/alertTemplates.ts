@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security advisory templates — references to eval/new Function are documentation, not executable code
 /**
  * Alert template definitions for the VS Code extension sidebar.
  *

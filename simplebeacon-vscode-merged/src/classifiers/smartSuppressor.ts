@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Suppression classifier — references to credentials/eval are pattern matching logic, not real secrets
 /**
  * Smart suppressor — hardened false-positive suppression for known
  * safe patterns that should never fire regardless of file role.

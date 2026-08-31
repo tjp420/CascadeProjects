@@ -2383,7 +2383,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         "customHeuristicScan",
         scanCustomHeuristicRules,
         (opts) => ({
-          ignoreGlobs: opts.ignoreGlobs || config.ignore,
+          ignoreGlobs: [
+            ...(config.ignore || []),
+            ...(opts.ignoreGlobs || []),
+          ],
           universalRules: opts.universalRules !== false,
           extraSkipDirs: config.fullDirectoryScanSkipDirs || [],
         }),

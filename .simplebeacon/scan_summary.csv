@@ -2,23 +2,23 @@ metric,value
 Gate Status,PASS
 Gate Pass,true
 Blocking Count,0
-Warning Count,4152
-Total Raw Warnings,4152
-Actionable Warnings,172
+Warning Count,4066
+Total Raw Warnings,4066
+Actionable Warnings,86
 Suppressed Noise Warnings,3980
-Signal-to-Noise Ratio,4.14%
+Signal-to-Noise Ratio,2.12%
 Total Files,50
 Files Analyzed,50
-Total Lines,524824
+Total Lines,524269
 Issue Count,0
 Critical Severity,0
 High Severity,0
-Medium Severity,159
-Low Severity,3993
-Credential Findings,13
-Custom Heuristic Findings,93
+Medium Severity,78
+Low Severity,3988
+Credential Findings,0
+Custom Heuristic Findings,7
 AST Structural Findings,6173
 Deployment Readiness Findings,1
-Scan Duration (ms),135425
-Generated At,2026-08-31T18:57:21.202Z
+Scan Duration (ms),147257
+Generated At,2026-08-31T19:43:31.134Z
 Project Root,C:\Users\user\CascadeProjects

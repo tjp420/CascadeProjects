@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Quick-fix provider — references to eval/credentials are pattern matching logic, not executable code
 import * as vscode from 'vscode';
 
 /**
