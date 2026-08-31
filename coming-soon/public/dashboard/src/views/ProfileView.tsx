@@ -22,7 +22,7 @@ import {
   Key,
 } from "lucide-react";
 import { navigate } from "@/router/HashRouter";
-import { apiUrl, authHeaders, getApiBase, clearAuthToken } from "@/config";
+import { apiUrl, authHeaders, getApiBase } from "@/config";
 
 interface UserData {
   email?: string;
@@ -46,7 +46,6 @@ export function ProfileView() {
   useEffect(() => {
     try {
       const token =
-        localStorage.getItem("sb_auth_token") ||
         localStorage.getItem("sb_token") ||
         localStorage.getItem("sb-token") ||
         localStorage.getItem("auth_token");
@@ -80,14 +79,10 @@ export function ProfileView() {
   }, []);
 
   const handleSignOut = () => {
-    clearAuthToken();
+    localStorage.removeItem("sb_token");
+    localStorage.removeItem("sb-token");
     localStorage.removeItem("sb_user");
-    localStorage.removeItem("sb-user");
-    try {
-      window.dispatchEvent(new Event("sb:logout"));
-    } catch {
-      /* ignore */
-    }
+    localStorage.removeItem("auth_token");
     navigate("signin");
   };
 

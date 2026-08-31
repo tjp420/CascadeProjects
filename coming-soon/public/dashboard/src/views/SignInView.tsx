@@ -17,10 +17,6 @@ import {
   KeyRound,
   Building2,
   Fingerprint,
-  Mail,
-  Lock,
-  ArrowLeft,
-  CheckCircle2,
 } from "lucide-react";
 import { navigate } from "@/router/HashRouter";
 import { toast } from "sonner";
@@ -34,7 +30,7 @@ type SsoProvider = {
   orgId?: string;
 };
 
-type Mode = "signin" | "register" | "license" | "forgot-password" | "reset-password";
+type Mode = "signin" | "register" | "license";
 
 export function SignInView() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -45,11 +41,6 @@ export function SignInView() {
   const [loading, setLoading] = useState(false);
   const [ssoProvider, setSsoProvider] = useState<SsoProvider | null>(null);
   const [ssoChecking, setSsoChecking] = useState(false);
-  const [resetToken, setResetToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [recoveryEmailSent, setRecoveryEmailSent] = useState(false);
-  const [passwordResetSuccess, setPasswordResetSuccess] = useState(false);
 
   // Handle SSO callback — token in URL params after redirect from IdP
   useEffect(() => {
@@ -100,26 +91,11 @@ export function SignInView() {
     const urlToken = allParams.get("token");
     const urlEmail = allParams.get("email");
     const urlName = allParams.get("name");
-
-    // Also check the hash route itself for forgot-password / reset-password
-    const hashRoute = hash.startsWith("/") ? hash.slice(1).split("?")[0] : "";
-    if (hashRoute === "forgot-password") {
-      setMode("forgot-password");
-    } else if (hashRoute === "reset-password") {
-      setMode("reset-password");
-      if (urlToken) setResetToken(urlToken);
-    } else if (
+    if (
       urlMode &&
-      (urlMode === "signin" ||
-        urlMode === "register" ||
-        urlMode === "license" ||
-        urlMode === "forgot-password" ||
-        urlMode === "reset-password")
+      (urlMode === "signin" || urlMode === "register" || urlMode === "license")
     ) {
       setMode(urlMode);
-      if (urlMode === "reset-password" && urlToken) {
-        setResetToken(urlToken);
-      }
     }
     if (urlToken && urlMode === "license") {
       setLicenseKey(urlToken);
@@ -292,116 +268,18 @@ export function SignInView() {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    setLoading(true);
-    try {
-      await waitForApiBase();
-      const resp = await fetch(
-        apiUrl("/simplebeacon/auth/forgot-password"),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        },
-      );
-      // Always show the same message regardless of response — prevents enumeration
-      setRecoveryEmailSent(true);
-      toast.success(
-        "If that account exists, a secure recovery link has been sent to your inbox.",
-      );
-    } catch (err: any) {
-      // Don't reveal whether the email exists — show the same success message
-      setRecoveryEmailSent(true);
-      toast.success(
-        "If that account exists, a secure recovery link has been sent to your inbox.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetToken) {
-      toast.error("Reset token is missing. Please use the link from your email.");
-      return;
-    }
-    if (!newPassword) {
-      toast.error("Please enter a new password");
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setLoading(true);
-    try {
-      await waitForApiBase();
-      const resp = await fetch(
-        apiUrl("/simplebeacon/auth/reset-password"),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: resetToken, newPassword }),
-        },
-      );
-      if (!resp.ok) {
-        let friendlyMsg = "Password reset failed";
-        try {
-          const errData = await resp.json();
-          friendlyMsg = errData.error || errData.message || friendlyMsg;
-        } catch {
-          /* response was not JSON */
-        }
-        throw new Error(friendlyMsg);
-      }
-      setPasswordResetSuccess(true);
-      toast.success("Password updated successfully! You can now sign in.");
-      // Clear sensitive state
-      setNewPassword("");
-      setConfirmPassword("");
-      setResetToken("");
-    } catch (err: any) {
-      toast.error(err.message || "Password reset failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const title =
     mode === "signin"
       ? "Sign In"
       : mode === "register"
         ? "Create Account"
-        : mode === "forgot-password"
-          ? "Forgot Password"
-          : mode === "reset-password"
-            ? "Reset Password"
-            : "Activate License";
+        : "Activate License";
   const description =
     mode === "signin"
       ? "Sign in to your SimpleBeacon account"
       : mode === "register"
         ? "Register for a free SimpleBeacon account"
-        : mode === "forgot-password"
-          ? "Enter your email to receive a recovery link"
-          : mode === "reset-password"
-            ? "Enter your new password"
-            : "Paste the license key from your confirmation email";
+        : "Paste the license key from your confirmation email";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -410,10 +288,6 @@ export function SignInView() {
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
             {mode === "license" ? (
               <KeyRound className="h-7 w-7 text-primary-foreground" />
-            ) : mode === "forgot-password" ? (
-              <Mail className="h-7 w-7 text-primary-foreground" />
-            ) : mode === "reset-password" ? (
-              <Lock className="h-7 w-7 text-primary-foreground" />
             ) : (
               <svg
                 viewBox="0 0 24 24"
@@ -461,139 +335,6 @@ export function SignInView() {
                   )}
                 </Button>
               </form>
-            </>
-          ) : mode === "forgot-password" ? (
-            <>
-              {recoveryEmailSent ? (
-                <div className="space-y-4 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                    <Mail className="h-6 w-6 text-green-500" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    If an account with that email exists, a secure recovery
-                    link has been sent to your inbox. The link expires in 15
-                    minutes.
-                  </p>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      setMode("signin");
-                      setRecoveryEmailSent(false);
-                      navigate("signin");
-                    }}
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Back to Sign In
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div className="mb-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground-muted">
-                    Enter your account email and we'll send you a secure link
-                    to reset your password.
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="forgot-email">Email</Label>
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <span className="animate-pulse">Sending...</span>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" /> Send Recovery Link
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
-            </>
-          ) : mode === "reset-password" ? (
-            <>
-              {passwordResetSuccess ? (
-                <div className="space-y-4 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                    <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your password has been updated successfully. You can now
-                    sign in with your new password.
-                  </p>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      setMode("signin");
-                      setPasswordResetSuccess(false);
-                      navigate("signin");
-                    }}
-                  >
-                    <LogIn className="h-4 w-4" /> Sign In
-                  </Button>
-                </div>
-              ) : !resetToken ? (
-                <div className="space-y-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Reset token is missing or malformed. Please use the link
-                    from your recovery email.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setMode("forgot-password");
-                      navigate("forgot-password");
-                    }}
-                  >
-                    <Mail className="h-4 w-4" /> Request a new link
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div className="mb-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground-muted">
-                    Enter your new password below. This link can only be used
-                    once.
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      autoFocus
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Must be at least 8 characters
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <span className="animate-pulse">Updating...</span>
-                    ) : (
-                      <>
-                        <Lock className="h-4 w-4" /> Reset Password
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
             </>
           ) : (
             <form onSubmit={handleAuthSubmit} className="space-y-4">
@@ -697,17 +438,6 @@ export function SignInView() {
               >
                 Back to sign in
               </Button>
-            ) : mode === "forgot-password" || mode === "reset-password" ? (
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => {
-                  setMode("signin");
-                  navigate("signin");
-                }}
-              >
-                <ArrowLeft className="h-3 w-3" /> Back to sign in
-              </Button>
             ) : (
               <>
                 <Button
@@ -721,18 +451,6 @@ export function SignInView() {
                     ? "Don't have an account? Register"
                     : "Already have an account? Sign in"}
                 </Button>
-                {mode === "signin" && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => {
-                      setMode("forgot-password");
-                      navigate("forgot-password");
-                    }}
-                  >
-                    Forgot password?
-                  </Button>
-                )}
                 <Button
                   variant="link"
                   size="sm"

@@ -10,6 +10,37 @@ import {
   findingsToIssues,
 } from "./scan-wasm-bridge.js";
 import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js";
+
+/**
+ * Verify a scan attestation token (client-side structural check).
+ *
+ * This checks that the attestation JWT is well-formed, has the correct
+ * issuer/audience, and has not expired. The authoritative signature
+ * verification happens server-side when the attestation is issued.
+ *
+ * This is a barrier to casual copying, not a cryptographic guarantee —
+ * a determined attacker can modify this check. The real protection is
+ * that server-trusted results (compliance certs, uploaded reports)
+ * require a valid attestation that the server independently verifies.
+ */
+function verifyAttestation(attestation) {
+  if (!attestation || typeof attestation !== "string") return false;
+  try {
+    const parts = attestation.split(".");
+    if (parts.length !== 3) return false;
+    // Decode payload (base64url)
+    const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(payloadB64));
+    // Check issuer and audience
+    if (payload.iss !== "simplebeacon-edge") return false;
+    if (payload.aud !== "simplebeacon-scan-worker") return false;
+    // Check expiry (5-minute TTL, allow 10s clock skew)
+    if (payload.exp && Date.now() >= payload.exp * 1000 - 10000) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -1049,6 +1080,20 @@ self.onmessage = async (e) => {
     return;
   }
   if (type === "scan-start") {
+    // Verify attestation token before starting the scan.
+    // This prevents casual copying of the scan worker — it won't run
+    // without a valid, server-issued attestation token.
+    const { attestation, attestationScanId } = e.data;
+    if (!verifyAttestation(attestation)) {
+      self.postMessage({
+        type: "error",
+        scanId,
+        error:
+          "Scan attestation required. Sign in to run local scans. If you are signed in, your session may have expired.",
+        attestationRequired: true,
+      });
+      return;
+    }
     self.scanState = {
       scanId,
       totalFiles: totalFiles || 0,
@@ -1061,6 +1106,7 @@ self.onmessage = async (e) => {
       issuesTruncated: false,
       deepScan: Boolean(deepScan),
       ignoreCtx: e.data.ignoreCtx || null,
+      attestationScanId: attestationScanId || null,
     };
     self.postMessage({
       type: "started",

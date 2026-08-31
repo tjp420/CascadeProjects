@@ -8,7 +8,6 @@ interface AppShellProps {
   onNavigate: (view: string) => void;
   isAuthenticated: boolean;
   isFreeTier: boolean;
-  isAdmin?: boolean;
   user?: { email?: string; name?: string; role?: string } | null;
   children: React.ReactNode;
 }
@@ -18,18 +17,16 @@ export function AppShell({
   onNavigate,
   isAuthenticated,
   isFreeTier,
-  isAdmin: isAdminProp,
   user,
   children,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = !!(
-    isAdminProp ||
-    (user &&
-      ["admin", "owner", "superuser", "superadmin"].includes(
-        String(user.role || "").toLowerCase(),
-      ))
+    user &&
+    ["admin", "owner", "superuser", "superadmin"].includes(
+      String(user.role || "").toLowerCase(),
+    )
   );
 
   return (

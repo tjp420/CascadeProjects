@@ -58,25 +58,16 @@ const TelemetryView = lazy(() =>
 const PUBLIC_VIEWS = new Set([
   "signin",
   "register",
-  "forgot-password",
-  "reset-password",
   "about",
   "getting-started",
-  "help",
-  "features",
 ]);
-
-// Routes that require admin role — hidden from non-admins and blocked on direct URL access
-const ADMIN_ONLY_VIEWS = new Set([
+const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
+const WRITE_HEAVY_VIEWS = new Set([
+  "dashboard",
+  "upload",
+  "settings",
   "admin",
-  "fine-tuning",
-  "webhook-events",
-  "ops-report",
-  "license-manager",
-  "outreach-analytics",
-  "telemetry",
-  "team-metrics",
-  "workspace",
+  "chatbot",
 ]);
 
 function isHostedDashboard(): boolean {
@@ -118,8 +109,6 @@ const VIEW_TITLES: Record<string, string> = {
   "repository-health": "Repo Health",
   signin: "Sign In",
   register: "Create Account",
-  "forgot-password": "Forgot Password",
-  "reset-password": "Reset Password",
   admin: "Admin",
   upload: "Upload",
   help: "Help",
@@ -158,8 +147,6 @@ const viewMap: Record<string, React.ComponentType> = {
   "repository-health": RepoHealthView,
   signin: SignInView,
   register: SignInView,
-  "forgot-password": SignInView,
-  "reset-password": SignInView,
   admin: AdminView,
   upload: UploadView,
   help: HelpView,
@@ -187,7 +174,7 @@ export default function App() {
   }, []);
 
   const [route, setRoute] = useState(getCurrentRoute());
-  const { isAuthenticated, isAuthReady, isFreeTier, isAdmin, user } = useAuth();
+  const { isAuthenticated, isFreeTier, user } = useAuth();
   useTheme();
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
@@ -211,32 +198,20 @@ export default function App() {
     document.title = `${label} — SimpleBeacon`;
   }, [route.view]);
 
-  // Global route guard — protect all non-public routes
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
-    // Public views are always accessible
     if (PUBLIC_VIEWS.has(route.view)) return;
-
-    // IDE embed surface bypasses auth (local dev with extension bridge)
-    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
-
-    // Wait for the initial auth check to complete before guarding
-    if (!isAuthReady) return;
-
-    // All non-public views require authentication
-    if (!isAuthenticated || isTokenExpired()) {
+    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
       navigate("signin");
       setRoute(getCurrentRoute());
       return;
     }
-
-    // Admin-only views require admin role
-    if (ADMIN_ONLY_VIEWS.has(route.view) && !isAdmin) {
-      navigate("dashboard");
-      setRoute(getCurrentRoute());
-      return;
-    }
-  }, [route.view, isAuthenticated, isAuthReady, isAdmin]);
+    if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
+    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
+    if (!isTokenExpired()) return;
+    navigate("signin");
+    setRoute(getCurrentRoute());
+  }, [route.view, isAuthenticated]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);
@@ -255,7 +230,6 @@ export default function App() {
           onNavigate={handleNavigate}
           isAuthenticated={isAuthenticated}
           isFreeTier={isFreeTier}
-          isAdmin={isAdmin}
           user={user}
         >
           <ErrorBoundary key={route.view}>

@@ -16,8 +16,7 @@ import {
   Zap,
   Download,
 } from "lucide-react";
-import { apiUrl, authHeaders, isTokenExpired } from "@/config";
-import { useAuth } from "@/hooks/useAuth";
+import { apiUrl, authHeaders } from "@/config";
 import { navigate } from "@/router/HashRouter";
 
 type Phase = {
@@ -122,14 +121,8 @@ export function RemediationView() {
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
 
   const fetchData = useCallback(async () => {
-    // Skip API calls if not authenticated — prevents 401 spam on mount
-    if (!isAuthenticated || isTokenExpired()) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
