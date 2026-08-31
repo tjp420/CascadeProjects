@@ -21,25 +21,4 @@ WARNING,SB-QUAL-004-ai-platform/server/routes/whitelabel-routes.cjs-1,low,Redund
 WARNING,SB-QUAL-006-ai-platform/web/simplebeacon-dashboard/src/config.ts-196,medium,Excessive Nested Try/Catch,SB-QUAL-006,,ai-platform/web/simplebeacon-dashboard/src/config.ts,196,"ai-platform/web/simplebeacon-dashboard/src/config.ts:196 Excessive Nested Try/Catch: Try/catch nested 3 levels deep — redundant error handling structure, likely LLM-generated boilerplate",depth=3
 WARNING,SB-QUAL-006-ai-platform/web/simplebeacon-dashboard/src/services/dropFolderTraversal.ts-64,medium,Excessive Nested Try/Catch,SB-QUAL-006,,ai-platform/web/simplebeacon-dashboard/src/services/dropFolderTraversal.ts,64,"ai-platform/web/simplebeacon-dashboard/src/services/dropFolderTraversal.ts:64 Excessive Nested Try/Catch: Try/catch nested 3 levels deep — redundant error handling structure, likely LLM-generated boilerplate",depth=3
 WARNING,SB-QUAL-006-ai-platform/web/simplebeacon-dashboard/src/utils/dbStorage.ts-55,medium,Excessive Nested Try/Catch,SB-QUAL-006,,ai-platform/web/simplebeacon-dashboard/src/utils/dbStorage.ts,55,"ai-platform/web/simplebeacon-dashboard/src/utils/dbStorage.ts:55 Excessive Nested Try/Catch: Try/catch nested 3 levels deep — redundant error handling structure, likely LLM-generated boilerplate",depth=3
-WARNING,custom-SB-AI-004-ai-agent/plugins/sandbox-runner.cjs-4524,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,ai-agent/plugins/sandbox-runner.cjs,158,"ai-agent/plugins/sandbox-runner.cjs:158 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (e) {
-    // Best-effort cleanup — log so failures are debuggable
-    console.error(
-      `[sandbox-runner] clean"
-WARNING,custom-SB-AI-004-ai-agent/plugins/simplebeacon-plugin.cjs-3005,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,ai-agent/plugins/simplebeacon-plugin.cjs,83,"ai-agent/plugins/simplebeacon-plugin.cjs:83 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (e) {
-        // Not fatal — fall back to helpers, but log for debuggability
-        console.error(
-          ""[si"
-WARNING,custom-SB-AI-004-ai-agent/plugins/vscode-agent-integration.cjs-1909,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,ai-agent/plugins/vscode-agent-integration.cjs,48,"ai-agent/plugins/vscode-agent-integration.cjs:48 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (err) {
-              // Bubble up the error to the extension caller
-              throw err;
-            }"
-WARNING,custom-SB-AI-004-ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs-14381,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs,438,"ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs:438 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (err) {
-          // swallow audit errors, but log at debug level for diagnostics
-          try { console.warn('"
 WARNING,custom-SB-AI-008-ai-tools/ai-math-audit.py-1241,low,custom-heuristic,SB-AI-008,Broad exception catch may hide bugs,ai-tools/ai-math-audit.py,38,ai-tools/ai-math-audit.py:38 — Broad exception catch — catching all exceptions can hide specific errors and make debugging difficult. Catch specific exception types instead.,except Exception:
-WARNING,custom-SB-AI-004-packages/simplebeacon-cli/src/mcp/install-cursor-config.js-6038,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,packages/simplebeacon-cli/src/mcp/install-cursor-config.js,212,"packages/simplebeacon-cli/src/mcp/install-cursor-config.js:212 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (mergeErr) {
-      // Can't parse existing — fall through to overwrite if forced, else error
-      if (!force) {"
-WARNING,custom-SB-AI-004-worker-deploy/src/certify.js-7382,medium,custom-heuristic,SB-AI-004,Empty exception handler swallows errors,worker-deploy/src/certify.js,248,"worker-deploy/src/certify.js:248 — Empty exception handler silently swallows errors — this hides bugs and makes debugging impossible. At minimum, log the error.","catch (error) {
-    // Never leak stack traces or internal details to the client
-    return jsonResponse({ error: ""Inter"

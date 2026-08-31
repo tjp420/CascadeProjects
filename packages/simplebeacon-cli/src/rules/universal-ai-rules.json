@@ -202,7 +202,7 @@
   {
     "id": "SB-AI-004",
     "name": "Empty exception handler swallows errors",
-    "pattern": "(?:except\\s*:|except\\s+Exception\\s*:|except\\s+BaseException\\s*:)\\s*(?:pass|continue|#|\\n\\s*pass)|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*\\}|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*/\\*(?!\\s*ignore)[^*]*\\*/\\s*\\}|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*//[^}]*\\}|catch\\s*_\\s*=>\\s*\\{\\s*\\}",
+    "pattern": "(?:except\\s*:|except\\s+Exception\\s*:|except\\s+BaseException\\s*:)\\s*(?:pass|continue|#|\\n\\s*pass)|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*\\}|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*/\\*(?!\\s*ignore)[^*]*\\*/\\s*\\}|catch\\s*\\((?![_])[^)]*\\)\\s*\\{\\s*//[^\\n}]*\\n\\s*\\}|catch\\s*_\\s*=>\\s*\\{\\s*\\}",
     "patternFlags": "gi",
     "severity": "medium",
     "fileExtensions": [
