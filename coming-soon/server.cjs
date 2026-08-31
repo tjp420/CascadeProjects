@@ -1917,7 +1917,7 @@ app.get('/api/license/seats', (_req, res) =>
 
 // Serve other frontend paths
 // Redirect old /coming-soon/ paths to root
-app.get('/coming-soon/*', (req, res) => {
+app.get('/coming-soon/*splat', (req, res) => {
     res.redirect(301, req.path.replace('/coming-soon', '') || '/');
 });
 
@@ -1926,7 +1926,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'public', 'dashboard')
 
 // Dashboard SPA fallback: serve public/dashboard/index.html for all /dashboard/* routes
 // so client-side routing works when refreshing or loading a deep dashboard URL.
-app.get('/dashboard/*', (req, res) => {
+app.get('/dashboard/*splat', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
 });
@@ -1959,7 +1959,7 @@ app.get('/:page', (req, res, next) => {
     next();
 });
 
-app.get('*', (req, res) => {
+app.get('*splat', (req, res) => {
     if (req.path.startsWith('/api/')) {
         res.status(404).json({ error: 'Not found', path: req.path });
     } else {

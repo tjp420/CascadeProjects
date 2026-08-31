@@ -10,8 +10,8 @@
     "build:linux": "pkg agent.js --targets node22-linux-x64 --output simplebeacon-scanner-linux"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.22.2"
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@yao-pkg/pkg": "^6.15.0"
