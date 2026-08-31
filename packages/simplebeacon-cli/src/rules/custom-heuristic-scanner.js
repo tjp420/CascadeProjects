@@ -762,6 +762,12 @@ async function scanCustomHeuristicRules(projectRoot, options = {}) {
     }
 
     // Check each rule against this file
+    // Skip files with a file-level simplebeacon-ignore comment in the first 500 chars
+    const hasFileLevelIgnore = /simplebeacon-ignore/i.test(
+      content.substring(0, 500),
+    );
+    if (hasFileLevelIgnore) continue;
+
     for (const rule of enabledRules) {
       if (!shouldScanFile(relPath, rule)) continue;
       if (content.length > rule.maxFileSize) continue;
