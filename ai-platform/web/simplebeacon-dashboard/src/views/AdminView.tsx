@@ -41,6 +41,7 @@ import {
   Loader2,
   ExternalLink,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
@@ -340,6 +341,32 @@ export function AdminView() {
     };
   } | null>(null);
   const [billingLoading, setBillingLoading] = useState(false);
+
+  // ─── Feedback State ───────────────────────────────────────────────
+  const [feedbackData, setFeedbackData] = useState<{
+    entries: Array<{
+      id: number;
+      name: string;
+      email: string;
+      message: string;
+      category: string;
+      status: string;
+      source: string;
+      tier: string;
+      createdAt: string;
+      updatedAt: string;
+      adminNotes: string;
+    }>;
+    total: number;
+    stats: {
+      byCategory: Record<string, number>;
+      byStatus: Record<string, number>;
+      bySource: Record<string, number>;
+      total: number;
+    };
+  } | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackFilter, setFeedbackFilter] = useState<string>("all");
 
   const fetchSsoConfigs = useCallback(async () => {
     setSsoLoading(true);
@@ -750,6 +777,49 @@ export function AdminView() {
     }
   }, []);
 
+  // ─── Fetch Feedback ───────────────────────────────────────────────
+  const fetchFeedback = useCallback(async () => {
+    setFeedbackLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (feedbackFilter !== "all") {
+        if (["bug", "feature", "pricing", "praise", "question", "other"].includes(feedbackFilter)) {
+          params.set("category", feedbackFilter);
+        } else if (["new", "triaged", "in_progress", "resolved", "wont_fix"].includes(feedbackFilter)) {
+          params.set("status", feedbackFilter);
+        }
+      }
+      const res = await fetch(apiUrl(`/admin/feedback?${params}`), {
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFeedbackData(data);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [feedbackFilter]);
+
+  // ─── Update Feedback Status ───────────────────────────────────────
+  const updateFeedbackStatus = useCallback(
+    async (id: number, status: string) => {
+      try {
+        await fetch(apiUrl(`/admin/feedback/${id}`), {
+          method: "PATCH",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        fetchFeedback();
+      } catch {
+        /* ignore */
+      }
+    },
+    [fetchFeedback],
+  );
+
   const fetchEnterpriseOrgs = useCallback(async () => {
     if (enterpriseErrorRef.current) return;
     setEnterpriseLoading(true);
@@ -1057,7 +1127,8 @@ export function AdminView() {
   useEffect(() => {
     if (adminTab === "audit") fetchAuditLogs();
     if (adminTab === "billing") fetchBilling();
-  }, [adminTab, fetchAuditLogs, fetchBilling]);
+    if (adminTab === "feedback") fetchFeedback();
+  }, [adminTab, fetchAuditLogs, fetchBilling, fetchFeedback]);
 
   useEffect(() => {
     if (adminTab === "sso") fetchSsoConfigs();
@@ -1311,6 +1382,7 @@ export function AdminView() {
           <TabsTrigger value="sso">SSO</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
           <TabsTrigger value="whitelabel">Whitelabel</TabsTrigger>
         </TabsList>
 
@@ -3934,6 +4006,153 @@ export function AdminView() {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <UsageAnalyticsView />
+        </TabsContent>
+
+        {/* Feedback Tab */}
+        <TabsContent value="feedback" className="space-y-4">
+          {feedbackLoading ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Loading feedback…
+              </CardContent>
+            </Card>
+          ) : feedbackData ? (
+            <>
+              {/* Stats Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                {(["bug", "feature", "pricing", "praise", "question", "other"] as const).map(
+                  (cat) => (
+                    <Card key={cat}>
+                      <CardHeader className="pb-2">
+                        <CardDescription className="capitalize">{cat}</CardDescription>
+                        <CardTitle className="text-xl">
+                          {feedbackData.stats.byCategory[cat] || 0}
+                        </CardTitle>
+                      </CardHeader>
+                    </Card>
+                  ),
+                )}
+              </div>
+
+              {/* Status Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {(["new", "triaged", "in_progress", "resolved", "wont_fix"] as const).map(
+                  (status) => (
+                    <Card key={status}>
+                      <CardHeader className="pb-2">
+                        <CardDescription className="capitalize">
+                          {status.replace("_", " ")}
+                        </CardDescription>
+                        <CardTitle className="text-xl">
+                          {feedbackData.stats.byStatus[status] || 0}
+                        </CardTitle>
+                      </CardHeader>
+                    </Card>
+                  ),
+                )}
+              </div>
+
+              {/* Filter */}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={feedbackFilter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFeedbackFilter("all")}
+                >
+                  All ({feedbackData.stats.total})
+                </Button>
+                {(["bug", "feature", "pricing", "praise", "question", "other"] as const).map(
+                  (cat) => (
+                    <Button
+                      key={cat}
+                      variant={feedbackFilter === cat ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFeedbackFilter(cat)}
+                      className="capitalize"
+                    >
+                      {cat} ({feedbackData.stats.byCategory[cat] || 0})
+                    </Button>
+                  ),
+                )}
+              </div>
+
+              {/* Feedback List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Feedback &amp; Feature Requests
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {feedbackData.entries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No feedback entries found
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {feedbackData.entries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="rounded-lg border p-4 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">
+                                {entry.name || entry.email || "Anonymous"}
+                                {entry.email && (
+                                  <span className="text-muted-foreground font-normal ml-2">
+                                    {entry.email}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {new Date(entry.createdAt).toLocaleDateString()} from {entry.source}
+                                {entry.tier && ` · ${entry.tier}`}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge variant="default" className="text-xs capitalize">
+                                {entry.category}
+                              </Badge>
+                              <select
+                                className="text-xs border rounded px-2 py-1 bg-background"
+                                value={entry.status}
+                                onChange={(e) =>
+                                  updateFeedbackStatus(entry.id, e.target.value)
+                                }
+                              >
+                                <option value="new">new</option>
+                                <option value="triaged">triaged</option>
+                                <option value="in_progress">in_progress</option>
+                                <option value="resolved">resolved</option>
+                                <option value="wont_fix">wont_fix</option>
+                              </select>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {entry.message}
+                          </p>
+                          {entry.adminNotes && (
+                            <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                              <strong>Admin notes:</strong> {entry.adminNotes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No feedback data available
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Whitelabel Tab */}

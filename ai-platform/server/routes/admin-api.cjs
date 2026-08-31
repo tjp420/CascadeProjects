@@ -1700,6 +1700,99 @@ function setupAdminAPI(app, options = {}) {
       return sendError(res, 500, err.message);
     }
   });
+
+  // ─── Feedback & Feature Requests ──────────────────────────────────
+  let feedbackStore = null;
+  try {
+    feedbackStore = require("../lib/feedback-store.cjs");
+  } catch (e) {
+    logger.warn("[AdminAPI] feedback-store not loaded:", e.message);
+  }
+
+  // GET /admin/feedback — list feedback with optional filters
+  router.get("/feedback", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    try {
+      const filters = {
+        category: req.query.category,
+        status: req.query.status,
+        source: req.query.source,
+        limit: parseInt(req.query.limit, 10) || 100,
+        offset: parseInt(req.query.offset, 10) || 0,
+      };
+      const result = feedbackStore.listFeedback(filters);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      logger.error("[AdminAPI] feedback list failed:", err.message);
+      sendError(res, 500, "feedback_list_failed", { message: err.message });
+    }
+  });
+
+  // POST /admin/feedback — add feedback manually (admin entry)
+  router.post("/feedback", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    try {
+      const { name, email, message, category, source, tier } = req.body || {};
+      const result = feedbackStore.addFeedback({
+        name,
+        email,
+        message,
+        category,
+        source,
+        tier,
+      });
+      if (!result.success) {
+        return sendError(res, 400, result.error || "add_failed");
+      }
+      res.json({ success: true, id: result.id });
+    } catch (err) {
+      logger.error("[AdminAPI] feedback add failed:", err.message);
+      sendError(res, 500, "feedback_add_failed", { message: err.message });
+    }
+  });
+
+  // PATCH /admin/feedback/:id — update status, category, or admin notes
+  router.patch("/feedback/:id", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!id) return sendError(res, 400, "invalid_id");
+      const { status, category, adminNotes } = req.body || {};
+      const result = feedbackStore.updateFeedback(id, {
+        status,
+        category,
+        adminNotes,
+      });
+      if (!result.success) {
+        return sendError(res, 404, result.error || "not_found");
+      }
+      res.json({ success: true });
+    } catch (err) {
+      logger.error("[AdminAPI] feedback update failed:", err.message);
+      sendError(res, 500, "feedback_update_failed", { message: err.message });
+    }
+  });
+
+  // DELETE /admin/feedback/:id — delete a feedback entry
+  router.delete("/feedback/:id", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!id) return sendError(res, 400, "invalid_id");
+      const result = feedbackStore.deleteFeedback(id);
+      if (!result.success) {
+        return sendError(res, 404, result.error || "not_found");
+      }
+      res.json({ success: true });
+    } catch (err) {
+      logger.error("[AdminAPI] feedback delete failed:", err.message);
+      sendError(res, 500, "feedback_delete_failed", { message: err.message });
+    }
+  });
 }
 
 module.exports = { setupAdminAPI };
