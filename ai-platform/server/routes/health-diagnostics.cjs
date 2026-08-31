@@ -18,6 +18,14 @@ const fs = require("fs");
 const path = require("path");
 const logger = require("../lib/app-logger.cjs");
 
+// Health alert notifier — sends Slack/Discord alerts on status transitions
+let healthAlerts = null;
+try {
+  healthAlerts = require("../lib/health-alerts.cjs");
+} catch (e) {
+  logger.warn("[HealthDiagnostics] health-alerts not loaded:", e.message);
+}
+
 const router = express.Router();
 
 const HEALTH_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
@@ -234,11 +242,15 @@ function startHealthCheckCron() {
   if (_intervalHandle) return _intervalHandle;
   if (process.env.NODE_ENV === "test") return null; // skip in test to avoid open handles
 
-  const tick = () => {
+  const tick = async () => {
     try {
       const result = runHealthChecks();
       _lastCheckResult = result;
       emitAlertIfNeeded(result);
+      // Send outbound alert if status changed (Slack/Discord webhook)
+      if (healthAlerts) {
+        await healthAlerts.processHealthAlert(result);
+      }
       logger.info("[HealthDiagnostics] periodic check complete", {
         status: result.status,
       });
