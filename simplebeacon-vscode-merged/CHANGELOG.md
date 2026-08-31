@@ -1,5 +1,91 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.562] - 2026-09-15
+
+### Changed
+
+- **CHANGELOG sync** — Published full changelog for versions 3.0.553–3.0.561 to the VS Code Marketplace.
+
+## [3.0.561] - 2026-09-15
+
+### Fixed
+
+- **Path traversal in saveOutputToWorkspace** — Blocked directory traversal attacks in workspace output saving.
+- **Stripe test placeholder price IDs** — Added test placeholder price ID aliases to tier map for dev/test parity.
+- **Auth middleware on mutation endpoints** — Added authenticate middleware to mutation endpoints (#815, #816).
+- **License token minting** — Centralized license token minting on backend, stripped Worker-side minting.
+- **Sign-report license tokens** — Export sign-report endpoint now accepts license tokens.
+- **Dashboard attestation expiry** — Scan worker attestation failures now redirect to signin instead of showing a dead-end error.
+
+### Added
+
+- **Agent eval loop + MCP drop-in kit** — Added agent evaluation loop and MCP drop-in kit for external AI tools (Claude Desktop installer).
+- **Password recovery** — Added password recovery flow.
+- **Tier-based exports** — Export permissions now enforced by account tier.
+- **Onboarding email drip** — New subscribers receive a timed onboarding email sequence.
+- **Scan performance logging** — Added `/api/analytics/performance` endpoint for scan duration metrics.
+- **Feedback/feature-request dashboard** — Launch traffic feedback tracking dashboard.
+- **Admin onboarding drip management** — Admin API endpoints for onboarding drip store management.
+- **Health alert webhook notifier** — Post-launch monitoring checklist and webhook notifier.
+
+### Security
+
+- **Multer 2.2.0** — Upgraded from 1.4.5-lts.2, clearing 24 CVEs (DoS, memory corruption).
+- **Trivy-action 0.35.0** — Upgraded from 0.11.0 for modern container vulnerability databases.
+- **npm audit** — Fixed all vulnerabilities in standalone lockfiles (0 active across 13 lockfiles).
+- **CI security-gate** — Fixed workflow errors: unique SARIF categories, Gitleaks direct execution, correct artifact paths, Node.js 20 deprecation warnings, CodeQL v4.
+
+### Changed
+
+- **VSIX packaging** — Excluded `.map` files and `dist/` from VSIX to reduce package size.
+- **Dashboard sidebar** — Added 12 missing sidebar nav items, restricted Admin to admins/owners.
+- **Dashboard tier access** — Tier-based access controls with upgrade prompts.
+- **Dashboard auth** — Global 401 interceptor clears stale tokens and redirects; session preserved across page refresh.
+- **Trust view** — Null guard for missing `headline.gatePass`; added `/api/status` endpoint.
+- **Benchmark harness** — Added multi-tool precision/recall evaluation harness comparing SimpleBeacon with Gitleaks.
+
+## [3.0.556] - 2026-09-01
+
+### Fixed
+
+- **Dashboard auth session** — Fixed auth session persistence, route guards, admin user list, and API error handling.
+- **Early-access form** — Improved error handling for 429/502 responses.
+- **Backend retry** — Retry POST/PUT/DELETE on 502/503/504 from Render backend.
+- **SHA-1 → SHA-256** — Replaced SHA-1 with SHA-256 in embeddings-index deterministic seed.
+- **Early-access route** — Added `/api/early-access` route and public allowlist entry.
+
+### Added
+
+- **Benchmark corpus** — 31-file labeled benchmark corpus comparing SimpleBeacon credential scanner with Gitleaks.
+
+## [3.0.555] - 2026-08-30
+
+### Fixed
+
+- **Early-access billing** — Fixed early-access billing tier mapping.
+
+### Changed
+
+- **Version alignment** — Bumped VSIX and CLI to 3.0.555 for early-access billing fix.
+
+## [3.0.554] - 2026-08-29
+
+### Fixed
+
+- **AST structural fix** — Fixed AST structural rule scanner.
+- **Inline ai-tools** — Inlined ai-tools functions into local-remediation.js.
+
+### Added
+
+- **Diagnostic log export** — Added diagnostic log export for AI-assisted debugging.
+
+## [3.0.553] - 2026-08-28
+
+### Changed
+
+- **README and CHANGELOG rewrite** — Rewrote README and CHANGELOG for marketplace readiness.
+- **npm package name** — Corrected npm package name from `simplebeacon-cli` to `simplebeacon`.
+
 ## [3.0.552] - 2026-08-28
 
 ### Fixed
