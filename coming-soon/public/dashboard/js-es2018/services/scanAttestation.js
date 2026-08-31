@@ -21,8 +21,8 @@
 
 const ATTEST_ENDPOINT = "/api/scan/attest";
 const REFRESH_BUFFER_MS = 60 * 1000; // Refresh 1 minute before expiry
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 2000;
+const MAX_RETRY_ATTEMPTS = 1; // Single attempt — attestation is optional, scan proceeds without it
+const RETRY_DELAY_MS = 1000;
 
 let cachedAttestation = null;
 let cachedExpiresAt = 0;
@@ -157,7 +157,9 @@ async function fetchAttestation() {
     }
   }
 
-  console.error("[scanAttest] Failed to acquire attestation:", lastError);
+  // Attestation is optional — the scan proceeds without it. Log at debug level
+  // to avoid alarming users when the endpoint is unavailable or network fails.
+  console.debug("[scanAttest] Attestation unavailable (scan will proceed without it):", lastError);
   return null;
 }
 

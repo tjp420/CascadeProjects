@@ -82,6 +82,19 @@ describe("public-api-routes", () => {
     assert.strictEqual(mod.isPublicApiRoute("sso/saml/acs", "POST"), true);
   });
 
+  it("allows scan attestation and auth verification without auth gate (they do their own token verification)", () => {
+    assert.strictEqual(
+      mod.isPublicApiRoute("scan/attest", "POST"),
+      true,
+      "scan/attest must be public — it verifies the JWT itself",
+    );
+    assert.strictEqual(
+      mod.isPublicApiRoute("auth/verify", "POST"),
+      true,
+      "auth/verify must be public — it verifies the JWT itself",
+    );
+  });
+
   it("allows Stripe webhook without auth gate (Stripe signs requests)", () => {
     assert.strictEqual(
       mod.isPublicApiRoute("stripe/webhook", "POST"),

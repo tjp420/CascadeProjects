@@ -11,6 +11,8 @@ const PUBLIC_API_PATHS = new Set([
   "auth/refresh",
   "auth/logout",
   "auth/me",
+  "auth/verify",
+  "scan/attest",
   "platform/status",
   "mock-backend.js",
   "simplebeacon/billing/plan",

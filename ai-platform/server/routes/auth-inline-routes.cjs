@@ -361,6 +361,76 @@ router.post("/auth/verify", async (req, res) => {
   return res.status(401).json({ valid: false, error: "Invalid or expired token" });
 });
 
+// Scan attestation endpoint — issues short-lived attestation JWTs for the browser scan worker.
+// The worker verifies the attestation before running to prevent casual copying of the worker script.
+// The attestation is bound to a device fingerprint and expires in 5 minutes.
+const ATTEST_TTL_SECONDS = 300; // 5 minutes
+const attestLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30, // 30 attestations per minute per IP (scans can retry)
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+router.post("/scan/attest", attestLimiter, async (req, res) => {
+  const token =
+    (req.body && req.body.token) ||
+    (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  if (!token || typeof token !== "string") {
+    return res.status(401).json({ error: "Auth token required" });
+  }
+  const deviceFingerprint = req.body && req.body.deviceFingerprint;
+  if (!deviceFingerprint || typeof deviceFingerprint !== "string") {
+    return res.status(400).json({ error: "Device fingerprint required" });
+  }
+  try {
+    const { verifyToken } = require("../lib/auth/token-service.cjs");
+    const jwt = require("jsonwebtoken");
+    const { jwtConfig } = require("../lib/jwt-config.cjs");
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+    // Issue a short-lived attestation JWT
+    const attestation = jwt.sign(
+      {
+        sub: payload.sub,
+        email: payload.email,
+        tier: payload.tier || payload.plan || "free",
+        deviceFingerprint: String(deviceFingerprint).slice(0, 128),
+        type: "scan-attestation",
+        iat: Math.floor(Date.now() / 1000),
+        jti:
+          typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : crypto.randomBytes(16).toString("hex"),
+      },
+      jwtConfig.secret,
+      {
+        algorithm: jwtConfig.algorithm,
+        issuer: jwtConfig.issuer,
+        audience: "simplebeacon-scan-worker",
+        expiresIn: ATTEST_TTL_SECONDS,
+      },
+    );
+    const expiresAt = Date.now() + ATTEST_TTL_SECONDS * 1000;
+    return res.json({
+      attestation,
+      expiresAt,
+      scanId:
+        typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : crypto.randomBytes(16).toString("hex"),
+      tier: payload.tier || payload.plan || "free",
+    });
+  } catch (err) {
+    if (err.status === 401) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+    logger.error("[scan/attest] Error issuing attestation:", err?.message || err);
+    return res.status(500).json({ error: "Failed to issue attestation" });
+  }
+});
+
 // License token status check (cryptographic validation + registry lookup)
 router.post("/auth/token-status", (req, res) => {
   const { token } = req.body || {};

@@ -1000,11 +1000,20 @@ export function bindScanStatus(container, options = {}) {
     ? void 0
     : scanBtn.addEventListener("click", runScan);
   // Hidden file input for webkitdirectory fallback
+  // Guard against double-scan: the change event can fire multiple times
+  // if the component re-renders or the file picker triggers additional events.
+  let _browseScanInProgress = false;
   browseInput === null || browseInput === void 0
     ? void 0
     : browseInput.addEventListener("change", async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
+        if (_browseScanInProgress) {
+          console.warn("[ScanStatus] Browse scan already in progress — ignoring duplicate change event");
+          browseInput.value = "";
+          return;
+        }
+        _browseScanInProgress = true;
         const fileArray = Array.from(files);
         // In Electron / Tauri the file objects expose the absolute filesystem path.
         const filePath = files[0].path;
@@ -1098,6 +1107,8 @@ export function bindScanStatus(container, options = {}) {
               dropzone.classList.remove("is-scanning");
               dropzone.classList.add("is-error");
             }
+          } finally {
+            _browseScanInProgress = false;
           }
         }
       });
