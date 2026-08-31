@@ -153,10 +153,74 @@ function removeUser(email) {
   }
 }
 
+/**
+ * List all users in the drip store with their progress.
+ * @returns {Array<Object>} Array of { email, tier, activatedAt, sentSteps, updatedAt }
+ */
+function listAllUsers() {
+  const store = readDripStore();
+  return Object.values(store.users).map((record) => ({
+    email: record.email,
+    tier: record.tier || "developer",
+    activatedAt: record.activatedAt,
+    sentSteps: record.sentSteps || [],
+    updatedAt: record.updatedAt,
+  }));
+}
+
+/**
+ * Reset a specific drip step for a user (allows re-sending).
+ * @param {string} email - Customer email.
+ * @param {number} stepNumber - Step to reset (1, 2, or 3).
+ * @returns {{ success: boolean, error?: string }}
+ */
+function resetStep(email, stepNumber) {
+  if (!email) return { success: false, error: "email_required" };
+  const normalized = String(email).trim().toLowerCase();
+  const stepKey = `step${stepNumber}`;
+  const store = readDripStore();
+  const record = store.users[normalized];
+  if (!record) return { success: false, error: "not_found" };
+  if (!record.sentSteps) record.sentSteps = [];
+  record.sentSteps = record.sentSteps.filter((s) => s !== stepKey);
+  record.updatedAt = new Date().toISOString();
+  _cacheDirty = true;
+  writeDripStore();
+  logger.info(`[OnboardingDrip] Reset step ${stepNumber} for ${normalized}`);
+  return { success: true };
+}
+
+/**
+ * Skip a specific drip step for a user (marks as sent without sending).
+ * @param {string} email - Customer email.
+ * @param {number} stepNumber - Step to skip.
+ * @returns {{ success: boolean, error?: string }}
+ */
+function skipStep(email, stepNumber) {
+  if (!email) return { success: false, error: "email_required" };
+  const normalized = String(email).trim().toLowerCase();
+  const stepKey = `step${stepNumber}`;
+  const store = readDripStore();
+  const record = store.users[normalized];
+  if (!record) return { success: false, error: "not_found" };
+  if (!record.sentSteps) record.sentSteps = [];
+  if (!record.sentSteps.includes(stepKey)) {
+    record.sentSteps.push(stepKey);
+  }
+  record.updatedAt = new Date().toISOString();
+  _cacheDirty = true;
+  writeDripStore();
+  logger.info(`[OnboardingDrip] Skipped step ${stepNumber} for ${normalized}`);
+  return { success: true };
+}
+
 module.exports = {
   registerActivation,
   findDueUsers,
   markStepSent,
   removeUser,
   readDripStore,
+  listAllUsers,
+  resetStep,
+  skipStep,
 };

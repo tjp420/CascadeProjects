@@ -1793,6 +1793,89 @@ function setupAdminAPI(app, options = {}) {
       sendError(res, 500, "feedback_delete_failed", { message: err.message });
     }
   });
+
+  // ─── Onboarding Drip Management ───────────────────────────────────
+  let dripStore = null;
+  try {
+    dripStore = require("../lib/onboarding-drip-store.cjs");
+  } catch (e) {
+    logger.warn("[AdminAPI] onboarding-drip-store not loaded:", e.message);
+  }
+
+  // GET /admin/onboarding-drip — list all users in the drip store
+  router.get("/onboarding-drip", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!dripStore) return sendError(res, 503, "drip_store_unavailable");
+    try {
+      const users = dripStore.listAllUsers();
+      res.json({ success: true, users, total: users.length });
+    } catch (err) {
+      logger.error("[AdminAPI] drip list failed:", err.message);
+      sendError(res, 500, "drip_list_failed", { message: err.message });
+    }
+  });
+
+  // POST /admin/onboarding-drip/:email/reset — reset a drip step for a user
+  router.post("/onboarding-drip/:email/reset", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!dripStore) return sendError(res, 503, "drip_store_unavailable");
+    try {
+      const { email } = req.params;
+      const { step } = req.body || {};
+      const stepNum = parseInt(step, 10);
+      if (!stepNum || stepNum < 1 || stepNum > 3) {
+        return sendError(res, 400, "invalid_step", {
+          message: "step must be 1, 2, or 3",
+        });
+      }
+      const result = dripStore.resetStep(email, stepNum);
+      if (!result.success) {
+        return sendError(res, 404, result.error || "not_found");
+      }
+      res.json({ success: true });
+    } catch (err) {
+      logger.error("[AdminAPI] drip reset failed:", err.message);
+      sendError(res, 500, "drip_reset_failed", { message: err.message });
+    }
+  });
+
+  // POST /admin/onboarding-drip/:email/skip — skip a drip step for a user
+  router.post("/onboarding-drip/:email/skip", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!dripStore) return sendError(res, 503, "drip_store_unavailable");
+    try {
+      const { email } = req.params;
+      const { step } = req.body || {};
+      const stepNum = parseInt(step, 10);
+      if (!stepNum || stepNum < 1 || stepNum > 3) {
+        return sendError(res, 400, "invalid_step", {
+          message: "step must be 1, 2, or 3",
+        });
+      }
+      const result = dripStore.skipStep(email, stepNum);
+      if (!result.success) {
+        return sendError(res, 404, result.error || "not_found");
+      }
+      res.json({ success: true });
+    } catch (err) {
+      logger.error("[AdminAPI] drip skip failed:", err.message);
+      sendError(res, 500, "drip_skip_failed", { message: err.message });
+    }
+  });
+
+  // DELETE /admin/onboarding-drip/:email — remove a user from the drip store
+  router.delete("/onboarding-drip/:email", (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+    if (!dripStore) return sendError(res, 503, "drip_store_unavailable");
+    try {
+      const { email } = req.params;
+      dripStore.removeUser(email);
+      res.json({ success: true });
+    } catch (err) {
+      logger.error("[AdminAPI] drip remove failed:", err.message);
+      sendError(res, 500, "drip_remove_failed", { message: err.message });
+    }
+  });
 }
 
 module.exports = { setupAdminAPI };

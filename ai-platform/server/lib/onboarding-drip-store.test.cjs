@@ -173,4 +173,83 @@ describe("onboarding-drip-store", () => {
       assert.ok(!store.users["nobody@example.com"]);
     });
   });
+
+  describe("listAllUsers", () => {
+    it("returns empty array when no users registered", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      const users = freshModule.listAllUsers();
+      assert.strictEqual(users.length, 0);
+    });
+
+    it("returns all registered users with their fields", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      freshModule.registerActivation("alice@example.com", "developer");
+      freshModule.registerActivation("bob@example.com", "team_pro");
+      const users = freshModule.listAllUsers();
+      assert.strictEqual(users.length, 2);
+      const alice = users.find((u) => u.email === "alice@example.com");
+      assert.ok(alice);
+      assert.strictEqual(alice.tier, "developer");
+      assert.ok(alice.activatedAt);
+      assert.deepStrictEqual(alice.sentSteps, []);
+    });
+  });
+
+  describe("resetStep", () => {
+    it("removes a step from sentSteps", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      freshModule.registerActivation("test@example.com", "developer");
+      freshModule.markStepSent("test@example.com", 1);
+      freshModule.markStepSent("test@example.com", 2);
+      const result = freshModule.resetStep("test@example.com", 1);
+      assert.ok(result.success);
+      const store = freshModule.readDripStore();
+      assert.ok(!store.users["test@example.com"].sentSteps.includes("step1"));
+      assert.ok(store.users["test@example.com"].sentSteps.includes("step2"));
+    });
+
+    it("returns error for non-existent user", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      const result = freshModule.resetStep("nobody@example.com", 1);
+      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.error, "not_found");
+    });
+
+    it("returns error for empty email", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      const result = freshModule.resetStep("", 1);
+      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.error, "email_required");
+    });
+  });
+
+  describe("skipStep", () => {
+    it("marks a step as sent without sending", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      freshModule.registerActivation("test@example.com", "developer");
+      const result = freshModule.skipStep("test@example.com", 2);
+      assert.ok(result.success);
+      const store = freshModule.readDripStore();
+      assert.ok(store.users["test@example.com"].sentSteps.includes("step2"));
+    });
+
+    it("does not duplicate when skipping already-sent step", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      freshModule.registerActivation("test@example.com", "developer");
+      freshModule.markStepSent("test@example.com", 1);
+      freshModule.skipStep("test@example.com", 1);
+      const store = freshModule.readDripStore();
+      const count = store.users["test@example.com"].sentSteps.filter(
+        (s) => s === "step1",
+      ).length;
+      assert.strictEqual(count, 1);
+    });
+
+    it("returns error for non-existent user", () => {
+      const freshModule = require("../lib/onboarding-drip-store.cjs");
+      const result = freshModule.skipStep("nobody@example.com", 1);
+      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.error, "not_found");
+    });
+  });
 });
