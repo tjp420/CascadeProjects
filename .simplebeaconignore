@@ -2,6 +2,59 @@
 tier-tokens.txt
 tier-accounts.txt
 
+# Compiled binaries and system files — never parse as source code
+**/*.sys
+**/*.exe
+**/*.dll
+**/*.pak
+**/*.db-wal
+**/*.db-shm
+**/*.db-journal
+**/*.legacy
+**/*.mdl
+**/*.cat
+**/*.pdb
+**/*.lib
+**/*.ko
+**/*.elf
+**/*.swf
+**/*.flv
+**/*.vmdk
+**/*.vdi
+**/*.qcow2
+**/*.vhd
+**/*.vhdx
+**/*.wim
+**/*.esd
+**/*.parquet
+**/*.arrow
+**/*.avro
+**/*.orc
+**/*.h5
+**/*.hdf5
+**/*.npy
+**/*.npz
+**/*.pkl
+**/*.pcap
+**/*.pcapng
+**/*.raw
+**/*.cr2
+**/*.nef
+**/*.arw
+**/*.dng
+**/*.heic
+**/*.heif
+**/*.psd
+**/*.epub
+**/*.mobi
+**/*.azw
+**/*.azw3
+
+# Vendor security software installations (compiled binaries, not source)
+**/Bitdefender/
+**/Bitdefender Security/
+**/Bitdefender Security App/
+
 # Dependencies — never scan third-party code
 node_modules/
 **/node_modules/
