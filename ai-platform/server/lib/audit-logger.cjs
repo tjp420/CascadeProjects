@@ -74,7 +74,7 @@ function readStore() {
     const raw = fs.readFileSync(storePath, "utf8");
     return JSON.parse(raw);
   } catch (e) {
-    try { logger.warn('[AuditLogger] readStore failed, returning empty store:', e && e.message ? e.message : e); } catch (_) {}
+    try { logger.warn('[AuditLogger] readStore failed, returning empty store:', e && e.message ? e.message : e); } catch (_) { /* logger may itself be unavailable — defensive no-op */ }
     return { entries: {} };
   }
 }
@@ -114,7 +114,7 @@ function _getPiiPolicyStore() {
     try {
       _piiPolicyStore = require("./pii-policy-store.cjs");
     } catch (e) {
-      try { logger.info('[AuditLogger] pii-policy-store unavailable:', e && e.message ? e.message : e); } catch (_) {}
+      try { logger.info('[AuditLogger] pii-policy-store unavailable:', e && e.message ? e.message : e); } catch (_) { /* logger may itself be unavailable — defensive no-op */ }
       _piiPolicyStore = false; // Mark as unavailable
     }
   }

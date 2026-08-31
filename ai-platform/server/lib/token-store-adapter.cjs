@@ -42,6 +42,42 @@ const REDIS_TENANT_ZSET = (tenantId) => `zset:sessions:${tenantId}`;
 const REDIS_ACCOUNT_ZSET = (tenantId, accountId) =>
   `zset:sessions:${tenantId}:account:${accountId}`;
 
+// ─── JSON sequence store (fallback when Redis is down) ─────────────────────
+
+const SEQ_STORE_PATH =
+  process.env.TOKEN_SEQ_STORE_PATH ||
+  path.join(process.cwd(), ".simplebeacon", "token-sequences.json");
+
+let _seqCache = null;
+
+function readSeqStore() {
+  if (_seqCache) return _seqCache;
+  try {
+    if (!fs.existsSync(SEQ_STORE_PATH)) {
+      _seqCache = { tenants: {} };
+      return _seqCache;
+    }
+    _seqCache = JSON.parse(fs.readFileSync(SEQ_STORE_PATH, "utf8"));
+    if (!_seqCache.tenants) _seqCache.tenants = {};
+    return _seqCache;
+  } catch {
+    _seqCache = { tenants: {} };
+    return _seqCache;
+  }
+}
+
+function writeSeqStore() {
+  try {
+    const dir = path.dirname(SEQ_STORE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const tmp = SEQ_STORE_PATH + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(_seqCache, null, 2));
+    fs.renameSync(tmp, SEQ_STORE_PATH);
+  } catch {
+    // best-effort — sequence persistence is a fallback, not critical path
+  }
+}
+
 // ─── JsonFileTokenStore (fallback) ──────────────────────────────────────────
 
 class JsonFileTokenStore {
@@ -72,8 +108,15 @@ class JsonFileTokenStore {
   }
 
   nextSequence(tenantId) {
-    // TODO(#814): per-tenant sequence persistence in JSON; for now rely on replicator cache
-    return null;
+    const tenant = tenantId || "default";
+    const store = readSeqStore();
+    if (!store.tenants[tenant]) {
+      store.tenants[tenant] = { seq: 0 };
+    }
+    store.tenants[tenant].seq += 1;
+    store.tenants[tenant].updatedAt = new Date().toISOString();
+    writeSeqStore();
+    return store.tenants[tenant].seq;
   }
 
   // No-op backfill; JSON is the source of truth when Redis is down

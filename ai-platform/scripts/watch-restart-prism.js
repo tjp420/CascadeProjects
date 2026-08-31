@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: api-contract — intentionally references openapi.yaml (dev tool for Prism mock server)
 // Watch ai-platform/api/openapi.yaml for changes and restart the Prism mock container
 const fs = require("fs");
 const path = require("path");
@@ -28,7 +29,8 @@ function check() {
       restartPrism();
     }
   } catch (e) {
-    // file might not exist yet
+    // openapi.yaml may not exist yet during initial setup — skip restart until it appears
+    if (e.code !== "ENOENT") console.warn("watch-restart-prism: stat error:", e.message);
   }
 }
 
