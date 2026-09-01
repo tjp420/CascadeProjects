@@ -1,5 +1,18 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.573] - 2026-09-01
+
+### Fixed
+
+- **"Invalid license key" on hosted dashboard when extension bridge is active** — The local data server had no `/api/auth/token-status` endpoint, so when the extension bridge routed API calls to localhost, the LicenseManagerView and SignInView got a non-JSON response and showed "Invalid license key" even for valid tokens. Added a local `/api/auth/token-status` endpoint that validates both JWT (3-part) and license (2-part RSA-signed) tokens and returns the same response shape as the production API.
+
+## [3.0.572] - 2026-09-01
+
+### Fixed
+
+- **Sign out from Profile page didn't actually log out** — `ProfileView.handleSignOut()` cleared localStorage tokens but didn't dispatch the `sb:logout` event, so the `useAuth` hook never updated its state. The AppShell still showed the user as authenticated after sign-out. Now dispatches `sb:logout` to trigger auth state refresh.
+- **Sign out from Header dropdown didn't clear all token keys** — The Header sign-out only removed `sb_token`, `sb-token`, and `sb_user` from localStorage, missing `sb_auth_token` and 6 other token storage keys. Replaced with `clearAuthToken()` which clears all 9 token keys, and also removes `sb-user` (legacy key).
+
 ## [3.0.568] - 2026-09-01
 
 ### Fixed

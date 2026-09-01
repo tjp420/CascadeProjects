@@ -69,6 +69,22 @@ function trustLevelToTier(trustLevel) {
 }
 
 async function verifyAdminPassword(email, password, db, sqlite) {
+  // Emergency fallback — aligns with authenticateUser() in user-service.cjs
+  // so the emergency admin can perform password-gated admin actions even
+  // when no database row or SQLite demo user exists for the email.
+  const emergencyEmail = String(
+    process.env.SIMPLEBEACON_EMERGENCY_EMAIL || "admin@simplebeacon.ai",
+  )
+    .trim()
+    .toLowerCase();
+  const emergencyPassword =
+    process.env.SIMPLEBEACON_EMERGENCY_PASSWORD || "admin123";
+  if (
+    String(email || "").trim().toLowerCase() === emergencyEmail &&
+    password === emergencyPassword
+  ) {
+    return true;
+  }
   if (db) {
     try {
       const result = await db.query(

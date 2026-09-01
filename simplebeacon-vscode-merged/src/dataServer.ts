@@ -4403,6 +4403,73 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }
       return;
     }
+    // /api/auth/token-status — validate a license or JWT token and return
+    // registration status. Mirrors the production endpoint shape so the
+    // hosted dashboard's LicenseManagerView and SignInView work when the
+    // extension bridge routes API calls to the local data server.
+    if (parsed.pathname === '/api/auth/token-status' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || data.licenseToken || '').trim();
+          if (!token) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ registered: false, valid: false }));
+            return;
+          }
+          const parts = token.split('.');
+          // JWT tokens (3 parts) — validate structurally
+          if (parts.length === 3) {
+            const jwtResult = validateJwt(token);
+            if (jwtResult.valid && jwtResult.user) {
+              const u = jwtResult.user;
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                registered: true,
+                valid: true,
+                email: u.email || '',
+                tier: u.tier || u.plan || 'developer',
+                features: u.features || [],
+                role: u.role || 'user',
+                registeredAt: new Date().toISOString(),
+              }));
+            } else {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ registered: true, valid: false }));
+            }
+            return;
+          }
+          // License tokens (2 parts) — validate with RSA public key
+          if (parts.length === 2) {
+            const meta = validateLicenseLocally(token, PUBLIC_KEY_PEM);
+            if (meta) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                registered: true,
+                valid: true,
+                email: '',
+                tier: meta.tier || 'developer',
+                features: [],
+                registeredAt: new Date().toISOString(),
+                expiresAt: meta.expiresAt || '',
+              }));
+            } else {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ registered: true, valid: false }));
+            }
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ registered: false, valid: false }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ registered: false, valid: false, error: 'Invalid request body' }));
+        }
+      });
+      return;
+    }
     // /api/auth/token — return the current validated license token so the
     // dashboard can sync auth state from the VS Code extension secret storage.
     if (parsed.pathname === '/api/auth/token') {
