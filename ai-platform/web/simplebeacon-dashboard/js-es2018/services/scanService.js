@@ -110,7 +110,8 @@ function simplebeaconApiBase() {
   if (isDemoMode()) return DEMO_API_BASE;
   const stored = localStorage.getItem("sb_api_host");
   if (stored && !_isUnreachableLoopbackHost(stored)) {
-    const host = stored.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+    // Strip ALL trailing /api segments to prevent /api/api/ double paths.
+    const host = stored.replace(/(\/api\/?)+$/gi, "").replace(/\/+$/, "");
     return host + "/api/simplebeacon";
   }
   // VS Code / Windsurf website mode: sb_api_base points at the extension data-server on localhost.

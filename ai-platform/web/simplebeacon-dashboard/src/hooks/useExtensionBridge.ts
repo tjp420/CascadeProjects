@@ -42,8 +42,13 @@ function readStoredBridgeBase(): string | null {
 function persistBridge(base: string, token: string | null) {
   if (typeof sessionStorage === "undefined") return;
   try {
-    sessionStorage.setItem(BRIDGE_BASE_KEY, base);
-    sessionStorage.setItem("sb_api_base", `${base}/api`);
+    // Strip any trailing /api segments to avoid double /api/api/ accumulation.
+    // persistExtensionBridge (utils-lib/url.js) stores the host root without /api;
+    // we must do the same so _resolveExtensionBridgeApiBase and _readStoredApiBase
+    // don't end up with /api/api which produces double /api/api/simplebeacon URLs.
+    const hostRoot = base.replace(/\/+$/, "").replace(/\/api\/?$/gi, "");
+    sessionStorage.setItem(BRIDGE_BASE_KEY, hostRoot);
+    sessionStorage.setItem("sb_api_base", hostRoot);
     if (token) sessionStorage.setItem(BRIDGE_TOKEN_KEY, token);
   } catch {
     // best-effort

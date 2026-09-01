@@ -7,7 +7,8 @@ const SB_NOTIFY_BASE_KEY = "sb_notify_base";
 
 function _normalizeApiBase(value) {
   if (!value) return "";
-  return String(value).replace(/\/api\/?$/, "");
+  // Strip ALL trailing /api segments to prevent /api/api/ double paths.
+  return String(value).replace(/(\/api\/?)+$/gi, "");
 }
 
 function _isLocalDevHost() {
@@ -84,7 +85,7 @@ export function persistExtensionBridge(apiBase, options = {}) {
   if (typeof window === "undefined" || !apiBase) return false;
   const raw = String(apiBase).replace(/\/+$/, "");
   // Normalize to host root without trailing `/api`
-  const hostRoot = raw.replace(/\/api\/?$/i, "");
+  const hostRoot = raw.replace(/(\/api\/?)+$/gi, "");
   const apiUrl = hostRoot.endsWith("/") ? `${hostRoot}api` : `${hostRoot}/api`;
   if (!_isAllowedApiBase(apiUrl)) return false;
   if (
@@ -166,8 +167,9 @@ function _readStoredApiBase() {
     try {
       const value = sessionStorage.getItem(SB_API_BASE_KEY);
       if (value) {
+        // Strip ALL trailing /api segments to prevent /api/api/ double-path bugs.
         return String(value)
-          .replace(/\/api\/?$/, "")
+          .replace(/(\/api\/?)+$/gi, "")
           .replace(/\/+$/, "");
       }
     } catch (_a) {
@@ -226,7 +228,7 @@ function _readEmbedApiBaseFromQuery() {
     if (override) {
       // Normalize into host root without trailing `/api`
       const raw = String(override).replace(/\/+$/, "");
-      const hostRoot = raw.replace(/\/api\/?$/i, "");
+      const hostRoot = raw.replace(/(\/api\/?)+$/gi, "");
       const apiUrl = hostRoot.endsWith("/")
         ? `${hostRoot}api`
         : `${hostRoot}/api`;
@@ -236,7 +238,7 @@ function _readEmbedApiBaseFromQuery() {
           _storeNotifyBase(
             String(params.get(SB_NOTIFY_BASE_KEY))
               .replace(/\/+$/, "")
-              .replace(/\/api\/?$/i, ""),
+              .replace(/(\/api\/?)+$/gi, ""),
           );
         }
         return hostRoot;

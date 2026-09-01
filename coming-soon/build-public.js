@@ -377,20 +377,31 @@ if (fs.existsSync(dashboardSrc)) {
         if (!/<title>/i.test(dashHtml)) {
             dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
         }
-        // Rewrite production asset paths to /dashboard/dist/assets for CF Pages
+        // Rewrite production asset paths with cache-bust for CF Pages
         const cacheBust = Date.now();
+        // Match both "/assets/main.css" and "./assets/main.css" formats
         dashHtml = dashHtml.replace(
-            /href="\/assets\/main\.css(?:\?[^"]*)?"/g,
-            `href="/dashboard/dist/assets/main.css?v=${cacheBust}"`
+            /href="\.?\/assets\/main\.css(?:\?[^"]*)?"/g,
+            `href="/dashboard/assets/main.css?v=${cacheBust}"`
         );
         dashHtml = dashHtml.replace(
-            /src="\/assets\/main\.js(?:\?[^"]*)?"/g,
-            `src="/dashboard/dist/assets/main.js?v=${cacheBust}"`
-        );
-        dashHtml = dashHtml.replace(
-            /src="\/dashboard\/assets\/main\.js(?:\?[^"]*)?"/g,
+            /src="\.?\/assets\/main\.js(?:\?[^"]*)?"/g,
             `src="/dashboard/assets/main.js?v=${cacheBust}"`
         );
+        // Also copy the hashed main JS/CSS to non-hashed names so the above paths resolve
+        const dashAssetsDir = path.join(dashboardDst, 'assets');
+        if (fs.existsSync(dashAssetsDir)) {
+            const hashedMainJs = fs.readdirSync(dashAssetsDir).find(f => /^main-[A-Za-z0-9_-]+\.js$/.test(f));
+            if (hashedMainJs) {
+                fs.copyFileSync(path.join(dashAssetsDir, hashedMainJs), path.join(dashAssetsDir, 'main.js'));
+                console.log(`Copied ${hashedMainJs} → main.js for non-hashed asset path`);
+            }
+            const hashedMainCss = fs.readdirSync(dashAssetsDir).find(f => /^main-[A-Za-z0-9_-]+\.css$/.test(f));
+            if (hashedMainCss) {
+                fs.copyFileSync(path.join(dashAssetsDir, hashedMainCss), path.join(dashAssetsDir, 'main.css'));
+                console.log(`Copied ${hashedMainCss} → main.css for non-hashed asset path`);
+            }
+        }
         // Also handle any leftover Vite dev script references
         dashHtml = dashHtml.replace(
             /<script type="module" src="\/src\/main\.tsx"><\/script>/,

@@ -5,7 +5,7 @@
  * Pages asset handler. All other /dashboard/* routes return the dashboard
  * entry HTML so the client-side router can render the requested view.
  *
- * Cache-bust version: 20260831pdfix1
+ * Cache-bust version: auto (timestamp-based)
  */
 export async function onRequest(context) {
     const { request, env } = context;
@@ -13,25 +13,8 @@ export async function onRequest(context) {
     const pathname = url.pathname;
 
     if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
-        // Intercept old main.js and serve the current build with no-cache headers
-        if (pathname.endsWith('/assets/main.js')) {
-            // Try hashed filenames first (newest build), fall back to main.js
-            const hashedCandidates = [
-                '/assets/main-C5bMZS0U.js',
-            ];
-            for (const candidate of hashedCandidates) {
-                const newUrl = new URL(pathname.replace('/assets/main.js', candidate), url.origin);
-                const newReq = new Request(newUrl.toString(), request);
-                const assetResp = await env.ASSETS.fetch(newReq);
-                if (assetResp.ok) {
-                    const headers = new Headers(assetResp.headers);
-                    headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-                    headers.set('CDN-Cache-Control', 'no-store');
-                    headers.set('Surrogate-Control', 'no-store');
-                    return new Response(assetResp.body, { status: assetResp.status, headers });
-                }
-            }
-            // Fall back to serving main.js directly with no-cache headers
+        // Serve main.js and main.css with no-cache headers to prevent stale edge-cached copies
+        if (pathname.endsWith('/assets/main.js') || pathname.endsWith('/assets/main.css')) {
             const assetResp = await env.ASSETS.fetch(request);
             if (assetResp.ok) {
                 const headers = new Headers(assetResp.headers);
