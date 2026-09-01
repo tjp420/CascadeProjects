@@ -7,6 +7,7 @@ import { escapeHtml } from '../utils/string';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
 import { provider, diagnosticsManager } from '../extension';
+import { ModernSidebarProvider } from '../modernSidebarProvider';
 
 interface ScanOptions {
   mode?: string;
@@ -164,12 +165,14 @@ export class ScanPanel {
       this._panel.webview.postMessage({ command: 'scanning', status: 'running', path: targetPath });
 
       // Call the server's synchronous scan endpoint
+      const tier = ModernSidebarProvider.getCachedTier() || '';
       const payload = {
         projectPath: targetPath,
         mode: options.mode || 'full',
         fullDirectoryScan: options.fullDirectory !== false,
         analysisType: (options.mode || 'full') === 'full' ? 'complete' : options.mode || 'simplebeacon',
         ...(options.aiProvider ? { aiProvider: options.aiProvider } : {}),
+        ...(tier ? { tier } : {}),
       };
       const data = (await postJson(`${apiUrl}/api/scan-directory`, payload, apiKey)) as ApiScanResponse;
       if (!data) {

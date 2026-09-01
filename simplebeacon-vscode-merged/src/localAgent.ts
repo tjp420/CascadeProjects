@@ -22,6 +22,8 @@ export interface AgentStatus {
 export interface AgentScanOptions {
   projectPath: string;
   fullDirectory?: boolean;
+  tier?: string;
+  maxFiles?: number;
 }
 
 /**
@@ -261,7 +263,12 @@ export async function scanViaLocalAgent(options: AgentScanOptions, port?: number
   const agentPort = port ?? getAgentPort();
   const projectPath = options.projectPath;
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({ projectPath, fullDirectoryScan: Boolean(options.fullDirectory) });
+    const payload = JSON.stringify({
+      projectPath,
+      fullDirectoryScan: Boolean(options.fullDirectory),
+      ...(options.tier ? { tier: options.tier } : {}),
+      ...(typeof options.maxFiles === 'number' ? { maxFiles: options.maxFiles } : {}),
+    });
     const req = http.request(
       {
         hostname: '127.0.0.1',
