@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { apiUrl, authHeaders } from "@/config";
 import { useAuth } from "@/hooks/useAuth";
+import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { ProviderFailoverDashboard } from "@/components/ProviderFailoverDashboard";
 import { IdentityFederationDashboard } from "@/components/IdentityFederationDashboard";
 import { SemanticCacheDashboard } from "@/components/SemanticCacheDashboard";
@@ -140,6 +141,22 @@ export function SecurityView() {
       if (stored) scan = JSON.parse(stored);
     } catch {
       /* ignore */
+    }
+
+    // On the hosted dashboard, don't auto-fire /analyze/flexible with a local
+    // path — the remote backend can't access the user's filesystem. Only
+    // proceed if a local extension bridge is connected or we have a URL path.
+    const projectPath = scan?.projectPath || "CascadeProjects";
+    const isLocalPath = !/^https?:\/\//i.test(projectPath) &&
+      !/^(git@|ssh:\/\/)/i.test(projectPath);
+    if (
+      typeof window !== "undefined" &&
+      !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
+      isLocalPath &&
+      !getExtensionBridgeOrigin()
+    ) {
+      setLoading(false);
+      return;
     }
 
     // Fetch codebase analysis (contains categories with security findings) and npm-audit in parallel

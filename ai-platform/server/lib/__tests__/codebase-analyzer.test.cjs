@@ -1,8 +1,12 @@
 // simplebeacon-ignore: Scanner pattern definitions, and dashboard code — all findings are false positives, test fixtures, todoMarkers
 const { describe, it } = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const {
+  analyzeCodebase,
   dedupeFindings,
   scanContentPatterns,
   getCodeExtensions,
@@ -167,5 +171,36 @@ describe("codebase-analyzer utilities", () => {
       assert.ok(exts.has(".ts"));
       assert.ok(exts.has(".json"));
     });
+  });
+
+  it("skips large binary assets and locale catalogs but reports large source files", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "codebase-analyzer-"));
+    try {
+      fs.mkdirSync(path.join(tempDir, "packages", "i18n", "locales", "en"), {
+        recursive: true,
+      });
+      fs.writeFileSync(path.join(tempDir, "preview.png"), Buffer.alloc(300 * 1024));
+      fs.writeFileSync(path.join(tempDir, "catalog.json"), "x".repeat(300 * 1024));
+      fs.writeFileSync(
+        path.join(tempDir, "packages", "i18n", "locales", "en", "common.json"),
+        "x".repeat(300 * 1024),
+      );
+      fs.writeFileSync(path.join(tempDir, "globals.css"), "x".repeat(300 * 1024));
+
+      const report = await analyzeCodebase(tempDir, {
+        context: "quick",
+        maxFindings: 100,
+      });
+      const oversizedFiles = report.findings
+        .filter((finding) => finding.type === "oversized-source")
+        .map((finding) => finding.filePath);
+
+      assert.ok(oversizedFiles.includes("catalog.json"));
+  assert.ok(oversizedFiles.includes("globals.css"));
+      assert.ok(!oversizedFiles.includes("preview.png"));
+  assert.ok(!oversizedFiles.includes("packages/i18n/locales/en/common.json"));
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

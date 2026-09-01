@@ -426,12 +426,14 @@ app.get('/api/simplebeacon', (_req, res) => {
 try {
     const { runSimplebeaconScan } = require('../ai-platform/src/api/simplebeacon-api.cjs');
     app.post('/api/simplebeacon/scan', express.json({ limit: '10mb' }), async (req, res) => {
-        try {
-            const projectPath = req.body?.projectPath || path.join(__dirname, '..');
-            const result = await runSimplebeaconScan(projectPath, {
-                fullDirectoryScan: req.body?.fullDirectoryScan !== false,
-                format: 'json'
-            });
+            try {
+                const projectPath = req.body?.projectPath || path.join(__dirname, '..');
+                const tier = String(req.body?.tier || req.user?.tier || 'community');
+                const result = await runSimplebeaconScan(projectPath, {
+                    fullDirectoryScan: req.body?.fullDirectoryScan !== false,
+                    format: 'json',
+                    tier,
+                });
             res.json({ success: true, ...result });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });

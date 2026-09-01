@@ -107,10 +107,9 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Views that require authentication — hidden from sidebar when signed out
-// Align with App.tsx AUTH_REQUIRED_VIEWS — only organization and workspace
-// truly require auth at the router level. Admin is handled separately below.
-const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
+// Views that remain visible when signed out (only signin/register).
+// All other views require authentication — aligns with App.tsx route guard.
+const PUBLIC_VIEWS = new Set(["signin", "register"]);
 
 export function Sidebar({
   currentView,
@@ -192,7 +191,11 @@ export function Sidebar({
             type="button"
             onClick={async () => {
               try {
-                const res = await fetch("/api/simplebeacon/report");
+                const { authHeaders, getAuthToken } = await import("@/config");
+                if (!getAuthToken()) return;
+                const res = await fetch("/api/simplebeacon/report", {
+                  headers: authHeaders(),
+                });
                 if (!res.ok) return;
                 const data = await res.json();
                 const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -242,14 +245,16 @@ function NavGroupSection({
       <div className="space-y-0.5">
         {group.items
           .filter((item) => {
+            // Hide all non-public items from signed-out users
+            if (!isAuthenticated && !PUBLIC_VIEWS.has(item.view))
+              return false;
             // Hide admin-only items from non-admin users
             if (
               !isAdmin &&
-              (item.view === "admin" || item.view === "workspace")
+              (item.view === "admin" ||
+                item.view === "workspace" ||
+                item.view === "fine-tuning")
             )
-              return false;
-            // Hide auth-required items from signed-out users
-            if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view))
               return false;
             return true;
           })

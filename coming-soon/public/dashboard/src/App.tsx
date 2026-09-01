@@ -58,8 +58,6 @@ const TelemetryView = lazy(() =>
 const PUBLIC_VIEWS = new Set([
   "signin",
   "register",
-  "about",
-  "getting-started",
 ]);
 const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([
@@ -201,8 +199,18 @@ export default function App() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     if (PUBLIC_VIEWS.has(route.view)) return;
-    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
+    // All non-public views require authentication
+    if (!isAuthenticated) {
       navigate("signin");
+      setRoute(getCurrentRoute());
+      return;
+    }
+    // Hide admin-only views from non-admin users
+    const ADMIN_ONLY_VIEWS = new Set(["admin", "fine-tuning"]);
+    const userRole = String(user?.role || "").toLowerCase();
+    const isAdminUser = ["admin", "owner", "superuser", "superadmin"].includes(userRole);
+    if (ADMIN_ONLY_VIEWS.has(route.view) && !isAdminUser) {
+      navigate("dashboard");
       setRoute(getCurrentRoute());
       return;
     }
@@ -211,7 +219,7 @@ export default function App() {
     if (!isTokenExpired()) return;
     navigate("signin");
     setRoute(getCurrentRoute());
-  }, [route.view, isAuthenticated]);
+  }, [route.view, isAuthenticated, user]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);

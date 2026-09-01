@@ -81,8 +81,9 @@ function _resolveExtensionBridgeApiBase() {
     /* ignore */
   }
   if (!raw) return "";
-  raw = raw.replace(/\/+$/, "");
-  if (!/\/api$/i.test(raw)) raw += "/api";
+  // Strip ALL trailing /api segments then add exactly one to prevent /api/api/ double paths.
+  raw = raw.replace(/(\/api\/?)+$/gi, "").replace(/\/+$/, "");
+  raw += "/api";
   return raw;
 }
 function _isCloudApiBase() {
@@ -118,13 +119,13 @@ export function apiBase() {
       "";
     if (envBase && _isAllowedApiBase(envBase)) {
       return String(envBase)
-        .replace(/\/api\/?$/, "")
+        .replace(/(\/api\/?)+$/gi, "")
         .replace(/\/+$/, "");
     }
     // Extension / VS Code bridge — query param or sessionStorage (set by discoverAndApplyExtensionBridge).
     const bridgeBase = _resolveExtensionBridgeApiBase();
     if (bridgeBase && _isAllowedApiBase(bridgeBase)) {
-      return bridgeBase.replace(/\/api\/?$/, "");
+      return bridgeBase.replace(/(\/api\/?)+$/gi, "");
     }
     const host = location.hostname;
     // Canonical production + Cloudflare Pages previews serve the API same-origin.

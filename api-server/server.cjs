@@ -284,9 +284,11 @@ try {
     async (req, res) => {
       try {
         const projectPath = req.body?.projectPath || path.join(__dirname, "..");
+        const tier = String(req.body?.tier || req.user?.tier || 'starter');
         const result = await runSimplebeaconScan(projectPath, {
           fullDirectoryScan: req.body?.fullDirectoryScan !== false,
           format: "json",
+          tier,
         });
         res.json({ success: true, ...result });
       } catch (err) {

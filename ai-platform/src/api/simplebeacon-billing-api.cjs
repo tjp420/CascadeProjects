@@ -479,7 +479,7 @@ function setupSimplebeaconBillingWebhook(app) {
 
               // Fire-and-forget post-payment scan (do not block webhook response)
               const scanPath = session.metadata?.projectPath || null;
-              runSimplebeaconScan(scanPath).catch((err) => {
+              runSimplebeaconScan(scanPath, { tier: subTier }).catch((err) => {
                 logger.error(
                   "[Simplebeacon billing] Post-payment scan failed:",
                   err.message,

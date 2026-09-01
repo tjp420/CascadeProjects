@@ -276,15 +276,19 @@ class AssessmentController {
     }
   }
 
-  async runSimplebeaconScan(projectPath) {
+  async runSimplebeaconScan(projectPath, opts = {}) {
     try {
       const resolvedPath = path.resolve(projectPath);
       const { platformRoot } = resolvePlatformRoot(resolvedPath);
       const config = loadSimplebeaconConfig(platformRoot);
-      const report = await runScan(resolvedPath, {
+      const safeOpts = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
+      const runScanOpts = {
         config,
         configPath: config.configPath,
-      });
+        // Forward tier if provided so higher-level dispatchers can enforce limits
+        tier: safeOpts.tier || safeOpts.userTier || 'starter',
+      };
+      const report = await runScan(resolvedPath, runScanOpts);
       const gateResult = evaluateGate(report, config.gate);
       const formatted = formatJsonReport(report, gateResult);
 

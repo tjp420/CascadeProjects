@@ -321,7 +321,8 @@ export function getExtensionBridgeOrigin() {
   const override = readSbApiBaseOverride();
   if (!override) return null;
   try {
-    const base = override.replace(/\/api\/?$/, "");
+    // Strip ALL trailing /api segments to prevent /api/api/ double-path bugs.
+    const base = override.replace(/(\/api\/?)+$/gi, "");
     const parsed = new URL(base);
     const host = parsed.hostname.toLowerCase();
     if (host !== "127.0.0.1" && host !== "localhost") return null;

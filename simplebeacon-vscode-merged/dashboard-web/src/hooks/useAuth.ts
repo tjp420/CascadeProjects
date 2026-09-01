@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { navigate } from "../router/HashRouter";
-import { isTokenExpired, clearAuthToken, getAuthToken } from "../config";
+import {
+  isTokenExpired,
+  clearAuthToken,
+  getAuthToken,
+  setAuthToken,
+  apiUrl,
+  authHeaders,
+} from "../config";
 
 /**
  * Decode a JWT payload without verifying (verification happens server-side).
@@ -99,11 +106,61 @@ export function useAuth() {
     window.addEventListener("sb:login", checkAuth);
     window.addEventListener("sb:logout", checkAuth);
     window.addEventListener("sb:license", checkAuth);
+
+    // Auto-refresh JWT token before it expires (15-min default).
+    // Refresh at 12 minutes (3 min before expiry) and check every 2 minutes.
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    async function refreshToken() {
+      try {
+        const token = getAuthToken();
+        if (!token) return;
+        // Only refresh JWT tokens (3-part), not license tokens (2-part)
+        if (token.split(".").length !== 3) return;
+        if (isTokenExpired()) return; // already expired — let checkAuth handle sign-out
+        const resp = await fetch(apiUrl("/auth/refresh"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ longLived: true }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.token) {
+            setAuthToken(data.token);
+            checkAuth();
+          }
+        }
+      } catch {
+        /* ignore refresh errors — token still valid until expiry */
+      }
+    }
+    function scheduleRefresh() {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      const token = getAuthToken();
+      if (!token || token.split(".").length !== 3) return;
+      const payload = decodeJwtPayload(token);
+      if (!payload || !payload.exp) return;
+      const expMs = Number(payload.exp) * 1000;
+      const nowMs = Date.now();
+      const msUntilRefresh = expMs - nowMs - 3 * 60 * 1000; // 3 min before expiry
+      if (msUntilRefresh <= 0) {
+        // Token expires in < 3 min — refresh now
+        refreshToken();
+      } else {
+        refreshTimer = setTimeout(refreshToken, msUntilRefresh);
+      }
+    }
+    scheduleRefresh();
+    const refreshInterval = setInterval(scheduleRefresh, 2 * 60 * 1000);
+    window.addEventListener("sb:login", scheduleRefresh);
+
     return () => {
       window.removeEventListener("storage", checkAuth);
       window.removeEventListener("sb:login", checkAuth);
       window.removeEventListener("sb:logout", checkAuth);
       window.removeEventListener("sb:license", checkAuth);
+      window.removeEventListener("sb:login", scheduleRefresh);
+      if (refreshTimer) clearTimeout(refreshTimer);
+      clearInterval(refreshInterval);
     };
   }, []);
 
