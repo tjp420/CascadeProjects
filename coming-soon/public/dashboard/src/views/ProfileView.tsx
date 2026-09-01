@@ -22,7 +22,7 @@ import {
   Key,
 } from "lucide-react";
 import { navigate } from "@/router/HashRouter";
-import { apiUrl, authHeaders, getApiBase } from "@/config";
+import { apiUrl, authHeaders, getApiBase, getAuthToken, clearAuthToken } from "@/config";
 
 interface UserData {
   email?: string;
@@ -45,13 +45,12 @@ export function ProfileView() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
-      const token =
-        localStorage.getItem("sb_token") ||
-        localStorage.getItem("sb-token") ||
-        localStorage.getItem("auth_token");
+      const token = getAuthToken();
       if (token) {
         setIsAuthenticated(true);
-        const userData = localStorage.getItem("sb_user");
+        const userData =
+          localStorage.getItem("sb_user") ||
+          localStorage.getItem("sb-user");
         if (userData) {
           setUser(JSON.parse(userData));
         }
@@ -79,10 +78,11 @@ export function ProfileView() {
   }, []);
 
   const handleSignOut = () => {
-    localStorage.removeItem("sb_token");
-    localStorage.removeItem("sb-token");
-    localStorage.removeItem("sb_user");
-    localStorage.removeItem("auth_token");
+    clearAuthToken();
+    try {
+      localStorage.removeItem("sb_user");
+      localStorage.removeItem("sb-user");
+    } catch { /* ignore */ }
     navigate("signin");
   };
 

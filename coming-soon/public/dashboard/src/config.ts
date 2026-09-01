@@ -74,7 +74,7 @@ export function getApiBase(): string {
  *   sb_user              — Dashboard primary
  *   sb-user              — Legacy fallback (audit page writes here)
  */
-function getAuthToken(): string | null {
+export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return (
     localStorage.getItem("sb_auth_token") ||

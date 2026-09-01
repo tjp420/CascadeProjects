@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFeatureAccess } from "./useFeatureAccess";
-import { apiUrl, waitForApiBase } from "@/config";
+import { apiUrl, waitForApiBase, getAuthToken } from "@/config";
 
 const STORAGE_KEY = "sb_scan_count";
 const MONTH_KEY = "sb_scan_month";
@@ -53,8 +53,7 @@ export function useScanCounter() {
     // Sync with backend if authenticated
     (async () => {
       try {
-        const token =
-          localStorage.getItem("sb_token") || localStorage.getItem("sb-token");
+        const token = getAuthToken();
         if (!token) return;
         await waitForApiBase();
         const resp = await fetch(apiUrl("/scans/count"), {
@@ -81,8 +80,7 @@ export function useScanCounter() {
 
     // Best-effort backend sync
     try {
-      const token =
-        localStorage.getItem("sb_token") || localStorage.getItem("sb-token");
+      const token = getAuthToken();
       if (token) {
         await waitForApiBase();
         await fetch(apiUrl("/scans/increment"), {

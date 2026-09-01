@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { navigate } from "../router/HashRouter";
-import { isTokenExpired, clearAuthToken } from "../config";
+import { isTokenExpired, clearAuthToken, getAuthToken } from "../config";
 
 /**
  * Decode a JWT payload without verifying (verification happens server-side).
@@ -34,11 +34,7 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token =
-          localStorage.getItem("sb_auth_token") ||
-          localStorage.getItem("sb_token") ||
-          localStorage.getItem("sb-token") ||
-          localStorage.getItem("auth_token");
+        const token = getAuthToken();
         if (token && !isTokenExpired()) {
           setIsAuthenticated(true);
           // Start with sb_user localStorage data, fall back to sb-user (legacy)

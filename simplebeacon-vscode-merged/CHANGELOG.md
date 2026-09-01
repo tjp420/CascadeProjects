@@ -1,5 +1,11 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.568] - 2026-09-01
+
+### Fixed
+
+- **Profile page shows "Sign in to view your profile" despite being signed in** — `ProfileView.tsx` had a local auth check that only looked at `sb_token`, `sb-token`, and `auth_token` in localStorage, missing the primary `sb_auth_token` key. Replaced with the global `getAuthToken()` from `config.ts` which checks all 9 token storage keys. Also fixed `handleSignOut()` to use `clearAuthToken()` which clears all keys, and fixed `useScanCounter.ts` which had the same missing-key bug for scan count API calls. Exported `getAuthToken()` from `config.ts` so all views can use the shared token resolution logic.
+
 ## [3.0.567] - 2026-09-01
 
 ### Fixed
