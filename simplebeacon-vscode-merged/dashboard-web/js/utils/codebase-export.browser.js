@@ -9,7 +9,7 @@
  * @returns {any}
  */
 function normalizeExportPath(projectPath) {
-  return String(projectPath || '').replace(/\\/g, '/');
+  return String(projectPath || "").replace(/\\/g, "/");
 }
 
 /**
@@ -18,9 +18,9 @@ function normalizeExportPath(projectPath) {
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
-  const normalized = normalizeExportPath(projectPath || 'ai-platform');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
+  const normalized = normalizeExportPath(projectPath || "ai-platform");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "ai-platform";
 }
 
 /**
@@ -29,14 +29,14 @@ function projectLabelFromPath(projectPath) {
  * @param {any} projectLabel
  * @returns {any}
  */
-function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
-  if (rawPath == null || rawPath === '') return rawPath;
+function redactProjectPathForExport(rawPath, projectLabel = "ai-platform") {
+  if (rawPath == null || rawPath === "") return rawPath;
   const normalized = normalizeExportPath(rawPath);
   if (
     /^[a-zA-Z]:\//.test(normalized) ||
-    normalized.startsWith('/Users/') ||
-    normalized.startsWith('/home/') ||
-    normalized.includes('CascadeProjects')
+    normalized.startsWith("/Users/") ||
+    normalized.startsWith("/home/") ||
+    normalized.includes("CascadeProjects")
   ) {
     return projectLabel;
   }
@@ -50,13 +50,13 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
  * @returns {any}
  */
 function redactCodebasePathForExport(value, options = {}) {
-  if (value == null || value === '') return value;
+  if (value == null || value === "") return value;
   const normalized = normalizeExportPath(value);
   const lower = normalized.toLowerCase();
-  const githubIdx = lower.indexOf('/github-cache/');
+  const githubIdx = lower.indexOf("/github-cache/");
   if (githubIdx >= 0) {
     const suffix = normalized.slice(githubIdx + 1);
-    const platformLabel = options.productPlatformLabel || 'ai-platform';
+    const platformLabel = options.productPlatformLabel || "ai-platform";
     return `${platformLabel}/${suffix}`;
   }
   const label = options.projectLabel || projectLabelFromPath(normalized);
@@ -69,13 +69,13 @@ function redactCodebasePathForExport(value, options = {}) {
  * @param {any} projectLabel
  * @returns {any}
  */
-function redactCodebaseAiSummary(text, projectLabel = 'ai-platform') {
+function redactCodebaseAiSummary(text, projectLabel = "ai-platform") {
   if (!text) return text;
   let out = String(text);
   out = out.replace(/[A-Za-z]:[\\/][^\s`'".,)\]]+/g, (match) => {
-    const normalized = match.replace(/\\/g, '/');
-    if (normalized.toLowerCase().includes('github-cache')) {
-      const idx = normalized.toLowerCase().indexOf('github-cache');
+    const normalized = match.replace(/\\/g, "/");
+    if (normalized.toLowerCase().includes("github-cache")) {
+      const idx = normalized.toLowerCase().indexOf("github-cache");
       return `${projectLabel}/${normalized.slice(idx)}`;
     }
     return projectLabel;
@@ -94,10 +94,10 @@ function redactCodebaseAiSummary(text, projectLabel = 'ai-platform') {
 function isBenchmarkScanTargetRoot(projectPath) {
   const rel = normalizeExportPath(projectPath).toLowerCase();
   return (
-    rel.includes('/github-cache/') ||
-    rel.startsWith('github-cache/') ||
-    rel.includes('/java-ai-vulnerable/') ||
-    rel.startsWith('java-ai-vulnerable/')
+    rel.includes("/github-cache/") ||
+    rel.startsWith("github-cache/") ||
+    rel.includes("/java-ai-vulnerable/") ||
+    rel.startsWith("java-ai-vulnerable/")
   );
 }
 
@@ -108,7 +108,7 @@ function isBenchmarkScanTargetRoot(projectPath) {
  */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = normalizeExportPath(projectPath);
-  const idx = normalized.toLowerCase().indexOf('/github-cache/');
+  const idx = normalized.toLowerCase().indexOf("/github-cache/");
   if (idx <= 0) return null;
   return normalized.slice(0, idx);
 }
@@ -120,17 +120,25 @@ function resolveProductPlatformRoot(projectPath) {
  * @returns {any}
  */
 function inferCodebaseScanTargetFromHints(report, options = {}) {
-  const filename = String(options.exportFilename || options.filename || '').toLowerCase();
-  if (!filename.includes('github-cache')) return '';
-  const slugMatch = filename.match(/github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i);
-  if (!slugMatch) return '';
+  const filename = String(
+    options.exportFilename || options.filename || "",
+  ).toLowerCase();
+  if (!filename.includes("github-cache")) return "";
+  const slugMatch = filename.match(
+    /github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i,
+  );
+  if (!slugMatch) return "";
   const cloneName = slugMatch[1];
   const sourceRoot = String(
-    options.projectPath || options.requestedProjectPath || report.projectRoot || report.platformRoot || ''
-  ).replace(/\\/g, '/');
-  if (isBenchmarkScanTargetRoot(sourceRoot)) return '';
+    options.projectPath ||
+      options.requestedProjectPath ||
+      report.projectRoot ||
+      report.platformRoot ||
+      "",
+  ).replace(/\\/g, "/");
+  if (isBenchmarkScanTargetRoot(sourceRoot)) return "";
   const platformRoot = resolveProductPlatformRoot(sourceRoot) || sourceRoot;
-  return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
+  return `${platformRoot.replace(/\/$/, "")}/github-cache/${cloneName}`;
 }
 
 /**
@@ -141,20 +149,24 @@ function inferCodebaseScanTargetFromHints(report, options = {}) {
  */
 function resolveCodebaseExportContext(report, options = {}) {
   const inferredTarget = inferCodebaseScanTargetFromHints(report, options);
-  const projectRoot = normalizeExportPath(report?.projectRoot || report?.projectPath || '');
+  const projectRoot = normalizeExportPath(
+    report?.projectRoot || report?.projectPath || "",
+  );
   const scanTargetRoot = normalizeExportPath(
     options.scanTargetRoot ||
       options.requestedProjectPath ||
       report?.scanTargetRoot ||
       report?.requestedScanRoot ||
       inferredTarget ||
-      ''
+      "",
   );
   const benchmarkFromRoot = isBenchmarkScanTargetRoot(projectRoot);
   const benchmarkFromTarget = isBenchmarkScanTargetRoot(scanTargetRoot);
   const productPlatformRoot =
     benchmarkFromRoot || benchmarkFromTarget
-      ? resolveProductPlatformRoot(benchmarkFromRoot ? projectRoot : scanTargetRoot)
+      ? resolveProductPlatformRoot(
+          benchmarkFromRoot ? projectRoot : scanTargetRoot,
+        )
       : null;
   const misscopedPlatformWalk =
     benchmarkFromTarget &&
@@ -164,7 +176,7 @@ function resolveCodebaseExportContext(report, options = {}) {
 
   return {
     benchmarkScan: benchmarkFromRoot || benchmarkFromTarget,
-    scanTargetRoot: scanTargetRoot || (benchmarkFromRoot ? projectRoot : ''),
+    scanTargetRoot: scanTargetRoot || (benchmarkFromRoot ? projectRoot : ""),
     productPlatformRoot,
     misscopedPlatformWalk,
   };
@@ -176,20 +188,31 @@ function resolveCodebaseExportContext(report, options = {}) {
  * @returns {any}
  */
 function isKnownCodebaseFalsePositive(finding) {
-  if (!finding || typeof finding !== 'object') return false;
-  const filePath = String(finding.filePath || '').replace(/\\/g, '/');
-  if (filePath === 'pdf-export.html' && finding.type === 'placeholder-token') return true;
-  if (finding.type === 'placeholder-token' && /\bplaceholder\s+patterns\b/i.test(String(finding.match || ''))) {
-    return /\bfiction\b/i.test(String(finding.description || finding.match || ''));
-  }
-  if (finding.type === 'placeholder-token' && /^README\.md$/i.test(filePath)) return true;
-  if (finding.category === 'tech-debt' && /liability-metrics\.js$/i.test(filePath)) return true;
+  if (!finding || typeof finding !== "object") return false;
+  const filePath = String(finding.filePath || "").replace(/\\/g, "/");
+  if (filePath === "pdf-export.html" && finding.type === "placeholder-token")
+    return true;
   if (
-    finding.category === 'tech-debt' &&
-    finding.type === 'todo' &&
-    String(finding.match || '')
+    finding.type === "placeholder-token" &&
+    /\bplaceholder\s+patterns\b/i.test(String(finding.match || ""))
+  ) {
+    return /\bfiction\b/i.test(
+      String(finding.description || finding.match || ""),
+    );
+  }
+  if (finding.type === "placeholder-token" && /^README\.md$/i.test(filePath))
+    return true;
+  if (
+    finding.category === "tech-debt" &&
+    /liability-metrics\.js$/i.test(filePath)
+  )
+    return true;
+  if (
+    finding.category === "tech-debt" &&
+    finding.type === "todo" &&
+    String(finding.match || "")
       .toLowerCase()
-      .includes('implement')
+      .includes("implement")
   ) {
     return true;
   }
@@ -207,12 +230,14 @@ function filterKnownFalsePositiveFindings(report) {
    * @param {number} report.findings || []
    * @returns {any}
    */
-  const findings = (report.findings || []).filter((f) => !isKnownCodebaseFalsePositive(f));
+  const findings = (report.findings || []).filter(
+    (f) => !isKnownCodebaseFalsePositive(f),
+  );
   if (findings.length === (report.findings || []).length) return report;
 
   const categoryCounts = {};
   for (const f of findings) {
-    const cat = f.category || 'unknown';
+    const cat = f.category || "unknown";
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
   }
 
@@ -229,7 +254,9 @@ function filterKnownFalsePositiveFindings(report) {
       findingsTotal: findings.length,
       findingsReturned: findings.length,
       healthScore: findings.length ? report.summary?.healthScore : 100,
-      severityCounts: findings.length ? report.summary?.severityCounts : { high: 0, medium: 0, low: 0 },
+      severityCounts: findings.length
+        ? report.summary?.severityCounts
+        : { high: 0, medium: 0, low: 0 },
       categoryCounts,
       analyzerCounts: {
         debugArtifacts: 0,
@@ -239,7 +266,7 @@ function filterKnownFalsePositiveFindings(report) {
     },
     exportNotes: [
       ...(report.exportNotes || []),
-      'Removed 1 known false positive (scanner meta-reference or product README wording).',
+      "Removed 1 known false positive (scanner meta-reference or product README wording).",
     ],
   };
 }
@@ -253,19 +280,19 @@ function dedupeCodebaseExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
   for (const note of notes) {
-    const normalized = String(note).replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalized = String(note).replace(/\s+/g, " ").trim().toLowerCase();
     const scopeKey = /benchmark clone codebase export/i.test(normalized)
-      ? 'benchmark-codebase-scope-note'
+      ? "benchmark-codebase-scope-note"
       : /mis-scoped complete-scan export/i.test(normalized)
-        ? 'benchmark-misscope-note'
+        ? "benchmark-misscope-note"
         : /eslint style-tier warnings only/i.test(normalized)
-          ? 'eslint-style-note'
+          ? "eslint-style-note"
           : /jest was not run during the paired gate/i.test(normalized)
-            ? 'jest-gate-note'
+            ? "jest-gate-note"
             : /eslint/i.test(normalized)
-              ? 'eslint-note'
+              ? "eslint-note"
               : /code-like file\(s\) deep-scanned/i.test(normalized)
-                ? 'code-files-scope-note'
+                ? "code-files-scope-note"
                 : normalized;
     if (seen.has(scopeKey)) continue;
     seen.add(scopeKey);
@@ -283,11 +310,11 @@ function dedupeLimitationNotes(lines = []) {
   const seen = new Set();
   const out = [];
   for (const line of lines) {
-    const normalized = String(line).replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalized = String(line).replace(/\s+/g, " ").trim().toLowerCase();
     const scopeKey = /^oss benchmark clone under github-cache/i.test(normalized)
-      ? 'benchmark-scope'
+      ? "benchmark-scope"
       : /eslint (not run|did not run)/i.test(normalized)
-        ? 'eslint-skipped'
+        ? "eslint-skipped"
         : normalized;
     if (seen.has(scopeKey)) continue;
     seen.add(scopeKey);
@@ -303,10 +330,21 @@ function dedupeLimitationNotes(lines = []) {
  * @param {Object} options
  * @returns {any}
  */
-function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {}) {
-  const rawRoot = scanTargetRoot || report.projectRoot || report.scanTargetRoot || report.requestedScanRoot || '';
+function normalizeCodebaseExportPaths(
+  report,
+  scanTargetRoot = "",
+  options = {},
+) {
+  const rawRoot =
+    scanTargetRoot ||
+    report.projectRoot ||
+    report.scanTargetRoot ||
+    report.requestedScanRoot ||
+    "";
   const projectLabel = projectLabelFromPath(
-    options.productPlatformRoot || resolveProductPlatformRoot(rawRoot) || rawRoot
+    options.productPlatformRoot ||
+      resolveProductPlatformRoot(rawRoot) ||
+      rawRoot,
   );
   const pathOptions = {
     projectLabel,
@@ -316,27 +354,59 @@ function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {})
   const redactedRoot = redactCodebasePathForExport(rawRoot, pathOptions);
   return {
     ...report,
-    projectRoot: redactCodebasePathForExport(report.projectRoot || rawRoot, pathOptions) || redactedRoot,
+    projectRoot:
+      redactCodebasePathForExport(report.projectRoot || rawRoot, pathOptions) ||
+      redactedRoot,
     ...(report.scanTargetRoot || redactedRoot
-      ? { scanTargetRoot: redactCodebasePathForExport(report.scanTargetRoot || rawRoot, pathOptions) || redactedRoot }
+      ? {
+          scanTargetRoot:
+            redactCodebasePathForExport(
+              report.scanTargetRoot || rawRoot,
+              pathOptions,
+            ) || redactedRoot,
+        }
       : {}),
     ...(report.requestedScanRoot
-      ? { requestedScanRoot: redactCodebasePathForExport(report.requestedScanRoot, pathOptions) }
+      ? {
+          requestedScanRoot: redactCodebasePathForExport(
+            report.requestedScanRoot,
+            pathOptions,
+          ),
+        }
       : {}),
-    ...(report.platformRoot ? { platformRoot: redactCodebasePathForExport(report.platformRoot, pathOptions) } : {}),
+    ...(report.platformRoot
+      ? {
+          platformRoot: redactCodebasePathForExport(
+            report.platformRoot,
+            pathOptions,
+          ),
+        }
+      : {}),
     ...(report.codeAnalysisRoot
-      ? { codeAnalysisRoot: redactCodebasePathForExport(report.codeAnalysisRoot, pathOptions) }
+      ? {
+          codeAnalysisRoot: redactCodebasePathForExport(
+            report.codeAnalysisRoot,
+            pathOptions,
+          ),
+        }
       : {}),
     ...(report.productPlatformRoot
-      ? { productPlatformRoot: redactCodebasePathForExport(report.productPlatformRoot, pathOptions) }
+      ? {
+          productPlatformRoot: redactCodebasePathForExport(
+            report.productPlatformRoot,
+            pathOptions,
+          ),
+        }
       : {}),
     ...(report.repositoryInventory
       ? {
           repositoryInventory: {
             ...report.repositoryInventory,
             projectRoot:
-              redactCodebasePathForExport(report.repositoryInventory.projectRoot || rawRoot, pathOptions) ||
-              redactedRoot,
+              redactCodebasePathForExport(
+                report.repositoryInventory.projectRoot || rawRoot,
+                pathOptions,
+              ) || redactedRoot,
           },
         }
       : {}),
@@ -350,8 +420,8 @@ function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {})
  */
 function resolveBenchmarkCodebaseTitle(misscopedPlatformWalk) {
   return misscopedPlatformWalk
-    ? 'Codebase Analysis — mis-scoped platform walk (benchmark target)'
-    : 'OSS Clone Codebase Hygiene (github-cache benchmark)';
+    ? "Codebase Analysis — mis-scoped platform walk (benchmark target)"
+    : "OSS Clone Codebase Hygiene (github-cache benchmark)";
 }
 
 /**
@@ -362,9 +432,9 @@ function resolveBenchmarkCodebaseTitle(misscopedPlatformWalk) {
  */
 function replaceMisleadingCodebaseLimitations(limitations = [], context) {
   const canonicalBenchmark =
-    'OSS benchmark clone under github-cache/ — codebase hygiene comparison only, not Simplebeacon platform production certification.';
+    "OSS benchmark clone under github-cache/ — codebase hygiene comparison only, not Simplebeacon platform production certification.";
   const canonicalEslint =
-    'ESLint did not run — Simplebeacon ESLint targets (server/, packages/, web/) are not present in this OSS clone root.';
+    "ESLint did not run — Simplebeacon ESLint targets (server/, packages/, web/) are not present in this OSS clone root.";
 
   const filtered = limitations.filter((line) => {
     if (!context.benchmarkScan) return true;
@@ -378,7 +448,7 @@ function replaceMisleadingCodebaseLimitations(limitations = [], context) {
 
   if (context.benchmarkScan) {
     filtered.unshift(canonicalBenchmark);
-    if (context.eslintSource === 'none') {
+    if (context.eslintSource === "none") {
       filtered.push(canonicalEslint);
     }
   }
@@ -403,7 +473,7 @@ function buildTierCountsExport(summary, benchmarkScan) {
     mergeRiskHeuristic: tierCounts.production ?? 0,
     documentation: tierCounts.documentation ?? 0,
     general: tierCounts.general ?? 0,
-    note: '“production” tier is a path heuristic (e.g. paths containing /src/) within the OSS clone — not Simplebeacon ai-platform production code.',
+    note: "“production” tier is a path heuristic (e.g. paths containing /src/) within the OSS clone — not Simplebeacon ai-platform production code.",
   };
 }
 
@@ -416,10 +486,10 @@ function resolveCodebaseHealthStatus(summary) {
   const total = summary?.findingsTotal ?? 0;
   const high = summary?.severityCounts?.high ?? 0;
   const medium = summary?.severityCounts?.medium ?? 0;
-  if (high > 0) return 'needs-attention';
-  if (medium > 0) return 'healthy-with-findings';
-  if (total > 0) return 'clean-low-noise';
-  return 'clean';
+  if (high > 0) return "needs-attention";
+  if (medium > 0) return "healthy-with-findings";
+  if (total > 0) return "clean-low-noise";
+  return "clean";
 }
 
 /**
@@ -482,26 +552,31 @@ function resolveGateInventoryContext(report, options = {}) {
  */
 function buildProductCodebaseExportNotes(report, context = {}) {
   const notes = [
-    'securityHandoffEligible is false — codebase hygiene is supplementary, not vendor security handoff.',
-    'Absolute scan paths are redacted to project label in operator exports.',
+    "securityHandoffEligible is false — codebase hygiene is supplementary, not vendor security handoff.",
+    "Absolute scan paths are redacted to project label in operator exports.",
   ];
-  const eslintSource = report.summary?.eslintSource || report.eslintSummary?.source || 'none';
-  if (eslintSource === 'none' && report.summary?.eslintSkipped) {
+  const eslintSource =
+    report.summary?.eslintSource || report.eslintSummary?.source || "none";
+  if (eslintSource === "none" && report.summary?.eslintSkipped) {
     notes.push(`ESLint was not executed: ${report.summary.eslintSkipped}`);
-  } else if (eslintSource === 'command') {
+  } else if (eslintSource === "command") {
     notes.push(
-      `ESLint ran on platform targets (${report.summary?.eslintErrors ?? 0} errors, ${report.summary?.eslintWarnings ?? 0} warnings).`
+      `ESLint ran on platform targets (${report.summary?.eslintErrors ?? 0} errors, ${report.summary?.eslintWarnings ?? 0} warnings).`,
     );
   }
   const codeFiles = report.summary?.codeFilesAnalyzed;
-  const auditFiles = report.repositoryInventory?.totalFiles ?? report.summary?.repositoryFilesTotal;
+  const auditFiles =
+    report.repositoryInventory?.totalFiles ??
+    report.summary?.repositoryFilesTotal;
   if (codeFiles != null && auditFiles != null && auditFiles > codeFiles) {
     notes.push(
-      `${Number(codeFiles).toLocaleString()} code-like file(s) deep-scanned — audit inventory (${Number(auditFiles).toLocaleString()} paths) includes non-code assets and metadata.`
+      `${Number(codeFiles).toLocaleString()} code-like file(s) deep-scanned — audit inventory (${Number(auditFiles).toLocaleString()} paths) includes non-code assets and metadata.`,
     );
   }
   if ((report.summary?.findingsTotal ?? 0) === 0) {
-    notes.push('No actionable codebase findings in this export — hygiene score reflects analyzed source paths only.');
+    notes.push(
+      "No actionable codebase findings in this export — hygiene score reflects analyzed source paths only.",
+    );
   }
   const gateContext = resolveGateInventoryContext(report, context);
   const {
@@ -513,14 +588,18 @@ function buildProductCodebaseExportNotes(report, context = {}) {
     fictionSampleFilesScanned,
   } = gateContext;
   if (gateTotal != null && auditFiles != null && gateTotal !== auditFiles) {
-    const profile = report.repositoryInventory?.profile || 'audit';
+    const profile = report.repositoryInventory?.profile || "audit";
     notes.push(
-      `repositoryInventory.totalFiles (${Number(auditFiles).toLocaleString()}, ${profile} profile) — gate full-tree inventory is ${Number(gateTotal).toLocaleString()} paths.`
+      `repositoryInventory.totalFiles (${Number(auditFiles).toLocaleString()}, ${profile} profile) — gate full-tree inventory is ${Number(gateTotal).toLocaleString()} paths.`,
     );
   }
-  if (gateTotal != null && credentialScanned != null && credentialScanned < gateTotal) {
+  if (
+    gateTotal != null &&
+    credentialScanned != null &&
+    credentialScanned < gateTotal
+  ) {
     notes.push(
-      `CRED/LEAK rules scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} metadata-only path(s) in gate inventory of ${Number(gateTotal).toLocaleString()}.`
+      `CRED/LEAK rules scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} metadata-only path(s) in gate inventory of ${Number(gateTotal).toLocaleString()}.`,
     );
   }
   if (
@@ -530,17 +609,20 @@ function buildProductCodebaseExportNotes(report, context = {}) {
   ) {
     notes.push(
       // simplebeacon:production-leak-intent - legitimate KPI reference for codebase reporting
-      `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`
+      `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`,
     );
   }
   if (gateProfile) {
     notes.push(
-      `Gate rule bundle profile: ${gateProfile} — pair codebase report with json/simplebeacon-gate.json for handoff evidence.`
+      `Gate rule bundle profile: ${gateProfile} — pair codebase report with json/simplebeacon-gate.json for handoff evidence.`,
     );
   }
-  if (gateReport.jestBaselineChecked === false || report.hygieneSummary?.jestBaselineChecked === false) {
+  if (
+    gateReport.jestBaselineChecked === false ||
+    report.hygieneSummary?.jestBaselineChecked === false
+  ) {
     notes.push(
-      'Jest was not run during the paired gate scan — codebase unused-file heuristics are static/ESLint only.'
+      "Jest was not run during the paired gate scan — codebase unused-file heuristics are static/ESLint only.",
     );
   }
   const medium = report.summary?.severityCounts?.medium ?? 0;
@@ -548,19 +630,21 @@ function buildProductCodebaseExportNotes(report, context = {}) {
   const eslintFindings = report.summary?.categoryCounts?.eslint ?? 0;
   if (medium > 0 && eslintFindings === medium && high === 0) {
     notes.push(
-      `${medium} medium-severity finding(s) are ESLint style-tier warnings only — no high-severity merge-risk issues.`
+      `${medium} medium-severity finding(s) are ESLint style-tier warnings only — no high-severity merge-risk issues.`,
     );
   }
   const mirrorSamples = (report.structureInsights?.samples || []).filter((s) =>
-    String(s.filePath || '').startsWith('.github-sync/')
+    String(s.filePath || "").startsWith(".github-sync/"),
   ).length;
   if (mirrorSamples > 0) {
     notes.push(
-      `Structure samples include ${mirrorSamples} path(s) under .github-sync/ — mirror tree, not primary product source.`
+      `Structure samples include ${mirrorSamples} path(s) under .github-sync/ — mirror tree, not primary product source.`,
     );
   }
   if (report.aiSummaryProvider) {
-    notes.push(`AI narrative (${report.aiSummaryProvider}) is supplementary — use findings and summary for handoff.`);
+    notes.push(
+      `AI narrative (${report.aiSummaryProvider}) is supplementary — use findings and summary for handoff.`,
+    );
   }
   return [...new Set(notes)].slice(0, 10);
 }
@@ -574,8 +658,17 @@ function buildProductCodebaseExportNotes(report, context = {}) {
 function buildProductCodebaseHygieneSummary(report, options = {}) {
   const summary = report.summary || {};
   const gateContext = resolveGateInventoryContext(report, options);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport } = gateContext;
-  const auditFiles = report.repositoryInventory?.totalFiles ?? summary.repositoryFilesTotal ?? null;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    contentScanned,
+    gateProfile,
+    gateReport,
+  } = gateContext;
+  const auditFiles =
+    report.repositoryInventory?.totalFiles ??
+    summary.repositoryFilesTotal ??
+    null;
   const codeFiles = summary.codeFilesAnalyzed ?? null;
   return {
     healthScore: summary.healthScore ?? null,
@@ -588,7 +681,9 @@ function buildProductCodebaseHygieneSummary(report, options = {}) {
       : {}),
     ...(credentialScanned != null ? { credentialScanned } : {}),
     ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
-    ...(gateTotal != null && contentScanned != null && gateTotal > contentScanned
+    ...(gateTotal != null &&
+    contentScanned != null &&
+    gateTotal > contentScanned
       ? { gateMetadataOnlyFiles: gateTotal - contentScanned }
       : {}),
     ...(gateContext.fictionJsonFilesScanned != null
@@ -598,14 +693,18 @@ function buildProductCodebaseHygieneSummary(report, options = {}) {
       ? { fictionSampleFilesScanned: gateContext.fictionSampleFilesScanned }
       : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    eslintSource: summary.eslintSource || report.eslintSummary?.source || 'none',
-    eslintWarnings: summary.eslintWarnings ?? report.eslintSummary?.warnings ?? null,
+    eslintSource:
+      summary.eslintSource || report.eslintSummary?.source || "none",
+    eslintWarnings:
+      summary.eslintWarnings ?? report.eslintSummary?.warnings ?? null,
     mediumSeverityFindings: summary.severityCounts?.medium ?? 0,
     highSeverityFindings: summary.severityCounts?.high ?? 0,
-    ...(gateReport.jestBaselineChecked === false || report.hygieneSummary?.jestBaselineChecked === false
+    ...(gateReport.jestBaselineChecked === false ||
+    report.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'Codebase hygiene scan — not a Simplebeacon gate pass or legal conformity certification.',
+    attestationNote:
+      "Codebase hygiene scan — not a Simplebeacon gate pass or legal conformity certification.",
   };
 }
 
@@ -623,8 +722,8 @@ function enrichProductCodebaseScanScope(report, options = {}) {
     ...base,
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    resultsViewScope: base.resultsViewScope || 'platform-only',
-    reportHealth: base.reportHealth || 'platform-scoped',
+    resultsViewScope: base.resultsViewScope || "platform-only",
+    reportHealth: base.reportHealth || "platform-scoped",
     securityHandoffEligible: false,
   };
 }
@@ -637,19 +736,23 @@ function enrichProductCodebaseScanScope(report, options = {}) {
 function annotateStructureInsights(structureInsights) {
   if (!structureInsights?.samples?.length) return structureInsights;
   const mirrorCount = structureInsights.samples.filter((s) =>
-    String(s.filePath || '').startsWith('.github-sync/')
+    String(s.filePath || "").startsWith(".github-sync/"),
   ).length;
   const langs = structureInsights.summary?.byLanguage || {};
   const langKeys = Object.keys(langs);
-  const docHeavy = langKeys.length > 0 && langKeys.every((k) => /markdown|yaml|text|md/i.test(k));
+  const docHeavy =
+    langKeys.length > 0 &&
+    langKeys.every((k) => /markdown|yaml|text|md/i.test(k));
   const summaryExtras = {};
   if (mirrorCount) {
     summaryExtras.mirrorTreeSamples = mirrorCount;
     summaryExtras.mirrorTreeNote =
-      'Samples may include .github-sync/ CLI mirror paths — not primary ai-platform application source.';
+      "Samples may include .github-sync/ CLI mirror paths — not primary ai-platform application source.";
   }
-  if (docHeavy && structureInsights.summary?.tier === 'baseline') {
-    const sampled = structureInsights.summary?.sampledFiles ?? structureInsights.samples.length;
+  if (docHeavy && structureInsights.summary?.tier === "baseline") {
+    const sampled =
+      structureInsights.summary?.sampledFiles ??
+      structureInsights.samples.length;
     summaryExtras.structureSampleNote = `Tier-1 structure hints sampled ${sampled} file(s) — baseline profile is doc-heavy; regex estimates are not AST analysis of application code.`;
   }
   if (!Object.keys(summaryExtras).length) return structureInsights;
@@ -669,24 +772,36 @@ function annotateStructureInsights(structureInsights) {
  * @returns {any}
  */
 export function sanitizeCodebaseReportExport(report, options = {}) {
-  if (!report || report.type !== 'codebase-analyzer-report') return report;
+  if (!report || report.type !== "codebase-analyzer-report") return report;
 
   let next = filterKnownFalsePositiveFindings(report);
 
   const exportContext = resolveCodebaseExportContext(next, options);
-  const { benchmarkScan, scanTargetRoot, productPlatformRoot, misscopedPlatformWalk } = exportContext;
-
-  next = normalizeCodebaseExportPaths(next, scanTargetRoot || next.projectRoot, {
+  const {
     benchmarkScan,
+    scanTargetRoot,
     productPlatformRoot,
-  });
+    misscopedPlatformWalk,
+  } = exportContext;
 
-  const projectLabel = projectLabelFromPath(productPlatformRoot || next.projectRoot || 'ai-platform');
+  next = normalizeCodebaseExportPaths(
+    next,
+    scanTargetRoot || next.projectRoot,
+    {
+      benchmarkScan,
+      productPlatformRoot,
+    },
+  );
+
+  const projectLabel = projectLabelFromPath(
+    productPlatformRoot || next.projectRoot || "ai-platform",
+  );
   if (next.aiSummary) {
     next.aiSummary = redactCodebaseAiSummary(next.aiSummary, projectLabel);
   }
 
-  const eslintSource = next.summary?.eslintSource || next.eslintSummary?.source || 'none';
+  const eslintSource =
+    next.summary?.eslintSource || next.eslintSummary?.source || "none";
   const eslintSkipped = next.summary?.eslintSkipped || null;
   const context = { benchmarkScan, eslintSource, eslintSkipped };
 
@@ -694,24 +809,29 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
     next = {
       ...next,
       title: resolveBenchmarkCodebaseTitle(misscopedPlatformWalk),
-      scanTargetProfile: 'benchmark-cache',
+      scanTargetProfile: "benchmark-cache",
       handoffEligible: false,
       benchmarkScan: true,
       scanTargetRoot: scanTargetRoot || next.projectRoot || undefined,
       productPlatformRoot: productPlatformRoot || undefined,
-      inventoryScope: misscopedPlatformWalk ? 'platform-walk-from-benchmark-target' : 'oss-clone',
+      inventoryScope: misscopedPlatformWalk
+        ? "platform-walk-from-benchmark-target"
+        : "oss-clone",
       ...(misscopedPlatformWalk
         ? {
             misscopedPlatformCodeWalk: true,
             codeAnalysisRoot: next.codeAnalysisRoot || next.projectRoot,
-            platformRoot: next.platformRoot || productPlatformRoot || next.projectRoot,
+            platformRoot:
+              next.platformRoot || productPlatformRoot || next.projectRoot,
           }
         : {}),
     };
     if (next.summary) {
       next.summary = {
         ...next.summary,
-        codebaseHealthAttestation: misscopedPlatformWalk ? 'benchmark-target-platform-walk' : 'benchmark-hygiene',
+        codebaseHealthAttestation: misscopedPlatformWalk
+          ? "benchmark-target-platform-walk"
+          : "benchmark-hygiene",
         handoffEligible: false,
         tierCountsExport: buildTierCountsExport(next.summary, true),
       };
@@ -723,15 +843,18 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       ...next.scanScope,
       ...(benchmarkScan
         ? {
-            resultsViewScope: 'benchmark-clone',
-            reportHealth: 'benchmark-clone-scan',
+            resultsViewScope: "benchmark-clone",
+            reportHealth: "benchmark-clone-scan",
             benchmarkScanTarget: true,
           }
         : {
-            resultsViewScope: 'platform-only',
-            reportHealth: 'platform-scoped',
+            resultsViewScope: "platform-only",
+            reportHealth: "platform-scoped",
           }),
-      limitations: replaceMisleadingCodebaseLimitations(next.scanScope.limitations, context),
+      limitations: replaceMisleadingCodebaseLimitations(
+        next.scanScope.limitations,
+        context,
+      ),
     };
   }
 
@@ -743,11 +866,14 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
     const benchmarkNotes = [
       ...(next.exportNotes || []),
       misscopedPlatformWalk
-        ? 'Mis-scoped complete-scan export: codebase walked Simplebeacon platform root while scan target was github-cache/ clone — re-run complete scan after updating Simplebeacon for clone-scoped hygiene.'
-        : 'Benchmark clone codebase export — not valid for Simplebeacon platform deploy handoff. Run codebase analysis on ai-platform root for product hygiene scoring.',
+        ? "Mis-scoped complete-scan export: codebase walked Simplebeacon platform root while scan target was github-cache/ clone — re-run complete scan after updating Simplebeacon for clone-scoped hygiene."
+        : "Benchmark clone codebase export — not valid for Simplebeacon platform deploy handoff. Run codebase analysis on ai-platform root for product hygiene scoring.",
     ];
     next.exportNotes = dedupeCodebaseExportNotes(benchmarkNotes);
-    if (next.aiSummary && !/benchmark|OSS clone|mis-scoped/i.test(String(next.aiSummary))) {
+    if (
+      next.aiSummary &&
+      !/benchmark|OSS clone|mis-scoped/i.test(String(next.aiSummary))
+    ) {
       next.aiSummary = misscopedPlatformWalk
         ? `[Benchmark target — platform walk mis-scope] ${next.aiSummary}`
         : `[Benchmark clone — hygiene only] ${next.aiSummary}`;
@@ -758,13 +884,16 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       exportSanitized: true,
       securityHandoffEligible: false,
       codebaseHealthStatus: misscopedPlatformWalk
-        ? 'benchmark-misscoped-review'
+        ? "benchmark-misscoped-review"
         : resolveCodebaseHealthStatus(next.summary),
       hygieneSummary: {
         healthScore: next.summary?.healthScore ?? null,
         findingsTotal: next.summary?.findingsTotal ?? 0,
         codeFilesAnalyzed: next.summary?.codeFilesAnalyzed ?? null,
-        repositoryFilesTotal: next.summary?.repositoryFilesTotal ?? next.repositoryInventory?.totalFiles ?? null,
+        repositoryFilesTotal:
+          next.summary?.repositoryFilesTotal ??
+          next.repositoryInventory?.totalFiles ??
+          null,
         eslintSource,
         scanTargetRoot: scanTargetRoot
           ? redactCodebasePathForExport(scanTargetRoot, {
@@ -775,8 +904,8 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
           : next.projectRoot || undefined,
         misscopedPlatformCodeWalk: misscopedPlatformWalk || undefined,
         attestationNote: misscopedPlatformWalk
-          ? 'Scan target was an OSS github-cache/ clone but codebase analysis walked the Simplebeacon platform tree — not valid benchmark hygiene or product handoff evidence.'
-          : 'OSS benchmark clone — codebase hygiene comparison only; not a platform gate pass or deploy handoff certification.',
+          ? "Scan target was an OSS github-cache/ clone but codebase analysis walked the Simplebeacon platform tree — not valid benchmark hygiene or product handoff evidence."
+          : "OSS benchmark clone — codebase hygiene comparison only; not a platform gate pass or deploy handoff certification.",
       },
     };
   } else {
@@ -790,17 +919,22 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
      * @param {number} next.exportNotes || []
      * @returns {any}
      */
-    const falsePositiveNotes = (next.exportNotes || []).filter((n) => /false positive/i.test(String(n)));
+    const falsePositiveNotes = (next.exportNotes || []).filter((n) =>
+      /false positive/i.test(String(n)),
+    );
     next = {
       ...next,
       exportNormalized: true,
       exportSanitized: true,
-      scanTargetProfile: 'product',
+      scanTargetProfile: "product",
       securityHandoffEligible: false,
       handoffEligible: false,
       codebaseHealthStatus: resolveCodebaseHealthStatus(next.summary),
-      exportNotes: dedupeCodebaseExportNotes([...builtNotes, ...falsePositiveNotes]).slice(0, 10),
-      inventoryScope: 'platform-product',
+      exportNotes: dedupeCodebaseExportNotes([
+        ...builtNotes,
+        ...falsePositiveNotes,
+      ]).slice(0, 10),
+      inventoryScope: "platform-product",
       hygieneSummary: buildProductCodebaseHygieneSummary(next, options),
       scanScope: enrichProductCodebaseScanScope(next, options),
     };

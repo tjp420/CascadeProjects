@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Users,
   RefreshCw,
@@ -17,9 +23,9 @@ import {
   UserCheck,
   Network,
   FlaskConical,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { apiUrl, authHeaders } from '@/config';
+} from "lucide-react";
+import { toast } from "sonner";
+import { apiUrl, authHeaders } from "@/config";
 
 interface FederationStats {
   enabled: boolean;
@@ -64,8 +70,8 @@ interface ProvisioningEvent {
   groups: string[];
 }
 
-const ROLES = ['admin', 'auditor', 'operator', 'viewer'];
-const TRUST_LEVELS = ['bronze', 'silver', 'gold', 'platinum'];
+const ROLES = ["admin", "auditor", "operator", "viewer"];
+const TRUST_LEVELS = ["bronze", "silver", "gold", "platinum"];
 
 export function IdentityFederationDashboard() {
   const [stats, setStats] = useState<FederationStats | null>(null);
@@ -74,11 +80,11 @@ export function IdentityFederationDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [defaultRole, setDefaultRole] = useState('');
-  const [defaultTrustLevel, setDefaultTrustLevel] = useState('');
-  const [deprovisionDays, setDeprovisionDays] = useState('');
+  const [defaultRole, setDefaultRole] = useState("");
+  const [defaultTrustLevel, setDefaultTrustLevel] = useState("");
+  const [deprovisionDays, setDeprovisionDays] = useState("");
 
-  const [testUserInfo, setTestUserInfo] = useState('');
+  const [testUserInfo, setTestUserInfo] = useState("");
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
 
@@ -86,9 +92,13 @@ export function IdentityFederationDashboard() {
     setLoading(true);
     try {
       const [statsResp, cfgResp, histResp] = await Promise.all([
-        fetch(apiUrl('/identity-federation/stats'), { headers: authHeaders() }),
-        fetch(apiUrl('/identity-federation/config'), { headers: authHeaders() }),
-        fetch(apiUrl('/identity-federation/history?limit=20'), { headers: authHeaders() }),
+        fetch(apiUrl("/identity-federation/stats"), { headers: authHeaders() }),
+        fetch(apiUrl("/identity-federation/config"), {
+          headers: authHeaders(),
+        }),
+        fetch(apiUrl("/identity-federation/history?limit=20"), {
+          headers: authHeaders(),
+        }),
       ]);
       const statsData = await statsResp.json();
       const cfgData = await cfgResp.json();
@@ -96,8 +106,8 @@ export function IdentityFederationDashboard() {
       if (statsData.success) setStats(statsData.stats);
       if (cfgData.success) {
         setConfig(cfgData.config);
-        setDefaultRole(cfgData.config.defaultRole || 'viewer');
-        setDefaultTrustLevel(cfgData.config.defaultTrustLevel || 'silver');
+        setDefaultRole(cfgData.config.defaultRole || "viewer");
+        setDefaultTrustLevel(cfgData.config.defaultTrustLevel || "silver");
         setDeprovisionDays(String(cfgData.config.deprovisionAfterDays || 90));
       }
       if (histData.success) setHistory(histData.history || []);
@@ -117,9 +127,9 @@ export function IdentityFederationDashboard() {
   const saveConfig = async () => {
     setSaving(true);
     try {
-      const resp = await fetch(apiUrl('/identity-federation/config'), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      const resp = await fetch(apiUrl("/identity-federation/config"), {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           defaultRole,
           defaultTrustLevel,
@@ -128,13 +138,13 @@ export function IdentityFederationDashboard() {
       });
       const data = await resp.json();
       if (!resp.ok || !data.success) {
-        toast.error('Failed to save config');
+        toast.error("Failed to save config");
         return;
       }
-      toast.success('Config saved');
+      toast.success("Config saved");
       setConfig(data.config);
     } catch {
-      toast.error('Failed to save config');
+      toast.error("Failed to save config");
     } finally {
       setSaving(false);
     }
@@ -143,123 +153,128 @@ export function IdentityFederationDashboard() {
   const toggleEnabled = async () => {
     if (!config) return;
     try {
-      const resp = await fetch(apiUrl('/identity-federation/config'), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      const resp = await fetch(apiUrl("/identity-federation/config"), {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: !config.enabled }),
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
     } catch {
-      toast.error('Failed to toggle');
+      toast.error("Failed to toggle");
     }
   };
 
   const toggleJit = async () => {
     if (!config) return;
     try {
-      const resp = await fetch(apiUrl('/identity-federation/config'), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jitProvisioningEnabled: !config.jitProvisioningEnabled }),
+      const resp = await fetch(apiUrl("/identity-federation/config"), {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jitProvisioningEnabled: !config.jitProvisioningEnabled,
+        }),
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
     } catch {
-      toast.error('Failed to toggle');
+      toast.error("Failed to toggle");
     }
   };
 
   const toggleAutoDeprovision = async () => {
     if (!config) return;
     try {
-      const resp = await fetch(apiUrl('/identity-federation/config'), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      const resp = await fetch(apiUrl("/identity-federation/config"), {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ autoDeprovision: !config.autoDeprovision }),
       });
       const data = await resp.json();
       if (data.success) setConfig(data.config);
     } catch {
-      toast.error('Failed to toggle');
+      toast.error("Failed to toggle");
     }
   };
 
   const resetConfig = async () => {
     try {
-      const resp = await fetch(apiUrl('/identity-federation/config/reset'), { method: 'POST', headers: authHeaders() });
+      const resp = await fetch(apiUrl("/identity-federation/config/reset"), {
+        method: "POST",
+        headers: authHeaders(),
+      });
       const data = await resp.json();
       if (data.success) {
-        toast.success('Config reset');
+        toast.success("Config reset");
         fetchAll();
       }
     } catch {
-      toast.error('Failed to reset');
+      toast.error("Failed to reset");
     }
   };
 
   const clearHistory = async () => {
     try {
-      const resp = await fetch(apiUrl('/identity-federation/history/clear'), {
-        method: 'POST',
+      const resp = await fetch(apiUrl("/identity-federation/history/clear"), {
+        method: "POST",
         headers: authHeaders(),
       });
       const data = await resp.json();
       if (data.success) {
-        toast.success('History cleared');
+        toast.success("History cleared");
         fetchAll();
       }
     } catch {
-      toast.error('Failed to clear');
+      toast.error("Failed to clear");
     }
   };
 
   const runTestResolution = async () => {
     setTesting(true);
     try {
-      var parsed = JSON.parse(testUserInfo || '{}');
-      const resp = await fetch(apiUrl('/identity-federation/test-resolution'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      var parsed = JSON.parse(testUserInfo || "{}");
+      const resp = await fetch(apiUrl("/identity-federation/test-resolution"), {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ userInfo: parsed }),
       });
       const data = await resp.json();
       if (!resp.ok || !data.success) {
-        toast.error('Test failed');
+        toast.error("Test failed");
         return;
       }
       setTestResult(data.resolution);
-      toast.success('Resolution tested');
+      toast.success("Resolution tested");
     } catch (e) {
-      toast.error('Invalid JSON input');
+      toast.error("Invalid JSON input");
     } finally {
       setTesting(false);
     }
   };
 
   const roleColor = (role: string) => {
-    if (role === 'admin') return 'destructive';
-    if (role === 'auditor') return 'warning';
-    if (role === 'operator') return 'success';
-    return 'secondary';
+    if (role === "admin") return "destructive";
+    if (role === "auditor") return "warning";
+    if (role === "operator") return "success";
+    return "secondary";
   };
 
   const sourceColor = (source: string) => {
-    if (source === 'provider_claim') return 'success';
-    if (source === 'global_claim') return 'success';
-    if (source === 'group_mapping') return 'warning';
-    if (source === 'group_pattern') return 'warning';
-    return 'secondary';
+    if (source === "provider_claim") return "success";
+    if (source === "global_claim") return "success";
+    if (source === "group_mapping") return "warning";
+    if (source === "group_pattern") return "warning";
+    return "secondary";
   };
 
   const formatTime = (ts: string | null) => {
-    if (!ts) return '\u2014';
+    if (!ts) return "\u2014";
     try {
-      return new Date(ts).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+      return new Date(ts).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return ts;
@@ -271,7 +286,9 @@ export function IdentityFederationDashboard() {
       <Card>
         <CardContent className="flex items-center justify-center py-12 gap-3">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span className="text-sm text-foreground-muted">Loading federation data...</span>
+          <span className="text-sm text-foreground-muted">
+            Loading federation data...
+          </span>
         </CardContent>
       </Card>
     );
@@ -288,7 +305,8 @@ export function IdentityFederationDashboard() {
                 Identity Federation & JIT Provisioning
               </CardTitle>
               <CardDescription>
-                Just-in-time user provisioning with claim-to-role mapping for enterprise SSO
+                Just-in-time user provisioning with claim-to-role mapping for
+                enterprise SSO
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchAll}>
@@ -301,9 +319,13 @@ export function IdentityFederationDashboard() {
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
                 <UserCheck className="h-4 w-4 text-green-600" />
-                <p className="text-xs text-foreground-muted">Total Provisioned</p>
+                <p className="text-xs text-foreground-muted">
+                  Total Provisioned
+                </p>
               </div>
-              <p className="text-lg font-semibold">{stats?.totalProvisioned ?? 0}</p>
+              <p className="text-lg font-semibold">
+                {stats?.totalProvisioned ?? 0}
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
@@ -317,28 +339,38 @@ export function IdentityFederationDashboard() {
                 <KeyRound className="h-4 w-4 text-primary" />
                 <p className="text-xs text-foreground-muted">Claim Mappings</p>
               </div>
-              <p className="text-lg font-semibold">{stats?.claimMappingCount ?? 0}</p>
+              <p className="text-lg font-semibold">
+                {stats?.claimMappingCount ?? 0}
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/20 p-3 space-y-1">
               <div className="flex items-center gap-2">
                 <Fingerprint className="h-4 w-4 text-primary" />
                 <p className="text-xs text-foreground-muted">Group Mappings</p>
               </div>
-              <p className="text-lg font-semibold">{stats?.groupMappingCount ?? 0}</p>
+              <p className="text-lg font-semibold">
+                {stats?.groupMappingCount ?? 0}
+              </p>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant={stats?.enabled ? 'success' : 'secondary'} className="text-xs">
-              Federation: {stats?.enabled ? 'Enabled' : 'Disabled'}
+            <Badge
+              variant={stats?.enabled ? "success" : "secondary"}
+              className="text-xs"
+            >
+              Federation: {stats?.enabled ? "Enabled" : "Disabled"}
             </Badge>
-            <Badge variant={stats?.jitProvisioningEnabled ? 'success' : 'secondary'} className="text-xs">
-              JIT: {stats?.jitProvisioningEnabled ? 'Active' : 'Inactive'}
+            <Badge
+              variant={stats?.jitProvisioningEnabled ? "success" : "secondary"}
+              className="text-xs"
+            >
+              JIT: {stats?.jitProvisioningEnabled ? "Active" : "Inactive"}
             </Badge>
             <Badge variant="outline" className="text-xs">
-              Default role: {stats?.defaultRole ?? 'viewer'}
+              Default role: {stats?.defaultRole ?? "viewer"}
             </Badge>
             <Badge variant="outline" className="text-xs">
-              Trust: {stats?.defaultTrustLevel ?? 'silver'}
+              Trust: {stats?.defaultTrustLevel ?? "silver"}
             </Badge>
             {stats?.autoDeprovision && (
               <Badge variant="warning" className="text-xs">
@@ -350,7 +382,11 @@ export function IdentityFederationDashboard() {
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="text-xs text-foreground-muted">Roles:</span>
               {Object.entries(stats.byRole).map(([role, count]) => (
-                <Badge key={role} variant={roleColor(role) as any} className="text-[10px]">
+                <Badge
+                  key={role}
+                  variant={roleColor(role) as any}
+                  className="text-[10px]"
+                >
                   {role}: {count}
                 </Badge>
               ))}
@@ -372,21 +408,35 @@ export function IdentityFederationDashboard() {
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-3">
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={config?.enabled ?? false} onChange={toggleEnabled} />
+                <input
+                  type="checkbox"
+                  checked={config?.enabled ?? false}
+                  onChange={toggleEnabled}
+                />
                 Federation enabled
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={config?.jitProvisioningEnabled ?? false} onChange={toggleJit} />
+                <input
+                  type="checkbox"
+                  checked={config?.jitProvisioningEnabled ?? false}
+                  onChange={toggleJit}
+                />
                 JIT provisioning
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={config?.autoDeprovision ?? false} onChange={toggleAutoDeprovision} />
+                <input
+                  type="checkbox"
+                  checked={config?.autoDeprovision ?? false}
+                  onChange={toggleAutoDeprovision}
+                />
                 Auto-deprovision
               </label>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-foreground-muted">Default role</label>
+                <label className="text-xs text-foreground-muted">
+                  Default role
+                </label>
                 <select
                   value={defaultRole}
                   onChange={(e) => setDefaultRole(e.target.value)}
@@ -400,7 +450,9 @@ export function IdentityFederationDashboard() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-foreground-muted">Default trust level</label>
+                <label className="text-xs text-foreground-muted">
+                  Default trust level
+                </label>
                 <select
                   value={defaultTrustLevel}
                   onChange={(e) => setDefaultTrustLevel(e.target.value)}
@@ -414,7 +466,9 @@ export function IdentityFederationDashboard() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-foreground-muted">Deprovision after (days)</label>
+                <label className="text-xs text-foreground-muted">
+                  Deprovision after (days)
+                </label>
                 <Input
                   value={deprovisionDays}
                   onChange={(e) => setDeprovisionDays(e.target.value)}
@@ -423,7 +477,12 @@ export function IdentityFederationDashboard() {
                 />
               </div>
             </div>
-            <Button variant="default" size="sm" onClick={saveConfig} disabled={saving}>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={saveConfig}
+              disabled={saving}
+            >
               <Save className="h-3.5 w-3.5" /> Save Config
             </Button>
           </CardContent>
@@ -445,31 +504,51 @@ export function IdentityFederationDashboard() {
                 value={testUserInfo}
                 onChange={(e) => setTestUserInfo(e.target.value)}
                 className="w-full text-xs font-mono border border-border rounded-md p-2 bg-background min-h-[100px]"
-                placeholder={'{"email":"user@acme.com","groups":["admins","engineers"],"role":"admin"}'}
+                placeholder={
+                  '{"email":"user@acme.com","groups":["admins","engineers"],"role":"admin"}'
+                }
               />
             </div>
-            <Button variant="outline" size="sm" onClick={runTestResolution} disabled={testing}>
-              {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runTestResolution}
+              disabled={testing}
+            >
+              {testing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FlaskConical className="h-3.5 w-3.5" />
+              )}
               Test Resolution
             </Button>
             {testResult && (
               <div className="rounded-md border border-border bg-muted/10 p-3 space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-foreground-muted">Resolved role:</span>
-                  <Badge variant={roleColor(testResult.role) as any} className="text-[10px]">
+                  <Badge
+                    variant={roleColor(testResult.role) as any}
+                    className="text-[10px]"
+                  >
                     {testResult.role}
                   </Badge>
-                  <Badge variant={sourceColor(testResult.source) as any} className="text-[10px]">
+                  <Badge
+                    variant={sourceColor(testResult.source) as any}
+                    className="text-[10px]"
+                  >
                     {testResult.source}
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-foreground-muted">Trust level:</span> {testResult.trustLevel}
+                  <span className="text-foreground-muted">Trust level:</span>{" "}
+                  {testResult.trustLevel}
                 </div>
                 {testResult.matchedRule && (
                   <div>
-                    <span className="text-foreground-muted">Matched rule:</span>{' '}
-                    <code className="text-[10px]">{testResult.matchedRule}</code>
+                    <span className="text-foreground-muted">Matched rule:</span>{" "}
+                    <code className="text-[10px]">
+                      {testResult.matchedRule}
+                    </code>
                   </div>
                 )}
                 {testResult.groups && testResult.groups.length > 0 && (
@@ -482,11 +561,12 @@ export function IdentityFederationDashboard() {
                     ))}
                   </div>
                 )}
-                {testResult.attributes && Object.keys(testResult.attributes).length > 0 && (
-                  <div className="text-[10px] text-foreground-muted">
-                    Attributes: {JSON.stringify(testResult.attributes)}
-                  </div>
-                )}
+                {testResult.attributes &&
+                  Object.keys(testResult.attributes).length > 0 && (
+                    <div className="text-[10px] text-foreground-muted">
+                      Attributes: {JSON.stringify(testResult.attributes)}
+                    </div>
+                  )}
               </div>
             )}
           </CardContent>
@@ -504,21 +584,36 @@ export function IdentityFederationDashboard() {
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-xs text-foreground-muted text-center py-6">No provisioning events recorded</p>
+            <p className="text-xs text-foreground-muted text-center py-6">
+              No provisioning events recorded
+            </p>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {history.map((evt) => (
-                <div key={evt.id} className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1">
+                <div
+                  key={evt.id}
+                  className="rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1"
+                >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={roleColor(evt.role) as any} className="text-[10px]">
+                    <Badge
+                      variant={roleColor(evt.role) as any}
+                      className="text-[10px]"
+                    >
                       {evt.role}
                     </Badge>
-                    <Badge variant={sourceColor(evt.roleSource) as any} className="text-[10px]">
+                    <Badge
+                      variant={sourceColor(evt.roleSource) as any}
+                      className="text-[10px]"
+                    >
                       {evt.roleSource}
                     </Badge>
                     <span className="font-medium">{evt.email}</span>
-                    <span className="text-foreground-muted">via {evt.providerId}</span>
-                    <span className="font-mono text-foreground-muted ml-auto">{formatTime(evt.timestamp)}</span>
+                    <span className="text-foreground-muted">
+                      via {evt.providerId}
+                    </span>
+                    <span className="font-mono text-foreground-muted ml-auto">
+                      {formatTime(evt.timestamp)}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[10px] text-foreground-muted">
                     <span>Trust: {evt.trustLevel}</span>
@@ -527,7 +622,9 @@ export function IdentityFederationDashboard() {
                         Rule: <code>{evt.matchedRule}</code>
                       </span>
                     )}
-                    {evt.groups && evt.groups.length > 0 && <span>Groups: {evt.groups.join(', ')}</span>}
+                    {evt.groups && evt.groups.length > 0 && (
+                      <span>Groups: {evt.groups.join(", ")}</span>
+                    )}
                   </div>
                 </div>
               ))}

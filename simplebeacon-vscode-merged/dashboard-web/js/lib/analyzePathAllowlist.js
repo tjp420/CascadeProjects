@@ -1,6 +1,9 @@
 // simplebeacon-ignore documentation
-import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260726sevfix1';
-import { isRemoteRepoUrl } from './analyzePathSources.js';
+import {
+  fetchAnalyzeProviders,
+  normalizeProjectPath,
+} from "../services/analyzeService.js?v=20260726sevfix1";
+import { isRemoteRepoUrl } from "./analyzePathSources.js";
 
 /**
  * Is path within allowed roots.
@@ -14,7 +17,7 @@ export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
 
   // Resolve bare directory names against each allowed root
   const roots = allowedRoots || [];
-  if (!target.includes('/') && roots.length > 0) {
+  if (!target.includes("/") && roots.length > 0) {
     return roots.some((root) => {
       const rootKey = normalizeProjectPath(root);
       if (!rootKey) return false;
@@ -42,13 +45,13 @@ export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
     summary ||
     (allowedRoots || [])
       .slice(0, 4)
-      .map((entry) => String(entry).replace(/\\/g, '/'))
-      .join('; ');
-  const requested = String(projectPath || '').replace(/\\/g, '/');
+      .map((entry) => String(entry).replace(/\\/g, "/"))
+      .join("; ");
+  const requested = String(projectPath || "").replace(/\\/g, "/");
   return (
     `Path is outside allowed analysis roots. Requested: ${requested}. ` +
-    `Allowed: ${rootsText || '(none)'}. ` +
-    'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
+    `Allowed: ${rootsText || "(none)"}. ` +
+    "Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard."
   );
 }
 
@@ -65,7 +68,8 @@ export async function ensureAllowedAnalysisRoots(app) {
     const info = await fetchAnalyzeProviders();
     if (app?.state) {
       app.state.allowedAnalysisRoots = info.allowedAnalysisRoots || [];
-      app.state.allowedAnalysisRootsSummary = info.allowedAnalysisRootsSummary || '';
+      app.state.allowedAnalysisRootsSummary =
+        info.allowedAnalysisRootsSummary || "";
       if (info.defaultProjectPath && !app.state.defaultProjectPath) {
         app.state.defaultProjectPath = info.defaultProjectPath;
       }
@@ -83,13 +87,24 @@ export async function ensureAllowedAnalysisRoots(app) {
  * @returns {any}
  */
 export async function validateProjectPathAllowlist(projectPath, app) {
-  const path = String(projectPath || '').trim();
+  const path = String(projectPath || "").trim();
   if (!path || isRemoteRepoUrl(path)) {
-    return { allowed: true, path, message: null, roots: app?.state?.allowedAnalysisRoots || [] };
+    return {
+      allowed: true,
+      path,
+      message: null,
+      roots: app?.state?.allowedAnalysisRoots || [],
+    };
   }
   const roots = await ensureAllowedAnalysisRoots(app);
   const allowed = isPathWithinAllowedRoots(path, roots);
-  const message = allowed ? null : pathAllowlistMessage(path, roots, app?.state?.allowedAnalysisRootsSummary);
+  const message = allowed
+    ? null
+    : pathAllowlistMessage(
+        path,
+        roots,
+        app?.state?.allowedAnalysisRootsSummary,
+      );
   if (app?.state) {
     app.state.pathAllowlistError = message;
   }
@@ -102,7 +117,7 @@ export async function validateProjectPathAllowlist(projectPath, app) {
  * @returns {any}
  */
 export function renderPathAllowlistWarning(message) {
-  if (!message) return '';
+  if (!message) return "";
   return `
     <div class="analyze-info-callout mb-4 analyze-path-allowlist-warning" data-path-allowlist-warning style="border-color: var(--color-warning, #f59e0b);">
       ${escapeHtml(message)}
@@ -116,11 +131,11 @@ export function renderPathAllowlistWarning(message) {
  * @returns {any}
  */
 function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /**
@@ -130,10 +145,14 @@ function escapeHtml(value) {
  * @param {string} projectPath
  * @returns {any}
  */
-export async function updatePathAllowlistWarningDom(container, app, projectPath) {
+export async function updatePathAllowlistWarningDom(
+  container,
+  app,
+  projectPath,
+) {
   if (!container) return;
-  const slot = container.querySelector('[data-path-allowlist-warning]');
-  const path = String(projectPath || '').trim();
+  const slot = container.querySelector("[data-path-allowlist-warning]");
+  const path = String(projectPath || "").trim();
   if (!path) {
     if (app?.state) app.state.pathAllowlistError = null;
     slot?.remove();
@@ -149,6 +168,6 @@ export async function updatePathAllowlistWarningDom(container, app, projectPath)
     slot.outerHTML = html;
     return;
   }
-  const bar = container.querySelector('[data-analyze-path-bar]');
-  bar?.insertAdjacentHTML('afterend', html);
+  const bar = container.querySelector("[data-analyze-path-bar]");
+  bar?.insertAdjacentHTML("afterend", html);
 }

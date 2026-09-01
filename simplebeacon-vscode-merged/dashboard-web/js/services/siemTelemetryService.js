@@ -10,28 +10,41 @@
  */
 export async function fetchSiemTelemetry() {
   try {
-    const response = await fetch('/api/analytics/siem-telemetry');
+    const response = await fetch("/api/analytics/siem-telemetry");
 
     if (!response.ok) {
       if (response.status === 404) {
-        return { status: 'unavailable', metrics: {}, peers: {}, distributedSyncEnabled: false };
+        return {
+          status: "unavailable",
+          metrics: {},
+          peers: {},
+          distributedSyncEnabled: false,
+        };
       }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
 
-    if (data.status !== 'success') {
-      throw new Error(data.message || 'Failed to retrieve SIEM telemetry');
+    if (data.status !== "success") {
+      throw new Error(data.message || "Failed to retrieve SIEM telemetry");
     }
 
     return data;
   } catch (error) {
     const msg = error?.message || String(error);
-    if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
-      return { status: 'unavailable', metrics: {}, peers: {}, distributedSyncEnabled: false };
+    if (msg.includes("NetworkError") || msg.includes("Failed to fetch")) {
+      return {
+        status: "unavailable",
+        metrics: {},
+        peers: {},
+        distributedSyncEnabled: false,
+      };
     }
-    window['console']['error']('[siemTelemetryService] Error fetching telemetry:', msg);
+    window["console"]["error"](
+      "[siemTelemetryService] Error fetching telemetry:",
+      msg,
+    );
     throw error;
   }
 }

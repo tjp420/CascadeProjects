@@ -4,15 +4,20 @@ import {
   readJsonResponseBody,
   withRecoverableFallback,
   logRecoverableDashboardError,
-} from '../lib/recoverable-fetch.js';
-import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
-import { notifyAuthState } from '../utils-lib/notify.js?v=20260716cachefix1';
+} from "../lib/recoverable-fetch.js";
+import { isLocalDevHost, DEMO_EMAIL } from "../demoMode.js";
+import { notifyAuthState } from "../utils-lib/notify.js?v=20260716cachefix1";
 
-const TOKEN_KEY = 'cascadeAuthToken';
-const USER_KEY = 'cascadeAuthUser';
-const TOKEN_REGISTRY_KEY = 'sb-token-registry';
+const TOKEN_KEY = "cascadeAuthToken";
+const USER_KEY = "cascadeAuthUser";
+const TOKEN_REGISTRY_KEY = "sb-token-registry";
 /** Legacy dashboards / upload clients read these keys */
-const LEGACY_TOKEN_KEYS = ['access_token', 'token', 'authToken', 'simplebeacon_token'];
+const LEGACY_TOKEN_KEYS = [
+  "access_token",
+  "token",
+  "authToken",
+  "simplebeacon_token",
+];
 const ALL_TOKEN_KEYS = [TOKEN_KEY, ...LEGACY_TOKEN_KEYS];
 
 /**
@@ -21,8 +26,10 @@ const ALL_TOKEN_KEYS = [TOKEN_KEY, ...LEGACY_TOKEN_KEYS];
  * @returns {any}
  */
 function getCookie(name) {
-  const m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
-  return m ? decodeURIComponent(m[1]) : '';
+  const m = document.cookie.match(
+    "(?:^|; )" + name.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "=([^;]*)",
+  );
+  return m ? decodeURIComponent(m[1]) : "";
 }
 /**
  * Set cookie.
@@ -32,7 +39,13 @@ function getCookie(name) {
  * @returns {any}
  */
 function setCookie(name, value, maxAge = 60 * 60 * 24 * 30) {
-  document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax';
+  document.cookie =
+    name +
+    "=" +
+    encodeURIComponent(value) +
+    ";path=/;max-age=" +
+    maxAge +
+    ";SameSite=Lax";
 }
 /**
  * Clear cookie.
@@ -40,7 +53,7 @@ function setCookie(name, value, maxAge = 60 * 60 * 24 * 30) {
  * @returns {any}
  */
 function clearCookie(name) {
-  document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
+  document.cookie = name + "=;path=/;max-age=0;SameSite=Lax";
 }
 
 // Sync cross-port auth cookies into localStorage on first load
@@ -64,26 +77,35 @@ function clearCookie(name) {
  * @param {any} fallback
  * @returns {any}
  */
-function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed') {
+function loginErrorMessage(
+  httpResponse,
+  responseBody,
+  fallback = "Login failed",
+) {
   if (!hasJsonContentType(httpResponse)) {
     return (
-      'Authentication API unavailable (server returned HTML instead of JSON). ' +
-      'Start with npm run dashboard:v1-internal on port 3002.'
+      "Authentication API unavailable (server returned HTML instead of JSON). " +
+      "Start with npm run dashboard:v1-internal on port 3002."
     );
   }
   const base = responseBody?.message || responseBody?.error || fallback;
   if (httpResponse.status === 401) {
-    const hint = isLocalDevHost() ? ` — use ${DEMO_EMAIL} for local demo login.` : '';
+    const hint = isLocalDevHost()
+      ? ` — use ${DEMO_EMAIL} for local demo login.`
+      : "";
     return `${base}${hint}`;
   }
   if (httpResponse.status === 404) {
     return (
-      'Login route not found — Phase 2 auth did not start. ' +
-      'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.'
+      "Login route not found — Phase 2 auth did not start. " +
+      "Check server logs for JWT secret errors; run npm run dashboard:v1-internal."
     );
   }
   if (httpResponse.status === 429) {
-    return responseBody?.message || 'Too many login attempts — wait a few minutes and retry.';
+    return (
+      responseBody?.message ||
+      "Too many login attempts — wait a few minutes and retry."
+    );
   }
   return base;
 }
@@ -96,24 +118,30 @@ export class AuthService {
     this.authRequired = false;
     this.user = null;
     this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', this._onCrossTabSignout);
-      window.addEventListener('message', (event) => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", this._onCrossTabSignout);
+      window.addEventListener("message", (event) => {
         if (!event.data) return;
-        if (event.data.command === 'getAuthState') {
+        if (event.data.command === "getAuthState") {
           this._broadcastAuthState();
-        } else if (event.data.command === 'setAuthState') {
+        } else if (event.data.command === "setAuthState") {
           if (event.data.signedIn === true && event.data.token) {
-            this.setSession(event.data.token, this.getUser() || {}, { notify: false });
-            window.dispatchEvent(new CustomEvent('auth-signed-in', { detail: event.data }));
+            this.setSession(event.data.token, this.getUser() || {}, {
+              notify: false,
+            });
+            window.dispatchEvent(
+              new CustomEvent("auth-signed-in", { detail: event.data }),
+            );
           } else if (event.data.signedIn === false) {
             // Ignore sign-out messages from the VS Code: wrapper/extension polls unless they are
             // explicitly user-initiated or the dashboard has no token of its own. This prevents
             // a no-token extension refresh from wiping a website sign-in the extension didn't see.
             const hasToken = !!this.getToken();
-            if (event.data.source === 'signOut' || !hasToken) {
+            if (event.data.source === "signOut" || !hasToken) {
               this.clearSession({ notify: false });
-              window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: event.data }));
+              window.dispatchEvent(
+                new CustomEvent("auth-signed-out", { detail: event.data }),
+              );
             }
           }
         }
@@ -125,12 +153,15 @@ export class AuthService {
   }
 
   _onCrossTabSignout(event) {
-    const isTokenRemoved = ALL_TOKEN_KEYS.includes(event.key) && !event.newValue;
+    const isTokenRemoved =
+      ALL_TOKEN_KEYS.includes(event.key) && !event.newValue;
     const isClearAll = event.key === null;
     if (isTokenRemoved || isClearAll) {
       // Cross-tab sign-out detected
       this.clearSession();
-      window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: { key: event.key } }));
+      window.dispatchEvent(
+        new CustomEvent("auth-signed-out", { detail: { key: event.key } }),
+      );
     }
   }
 
@@ -141,7 +172,7 @@ export class AuthService {
       const val = localStorage.getItem(key);
       if (val) return val;
     }
-    return '';
+    return "";
   }
 
   getUser() {
@@ -150,39 +181,43 @@ export class AuthService {
       const raw = localStorage.getItem(USER_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (parseError) {
-      logRecoverableDashboardError('auth session user parse', parseError);
+      logRecoverableDashboardError("auth session user parse", parseError);
       return null;
     }
   }
 
   isAdmin() {
     const user = this.user || this.getUser() || {};
-    const role = String(user.role || '').toLowerCase();
-    const tier = String(user.tier || '').toLowerCase();
-    if (role === 'admin' || role === 'superuser') return true;
-    if (tier === 'admin' || tier === 'superuser') return true;
+    const role = String(user.role || "").toLowerCase();
+    const tier = String(user.tier || "").toLowerCase();
+    if (role === "admin" || role === "superuser") return true;
+    if (tier === "admin" || tier === "superuser") return true;
     if (
       Array.isArray(user.features) &&
       user.features
         .map(String)
         .map((s) => s.toLowerCase())
-        .includes('all_modules')
+        .includes("all_modules")
     )
       return true;
     try {
       const token = this.getToken();
       if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-        const tokenRole = String(payload.role || '').toLowerCase();
-        const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
-        if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
-        if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
+        const payload = JSON.parse(
+          atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+        );
+        const tokenRole = String(payload.role || "").toLowerCase();
+        const tokenTier = String(
+          payload.tier || payload.plan || "",
+        ).toLowerCase();
+        if (tokenRole === "admin" || tokenRole === "superuser") return true;
+        if (tokenTier === "admin" || tokenTier === "superuser") return true;
         if (
           Array.isArray(payload.features) &&
           payload.features
             .map(String)
             .map((s) => s.toLowerCase())
-            .includes('all_modules')
+            .includes("all_modules")
         )
           return true;
       }
@@ -205,22 +240,36 @@ export class AuthService {
     this.user = user;
     if (options.notify === false) return;
     // Notify parent VS Code webview of auth state change
-    const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+    const tier =
+      (user && (user.tier || user.plan)) || this.getTokenTier() || "";
     const isAdmin = this.isAdmin();
-    if (typeof window !== 'undefined' && window.parent !== window) {
-      window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
+    if (typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage(
+        { command: "setAuthState", signedIn: true, tier, token, isAdmin },
+        "*",
+      );
     }
     // Also bridge through the local data-server /api/notify endpoint so external
     // browsers and Simple Browser webviews can keep the sidebar in sync.
     // Only call this when running locally (localhost) where the /api/notify endpoint exists.
-    if (typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+    if (
+      typeof window !== "undefined" &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+    ) {
       notifyAuthState(true, tier, token, isAdmin);
     }
     // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
-    if (typeof window !== 'undefined' && window.parent === window) {
+    if (typeof window !== "undefined" && window.parent === window) {
       try {
-        const redirectUri = new URLSearchParams(window.location.search).get('redirect_uri');
-        if (redirectUri && redirectUri.startsWith('vscode://simplebeacon.simplebeacon-vscode/relay/auth')) {
+        const redirectUri = new URLSearchParams(window.location.search).get(
+          "redirect_uri",
+        );
+        if (
+          redirectUri &&
+          redirectUri.startsWith(
+            "vscode://simplebeacon.simplebeacon-vscode/relay/auth",
+          )
+        ) {
           const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
           window.location.href = finalUri;
         }
@@ -244,27 +293,37 @@ export class AuthService {
     this.user = null;
     if (options.notify === false) return;
     // Notify parent VS Code webview of sign-out
-    if (typeof window !== 'undefined' && window.parent !== window) {
-      window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
+    if (typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage(
+        { command: "setAuthState", signedIn: false },
+        "*",
+      );
     }
     // Also bridge through the local data-server /api/notify endpoint.
     // Only call this when running locally (localhost) where the /api/notify endpoint exists.
-    if (typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+    if (
+      typeof window !== "undefined" &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+    ) {
       notifyAuthState(false);
     }
   }
 
   _broadcastAuthState() {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
     const signedIn = this.isAuthenticated();
-    const token = signedIn ? this.getToken() : '';
+    const token = signedIn ? this.getToken() : "";
     const user = this.getUser() || {};
-    const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+    const tier =
+      (user && (user.tier || user.plan)) || this.getTokenTier() || "";
     const isAdmin = this.isAdmin();
     if (window.parent !== window) {
-      window.parent.postMessage({ command: 'setAuthState', signedIn, tier, token, isAdmin }, '*');
+      window.parent.postMessage(
+        { command: "setAuthState", signedIn, tier, token, isAdmin },
+        "*",
+      );
     } else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
       // Only use the /api/notify bridge when the dashboard is not inside a webview iframe
       // (e.g. external browser on localhost). Inside VS Code:'s iframe, postMessage is used.
@@ -277,7 +336,7 @@ export class AuthService {
     if (token) {
       // If token looks like a raw license key (not JWT), accept it as valid
       // (same logic as validateSession)
-      if (!token.includes('.') || token.split('.').length !== 3) {
+      if (!token.includes(".") || token.split(".").length !== 3) {
         return true;
       }
       const payload = this._decodeJwtPayload(token);
@@ -305,14 +364,16 @@ export class AuthService {
   }
 
   async fetchPlatformStatus() {
-    const res = await fetch('/api/platform/status');
+    const res = await fetch("/api/platform/status");
     if (!res.ok) {
       // If the status endpoint is unavailable, fail closed to signin-first.
       this.authRequired = true;
       return null;
     }
-    const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-    if (!contentType.includes('application/json')) {
+    const contentType = String(
+      res.headers.get("content-type") || "",
+    ).toLowerCase();
+    if (!contentType.includes("application/json")) {
       // Static hosts can rewrite /api/* to HTML with 200.
       // On local dev the API likely runs on a different port — bypass auth.
       if (isLocalDevHost()) {
@@ -323,7 +384,7 @@ export class AuthService {
       return null;
     }
     const status = await res.json().catch(() => null);
-    if (!status || typeof status !== 'object') {
+    if (!status || typeof status !== "object") {
       this.authRequired = true;
       return null;
     }
@@ -332,9 +393,9 @@ export class AuthService {
   }
 
   async login(email, password) {
-    const loginHttpResponse = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const loginHttpResponse = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
     const loginResponseBody = await readJsonResponseBody(loginHttpResponse, {});
@@ -342,41 +403,55 @@ export class AuthService {
       throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody));
     }
     if (!loginResponseBody?.token || !loginResponseBody?.user) {
-      throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token'));
+      throw new Error(
+        loginErrorMessage(
+          loginHttpResponse,
+          loginResponseBody,
+          "Login response missing token",
+        ),
+      );
     }
     this.setSession(loginResponseBody.token, loginResponseBody.user);
     // Bind login token to the email account (enforces 1 account = 1 token)
-    this.bindTokenToAccount(loginResponseBody.token, 'account');
+    this.bindTokenToAccount(loginResponseBody.token, "account");
     return loginResponseBody;
   }
 
-  async register(email, password, name, username = '', confirmPassword = '', licenseToken = '') {
+  async register(
+    email,
+    password,
+    name,
+    username = "",
+    confirmPassword = "",
+    licenseToken = "",
+  ) {
     const payload = { email, password, name, username, confirmPassword };
     if (licenseToken) payload.licenseToken = licenseToken;
-    const r = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const r = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const b = await readJsonResponseBody(r, {});
-    if (!r.ok) throw new Error(b?.message || b?.error || 'Registration failed');
-    if (!b?.token || !b?.user) throw new Error('Registration response missing token');
+    if (!r.ok) throw new Error(b?.message || b?.error || "Registration failed");
+    if (!b?.token || !b?.user)
+      throw new Error("Registration response missing token");
     this.setSession(b.token, b.user);
     // Bind registration token to the email account (enforces 1 account = 1 token)
-    this.bindTokenToAccount(b.token, 'account');
+    this.bindTokenToAccount(b.token, "account");
     return b;
   }
 
   async logout() {
     await withRecoverableFallback(
-      'auth logout request',
+      "auth logout request",
       async () => {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
+        await fetch("/api/auth/logout", {
+          method: "POST",
           headers: this.getAuthHeaders(),
         });
       },
-      null
+      null,
     );
     this.clearSession();
   }
@@ -387,19 +462,19 @@ export class AuthService {
    */
   async refreshToken(longLived = false) {
     if (!this.isAuthenticated()) {
-      throw new Error('Cannot refresh token — not authenticated');
+      throw new Error("Cannot refresh token — not authenticated");
     }
-    const res = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
+    const res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { ...this.getAuthHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ longLived: longLived === true }),
     });
     const body = await readJsonResponseBody(res, {});
     if (!res.ok) {
-      throw new Error(body?.message || body?.error || 'Token refresh failed');
+      throw new Error(body?.message || body?.error || "Token refresh failed");
     }
     if (!body.token) {
-      throw new Error('Token refresh response missing token');
+      throw new Error("Token refresh response missing token");
     }
     this.setSession(body.token, this.user || this.getUser());
     return body.token;
@@ -407,17 +482,17 @@ export class AuthService {
 
   _decodeJwtPayload(token) {
     try {
-      const parts = token.split('.');
+      const parts = token.split(".");
       if (parts.length !== 3) return null;
-      const headerB64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
+      const headerB64 = parts[0].replace(/-/g, "+").replace(/_/g, "/");
       const header = JSON.parse(atob(headerB64));
       // Reject the dangerous "none" algorithm (CVE-2015-9235)
       // Skip check in local dev since server bypasses auth in development mode
-      if (header.alg === 'none' && !isLocalDevHost()) {
-        window['console']['warn']('[AuthService] Rejected JWT with alg:none');
+      if (header.alg === "none" && !isLocalDevHost()) {
+        window["console"]["warn"]("[AuthService] Rejected JWT with alg:none");
         return null;
       }
-      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
       return JSON.parse(atob(payloadB64));
     } catch {
       return null;
@@ -438,21 +513,29 @@ export class AuthService {
   isFreeTier() {
     // Local dev hosts get full functionality regardless of token tier
     if (
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1")
     ) {
       return false;
     }
     const tier = this.getTokenTier();
     if (!tier) return false;
-    const freeTiers = ['community', 'developer', 'sandbox', 'instant', 'free', ''];
+    const freeTiers = [
+      "community",
+      "developer",
+      "sandbox",
+      "instant",
+      "free",
+      "",
+    ];
     return freeTiers.includes(String(tier).toLowerCase());
   }
 
   _setTokenSession(payload) {
     this.user = {
-      email: payload.sub || 'token-user',
-      plan: payload.plan || payload.tier || 'free',
+      email: payload.sub || "token-user",
+      plan: payload.plan || payload.tier || "free",
       tokenSession: true,
     };
     localStorage.setItem(USER_KEY, JSON.stringify(this.user));
@@ -460,7 +543,7 @@ export class AuthService {
 
   _loadVault() {
     try {
-      const raw = localStorage.getItem('sb-token-vault');
+      const raw = localStorage.getItem("sb-token-vault");
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -468,7 +551,7 @@ export class AuthService {
   }
 
   _saveVault(vault) {
-    localStorage.setItem('sb-token-vault', JSON.stringify(vault));
+    localStorage.setItem("sb-token-vault", JSON.stringify(vault));
   }
 
   tryRotateVaultToken() {
@@ -518,11 +601,11 @@ export class AuthService {
     const binding = this.getTokenBinding(token);
     if (!binding) return null;
     const currentUser = this.getUser();
-    const currentEmail = currentUser?.email || currentUser?.sub || '';
+    const currentEmail = currentUser?.email || currentUser?.sub || "";
     // If bound to same account, no conflict
     if (binding.email === currentEmail) return null;
     // If token is an account token and bound elsewhere, it's in use
-    if (binding.tokenClass === 'account') {
+    if (binding.tokenClass === "account") {
       return binding;
     }
     // Functional tokens can be shared unless explicitly locked
@@ -538,17 +621,17 @@ export class AuthService {
    */
   isTokenActivated(token) {
     const binding = this.getTokenBinding(token);
-    return binding?.tokenClass === 'account' || false;
+    return binding?.tokenClass === "account" || false;
   }
 
   /**
    * Bind a token to the current account.
    * Enforces 1 account = 1 token by clearing old bindings for this account.
    */
-  bindTokenToAccount(token, tokenClass = 'account') {
+  bindTokenToAccount(token, tokenClass = "account") {
     const registry = this._loadTokenRegistry();
     const user = this.getUser();
-    const email = user?.email || user?.sub || 'anonymous';
+    const email = user?.email || user?.sub || "anonymous";
 
     // 1 account = 1 token: remove any previous token bindings for this account
     for (const [existingToken, binding] of Object.entries(registry)) {
@@ -561,7 +644,7 @@ export class AuthService {
       email,
       boundAt: new Date().toISOString(),
       tokenClass,
-      locked: tokenClass === 'account',
+      locked: tokenClass === "account",
     };
     this._saveTokenRegistry(registry);
   }
@@ -583,13 +666,13 @@ export class AuthService {
   promoteTokenToAccount(token) {
     const binding = this.getTokenBinding(token);
     if (binding) {
-      binding.tokenClass = 'account';
+      binding.tokenClass = "account";
       binding.locked = true;
       const registry = this._loadTokenRegistry();
       registry[token] = binding;
       this._saveTokenRegistry(registry);
     } else {
-      this.bindTokenToAccount(token, 'account');
+      this.bindTokenToAccount(token, "account");
     }
   }
 
@@ -601,25 +684,29 @@ export class AuthService {
     }
     // If token looks like a raw license key (not JWT), accept it as valid
     // (upload.html sets simplebeacon_token which is not a JWT)
-    if (!token.includes('.') || token.split('.').length !== 3) {
-      this._setTokenSession({ sub: 'license-user', plan: 'pro', tokenSession: true });
+    if (!token.includes(".") || token.split(".").length !== 3) {
+      this._setTokenSession({
+        sub: "license-user",
+        plan: "pro",
+        tokenSession: true,
+      });
       // Bind raw license token to current account (or anonymous if no user yet)
-      this.bindTokenToAccount(token, 'account');
+      this.bindTokenToAccount(token, "account");
       return true;
     }
     // Try server-side validation first
     const headers = this.getAuthHeaders();
     if (password) {
-      headers['X-Token-Password'] = password;
+      headers["X-Token-Password"] = password;
     }
-    const res = await fetch('/api/auth/me', { headers });
+    const res = await fetch("/api/auth/me", { headers });
     if (res.ok) {
       const body = await readJsonResponseBody(res, null);
       if (body?.user) {
         this.user = body.user;
         localStorage.setItem(USER_KEY, JSON.stringify(body.user));
         // Bind JWT token to the authenticated account
-        this.bindTokenToAccount(token, 'account');
+        this.bindTokenToAccount(token, "account");
         return true;
       }
       // If the server explicitly says the token is not authenticated, treat it as invalid.
@@ -647,9 +734,9 @@ export class AuthService {
   }
 
   async probeVaultOperatorSession() {
-    const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
     const body = await readJsonResponseBody(res, null);
-    if (res.status === 403 && body?.error === 'vault_required') return false;
+    if (res.status === 403 && body?.error === "vault_required") return false;
     if (!res.ok || !body?.user) return false;
     this.user = { ...body.user, vaultSession: true };
     return true;

@@ -1,4 +1,4 @@
-import { isDefined } from './type.js';
+import { isDefined } from "./type.js";
 /**
  * Return a de-duplicated copy of an array using a Set.
  * @template T
@@ -8,7 +8,7 @@ import { isDefined } from './type.js';
  */
 export function unique(arr, keyFn) {
   if (!Array.isArray(arr)) return [];
-  if (!keyFn || typeof keyFn !== 'function') {
+  if (!keyFn || typeof keyFn !== "function") {
     return [...new Set(arr)];
   }
   const seen = new Set();
@@ -57,7 +57,13 @@ export function flatten(arr) {
 export function range(start, end, step = 1) {
   const s = end === undefined ? 0 : start;
   const e = end === undefined ? start : end;
-  if (step === 0 || !Number.isFinite(step) || !Number.isFinite(s) || !Number.isFinite(e)) return [];
+  if (
+    step === 0 ||
+    !Number.isFinite(step) ||
+    !Number.isFinite(s) ||
+    !Number.isFinite(e)
+  )
+    return [];
   const result = [];
   if (step > 0) {
     for (let i = s; i < e; i += step) result.push(i);
@@ -153,7 +159,7 @@ export function difference(a, b) {
  */
 export function groupBy(arr, keyFn) {
   const map = new Map();
-  if (!Array.isArray(arr) || typeof keyFn !== 'function') return map;
+  if (!Array.isArray(arr) || typeof keyFn !== "function") return map;
   for (const item of arr) {
     const key = keyFn(item);
     const list = map.get(key);
@@ -175,7 +181,8 @@ export function groupBy(arr, keyFn) {
 export function partition(arr, predicate) {
   const pass = [];
   const fail = [];
-  if (!Array.isArray(arr) || typeof predicate !== 'function') return [pass, fail];
+  if (!Array.isArray(arr) || typeof predicate !== "function")
+    return [pass, fail];
   for (const item of arr) {
     if (predicate(item)) {
       pass.push(item);
@@ -192,19 +199,21 @@ export function partition(arr, predicate) {
  * @param {'asc' | 'desc'} [order='asc'] Sort direction.
  * @returns {T[]}
  */
-export function sortBy(arr, keyFn, order = 'asc') {
+export function sortBy(arr, keyFn, order = "asc") {
   if (!Array.isArray(arr)) return [];
-  if (typeof keyFn !== 'function') return [...arr];
+  if (typeof keyFn !== "function") return [...arr];
   const sorted = [...arr];
-  const dir = order === 'desc' ? -1 : 1;
+  const dir = order === "desc" ? -1 : 1;
   sorted.sort((a, b) => {
     const ka = keyFn(a);
     const kb = keyFn(b);
     if (ka === kb || (ka == null && kb == null)) return 0;
     if (ka == null) return dir;
     if (kb == null) return -dir;
-    if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * dir;
-    if (ka instanceof Date && kb instanceof Date) return (ka.getTime() - kb.getTime()) * dir;
+    if (typeof ka === "number" && typeof kb === "number")
+      return (ka - kb) * dir;
+    if (ka instanceof Date && kb instanceof Date)
+      return (ka.getTime() - kb.getTime()) * dir;
     return String(ka).localeCompare(String(kb)) * dir;
   });
   return sorted;
@@ -217,11 +226,11 @@ export function sortBy(arr, keyFn, order = 'asc') {
  * @returns {Record<string, T>}
  */
 export function keyBy(arr, keyFn) {
-  if (!Array.isArray(arr) || typeof keyFn !== 'function') return {};
+  if (!Array.isArray(arr) || typeof keyFn !== "function") return {};
   const result = {};
   for (const item of arr) {
     const key = keyFn(item);
-    if (key != null && typeof key === 'string') {
+    if (key != null && typeof key === "string") {
       result[key] = item;
     }
   }
@@ -264,7 +273,7 @@ export function ensureArray(value) {
  * @returns {Record<string, number>}
  */
 export function countBy(arr, iteratee) {
-  if (!Array.isArray(arr) || typeof iteratee !== 'function') return {};
+  if (!Array.isArray(arr) || typeof iteratee !== "function") return {};
   const map = new Map();
   for (const item of arr) {
     const key = iteratee(item);

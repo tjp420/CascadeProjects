@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ShieldCheck, Wifi } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { ShieldCheck, Wifi } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * OfflineStatusBadge — displays a real-time indicator showing whether the
@@ -12,18 +12,20 @@ import { Badge } from '@/components/ui/badge';
  * sandbox, but the browser has network connectivity.
  */
 export function OfflineStatusBadge() {
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 

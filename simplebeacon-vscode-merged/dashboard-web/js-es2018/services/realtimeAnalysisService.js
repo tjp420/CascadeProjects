@@ -12,7 +12,7 @@
  *   realtimeAnalysisService.on('result', (data) => { ... });
  *   realtimeAnalysisService.stop();
  */
-import { apiBase } from './authService.js?v=20260731rt1';
+import { apiBase } from "./authService.js?v=20260731rt1";
 
 /** @typedef {'disconnected'|'connecting'|'connected'|'reconnecting'|'error'} ConnectionState */
 
@@ -20,7 +20,7 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_MAX_ATTEMPTS = 10;
 const PING_INTERVAL_MS = 30000;
-const WS_PATH = '/api/realtime/stream';
+const WS_PATH = "/api/realtime/stream";
 
 /**
  * Resolve the WebSocket URL from the API base.
@@ -33,19 +33,19 @@ function resolveWsUrl() {
   const base = apiBase();
   if (!base || /^(localhost|127\.0\.0\.1)$/i.test(location.hostname)) {
     // Local dev: WS server is on port 8082
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     return `${protocol}//${location.hostname}:8082${WS_PATH}`;
   }
   // Production: same host, upgrade to wss
   const url = new URL(base);
-  const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${url.host}${WS_PATH}`;
 }
 
 class RealtimeAnalysisService {
   constructor() {
     /** @type {ConnectionState} */
-    this.state = 'disconnected';
+    this.state = "disconnected";
     /** @type {WebSocket|null} */
     this._ws = null;
     /** @type {string|null} */
@@ -73,12 +73,12 @@ class RealtimeAnalysisService {
    * @returns {Promise<string>} sessionId
    */
   async start(options = {}) {
-    if (this.state === 'connected' || this.state === 'connecting') {
+    if (this.state === "connected" || this.state === "connecting") {
       return this._sessionId;
     }
     this._intentionalStop = false;
     this._sessionOptions = options;
-    this._setState('connecting');
+    this._setState("connecting");
 
     try {
       const sessionId = await this._createSession(options);
@@ -86,8 +86,11 @@ class RealtimeAnalysisService {
       this._connect(sessionId);
       return sessionId;
     } catch (err) {
-      this._setState('error');
-      this._emit('error', { message: 'Failed to create analysis session', error: err });
+      this._setState("error");
+      this._emit("error", {
+        message: "Failed to create analysis session",
+        error: err,
+      });
       throw err;
     }
   }
@@ -100,7 +103,7 @@ class RealtimeAnalysisService {
     this._clearTimers();
     if (this._ws) {
       try {
-        this._ws.close(1000, 'Client closed');
+        this._ws.close(1000, "Client closed");
       } catch (_a) {
         /* ignore */
       }
@@ -112,7 +115,7 @@ class RealtimeAnalysisService {
       });
       this._sessionId = null;
     }
-    this._setState('disconnected');
+    this._setState("disconnected");
   }
 
   /**
@@ -125,7 +128,9 @@ class RealtimeAnalysisService {
     if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
       return;
     }
-    this._ws.send(JSON.stringify({ type: 'analyze', content, chunkId, context }));
+    this._ws.send(
+      JSON.stringify({ type: "analyze", content, chunkId, context }),
+    );
   }
 
   /**
@@ -161,13 +166,13 @@ class RealtimeAnalysisService {
    */
   async _createSession(options) {
     const base = apiBase();
-    const url = base ? `${base}/api/realtime/session` : '/api/realtime/session';
+    const url = base ? `${base}/api/realtime/session` : "/api/realtime/session";
     const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        profile: options.profile || 'balanced',
-        analysisType: options.analysisType || 'general',
+        profile: options.profile || "balanced",
+        analysisType: options.analysisType || "general",
       }),
     });
     if (!res.ok) {
@@ -175,7 +180,7 @@ class RealtimeAnalysisService {
     }
     const data = await res.json();
     if (!data.success || !data.sessionId) {
-      throw new Error('Session creation returned no sessionId');
+      throw new Error("Session creation returned no sessionId");
     }
     return data.sessionId;
   }
@@ -187,8 +192,10 @@ class RealtimeAnalysisService {
    */
   async _deleteSession(sessionId) {
     const base = apiBase();
-    const url = base ? `${base}/api/realtime/session/${sessionId}` : `/api/realtime/session/${sessionId}`;
-    await fetch(url, { method: 'DELETE' }).catch(() => {
+    const url = base
+      ? `${base}/api/realtime/session/${sessionId}`
+      : `/api/realtime/session/${sessionId}`;
+    await fetch(url, { method: "DELETE" }).catch(() => {
       /* best effort */
     });
   }
@@ -202,15 +209,18 @@ class RealtimeAnalysisService {
     try {
       this._ws = new WebSocket(url);
     } catch (err) {
-      this._setState('error');
-      this._emit('error', { message: 'WebSocket construction failed', error: err });
+      this._setState("error");
+      this._emit("error", {
+        message: "WebSocket construction failed",
+        error: err,
+      });
       this._scheduleReconnect();
       return;
     }
 
     this._ws.onopen = () => {
       this._reconnectAttempts = 0;
-      this._setState('connected');
+      this._setState("connected");
       this._startPing();
     };
 
@@ -219,19 +229,22 @@ class RealtimeAnalysisService {
         const msg = JSON.parse(event.data);
         this._handleMessage(msg);
       } catch (err) {
-        this._emit('error', { message: 'Failed to parse WebSocket message', error: err });
+        this._emit("error", {
+          message: "Failed to parse WebSocket message",
+          error: err,
+        });
       }
     };
 
     this._ws.onerror = () => {
-      this._emit('error', { message: 'WebSocket error' });
+      this._emit("error", { message: "WebSocket error" });
     };
 
     this._ws.onclose = (event) => {
       this._clearPing();
       this._ws = null;
       if (this._intentionalStop) {
-        this._setState('disconnected');
+        this._setState("disconnected");
         return;
       }
       // Unexpected close — attempt reconnection
@@ -247,21 +260,24 @@ class RealtimeAnalysisService {
    */
   _handleMessage(msg) {
     switch (msg.type) {
-      case 'status':
-        this._emit('status', msg);
+      case "status":
+        this._emit("status", msg);
         break;
-      case 'pong':
-        this._emit('pong', msg);
+      case "pong":
+        this._emit("pong", msg);
         break;
-      case 'analysis_result':
-        this._emit('analysis_result', msg);
+      case "analysis_result":
+        this._emit("analysis_result", msg);
         break;
-      case 'error':
-        this._emit('error', { message: msg.error || 'Server error', sessionId: msg.sessionId });
+      case "error":
+        this._emit("error", {
+          message: msg.error || "Server error",
+          sessionId: msg.sessionId,
+        });
         break;
       default:
         // Unknown message type — emit as a generic event
-        this._emit('message', msg);
+        this._emit("message", msg);
         break;
     }
   }
@@ -272,12 +288,17 @@ class RealtimeAnalysisService {
   _scheduleReconnect() {
     if (this._intentionalStop) return;
     if (this._reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
-      this._setState('error');
-      this._emit('error', { message: `Max reconnection attempts (${RECONNECT_MAX_ATTEMPTS}) reached` });
+      this._setState("error");
+      this._emit("error", {
+        message: `Max reconnection attempts (${RECONNECT_MAX_ATTEMPTS}) reached`,
+      });
       return;
     }
-    this._setState('reconnecting');
-    const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, this._reconnectAttempts), RECONNECT_MAX_MS);
+    this._setState("reconnecting");
+    const delay = Math.min(
+      RECONNECT_BASE_MS * Math.pow(2, this._reconnectAttempts),
+      RECONNECT_MAX_MS,
+    );
     this._reconnectAttempts++;
     this._reconnectTimer = setTimeout(() => {
       if (this._intentionalStop) return;
@@ -299,7 +320,7 @@ class RealtimeAnalysisService {
     this._clearPing();
     this._pingTimer = setInterval(() => {
       if (this._ws && this._ws.readyState === WebSocket.OPEN) {
-        this._ws.send(JSON.stringify({ type: 'ping' }));
+        this._ws.send(JSON.stringify({ type: "ping" }));
       }
     }, PING_INTERVAL_MS);
   }
@@ -331,7 +352,7 @@ class RealtimeAnalysisService {
    */
   _setState(state) {
     this.state = state;
-    this._emit('state', { state, sessionId: this._sessionId });
+    this._emit("state", { state, sessionId: this._sessionId });
   }
 
   /**

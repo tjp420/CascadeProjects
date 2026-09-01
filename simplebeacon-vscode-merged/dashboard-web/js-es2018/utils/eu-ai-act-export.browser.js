@@ -2,12 +2,12 @@
 /**
  * EU AI Act compliance page export bundle — browser mirror of server/lib/eu-ai-act-export.js
  */
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
-import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260716cachefix1';
+import { sanitizeSimplebeaconReportExport } from "./simplebeacon-report-export.browser.js?v=20260716cachefix1";
+import { sanitizeComplianceChecklistArtifactExport } from "./compliance-export.browser.js?v=20260716cachefix1";
 import {
   redactProjectPathForExport,
   normalizeSimpleBeaconBranding,
-} from './quality-export.browser.js?v=20260716cachefix1';
+} from "./quality-export.browser.js?v=20260716cachefix1";
 // ── Small helpers to cut repetitive deep-path fallback chains ──
 /**
  * Return the first non-nullish value from a list of arguments.
@@ -40,9 +40,9 @@ function deepGet(obj, keys) {
  * @returns {string}
  */
 function projectLabelFromPath(projectPath) {
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
+  const normalized = String(projectPath || "ai-platform").replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "ai-platform";
 }
 /**
  * Parse timestamp.
@@ -50,7 +50,7 @@ function projectLabelFromPath(projectPath) {
  * @returns {any}
  */
 function parseTimestamp(value) {
-  const ms = Date.parse(value || '');
+  const ms = Date.parse(value || "");
   return Number.isFinite(ms) ? ms : null;
 }
 /**
@@ -61,10 +61,18 @@ function parseTimestamp(value) {
 function resolveProjectLabel(bundle = {}) {
   var _a, _b, _c, _d;
   return projectLabelFromPath(
-    ((_a = bundle.compliance) === null || _a === void 0 ? void 0 : _a.projectRoot) ||
-      ((_b = bundle.assessment) === null || _b === void 0 ? void 0 : _b.projectRoot) ||
-      ((_c = bundle.sprintReport) === null || _c === void 0 ? void 0 : _c.projectRoot) ||
-      ((_d = bundle.embeddedInMainReport) === null || _d === void 0 ? void 0 : _d.projectRoot)
+    ((_a = bundle.compliance) === null || _a === void 0
+      ? void 0
+      : _a.projectRoot) ||
+      ((_b = bundle.assessment) === null || _b === void 0
+        ? void 0
+        : _b.projectRoot) ||
+      ((_c = bundle.sprintReport) === null || _c === void 0
+        ? void 0
+        : _c.projectRoot) ||
+      ((_d = bundle.embeddedInMainReport) === null || _d === void 0
+        ? void 0
+        : _d.projectRoot),
   );
 }
 /**
@@ -74,30 +82,46 @@ function resolveProjectLabel(bundle = {}) {
  */
 export function resolveGateResult(bundle = {}) {
   var _a, _b, _c, _d;
-  if (!bundle || typeof bundle !== 'object') return null;
+  if (!bundle || typeof bundle !== "object") return null;
   const embedded = bundle.embeddedInMainReport;
   const assessment = bundle.assessment;
-  const embeddedAt = parseTimestamp(embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt);
+  const embeddedAt = parseTimestamp(
+    embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt,
+  );
   const sprintAt = parseTimestamp(
-    (assessment === null || assessment === void 0 ? void 0 : assessment.generatedAt) ||
-      ((_a = bundle.compliance) === null || _a === void 0 ? void 0 : _a.evaluatedAt) ||
-      ((_b = bundle.sprintReport) === null || _b === void 0 ? void 0 : _b.generatedAt)
+    (assessment === null || assessment === void 0
+      ? void 0
+      : assessment.generatedAt) ||
+      ((_a = bundle.compliance) === null || _a === void 0
+        ? void 0
+        : _a.evaluatedAt) ||
+      ((_b = bundle.sprintReport) === null || _b === void 0
+        ? void 0
+        : _b.generatedAt),
   );
   if (
-    (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) != null &&
+    (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) !=
+      null &&
     (embeddedAt == null || sprintAt == null || embeddedAt >= sprintAt)
   ) {
-    return embedded.gatePass === true ? 'PASS' : 'FAIL';
+    return embedded.gatePass === true ? "PASS" : "FAIL";
   }
   return (_d =
-    (_c = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null || _c === void 0
+    (_c =
+      assessment === null || assessment === void 0
+        ? void 0
+        : assessment.executiveSummary) === null || _c === void 0
       ? void 0
       : _c.gateResult) !== null && _d !== void 0
     ? _d
-    : (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) === true
-      ? 'PASS'
-      : (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) === false
-        ? 'FAIL'
+    : (embedded === null || embedded === void 0
+          ? void 0
+          : embedded.gatePass) === true
+      ? "PASS"
+      : (embedded === null || embedded === void 0
+            ? void 0
+            : embedded.gatePass) === false
+        ? "FAIL"
         : null;
 }
 /**
@@ -108,14 +132,23 @@ export function resolveGateResult(bundle = {}) {
 function buildFreshnessNote(bundle = {}) {
   var _a, _b, _c, _d, _e, _f;
   const embeddedAt = parseTimestamp(
-    (_a = bundle.embeddedInMainReport) === null || _a === void 0 ? void 0 : _a.generatedAt
+    (_a = bundle.embeddedInMainReport) === null || _a === void 0
+      ? void 0
+      : _a.generatedAt,
   );
   const sprintAt = parseTimestamp(
-    ((_b = bundle.compliance) === null || _b === void 0 ? void 0 : _b.evaluatedAt) ||
-      ((_c = bundle.assessment) === null || _c === void 0 ? void 0 : _c.generatedAt) ||
-      ((_d = bundle.sprintReport) === null || _d === void 0 ? void 0 : _d.generatedAt)
+    ((_b = bundle.compliance) === null || _b === void 0
+      ? void 0
+      : _b.evaluatedAt) ||
+      ((_c = bundle.assessment) === null || _c === void 0
+        ? void 0
+        : _c.generatedAt) ||
+      ((_d = bundle.sprintReport) === null || _d === void 0
+        ? void 0
+        : _d.generatedAt),
   );
-  if (embeddedAt == null || sprintAt == null || embeddedAt <= sprintAt) return null;
+  if (embeddedAt == null || sprintAt == null || embeddedAt <= sprintAt)
+    return null;
   return `Latest gate scan (${bundle.embeddedInMainReport.generatedAt}) is newer than EU sprint artifacts (${((_e = bundle.compliance) === null || _e === void 0 ? void 0 : _e.evaluatedAt) || ((_f = bundle.assessment) === null || _f === void 0 ? void 0 : _f.generatedAt)}). Summary gate result uses the latest scan.`;
 }
 /**
@@ -126,9 +159,15 @@ function buildFreshnessNote(bundle = {}) {
 function resolveSprintTimestamp(bundle = {}) {
   var _a, _b, _c;
   return parseTimestamp(
-    ((_a = bundle.compliance) === null || _a === void 0 ? void 0 : _a.evaluatedAt) ||
-      ((_b = bundle.assessment) === null || _b === void 0 ? void 0 : _b.generatedAt) ||
-      ((_c = bundle.sprintReport) === null || _c === void 0 ? void 0 : _c.generatedAt)
+    ((_a = bundle.compliance) === null || _a === void 0
+      ? void 0
+      : _a.evaluatedAt) ||
+      ((_b = bundle.assessment) === null || _b === void 0
+        ? void 0
+        : _b.generatedAt) ||
+      ((_c = bundle.sprintReport) === null || _c === void 0
+        ? void 0
+        : _c.generatedAt),
   );
 }
 /**
@@ -138,16 +177,19 @@ function resolveSprintTimestamp(bundle = {}) {
  */
 function isLiveGatePreferred(bundle = {}) {
   const embedded = bundle.embeddedInMainReport;
-  const embeddedAt = parseTimestamp(embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt);
+  const embeddedAt = parseTimestamp(
+    embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt,
+  );
   const sprintAt = resolveSprintTimestamp(bundle);
   return (
-    (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) != null &&
+    (embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) !=
+      null &&
     embeddedAt != null &&
     sprintAt != null &&
     embeddedAt > sprintAt
   );
 }
-const SCAN_CHECKLIST_RULE_IDS = ['GATE-001', 'CRED-001', 'LEAK-001'];
+const SCAN_CHECKLIST_RULE_IDS = ["GATE-001", "CRED-001", "LEAK-001"];
 /**
  * Should reconcile scan rules from embedded.
  * @param {any} bundle
@@ -157,7 +199,10 @@ function shouldReconcileScanRulesFromEmbedded(bundle = {}) {
   var _a, _b;
   if (
     !bundle.embeddedInMainReport ||
-    !((_b = (_a = bundle.compliance) === null || _a === void 0 ? void 0 : _a.rules) === null || _b === void 0
+    !((_b =
+      (_a = bundle.compliance) === null || _a === void 0
+        ? void 0
+        : _a.rules) === null || _b === void 0
       ? void 0
       : _b.length)
   )
@@ -166,7 +211,8 @@ function shouldReconcileScanRulesFromEmbedded(bundle = {}) {
   const embedded = bundle.embeddedInMainReport;
   if (embedded.gatePass !== true) return false;
   const hasStaleFail = bundle.compliance.rules.some(
-    (rule) => SCAN_CHECKLIST_RULE_IDS.includes(rule.id) && rule.status === 'fail'
+    (rule) =>
+      SCAN_CHECKLIST_RULE_IDS.includes(rule.id) && rule.status === "fail",
   );
   if (!hasStaleFail) return false;
   const cred = embedded.credentialFindings;
@@ -184,30 +230,44 @@ function reconcileScanChecklistRule(rule, embedded = {}) {
   var _a, _b, _c, _d;
   if (!SCAN_CHECKLIST_RULE_IDS.includes(rule.id)) return rule;
   const gatePass = embedded.gatePass === true;
-  const cred = (_a = embedded.credentialFindings) !== null && _a !== void 0 ? _a : null;
-  const leak = (_b = embedded.productionLeakFindings) !== null && _b !== void 0 ? _b : null;
-  const credScanned = (_c = embedded.credentialScanned) !== null && _c !== void 0 ? _c : null;
-  const leakScanned = (_d = embedded.productionLeakScanned) !== null && _d !== void 0 ? _d : null;
-  if (rule.id === 'GATE-001') {
+  const cred =
+    (_a = embedded.credentialFindings) !== null && _a !== void 0 ? _a : null;
+  const leak =
+    (_b = embedded.productionLeakFindings) !== null && _b !== void 0
+      ? _b
+      : null;
+  const credScanned =
+    (_c = embedded.credentialScanned) !== null && _c !== void 0 ? _c : null;
+  const leakScanned =
+    (_d = embedded.productionLeakScanned) !== null && _d !== void 0 ? _d : null;
+  if (rule.id === "GATE-001") {
     return {
       ...rule,
-      status: gatePass ? 'pass' : 'fail',
+      status: gatePass ? "pass" : "fail",
       evidence: gatePass
-        ? 'Gate pass — no blocking issues at configured severities (live report.json scan)'
+        ? "Gate pass — no blocking issues at configured severities (live report.json scan)"
         : rule.evidence,
     };
   }
-  if (rule.id === 'CRED-001' && cred === 0 && (credScanned !== null && credScanned !== void 0 ? credScanned : 0) > 0) {
+  if (
+    rule.id === "CRED-001" &&
+    cred === 0 &&
+    (credScanned !== null && credScanned !== void 0 ? credScanned : 0) > 0
+  ) {
     return {
       ...rule,
-      status: 'pass',
+      status: "pass",
       evidence: `Scanned ${credScanned} gate-scoped path(s) — no credential patterns (live report.json)`,
     };
   }
-  if (rule.id === 'LEAK-001' && leak === 0 && (leakScanned !== null && leakScanned !== void 0 ? leakScanned : 0) > 0) {
+  if (
+    rule.id === "LEAK-001" &&
+    leak === 0 &&
+    (leakScanned !== null && leakScanned !== void 0 ? leakScanned : 0) > 0
+  ) {
     return {
       ...rule,
-      status: 'pass',
+      status: "pass",
       evidence: `Scanned ${leakScanned} gate-scoped production file(s) — no sample-path leaks (live report.json)`,
     };
   }
@@ -219,9 +279,9 @@ function reconcileScanChecklistRule(rule, embedded = {}) {
  * @returns {any}
  */
 function dedupeFindingSummary(text) {
-  const raw = String(text || '').trim();
+  const raw = String(text || "").trim();
   if (!raw) return raw;
-  const colonIdx = raw.indexOf(': ');
+  const colonIdx = raw.indexOf(": ");
   if (colonIdx <= 0) return raw;
   const prefix = raw.slice(0, colonIdx).trim();
   const remainder = raw.slice(colonIdx + 2).trim();
@@ -237,14 +297,16 @@ function dedupeFindingSummary(text) {
  */
 function splitDocumentationPaths(docs = []) {
   const all = Array.isArray(docs) ? docs : [];
-  const simplebeaconArtifactPaths = all.filter((doc) => String(doc).startsWith('.simplebeacon/'));
+  const simplebeaconArtifactPaths = all.filter((doc) =>
+    String(doc).startsWith(".simplebeacon/"),
+  );
   const operatorDocumentationFound = all.filter((doc) => {
-    const rel = String(doc).replace(/\\/g, '/');
-    return rel.startsWith('docs/');
+    const rel = String(doc).replace(/\\/g, "/");
+    return rel.startsWith("docs/");
   });
   const scanMatchedNonDocsPaths = all.filter((doc) => {
-    const rel = String(doc).replace(/\\/g, '/');
-    return !rel.startsWith('.simplebeacon/') && !rel.startsWith('docs/');
+    const rel = String(doc).replace(/\\/g, "/");
+    return !rel.startsWith(".simplebeacon/") && !rel.startsWith("docs/");
   });
   return {
     documentationFound: all,
@@ -286,21 +348,24 @@ function buildChecklistHeadline(passed, failed, total) {
 function reconcileComplianceForLiveGate(compliance, bundle = {}) {
   var _a, _b, _c, _d, _e, _f;
   if (
-    !((_a = compliance === null || compliance === void 0 ? void 0 : compliance.rules) === null || _a === void 0
+    !((_a =
+      compliance === null || compliance === void 0
+        ? void 0
+        : compliance.rules) === null || _a === void 0
       ? void 0
       : _a.length)
   )
     return compliance;
   const freshMetrics = resolveFreshEuAiActMetrics(bundle);
   let rules = compliance.rules.map((rule) => {
-    if (rule.id === 'EUAI-002' && freshMetrics.aiSystemIndicators != null) {
+    if (rule.id === "EUAI-002" && freshMetrics.aiSystemIndicators != null) {
       return {
         ...rule,
         evidence: `${freshMetrics.aiSystemIndicators} AI integration(s) with Article 50 disclosure markers present`,
       };
     }
     if (
-      rule.id === 'EUAI-003' &&
+      rule.id === "EUAI-003" &&
       freshMetrics.operatorDocumentationCount != null &&
       freshMetrics.aiSystemIndicators != null
     ) {
@@ -321,13 +386,16 @@ function reconcileComplianceForLiveGate(compliance, bundle = {}) {
   }
   const embedded = bundle.embeddedInMainReport;
   rules = rules.map((rule) => reconcileScanChecklistRule(rule, embedded));
-  const passed = rules.filter((rule) => rule.status === 'pass').length;
-  const failed = rules.filter((rule) => rule.status === 'fail').length;
-  const skipped = rules.filter((rule) => rule.status === 'skip').length;
+  const passed = rules.filter((rule) => rule.status === "pass").length;
+  const failed = rules.filter((rule) => rule.status === "fail").length;
+  const skipped = rules.filter((rule) => rule.status === "skip").length;
   const scored = passed + failed;
   const score = scored
     ? Math.round((passed / scored) * 100)
-    : (_c = (_b = compliance.summary) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0
+    : (_c =
+          (_b = compliance.summary) === null || _b === void 0
+            ? void 0
+            : _b.score) !== null && _c !== void 0
       ? _c
       : null;
   return {
@@ -342,7 +410,8 @@ function reconcileComplianceForLiveGate(compliance, bundle = {}) {
       total: rules.length,
       score,
       headline:
-        (_d = buildChecklistHeadline(passed, failed, rules.length)) !== null && _d !== void 0
+        (_d = buildChecklistHeadline(passed, failed, rules.length)) !== null &&
+        _d !== void 0
           ? _d
           : (_e = compliance.summary) === null || _e === void 0
             ? void 0
@@ -350,8 +419,9 @@ function reconcileComplianceForLiveGate(compliance, bundle = {}) {
       readyForAutomation: failed === 0 && passed > 0,
       handoffEligible: false,
     },
-    gateReconciledFrom: 'live-gate-scan',
-    gateReconciledAt: (_f = embedded.generatedAt) !== null && _f !== void 0 ? _f : null,
+    gateReconciledFrom: "live-gate-scan",
+    gateReconciledAt:
+      (_f = embedded.generatedAt) !== null && _f !== void 0 ? _f : null,
   };
 }
 /**
@@ -363,7 +433,10 @@ function dedupeAssessmentFindings(assessment) {
   var _a, _b;
   if (
     !((_b =
-      (_a = assessment === null || assessment === void 0 ? void 0 : assessment.findings) === null || _a === void 0
+      (_a =
+        assessment === null || assessment === void 0
+          ? void 0
+          : assessment.findings) === null || _a === void 0
         ? void 0
         : _a.fictionKpis) === null || _b === void 0
       ? void 0
@@ -390,33 +463,46 @@ function dedupeAssessmentFindings(assessment) {
 function resolveSprintGateResult(bundle = {}, assessment = {}) {
   var _a, _b, _c, _d, _e, _f, _g, _h;
   if (
-    (_a = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null || _a === void 0
+    (_a =
+      assessment === null || assessment === void 0
+        ? void 0
+        : assessment.executiveSummary) === null || _a === void 0
       ? void 0
       : _a.sprintGateResult
   ) {
     return assessment.executiveSummary.sprintGateResult;
   }
   if (
-    ((_c = (_b = bundle.sprintReport) === null || _b === void 0 ? void 0 : _b.gate) === null || _c === void 0
+    ((_c =
+      (_b = bundle.sprintReport) === null || _b === void 0
+        ? void 0
+        : _b.gate) === null || _c === void 0
       ? void 0
       : _c.pass) === false
   )
-    return 'FAIL';
+    return "FAIL";
   if (
-    ((_e = (_d = bundle.sprintReport) === null || _d === void 0 ? void 0 : _d.gate) === null || _e === void 0
+    ((_e =
+      (_d = bundle.sprintReport) === null || _d === void 0
+        ? void 0
+        : _d.gate) === null || _e === void 0
       ? void 0
       : _e.pass) === true
   )
-    return 'PASS';
+    return "PASS";
   if (
-    ((_f = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null ||
-    _f === void 0
+    ((_f =
+      assessment === null || assessment === void 0
+        ? void 0
+        : assessment.executiveSummary) === null || _f === void 0
       ? void 0
-      : _f.gateResultSource) !== 'live-gate-scan'
+      : _f.gateResultSource) !== "live-gate-scan"
   ) {
     return (_h =
-      (_g = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null ||
-      _g === void 0
+      (_g =
+        assessment === null || assessment === void 0
+          ? void 0
+          : assessment.executiveSummary) === null || _g === void 0
         ? void 0
         : _g.gateResult) !== null && _h !== void 0
       ? _h
@@ -430,7 +516,9 @@ function resolveSprintGateResult(bundle = {}, assessment = {}) {
  * @returns {any}
  */
 function buildLiveGateExecutiveHeadline(gatePass) {
-  return gatePass ? 'Gate pass — no blocking issues at configured severities (live report.json scan).' : null;
+  return gatePass
+    ? "Gate pass — no blocking issues at configured severities (live report.json scan)."
+    : null;
 }
 /**
  * Reconcile executive summary for live gate.
@@ -440,16 +528,20 @@ function buildLiveGateExecutiveHeadline(gatePass) {
  */
 function reconcileExecutiveSummaryForLiveGate(executiveSummary, bundle = {}) {
   var _a;
-  if (!executiveSummary || !isLiveGatePreferred(bundle)) return executiveSummary;
+  if (!executiveSummary || !isLiveGatePreferred(bundle))
+    return executiveSummary;
   const gateResult = resolveGateResult(bundle);
-  const gatePass = gateResult === 'PASS';
-  const sprintGateResult = resolveSprintGateResult(bundle, { executiveSummary });
-  const sprintBlocking = (_a = executiveSummary.blockingCount) !== null && _a !== void 0 ? _a : 0;
+  const gatePass = gateResult === "PASS";
+  const sprintGateResult = resolveSprintGateResult(bundle, {
+    executiveSummary,
+  });
+  const sprintBlocking =
+    (_a = executiveSummary.blockingCount) !== null && _a !== void 0 ? _a : 0;
   const next = {
     ...executiveSummary,
     gateResult,
     sprintGateResult,
-    gateResultSource: 'live-gate-scan',
+    gateResultSource: "live-gate-scan",
   };
   if (gatePass) {
     next.blockingCount = 0;
@@ -482,12 +574,17 @@ function reconcileAssessmentForLiveGate(assessment, bundle = {}) {
     generatedBy: normalizeSimpleBeaconBranding(next.generatedBy),
   };
   const freshMetrics = resolveFreshEuAiActMetrics(bundle);
-  if (freshMetrics.metricsSource === 'live-gate-scan' && next.euAiActSummary) {
+  if (freshMetrics.metricsSource === "live-gate-scan" && next.euAiActSummary) {
     next = {
       ...next,
       euAiActSummary: {
         ...next.euAiActSummary,
-        ...(((_a = next.euAiActSummary.documentationFound) === null || _a === void 0 ? void 0 : _a.length)
+        ...((
+          (_a = next.euAiActSummary.documentationFound) === null ||
+          _a === void 0
+            ? void 0
+            : _a.length
+        )
           ? splitDocumentationPaths(next.euAiActSummary.documentationFound)
           : {}),
       },
@@ -496,7 +593,10 @@ function reconcileAssessmentForLiveGate(assessment, bundle = {}) {
   if (!isLiveGatePreferred(bundle)) return next;
   return {
     ...next,
-    executiveSummary: reconcileExecutiveSummaryForLiveGate(next.executiveSummary, bundle),
+    executiveSummary: reconcileExecutiveSummaryForLiveGate(
+      next.executiveSummary,
+      bundle,
+    ),
   };
 }
 /**
@@ -509,8 +609,11 @@ function applyExportReconciliation(bundle = {}) {
     ...bundle,
     compliance: bundle.compliance
       ? reconcileComplianceForLiveGate(
-          { ...bundle.compliance, title: normalizeSimpleBeaconBranding(bundle.compliance.title) },
-          bundle
+          {
+            ...bundle.compliance,
+            title: normalizeSimpleBeaconBranding(bundle.compliance.title),
+          },
+          bundle,
         )
       : null,
     assessment: reconcileAssessmentForLiveGate(bundle.assessment, bundle),
@@ -518,7 +621,9 @@ function applyExportReconciliation(bundle = {}) {
       ? {
           ...bundle.sprintReport,
           title: normalizeSimpleBeaconBranding(bundle.sprintReport.title),
-          generatedBy: normalizeSimpleBeaconBranding(bundle.sprintReport.generatedBy),
+          generatedBy: normalizeSimpleBeaconBranding(
+            bundle.sprintReport.generatedBy,
+          ),
         }
       : null,
   };
@@ -532,19 +637,33 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
   var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
   const assessment = bundle.assessment;
   const embedded = bundle.embeddedInMainReport;
-  const embeddedAt = parseTimestamp(embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt);
+  const embeddedAt = parseTimestamp(
+    embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt,
+  );
   const sprintAt = resolveSprintTimestamp(bundle);
-  const sprintEu = (assessment === null || assessment === void 0 ? void 0 : assessment.euAiActSummary) || {};
-  const embeddedEu = (embedded === null || embedded === void 0 ? void 0 : embedded.summary) || {};
-  const embeddedNewer = embeddedAt != null && sprintAt != null && embeddedAt > sprintAt;
+  const sprintEu =
+    (assessment === null || assessment === void 0
+      ? void 0
+      : assessment.euAiActSummary) || {};
+  const embeddedEu =
+    (embedded === null || embedded === void 0 ? void 0 : embedded.summary) ||
+    {};
+  const embeddedNewer =
+    embeddedAt != null && sprintAt != null && embeddedAt > sprintAt;
   const preferEmbedded =
-    embeddedNewer && (embeddedEu.aiSystemIndicators != null || embeddedEu.documentationArtifacts != null);
+    embeddedNewer &&
+    (embeddedEu.aiSystemIndicators != null ||
+      embeddedEu.documentationArtifacts != null);
   const source = preferEmbedded ? embeddedEu : sprintEu;
-  const docs = source.documentationFound || sprintEu.documentationFound || embeddedEu.documentationFound || [];
+  const docs =
+    source.documentationFound ||
+    sprintEu.documentationFound ||
+    embeddedEu.documentationFound ||
+    [];
   const operatorCount =
     (_a = source.operatorDocumentationCount) !== null && _a !== void 0
       ? _a
-      : docs.filter((doc) => !String(doc).startsWith('.simplebeacon/')).length;
+      : docs.filter((doc) => !String(doc).startsWith(".simplebeacon/")).length;
   const metricsStaleNote =
     preferEmbedded &&
     ((sprintEu.aiSystemIndicators != null &&
@@ -552,13 +671,17 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
       sprintEu.aiSystemIndicators !== embeddedEu.aiSystemIndicators) ||
       (sprintEu.operatorDocumentationCount != null &&
         embeddedEu.operatorDocumentationCount != null &&
-        sprintEu.operatorDocumentationCount !== embeddedEu.operatorDocumentationCount))
-      ? `EU indicator counts use live gate scan (${embedded.generatedAt}) — sprint cached ${(_b = sprintEu.aiSystemIndicators) !== null && _b !== void 0 ? _b : '?'} AI integrations and ${(_d = (_c = sprintEu.operatorDocumentationCount) !== null && _c !== void 0 ? _c : sprintEu.documentationArtifacts) !== null && _d !== void 0 ? _d : '?'} operator docs at ${((_e = bundle.compliance) === null || _e === void 0 ? void 0 : _e.evaluatedAt) || (assessment === null || assessment === void 0 ? void 0 : assessment.generatedAt)}.`
+        sprintEu.operatorDocumentationCount !==
+          embeddedEu.operatorDocumentationCount))
+      ? `EU indicator counts use live gate scan (${embedded.generatedAt}) — sprint cached ${(_b = sprintEu.aiSystemIndicators) !== null && _b !== void 0 ? _b : "?"} AI integrations and ${(_d = (_c = sprintEu.operatorDocumentationCount) !== null && _c !== void 0 ? _c : sprintEu.documentationArtifacts) !== null && _d !== void 0 ? _d : "?"} operator docs at ${((_e = bundle.compliance) === null || _e === void 0 ? void 0 : _e.evaluatedAt) || (assessment === null || assessment === void 0 ? void 0 : assessment.generatedAt)}.`
       : null;
   return {
-    aiSystemIndicators: (_f = source.aiSystemIndicators) !== null && _f !== void 0 ? _f : null,
-    highRiskIndicators: (_g = source.highRiskIndicators) !== null && _g !== void 0 ? _g : null,
-    transparencyGaps: (_h = source.transparencyGaps) !== null && _h !== void 0 ? _h : null,
+    aiSystemIndicators:
+      (_f = source.aiSystemIndicators) !== null && _f !== void 0 ? _f : null,
+    highRiskIndicators:
+      (_g = source.highRiskIndicators) !== null && _g !== void 0 ? _g : null,
+    transparencyGaps:
+      (_h = source.transparencyGaps) !== null && _h !== void 0 ? _h : null,
     documentationArtifacts: operatorCount,
     euAiActScanned: preferEmbedded
       ? (_j = embedded.euAiActScanned) !== null && _j !== void 0
@@ -567,8 +690,10 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
       : (_p =
             (_m =
               (_l =
-                (_k = assessment === null || assessment === void 0 ? void 0 : assessment.findings) === null ||
-                _k === void 0
+                (_k =
+                  assessment === null || assessment === void 0
+                    ? void 0
+                    : assessment.findings) === null || _k === void 0
                   ? void 0
                   : _k.euAiAct) === null || _l === void 0
                 ? void 0
@@ -579,9 +704,11 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
                 : _o.euAiActScanned) !== null && _p !== void 0
         ? _p
         : null,
-    metricsSource: preferEmbedded ? 'live-gate-scan' : 'eu-ai-act-sprint',
+    metricsSource: preferEmbedded ? "live-gate-scan" : "eu-ai-act-sprint",
     metricsStaleNote,
-    simplebeaconDocumentationArtifacts: docs.filter((doc) => String(doc).startsWith('.simplebeacon/')).length || null,
+    simplebeaconDocumentationArtifacts:
+      docs.filter((doc) => String(doc).startsWith(".simplebeacon/")).length ||
+      null,
     operatorDocumentationCount: operatorCount,
   };
 }
@@ -593,7 +720,10 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
 function buildFilesScannedNote(assessment) {
   var _a;
   const filesScanned =
-    (_a = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null || _a === void 0
+    (_a =
+      assessment === null || assessment === void 0
+        ? void 0
+        : assessment.executiveSummary) === null || _a === void 0
       ? void 0
       : _a.filesScanned;
   if (filesScanned == null || filesScanned > 20) return null;
@@ -601,13 +731,16 @@ function buildFilesScannedNote(assessment) {
 }
 /** @type {Map<RegExp,string>} */
 const NOTE_CLASSIFIERS = new Map([
-  [/latest gate scan.*newer than eu sprint/i, 'freshness-note'],
-  [/eu indicator counts use live gate scan/i, 'metrics-stale-note'],
-  [/filesScanned \(3\)/i, 'files-scanned-note'],
-  [/sprint artifacts still record gate fail/i, 'gate-mismatch-note'],
-  [/GATE-001 checklist rule reconciled|GATE-001, CRED-001, and LEAK-001 reconciled/i, 'gate-checklist-reconciled'],
-  [/documentation path\(s\) under \.simplebeacon\//i, 'simplebeacon-docs-note'],
-  [/sprint executiveSummary cached/i, 'exec-summary-stale'],
+  [/latest gate scan.*newer than eu sprint/i, "freshness-note"],
+  [/eu indicator counts use live gate scan/i, "metrics-stale-note"],
+  [/filesScanned \(3\)/i, "files-scanned-note"],
+  [/sprint artifacts still record gate fail/i, "gate-mismatch-note"],
+  [
+    /GATE-001 checklist rule reconciled|GATE-001, CRED-001, and LEAK-001 reconciled/i,
+    "gate-checklist-reconciled",
+  ],
+  [/documentation path\(s\) under \.simplebeacon\//i, "simplebeacon-docs-note"],
+  [/sprint executiveSummary cached/i, "exec-summary-stale"],
 ]);
 /**
  * Classify a note for deduplication.
@@ -618,7 +751,7 @@ function classifyNote(text) {
   for (const [pattern, key] of NOTE_CLASSIFIERS) {
     if (pattern.test(text)) return key;
   }
-  return text.replace(/\s+/g, ' ').trim().toLowerCase();
+  return text.replace(/\s+/g, " ").trim().toLowerCase();
 }
 /**
  * Dedupe export notes.
@@ -645,14 +778,14 @@ function dedupeExportNotes(notes = []) {
  * @returns {any}
  */
 function relativizeScanPathsForExport(scanPaths, projectRoot, projectLabel) {
-  const root = String(projectRoot || '')
-    .replace(/\\/g, '/')
-    .replace(/\/$/, '')
+  const root = String(projectRoot || "")
+    .replace(/\\/g, "/")
+    .replace(/\/$/, "")
     .toLowerCase();
   return (scanPaths || []).map((entry) => {
-    let rel = String(entry).replace(/\\/g, '/');
+    let rel = String(entry).replace(/\\/g, "/");
     if (root && rel.toLowerCase().startsWith(root)) {
-      rel = rel.slice(root.length).replace(/^\//, '');
+      rel = rel.slice(root.length).replace(/^\//, "");
     }
     if (!rel || rel === projectLabel) return rel || entry;
     return rel;
@@ -668,9 +801,14 @@ function sanitizeComplianceExport(compliance, projectLabel) {
   if (!compliance) return null;
   return {
     ...compliance,
-    projectRoot: redactProjectPathForExport(compliance.projectRoot, projectLabel),
+    projectRoot: redactProjectPathForExport(
+      compliance.projectRoot,
+      projectLabel,
+    ),
     provenance:
-      compliance.gateReconciledFrom === 'live-gate-scan' ? 'live-gate-scan-reconciled' : 'eu-ai-act-sprint-artifact',
+      compliance.gateReconciledFrom === "live-gate-scan"
+        ? "live-gate-scan-reconciled"
+        : "eu-ai-act-sprint-artifact",
   };
 }
 /**
@@ -690,17 +828,25 @@ function sanitizeAssessmentExport(assessment, projectLabel) {
     ...rest
   } = assessment;
   const docSplit = splitDocumentationPaths(
-    (euAiActSummary === null || euAiActSummary === void 0 ? void 0 : euAiActSummary.documentationFound) || []
+    (euAiActSummary === null || euAiActSummary === void 0
+      ? void 0
+      : euAiActSummary.documentationFound) || [],
   );
-  const { executiveSummaryNote: _executiveSummaryNote, ...executiveRest } = executiveSummary || {};
+  const { executiveSummaryNote: _executiveSummaryNote, ...executiveRest } =
+    executiveSummary || {};
   return {
     ...rest,
     ...(executiveSummary ? { executiveSummary: executiveRest } : {}),
-    projectRoot: redactProjectPathForExport(assessment.projectRoot, projectLabel),
+    projectRoot: redactProjectPathForExport(
+      assessment.projectRoot,
+      projectLabel,
+    ),
     provenance:
-      ((_a = assessment.executiveSummary) === null || _a === void 0 ? void 0 : _a.gateResultSource) === 'live-gate-scan'
-        ? 'live-gate-scan-reconciled'
-        : 'eu-ai-act-sprint-artifact',
+      ((_a = assessment.executiveSummary) === null || _a === void 0
+        ? void 0
+        : _a.gateResultSource) === "live-gate-scan"
+        ? "live-gate-scan-reconciled"
+        : "eu-ai-act-sprint-artifact",
     ...(euAiActSummary
       ? {
           euAiActSummary: {
@@ -712,9 +858,19 @@ function sanitizeAssessmentExport(assessment, projectLabel) {
     ...(sourceReport
       ? {
           sourceReport: {
-            generatedAt: (_b = sourceReport.generatedAt) !== null && _b !== void 0 ? _b : null,
-            scanPaths: relativizeScanPathsForExport(sourceReport.scanPaths, assessment.projectRoot, projectLabel),
-            duplicateGroups: (_c = sourceReport.duplicateGroups) !== null && _c !== void 0 ? _c : null,
+            generatedAt:
+              (_b = sourceReport.generatedAt) !== null && _b !== void 0
+                ? _b
+                : null,
+            scanPaths: relativizeScanPathsForExport(
+              sourceReport.scanPaths,
+              assessment.projectRoot,
+              projectLabel,
+            ),
+            duplicateGroups:
+              (_c = sourceReport.duplicateGroups) !== null && _c !== void 0
+                ? _c
+                : null,
           },
         }
       : {}),
@@ -730,19 +886,32 @@ function sanitizeEmbeddedMainReportExport(embedded, projectLabel) {
   var _a, _b, _c, _d, _e, _f, _g, _h, _j;
   if (!embedded) return null;
   const docSplit = splitDocumentationPaths(
-    ((_a = embedded.summary) === null || _a === void 0 ? void 0 : _a.documentationFound) || []
+    ((_a = embedded.summary) === null || _a === void 0
+      ? void 0
+      : _a.documentationFound) || [],
   );
   return {
-    generatedAt: (_b = embedded.generatedAt) !== null && _b !== void 0 ? _b : null,
+    generatedAt:
+      (_b = embedded.generatedAt) !== null && _b !== void 0 ? _b : null,
     projectRoot: redactProjectPathForExport(embedded.projectRoot, projectLabel),
-    euAiActScanned: (_c = embedded.euAiActScanned) !== null && _c !== void 0 ? _c : null,
-    euAiActFindings: (_d = embedded.euAiActFindings) !== null && _d !== void 0 ? _d : null,
+    euAiActScanned:
+      (_c = embedded.euAiActScanned) !== null && _c !== void 0 ? _c : null,
+    euAiActFindings:
+      (_d = embedded.euAiActFindings) !== null && _d !== void 0 ? _d : null,
     gatePass: (_e = embedded.gatePass) !== null && _e !== void 0 ? _e : null,
-    credentialFindings: (_f = embedded.credentialFindings) !== null && _f !== void 0 ? _f : null,
-    credentialScanned: (_g = embedded.credentialScanned) !== null && _g !== void 0 ? _g : null,
-    productionLeakFindings: (_h = embedded.productionLeakFindings) !== null && _h !== void 0 ? _h : null,
-    productionLeakScanned: (_j = embedded.productionLeakScanned) !== null && _j !== void 0 ? _j : null,
-    provenance: 'live-gate-scan',
+    credentialFindings:
+      (_f = embedded.credentialFindings) !== null && _f !== void 0 ? _f : null,
+    credentialScanned:
+      (_g = embedded.credentialScanned) !== null && _g !== void 0 ? _g : null,
+    productionLeakFindings:
+      (_h = embedded.productionLeakFindings) !== null && _h !== void 0
+        ? _h
+        : null,
+    productionLeakScanned:
+      (_j = embedded.productionLeakScanned) !== null && _j !== void 0
+        ? _j
+        : null,
+    provenance: "live-gate-scan",
     summary: {
       ...(embedded.summary || {}),
       ...docSplit,
@@ -768,27 +937,39 @@ function sanitizeSprintReportExport(sprintReport, projectLabel) {
  */
 export function buildEuAiActSummary(bundle = {}) {
   var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
-  if (!bundle || typeof bundle !== 'object') return {};
+  if (!bundle || typeof bundle !== "object") return {};
   const compliance = bundle.compliance;
   const assessment = bundle.assessment;
   const embedded = bundle.embeddedInMainReport;
   const summary =
-    (compliance === null || compliance === void 0 ? void 0 : compliance.summary) ||
-    (assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) ||
+    (compliance === null || compliance === void 0
+      ? void 0
+      : compliance.summary) ||
+    (assessment === null || assessment === void 0
+      ? void 0
+      : assessment.executiveSummary) ||
     {};
   const freshMetrics = resolveFreshEuAiActMetrics(bundle);
   const projectLabel = resolveProjectLabel(bundle);
   const gateResult = resolveGateResult(bundle);
   const sprintGateResult = resolveSprintGateResult(bundle, assessment);
   const mainReportGatePass =
-    (_a = embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) !== null && _a !== void 0 ? _a : null;
+    (_a =
+      embedded === null || embedded === void 0 ? void 0 : embedded.gatePass) !==
+      null && _a !== void 0
+      ? _a
+      : null;
   const filesScannedNote = buildFilesScannedNote(assessment);
   const liveGatePreferred = isLiveGatePreferred(bundle);
   return {
-    checklistPassed: (_b = summary.passed) !== null && _b !== void 0 ? _b : null,
+    checklistPassed:
+      (_b = summary.passed) !== null && _b !== void 0 ? _b : null,
     checklistTotal: (_c = summary.total) !== null && _c !== void 0 ? _c : null,
     readinessScore:
-      (_e = (_d = summary.score) !== null && _d !== void 0 ? _d : summary.complianceScore) !== null && _e !== void 0
+      (_e =
+        (_d = summary.score) !== null && _d !== void 0
+          ? _d
+          : summary.complianceScore) !== null && _e !== void 0
         ? _e
         : null,
     checklistHeadline:
@@ -801,8 +982,10 @@ export function buildEuAiActSummary(bundle = {}) {
         ? _g
         : null,
     checklistReconciledFrom:
-      (_h = compliance === null || compliance === void 0 ? void 0 : compliance.gateReconciledFrom) !== null &&
-      _h !== void 0
+      (_h =
+        compliance === null || compliance === void 0
+          ? void 0
+          : compliance.gateReconciledFrom) !== null && _h !== void 0
         ? _h
         : null,
     gateResult,
@@ -811,11 +994,13 @@ export function buildEuAiActSummary(bundle = {}) {
     gateMismatch:
       mainReportGatePass != null &&
       sprintGateResult != null &&
-      ((mainReportGatePass === false && sprintGateResult === 'PASS') ||
-        (mainReportGatePass === true && sprintGateResult === 'FAIL')),
+      ((mainReportGatePass === false && sprintGateResult === "PASS") ||
+        (mainReportGatePass === true && sprintGateResult === "FAIL")),
     gateMismatchNote:
-      liveGatePreferred && mainReportGatePass != null && sprintGateResult === 'FAIL'
-        ? 'Sprint artifacts still record gate FAIL — summary gateResult and GATE-001 use live report.json.'
+      liveGatePreferred &&
+      mainReportGatePass != null &&
+      sprintGateResult === "FAIL"
+        ? "Sprint artifacts still record gate FAIL — summary gateResult and GATE-001 use live report.json."
         : null,
     aiSystemIndicators: freshMetrics.aiSystemIndicators,
     highRiskIndicators: freshMetrics.highRiskIndicators,
@@ -823,14 +1008,17 @@ export function buildEuAiActSummary(bundle = {}) {
     documentationArtifacts: freshMetrics.documentationArtifacts,
     euAiActScanned: freshMetrics.euAiActScanned,
     metricsSource: freshMetrics.metricsSource,
-    simplebeaconDocumentationArtifacts: freshMetrics.simplebeaconDocumentationArtifacts,
+    simplebeaconDocumentationArtifacts:
+      freshMetrics.simplebeaconDocumentationArtifacts,
     operatorDocumentationCount: freshMetrics.operatorDocumentationCount,
     hasData: bundle.hasData === true,
     evaluatedAt:
       (_l =
         (_k =
-          (_j = compliance === null || compliance === void 0 ? void 0 : compliance.evaluatedAt) !== null &&
-          _j !== void 0
+          (_j =
+            compliance === null || compliance === void 0
+              ? void 0
+              : compliance.evaluatedAt) !== null && _j !== void 0
             ? _j
             : assessment === null || assessment === void 0
               ? void 0
@@ -842,14 +1030,19 @@ export function buildEuAiActSummary(bundle = {}) {
         ? _l
         : null,
     mainReportGeneratedAt:
-      (_m = embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt) !== null && _m !== void 0
+      (_m =
+        embedded === null || embedded === void 0
+          ? void 0
+          : embedded.generatedAt) !== null && _m !== void 0
         ? _m
         : null,
     projectRoot: redactProjectPathForExport(
       (_r =
         (_p =
-          (_o = compliance === null || compliance === void 0 ? void 0 : compliance.projectRoot) !== null &&
-          _o !== void 0
+          (_o =
+            compliance === null || compliance === void 0
+              ? void 0
+              : compliance.projectRoot) !== null && _o !== void 0
             ? _o
             : assessment === null || assessment === void 0
               ? void 0
@@ -862,18 +1055,23 @@ export function buildEuAiActSummary(bundle = {}) {
         : embedded === null || embedded === void 0
           ? void 0
           : embedded.projectRoot,
-      projectLabel
+      projectLabel,
     ),
     freshnessNote: buildFreshnessNote(bundle),
     metricsStaleNote: freshMetrics.metricsStaleNote,
     ...(filesScannedNote ? { filesScannedNote } : {}),
     ...((
-      (_s = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) === null ||
-      _s === void 0
+      (_s =
+        assessment === null || assessment === void 0
+          ? void 0
+          : assessment.executiveSummary) === null || _s === void 0
         ? void 0
         : _s.executiveSummaryNote
     )
-      ? { executiveSummaryNote: assessment.executiveSummary.executiveSummaryNote }
+      ? {
+          executiveSummaryNote:
+            assessment.executiveSummary.executiveSummaryNote,
+        }
       : {}),
   };
 }
@@ -884,10 +1082,12 @@ export function buildEuAiActSummary(bundle = {}) {
  */
 function buildExportProvenance(bundle = {}) {
   return {
-    compliance: bundle.compliance ? 'eu-ai-act-sprint-artifact' : 'missing',
-    assessment: bundle.assessment ? 'eu-ai-act-sprint-artifact' : 'missing',
-    sprintReport: bundle.sprintReport ? 'eu-ai-act-sprint-artifact' : 'missing',
-    embeddedInMainReport: bundle.embeddedInMainReport ? 'live-gate-scan' : 'missing',
+    compliance: bundle.compliance ? "eu-ai-act-sprint-artifact" : "missing",
+    assessment: bundle.assessment ? "eu-ai-act-sprint-artifact" : "missing",
+    sprintReport: bundle.sprintReport ? "eu-ai-act-sprint-artifact" : "missing",
+    embeddedInMainReport: bundle.embeddedInMainReport
+      ? "live-gate-scan"
+      : "missing",
   };
 }
 /**
@@ -899,8 +1099,10 @@ function buildExportProvenance(bundle = {}) {
 function syncAssessmentEuMetrics(assessment, summary) {
   var _a, _b, _c, _d;
   if (
-    !(assessment === null || assessment === void 0 ? void 0 : assessment.euAiActSummary) ||
-    summary.metricsSource !== 'live-gate-scan'
+    !(assessment === null || assessment === void 0
+      ? void 0
+      : assessment.euAiActSummary) ||
+    summary.metricsSource !== "live-gate-scan"
   )
     return assessment;
   return {
@@ -908,11 +1110,17 @@ function syncAssessmentEuMetrics(assessment, summary) {
     euAiActSummary: {
       ...assessment.euAiActSummary,
       aiSystemIndicators:
-        (_a = summary.aiSystemIndicators) !== null && _a !== void 0 ? _a : assessment.euAiActSummary.aiSystemIndicators,
+        (_a = summary.aiSystemIndicators) !== null && _a !== void 0
+          ? _a
+          : assessment.euAiActSummary.aiSystemIndicators,
       highRiskIndicators:
-        (_b = summary.highRiskIndicators) !== null && _b !== void 0 ? _b : assessment.euAiActSummary.highRiskIndicators,
+        (_b = summary.highRiskIndicators) !== null && _b !== void 0
+          ? _b
+          : assessment.euAiActSummary.highRiskIndicators,
       transparencyGaps:
-        (_c = summary.transparencyGaps) !== null && _c !== void 0 ? _c : assessment.euAiActSummary.transparencyGaps,
+        (_c = summary.transparencyGaps) !== null && _c !== void 0
+          ? _c
+          : assessment.euAiActSummary.transparencyGaps,
       documentationArtifacts:
         (_d = summary.documentationArtifacts) !== null && _d !== void 0
           ? _d
@@ -931,7 +1139,7 @@ function sanitizeClassificationExport(classification, _projectLabel) {
   const reviewer = classification.legalReviewer || {};
   return {
     systemName: classification.systemName || null,
-    riskTier: classification.riskTier || 'unclassified',
+    riskTier: classification.riskTier || "unclassified",
     role: classification.role || null,
     annexIIIAreas: classification.annexIIIAreas || [],
     rationale: classification.rationale || null,
@@ -943,7 +1151,8 @@ function sanitizeClassificationExport(classification, _projectLabel) {
     },
     disclaimerAccepted: classification.disclaimerAccepted === true,
     updatedAt: classification.updatedAt || null,
-    disclaimer: 'Legal classification record — independent counsel review required; not conformity certification.',
+    disclaimer:
+      "Legal classification record — independent counsel review required; not conformity certification.",
   };
 }
 /**
@@ -952,7 +1161,8 @@ function sanitizeClassificationExport(classification, _projectLabel) {
  * @returns {any}
  */
 function sanitizeLegalAttestationExport(attestation) {
-  if (!attestation || attestation.status !== 'legal_review_complete') return null;
+  if (!attestation || attestation.status !== "legal_review_complete")
+    return null;
   return {
     status: attestation.status,
     approver_name: attestation.approver_name || null,
@@ -973,14 +1183,17 @@ function sanitizeLegalAttestationExport(attestation) {
  */
 export function buildEuAiActExportBundle(bundle = {}) {
   var _a, _b, _c, _d, _e;
-  if (!bundle || typeof bundle !== 'object') return {};
+  if (!bundle || typeof bundle !== "object") return {};
   const reconciled = applyExportReconciliation(bundle);
   const projectLabel = resolveProjectLabel(reconciled);
   const summary = buildEuAiActSummary(reconciled);
-  const assessmentForExport = syncAssessmentEuMetrics(reconciled.assessment, summary);
+  const assessmentForExport = syncAssessmentEuMetrics(
+    reconciled.assessment,
+    summary,
+  );
   const exportEligibility = bundle.exportEligibility || {
     eligible: false,
-    errors: [{ message: 'Refresh EU compliance page before export' }],
+    errors: [{ message: "Refresh EU compliance page before export" }],
   };
   const exportNotes = dedupeExportNotes([
     summary.freshnessNote,
@@ -988,43 +1201,54 @@ export function buildEuAiActExportBundle(bundle = {}) {
     summary.filesScannedNote,
     summary.executiveSummaryNote,
     summary.gateMismatchNote,
-    summary.checklistReconciledFrom === 'live-gate-scan'
-      ? 'GATE-001, CRED-001, and LEAK-001 reconciled from live report.json when sprint artifacts are stale — re-run EU sprint to refresh stored compliance.json.'
+    summary.checklistReconciledFrom === "live-gate-scan"
+      ? "GATE-001, CRED-001, and LEAK-001 reconciled from live report.json when sprint artifacts are stale — re-run EU sprint to refresh stored compliance.json."
       : null,
-    summary.metricsSource === 'live-gate-scan' && summary.simplebeaconDocumentationArtifacts
+    summary.metricsSource === "live-gate-scan" &&
+    summary.simplebeaconDocumentationArtifacts
       ? `${summary.simplebeaconDocumentationArtifacts} documentation path(s) under .simplebeacon/ are scan artifacts — prefer docs/ for operator handoff packs.`
       : null,
     !exportEligibility.eligible &&
-    ((_b = (_a = exportEligibility.errors) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0
+    ((_b =
+      (_a = exportEligibility.errors) === null || _a === void 0
+        ? void 0
+        : _a[0]) === null || _b === void 0
       ? void 0
       : _b.message)
       ? `Export blocked: ${exportEligibility.errors[0].message}`
       : null,
   ]);
-  const classificationExport = sanitizeClassificationExport(reconciled.classification, projectLabel);
-  const legalAttestationExport = sanitizeLegalAttestationExport(reconciled.legalAttestation);
+  const classificationExport = sanitizeClassificationExport(
+    reconciled.classification,
+    projectLabel,
+  );
+  const legalAttestationExport = sanitizeLegalAttestationExport(
+    reconciled.legalAttestation,
+  );
   return {
-    type: 'simplebeacon-eu-ai-act-export',
-    version: '1.2.0',
-    exportVersion: '1.2.0',
-    generatedBy: 'SimpleBeacon',
-    title: 'SimpleBeacon EU AI Act Export',
+    type: "simplebeacon-eu-ai-act-export",
+    version: "1.2.0",
+    exportVersion: "1.2.0",
+    generatedBy: "SimpleBeacon",
+    title: "SimpleBeacon EU AI Act Export",
     generatedAt: new Date().toISOString(),
     disclaimer:
       bundle.disclaimer ||
-      'Static technical readiness signals — not legal conformity certification under Regulation (EU) 2024/1689.',
+      "Static technical readiness signals — not legal conformity certification under Regulation (EU) 2024/1689.",
     disclaimers: [
-      'EU AI Act export bundles sprint artifacts plus embedded gate-scan metrics — not legal conformity certification.',
-      'When main report.json is newer than sprint artifacts, gateResult and EU indicator counts follow the latest gate scan.',
-      'assessment.complianceChecklist is omitted from exports — use top-level compliance rules.',
-      'Absolute host paths are redacted to project label; prefer docs/ paths for operator handoff packs.',
-      'assessment.executiveSummary.filesScanned counts mock/sample JSON under configured scan paths only.',
-      'Client-facing export requires fresh sprint, legal classification (EUAI-000), and legal_review_complete attestation.',
+      "EU AI Act export bundles sprint artifacts plus embedded gate-scan metrics — not legal conformity certification.",
+      "When main report.json is newer than sprint artifacts, gateResult and EU indicator counts follow the latest gate scan.",
+      "assessment.complianceChecklist is omitted from exports — use top-level compliance rules.",
+      "Absolute host paths are redacted to project label; prefer docs/ paths for operator handoff packs.",
+      "assessment.executiveSummary.filesScanned counts mock/sample JSON under configured scan paths only.",
+      "Client-facing export requires fresh sprint, legal classification (EUAI-000), and legal_review_complete attestation.",
     ],
     summary: {
       ...summary,
       operatorDocumentationCount:
-        (_c = summary.operatorDocumentationCount) !== null && _c !== void 0 ? _c : summary.documentationArtifacts,
+        (_c = summary.operatorDocumentationCount) !== null && _c !== void 0
+          ? _c
+          : summary.documentationArtifacts,
       exportEligible: exportEligibility.eligible,
       legalHandoffEligible: exportEligibility.legalHandoffEligible,
     },
@@ -1036,8 +1260,14 @@ export function buildEuAiActExportBundle(bundle = {}) {
     generateCommands: bundle.generateCommands || [],
     compliance: sanitizeComplianceExport(reconciled.compliance, projectLabel),
     assessment: sanitizeAssessmentExport(assessmentForExport, projectLabel),
-    sprintReport: sanitizeSprintReportExport(reconciled.sprintReport, projectLabel),
-    embeddedInMainReport: sanitizeEmbeddedMainReportExport(reconciled.embeddedInMainReport, projectLabel),
+    sprintReport: sanitizeSprintReportExport(
+      reconciled.sprintReport,
+      projectLabel,
+    ),
+    embeddedInMainReport: sanitizeEmbeddedMainReportExport(
+      reconciled.embeddedInMainReport,
+      projectLabel,
+    ),
     bundleGeneratedAt: bundle.generatedAt || null,
     exportSanitized: true,
     handoffEligible: false,
@@ -1049,14 +1279,18 @@ export function buildEuAiActExportBundle(bundle = {}) {
       aiSystemIndicators: summary.aiSystemIndicators,
       highRiskIndicators: summary.highRiskIndicators,
       documentationArtifacts:
-        (_d = summary.operatorDocumentationCount) !== null && _d !== void 0 ? _d : summary.documentationArtifacts,
+        (_d = summary.operatorDocumentationCount) !== null && _d !== void 0
+          ? _d
+          : summary.documentationArtifacts,
       operatorDocumentationCount:
-        (_e = summary.operatorDocumentationCount) !== null && _e !== void 0 ? _e : summary.documentationArtifacts,
+        (_e = summary.operatorDocumentationCount) !== null && _e !== void 0
+          ? _e
+          : summary.documentationArtifacts,
       metricsSource: summary.metricsSource,
       exportEligible: exportEligibility.eligible,
       attestationNote: exportEligibility.eligible
-        ? 'EU AI Act export includes classification and legal_review_complete attestation — still not legal conformity certification.'
-        : 'EU AI Act technical readiness export — not legal conformity certification or vendor handoff clearance.',
+        ? "EU AI Act export includes classification and legal_review_complete attestation — still not legal conformity certification."
+        : "EU AI Act technical readiness export — not legal conformity certification or vendor handoff clearance.",
     },
     exportNotes,
   };
@@ -1067,9 +1301,9 @@ export function buildEuAiActExportBundle(bundle = {}) {
  */
 function defaultSprintRelativeArtifacts() {
   return {
-    report: '.simplebeacon/eu-ai-act-report.json',
-    compliance: '.simplebeacon/eu-ai-act-compliance.json',
-    assessment: '.simplebeacon/eu-ai-act-assessment.json',
+    report: ".simplebeacon/eu-ai-act-report.json",
+    compliance: ".simplebeacon/eu-ai-act-compliance.json",
+    assessment: ".simplebeacon/eu-ai-act-assessment.json",
   };
 }
 /**
@@ -1084,24 +1318,32 @@ function resolveSprintGateContext(sprint = {}, options = {}) {
     options.repositoryFilesTotal,
     options.gateRepositoryFilesTotal,
     gateReport.repositoryFilesTotal,
-    deepGet(gateReport, ['repositoryInventory', 'totalFiles']),
-    deepGet(sprint, ['hygieneSummary', 'gateRepositoryFilesTotal']),
-    deepGet(sprint, ['report', 'hygieneSummary', 'gateRepositoryFilesTotal'])
+    deepGet(gateReport, ["repositoryInventory", "totalFiles"]),
+    deepGet(sprint, ["hygieneSummary", "gateRepositoryFilesTotal"]),
+    deepGet(sprint, ["report", "hygieneSummary", "gateRepositoryFilesTotal"]),
   );
   const credentialScanned = pick(
     gateReport.credentialScanned,
     gateReport.productionLeakScanned,
-    deepGet(gateReport, ['scanScope', 'productionDirsScanned']),
-    deepGet(sprint, ['hygieneSummary', 'gateContentFilesScanned']),
-    deepGet(sprint, ['report', 'hygieneSummary', 'contentFilesScanned'])
+    deepGet(gateReport, ["scanScope", "productionDirsScanned"]),
+    deepGet(sprint, ["hygieneSummary", "gateContentFilesScanned"]),
+    deepGet(sprint, ["report", "hygieneSummary", "contentFilesScanned"]),
   );
   const gateProfile = pick(
-    deepGet(gateReport, ['scanScope', 'profile']),
-    deepGet(sprint, ['report', 'scanScope', 'profile']),
-    deepGet(sprint, ['report', 'scanScope', 'gateRuleBundleProfile']),
-    deepGet(sprint, ['complianceChecklist', 'scanScope', 'gateRuleBundleProfile']),
-    deepGet(sprint, ['complianceChecklist', 'hygieneSummary', 'gateRuleBundleProfile']),
-    deepGet(sprint, ['hygieneSummary', 'gateRuleBundleProfile'])
+    deepGet(gateReport, ["scanScope", "profile"]),
+    deepGet(sprint, ["report", "scanScope", "profile"]),
+    deepGet(sprint, ["report", "scanScope", "gateRuleBundleProfile"]),
+    deepGet(sprint, [
+      "complianceChecklist",
+      "scanScope",
+      "gateRuleBundleProfile",
+    ]),
+    deepGet(sprint, [
+      "complianceChecklist",
+      "hygieneSummary",
+      "gateRuleBundleProfile",
+    ]),
+    deepGet(sprint, ["hygieneSummary", "gateRuleBundleProfile"]),
   );
   return {
     gateReport,
@@ -1110,14 +1352,14 @@ function resolveSprintGateContext(sprint = {}, options = {}) {
     gateProfile,
     fictionJsonFilesScanned: pick(
       gateReport.fictionJsonFilesScanned,
-      deepGet(gateReport, ['scanScope', 'fictionJsonFilesScanned']),
-      deepGet(sprint, ['hygieneSummary', 'gateFictionJsonFilesScanned'])
+      deepGet(gateReport, ["scanScope", "fictionJsonFilesScanned"]),
+      deepGet(sprint, ["hygieneSummary", "gateFictionJsonFilesScanned"]),
     ),
     fictionSampleFilesScanned: pick(
       gateReport.fictionSampleFilesScanned,
       gateReport.mockSampleFiles,
-      deepGet(gateReport, ['scanScope', 'fictionSampleFilesScanned']),
-      deepGet(sprint, ['hygieneSummary', 'fictionSampleFilesScanned'])
+      deepGet(gateReport, ["scanScope", "fictionSampleFilesScanned"]),
+      deepGet(sprint, ["hygieneSummary", "fictionSampleFilesScanned"]),
     ),
   };
 }
@@ -1163,17 +1405,20 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
     _8,
     _9;
   const notes = [
-    'EU AI Act sprint artifact — technical readiness only, not legal conformity certification.',
-    'securityHandoffEligible is false — SimpleBeacon vendor handoff requires separate Complete scan attestation.',
-    'Absolute scan paths are redacted to project label in operator exports.',
+    "EU AI Act sprint artifact — technical readiness only, not legal conformity certification.",
+    "securityHandoffEligible is false — SimpleBeacon vendor handoff requires separate Complete scan attestation.",
+    "Absolute scan paths are redacted to project label in operator exports.",
   ];
   if (
-    ((_b = (_a = sprint.complianceChecklist) === null || _a === void 0 ? void 0 : _a.summary) === null || _b === void 0
+    ((_b =
+      (_a = sprint.complianceChecklist) === null || _a === void 0
+        ? void 0
+        : _a.summary) === null || _b === void 0
       ? void 0
       : _b.legalHandoffEligible) === true
   ) {
     notes.push(
-      'legalHandoffEligible reflects EU technical rule rows — EUAI-000 classification sign-off still required before client legal handoff.'
+      "legalHandoffEligible reflects EU technical rule rows — EUAI-000 classification sign-off still required before client legal handoff.",
     );
   }
   const gateContext = resolveSprintGateContext(sprint, options);
@@ -1187,103 +1432,153 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
   } = gateContext;
   const sprintRepo =
     (_g =
-      (_d = (_c = sprint.report) === null || _c === void 0 ? void 0 : _c.repositoryFilesTotal) !== null && _d !== void 0
+      (_d =
+        (_c = sprint.report) === null || _c === void 0
+          ? void 0
+          : _c.repositoryFilesTotal) !== null && _d !== void 0
         ? _d
-        : (_f = (_e = sprint.report) === null || _e === void 0 ? void 0 : _e.repositoryInventory) === null ||
-            _f === void 0
+        : (_f =
+              (_e = sprint.report) === null || _e === void 0
+                ? void 0
+                : _e.repositoryInventory) === null || _f === void 0
           ? void 0
           : _f.totalFiles) !== null && _g !== void 0
       ? _g
       : null;
   if (gateTotal != null && sprintRepo != null && gateTotal > sprintRepo) {
     notes.push(
-      `EU sprint inventory ${Number(sprintRepo).toLocaleString()} files (audit profile) — Complete scan gate full-tree inventory is ${Number(gateTotal).toLocaleString()} paths.`
+      `EU sprint inventory ${Number(sprintRepo).toLocaleString()} files (audit profile) — Complete scan gate full-tree inventory is ${Number(gateTotal).toLocaleString()} paths.`,
     );
   }
-  if (gateTotal != null && credentialScanned != null && credentialScanned < gateTotal) {
+  if (
+    gateTotal != null &&
+    credentialScanned != null &&
+    credentialScanned < gateTotal
+  ) {
     notes.push(
-      `Gate content-scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(gateTotal).toLocaleString()}.`
+      `Gate content-scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(gateTotal).toLocaleString()}.`,
     );
   }
   const ruleScoped =
     (_m =
-      (_j = (_h = sprint.report) === null || _h === void 0 ? void 0 : _h.ruleScopedFilesAnalyzed) !== null &&
-      _j !== void 0
+      (_j =
+        (_h = sprint.report) === null || _h === void 0
+          ? void 0
+          : _h.ruleScopedFilesAnalyzed) !== null && _j !== void 0
         ? _j
-        : (_l = (_k = sprint.report) === null || _k === void 0 ? void 0 : _k.scanScope) === null || _l === void 0
+        : (_l =
+              (_k = sprint.report) === null || _k === void 0
+                ? void 0
+                : _k.scanScope) === null || _l === void 0
           ? void 0
           : _l.ruleScopedFilesAnalyzed) !== null && _m !== void 0
       ? _m
       : null;
   const sprintProfile =
     (_q =
-      (_p = (_o = sprint.report) === null || _o === void 0 ? void 0 : _o.scanScope) === null || _p === void 0
+      (_p =
+        (_o = sprint.report) === null || _o === void 0
+          ? void 0
+          : _o.scanScope) === null || _p === void 0
         ? void 0
         : _p.profile) !== null && _q !== void 0
       ? _q
       : gateProfile;
-  if (sprintProfile === 'eu-ai-act' && ruleScoped != null) {
+  if (sprintProfile === "eu-ai-act" && ruleScoped != null) {
     notes.push(
-      `EU AI Act sprint gate checked ${Number(ruleScoped).toLocaleString()} rule-scoped paths — narrower scope than full-platform gate when run standalone.`
+      `EU AI Act sprint gate checked ${Number(ruleScoped).toLocaleString()} rule-scoped paths — narrower scope than full-platform gate when run standalone.`,
     );
   }
   const sprintFiction =
-    (_s = (_r = sprint.report) === null || _r === void 0 ? void 0 : _r.fictionJsonFilesScanned) !== null &&
-    _s !== void 0
+    (_s =
+      (_r = sprint.report) === null || _r === void 0
+        ? void 0
+        : _r.fictionJsonFilesScanned) !== null && _s !== void 0
       ? _s
-      : (_u = (_t = sprint.report) === null || _t === void 0 ? void 0 : _t.scanScope) === null || _u === void 0
+      : (_u =
+            (_t = sprint.report) === null || _t === void 0
+              ? void 0
+              : _t.scanScope) === null || _u === void 0
         ? void 0
         : _u.fictionJsonFilesScanned;
-  if (sprintFiction != null && gateFiction != null && fictionSamples != null && sprintFiction !== gateFiction) {
+  if (
+    sprintFiction != null &&
+    gateFiction != null &&
+    fictionSamples != null &&
+    sprintFiction !== gateFiction
+  ) {
     notes.push(
       // simplebeacon:production-leak-intent - legitimate KPI reference for EU AI Act reporting
-      `Sprint fiction KPI rules evaluated ${Number(sprintFiction).toLocaleString()} repository JSON path(s) — Complete scan gate evaluated ${Number(gateFiction).toLocaleString()} with ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`
+      `Sprint fiction KPI rules evaluated ${Number(sprintFiction).toLocaleString()} repository JSON path(s) — Complete scan gate evaluated ${Number(gateFiction).toLocaleString()} with ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`,
     );
   }
   const nonDocs =
-    (_w = (_v = sprint.report) === null || _v === void 0 ? void 0 : _v.euAiActSummary) === null || _w === void 0
+    (_w =
+      (_v = sprint.report) === null || _v === void 0
+        ? void 0
+        : _v.euAiActSummary) === null || _w === void 0
       ? void 0
       : _w.scanMatchedNonDocsCount;
   if (nonDocs != null && nonDocs > 0) {
     notes.push(
-      `${Number(nonDocs).toLocaleString()} EU AI Act scan pattern match(es) outside docs/ (e.g. package.json) — not operator handoff documentation.`
+      `${Number(nonDocs).toLocaleString()} EU AI Act scan pattern match(es) outside docs/ (e.g. package.json) — not operator handoff documentation.`,
     );
   }
-  const suppressed = (_x = sprint.report) === null || _x === void 0 ? void 0 : _x.productionLeakSuppressedIntent;
+  const suppressed =
+    (_x = sprint.report) === null || _x === void 0
+      ? void 0
+      : _x.productionLeakSuppressedIntent;
   if (
     suppressed != null &&
     suppressed > 0 &&
-    ((_z = (_y = sprint.report) === null || _y === void 0 ? void 0 : _y.productionLeakFindings) !== null &&
-    _z !== void 0
+    ((_z =
+      (_y = sprint.report) === null || _y === void 0
+        ? void 0
+        : _y.productionLeakFindings) !== null && _z !== void 0
       ? _z
       : 0) === 0
   ) {
     notes.push(
-      `${Number(suppressed).toLocaleString()} production-leak pattern hit(s) suppressed as intentional — blocking productionLeakFindings is 0.`
+      `${Number(suppressed).toLocaleString()} production-leak pattern hit(s) suppressed as intentional — blocking productionLeakFindings is 0.`,
     );
   }
   if (
-    (_1 = (_0 = sprint.assessment) === null || _0 === void 0 ? void 0 : _0.pilotProposal) === null || _1 === void 0
+    (_1 =
+      (_0 = sprint.assessment) === null || _0 === void 0
+        ? void 0
+        : _0.pilotProposal) === null || _1 === void 0
       ? void 0
       : _1.pricePlaceholder
   ) {
-    notes.push('assessment.pilotProposal pricing is a template range — not a binding quote in operator vault exports.');
+    notes.push(
+      "assessment.pilotProposal pricing is a template range — not a binding quote in operator vault exports.",
+    );
   }
   if (gateProfile) {
     notes.push(
-      `Gate rule bundle profile: ${gateProfile} — pair sprint export with json/simplebeacon-gate.json for full-tree handoff evidence.`
+      `Gate rule bundle profile: ${gateProfile} — pair sprint export with json/simplebeacon-gate.json for full-tree handoff evidence.`,
     );
   }
   if (
-    ((_2 = sprint.gate) === null || _2 === void 0 ? void 0 : _2.pass) === false ||
-    ((_3 = sprint.complianceChecklist) === null || _3 === void 0 ? void 0 : _3.complianceStatus) === 'failed'
+    ((_2 = sprint.gate) === null || _2 === void 0 ? void 0 : _2.pass) ===
+      false ||
+    ((_3 = sprint.complianceChecklist) === null || _3 === void 0
+      ? void 0
+      : _3.complianceStatus) === "failed"
   ) {
-    const failedIds = (((_4 = sprint.complianceChecklist) === null || _4 === void 0 ? void 0 : _4.rules) || [])
-      .filter((rule) => rule.status === 'fail')
+    const failedIds = (
+      ((_4 = sprint.complianceChecklist) === null || _4 === void 0
+        ? void 0
+        : _4.rules) || []
+    )
+      .filter((rule) => rule.status === "fail")
       .map((rule) => rule.id);
     const blocking =
       (_8 =
-        (_6 = (_5 = sprint.gate) === null || _5 === void 0 ? void 0 : _5.blockingCount) !== null && _6 !== void 0
+        (_6 =
+          (_5 = sprint.gate) === null || _5 === void 0
+            ? void 0
+            : _5.blockingCount) !== null && _6 !== void 0
           ? _6
           : (_7 = gateReport.gate) === null || _7 === void 0
             ? void 0
@@ -1292,13 +1587,16 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
         : null;
     if (failedIds.length) {
       notes.push(
-        `Checklist failures (${failedIds.join(', ')}) align with sprint gate (pass=false${blocking != null ? `, ${Number(blocking).toLocaleString()} blocking finding(s)` : ''}) — see json/simplebeacon-gate.json.`
+        `Checklist failures (${failedIds.join(", ")}) align with sprint gate (pass=false${blocking != null ? `, ${Number(blocking).toLocaleString()} blocking finding(s)` : ""}) — see json/simplebeacon-gate.json.`,
       );
     }
   }
-  const reportNotes = (_9 = sprint.report) === null || _9 === void 0 ? void 0 : _9.exportNotes;
+  const reportNotes =
+    (_9 = sprint.report) === null || _9 === void 0 ? void 0 : _9.exportNotes;
   if (Array.isArray(reportNotes)) {
-    const jestNote = reportNotes.find((n) => /Jest was not run/i.test(String(n)));
+    const jestNote = reportNotes.find((n) =>
+      /Jest was not run/i.test(String(n)),
+    );
     if (jestNote) notes.push(jestNote);
   }
   return [...new Set(notes)].slice(0, 14);
@@ -1360,7 +1658,10 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
     _23,
     _24,
     _25;
-  const checklist = ((_a = sprint.complianceChecklist) === null || _a === void 0 ? void 0 : _a.summary) || {};
+  const checklist =
+    ((_a = sprint.complianceChecklist) === null || _a === void 0
+      ? void 0
+      : _a.summary) || {};
   const gateContext = resolveSprintGateContext(sprint, options);
   const {
     repositoryFilesTotal: gateTotal,
@@ -1372,30 +1673,45 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
   } = gateContext;
   const sprintRepo =
     (_f =
-      (_c = (_b = sprint.report) === null || _b === void 0 ? void 0 : _b.repositoryFilesTotal) !== null && _c !== void 0
+      (_c =
+        (_b = sprint.report) === null || _b === void 0
+          ? void 0
+          : _b.repositoryFilesTotal) !== null && _c !== void 0
         ? _c
-        : (_e = (_d = sprint.report) === null || _d === void 0 ? void 0 : _d.repositoryInventory) === null ||
-            _e === void 0
+        : (_e =
+              (_d = sprint.report) === null || _d === void 0
+                ? void 0
+                : _d.repositoryInventory) === null || _e === void 0
           ? void 0
           : _e.totalFiles) !== null && _f !== void 0
       ? _f
       : null;
   const ruleScoped =
     (_l =
-      (_h = (_g = sprint.report) === null || _g === void 0 ? void 0 : _g.ruleScopedFilesAnalyzed) !== null &&
-      _h !== void 0
+      (_h =
+        (_g = sprint.report) === null || _g === void 0
+          ? void 0
+          : _g.ruleScopedFilesAnalyzed) !== null && _h !== void 0
         ? _h
-        : (_k = (_j = sprint.report) === null || _j === void 0 ? void 0 : _j.scanScope) === null || _k === void 0
+        : (_k =
+              (_j = sprint.report) === null || _j === void 0
+                ? void 0
+                : _j.scanScope) === null || _k === void 0
           ? void 0
           : _k.ruleScopedFilesAnalyzed) !== null && _l !== void 0
       ? _l
       : null;
   const sprintFiction =
     (_r =
-      (_o = (_m = sprint.report) === null || _m === void 0 ? void 0 : _m.fictionJsonFilesScanned) !== null &&
-      _o !== void 0
+      (_o =
+        (_m = sprint.report) === null || _m === void 0
+          ? void 0
+          : _m.fictionJsonFilesScanned) !== null && _o !== void 0
         ? _o
-        : (_q = (_p = sprint.report) === null || _p === void 0 ? void 0 : _p.scanScope) === null || _q === void 0
+        : (_q =
+              (_p = sprint.report) === null || _p === void 0
+                ? void 0
+                : _p.scanScope) === null || _q === void 0
           ? void 0
           : _q.fictionJsonFilesScanned) !== null && _r !== void 0
       ? _r
@@ -1403,8 +1719,10 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
   const jestChecked =
     (_w =
       (_u =
-        (_t = (_s = sprint.report) === null || _s === void 0 ? void 0 : _s.jestBaselineChecked) !== null &&
-        _t !== void 0
+        (_t =
+          (_s = sprint.report) === null || _s === void 0
+            ? void 0
+            : _s.jestBaselineChecked) !== null && _t !== void 0
           ? _t
           : gateReport.jestBaselineChecked) !== null && _u !== void 0
         ? _u
@@ -1442,10 +1760,11 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
         ? _5
         : null,
     gateResult:
-      ((_6 = sprint.gate) === null || _6 === void 0 ? void 0 : _6.pass) === false
-        ? 'FAIL'
+      ((_6 = sprint.gate) === null || _6 === void 0 ? void 0 : _6.pass) ===
+      false
+        ? "FAIL"
         : ((_7 = sprint.gate) === null || _7 === void 0 ? void 0 : _7.pass)
-          ? 'PASS'
+          ? "PASS"
           : null,
     euPatternHits:
       (_10 =
@@ -1460,8 +1779,10 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
       (_14 =
         (_11 = checklist.operatorDocumentationCount) !== null && _11 !== void 0
           ? _11
-          : (_13 = (_12 = sprint.report) === null || _12 === void 0 ? void 0 : _12.euAiActSummary) === null ||
-              _13 === void 0
+          : (_13 =
+                (_12 = sprint.report) === null || _12 === void 0
+                  ? void 0
+                  : _12.euAiActSummary) === null || _13 === void 0
             ? void 0
             : _13.operatorDocumentationCount) !== null && _14 !== void 0
         ? _14
@@ -1469,44 +1790,60 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
     ruleScopedFilesAnalyzed: ruleScoped,
     euAiActScanned:
       (_19 =
-        (_16 = (_15 = sprint.report) === null || _15 === void 0 ? void 0 : _15.euAiActScanned) !== null &&
-        _16 !== void 0
+        (_16 =
+          (_15 = sprint.report) === null || _15 === void 0
+            ? void 0
+            : _15.euAiActScanned) !== null && _16 !== void 0
           ? _16
-          : (_18 = (_17 = sprint.report) === null || _17 === void 0 ? void 0 : _17.scanScope) === null || _18 === void 0
+          : (_18 =
+                (_17 = sprint.report) === null || _17 === void 0
+                  ? void 0
+                  : _17.scanScope) === null || _18 === void 0
             ? void 0
             : _18.euAiActFilesScanned) !== null && _19 !== void 0
         ? _19
         : null,
     scanMatchedNonDocsCount:
       (_22 =
-        (_21 = (_20 = sprint.report) === null || _20 === void 0 ? void 0 : _20.euAiActSummary) === null ||
-        _21 === void 0
+        (_21 =
+          (_20 = sprint.report) === null || _20 === void 0
+            ? void 0
+            : _20.euAiActSummary) === null || _21 === void 0
           ? void 0
           : _21.scanMatchedNonDocsCount) !== null && _22 !== void 0
         ? _22
         : null,
     productionLeakSuppressedIntent:
-      (_24 = (_23 = sprint.report) === null || _23 === void 0 ? void 0 : _23.productionLeakSuppressedIntent) !== null &&
-      _24 !== void 0
+      (_24 =
+        (_23 = sprint.report) === null || _23 === void 0
+          ? void 0
+          : _23.productionLeakSuppressedIntent) !== null && _24 !== void 0
         ? _24
         : null,
     sprintFictionJsonFilesScanned: sprintFiction,
     gateFictionJsonFilesScanned: gateFiction,
     fictionSampleFilesScanned: fictionSamples,
-    legalHandoffEligible: (_25 = checklist.legalHandoffEligible) !== null && _25 !== void 0 ? _25 : null,
+    legalHandoffEligible:
+      (_25 = checklist.legalHandoffEligible) !== null && _25 !== void 0
+        ? _25
+        : null,
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     ...(sprintRepo != null ? { sprintRepositoryFilesTotal: sprintRepo } : {}),
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
     ...(gateTotal != null && sprintRepo != null && gateTotal > sprintRepo
       ? { sprintInventoryNotInGate: gateTotal - sprintRepo }
       : {}),
-    ...(gateTotal != null && credentialScanned != null && gateTotal > credentialScanned
+    ...(gateTotal != null &&
+    credentialScanned != null &&
+    gateTotal > credentialScanned
       ? { gateMetadataOnlyFiles: gateTotal - credentialScanned }
       : {}),
-    ...(credentialScanned != null ? { gateContentFilesScanned: credentialScanned } : {}),
+    ...(credentialScanned != null
+      ? { gateContentFilesScanned: credentialScanned }
+      : {}),
     ...(jestChecked === false ? { jestBaselineChecked: false } : {}),
     attestationNote:
-      'EU AI Act sprint hygiene — technical readiness only, not legal conformity or vendor handoff clearance.',
+      "EU AI Act sprint hygiene — technical readiness only, not legal conformity or vendor handoff clearance.",
   };
 }
 /**
@@ -1518,7 +1855,9 @@ function reconcileEuAiActSprintReportLimitations(report) {
   var _a, _b, _c, _d, _e, _f, _g, _h;
   if (
     !((_b =
-      (_a = report === null || report === void 0 ? void 0 : report.scanScope) === null || _a === void 0
+      (_a =
+        report === null || report === void 0 ? void 0 : report.scanScope) ===
+        null || _a === void 0
         ? void 0
         : _a.limitations) === null || _b === void 0
       ? void 0
@@ -1544,7 +1883,10 @@ function reconcileEuAiActSprintReportLimitations(report) {
       ? _h
       : 0;
   const limitations = report.scanScope.limitations.map((note) => {
-    if (/source code \(0 files in server/i.test(String(note)) && prodScanned > 0) {
+    if (
+      /source code \(0 files in server/i.test(String(note)) &&
+      prodScanned > 0
+    ) {
       return `Fiction/KPI source-code rules scanned ${sourceFiction} file(s); production-leak rules scanned ${prodScanned} file(s) under server/, src/.`;
     }
     return note;
@@ -1568,11 +1910,13 @@ function reconcileEuAiActSprintReportLimitations(report) {
  */
 export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
   var _a, _b, _c, _d, _e, _f;
-  if (!sprint || typeof sprint !== 'object') return sprint;
+  if (!sprint || typeof sprint !== "object") return sprint;
   if (sprint.ok === false) return sprint;
-  const projectPath = options.projectPath || sprint.projectPath || sprint.platformRoot || '';
+  const projectPath =
+    options.projectPath || sprint.projectPath || sprint.platformRoot || "";
   const projectLabel = projectLabelFromPath(projectPath);
-  const relativeArtifacts = sprint.relativeArtifacts || defaultSprintRelativeArtifacts();
+  const relativeArtifacts =
+    sprint.relativeArtifacts || defaultSprintRelativeArtifacts();
   const gateReport = options.gateReport || null;
   const repositoryFilesTotal =
     (_d =
@@ -1583,8 +1927,10 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
             ? void 0
             : gateReport.repositoryFilesTotal) !== null && _b !== void 0
         ? _b
-        : (_c = gateReport === null || gateReport === void 0 ? void 0 : gateReport.repositoryInventory) === null ||
-            _c === void 0
+        : (_c =
+              gateReport === null || gateReport === void 0
+                ? void 0
+                : gateReport.repositoryInventory) === null || _c === void 0
           ? void 0
           : _c.totalFiles) !== null && _d !== void 0
       ? _d
@@ -1592,9 +1938,13 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
   const reportOptions = {
     projectPath,
     embeddedInEuAiActSprint: true,
-    ...(repositoryFilesTotal != null ? { repositoryFilesTotal, gateRepositoryFilesTotal: repositoryFilesTotal } : {}),
+    ...(repositoryFilesTotal != null
+      ? { repositoryFilesTotal, gateRepositoryFilesTotal: repositoryFilesTotal }
+      : {}),
   };
-  let report = sprint.report ? sanitizeSimplebeaconReportExport(sprint.report, reportOptions) : sprint.report;
+  let report = sprint.report
+    ? sanitizeSimplebeaconReportExport(sprint.report, reportOptions)
+    : sprint.report;
   if (report) {
     report = reconcileEuAiActSprintReportLimitations(report);
   }
@@ -1606,31 +1956,48 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
         operatorExport: true,
       })
     : sprint.complianceChecklist;
-  if (complianceChecklist === null || complianceChecklist === void 0 ? void 0 : complianceChecklist.projectRoot) {
+  if (
+    complianceChecklist === null || complianceChecklist === void 0
+      ? void 0
+      : complianceChecklist.projectRoot
+  ) {
     complianceChecklist = {
       ...complianceChecklist,
-      projectRoot: redactProjectPathForExport(complianceChecklist.projectRoot, projectLabel),
+      projectRoot: redactProjectPathForExport(
+        complianceChecklist.projectRoot,
+        projectLabel,
+      ),
     };
   }
   if (
-    ((_f = (_e = sprint.complianceChecklist) === null || _e === void 0 ? void 0 : _e.summary) === null || _f === void 0
+    ((_f =
+      (_e = sprint.complianceChecklist) === null || _e === void 0
+        ? void 0
+        : _e.summary) === null || _f === void 0
       ? void 0
       : _f.legalHandoffEligible) != null &&
-    (complianceChecklist === null || complianceChecklist === void 0 ? void 0 : complianceChecklist.summary)
+    (complianceChecklist === null || complianceChecklist === void 0
+      ? void 0
+      : complianceChecklist.summary)
   ) {
     complianceChecklist = {
       ...complianceChecklist,
       summary: {
         ...complianceChecklist.summary,
-        legalHandoffEligible: sprint.complianceChecklist.summary.legalHandoffEligible,
+        legalHandoffEligible:
+          sprint.complianceChecklist.summary.legalHandoffEligible,
       },
     };
   }
-  let assessment = sprint.assessment ? sanitizeAssessmentExport(sprint.assessment, projectLabel) : sprint.assessment;
+  let assessment = sprint.assessment
+    ? sanitizeAssessmentExport(sprint.assessment, projectLabel)
+    : sprint.assessment;
   if (assessment) {
     assessment = {
       ...assessment,
-      ...((report === null || report === void 0 ? void 0 : report.euAiActSummary)
+      ...((
+        report === null || report === void 0 ? void 0 : report.euAiActSummary
+      )
         ? { euAiActSummary: report.euAiActSummary }
         : {}),
       exportNormalized: true,
@@ -1651,7 +2018,7 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
     relativeArtifacts,
     exportNormalized: true,
     exportSanitized: true,
-    scanTargetProfile: 'product',
+    scanTargetProfile: "product",
     securityHandoffEligible: false,
     handoffEligible: false,
     hygieneSummary: buildSprintArtifactHygieneSummary(sprintContext, {
@@ -1675,11 +2042,14 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
  */
 export function sanitizeEuAiActExport(bundle) {
   var _a, _b;
-  if (!bundle || typeof bundle !== 'object') return bundle;
-  if (bundle.type === 'simplebeacon-eu-ai-act-export') {
+  if (!bundle || typeof bundle !== "object") return bundle;
+  if (bundle.type === "simplebeacon-eu-ai-act-export") {
     return buildEuAiActExportBundle({
       hasData:
-        (_b = (_a = bundle.summary) === null || _a === void 0 ? void 0 : _a.hasData) !== null && _b !== void 0
+        (_b =
+          (_a = bundle.summary) === null || _a === void 0
+            ? void 0
+            : _a.hasData) !== null && _b !== void 0
           ? _b
           : true,
       disclaimer: bundle.disclaimer,
@@ -1701,8 +2071,9 @@ export function sanitizeEuAiActExport(bundle) {
  * @returns {string}
  */
 function csvEscape(cell) {
-  const raw = String(cell !== null && cell !== void 0 ? cell : '');
-  const needsQuotes = /[",\n\r]/.test(raw) || raw.startsWith(' ') || raw.endsWith(' ');
+  const raw = String(cell !== null && cell !== void 0 ? cell : "");
+  const needsQuotes =
+    /[",\n\r]/.test(raw) || raw.startsWith(" ") || raw.endsWith(" ");
   const escaped = raw.replace(/"/g, '""');
   return needsQuotes ? `"${escaped}"` : escaped;
 }
@@ -1712,22 +2083,31 @@ function csvEscape(cell) {
  * @returns {any}
  */
 export function buildEuAiActChecklistCsv(rules) {
-  if (!(rules === null || rules === void 0 ? void 0 : rules.length)) return null;
-  const header = ['id', 'title', 'category', 'severity', 'status', 'evidence', 'remediation'];
+  if (!(rules === null || rules === void 0 ? void 0 : rules.length))
+    return null;
+  const header = [
+    "id",
+    "title",
+    "category",
+    "severity",
+    "status",
+    "evidence",
+    "remediation",
+  ];
   const rows = rules.map((rule) =>
     [
-      rule.id || '',
-      rule.title || '',
-      rule.category || '',
-      rule.severity || '',
-      rule.status || '',
-      rule.evidence || '',
-      rule.remediation || '',
+      rule.id || "",
+      rule.title || "",
+      rule.category || "",
+      rule.severity || "",
+      rule.status || "",
+      rule.evidence || "",
+      rule.remediation || "",
     ]
       .map(csvEscape)
-      .join(',')
+      .join(","),
   );
-  return [header.join(','), ...rows].join('\n');
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build eu ai act documentation csv.
@@ -1736,9 +2116,11 @@ export function buildEuAiActChecklistCsv(rules) {
  */
 export function buildEuAiActDocumentationCsv(docs) {
   if (!(docs === null || docs === void 0 ? void 0 : docs.length)) return null;
-  const header = ['path'];
-  const rows = docs.map((doc) => csvEscape(typeof doc === 'string' ? doc : String(doc)));
-  return [header.join(','), ...rows].join('\n');
+  const header = ["path"];
+  const rows = docs.map((doc) =>
+    csvEscape(typeof doc === "string" ? doc : String(doc)),
+  );
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build eu ai act summary csv.
@@ -1747,11 +2129,11 @@ export function buildEuAiActDocumentationCsv(docs) {
  */
 export function buildEuAiActSummaryCsv(summary) {
   if (!summary) return null;
-  const header = ['metric', 'value'];
+  const header = ["metric", "value"];
   const rows = Object.entries(summary).map(([key, value]) =>
-    [key, value == null ? '' : String(value)].map(csvEscape).join(',')
+    [key, value == null ? "" : String(value)].map(csvEscape).join(","),
   );
-  return [header.join(','), ...rows].join('\n');
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build eu ai act csv.
@@ -1767,24 +2149,24 @@ export function buildEuAiActCsv({ rules, documentationFound, summary } = {}) {
   const summaryCsv = !checklist ? buildEuAiActSummaryCsv(summary) : null;
   if (checklist) parts.push(checklist);
   if (summaryCsv) {
-    if (parts.length) parts.push('');
-    parts.push('EU AI Act Summary');
+    if (parts.length) parts.push("");
+    parts.push("EU AI Act Summary");
     parts.push(summaryCsv);
   }
   if (docs) {
-    if (parts.length) parts.push('');
-    parts.push('Documentation artifacts');
+    if (parts.length) parts.push("");
+    parts.push("Documentation artifacts");
     parts.push(docs);
   }
-  return parts.length ? parts.join('\n') : null;
+  return parts.length ? parts.join("\n") : null;
 }
 /**
  * Eu ai act export filename.
  * @param {any} ext
  * @returns {any}
  */
-export function euAiActExportFilename(ext = 'json') {
+export function euAiActExportFilename(ext = "json") {
   const stamp = new Date().toISOString().slice(0, 10);
-  if (ext === 'csv') return `eu-ai-act-metrics-${stamp}.csv`;
+  if (ext === "csv") return `eu-ai-act-metrics-${stamp}.csv`;
   return `eu-ai-act-export-${stamp}.json`;
 }

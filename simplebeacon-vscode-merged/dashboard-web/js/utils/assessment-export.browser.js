@@ -9,14 +9,14 @@
  * @param {any} projectLabel
  * @returns {any}
  */
-function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
-  if (rawPath == null || rawPath === '') return rawPath;
-  const normalized = String(rawPath).replace(/\\/g, '/');
+function redactProjectPathForExport(rawPath, projectLabel = "ai-platform") {
+  if (rawPath == null || rawPath === "") return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, "/");
   if (
     /^[a-zA-Z]:\//.test(normalized) ||
-    normalized.startsWith('/Users/') ||
-    normalized.startsWith('/home/') ||
-    normalized.includes('CascadeProjects')
+    normalized.startsWith("/Users/") ||
+    normalized.startsWith("/home/") ||
+    normalized.includes("CascadeProjects")
   ) {
     return projectLabel;
   }
@@ -29,9 +29,9 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
+  const normalized = String(projectPath || "ai-platform").replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "ai-platform";
 }
 
 /**
@@ -40,7 +40,9 @@ function projectLabelFromPath(projectPath) {
  * @returns {any}
  */
 function isBenchmarkPath(projectPath) {
-  return /\/github-cache\//i.test(String(projectPath || '').replace(/\\/g, '/'));
+  return /\/github-cache\//i.test(
+    String(projectPath || "").replace(/\\/g, "/"),
+  );
 }
 
 /**
@@ -49,7 +51,7 @@ function isBenchmarkPath(projectPath) {
  * @returns {any}
  */
 function normalizeSimpleBeaconBranding(value) {
-  return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
+  return String(value ?? "").replace(/\bSimplebeacon\b/g, "SimpleBeacon");
 }
 
 /**
@@ -59,14 +61,17 @@ function normalizeSimpleBeaconBranding(value) {
  * @returns {any}
  */
 function normalizeAssessmentTitle(assessment, projectLabel) {
-  const raw = String(assessment?.title || '');
+  const raw = String(assessment?.title || "");
   if (/Free Assessment/i.test(raw)) {
     return `SimpleBeacon Free Assessment — ${projectLabel}`;
   }
   if (/EU AI Act Readiness/i.test(raw)) {
     return `SimpleBeacon EU AI Act Readiness — ${projectLabel}`;
   }
-  return normalizeSimpleBeaconBranding(raw) || `SimpleBeacon Assessment — ${projectLabel}`;
+  return (
+    normalizeSimpleBeaconBranding(raw) ||
+    `SimpleBeacon Assessment — ${projectLabel}`
+  );
 }
 
 /**
@@ -79,7 +84,7 @@ function buildFilesScannedNote(executiveSummary = {}) {
   const mock = executiveSummary.mockSampleFiles;
   if (scoped == null || mock == null || mock === 0) return null;
   if (scoped > mock * 10) {
-    return 'filesScanned reflects gate rule scope — mock-path sample count is mockSampleFiles.';
+    return "filesScanned reflects gate rule scope — mock-path sample count is mockSampleFiles.";
   }
   return null;
 }
@@ -96,16 +101,18 @@ function buildAssessmentExportNotes(assessment, _projectLabel) {
   const checklist = assessment.complianceChecklist?.summary || {};
   const filesNote = buildFilesScannedNote(exec);
   if (filesNote) notes.push(filesNote);
-  if (checklist.supplyChainSkipped && exec.gateResult === 'PASS') {
+  if (checklist.supplyChainSkipped && exec.gateResult === "PASS") {
     notes.push(
-      'Supply-chain checklist rows skipped — run npm audit on Compliance Audit page for SUPPLY-001/002 evidence.'
+      "Supply-chain checklist rows skipped — run npm audit on Compliance Audit page for SUPPLY-001/002 evidence.",
     );
   }
-  if (exec.gateResult === 'PASS' && checklist.readyForAutomation) {
-    notes.push('Gate hygiene and applicable checklist rules pass — not vendor handoff or Complete scan clearance.');
-  } else if (exec.gateResult === 'FAIL') {
+  if (exec.gateResult === "PASS" && checklist.readyForAutomation) {
     notes.push(
-      `Gate FAIL — ${exec.blockingCount ?? 0} blocking finding(s). Review gate report detectedIssues before merge.`
+      "Gate hygiene and applicable checklist rules pass — not vendor handoff or Complete scan clearance.",
+    );
+  } else if (exec.gateResult === "FAIL") {
+    notes.push(
+      `Gate FAIL — ${exec.blockingCount ?? 0} blocking finding(s). Review gate report detectedIssues before merge.`,
     );
   }
   return [...new Set(notes)].slice(0, 6);
@@ -120,21 +127,35 @@ function buildAssessmentExportNotes(assessment, _projectLabel) {
  */
 function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
   const summary = checklist?.summary || {};
-  let ready = summary.readyForAutomation ?? executiveSummary.complianceReady ?? false;
+  let ready =
+    summary.readyForAutomation ?? executiveSummary.complianceReady ?? false;
   if (!sourceReport) return ready;
 
-  const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const ruleScoped =
+    sourceReport.ruleScopedFilesAnalyzed ??
+    sourceReport.scanScope?.ruleScopedFilesAnalyzed ??
+    0;
   /**
    * Core security skipped.
    * @param {any} checklist?.rules || []
    * @returns {any}
    */
   const coreSecuritySkipped = (checklist?.rules || []).some(
-    (r) => ['GATE-001', 'CRED-001', 'LEAK-001'].includes(r.id) && r.status === 'skip'
+    (r) =>
+      ["GATE-001", "CRED-001", "LEAK-001"].includes(r.id) &&
+      r.status === "skip",
   );
-  const gatePass = Boolean(sourceReport.gate?.pass ?? executiveSummary.gateResult === 'PASS');
+  const gatePass = Boolean(
+    sourceReport.gate?.pass ?? executiveSummary.gateResult === "PASS",
+  );
 
-  if (gatePass && ruleScoped > 0 && (summary.failed ?? 0) === 0 && (summary.passed ?? 0) > 0 && !coreSecuritySkipped) {
+  if (
+    gatePass &&
+    ruleScoped > 0 &&
+    (summary.failed ?? 0) === 0 &&
+    (summary.passed ?? 0) > 0 &&
+    !coreSecuritySkipped
+  ) {
     return true;
   }
   return ready;
@@ -149,8 +170,13 @@ function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
 function reconcileExecutiveSummary(assessment, sourceReport) {
   const exec = { ...(assessment.executiveSummary || {}) };
   const checklist = assessment.complianceChecklist || {};
-  exec.complianceReady = reconcileComplianceReady(exec, checklist, sourceReport);
-  exec.complianceScore = checklist.summary?.score ?? exec.complianceScore ?? null;
+  exec.complianceReady = reconcileComplianceReady(
+    exec,
+    checklist,
+    sourceReport,
+  );
+  exec.complianceScore =
+    checklist.summary?.score ?? exec.complianceScore ?? null;
   const note = buildFilesScannedNote(exec);
   if (note) exec.filesScannedNote = note;
   return exec;
@@ -168,14 +194,23 @@ function reconcileChecklistExport(checklist, projectLabel, sourceReport) {
   const summary = checklist.summary
     ? {
         ...checklist.summary,
-        readyForAutomation: reconcileComplianceReady({}, checklist, sourceReport),
+        readyForAutomation: reconcileComplianceReady(
+          {},
+          checklist,
+          sourceReport,
+        ),
         headline: normalizeSimpleBeaconBranding(checklist.summary.headline),
       }
     : checklist.summary;
   return {
     ...checklist,
-    title: normalizeSimpleBeaconBranding(checklist.title || 'SimpleBeacon Corporate Safety Checklist'),
-    projectRoot: redactProjectPathForExport(checklist.projectRoot, projectLabel),
+    title: normalizeSimpleBeaconBranding(
+      checklist.title || "SimpleBeacon Corporate Safety Checklist",
+    ),
+    projectRoot: redactProjectPathForExport(
+      checklist.projectRoot,
+      projectLabel,
+    ),
     summary,
   };
 }
@@ -187,25 +222,35 @@ function reconcileChecklistExport(checklist, projectLabel, sourceReport) {
  * @returns {any}
  */
 export function sanitizeAssessmentExport(assessment, options = {}) {
-  if (!assessment || assessment.type !== 'simplebeacon-assessment-report') return assessment;
+  if (!assessment || assessment.type !== "simplebeacon-assessment-report")
+    return assessment;
 
   const sourceReport = options.sourceReport || null;
-  const projectLabel = projectLabelFromPath(options.projectPath || assessment.projectRoot || sourceReport?.projectRoot);
+  const projectLabel = projectLabelFromPath(
+    options.projectPath || assessment.projectRoot || sourceReport?.projectRoot,
+  );
   const benchmarkScan = Boolean(
     options.benchmarkScan ||
     assessment.benchmarkScan ||
     sourceReport?.benchmarkScan ||
-    isBenchmarkPath(assessment.projectRoot)
+    isBenchmarkPath(assessment.projectRoot),
   );
 
   let executiveSummary = reconcileExecutiveSummary(assessment, sourceReport);
   if (sourceReport) {
-    const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? null;
-    const mockSampleFiles = sourceReport.mockSampleFiles ?? sourceReport.totalFiles ?? null;
+    const ruleScoped =
+      sourceReport.ruleScopedFilesAnalyzed ??
+      sourceReport.scanScope?.ruleScopedFilesAnalyzed ??
+      null;
+    const mockSampleFiles =
+      sourceReport.mockSampleFiles ?? sourceReport.totalFiles ?? null;
     executiveSummary = {
       ...executiveSummary,
       filesScanned:
-        ruleScoped ?? sourceReport.filesAnalyzed ?? sourceReport.repositoryFilesTotal ?? executiveSummary.filesScanned,
+        ruleScoped ??
+        sourceReport.filesAnalyzed ??
+        sourceReport.repositoryFilesTotal ??
+        executiveSummary.filesScanned,
       mockSampleFiles,
       ruleScopedFilesAnalyzed: ruleScoped,
       repositoryFilesTotal:
@@ -213,16 +258,22 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
         sourceReport.repositoryInventory?.totalFiles ??
         executiveSummary.repositoryFilesTotal ??
         null,
-      gateResult: sourceReport.gate?.pass ? 'PASS' : 'FAIL',
-      blockingCount: sourceReport.gate?.blockingCount ?? executiveSummary.blockingCount ?? 0,
-      warningCount: sourceReport.gate?.warningCount ?? executiveSummary.warningCount ?? 0,
-      qualityScore: sourceReport.qualityScore ?? executiveSummary.qualityScore ?? null,
+      gateResult: sourceReport.gate?.pass ? "PASS" : "FAIL",
+      blockingCount:
+        sourceReport.gate?.blockingCount ?? executiveSummary.blockingCount ?? 0,
+      warningCount:
+        sourceReport.gate?.warningCount ?? executiveSummary.warningCount ?? 0,
+      qualityScore:
+        sourceReport.qualityScore ?? executiveSummary.qualityScore ?? null,
     };
     const note = buildFilesScannedNote(executiveSummary);
     if (note) executiveSummary.filesScannedNote = note;
   }
 
-  const exportNotes = buildAssessmentExportNotes({ ...assessment, executiveSummary }, projectLabel);
+  const exportNotes = buildAssessmentExportNotes(
+    { ...assessment, executiveSummary },
+    projectLabel,
+  );
 
   const { sourceReport: embeddedSource, ...rest } = assessment;
   const sanitizedSource = embeddedSource
@@ -236,19 +287,28 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
   return {
     ...rest,
     title: normalizeAssessmentTitle(assessment, projectLabel),
-    generatedBy: normalizeSimpleBeaconBranding(assessment.generatedBy || 'SimpleBeacon'),
-    projectRoot: redactProjectPathForExport(assessment.projectRoot, projectLabel),
+    generatedBy: normalizeSimpleBeaconBranding(
+      assessment.generatedBy || "SimpleBeacon",
+    ),
+    projectRoot: redactProjectPathForExport(
+      assessment.projectRoot,
+      projectLabel,
+    ),
     executiveSummary: {
       ...executiveSummary,
       headline: normalizeSimpleBeaconBranding(executiveSummary.headline),
     },
-    complianceChecklist: reconcileChecklistExport(assessment.complianceChecklist, projectLabel, sourceReport),
+    complianceChecklist: reconcileChecklistExport(
+      assessment.complianceChecklist,
+      projectLabel,
+      sourceReport,
+    ),
     ...(sanitizedSource ? { sourceReport: sanitizedSource } : {}),
-    exportVersion: '1.1.0',
+    exportVersion: "1.1.0",
     exportSanitized: true,
     exportNormalized: true,
     benchmarkScan,
-    scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'product',
+    scanTargetProfile: benchmarkScan ? "benchmark-cache" : "product",
     handoffEligible: false,
     hygieneSummary: {
       gateResult: executiveSummary.gateResult ?? null,
@@ -258,16 +318,20 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
       mockSampleFiles: executiveSummary.mockSampleFiles ?? null,
       benchmarkScan,
       attestationNote: benchmarkScan
-        ? 'Benchmark clone assessment — not SimpleBeacon product handoff clearance.'
-        : 'Assessment export — gate hygiene and checklist attestation only, not vendor handoff clearance.',
+        ? "Benchmark clone assessment — not SimpleBeacon product handoff clearance."
+        : "Assessment export — gate hygiene and checklist attestation only, not vendor handoff clearance.",
     },
     exportNotes,
     disclaimers: [
-      ...(benchmarkScan ? ['Benchmark clone assessment — not SimpleBeacon ai-platform product handoff.'] : []),
-      'Assessment export maps scan signals to deploy-readiness checklist rows — not legal conformity certification.',
-      'Findings items may be truncated in exports; use gate report detectedIssues for remediation detail.',
-      'Absolute host paths are redacted to project label in exports.',
-      'handoffEligible remains false — Complete scan clearance requires operator sign-off.',
+      ...(benchmarkScan
+        ? [
+            "Benchmark clone assessment — not SimpleBeacon ai-platform product handoff.",
+          ]
+        : []),
+      "Assessment export maps scan signals to deploy-readiness checklist rows — not legal conformity certification.",
+      "Findings items may be truncated in exports; use gate report detectedIssues for remediation detail.",
+      "Absolute host paths are redacted to project label in exports.",
+      "handoffEligible remains false — Complete scan clearance requires operator sign-off.",
     ],
     sanitized: true,
     sanitizedAt: new Date().toISOString(),

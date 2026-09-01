@@ -1,22 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { User, Mail, Shield, Crown, LogOut, Settings as SettingsIcon, Download, RefreshCw } from 'lucide-react';
-import { navigate } from '@/router/HashRouter';
-import { apiUrl, authHeaders, getApiBase } from '@/config';
-import { useAuth } from '@/hooks/useAuth';
+// simplebeacon-ignore: debugArtifacts — console.error in catch block is intentional error handling
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  User,
+  Mail,
+  Shield,
+  Crown,
+  LogOut,
+  Settings as SettingsIcon,
+  Download,
+  RefreshCw,
+  Key,
+} from "lucide-react";
+import { navigate } from "@/router/HashRouter";
+import { apiUrl, authHeaders, getApiBase } from "@/config";
 
 interface UserData {
   email?: string;
   name?: string;
   role?: string;
   plan?: string;
+  tier?: string;
 }
 
 export function ProfileView() {
-  const { isAuthenticated, user, signOut } = useAuth();
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [subscription, setSubscription] = useState<{
     plan?: string;
     scansRemaining?: string | number;
@@ -26,26 +44,46 @@ export function ProfileView() {
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
-    if (!isAuthenticated) return;
-    // Fetch subscription data from server
-    (async () => {
-      try {
-        const resp = await fetch(apiUrl('/user/subscription'), { headers: authHeaders() });
-        if (resp.status === 404) {
-          setSubscriptionUnavailable(true);
+    try {
+      const token =
+        localStorage.getItem("sb_token") ||
+        localStorage.getItem("sb-token") ||
+        localStorage.getItem("auth_token");
+      if (token) {
+        setIsAuthenticated(true);
+        const userData = localStorage.getItem("sb_user");
+        if (userData) {
+          setUser(JSON.parse(userData));
         }
-        if (resp.ok) {
-          const body = await resp.json();
-          if (body && body.subscription) setSubscription(body.subscription);
-        }
-      } catch {
-        setSubscriptionUnavailable(true);
+        // Fetch subscription data from server
+        (async () => {
+          try {
+            const resp = await fetch(apiUrl("/user/subscription"), {
+              headers: authHeaders(),
+            });
+            if (resp.status === 404) {
+              setSubscriptionUnavailable(true);
+            }
+            if (resp.ok) {
+              const body = await resp.json();
+              if (body && body.subscription) setSubscription(body.subscription);
+            }
+          } catch {
+            setSubscriptionUnavailable(true);
+          }
+        })();
       }
-    })();
-  }, [isAuthenticated]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const handleSignOut = () => {
-    signOut();
+    localStorage.removeItem("sb_token");
+    localStorage.removeItem("sb-token");
+    localStorage.removeItem("sb_user");
+    localStorage.removeItem("auth_token");
+    navigate("signin");
   };
 
   const [exporting, setExporting] = useState(false);
@@ -54,14 +92,17 @@ export function ProfileView() {
     setExporting(true);
     try {
       const profile = user || {};
-      const email = profile.email || 'unknown';
-      const host = typeof window !== 'undefined' ? window.location?.hostname || 'localhost' : 'localhost';
+      const email = profile.email || "unknown";
+      const host =
+        typeof window !== "undefined"
+          ? window.location?.hostname || "localhost"
+          : "localhost";
       const timestamp = Date.now();
 
       // Gather data from localStorage
       let scanHistory: unknown[] = [];
       try {
-        const raw = localStorage.getItem('sb_scan_history');
+        const raw = localStorage.getItem("sb_scan_history");
         if (raw) scanHistory = JSON.parse(raw);
       } catch {
         /* ignore */
@@ -69,7 +110,7 @@ export function ProfileView() {
 
       let report: unknown = null;
       try {
-        const raw = localStorage.getItem('sb_last_scan_full');
+        const raw = localStorage.getItem("sb_last_scan_full");
         if (raw) report = JSON.parse(raw);
       } catch {
         /* ignore */
@@ -77,7 +118,7 @@ export function ProfileView() {
 
       let baseline: unknown = null;
       try {
-        const raw = localStorage.getItem('sb_baseline');
+        const raw = localStorage.getItem("sb_baseline");
         if (raw) baseline = JSON.parse(raw);
       } catch {
         /* ignore */
@@ -85,7 +126,7 @@ export function ProfileView() {
 
       let config: unknown = null;
       try {
-        const raw = localStorage.getItem('sb_config');
+        const raw = localStorage.getItem("sb_config");
         if (raw) config = JSON.parse(raw);
       } catch {
         /* ignore */
@@ -93,7 +134,7 @@ export function ProfileView() {
 
       let assessment: unknown = null;
       try {
-        const raw = localStorage.getItem('sb_assessment');
+        const raw = localStorage.getItem("sb_assessment");
         if (raw) assessment = JSON.parse(raw);
       } catch {
         /* ignore */
@@ -102,7 +143,9 @@ export function ProfileView() {
       // Fetch AI keys from API
       let aiKeys: unknown = null;
       try {
-        const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
+        const resp = await fetch(apiUrl("/simplebeacon/user/ai-keys"), {
+          headers: authHeaders(),
+        });
         if (resp.ok) aiKeys = await resp.json();
       } catch {
         /* ignore */
@@ -111,7 +154,9 @@ export function ProfileView() {
       // If scan history is empty, try fetching from API
       if (scanHistory.length === 0) {
         try {
-          const resp = await fetch(apiUrl('/simplebeacon/history?limit=50'), { headers: authHeaders() });
+          const resp = await fetch(apiUrl("/simplebeacon/history?limit=50"), {
+            headers: authHeaders(),
+          });
           if (resp.ok) {
             const body = await resp.json();
             if (Array.isArray(body)) {
@@ -128,18 +173,18 @@ export function ProfileView() {
       const bundle = {
         exportedAt: new Date().toISOString(),
         profile: {
-          id: (profile as any).id || 'dev-user-01',
+          id: (profile as any).id || "dev-user-01",
           email,
-          name: profile.name || 'Local Developer',
-          role: profile.role || 'admin',
+          name: profile.name || "Local Developer",
+          role: profile.role || "admin",
           tier: (profile as any).tier || null,
-          trustLevel: (profile as any).trustLevel || 'platinum',
+          trustLevel: (profile as any).trustLevel || "platinum",
         },
         aiKeys: aiKeys || {
           email,
           providers: {},
-          ollamaBaseUrl: '',
-          ollamaModel: '',
+          ollamaBaseUrl: "",
+          ollamaModel: "",
           updatedAt: null,
         },
         scanHistory,
@@ -149,15 +194,17 @@ export function ProfileView() {
         assessment,
       };
 
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `simplebeacon-export-${host.replace(/[^a-zA-Z0-9]/g, '_')}-${timestamp}.json`;
+      a.download = `simplebeacon-export-${host.replace(/[^a-zA-Z0-9]/g, "_")}-${timestamp}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Export failed:', e);
+      console.error("Export failed:", e);
     } finally {
       setExporting(false);
     }
@@ -168,30 +215,41 @@ export function ProfileView() {
       <div className="mx-auto max-w-4xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-foreground-muted">Account settings and preferences</p>
+          <p className="text-foreground-muted">
+            Account settings and preferences
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <User className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">Sign in to view your profile</p>
-            <Button onClick={() => navigate('signin')}>Sign In</Button>
+            <p className="text-sm text-foreground-muted">
+              Sign in to view your profile
+            </p>
+            <Button onClick={() => navigate("signin")}>Sign In</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const displayName = user?.name || user?.email || 'User';
+  const displayName = user?.name || user?.email || "User";
   const initials = displayName.charAt(0).toUpperCase();
-  const plan = user?.plan || 'free';
-  const role = user?.role || 'user';
+  const plan =
+    user?.plan ||
+    user?.tier ||
+    (user?.role === "admin" || user?.role === "superuser"
+      ? "enterprise"
+      : "free");
+  const role = user?.role || "user";
   const displayedPlan = subscription?.plan || plan;
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-foreground-muted">Account settings and preferences</p>
+        <p className="text-foreground-muted">
+          Account settings and preferences
+        </p>
       </div>
 
       {/* User Identity Card */}
@@ -203,12 +261,12 @@ export function ProfileView() {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold">{displayName}</h2>
-              {plan !== 'free' && (
+              {plan !== "free" && (
                 <Badge className="gap-1">
                   <Crown className="h-3 w-3" /> {plan}
                 </Badge>
               )}
-              {role !== 'user' && (
+              {role !== "user" && (
                 <Badge variant="outline" className="gap-1">
                   <Shield className="h-3 w-3" /> {role}
                 </Badge>
@@ -233,35 +291,55 @@ export function ProfileView() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Plan</span>
-              <Badge variant={plan === 'free' ? 'secondary' : 'default'} className="capitalize">
+              <Badge
+                variant={plan === "free" ? "secondary" : "default"}
+                className="capitalize"
+              >
                 {displayedPlan}
               </Badge>
             </div>
-            {displayedPlan === 'free' && (
-              <Button size="sm" onClick={() => (subscriptionUnavailable ? navigate('help') : navigate('settings'))}>
+            {displayedPlan === "free" && (
+              <Button
+                size="sm"
+                onClick={() =>
+                  subscriptionUnavailable
+                    ? navigate("help")
+                    : navigate("settings")
+                }
+              >
                 <Crown className="h-4 w-4" /> Upgrade
               </Button>
             )}
           </div>
           <Separator />
           <div className="flex items-center justify-between">
-            <span className="text-sm text-foreground-muted">Scans remaining</span>
-            <span className="text-sm font-medium">{subscription?.scansRemaining ?? 'Unlimited'}</span>
+            <span className="text-sm text-foreground-muted">
+              Scans remaining
+            </span>
+            <span className="text-sm font-medium">
+              {subscription?.scansRemaining ?? "Unlimited"}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-foreground-muted">API access</span>
             <span className="text-sm font-medium">
-              {subscription?.apiAccess ?? (plan === 'free' ? 'Limited' : 'Full')}
+              {subscription?.apiAccess ??
+                (plan === "free" ? "Limited" : "Full")}
             </span>
           </div>
         </CardContent>
       </Card>
 
+      {/* License Token Card */}
+      <LicenseTokenCard email={user?.email} />
+
       {/* Preferences Card */}
       <Card>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
-          <CardDescription>Manage dashboard and scan preferences</CardDescription>
+          <CardDescription>
+            Manage dashboard and scan preferences
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between rounded-md border border-border px-4 py-3">
@@ -269,10 +347,16 @@ export function ProfileView() {
               <SettingsIcon className="h-4 w-4 text-foreground-muted" />
               <div>
                 <p className="text-sm font-medium">Dashboard Settings</p>
-                <p className="text-xs text-foreground-muted">API keys, scan paths, AI providers</p>
+                <p className="text-xs text-foreground-muted">
+                  API keys, scan paths, AI providers
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('settings')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("settings")}
+            >
               Open
             </Button>
           </div>
@@ -291,10 +375,17 @@ export function ProfileView() {
               <Download className="h-4 w-4 text-foreground-muted" />
               <div>
                 <p className="text-sm font-medium">Export Data</p>
-                <p className="text-xs text-foreground-muted">Download your scan history and reports</p>
+                <p className="text-xs text-foreground-muted">
+                  Download your scan history and reports
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" disabled={exporting} onClick={handleExport}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exporting}
+              onClick={handleExport}
+            >
               {exporting ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" /> Exporting…
@@ -311,7 +402,9 @@ export function ProfileView() {
               <LogOut className="h-4 w-4 text-danger" />
               <div>
                 <p className="text-sm font-medium">Sign Out</p>
-                <p className="text-xs text-foreground-muted">End your current session</p>
+                <p className="text-xs text-foreground-muted">
+                  End your current session
+                </p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
@@ -321,5 +414,131 @@ export function ProfileView() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LicenseTokenCard({ email }: { email?: string }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [tier, setTier] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const lookupToken = useCallback(async () => {
+    if (!email) {
+      setError("Email is required");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${getApiBase()}/api/simplebeacon/billing/license?email=${encodeURIComponent(email)}`,
+        {
+          headers: authHeaders(),
+        },
+      );
+      const data = await res.json();
+      if (res.ok && data.licenseToken) {
+        setToken(data.licenseToken);
+        setTier(data.tier || "unknown");
+      } else {
+        setError(data.error || "No license found for this email");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
+
+  const copyToken = useCallback(() => {
+    if (!token) return;
+    navigator.clipboard.writeText(token);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [token]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Key className="h-4 w-4" /> License Token
+        </CardTitle>
+        <CardDescription>
+          Your license token for CLI access and API authentication
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {token ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground-muted">Tier</span>
+              <Badge variant="default" className="capitalize">
+                {tier}
+              </Badge>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-foreground-muted">
+                  Token
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowToken(!showToken)}
+                  >
+                    {showToken ? "Hide" : "Show"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={copyToken}>
+                    {copied ? "Copied!" : "Copy"}
+                  </Button>
+                </div>
+              </div>
+              <code className="block text-xs break-all font-mono">
+                {showToken ? token : "•".repeat(60)}
+              </code>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={lookupToken}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" /> Refreshing…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" /> Refresh Token
+                </>
+              )}
+            </Button>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-foreground-muted">
+              Paid for a subscription? Look up your license token here to use
+              with the CLI or API.
+            </p>
+            <Button onClick={lookupToken} disabled={loading || !email}>
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" /> Looking up…
+                </>
+              ) : (
+                <>
+                  <Key className="h-4 w-4" /> Look Up My Token
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

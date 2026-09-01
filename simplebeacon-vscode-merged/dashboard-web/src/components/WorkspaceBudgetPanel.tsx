@@ -1,13 +1,25 @@
-import { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { useState, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
-import { Progress } from '@/components/ui/progress';
-import { DollarSign, AlertTriangle, Save, RotateCcw, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Progress } from "@/components/ui/progress";
+import {
+  DollarSign,
+  AlertTriangle,
+  Save,
+  RotateCcw,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface BudgetConfig {
   softCapPercent?: number;
@@ -30,7 +42,12 @@ interface Budget {
   periodEnd: string;
   enabled: boolean;
   config: BudgetConfig;
-  alerts: { type: string; crossedValue: number; pct: number; timestamp: string }[];
+  alerts: {
+    type: string;
+    crossedValue: number;
+    pct: number;
+    timestamp: string;
+  }[];
 }
 
 interface WorkspaceBudgetPanelProps {
@@ -42,8 +59,16 @@ interface WorkspaceBudgetPanelProps {
   loading: boolean;
 }
 
-export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loading }: WorkspaceBudgetPanelProps) {
-  const [dirty, setDirty] = useState<Record<string, Partial<Budget> | undefined>>({});
+export function WorkspaceBudgetPanel({
+  budgets,
+  isAdmin,
+  onSave,
+  onReset,
+  loading,
+}: WorkspaceBudgetPanelProps) {
+  const [dirty, setDirty] = useState<
+    Record<string, Partial<Budget> | undefined>
+  >({});
 
   const updateDraft = useCallback((scope: string, patch: Partial<Budget>) => {
     setDirty((prev) => ({
@@ -52,15 +77,21 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
     }));
   }, []);
 
-  const updateDraftConfig = useCallback((scope: string, patch: Partial<BudgetConfig>) => {
-    setDirty((prev) => ({
-      ...prev,
-      [scope]: {
-        ...(prev[scope] ?? {}),
-        config: { ...((prev[scope]?.config as BudgetConfig) ?? {}), ...patch },
-      },
-    }));
-  }, []);
+  const updateDraftConfig = useCallback(
+    (scope: string, patch: Partial<BudgetConfig>) => {
+      setDirty((prev) => ({
+        ...prev,
+        [scope]: {
+          ...(prev[scope] ?? {}),
+          config: {
+            ...((prev[scope]?.config as BudgetConfig) ?? {}),
+            ...patch,
+          },
+        },
+      }));
+    },
+    [],
+  );
 
   const getBudgetDisplay = (b: Budget): Budget => {
     return { ...b, ...(dirty[b.scope] ?? {}) } as Budget;
@@ -73,7 +104,10 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
           <DollarSign className="h-5 w-5" />
           Token Budget Allocation
         </CardTitle>
-        <CardDescription>Live capacity, threshold, and alerting controls.{!isAdmin && ' View-only.'}</CardDescription>
+        <CardDescription>
+          Live capacity, threshold, and alerting controls.
+          {!isAdmin && " View-only."}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loading && (
@@ -88,11 +122,16 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
             const pct = b.limitUSD > 0 ? (b.spentUSD / b.limitUSD) * 100 : 0;
             const isDirty = !!dirty[b.scope];
             return (
-              <div key={b.scope} className="rounded-lg border border-border p-4">
+              <div
+                key={b.scope}
+                className="rounded-lg border border-border p-4"
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold">{b.scope}</h4>
-                    <p className="text-xs text-foreground-muted">{b.name || 'Default workspace budget'}</p>
+                    <p className="text-xs text-foreground-muted">
+                      {b.name || "Default workspace budget"}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {pct >= (b.config?.hardStopPercent || 100) && (
@@ -122,8 +161,15 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                 {display.alerts && display.alerts.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-1">
                     {display.alerts.slice(-3).map((a, i) => (
-                      <Badge key={i} variant={a.type === 'hard_stop' ? 'destructive' : 'secondary'} className="text-xs">
-                        {a.type} {a.crossedValue}% — {new Date(a.timestamp).toLocaleString()}
+                      <Badge
+                        key={i}
+                        variant={
+                          a.type === "hard_stop" ? "destructive" : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {a.type} {a.crossedValue}% —{" "}
+                        {new Date(a.timestamp).toLocaleString()}
                       </Badge>
                     ))}
                   </div>
@@ -137,7 +183,11 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                       step={0.01}
                       value={display.limitUSD}
                       disabled={!isAdmin}
-                      onChange={(e) => updateDraft(b.scope, { limitUSD: parseFloat(e.target.value) })}
+                      onChange={(e) =>
+                        updateDraft(b.scope, {
+                          limitUSD: parseFloat(e.target.value),
+                        })
+                      }
                     />
                   </BudgetField>
 
@@ -149,7 +199,11 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                       step={1}
                       value={display.config?.softCapPercent ?? 80}
                       disabled={!isAdmin}
-                      onChange={(e) => updateDraftConfig(b.scope, { softCapPercent: parseInt(e.target.value, 10) })}
+                      onChange={(e) =>
+                        updateDraftConfig(b.scope, {
+                          softCapPercent: parseInt(e.target.value, 10),
+                        })
+                      }
                     />
                   </BudgetField>
 
@@ -161,18 +215,22 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                       step={1}
                       value={display.config?.hardStopPercent ?? 100}
                       disabled={!isAdmin}
-                      onChange={(e) => updateDraftConfig(b.scope, { hardStopPercent: parseInt(e.target.value, 10) })}
+                      onChange={(e) =>
+                        updateDraftConfig(b.scope, {
+                          hardStopPercent: parseInt(e.target.value, 10),
+                        })
+                      }
                     />
                   </BudgetField>
 
                   <BudgetField label="Alert Intervals">
                     <Input
-                      value={(display.config?.alertIntervals ?? []).join(', ')}
+                      value={(display.config?.alertIntervals ?? []).join(", ")}
                       disabled={!isAdmin}
                       placeholder="50, 80, 100"
                       onChange={(e) => {
                         const vals = e.target.value
-                          .split(',')
+                          .split(",")
                           .map((s) => parseInt(s.trim(), 10))
                           .filter((n) => !isNaN(n) && n > 0);
                         updateDraftConfig(b.scope, { alertIntervals: vals });
@@ -185,7 +243,9 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                       className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                       value={display.period}
                       disabled={!isAdmin}
-                      onChange={(e) => updateDraft(b.scope, { period: e.target.value })}
+                      onChange={(e) =>
+                        updateDraft(b.scope, { period: e.target.value })
+                      }
                     >
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
@@ -201,7 +261,9 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                       value={display.config?.alertCooldownMinutes ?? 30}
                       disabled={!isAdmin}
                       onChange={(e) =>
-                        updateDraftConfig(b.scope, { alertCooldownMinutes: parseInt(e.target.value, 10) })
+                        updateDraftConfig(b.scope, {
+                          alertCooldownMinutes: parseInt(e.target.value, 10),
+                        })
                       }
                     />
                   </BudgetField>
@@ -213,7 +275,11 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                         className="h-4 w-4 rounded border-border bg-background"
                         checked={!!display.config?.autoResetEnabled}
                         disabled={!isAdmin}
-                        onChange={(e) => updateDraftConfig(b.scope, { autoResetEnabled: e.target.checked })}
+                        onChange={(e) =>
+                          updateDraftConfig(b.scope, {
+                            autoResetEnabled: e.target.checked,
+                          })
+                        }
                       />
                       Auto reset
                     </label>
@@ -223,7 +289,11 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                         className="h-4 w-4 rounded border-border bg-background"
                         checked={!!display.config?.webhookAlertsEnabled}
                         disabled={!isAdmin}
-                        onChange={(e) => updateDraftConfig(b.scope, { webhookAlertsEnabled: e.target.checked })}
+                        onChange={(e) =>
+                          updateDraftConfig(b.scope, {
+                            webhookAlertsEnabled: e.target.checked,
+                          })
+                        }
                       />
                       Webhooks
                     </label>
@@ -235,8 +305,15 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                         size="sm"
                         disabled={!isDirty}
                         onClick={async () => {
-                          const ok = await onSave(b.scope, dirty[b.scope] ?? {});
-                          if (ok) setDirty((prev) => ({ ...prev, [b.scope]: undefined }));
+                          const ok = await onSave(
+                            b.scope,
+                            dirty[b.scope] ?? {},
+                          );
+                          if (ok)
+                            setDirty((prev) => ({
+                              ...prev,
+                              [b.scope]: undefined,
+                            }));
                         }}
                       >
                         <Save className="mr-1 h-4 w-4" />
@@ -247,7 +324,11 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                         variant="outline"
                         onClick={async () => {
                           const ok = await onReset(b.scope);
-                          if (ok) setDirty((prev) => ({ ...prev, [b.scope]: undefined }));
+                          if (ok)
+                            setDirty((prev) => ({
+                              ...prev,
+                              [b.scope]: undefined,
+                            }));
                         }}
                       >
                         <RotateCcw className="mr-1 h-4 w-4" />
@@ -258,7 +339,8 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
                 </div>
 
                 <div className="mt-3 text-xs text-foreground-muted">
-                  Period: {new Date(b.periodStart).toLocaleDateString()} → {new Date(b.periodEnd).toLocaleDateString()}
+                  Period: {new Date(b.periodStart).toLocaleDateString()} →{" "}
+                  {new Date(b.periodEnd).toLocaleDateString()}
                 </div>
               </div>
             );
@@ -269,7 +351,13 @@ export function WorkspaceBudgetPanel({ budgets, isAdmin, onSave, onReset, loadin
   );
 }
 
-function BudgetField({ label, children }: { label: string; children: React.ReactNode }) {
+function BudgetField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>

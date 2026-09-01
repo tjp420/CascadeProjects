@@ -1,8 +1,8 @@
 /**
  * Platform page export bundle — browser mirror of server/lib/platform-export.js
  */
-import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260726sevfix1';
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
+import { resolveJestTestsLabel } from "../services/analyzeService.js?v=20260726sevfix1";
+import { sanitizeSimplebeaconReportExport } from "./simplebeacon-report-export.browser.js?v=20260716cachefix1";
 import {
   stripInternalExportFields,
   resolveSectionProvenance,
@@ -11,7 +11,7 @@ import {
   sanitizeSecurityExport,
   sanitizeQualityExport,
   normalizeSimpleBeaconBranding,
-} from './quality-export.browser.js?v=20260716cachefix1';
+} from "./quality-export.browser.js?v=20260716cachefix1";
 /**
  * Parse numeric.
  * @param {any} value
@@ -20,7 +20,7 @@ import {
 function parseNumeric(value) {
   if (value == null) return null;
   const match = String(value)
-    .replace(/,/g, '')
+    .replace(/,/g, "")
     .match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
@@ -30,10 +30,10 @@ function parseNumeric(value) {
  * @param {any} unit
  * @returns {any}
  */
-function formatSignedDelta(delta, unit = '') {
-  if (!Number.isFinite(delta)) return '—';
-  const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
-  const suffix = unit ? ` ${unit}` : '';
+function formatSignedDelta(delta, unit = "") {
+  if (!Number.isFinite(delta)) return "—";
+  const sign = delta > 0 ? "+" : delta < 0 ? "" : "";
+  const suffix = unit ? ` ${unit}` : "";
   return `${sign}${delta}${suffix}`;
 }
 /**
@@ -43,12 +43,20 @@ function formatSignedDelta(delta, unit = '') {
  * @returns {any}
  */
 export function formatSecurityScoreForDisplay(security, overview) {
-  if ((security === null || security === void 0 ? void 0 : security.securityScore) != null) {
+  if (
+    (security === null || security === void 0
+      ? void 0
+      : security.securityScore) != null
+  ) {
     const num = Number(security.securityScore);
     if (Number.isFinite(num)) return `${num}/100`;
     return String(security.securityScore);
   }
-  if ((overview === null || overview === void 0 ? void 0 : overview.securityScore) != null)
+  if (
+    (overview === null || overview === void 0
+      ? void 0
+      : overview.securityScore) != null
+  )
     return String(overview.securityScore);
   return null;
 }
@@ -58,9 +66,9 @@ export function formatSecurityScoreForDisplay(security, overview) {
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
+  const normalized = String(projectPath || "ai-platform").replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "ai-platform";
 }
 /**
  * Resolve canonical jest label.
@@ -72,24 +80,35 @@ function projectLabelFromPath(projectPath) {
 function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
   var _a;
   const coverageLabel =
-    (coverage === null || coverage === void 0 ? void 0 : coverage.jestTestsLabel) ||
-    ((coverage === null || coverage === void 0 ? void 0 : coverage.passedTests) != null &&
-    (coverage === null || coverage === void 0 ? void 0 : coverage.totalTests) != null
+    (coverage === null || coverage === void 0
+      ? void 0
+      : coverage.jestTestsLabel) ||
+    ((coverage === null || coverage === void 0
+      ? void 0
+      : coverage.passedTests) != null &&
+    (coverage === null || coverage === void 0 ? void 0 : coverage.totalTests) !=
+      null
       ? `${coverage.passedTests}/${coverage.totalTests}`
       : null);
   const baselineLabel = resolveJestTestsLabel(baseline, dashboardHome);
   if (!coverageLabel) return baselineLabel;
   if (!baselineLabel) return coverageLabel;
-  const covAt = coverage === null || coverage === void 0 ? void 0 : coverage.testCountGeneratedAt;
+  const covAt =
+    coverage === null || coverage === void 0
+      ? void 0
+      : coverage.testCountGeneratedAt;
   const baseAt =
-    (_a = baseline === null || baseline === void 0 ? void 0 : baseline.syncedAt) !== null && _a !== void 0
+    (_a =
+      baseline === null || baseline === void 0 ? void 0 : baseline.syncedAt) !==
+      null && _a !== void 0
       ? _a
       : dashboardHome === null || dashboardHome === void 0
         ? void 0
         : dashboardHome.baselineSyncedAt;
-  if (covAt && baseAt && Date.parse(covAt) >= Date.parse(baseAt)) return coverageLabel;
-  const covN = parseNumeric(coverageLabel.split('/')[0]);
-  const baseN = parseNumeric(baselineLabel.split('/')[0]);
+  if (covAt && baseAt && Date.parse(covAt) >= Date.parse(baseAt))
+    return coverageLabel;
+  const covN = parseNumeric(coverageLabel.split("/")[0]);
+  const baseN = parseNumeric(baselineLabel.split("/")[0]);
   if (covN != null && baseN != null && covN !== baseN) return coverageLabel;
   return baselineLabel;
 }
@@ -101,12 +120,16 @@ function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
  */
 function isBenchmarkPlatformExport(report, projectPath) {
   const path = String(
-    (report === null || report === void 0 ? void 0 : report.projectRoot) || projectPath || ''
-  ).replace(/\\/g, '/');
+    (report === null || report === void 0 ? void 0 : report.projectRoot) ||
+      projectPath ||
+      "",
+  ).replace(/\\/g, "/");
   return (
     Boolean(
       (report === null || report === void 0 ? void 0 : report.benchmarkScan) ||
-      (report === null || report === void 0 ? void 0 : report.scanTargetProfile) === 'benchmark-cache'
+      (report === null || report === void 0
+        ? void 0
+        : report.scanTargetProfile) === "benchmark-cache",
     ) || /\/github-cache\//i.test(path)
   );
 }
@@ -120,21 +143,25 @@ function dedupeExportNotes(notes = []) {
   const out = [];
   for (const note of notes.filter(Boolean)) {
     const text = String(note);
-    const normalized = text.replace(/\s+/g, ' ').trim().toLowerCase();
-    const scopeKey = /baseline\.pagesampleslabel .* catalog baseline/i.test(normalized)
-      ? 'page-samples-note'
+    const normalized = text.replace(/\s+/g, " ").trim().toLowerCase();
+    const scopeKey = /baseline\.pagesampleslabel .* catalog baseline/i.test(
+      normalized,
+    )
+      ? "page-samples-note"
       : /summary jesttests uses coverage snapshot/i.test(normalized)
-        ? 'jest-baseline-note'
+        ? "jest-baseline-note"
         : /security score uses live overlay/i.test(normalized)
-          ? 'security-overlay-note'
-          : /jest counts refreshed .* istanbul summary lastrun/i.test(normalized)
-            ? 'coverage-freshness-note'
+          ? "security-overlay-note"
+          : /jest counts refreshed .* istanbul summary lastrun/i.test(
+                normalized,
+              )
+            ? "coverage-freshness-note"
             : /quality panel cached/i.test(normalized)
-              ? 'quality-stale-note'
+              ? "quality-stale-note"
               : /quality panel shows/i.test(normalized)
-                ? 'quality-pass-mismatch-note'
+                ? "quality-pass-mismatch-note"
                 : /quality \(.*\) and coverage/i.test(normalized)
-                  ? 'quality-coverage-diff-note'
+                  ? "quality-coverage-diff-note"
                   : normalized;
     if (seen.has(scopeKey)) continue;
     seen.add(scopeKey);
@@ -152,14 +179,23 @@ function dedupeExportNotes(notes = []) {
 function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
   var _a, _b;
   const reportLabel =
-    (report === null || report === void 0 ? void 0 : report.pageSampleSchemaChecked) != null
+    (report === null || report === void 0
+      ? void 0
+      : report.pageSampleSchemaChecked) != null
       ? `${(_a = report.pageSampleSchemaPassed) !== null && _a !== void 0 ? _a : 0}/${report.pageSampleSchemaChecked}`
       : null;
   const baselineLabel =
-    (_b = baseline === null || baseline === void 0 ? void 0 : baseline.pageSamplesLabel) !== null && _b !== void 0
+    (_b =
+      baseline === null || baseline === void 0
+        ? void 0
+        : baseline.pageSamplesLabel) !== null && _b !== void 0
       ? _b
       : null;
-  if (benchmarkScan && baselineLabel && (!reportLabel || reportLabel === '0/0')) {
+  if (
+    benchmarkScan &&
+    baselineLabel &&
+    (!reportLabel || reportLabel === "0/0")
+  ) {
     return baselineLabel;
   }
   return reportLabel || baselineLabel || null;
@@ -174,19 +210,29 @@ function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
  */
 function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   var _a, _b;
-  if (!pageSpecsLabel || pageSpecsLabel === '0/0') return null;
+  if (!pageSpecsLabel || pageSpecsLabel === "0/0") return null;
   const reportLabel =
-    (report === null || report === void 0 ? void 0 : report.pageSampleSchemaChecked) != null
+    (report === null || report === void 0
+      ? void 0
+      : report.pageSampleSchemaChecked) != null
       ? `${(_a = report.pageSampleSchemaPassed) !== null && _a !== void 0 ? _a : 0}/${report.pageSampleSchemaChecked}`
       : null;
   const baselineLabel =
-    (_b = baseline === null || baseline === void 0 ? void 0 : baseline.pageSamplesLabel) !== null && _b !== void 0
+    (_b =
+      baseline === null || baseline === void 0
+        ? void 0
+        : baseline.pageSamplesLabel) !== null && _b !== void 0
       ? _b
       : null;
-  if (benchmarkScan && reportLabel === '0/0' && baselineLabel) {
+  if (benchmarkScan && reportLabel === "0/0" && baselineLabel) {
     return `Page sample schema not evaluated on OSS clone — summary uses repository baseline (${pageSpecsLabel}).`;
   }
-  if (!benchmarkScan && baselineLabel && reportLabel && baselineLabel !== reportLabel) {
+  if (
+    !benchmarkScan &&
+    baselineLabel &&
+    reportLabel &&
+    baselineLabel !== reportLabel
+  ) {
     return `baseline.pageSamplesLabel (${baselineLabel}) is catalog baseline — gate scan validated ${reportLabel} page specs in this export.`;
   }
   return null;
@@ -198,7 +244,11 @@ function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
  * @param {Object} options
  * @returns {any}
  */
-export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platform', options = {}) {
+export function sanitizeReportForPlatformExport(
+  report,
+  projectLabel = "ai-platform",
+  options = {},
+) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
     projectPath: report.projectRoot || report.platformRoot,
@@ -212,16 +262,38 @@ export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platf
   return {
     ...next,
     projectRoot: redactProjectPathForExport(next.projectRoot, projectLabel),
-    ...(next.platformRoot ? { platformRoot: redactProjectPathForExport(next.platformRoot, 'ai-platform') } : {}),
-    ...(next.productPlatformRoot
-      ? { productPlatformRoot: redactProjectPathForExport(next.productPlatformRoot, 'ai-platform') }
+    ...(next.platformRoot
+      ? {
+          platformRoot: redactProjectPathForExport(
+            next.platformRoot,
+            "ai-platform",
+          ),
+        }
       : {}),
-    ...(next.scanTargetRoot ? { scanTargetRoot: redactProjectPathForExport(next.scanTargetRoot, projectLabel) } : {}),
+    ...(next.productPlatformRoot
+      ? {
+          productPlatformRoot: redactProjectPathForExport(
+            next.productPlatformRoot,
+            "ai-platform",
+          ),
+        }
+      : {}),
+    ...(next.scanTargetRoot
+      ? {
+          scanTargetRoot: redactProjectPathForExport(
+            next.scanTargetRoot,
+            projectLabel,
+          ),
+        }
+      : {}),
     ...(next.repositoryInventory
       ? {
           repositoryInventory: {
             ...next.repositoryInventory,
-            projectRoot: redactProjectPathForExport(next.repositoryInventory.projectRoot, projectLabel),
+            projectRoot: redactProjectPathForExport(
+              next.repositoryInventory.projectRoot,
+              projectLabel,
+            ),
           },
         }
       : {}),
@@ -236,7 +308,9 @@ export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platf
 function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
   if (!dashboardHome) return null;
   const { _source, ...rest } = dashboardHome;
-  let overview = dashboardHome.overview ? stripInternalExportFields(dashboardHome.overview) : dashboardHome.overview;
+  let overview = dashboardHome.overview
+    ? stripInternalExportFields(dashboardHome.overview)
+    : dashboardHome.overview;
   const repoTotal = context.repositoryFilesTotal;
   const pageSpecsLabel = context.pageSpecsLabel;
   if (overview && repoTotal != null) {
@@ -247,21 +321,27 @@ function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
         totalFiles: repoTotal,
         totalFilesRaw: platformFiles,
         totalFilesNote: context.benchmarkScan
-          ? `Dashboard home counted ${Number(platformFiles).toLocaleString('en-US')} files — export uses gate inventory ${Number(repoTotal).toLocaleString('en-US')} on benchmark clone.`
-          : `Dashboard home counted ${Number(platformFiles).toLocaleString('en-US')} files — export uses gate inventory ${Number(repoTotal).toLocaleString('en-US')} from latest scan.`,
+          ? `Dashboard home counted ${Number(platformFiles).toLocaleString("en-US")} files — export uses gate inventory ${Number(repoTotal).toLocaleString("en-US")} on benchmark clone.`
+          : `Dashboard home counted ${Number(platformFiles).toLocaleString("en-US")} files — export uses gate inventory ${Number(repoTotal).toLocaleString("en-US")} from latest scan.`,
       };
     }
-    if (pageSpecsLabel && overview.pageSamplesLabel && overview.pageSamplesLabel !== pageSpecsLabel) {
+    if (
+      pageSpecsLabel &&
+      overview.pageSamplesLabel &&
+      overview.pageSamplesLabel !== pageSpecsLabel
+    ) {
       overview = {
         ...overview,
         pageSamplesLabel: pageSpecsLabel,
         pageSamplesLabelRaw: overview.pageSamplesLabel,
-        pageSamplesLabelSource: 'gate-scan-export-reconciled',
+        pageSamplesLabelSource: "gate-scan-export-reconciled",
       };
     }
   }
   const provenance =
-    dashboardHome.type === 'dashboard-home-model' ? 'dashboard-home-model' : resolveSectionProvenance(dashboardHome);
+    dashboardHome.type === "dashboard-home-model"
+      ? "dashboard-home-model"
+      : resolveSectionProvenance(dashboardHome);
   return {
     ...rest,
     provenance,
@@ -281,7 +361,7 @@ function sanitizeBaselineExport(baseline, context = {}) {
   const baselineLabel = clean.pageSamplesLabel;
   return {
     ...clean,
-    provenance: baseline.dataSource || 'repository-audit',
+    provenance: baseline.dataSource || "repository-audit",
     ...(pageSpecsLabel && baselineLabel && baselineLabel !== pageSpecsLabel
       ? {
           gateValidatedPageSpecsLabel: pageSpecsLabel,
@@ -296,7 +376,7 @@ function sanitizeBaselineExport(baseline, context = {}) {
  * @param {any} projectLabel
  * @returns {any}
  */
-function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
+function sanitizeConfigExport(config, projectLabel = "ai-platform") {
   if (!config) return null;
   return {
     ...stripInternalExportFields(config),
@@ -313,13 +393,24 @@ function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
  * @param {any} pageSpecsLabel
  * @returns {any}
  */
-export function buildPlatformMetrics(home, report, baseline, security, coverage, pageSpecsLabel = null) {
+export function buildPlatformMetrics(
+  home,
+  report,
+  baseline,
+  security,
+  coverage,
+  pageSpecsLabel = null,
+) {
   var _a, _b, _c, _d, _e, _f, _g, _h;
-  const overview = (home === null || home === void 0 ? void 0 : home.overview) || {};
+  const overview =
+    (home === null || home === void 0 ? void 0 : home.overview) || {};
   return {
     mockScanFiles:
       (_b =
-        (_a = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _a !== void 0
+        (_a =
+          report === null || report === void 0
+            ? void 0
+            : report.mockSampleFiles) !== null && _a !== void 0
           ? _a
           : report === null || report === void 0
             ? void 0
@@ -327,15 +418,22 @@ export function buildPlatformMetrics(home, report, baseline, security, coverage,
         ? _b
         : overview.totalFiles,
     qualityScore:
-      (_c = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _c !== void 0
+      (_c =
+        report === null || report === void 0 ? void 0 : report.qualityScore) !==
+        null && _c !== void 0
         ? _c
         : parseNumeric(overview.codeQuality),
     schemaPassRate:
-      (_d = report === null || report === void 0 ? void 0 : report.schemaCompliance) !== null && _d !== void 0
+      (_d =
+        report === null || report === void 0
+          ? void 0
+          : report.schemaCompliance) !== null && _d !== void 0
         ? _d
         : overview.schemaPassRate,
     scannerIssues:
-      (_e = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _e !== void 0
+      (_e =
+        report === null || report === void 0 ? void 0 : report.issueCount) !==
+        null && _e !== void 0
         ? _e
         : overview.scannerIssues,
     securityScore: formatSecurityScoreForDisplay(security, overview),
@@ -351,7 +449,10 @@ export function buildPlatformMetrics(home, report, baseline, security, coverage,
         : overview.pageSamplesLabel,
     sampleJsonFiles:
       (_h =
-        (_g = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _g !== void 0
+        (_g =
+          report === null || report === void 0
+            ? void 0
+            : report.mockSampleFiles) !== null && _g !== void 0
           ? _g
           : report === null || report === void 0
             ? void 0
@@ -368,50 +469,64 @@ export function buildPlatformMetrics(home, report, baseline, security, coverage,
  */
 export function buildComparativeRows(home, metrics) {
   var _a, _b;
-  const staticRows = (home === null || home === void 0 ? void 0 : home.comparativeAnalysis) || [];
+  const staticRows =
+    (home === null || home === void 0 ? void 0 : home.comparativeAnalysis) ||
+    [];
   const liveByMetric = {
-    'jest tests': {
+    "jest tests": {
       current:
-        (_b = parseNumeric((_a = metrics.jestTests) === null || _a === void 0 ? void 0 : _a.split('/')[0])) !== null &&
-        _b !== void 0
+        (_b = parseNumeric(
+          (_a = metrics.jestTests) === null || _a === void 0
+            ? void 0
+            : _a.split("/")[0],
+        )) !== null && _b !== void 0
           ? _b
           : parseNumeric(metrics.jestTests),
-      format: (v) => (v == null ? '—' : String(v)),
+      format: (v) => (v == null ? "—" : String(v)),
     },
-    'sample json files': {
+    "sample json files": {
       current: metrics.sampleJsonFiles,
-      format: (v) => (v == null ? '—' : String(v)),
+      format: (v) => (v == null ? "—" : String(v)),
     },
-    'mock / sample files': {
+    "mock / sample files": {
       current: metrics.mockScanFiles,
-      format: (v) => (v == null ? '—' : String(v)),
+      format: (v) => (v == null ? "—" : String(v)),
     },
-    'schema pass rate': {
+    "schema pass rate": {
       current: metrics.schemaPassRate,
-      format: (v) => (v == null ? '—' : `${v}%`),
+      format: (v) => (v == null ? "—" : `${v}%`),
     },
-    'security posture': {
+    "security posture": {
       current: metrics.securityScore,
-      format: (v) => (v == null ? '—' : String(v)),
+      format: (v) => (v == null ? "—" : String(v)),
     },
   };
   return staticRows.map((row) => {
-    const key = String(row.metric || '').toLowerCase();
+    const key = String(row.metric || "").toLowerCase();
     const live = liveByMetric[key];
     const previous = row.previous;
     const current =
-      (live === null || live === void 0 ? void 0 : live.current) != null ? live.format(live.current) : row.current;
+      (live === null || live === void 0 ? void 0 : live.current) != null
+        ? live.format(live.current)
+        : row.current;
     const prevNum = parseNumeric(previous);
     const curNum =
-      (live === null || live === void 0 ? void 0 : live.current) != null ? live.current : parseNumeric(current);
+      (live === null || live === void 0 ? void 0 : live.current) != null
+        ? live.current
+        : parseNumeric(current);
     let change = row.change;
     if (prevNum != null && curNum != null && prevNum !== curNum) {
-      const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
-      const unit = (unitMatch === null || unitMatch === void 0 ? void 0 : unitMatch[1]) || '';
-      if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
-        change = formatSignedDelta(curNum - prevNum, '%');
-      } else if (String(row.metric).toLowerCase().includes('security')) {
-        change = formatSignedDelta(curNum - prevNum, 'pts');
+      const unitMatch = String(row.change || "").match(/\s([a-z]+)$/i);
+      const unit =
+        (unitMatch === null || unitMatch === void 0 ? void 0 : unitMatch[1]) ||
+        "";
+      if (
+        String(row.metric).toLowerCase().includes("rate") ||
+        String(previous).includes("%")
+      ) {
+        change = formatSignedDelta(curNum - prevNum, "%");
+      } else if (String(row.metric).toLowerCase().includes("security")) {
+        change = formatSignedDelta(curNum - prevNum, "pts");
       } else {
         change = formatSignedDelta(curNum - prevNum, unit);
       }
@@ -429,20 +544,30 @@ export function buildComparativeRows(home, metrics) {
  * @param {any} quality }
  * @returns {any}
  */
-function buildExportProvenance({ dashboardHome, report, baseline, coverage, security, quality } = {}) {
+function buildExportProvenance({
+  dashboardHome,
+  report,
+  baseline,
+  coverage,
+  security,
+  quality,
+} = {}) {
   return {
     dashboardHome:
-      (dashboardHome === null || dashboardHome === void 0 ? void 0 : dashboardHome.type) === 'dashboard-home-model'
-        ? 'dashboard-home-model'
+      (dashboardHome === null || dashboardHome === void 0
+        ? void 0
+        : dashboardHome.type) === "dashboard-home-model"
+        ? "dashboard-home-model"
         : resolveSectionProvenance(dashboardHome),
     baseline:
-      (baseline === null || baseline === void 0 ? void 0 : baseline.dataSource) ||
-      (baseline ? 'repository-audit' : 'missing'),
+      (baseline === null || baseline === void 0
+        ? void 0
+        : baseline.dataSource) || (baseline ? "repository-audit" : "missing"),
     report: (report === null || report === void 0 ? void 0 : report.error)
-      ? 'error'
+      ? "error"
       : report
-        ? 'live-gate-scan'
-        : 'missing',
+        ? "live-gate-scan"
+        : "missing",
     coverage: resolveSectionProvenance(coverage),
     security: resolveSectionProvenance(security),
     quality: resolveSectionProvenance(quality),
@@ -509,22 +634,44 @@ export function buildPlatformExportBundle({
   const benchmarkScan = isBenchmarkPlatformExport(report, rawProjectPath);
   const repositoryFilesTotal =
     (_c =
-      (_a = report === null || report === void 0 ? void 0 : report.repositoryFilesTotal) !== null && _a !== void 0
+      (_a =
+        report === null || report === void 0
+          ? void 0
+          : report.repositoryFilesTotal) !== null && _a !== void 0
         ? _a
-        : (_b = report === null || report === void 0 ? void 0 : report.repositoryInventory) === null || _b === void 0
+        : (_b =
+              report === null || report === void 0
+                ? void 0
+                : report.repositoryInventory) === null || _b === void 0
           ? void 0
           : _b.totalFiles) !== null && _c !== void 0
       ? _c
       : null;
   const pageSpecsLabel = resolvePageSpecsLabel(report, baseline, benchmarkScan);
-  const pageSpecsNote = buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan);
-  const metrics = buildPlatformMetrics(dashboardHome, report, baseline, security, coverage, pageSpecsLabel);
+  const pageSpecsNote = buildPageSpecsNote(
+    report,
+    baseline,
+    pageSpecsLabel,
+    benchmarkScan,
+  );
+  const metrics = buildPlatformMetrics(
+    dashboardHome,
+    report,
+    baseline,
+    security,
+    coverage,
+    pageSpecsLabel,
+  );
   const comparativeAnalysis = buildComparativeRows(dashboardHome, metrics);
   const scanPaths =
     (report === null || report === void 0 ? void 0 : report.scanPaths) ||
     (config === null || config === void 0 ? void 0 : config.scanPaths) ||
     [];
-  const sanitizedReport = sanitizeReportForPlatformExport(report, projectLabel, { exportFilename });
+  const sanitizedReport = sanitizeReportForPlatformExport(
+    report,
+    projectLabel,
+    { exportFilename },
+  );
   const sanitizedCoverage = sanitizeCoverageExport(coverage);
   const sanitizedSecurity = sanitizeSecurityExport(security);
   const sanitizedQuality = sanitizeQualityExport(quality, coverage, report);
@@ -534,41 +681,59 @@ export function buildPlatformExportBundle({
       ? `Summary jestTests uses coverage snapshot (${metrics.jestTests}); baseline panel cached ${baselineLabel}.`
       : null;
   const securityNote =
-    (security === null || security === void 0 ? void 0 : security.securityScore) != null &&
-    ((_d = dashboardHome === null || dashboardHome === void 0 ? void 0 : dashboardHome.overview) === null ||
-    _d === void 0
+    (security === null || security === void 0
+      ? void 0
+      : security.securityScore) != null &&
+    ((_d =
+      dashboardHome === null || dashboardHome === void 0
+        ? void 0
+        : dashboardHome.overview) === null || _d === void 0
       ? void 0
       : _d.securityScore) != null &&
-    String(formatSecurityScoreForDisplay(security, {})) !== String(dashboardHome.overview.securityScore)
+    String(formatSecurityScoreForDisplay(security, {})) !==
+      String(dashboardHome.overview.securityScore)
       ? `Security score uses live overlay (${formatSecurityScoreForDisplay(security, {})}); dashboard home showed ${dashboardHome.overview.securityScore}.`
       : null;
-  const defaultSubtitle = 'Engineering baseline from repository audit + SimpleBeacon scan';
+  const defaultSubtitle =
+    "Engineering baseline from repository audit + SimpleBeacon scan";
   const subtitle = normalizeSimpleBeaconBranding(
     benchmarkScan
-      ? 'OSS benchmark clone baseline — github-cache/ gate hygiene, not SimpleBeacon product handoff'
-      : (dashboardHome === null || dashboardHome === void 0 ? void 0 : dashboardHome.subtitle) || defaultSubtitle
+      ? "OSS benchmark clone baseline — github-cache/ gate hygiene, not SimpleBeacon product handoff"
+      : (dashboardHome === null || dashboardHome === void 0
+          ? void 0
+          : dashboardHome.subtitle) || defaultSubtitle,
   );
   return {
-    type: 'simplebeacon-platform-export',
-    version: '1.1.0',
-    exportVersion: '1.1.0',
-    generatedBy: 'SimpleBeacon',
-    title: 'SimpleBeacon Platform Baseline Export',
+    type: "simplebeacon-platform-export",
+    version: "1.1.0",
+    exportVersion: "1.1.0",
+    generatedBy: "SimpleBeacon",
+    title: "SimpleBeacon Platform Baseline Export",
     generatedAt: new Date().toISOString(),
     subtitle,
     summary: {
-      mockScanFiles: (_e = metrics.mockScanFiles) !== null && _e !== void 0 ? _e : null,
-      qualityScore: (_f = metrics.qualityScore) !== null && _f !== void 0 ? _f : null,
-      schemaPassRate: (_g = metrics.schemaPassRate) !== null && _g !== void 0 ? _g : null,
-      scannerIssues: (_h = metrics.scannerIssues) !== null && _h !== void 0 ? _h : null,
-      securityScore: (_j = metrics.securityScore) !== null && _j !== void 0 ? _j : null,
+      mockScanFiles:
+        (_e = metrics.mockScanFiles) !== null && _e !== void 0 ? _e : null,
+      qualityScore:
+        (_f = metrics.qualityScore) !== null && _f !== void 0 ? _f : null,
+      schemaPassRate:
+        (_g = metrics.schemaPassRate) !== null && _g !== void 0 ? _g : null,
+      scannerIssues:
+        (_h = metrics.scannerIssues) !== null && _h !== void 0 ? _h : null,
+      securityScore:
+        (_j = metrics.securityScore) !== null && _j !== void 0 ? _j : null,
       jestTests: (_k = metrics.jestTests) !== null && _k !== void 0 ? _k : null,
-      pageSamples: (_l = metrics.pageSamples) !== null && _l !== void 0 ? _l : null,
-      sampleJsonFiles: (_m = metrics.sampleJsonFiles) !== null && _m !== void 0 ? _m : null,
+      pageSamples:
+        (_l = metrics.pageSamples) !== null && _l !== void 0 ? _l : null,
+      sampleJsonFiles:
+        (_m = metrics.sampleJsonFiles) !== null && _m !== void 0 ? _m : null,
       scanPathCount: scanPaths.length,
       baselineSyncedAt:
         (_p =
-          (_o = baseline === null || baseline === void 0 ? void 0 : baseline.syncedAt) !== null && _o !== void 0
+          (_o =
+            baseline === null || baseline === void 0
+              ? void 0
+              : baseline.syncedAt) !== null && _o !== void 0
             ? _o
             : dashboardHome === null || dashboardHome === void 0
               ? void 0
@@ -577,7 +742,10 @@ export function buildPlatformExportBundle({
           : null,
       lineCoverage:
         (_r =
-          (_q = coverage === null || coverage === void 0 ? void 0 : coverage.overallCoverage) !== null && _q !== void 0
+          (_q =
+            coverage === null || coverage === void 0
+              ? void 0
+              : coverage.overallCoverage) !== null && _q !== void 0
             ? _q
             : coverage === null || coverage === void 0
               ? void 0
@@ -585,12 +753,18 @@ export function buildPlatformExportBundle({
           ? _r
           : null,
       branchCoverage:
-        (_s = coverage === null || coverage === void 0 ? void 0 : coverage.branchCoverage) !== null && _s !== void 0
+        (_s =
+          coverage === null || coverage === void 0
+            ? void 0
+            : coverage.branchCoverage) !== null && _s !== void 0
           ? _s
           : null,
       qualityOverviewScore:
         (_u =
-          (_t = quality === null || quality === void 0 ? void 0 : quality.overallScore) !== null && _t !== void 0
+          (_t =
+            quality === null || quality === void 0
+              ? void 0
+              : quality.overallScore) !== null && _t !== void 0
             ? _t
             : quality === null || quality === void 0
               ? void 0
@@ -600,48 +774,72 @@ export function buildPlatformExportBundle({
       gatePass:
         (_y =
           (_w =
-            (_v = report === null || report === void 0 ? void 0 : report.gate) === null || _v === void 0
+            (_v =
+              report === null || report === void 0 ? void 0 : report.gate) ===
+              null || _v === void 0
               ? void 0
               : _v.pass) !== null && _w !== void 0
             ? _w
-            : (_x = sanitizedReport === null || sanitizedReport === void 0 ? void 0 : sanitizedReport.gate) === null ||
-                _x === void 0
+            : (_x =
+                  sanitizedReport === null || sanitizedReport === void 0
+                    ? void 0
+                    : sanitizedReport.gate) === null || _x === void 0
               ? void 0
               : _x.pass) !== null && _y !== void 0
           ? _y
           : null,
       gateAttestation:
-        (_z = sanitizedReport === null || sanitizedReport === void 0 ? void 0 : sanitizedReport.gateAttestation) !==
-          null && _z !== void 0
+        (_z =
+          sanitizedReport === null || sanitizedReport === void 0
+            ? void 0
+            : sanitizedReport.gateAttestation) !== null && _z !== void 0
           ? _z
           : null,
       benchmarkScan,
       repositoryFilesTotal,
       ruleScopedFilesAnalyzed:
         (_2 =
-          (_0 = report === null || report === void 0 ? void 0 : report.ruleScopedFilesAnalyzed) !== null &&
-          _0 !== void 0
+          (_0 =
+            report === null || report === void 0
+              ? void 0
+              : report.ruleScopedFilesAnalyzed) !== null && _0 !== void 0
             ? _0
-            : (_1 = report === null || report === void 0 ? void 0 : report.scanScope) === null || _1 === void 0
+            : (_1 =
+                  report === null || report === void 0
+                    ? void 0
+                    : report.scanScope) === null || _1 === void 0
               ? void 0
               : _1.ruleScopedFilesAnalyzed) !== null && _2 !== void 0
           ? _2
           : null,
       reportGeneratedAt:
-        (_3 = report === null || report === void 0 ? void 0 : report.generatedAt) !== null && _3 !== void 0 ? _3 : null,
+        (_3 =
+          report === null || report === void 0
+            ? void 0
+            : report.generatedAt) !== null && _3 !== void 0
+          ? _3
+          : null,
       coverageLastRun:
-        (_4 = coverage === null || coverage === void 0 ? void 0 : coverage.lastRun) !== null && _4 !== void 0
+        (_4 =
+          coverage === null || coverage === void 0
+            ? void 0
+            : coverage.lastRun) !== null && _4 !== void 0
           ? _4
           : null,
       jestResultAt:
-        (_5 = coverage === null || coverage === void 0 ? void 0 : coverage.testCountGeneratedAt) !== null &&
-        _5 !== void 0
+        (_5 =
+          coverage === null || coverage === void 0
+            ? void 0
+            : coverage.testCountGeneratedAt) !== null && _5 !== void 0
           ? _5
           : null,
       pageSpecCatalogSize:
         (_8 =
           (_7 =
-            (_6 = report === null || report === void 0 ? void 0 : report.scanScope) === null || _6 === void 0
+            (_6 =
+              report === null || report === void 0
+                ? void 0
+                : report.scanScope) === null || _6 === void 0
               ? void 0
               : _6.pageSpecCatalogSize) !== null && _7 !== void 0
             ? _7
@@ -656,36 +854,58 @@ export function buildPlatformExportBundle({
       ...((sanitizedQuality === null || sanitizedQuality === void 0
         ? void 0
         : sanitizedQuality.staleRelativeToCoverage) &&
-      (sanitizedQuality === null || sanitizedQuality === void 0 ? void 0 : sanitizedQuality.testCountNote)
+      (sanitizedQuality === null || sanitizedQuality === void 0
+        ? void 0
+        : sanitizedQuality.testCountNote)
         ? { qualityPanelNote: sanitizedQuality.testCountNote }
         : {}),
     },
     projectRoot: redactProjectPathForExport(rawProjectPath, projectLabel),
-    scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'product',
+    scanTargetProfile: benchmarkScan ? "benchmark-cache" : "product",
     ...(benchmarkScan &&
-    (sanitizedReport === null || sanitizedReport === void 0 ? void 0 : sanitizedReport.productPlatformRoot)
-      ? { productPlatformRoot: redactProjectPathForExport(sanitizedReport.productPlatformRoot, 'ai-platform') }
+    (sanitizedReport === null || sanitizedReport === void 0
+      ? void 0
+      : sanitizedReport.productPlatformRoot)
+      ? {
+          productPlatformRoot: redactProjectPathForExport(
+            sanitizedReport.productPlatformRoot,
+            "ai-platform",
+          ),
+        }
       : {}),
     scanPaths,
     metrics,
-    provenance: buildExportProvenance({ dashboardHome, report, baseline, coverage, security, quality }),
+    provenance: buildExportProvenance({
+      dashboardHome,
+      report,
+      baseline,
+      coverage,
+      security,
+      quality,
+    }),
     disclaimers: [
       ...(benchmarkScan
         ? [
-            'Benchmark clone export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.',
+            "Benchmark clone export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.",
           ]
         : []),
-      'Platform export bundles gate scan hygiene, repository baseline, and live dashboard overlays.',
-      'Security score reflects SimpleBeacon gate/schema compliance — not penetration testing or npm audit alone.',
-      'Coverage from Istanbul collectCoverageFrom scope — not whole-repository line coverage.',
-      'Absolute host paths are redacted to project label in exports.',
-      'baseline.rejectedFiction catalogs documented anti-fiction exceptions — not active KPI claims.',
-      'Summary jestTests prefers fresher coverage Jest snapshot when baseline panel counts lag.',
-      'Summary pageSamples prefers gate-validated page spec counts over catalog baseline labels when they differ.',
+      "Platform export bundles gate scan hygiene, repository baseline, and live dashboard overlays.",
+      "Security score reflects SimpleBeacon gate/schema compliance — not penetration testing or npm audit alone.",
+      "Coverage from Istanbul collectCoverageFrom scope — not whole-repository line coverage.",
+      "Absolute host paths are redacted to project label in exports.",
+      "baseline.rejectedFiction catalogs documented anti-fiction exceptions — not active KPI claims.",
+      "Summary jestTests prefers fresher coverage Jest snapshot when baseline panel counts lag.",
+      "Summary pageSamples prefers gate-validated page spec counts over catalog baseline labels when they differ.",
     ].map((line) => normalizeSimpleBeaconBranding(line)),
     comparativeAnalysis,
-    insights: (dashboardHome === null || dashboardHome === void 0 ? void 0 : dashboardHome.insights) || [],
-    mockDataCategories: (report === null || report === void 0 ? void 0 : report.mockDataCategories) || [],
+    insights:
+      (dashboardHome === null || dashboardHome === void 0
+        ? void 0
+        : dashboardHome.insights) || [],
+    mockDataCategories:
+      (report === null || report === void 0
+        ? void 0
+        : report.mockDataCategories) || [],
     dashboardHome: sanitizeDashboardHomeExport(dashboardHome, {
       benchmarkScan,
       repositoryFilesTotal,
@@ -705,52 +925,69 @@ export function buildPlatformExportBundle({
     hygieneSummary: {
       gatePass:
         (_10 =
-          (_9 = sanitizedReport === null || sanitizedReport === void 0 ? void 0 : sanitizedReport.gate) === null ||
-          _9 === void 0
+          (_9 =
+            sanitizedReport === null || sanitizedReport === void 0
+              ? void 0
+              : sanitizedReport.gate) === null || _9 === void 0
             ? void 0
             : _9.pass) !== null && _10 !== void 0
           ? _10
           : null,
       gateAttestation:
-        (_11 = sanitizedReport === null || sanitizedReport === void 0 ? void 0 : sanitizedReport.gateAttestation) !==
-          null && _11 !== void 0
+        (_11 =
+          sanitizedReport === null || sanitizedReport === void 0
+            ? void 0
+            : sanitizedReport.gateAttestation) !== null && _11 !== void 0
           ? _11
           : null,
       repositoryFilesTotal,
       ruleScopedFilesAnalyzed:
         (_14 =
-          (_12 = report === null || report === void 0 ? void 0 : report.ruleScopedFilesAnalyzed) !== null &&
-          _12 !== void 0
+          (_12 =
+            report === null || report === void 0
+              ? void 0
+              : report.ruleScopedFilesAnalyzed) !== null && _12 !== void 0
             ? _12
-            : (_13 = report === null || report === void 0 ? void 0 : report.scanScope) === null || _13 === void 0
+            : (_13 =
+                  report === null || report === void 0
+                    ? void 0
+                    : report.scanScope) === null || _13 === void 0
               ? void 0
               : _13.ruleScopedFilesAnalyzed) !== null && _14 !== void 0
           ? _14
           : null,
-      jestTests: (_15 = metrics.jestTests) !== null && _15 !== void 0 ? _15 : null,
+      jestTests:
+        (_15 = metrics.jestTests) !== null && _15 !== void 0 ? _15 : null,
       lineCoverage:
         (_17 =
-          (_16 = coverage === null || coverage === void 0 ? void 0 : coverage.overallCoverage) !== null &&
-          _16 !== void 0
+          (_16 =
+            coverage === null || coverage === void 0
+              ? void 0
+              : coverage.overallCoverage) !== null && _16 !== void 0
             ? _16
             : coverage === null || coverage === void 0
               ? void 0
               : coverage.lineCoverage) !== null && _17 !== void 0
           ? _17
           : null,
-      securityScore: (_18 = metrics.securityScore) !== null && _18 !== void 0 ? _18 : null,
+      securityScore:
+        (_18 = metrics.securityScore) !== null && _18 !== void 0 ? _18 : null,
       attestationNote: benchmarkScan
-        ? 'Platform baseline on OSS benchmark clone — not SimpleBeacon product handoff clearance.'
-        : 'Platform baseline export — hygiene metrics only, not vendor handoff clearance.',
+        ? "Platform baseline on OSS benchmark clone — not SimpleBeacon product handoff clearance."
+        : "Platform baseline export — hygiene metrics only, not vendor handoff clearance.",
     },
     exportNotes: dedupeExportNotes(
       [
         pageSpecsNote,
         jestNote,
         securityNote,
-        (sanitizedCoverage === null || sanitizedCoverage === void 0 ? void 0 : sanitizedCoverage.freshnessNote) || null,
-        (sanitizedQuality === null || sanitizedQuality === void 0 ? void 0 : sanitizedQuality.testCountNote) || null,
-      ].map((note) => normalizeSimpleBeaconBranding(note))
+        (sanitizedCoverage === null || sanitizedCoverage === void 0
+          ? void 0
+          : sanitizedCoverage.freshnessNote) || null,
+        (sanitizedQuality === null || sanitizedQuality === void 0
+          ? void 0
+          : sanitizedQuality.testCountNote) || null,
+      ].map((note) => normalizeSimpleBeaconBranding(note)),
     ),
   };
 }
@@ -767,7 +1004,7 @@ export function buildPlatformExportBundle({
  * @returns {any}
  */
 export function sanitizePlatformExport(bundle, options = {}) {
-  if (!bundle || bundle.type !== 'simplebeacon-platform-export') return bundle;
+  if (!bundle || bundle.type !== "simplebeacon-platform-export") return bundle;
   return buildPlatformExportBundle({
     dashboardHome: bundle.dashboardHome,
     report: bundle.report,
@@ -785,7 +1022,7 @@ export function sanitizePlatformExport(bundle, options = {}) {
  * @returns {any}
  */
 function csvEscape(cell) {
-  return `"${String(cell !== null && cell !== void 0 ? cell : '').replace(/"/g, '""')}"`;
+  return `"${String(cell !== null && cell !== void 0 ? cell : "").replace(/"/g, '""')}"`;
 }
 /**
  * Build comparative csv.
@@ -793,20 +1030,25 @@ function csvEscape(cell) {
  * @returns {any}
  */
 export function buildComparativeCsv(comparativeRows) {
-  if (!(comparativeRows === null || comparativeRows === void 0 ? void 0 : comparativeRows.length)) return null;
-  const header = ['metric', 'previous', 'current', 'change'];
+  if (
+    !(comparativeRows === null || comparativeRows === void 0
+      ? void 0
+      : comparativeRows.length)
+  )
+    return null;
+  const header = ["metric", "previous", "current", "change"];
   const rows = comparativeRows.map((row) => {
     var _a, _b, _c;
     return [
-      row.metric || '',
-      (_a = row.previous) !== null && _a !== void 0 ? _a : '',
-      (_b = row.current) !== null && _b !== void 0 ? _b : '',
-      (_c = row.change) !== null && _c !== void 0 ? _c : '',
+      row.metric || "",
+      (_a = row.previous) !== null && _a !== void 0 ? _a : "",
+      (_b = row.current) !== null && _b !== void 0 ? _b : "",
+      (_c = row.change) !== null && _c !== void 0 ? _c : "",
     ]
       .map(csvEscape)
-      .join(',');
+      .join(",");
   });
-  return [header.join(','), ...rows].join('\n');
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build mock categories csv.
@@ -814,21 +1056,30 @@ export function buildComparativeCsv(comparativeRows) {
  * @returns {any}
  */
 export function buildMockCategoriesCsv(categories) {
-  if (!(categories === null || categories === void 0 ? void 0 : categories.length)) return null;
-  const header = ['category', 'fileCount', 'totalSize', 'qualityScore', 'issues'];
+  if (
+    !(categories === null || categories === void 0 ? void 0 : categories.length)
+  )
+    return null;
+  const header = [
+    "category",
+    "fileCount",
+    "totalSize",
+    "qualityScore",
+    "issues",
+  ];
   const rows = categories.map((row) => {
     var _a, _b, _c, _d;
     return [
-      row.category || '',
-      (_a = row.fileCount) !== null && _a !== void 0 ? _a : '',
-      (_b = row.totalSize) !== null && _b !== void 0 ? _b : '',
-      (_c = row.qualityScore) !== null && _c !== void 0 ? _c : '',
-      (_d = row.issues) !== null && _d !== void 0 ? _d : '',
+      row.category || "",
+      (_a = row.fileCount) !== null && _a !== void 0 ? _a : "",
+      (_b = row.totalSize) !== null && _b !== void 0 ? _b : "",
+      (_c = row.qualityScore) !== null && _c !== void 0 ? _c : "",
+      (_d = row.issues) !== null && _d !== void 0 ? _d : "",
     ]
       .map(csvEscape)
-      .join(',');
+      .join(",");
   });
-  return [header.join(','), ...rows].join('\n');
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build platform summary csv.
@@ -836,12 +1087,13 @@ export function buildMockCategoriesCsv(categories) {
  * @returns {any}
  */
 export function buildPlatformSummaryCsv(bundle) {
-  if (!(bundle === null || bundle === void 0 ? void 0 : bundle.summary)) return null;
-  const header = ['metric', 'value'];
+  if (!(bundle === null || bundle === void 0 ? void 0 : bundle.summary))
+    return null;
+  const header = ["metric", "value"];
   const rows = Object.entries(bundle.summary).map(([key, value]) =>
-    [key, value == null ? '' : String(value)].map(csvEscape).join(',')
+    [key, value == null ? "" : String(value)].map(csvEscape).join(","),
   );
-  return [header.join(','), ...rows].join('\n');
+  return [header.join(","), ...rows].join("\n");
 }
 /**
  * Build platform csv.
@@ -850,31 +1102,35 @@ export function buildPlatformSummaryCsv(bundle) {
  * @param {any} mockDataCategories }
  * @returns {any}
  */
-export function buildPlatformCsv({ bundle, comparativeRows, mockDataCategories } = {}) {
+export function buildPlatformCsv({
+  bundle,
+  comparativeRows,
+  mockDataCategories,
+} = {}) {
   const parts = [];
   const comparative = buildComparativeCsv(comparativeRows);
   const categories = buildMockCategoriesCsv(mockDataCategories);
   const summary = !comparative ? buildPlatformSummaryCsv(bundle) : null;
   if (comparative) parts.push(comparative);
   if (summary) {
-    if (parts.length) parts.push('');
-    parts.push('Platform Summary');
+    if (parts.length) parts.push("");
+    parts.push("Platform Summary");
     parts.push(summary);
   }
   if (categories) {
-    if (parts.length) parts.push('');
-    parts.push('Mock Data Categories');
+    if (parts.length) parts.push("");
+    parts.push("Mock Data Categories");
     parts.push(categories);
   }
-  return parts.length ? parts.join('\n') : null;
+  return parts.length ? parts.join("\n") : null;
 }
 /**
  * Platform export filename.
  * @param {any} ext
  * @returns {any}
  */
-export function platformExportFilename(ext = 'json') {
+export function platformExportFilename(ext = "json") {
   const stamp = new Date().toISOString().slice(0, 10);
-  if (ext === 'csv') return `platform-baseline-metrics-${stamp}.csv`;
+  if (ext === "csv") return `platform-baseline-metrics-${stamp}.csv`;
   return `platform-baseline-export-${stamp}.json`;
 }

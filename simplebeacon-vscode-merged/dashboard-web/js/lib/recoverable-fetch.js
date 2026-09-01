@@ -7,7 +7,9 @@
  */
 export function logRecoverableDashboardError(contextLabel, error) {
   const message = error instanceof Error ? error.message : String(error);
-  window['console']['debug'](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
+  window["console"]["debug"](
+    `[Simplebeacon dashboard] ${contextLabel}: ${message}`,
+  );
 }
 
 /**
@@ -16,8 +18,10 @@ export function logRecoverableDashboardError(contextLabel, error) {
  * @returns {any}
  */
 export function hasJsonContentType(response) {
-  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-  return contentType.includes('application/json');
+  const contentType = String(
+    response.headers.get("content-type") || "",
+  ).toLowerCase();
+  return contentType.includes("application/json");
 }
 
 /**
@@ -29,7 +33,7 @@ export function hasJsonContentType(response) {
 export async function readJsonResponseBody(response, fallback = null) {
   if (!hasJsonContentType(response)) return fallback;
   const parsedBody = await response.json().catch((parseError) => {
-    logRecoverableDashboardError('JSON response parse', parseError);
+    logRecoverableDashboardError("JSON response parse", parseError);
     return fallback;
   });
   return parsedBody == null ? fallback : parsedBody;
@@ -42,12 +46,18 @@ export async function readJsonResponseBody(response, fallback = null) {
  * @param {any} fallbackFactory
  * @returns {any}
  */
-export async function withRecoverableFallback(contextLabel, asyncOperation, fallbackFactory) {
+export async function withRecoverableFallback(
+  contextLabel,
+  asyncOperation,
+  fallbackFactory,
+) {
   try {
     return await asyncOperation();
   } catch (error) {
     logRecoverableDashboardError(contextLabel, error);
-    return typeof fallbackFactory === 'function' ? fallbackFactory(error) : fallbackFactory;
+    return typeof fallbackFactory === "function"
+      ? fallbackFactory(error)
+      : fallbackFactory;
   }
 }
 
@@ -62,7 +72,7 @@ function _delay(ms) {
  */
 export async function fetchApi(url, options = {}) {
   const {
-    method = 'GET',
+    method = "GET",
     headers = {},
     body = undefined,
     retries = 2,
@@ -72,10 +82,12 @@ export async function fetchApi(url, options = {}) {
   } = options;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const controller =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
     let timeoutId;
     try {
-      if (controller) timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      if (controller)
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       const resp = await fetch(url, {
         method,
         headers,
@@ -93,13 +105,16 @@ export async function fetchApi(url, options = {}) {
       return resp; // non-retriable HTTP error (e.g. 404, 4xx)
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
-      const isAbort = err && err.name === 'AbortError';
+      const isAbort = err && err.name === "AbortError";
       if (isAbort) {
         if (attempt === retries) {
-          logRecoverableDashboardError('fetchApi network', new Error('Request timed out after retries'));
+          logRecoverableDashboardError(
+            "fetchApi network",
+            new Error("Request timed out after retries"),
+          );
         }
       } else if (attempt === retries) {
-        logRecoverableDashboardError('fetchApi network', err);
+        logRecoverableDashboardError("fetchApi network", err);
       }
       if (attempt < retries) {
         await _delay(retryDelay * Math.pow(2, attempt));
@@ -116,6 +131,6 @@ export async function fetchApi(url, options = {}) {
  */
 export async function fetchApiWithAuth(url, token, options = {}) {
   const headers = Object.assign({}, options.headers || {});
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   return fetchApi(url, Object.assign({}, options, { headers }));
 }

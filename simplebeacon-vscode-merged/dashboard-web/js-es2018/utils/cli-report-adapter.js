@@ -23,7 +23,7 @@
  * @returns {object} Normalized report with fields dashboard widgets expect
  */
 export function adaptCliReport(cliReport) {
-  if (!cliReport || typeof cliReport !== 'object') {
+  if (!cliReport || typeof cliReport !== "object") {
     return _emptyReport();
   }
 
@@ -32,7 +32,9 @@ export function adaptCliReport(cliReport) {
   const rawIssues = Array.isArray(raw.rawIssues) ? raw.rawIssues : [];
   // Prefer detectedIssues, but fall back to rawIssues if detectedIssues is empty
   const detectedIssues =
-    Array.isArray(raw.detectedIssues) && raw.detectedIssues.length > 0 ? raw.detectedIssues : rawIssues;
+    Array.isArray(raw.detectedIssues) && raw.detectedIssues.length > 0
+      ? raw.detectedIssues
+      : rawIssues;
 
   // Normalize detected issues for dashboard consumption
   const normalizedIssues = detectedIssues.map(_normalizeIssue);
@@ -41,7 +43,12 @@ export function adaptCliReport(cliReport) {
   const rawSev = raw.severityCounts || {};
   const severityCounts =
     rawSev.critical !== undefined || rawSev.high !== undefined
-      ? { critical: rawSev.critical || 0, high: rawSev.high || 0, medium: rawSev.medium || 0, low: rawSev.low || 0 }
+      ? {
+          critical: rawSev.critical || 0,
+          high: rawSev.high || 0,
+          medium: rawSev.medium || 0,
+          low: rawSev.low || 0,
+        }
       : _countSeverities(normalizedIssues);
 
   // Compute quality score if missing (uses computed severityCounts)
@@ -52,15 +59,20 @@ export function adaptCliReport(cliReport) {
   const repoTotal = raw.repositoryFilesTotal || raw.totalFiles || 0;
 
   // Scan scope info
-  const projectRoot = raw.projectRoot || raw.platformRoot || 'Unknown';
+  const projectRoot = raw.projectRoot || raw.platformRoot || "Unknown";
   const scanPaths = Array.isArray(raw.scanPaths) ? raw.scanPaths : [];
   const generatedAt = raw.generatedAt || new Date().toISOString();
 
   // Gate status — synthesize blocking/warning counts from severity if missing
   const gatePass = gate.pass === true;
   const blockingCount =
-    gate.blockingCount !== undefined ? gate.blockingCount : severityCounts.critical + severityCounts.high;
-  const warningCount = gate.warningCount !== undefined ? gate.warningCount : severityCounts.medium + severityCounts.low;
+    gate.blockingCount !== undefined
+      ? gate.blockingCount
+      : severityCounts.critical + severityCounts.high;
+  const warningCount =
+    gate.warningCount !== undefined
+      ? gate.warningCount
+      : severityCounts.medium + severityCounts.low;
 
   // Rule coverage — which analyzers ran and their finding counts
   const ruleCoverage = _extractRuleCoverage(raw);
@@ -68,10 +80,10 @@ export function adaptCliReport(cliReport) {
   // Build the normalized report
   return {
     // Core identity
-    type: 'simplebeacon-cli-scan',
+    type: "simplebeacon-cli-scan",
     reportVersion: raw.reportVersion || 1,
     generatedAt,
-    generatedBy: raw.generatedBy || 'simplebeacon-cli',
+    generatedBy: raw.generatedBy || "simplebeacon-cli",
 
     // Project info
     projectRoot,
@@ -87,7 +99,7 @@ export function adaptCliReport(cliReport) {
     repositoryFilesTotal: repoTotal,
     repositoryFoldersTotal: raw.repositoryFoldersTotal || 0,
     totalSizeBytes: raw.totalSizeBytes || 0,
-    totalSizeLabel: raw.totalSizeLabel || '',
+    totalSizeLabel: raw.totalSizeLabel || "",
 
     // Issue metrics
     issueCount: raw.issueCount || normalizedIssues.length,
@@ -104,7 +116,9 @@ export function adaptCliReport(cliReport) {
       warningCount,
       blockingIssues: gate.blockingIssues || [],
       warningIssues: gate.warningIssues || [],
-      status: gate.status || (gatePass ? 'PASSED' : blockingCount > 0 ? 'BLOCKED' : 'REVIEW'),
+      status:
+        gate.status ||
+        (gatePass ? "PASSED" : blockingCount > 0 ? "BLOCKED" : "REVIEW"),
       failOn: gate.failOn || [],
       warnOn: gate.warnOn || [],
       score: qualityScore,
@@ -138,7 +152,7 @@ export function adaptCliReport(cliReport) {
     scanErrors: raw.scanErrors || [],
 
     // Tier info
-    tier: raw.tier || 'unknown',
+    tier: raw.tier || "unknown",
     tierLimitation: raw.tierLimitation || null,
 
     // Sanitization
@@ -203,24 +217,92 @@ export function adaptCliReportHistory(cliReports) {
  */
 function _extractRuleCoverage(raw) {
   const rules = [
-    { key: 'credentialScanned', findingsKey: 'credentialFindings', name: 'Credential Scanner' },
-    { key: 'productionLeakScanned', findingsKey: 'productionLeakFindings', name: 'Production Leak' },
-    { key: 'sourceCodeFilesScanned', findingsKey: 'sourceFictionPatternHits', name: 'Source Fiction' },
-    { key: 'llmSlopFilesScanned', findingsKey: 'llmSlopPatternHits', name: 'LLM Slop' },
-    { key: 'securityPatternFilesScanned', findingsKey: 'securityPatternFindings', name: 'Security Patterns' },
-    { key: 'hardcodedUrlFilesScanned', findingsKey: 'hardcodedUrlFindings', name: 'Hardcoded URLs' },
-    { key: 'weakCryptoFilesScanned', findingsKey: 'weakCryptoFindings', name: 'Weak Crypto' },
-    { key: 'secretInCommentsFilesScanned', findingsKey: 'secretInCommentsFindings', name: 'Secret in Comments' },
-    { key: 'syncIoFilesScanned', findingsKey: 'syncIoFindings', name: 'Sync I/O' },
-    { key: 'envInGitFilesScanned', findingsKey: 'envInGitFindings', name: 'Env in Git' },
-    { key: 'redosFilesScanned', findingsKey: 'redosFindings', name: 'ReDoS' },
-    { key: 'piiLoggingFilesScanned', findingsKey: 'piiLoggingFindings', name: 'PII Logging' },
-    { key: 'deadCodeFilesScanned', findingsKey: 'deadCodeFindings', name: 'Dead Code' },
-    { key: 'memoryLeakFilesScanned', findingsKey: 'memoryLeakFindings', name: 'Memory Leak' },
-    { key: 'typeSafetyFilesScanned', findingsKey: 'typeSafetyFindings', name: 'Type Safety' },
-    { key: 'hallucinatedImportFilesScanned', findingsKey: 'hallucinatedImportFindings', name: 'Hallucinated Imports' },
-    { key: 'astStructuralFilesScanned', findingsKey: 'astStructuralFindings', name: 'AST Structural' },
-    { key: 'euAiActScanned', findingsKey: 'euAiActFindings', name: 'EU AI Act' },
+    {
+      key: "credentialScanned",
+      findingsKey: "credentialFindings",
+      name: "Credential Scanner",
+    },
+    {
+      key: "productionLeakScanned",
+      findingsKey: "productionLeakFindings",
+      name: "Production Leak",
+    },
+    {
+      key: "sourceCodeFilesScanned",
+      findingsKey: "sourceFictionPatternHits",
+      name: "Source Fiction",
+    },
+    {
+      key: "llmSlopFilesScanned",
+      findingsKey: "llmSlopPatternHits",
+      name: "LLM Slop",
+    },
+    {
+      key: "securityPatternFilesScanned",
+      findingsKey: "securityPatternFindings",
+      name: "Security Patterns",
+    },
+    {
+      key: "hardcodedUrlFilesScanned",
+      findingsKey: "hardcodedUrlFindings",
+      name: "Hardcoded URLs",
+    },
+    {
+      key: "weakCryptoFilesScanned",
+      findingsKey: "weakCryptoFindings",
+      name: "Weak Crypto",
+    },
+    {
+      key: "secretInCommentsFilesScanned",
+      findingsKey: "secretInCommentsFindings",
+      name: "Secret in Comments",
+    },
+    {
+      key: "syncIoFilesScanned",
+      findingsKey: "syncIoFindings",
+      name: "Sync I/O",
+    },
+    {
+      key: "envInGitFilesScanned",
+      findingsKey: "envInGitFindings",
+      name: "Env in Git",
+    },
+    { key: "redosFilesScanned", findingsKey: "redosFindings", name: "ReDoS" },
+    {
+      key: "piiLoggingFilesScanned",
+      findingsKey: "piiLoggingFindings",
+      name: "PII Logging",
+    },
+    {
+      key: "deadCodeFilesScanned",
+      findingsKey: "deadCodeFindings",
+      name: "Dead Code",
+    },
+    {
+      key: "memoryLeakFilesScanned",
+      findingsKey: "memoryLeakFindings",
+      name: "Memory Leak",
+    },
+    {
+      key: "typeSafetyFilesScanned",
+      findingsKey: "typeSafetyFindings",
+      name: "Type Safety",
+    },
+    {
+      key: "hallucinatedImportFilesScanned",
+      findingsKey: "hallucinatedImportFindings",
+      name: "Hallucinated Imports",
+    },
+    {
+      key: "astStructuralFilesScanned",
+      findingsKey: "astStructuralFindings",
+      name: "AST Structural",
+    },
+    {
+      key: "euAiActScanned",
+      findingsKey: "euAiActFindings",
+      name: "EU AI Act",
+    },
   ];
 
   return rules
@@ -237,17 +319,20 @@ function _extractRuleCoverage(raw) {
  */
 function _resolveQualityScore(raw, sev, gate) {
   // If the report has an explicit quality score, use it
-  if (typeof raw.qualityScore === 'number' && raw.qualityScore >= 0) {
+  if (typeof raw.qualityScore === "number" && raw.qualityScore >= 0) {
     return raw.qualityScore;
   }
 
   // If the gate has a score, use it
-  if (typeof gate.score === 'number' && gate.score >= 0) {
+  if (typeof gate.score === "number" && gate.score >= 0) {
     return gate.score;
   }
 
   // Check qualityScorecard
-  if (raw.qualityScorecard && typeof raw.qualityScorecard.overall === 'number') {
+  if (
+    raw.qualityScorecard &&
+    typeof raw.qualityScorecard.overall === "number"
+  ) {
     return raw.qualityScorecard.overall;
   }
 
@@ -259,30 +344,34 @@ function _resolveQualityScore(raw, sev, gate) {
   const total = critical + high + medium + low;
 
   if (total === 0) return 100;
-  return Math.max(0, Math.min(100, 100 - (critical * 20 + high * 10 + medium * 5 + low * 2)));
+  return Math.max(
+    0,
+    Math.min(100, 100 - (critical * 20 + high * 10 + medium * 5 + low * 2)),
+  );
 }
 
 /**
  * Normalize a single issue from CLI format to dashboard format.
  */
 function _normalizeIssue(issue) {
-  if (!issue || typeof issue !== 'object') return issue;
+  if (!issue || typeof issue !== "object") return issue;
 
   return {
-    id: issue.id || '',
-    severity: (issue.severity || 'low').toLowerCase(),
-    severityBand: issue.severityBand || issue.severity || 'low',
-    type: issue.type || issue.pattern || 'issue',
-    pattern: issue.pattern || issue.type || '',
-    filePath: issue.filePath || issue.file || '',
-    file: issue.file || issue.filePath || '',
+    id: issue.id || "",
+    severity: (issue.severity || "low").toLowerCase(),
+    severityBand: issue.severityBand || issue.severity || "low",
+    type: issue.type || issue.pattern || "issue",
+    pattern: issue.pattern || issue.type || "",
+    filePath: issue.filePath || issue.file || "",
+    file: issue.file || issue.filePath || "",
     line: issue.line || null,
-    description: issue.description || issue.message || '',
-    humanReadable: issue.humanReadable || issue.description || '',
-    recommendedAction: issue.recommendedAction || issue.suggestion || '',
+    description: issue.description || issue.message || "",
+    humanReadable: issue.humanReadable || issue.description || "",
+    recommendedAction: issue.recommendedAction || issue.suggestion || "",
     affectedFiles: issue.affectedFiles || [],
     count: issue.count || 1,
-    confidence: issue.confidence || (issue.metadata && issue.metadata.confidence) || null,
+    confidence:
+      issue.confidence || (issue.metadata && issue.metadata.confidence) || null,
     metadata: issue.metadata || {},
     matches: issue.matches || [],
   };
@@ -294,7 +383,7 @@ function _normalizeIssue(issue) {
 function _countSeverities(issues) {
   const counts = { critical: 0, high: 0, medium: 0, low: 0 };
   for (const issue of issues) {
-    const sev = (issue.severity || 'low').toLowerCase();
+    const sev = (issue.severity || "low").toLowerCase();
     if (counts[sev] !== undefined) counts[sev]++;
     else counts.low++;
   }
@@ -306,12 +395,12 @@ function _countSeverities(issues) {
  */
 function _emptyReport() {
   return {
-    type: 'simplebeacon-cli-scan',
+    type: "simplebeacon-cli-scan",
     reportVersion: 1,
     generatedAt: new Date().toISOString(),
-    generatedBy: 'simplebeacon-cli',
-    projectRoot: 'Unknown',
-    platformRoot: 'Unknown',
+    generatedBy: "simplebeacon-cli",
+    projectRoot: "Unknown",
+    platformRoot: "Unknown",
     configPath: null,
     scanPaths: [],
     totalFiles: 0,
@@ -321,7 +410,7 @@ function _emptyReport() {
     repositoryFilesTotal: 0,
     repositoryFoldersTotal: 0,
     totalSizeBytes: 0,
-    totalSizeLabel: '',
+    totalSizeLabel: "",
     issueCount: 0,
     severityCounts: { critical: 0, high: 0, medium: 0, low: 0 },
     qualityScore: 100,
@@ -332,7 +421,7 @@ function _emptyReport() {
       warningCount: 0,
       blockingIssues: [],
       warningIssues: [],
-      status: 'PASSED',
+      status: "PASSED",
       failOn: [],
       warnOn: [],
       score: 100,
@@ -352,7 +441,7 @@ function _emptyReport() {
     buildReadiness: null,
     qualityScorecard: null,
     scanErrors: [],
-    tier: 'unknown',
+    tier: "unknown",
     tierLimitation: null,
     sanitized: false,
     sanitizedAt: null,

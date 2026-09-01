@@ -1,9 +1,19 @@
-import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
-import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260722bridgefix1';
-import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
-import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
+import {
+  fetchWithTimeout,
+  downloadJson,
+  downloadText,
+  resolveDashboardProjectPath,
+} from "../utils.js";
+import { billingService } from "./billingService.js";
+import { authService } from "./authService.js?v=20260722bridgefix1";
+import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from "../demoMode.js";
+import { readJsonResponseBody } from "../lib/recoverable-fetch.js";
+import {
+  buildDashboardExportBundle,
+  buildVulnerabilityTrendCsv,
+  buildBulkIssuesCsv,
+  buildAuditPrintableHtml,
+} from "../utils/dashboard-export.browser.js?v=20260730export1";
 import {
   isLocalPath,
   fetchScanProgressViaAgent,
@@ -11,8 +21,8 @@ import {
   hasExtensionBridgeConfigured,
   probeAgent,
   shouldProbeLocalAgent,
-} from './localAgentService.js?v=20260722scanfix2';
-import { apiBaseUrl } from '../utils-lib/url.js';
+} from "./localAgentService.js?v=20260722scanfix2";
+import { apiBaseUrl } from "../utils-lib/url.js";
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -20,23 +30,36 @@ import { apiBaseUrl } from '../utils-lib/url.js';
  * @returns {Object}
  */
 function normalizeScanReport(rawReport) {
-  if (!rawReport || typeof rawReport !== 'object') {
+  if (!rawReport || typeof rawReport !== "object") {
     return rawReport;
   }
   if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
     return rawReport;
   }
-  if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+  if (rawReport.version !== "1.0.0" && rawReport.reportVersion == null) {
     return rawReport;
   }
   const summary = rawReport.summary || {};
   const repositoryInventory = rawReport.repositoryInventory || null;
   const repositoryFilesTotal =
-    rawReport.repositoryFilesTotal ?? repositoryInventory?.totalFiles ?? summary.repositoryFilesTotal ?? null;
+    rawReport.repositoryFilesTotal ??
+    repositoryInventory?.totalFiles ??
+    summary.repositoryFilesTotal ??
+    null;
   const repositoryFoldersTotal =
-    rawReport.repositoryFoldersTotal ?? repositoryInventory?.totalFolders ?? summary.repositoryFoldersTotal ?? null;
-  const ruleScopedFilesAnalyzed = rawReport.ruleScopedFilesAnalyzed ?? summary.ruleScopedFilesAnalyzed ?? null;
-  const codeFilesAnalyzed = summary.codeFilesAnalyzed ?? summary.codeFilesDiscovered ?? rawReport.filesAnalyzed ?? null;
+    rawReport.repositoryFoldersTotal ??
+    repositoryInventory?.totalFolders ??
+    summary.repositoryFoldersTotal ??
+    null;
+  const ruleScopedFilesAnalyzed =
+    rawReport.ruleScopedFilesAnalyzed ??
+    summary.ruleScopedFilesAnalyzed ??
+    null;
+  const codeFilesAnalyzed =
+    summary.codeFilesAnalyzed ??
+    summary.codeFilesDiscovered ??
+    rawReport.filesAnalyzed ??
+    null;
   let filesAnalyzed = rawReport.filesAnalyzed ?? null;
   if (filesAnalyzed == null) {
     filesAnalyzed = rawReport.fullDirectoryScan
@@ -53,7 +76,10 @@ function normalizeScanReport(rawReport) {
     repositoryInventory:
       repositoryInventory ||
       (repositoryFilesTotal != null
-        ? { totalFiles: repositoryFilesTotal, totalFolders: repositoryFoldersTotal }
+        ? {
+            totalFiles: repositoryFilesTotal,
+            totalFolders: repositoryFoldersTotal,
+          }
         : null),
   };
 }
@@ -62,11 +88,15 @@ function normalizeScanReport(rawReport) {
  * from a remote / HTTPS dashboard origin.
  */
 function _isUnreachableLoopbackHost(value) {
-  if (!value || typeof location === 'undefined') return false;
+  if (!value || typeof location === "undefined") return false;
   try {
     const url = new URL(value, location.href);
-    if (location.protocol === 'https:' && url.protocol === 'http:') return true;
-    if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return true;
+    if (location.protocol === "https:" && url.protocol === "http:") return true;
+    if (
+      !isLocalDevHost() &&
+      /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)
+    )
+      return true;
   } catch (_a) {
     /* ignore malformed */
   }
@@ -78,16 +108,18 @@ function _isUnreachableLoopbackHost(value) {
  */
 function simplebeaconApiBase() {
   if (isDemoMode()) return DEMO_API_BASE;
-  const stored = localStorage.getItem('sb_api_host');
+  const stored = localStorage.getItem("sb_api_host");
   if (stored && !_isUnreachableLoopbackHost(stored)) {
-    const host = stored.replace(/\/api\/?$/, '').replace(/\/+$/, '');
-    return host + '/api/simplebeacon';
+    const host = stored.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+    return host + "/api/simplebeacon";
   }
   // VS Code / Windsurf website mode: sb_api_base points at the extension data-server on localhost.
   const embedBase = apiBaseUrl();
-  if (embedBase && embedBase !== '/') {
+  if (embedBase && embedBase !== "/") {
     try {
-      const normalized = embedBase.startsWith('http') ? embedBase : `http://${embedBase}`;
+      const normalized = embedBase.startsWith("http")
+        ? embedBase
+        : `http://${embedBase}`;
       const parsed = new URL(normalized);
       const host = parsed.hostname.toLowerCase();
       // Allow a developer-provided embed bridge (query param or session flag)
@@ -95,19 +127,24 @@ function simplebeaconApiBase() {
       // dashboard is opened from the IDE and the extension passes a local
       // loopback API base via query params (sb_api_base) or session storage.
       const isEmbedOverride =
-        typeof window !== 'undefined' &&
+        typeof window !== "undefined" &&
         (function () {
           try {
-            const params = new URLSearchParams(window.location.search || '');
-            if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
-            if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sb_website_mode')) return true;
+            const params = new URLSearchParams(window.location.search || "");
+            if (params.get("sb_api_base") || params.get("sb_notify_base"))
+              return true;
+            if (
+              typeof sessionStorage !== "undefined" &&
+              sessionStorage.getItem("sb_website_mode")
+            )
+              return true;
           } catch (_b) {
             /* ignore */
           }
           return false;
         })();
       if (
-        (host === '127.0.0.1' || host === 'localhost') &&
+        (host === "127.0.0.1" || host === "localhost") &&
         (!_isUnreachableLoopbackHost(parsed.origin) || isEmbedOverride)
       ) {
         return `${parsed.origin}/api/simplebeacon`;
@@ -119,16 +156,16 @@ function simplebeaconApiBase() {
   // On Cloudflare Pages / custom domains, the dashboard static files are served without the
   // API backend. Route API calls to the production API instead.
   if (
-    typeof location !== 'undefined' &&
+    typeof location !== "undefined" &&
     !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) &&
-    !location.hostname.endsWith('.onrender.com')
+    !location.hostname.endsWith(".onrender.com")
   ) {
-    if (location.hostname === 'simplebeacon.ai') {
+    if (location.hostname === "simplebeacon.ai") {
       return `${location.origin}/api/simplebeacon`;
     }
-    return 'https://simplebeacon.ai/api/simplebeacon';
+    return "https://simplebeacon.ai/api/simplebeacon";
   }
-  return '/api/simplebeacon';
+  return "/api/simplebeacon";
 }
 /**
  * Merge auth headers.
@@ -136,7 +173,11 @@ function simplebeaconApiBase() {
  * @returns {any}
  */
 function mergeAuthHeaders(extra = {}) {
-  return { ...authService.getAuthHeaders(), ...billingService.getAuthHeaders(), ...extra };
+  return {
+    ...authService.getAuthHeaders(),
+    ...billingService.getAuthHeaders(),
+    ...extra,
+  };
 }
 /**
  * Fetch simplebeacon.
@@ -149,34 +190,43 @@ async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
   const headers = mergeAuthHeaders(options.headers || {});
   let res;
   try {
-    res = await fetchWithTimeout(url, { credentials: 'same-origin', ...options, headers }, timeout);
+    res = await fetchWithTimeout(
+      url,
+      { credentials: "same-origin", ...options, headers },
+      timeout,
+    );
   } catch (error) {
-    const detail = (error === null || error === void 0 ? void 0 : error.message) ? ` (${error.message})` : '';
+    const detail = (error === null || error === void 0 ? void 0 : error.message)
+      ? ` (${error.message})`
+      : "";
     throw new Error(
       `Network request failed for ${url}${detail}. ` +
-        'Verify the dashboard API server is running and reachable, then retry.'
+        "Verify the dashboard API server is running and reachable, then retry.",
     );
   }
   if (res.status === 403) {
     const forbiddenBody = await readJsonResponseBody(res, {});
-    if (forbiddenBody.error === 'demo_readonly') {
-      const err = new Error(forbiddenBody.message || 'Demo mode is read-only');
-      err.code = 'demo_readonly';
+    if (forbiddenBody.error === "demo_readonly") {
+      const err = new Error(forbiddenBody.message || "Demo mode is read-only");
+      err.code = "demo_readonly";
       throw err;
     }
-    if (forbiddenBody.error === 'vault_required') {
-      const err = new Error(forbiddenBody.message || 'Internal dashboard requires vault authentication.');
-      err.code = 'vault_required';
+    if (forbiddenBody.error === "vault_required") {
+      const err = new Error(
+        forbiddenBody.message ||
+          "Internal dashboard requires vault authentication.",
+      );
+      err.code = "vault_required";
       throw err;
     }
-    const err = new Error(forbiddenBody.message || 'Subscription required');
-    err.code = 'subscription_required';
+    const err = new Error(forbiddenBody.message || "Subscription required");
+    err.code = "subscription_required";
     err.details = forbiddenBody;
     throw err;
   }
   if (res.status === 401) {
-    const err = new Error('Authentication required');
-    err.code = 'auth_required';
+    const err = new Error("Authentication required");
+    err.code = "auth_required";
     throw err;
   }
   return res;
@@ -193,6 +243,9 @@ export class ScanService {
     this._pendingFetches = new Map();
     this._ciMetricsInflight = null;
     this._ciMetricsUnavailable = false;
+    this._teamTelemetryUnavailable = false;
+    this._teamTrendInflight = null;
+    this._teamDistributionInflight = null;
   }
   async fetchAll(projectPath = null) {
     const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
@@ -201,15 +254,17 @@ export class ScanService {
       this.fetchConfig(projectPath),
       this.fetchHistory(),
     ]);
-    const firstError = [reportR, baselineR, configR].find((r) => r.status === 'rejected');
+    const firstError = [reportR, baselineR, configR].find(
+      (r) => r.status === "rejected",
+    );
     if (firstError) {
       throw firstError.reason;
     }
     return {
-      report: reportR.status === 'fulfilled' ? reportR.value : null,
-      baseline: baselineR.status === 'fulfilled' ? baselineR.value : null,
-      config: configR.status === 'fulfilled' ? configR.value : null,
-      history: historyR.status === 'fulfilled' ? historyR.value : [],
+      report: reportR.status === "fulfilled" ? reportR.value : null,
+      baseline: baselineR.status === "fulfilled" ? baselineR.value : null,
+      config: configR.status === "fulfilled" ? configR.value : null,
+      history: historyR.status === "fulfilled" ? historyR.value : [],
     };
   }
   async fetchReport(projectPath) {
@@ -217,21 +272,28 @@ export class ScanService {
     if (safePath && /^https?:\/\//i.test(safePath)) {
       return null;
     }
-    const key = `report:${safePath || ''}`;
+    const key = `report:${safePath || ""}`;
     if (this._pendingFetches.has(key)) {
       return this._pendingFetches.get(key);
     }
     const promise = (async () => {
       try {
         const query = new URLSearchParams();
-        if (safePath) query.set('projectPath', safePath);
-        query.set('_cb', Date.now().toString());
-        const params = query.toString() ? `?${query.toString()}` : '';
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
-        if (!res.ok) throw new Error('Failed to load scan report — is the dashboard server running?');
+        if (safePath) query.set("projectPath", safePath);
+        query.set("_cb", Date.now().toString());
+        const params = query.toString() ? `?${query.toString()}` : "";
+        const res = await fetchSimplebeacon(
+          `${simplebeaconApiBase()}/report${params}`,
+        );
+        if (!res.ok)
+          throw new Error(
+            "Failed to load scan report — is the dashboard server running?",
+          );
         const report = await readJsonResponseBody(res, null);
-        if (!report || typeof report !== 'object') {
-          throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+        if (!report || typeof report !== "object") {
+          throw new Error(
+            "Scan report API unavailable on this host (received HTML instead of JSON).",
+          );
         }
         this.report = await this.enrichReport(normalizeScanReport(report));
         return this.report;
@@ -243,41 +305,56 @@ export class ScanService {
     return promise;
   }
   async importReport(report, projectPath = null) {
-    if (!report || typeof report !== 'object') {
-      throw new Error('report is required');
+    if (!report || typeof report !== "object") {
+      throw new Error("report is required");
     }
     const body = { report };
     if (projectPath) body.projectPath = projectPath;
     const res = await fetchSimplebeacon(
       `${simplebeaconApiBase()}/report/import`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       },
-      60000
+      60000,
     );
     const data = await readJsonResponseBody(res, null);
     if (!res.ok || !data || !data.success) {
       throw new Error(
-        (data === null || data === void 0 ? void 0 : data.error) || `Report import failed (${res.status})`
+        (data === null || data === void 0 ? void 0 : data.error) ||
+          `Report import failed (${res.status})`,
       );
     }
-    this.report = await this.fetchReport(data.projectPath || projectPath || undefined);
+    this.report = await this.fetchReport(
+      data.projectPath || projectPath || undefined,
+    );
     return { response: data, report: this.report };
   }
   async fetchRepositoryInventory(projectPath) {
     const path = resolveDashboardProjectPath(projectPath);
     if (!path) return null;
-    if (/^https?:\/\//i.test(path) && !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)) {
+    if (
+      /^https?:\/\//i.test(path) &&
+      !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(
+        path,
+      )
+    ) {
       return null;
     }
-    const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
-    const base = simplebeaconApiBase().replace(/\/api\/simplebeacon$/, '');
-    const inventoryHttpResponse = await fetchWithTimeout(`${base}/api/analyze/inventory?${params}`, {
-      headers: mergeAuthHeaders(),
+    const params = new URLSearchParams({
+      projectPath: path,
+      profile: "explorer",
     });
-    const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
+    const base = simplebeaconApiBase().replace(/\/api\/simplebeacon$/, "");
+    const inventoryHttpResponse = await fetchWithTimeout(
+      `${base}/api/analyze/inventory?${params}`,
+      { headers: mergeAuthHeaders() },
+    );
+    const inventoryPayload = await readJsonResponseBody(
+      inventoryHttpResponse,
+      {},
+    );
     if (!inventoryHttpResponse.ok || !inventoryPayload.success) return null;
     return inventoryPayload.inventory;
   }
@@ -285,7 +362,9 @@ export class ScanService {
     var _a;
     if (
       !(report === null || report === void 0 ? void 0 : report.projectRoot) ||
-      ((_a = report.repositoryInventory) === null || _a === void 0 ? void 0 : _a.totalFiles) != null
+      ((_a = report.repositoryInventory) === null || _a === void 0
+        ? void 0
+        : _a.totalFiles) != null
     ) {
       return report;
     }
@@ -294,30 +373,40 @@ export class ScanService {
     return { ...report, repositoryInventory: inventory };
   }
   async fetchBaseline() {
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/baseline`, { headers: mergeAuthHeaders() });
-    if (!res.ok) throw new Error('Failed to load baseline');
+    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/baseline`, {
+      headers: mergeAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to load baseline");
     this.baseline = await readJsonResponseBody(res, null);
-    if (!this.baseline || typeof this.baseline !== 'object') {
-      throw new Error('Baseline API unavailable on this host (received HTML instead of JSON).');
+    if (!this.baseline || typeof this.baseline !== "object") {
+      throw new Error(
+        "Baseline API unavailable on this host (received HTML instead of JSON).",
+      );
     }
     return this.baseline;
   }
   async fetchConfig(projectPath = null) {
     const safePath = resolveDashboardProjectPath(projectPath);
-    const qs = safePath ? `?projectPath=${encodeURIComponent(safePath)}` : '';
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, { headers: mergeAuthHeaders() });
-    if (!res.ok) throw new Error('Failed to load config');
+    const qs = safePath ? `?projectPath=${encodeURIComponent(safePath)}` : "";
+    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, {
+      headers: mergeAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to load config");
     this.config = await readJsonResponseBody(res, null);
-    if (!this.config || typeof this.config !== 'object') {
-      throw new Error('Config API unavailable on this host (received HTML instead of JSON).');
+    if (!this.config || typeof this.config !== "object") {
+      throw new Error(
+        "Config API unavailable on this host (received HTML instead of JSON).",
+      );
     }
     return this.config;
   }
   async fetchConfigPresets() {
-    const presetsHttpResponse = await fetchWithTimeout(`${simplebeaconApiBase()}/config/presets`, {
-      headers: mergeAuthHeaders(),
-    });
-    if (!presetsHttpResponse.ok) throw new Error('Failed to load config presets');
+    const presetsHttpResponse = await fetchWithTimeout(
+      `${simplebeaconApiBase()}/config/presets`,
+      { headers: mergeAuthHeaders() },
+    );
+    if (!presetsHttpResponse.ok)
+      throw new Error("Failed to load config presets");
     const presetsPayload = await readJsonResponseBody(presetsHttpResponse, {});
     return presetsPayload.presets || {};
   }
@@ -326,25 +415,27 @@ export class ScanService {
     const res = await fetchSimplebeacon(
       `${simplebeaconApiBase()}/config`,
       {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       },
-      30000
+      30000,
     );
     const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       const detail =
-        ((_a = data.errors) === null || _a === void 0 ? void 0 : _a.join('; ')) ||
+        ((_a = data.errors) === null || _a === void 0
+          ? void 0
+          : _a.join("; ")) ||
         data.message ||
-        'Failed to save config';
+        "Failed to save config";
       throw new Error(detail);
     }
     this.config = data.config;
     return data;
   }
   async fetchHistory() {
-    const key = 'history';
+    const key = "history";
     if (this._pendingFetches.has(key)) {
       return this._pendingFetches.get(key);
     }
@@ -363,22 +454,35 @@ export class ScanService {
     return promise;
   }
   async fetchDashboard() {
-    const dashboardHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/dashboard`);
-    if (!dashboardHttpResponse.ok) throw new Error('Failed to load dashboard aggregate');
-    const dashboardPayload = await readJsonResponseBody(dashboardHttpResponse, null);
-    if (!dashboardPayload || typeof dashboardPayload !== 'object') {
-      throw new Error('Dashboard API unavailable on this host (received HTML instead of JSON).');
+    const dashboardHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/dashboard`,
+    );
+    if (!dashboardHttpResponse.ok)
+      throw new Error("Failed to load dashboard aggregate");
+    const dashboardPayload = await readJsonResponseBody(
+      dashboardHttpResponse,
+      null,
+    );
+    if (!dashboardPayload || typeof dashboardPayload !== "object") {
+      throw new Error(
+        "Dashboard API unavailable on this host (received HTML instead of JSON).",
+      );
     }
     return dashboardPayload;
   }
-  async fetchScanResults(scanId = 'latest') {
+  async fetchScanResults(scanId = "latest") {
     const resultsHttpResponse = await fetchSimplebeacon(
-      `${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`
+      `${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`,
     );
-    if (!resultsHttpResponse.ok) throw new Error('Failed to load scan results');
-    const scanResultsPayload = await readJsonResponseBody(resultsHttpResponse, null);
-    if (!scanResultsPayload || typeof scanResultsPayload !== 'object') {
-      throw new Error('Scan results API unavailable on this host (received HTML instead of JSON).');
+    if (!resultsHttpResponse.ok) throw new Error("Failed to load scan results");
+    const scanResultsPayload = await readJsonResponseBody(
+      resultsHttpResponse,
+      null,
+    );
+    if (!scanResultsPayload || typeof scanResultsPayload !== "object") {
+      throw new Error(
+        "Scan results API unavailable on this host (received HTML instead of JSON).",
+      );
     }
     return scanResultsPayload;
   }
@@ -386,16 +490,20 @@ export class ScanService {
     // Support a local demo fixture for quick preview/testing.
     try {
       const params =
-        typeof window !== 'undefined' ? new URLSearchParams(window.location.search || '') : new URLSearchParams();
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search || "")
+          : new URLSearchParams();
       const demoFlag =
-        params.get('sb_demo_audit') === '1' ||
-        (typeof localStorage !== 'undefined' && localStorage.getItem('sb_demo_audit') === '1');
+        params.get("sb_demo_audit") === "1" ||
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("sb_demo_audit") === "1");
       const demoReportFlag =
-        params.get('sb_demo_report') === '1' ||
-        (typeof localStorage !== 'undefined' && localStorage.getItem('sb_demo_report') === '1');
+        params.get("sb_demo_report") === "1" ||
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("sb_demo_report") === "1");
       if (demoReportFlag) {
         try {
-          const demoRes = await fetch('/js/demo/demo-report.json');
+          const demoRes = await fetch("/js/demo/demo-report.json");
           if (demoRes.ok) {
             const demoJson = await demoRes.json();
             return { report: demoJson };
@@ -406,7 +514,7 @@ export class ScanService {
       }
       if (demoFlag) {
         try {
-          const demoRes = await fetch('/js/demo/demo-audit.json');
+          const demoRes = await fetch("/js/demo/demo-audit.json");
           if (demoRes.ok) {
             const demoJson = await demoRes.json();
             return demoJson;
@@ -418,23 +526,26 @@ export class ScanService {
     } catch (_e) {
       /* ignore */
     }
-    const query = includeNpmAudit ? '?npmAudit=1' : '';
+    const query = includeNpmAudit ? "?npmAudit=1" : "";
     try {
       const res = await fetchSimplebeacon(
         `${simplebeaconApiBase()}/audit${query}`,
         {},
-        includeNpmAudit ? 120000 : 30000
+        includeNpmAudit ? 120000 : 30000,
       );
-      if (!res.ok) throw new Error('Failed to load compliance audit');
+      if (!res.ok) throw new Error("Failed to load compliance audit");
       const data = await readJsonResponseBody(res, null);
-      if (!data || typeof data !== 'object') {
-        throw new Error('Audit API unavailable on this host (received HTML instead of JSON).');
+      if (!data || typeof data !== "object") {
+        throw new Error(
+          "Audit API unavailable on this host (received HTML instead of JSON).",
+        );
       }
       return data;
     } catch (err) {
+      console.error("scanService.js error:", err);
       // If the network layer signalled an auth requirement, return a predictable
       // object so the UI can render a helpful action card instead of failing.
-      if (err && typeof err === 'object' && err.code === 'auth_required') {
+      if (err && typeof err === "object" && err.code === "auth_required") {
         return { authRequired: true, success: false };
       }
       // Fetch failed (CORS / network). Fall back to a demo audit payload
@@ -442,9 +553,9 @@ export class ScanService {
       try {
         window === null || window === void 0
           ? void 0
-          : window.console['warn'](
-              '[ScanService] fetchAudit failed, falling back to demo audit payload:',
-              err === null || err === void 0 ? void 0 : err.message
+          : window.console["warn"](
+              "[ScanService] fetchAudit failed, falling back to demo audit payload:",
+              err === null || err === void 0 ? void 0 : err.message,
             );
       } catch (_a) {
         /* ignore */
@@ -459,22 +570,42 @@ export class ScanService {
           pageSampleSchemaPassed: 11,
           filesAnalyzed: 124,
           totalFiles: 420,
-          repositoryInventory: { totalFiles: 420, totalFolders: 34, projectRoot: 'CascadeProjects' },
+          repositoryInventory: {
+            totalFiles: 420,
+            totalFolders: 34,
+            projectRoot: "CascadeProjects",
+          },
         },
         auditLayers: {
-          credentials: { status: 'warn', findings: 2, scanned: 124, knownPatterns: 5 },
-          fictionKpis: { status: 'pass', findings: 0, scanned: 124 },
-          schema: { status: 'warn', findings: 3, pageSamplesChecked: 12, pageSamplesPassed: 11 },
-          productionLeaks: { status: 'fail', findings: 1, scanned: 124 },
-          roadmap: { status: 'pass', findings: 0, scanned: 12 },
-          jestBaseline: { status: 'pass', findings: 0, scanned: 0 },
+          credentials: {
+            status: "warn",
+            findings: 2,
+            scanned: 124,
+            knownPatterns: 5,
+          },
+          fictionKpis: { status: "pass", findings: 0, scanned: 124 },
+          schema: {
+            status: "warn",
+            findings: 3,
+            pageSamplesChecked: 12,
+            pageSamplesPassed: 11,
+          },
+          productionLeaks: { status: "fail", findings: 1, scanned: 124 },
+          roadmap: { status: "pass", findings: 0, scanned: 12 },
+          jestBaseline: { status: "pass", findings: 0, scanned: 0 },
         },
         fictionCatalog: [
-          { pattern: '42', patternType: 'number', severity: 'low' },
-          { pattern: 'lorem ipsum', patternType: 'string', severity: 'medium' },
+          { pattern: "42", patternType: "number", severity: "low" },
+          { pattern: "lorem ipsum", patternType: "string", severity: "medium" },
         ],
         npmAudit: {
-          summary: { critical: 0, high: 1, moderate: 2, low: 0, vulnerabilityTotal: 3 },
+          summary: {
+            critical: 0,
+            high: 1,
+            moderate: 2,
+            low: 0,
+            vulnerabilityTotal: 3,
+          },
           vulnerabilities: {},
         },
       };
@@ -482,28 +613,50 @@ export class ScanService {
     }
   }
   async runAssess() {
-    const assessHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assess`, { method: 'POST' }, 60000);
+    const assessHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/assess`,
+      { method: "POST" },
+      60000,
+    );
     const assessResponse = await readJsonResponseBody(assessHttpResponse, {});
-    if (!assessHttpResponse.ok) throw new Error(assessResponse.error || assessResponse.message || 'Assessment failed');
+    if (!assessHttpResponse.ok)
+      throw new Error(
+        assessResponse.error || assessResponse.message || "Assessment failed",
+      );
     return assessResponse;
   }
   async runNpmAudit() {
     const npmAuditHttpResponse = await fetchSimplebeacon(
       `${simplebeaconApiBase()}/npm-audit`,
-      { method: 'POST' },
-      120000
+      { method: "POST" },
+      120000,
     );
-    const npmAuditResponse = await readJsonResponseBody(npmAuditHttpResponse, {});
+    const npmAuditResponse = await readJsonResponseBody(
+      npmAuditHttpResponse,
+      {},
+    );
     if (!npmAuditHttpResponse.ok)
-      throw new Error(npmAuditResponse.error || npmAuditResponse.message || 'npm audit failed');
+      throw new Error(
+        npmAuditResponse.error ||
+          npmAuditResponse.message ||
+          "npm audit failed",
+      );
     return npmAuditResponse;
   }
   async fetchAssessment() {
-    const assessmentHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assessment`);
-    if (!assessmentHttpResponse.ok) throw new Error('Failed to load assessment');
-    const assessmentPayload = await readJsonResponseBody(assessmentHttpResponse, null);
-    if (!assessmentPayload || typeof assessmentPayload !== 'object') {
-      throw new Error('Assessment API unavailable on this host (received HTML instead of JSON).');
+    const assessmentHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/assessment`,
+    );
+    if (!assessmentHttpResponse.ok)
+      throw new Error("Failed to load assessment");
+    const assessmentPayload = await readJsonResponseBody(
+      assessmentHttpResponse,
+      null,
+    );
+    if (!assessmentPayload || typeof assessmentPayload !== "object") {
+      throw new Error(
+        "Assessment API unavailable on this host (received HTML instead of JSON).",
+      );
     }
     return assessmentPayload;
   }
@@ -512,8 +665,13 @@ export class ScanService {
     if (!safePath) return { active: false };
     if (hasExtensionBridgeConfigured()) {
       try {
-        const bridgeProgress = await fetchScanProgressViaExtensionBridge(safePath);
-        if (bridgeProgress === null || bridgeProgress === void 0 ? void 0 : bridgeProgress.active) {
+        const bridgeProgress =
+          await fetchScanProgressViaExtensionBridge(safePath);
+        if (
+          bridgeProgress === null || bridgeProgress === void 0
+            ? void 0
+            : bridgeProgress.active
+        ) {
           return bridgeProgress;
         }
       } catch (_bridgeErr) {
@@ -525,7 +683,11 @@ export class ScanService {
         const agentStatus = await probeAgent();
         if (agentStatus.available) {
           const agentProgress = await fetchScanProgressViaAgent(safePath);
-          if (agentProgress === null || agentProgress === void 0 ? void 0 : agentProgress.active) {
+          if (
+            agentProgress === null || agentProgress === void 0
+              ? void 0
+              : agentProgress.active
+          ) {
             return agentProgress;
           }
         }
@@ -538,7 +700,7 @@ export class ScanService {
       const res = await fetchWithTimeout(
         `${simplebeaconApiBase()}/scan/progress?${params}`,
         { headers: mergeAuthHeaders() },
-        15000
+        15000,
       );
       const data = await readJsonResponseBody(res, {});
       if (res.status === 404) {
@@ -552,22 +714,27 @@ export class ScanService {
   }
   async runScan(projectPath, options = {}) {
     if (isDemoMode()) {
-      const err = new Error('Demo mode is read-only');
-      err.code = 'demo_readonly';
+      const err = new Error("Demo mode is read-only");
+      err.code = "demo_readonly";
       throw err;
     }
     const safePath = resolveDashboardProjectPath(projectPath) || undefined;
     if (!safePath) {
-      throw new Error('No project path selected. Open a folder or set a project path before scanning.');
+      throw new Error(
+        "No project path selected. Open a folder or set a project path before scanning.",
+      );
     }
     const res = await fetchSimplebeacon(
       `${simplebeaconApiBase()}/scan`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectPath: safePath, fullDirectoryScan: options.fullDirectoryScan !== false }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectPath: safePath,
+          fullDirectoryScan: options.fullDirectoryScan !== false,
+        }),
       },
-      600000
+      600000,
     );
     const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
@@ -580,7 +747,9 @@ export class ScanService {
           gateFailed: true,
         };
       }
-      throw new Error(data.error || data.message || data.warning || 'Scan failed');
+      throw new Error(
+        data.error || data.message || data.warning || "Scan failed",
+      );
     }
     // Backend may return 200 with a warning/fallback but no real report
     if (data.warning && !data.report) {
@@ -604,11 +773,16 @@ export class ScanService {
     if (!data) {
       const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report`);
       data = await readJsonResponseBody(res, null);
-      if (!data || typeof data !== 'object') {
-        throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+      if (!data || typeof data !== "object") {
+        throw new Error(
+          "Scan report API unavailable on this host (received HTML instead of JSON).",
+        );
       }
     }
-    downloadJson(data, `simplebeacon-report-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadJson(
+      data,
+      `simplebeacon-report-${new Date().toISOString().slice(0, 10)}.json`,
+    );
   }
   exportDashboard(options = {}) {
     const bundle = buildDashboardExportBundle({
@@ -617,31 +791,45 @@ export class ScanService {
       config: options.config || null,
       history: options.history || this.history || [],
       dashboardHome: options.dashboardHome || null,
-      exportFilename: options.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`,
+      exportFilename:
+        options.exportFilename ||
+        `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`,
     });
     downloadJson(
       bundle,
-      bundle.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+      bundle.exportFilename ||
+        `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`,
     );
   }
   exportFilteredIssues(issues, meta = {}) {
     const payload = {
-      type: 'simplebeacon-results-export',
+      type: "simplebeacon-results-export",
       exportedAt: new Date().toISOString(),
       filters: meta,
       issueCount: issues.length,
       issues,
     };
-    downloadJson(payload, `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadJson(
+      payload,
+      `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.json`,
+    );
   }
   exportIssuesCsv(issues) {
-    const header = ['severity', 'type', 'description', 'file', 'count', 'recommendedAction'];
+    const header = [
+      "severity",
+      "type",
+      "description",
+      "file",
+      "count",
+      "recommendedAction",
+    ];
     /**
      * Escape.
      * @param {any} v
      * @returns {any}
      */
-    const escape = (v) => `"${String(v !== null && v !== void 0 ? v : '').replace(/"/g, '""')}"`;
+    const escape = (v) =>
+      `"${String(v !== null && v !== void 0 ? v : "").replace(/"/g, '""')}"`;
     const rows = issues.map((i) => {
       var _a;
       return [
@@ -653,12 +841,46 @@ export class ScanService {
         i.recommendedAction,
       ]
         .map(escape)
-        .join(',');
+        .join(",");
     });
     downloadText(
-      [header.join(','), ...rows].join('\n'),
+      [header.join(","), ...rows].join("\n"),
       `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.csv`,
-      'text/csv'
+      "text/csv",
+    );
+  }
+  exportTrendCsv(report = this.report, history = this.history) {
+    const csv = buildVulnerabilityTrendCsv(report, history);
+    if (!csv) {
+      throw new Error("No scan history available for trend export");
+    }
+    downloadText(
+      csv,
+      `simplebeacon-trend-${new Date().toISOString().slice(0, 10)}.csv`,
+      "text/csv",
+    );
+  }
+  exportAuditPdf(report = this.report, history = this.history) {
+    if (!report) {
+      throw new Error("No scan report loaded — run a scan first");
+    }
+    const html = buildAuditPrintableHtml(report, history);
+    const w = window.open("", "_blank");
+    if (!w) {
+      throw new Error("Pop-up blocked — allow pop-ups to generate audit PDF");
+    }
+    w.document.write(html);
+    w.document.close();
+  }
+  exportBulkIssuesCsv(reports = []) {
+    const csv = buildBulkIssuesCsv(reports);
+    if (!csv) {
+      throw new Error("No issues found in provided reports");
+    }
+    downloadText(
+      csv,
+      `simplebeacon-bulk-issues-${new Date().toISOString().slice(0, 10)}.csv`,
+      "text/csv",
     );
   }
   getIssueCategories(report = this.report) {
@@ -670,9 +892,14 @@ export class ScanService {
      * @param {any} typeMatch
      * @returns {any}
      */
-    const countByType = (typeMatch) => raw.filter((i) => typeMatch(i.type)).reduce((s, i) => s + (i.count || 1), 0);
+    const countByType = (typeMatch) =>
+      raw
+        .filter((i) => typeMatch(i.type))
+        .reduce((s, i) => s + (i.count || 1), 0);
     const credCount =
-      (_a = report.credentialFindings) !== null && _a !== void 0 ? _a : countByType((t) => /credential/i.test(t));
+      (_a = report.credentialFindings) !== null && _a !== void 0
+        ? _a
+        : countByType((t) => /credential/i.test(t));
     const schemaCount = countByType((t) => /schema/i.test(t));
     const prodCount =
       (_b = report.productionLeakFindings) !== null && _b !== void 0
@@ -681,9 +908,17 @@ export class ScanService {
     const fictionCount = countByType((t) => /fiction|consistency|kpi/i.test(t));
     const dupCount = countByType((t) => /duplicate/i.test(t));
     const typeSafetyCount = countByType((t) =>
-      /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t)
+      /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(
+        t,
+      ),
     );
-    const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount;
+    const categorizedCount =
+      credCount +
+      schemaCount +
+      prodCount +
+      fictionCount +
+      dupCount +
+      typeSafetyCount;
     const totalRaw = raw.reduce((s, i) => s + (i.count || 1), 0);
     const otherCount = Math.max(0, totalRaw - categorizedCount);
     /**
@@ -693,90 +928,95 @@ export class ScanService {
      * @returns {any}
      */
     const maxSeverity = (count, defaultSev) => {
-      if (count === 0) return 'none';
+      if (count === 0) return "none";
       const issues = raw.filter((i) => i.count > 0 || i.severity);
       const relevant = issues.filter((i) => i.severity);
       if (!relevant.length) return defaultSev;
-      if (relevant.some((i) => i.severity === 'high')) return 'high';
-      if (relevant.some((i) => i.severity === 'medium')) return 'medium';
-      return 'low';
+      if (relevant.some((i) => i.severity === "high")) return "high";
+      if (relevant.some((i) => i.severity === "medium")) return "medium";
+      return "low";
     };
     return [
       {
-        id: 'credentials',
-        icon: '🔑',
-        title: 'Credential Patterns',
+        id: "credentials",
+        icon: "🔑",
+        title: "Credential Patterns",
         count: credCount,
-        severity: credCount ? 'high' : 'none',
+        severity: credCount ? "high" : "none",
         filter: (i) => /credential/i.test(i.type),
       },
       {
-        id: 'schema',
-        icon: '📄',
-        title: 'Schema Violations',
+        id: "schema",
+        icon: "📄",
+        title: "Schema Violations",
         count: schemaCount,
-        severity: schemaCount ? 'high' : 'none',
+        severity: schemaCount ? "high" : "none",
         filter: (i) => /schema/i.test(i.type),
       },
       {
-        id: 'production',
-        icon: '🔗',
-        title: 'Production Leaks',
+        id: "production",
+        icon: "🔗",
+        title: "Production Leaks",
         count: prodCount,
-        severity: prodCount ? 'medium' : 'none',
+        severity: prodCount ? "medium" : "none",
         filter: (i) => /production leak/i.test(i.type),
       },
       {
-        id: 'consistency',
-        icon: '📊',
-        title: 'Consistency Issues',
+        id: "consistency",
+        icon: "📊",
+        title: "Consistency Issues",
         count: fictionCount,
-        severity: fictionCount ? maxSeverity(fictionCount, 'medium') : 'none',
+        severity: fictionCount ? maxSeverity(fictionCount, "medium") : "none",
         filter: (i) => /fiction|consistency|kpi/i.test(i.type),
       },
       {
-        id: 'consolidation',
-        icon: '🔀',
-        title: 'Duplicate Data',
+        id: "consolidation",
+        icon: "🔀",
+        title: "Duplicate Data",
         count: dupCount,
-        severity: dupCount ? 'low' : 'none',
+        severity: dupCount ? "low" : "none",
         filter: (i) => /duplicate/i.test(i.type),
       },
       {
-        id: 'type-safety',
-        icon: '🛡️',
-        title: 'Type Safety',
+        id: "type-safety",
+        icon: "🛡️",
+        title: "Type Safety",
         count: typeSafetyCount,
-        severity: typeSafetyCount ? maxSeverity(typeSafetyCount, 'low') : 'none',
-        filter: (i) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type),
+        severity: typeSafetyCount
+          ? maxSeverity(typeSafetyCount, "low")
+          : "none",
+        filter: (i) =>
+          /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(
+            i.type,
+          ),
       },
       {
-        id: 'other',
-        icon: '📁',
-        title: 'Other Findings',
+        id: "other",
+        icon: "📁",
+        title: "Other Findings",
         count: otherCount,
-        severity: otherCount ? 'low' : 'none',
+        severity: otherCount ? "low" : "none",
         filter: (i) =>
           !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(
-            i.type
+            i.type,
           ),
       },
     ];
   }
   formatRelativeTime(isoString) {
-    if (!isoString) return 'Never';
+    if (!isoString) return "Never";
     const diff = Date.now() - new Date(isoString).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
     const days = Math.floor(hours / 24);
-    return `${days} day${days === 1 ? '' : 's'} ago`;
+    return `${days} day${days === 1 ? "" : "s"} ago`;
   }
   basename(filePath) {
-    if (!filePath) return '—';
-    const parts = filePath.replace(/\\/g, '/').split('/');
+    if (!filePath) return "—";
+    const parts = filePath.replace(/\\/g, "/").split("/");
     return parts[parts.length - 1];
   }
 
@@ -792,18 +1032,23 @@ export class ScanService {
     if (this._ciMetricsInflight) {
       return this._ciMetricsInflight;
     }
-    this._ciMetricsInflight = this._fetchCiTeamMetricsImpl(options).finally(() => {
-      this._ciMetricsInflight = null;
-    });
+    this._ciMetricsInflight = this._fetchCiTeamMetricsImpl(options).finally(
+      () => {
+        this._ciMetricsInflight = null;
+      },
+    );
     return this._ciMetricsInflight;
   }
 
   async _fetchCiTeamMetricsImpl(options = {}) {
     const days = options.days || 7;
     try {
-      const res = await fetchWithTimeout(`${simplebeaconApiBase()}/ci/telemetry/summary?days=${days}`, {
-        headers: mergeAuthHeaders({ Accept: 'application/json' }),
-      });
+      const res = await fetchWithTimeout(
+        `${simplebeaconApiBase()}/ci/telemetry/summary?days=${days}`,
+        {
+          headers: mergeAuthHeaders({ Accept: "application/json" }),
+        },
+      );
       if (res.status === 404) {
         this._ciMetricsUnavailable = true;
         return null;
@@ -812,7 +1057,103 @@ export class ScanService {
         return null;
       }
       const data = await readJsonResponseBody(res);
-      if (!data || typeof data.total_scans !== 'number') {
+      if (!data || typeof data.total_scans !== "number") {
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Team gate-pass rate trend (paid team/compliance tier).
+   * @param {{ days?: number }} [options]
+   * @returns {Promise<{ trend: Array, granularity: string }|null>}
+   */
+  async fetchTeamTelemetryTrend(options = {}) {
+    if (this._teamTelemetryUnavailable) {
+      return null;
+    }
+    if (this._teamTrendInflight) {
+      return this._teamTrendInflight;
+    }
+    this._teamTrendInflight = this._fetchTeamTelemetryTrendImpl(
+      options,
+    ).finally(() => {
+      this._teamTrendInflight = null;
+    });
+    return this._teamTrendInflight;
+  }
+
+  async _fetchTeamTelemetryTrendImpl(options = {}) {
+    const days = options.days || 7;
+    try {
+      const res = await fetchWithTimeout(
+        `${simplebeaconApiBase()}/team/telemetry/trend?days=${days}`,
+        {
+          headers: mergeAuthHeaders({ Accept: "application/json" }),
+        },
+      );
+      if (res.status === 404 || res.status === 403 || res.status === 401) {
+        if (res.status === 404) {
+          this._teamTelemetryUnavailable = true;
+        }
+        return null;
+      }
+      if (!res.ok) {
+        return null;
+      }
+      const data = await readJsonResponseBody(res);
+      if (!data || !Array.isArray(data.trend)) {
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Team quality-score distribution percentiles (paid team/compliance tier).
+   * @param {{ days?: number }} [options]
+   * @returns {Promise<Object|null>}
+   */
+  async fetchTeamQualityDistribution(options = {}) {
+    if (this._teamTelemetryUnavailable) {
+      return null;
+    }
+    if (this._teamDistributionInflight) {
+      return this._teamDistributionInflight;
+    }
+    this._teamDistributionInflight = this._fetchTeamQualityDistributionImpl(
+      options,
+    ).finally(() => {
+      this._teamDistributionInflight = null;
+    });
+    return this._teamDistributionInflight;
+  }
+
+  async _fetchTeamQualityDistributionImpl(options = {}) {
+    const days = options.days || 7;
+    try {
+      const res = await fetchWithTimeout(
+        `${simplebeaconApiBase()}/team/telemetry/distribution?days=${days}`,
+        {
+          headers: mergeAuthHeaders({ Accept: "application/json" }),
+        },
+      );
+      if (res.status === 404 || res.status === 403 || res.status === 401) {
+        if (res.status === 404) {
+          this._teamTelemetryUnavailable = true;
+        }
+        return null;
+      }
+      if (!res.ok) {
+        return null;
+      }
+      const data = await readJsonResponseBody(res);
+      if (!data || typeof data !== "object") {
         return null;
       }
       return data;

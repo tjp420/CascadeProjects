@@ -1,5 +1,5 @@
 export function exportToPDF(items) {
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open("", "_blank");
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -33,9 +33,9 @@ export function exportToPDF(items) {
             </div>
             <p style="margin-top:8px;color:#444">${item.desc}</p>
           </div>
-        `
+        `,
           )
-          .join('')}
+          .join("")}
       </div>
     </body>
     </html>

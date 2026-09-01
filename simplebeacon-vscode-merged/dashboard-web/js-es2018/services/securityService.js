@@ -6,7 +6,9 @@ export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;
  * @returns {any}
  */
 export function isSecurityIssue(issue) {
-  return SECURITY_ISSUE_PATTERN.test(String((issue === null || issue === void 0 ? void 0 : issue.type) || ''));
+  return SECURITY_ISSUE_PATTERN.test(
+    String((issue === null || issue === void 0 ? void 0 : issue.type) || ""),
+  );
 }
 /**
  * Normalize security finding.
@@ -19,18 +21,24 @@ export function normalizeSecurityFinding(issue, index = 0) {
   const filePath =
     issue.filePath ||
     ((_a = issue.filePaths) === null || _a === void 0 ? void 0 : _a[0]) ||
-    ((_c = (_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.duplicatePaths) === null || _c === void 0
+    ((_c =
+      (_b = issue.metadata) === null || _b === void 0
+        ? void 0
+        : _b.duplicatePaths) === null || _c === void 0
       ? void 0
       : _c[0]) ||
     ((_d = issue.affectedFiles) === null || _d === void 0 ? void 0 : _d[0]) ||
     null;
   return {
     id: issue.id || `${issue.severity}|${issue.type}|${index}`,
-    severity: issue.severity || issue.severityBand || 'medium',
-    type: issue.type || 'Unknown',
+    severity: issue.severity || issue.severityBand || "medium",
+    type: issue.type || "Unknown",
     file: filePath,
-    description: issue.description || '',
-    recommendation: issue.recommendedAction || issue.recommendation || 'Review and remediate before merge',
+    description: issue.description || "",
+    recommendation:
+      issue.recommendedAction ||
+      issue.recommendation ||
+      "Review and remediate before merge",
     count: (_e = issue.count) !== null && _e !== void 0 ? _e : 1,
   };
 }
@@ -43,14 +51,18 @@ export function extractSecurityFindings(report) {
   var _a, _b;
   const raw =
     (_b =
-      (_a = report === null || report === void 0 ? void 0 : report.rawIssues) !== null && _a !== void 0
+      (_a =
+        report === null || report === void 0 ? void 0 : report.rawIssues) !==
+        null && _a !== void 0
         ? _a
         : report === null || report === void 0
           ? void 0
           : report.detectedIssues) !== null && _b !== void 0
       ? _b
       : [];
-  return raw.filter(isSecurityIssue).map((issue, index) => normalizeSecurityFinding(issue, index));
+  return raw
+    .filter(isSecurityIssue)
+    .map((issue, index) => normalizeSecurityFinding(issue, index));
 }
 /**
  * Build security summary.
@@ -62,15 +74,18 @@ export function buildSecuritySummary(report, findings = []) {
   var _a, _b, _c, _d, _e, _f, _g, _h;
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
   for (const finding of findings) {
-    const band = String(finding.severity || 'medium').toLowerCase();
+    const band = String(finding.severity || "medium").toLowerCase();
     const increment = (_a = finding.count) !== null && _a !== void 0 ? _a : 1;
-    if (band === 'critical') severityCounts.critical += increment;
-    else if (band === 'high') severityCounts.high += increment;
-    else if (band === 'medium') severityCounts.medium += increment;
+    if (band === "critical") severityCounts.critical += increment;
+    else if (band === "high") severityCounts.high += increment;
+    else if (band === "medium") severityCounts.medium += increment;
     else severityCounts.low += increment;
   }
   const credentialFindings =
-    (_b = report === null || report === void 0 ? void 0 : report.credentialFindings) !== null && _b !== void 0
+    (_b =
+      report === null || report === void 0
+        ? void 0
+        : report.credentialFindings) !== null && _b !== void 0
       ? _b
       : findings
           .filter((f) => /credential/i.test(f.type))
@@ -79,7 +94,10 @@ export function buildSecuritySummary(report, findings = []) {
             return sum + ((_a = f.count) !== null && _a !== void 0 ? _a : 1);
           }, 0);
   const productionLeakFindings =
-    (_c = report === null || report === void 0 ? void 0 : report.productionLeakFindings) !== null && _c !== void 0
+    (_c =
+      report === null || report === void 0
+        ? void 0
+        : report.productionLeakFindings) !== null && _c !== void 0
       ? _c
       : findings
           .filter((f) => /production leak/i.test(f.type))
@@ -89,12 +107,18 @@ export function buildSecuritySummary(report, findings = []) {
           }, 0);
   return {
     credentialScanned:
-      (_d = report === null || report === void 0 ? void 0 : report.credentialScanned) !== null && _d !== void 0
+      (_d =
+        report === null || report === void 0
+          ? void 0
+          : report.credentialScanned) !== null && _d !== void 0
         ? _d
         : null,
     credentialFindings,
     productionLeakScanned:
-      (_e = report === null || report === void 0 ? void 0 : report.productionLeakScanned) !== null && _e !== void 0
+      (_e =
+        report === null || report === void 0
+          ? void 0
+          : report.productionLeakScanned) !== null && _e !== void 0
         ? _e
         : null,
     productionLeakFindings,
@@ -105,13 +129,18 @@ export function buildSecuritySummary(report, findings = []) {
     severityCounts,
     gatePass:
       (_g =
-        (_f = report === null || report === void 0 ? void 0 : report.gate) === null || _f === void 0
+        (_f = report === null || report === void 0 ? void 0 : report.gate) ===
+          null || _f === void 0
           ? void 0
           : _f.pass) !== null && _g !== void 0
         ? _g
         : null,
     generatedAt:
-      (_h = report === null || report === void 0 ? void 0 : report.generatedAt) !== null && _h !== void 0 ? _h : null,
+      (_h =
+        report === null || report === void 0 ? void 0 : report.generatedAt) !==
+        null && _h !== void 0
+        ? _h
+        : null,
   };
 }
 /**
@@ -121,17 +150,28 @@ export function buildSecuritySummary(report, findings = []) {
  * @param {any} compliance
  * @returns {any}
  */
-export function buildSecurityExportPayload(report, findings, compliance = null) {
+export function buildSecurityExportPayload(
+  report,
+  findings,
+  compliance = null,
+) {
   var _a, _b, _c;
   return {
-    type: 'simplebeacon-security-scan-export',
+    type: "simplebeacon-security-scan-export",
     exportedAt: new Date().toISOString(),
     summary: buildSecuritySummary(report, findings),
     compliance: compliance
       ? {
-          securityScore: (_a = compliance.securityScore) !== null && _a !== void 0 ? _a : null,
-          gatePass: (_b = compliance.gatePass) !== null && _b !== void 0 ? _b : null,
-          optimizationCompliance: (_c = compliance.optimizationCompliance) !== null && _c !== void 0 ? _c : null,
+          securityScore:
+            (_a = compliance.securityScore) !== null && _a !== void 0
+              ? _a
+              : null,
+          gatePass:
+            (_b = compliance.gatePass) !== null && _b !== void 0 ? _b : null,
+          optimizationCompliance:
+            (_c = compliance.optimizationCompliance) !== null && _c !== void 0
+              ? _c
+              : null,
         }
       : null,
     findings,
@@ -142,11 +182,11 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
  * @returns {any}
  */
 export async function fetchComplianceHeadline() {
-  const complianceHttpResponse = await fetch('/api/optimization/compliance', {
-    headers: { Accept: 'application/json' },
+  const complianceHttpResponse = await fetch("/api/optimization/compliance", {
+    headers: { Accept: "application/json" },
   });
   if (!complianceHttpResponse.ok) {
-    throw new Error('Compliance API unavailable');
+    throw new Error("Compliance API unavailable");
   }
   const complianceHeadline = await complianceHttpResponse.json();
   return complianceHeadline.success === false ? null : complianceHeadline;

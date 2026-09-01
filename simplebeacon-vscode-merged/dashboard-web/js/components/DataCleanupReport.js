@@ -1,5 +1,5 @@
 // simplebeacon-ignore documentation
-import { escapeHtml, formatNumber } from '../utils.js';
+import { escapeHtml, formatNumber } from "../utils.js";
 
 /**
  * Format bytes.
@@ -15,25 +15,25 @@ function formatBytes(bytes) {
 }
 
 const SCANNER_LABELS = {
-  'build-artifacts': 'Build artifacts',
-  'asset-consolidation': 'Duplicate assets',
-  'unused-files': 'Unused files',
-  'directory-bloat': 'Directory bloat',
-  'config-management': 'Config sprawl',
-  'dependency-health': 'Dependencies',
-  'environment-variables': 'Environment keys',
-  'data-freshness': 'Stale data',
-  'data-access-patterns': 'Sync I/O patterns',
-  'data-privacy': 'Privacy & secrets',
-  'data-lineage': 'Orphaned data',
-  'data-consistency': 'Shape drift',
+  "build-artifacts": "Build artifacts",
+  "asset-consolidation": "Duplicate assets",
+  "unused-files": "Unused files",
+  "directory-bloat": "Directory bloat",
+  "config-management": "Config sprawl",
+  "dependency-health": "Dependencies",
+  "environment-variables": "Environment keys",
+  "data-freshness": "Stale data",
+  "data-access-patterns": "Sync I/O patterns",
+  "data-privacy": "Privacy & secrets",
+  "data-lineage": "Orphaned data",
+  "data-consistency": "Shape drift",
 };
 
 const PRIORITY_LABELS = {
-  critical: 'Critical',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
 };
 
 /**
@@ -42,9 +42,9 @@ const PRIORITY_LABELS = {
  * @returns {any}
  */
 function profileTitle(profile) {
-  if (profile === 'file-reduction') return 'File reduction';
-  if (profile === 'data-quality') return 'Data quality';
-  return 'Data cleanup';
+  if (profile === "file-reduction") return "File reduction";
+  if (profile === "data-quality") return "Data quality";
+  return "Data cleanup";
 }
 
 /**
@@ -55,27 +55,27 @@ function profileTitle(profile) {
  */
 function actionBadge(action, severity) {
   const cls =
-    action === 'safe-to-delete'
-      ? 'safe'
-      : action === 'review-before-delete'
-        ? 'review'
-        : action === 'consolidate-duplicates'
-          ? 'consolidate'
-          : severity === 'critical'
-            ? 'critical'
-            : severity === 'high'
-              ? 'high'
-              : severity === 'medium'
-                ? 'medium'
-                : 'low';
+    action === "safe-to-delete"
+      ? "safe"
+      : action === "review-before-delete"
+        ? "review"
+        : action === "consolidate-duplicates"
+          ? "consolidate"
+          : severity === "critical"
+            ? "critical"
+            : severity === "high"
+              ? "high"
+              : severity === "medium"
+                ? "medium"
+                : "low";
   const label =
-    action === 'safe-to-delete'
-      ? 'Safe to delete'
-      : action === 'review-before-delete'
-        ? 'Review first'
-        : action === 'consolidate-duplicates'
-          ? 'Consolidate'
-          : action || 'Review';
+    action === "safe-to-delete"
+      ? "Safe to delete"
+      : action === "review-before-delete"
+        ? "Review first"
+        : action === "consolidate-duplicates"
+          ? "Consolidate"
+          : action || "Review";
   return `<span class="severity-pill ${cls}">${label}</span>`;
 }
 
@@ -85,8 +85,9 @@ function actionBadge(action, severity) {
  * @returns {any}
  */
 function confidenceBadge(confidence) {
-  const cls = confidence === 'high' ? 'low' : confidence === 'medium' ? 'medium' : 'high';
-  return `<span class="severity-pill ${cls}">${confidence || 'unknown'}</span>`;
+  const cls =
+    confidence === "high" ? "low" : confidence === "medium" ? "medium" : "high";
+  return `<span class="severity-pill ${cls}">${confidence || "unknown"}</span>`;
 }
 
 /**
@@ -96,38 +97,38 @@ function confidenceBadge(confidence) {
  */
 function renderBuildArtifactsSection(findings) {
   const items = findings?.buildArtifacts || [];
-  if (!items.length) return '';
+  if (!items.length) return "";
 
-  const dirs = items.filter((f) => f.kind === 'directory');
-  const files = items.filter((f) => f.kind === 'file');
+  const dirs = items.filter((f) => f.kind === "directory");
+  const files = items.filter((f) => f.kind === "file");
 
   const dirRows = dirs
     .map(
       (f) => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
-      <td>${escapeHtml(f.category || f.reason || '')}</td>
+      <td>${escapeHtml(f.category || f.reason || "")}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
       <td>${formatNumber(f.fileCount)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   const fileRows = files
     .map(
       (f) => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
-      <td>${escapeHtml(f.category || f.reason || '')}</td>
+      <td>${escapeHtml(f.category || f.reason || "")}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
       <td>${formatNumber(f.fileCount)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4">
@@ -144,7 +145,7 @@ function renderBuildArtifactsSection(findings) {
             </table>
           </div>
         `
-            : ''
+            : ""
         }
         ${
           files.length
@@ -157,7 +158,7 @@ function renderBuildArtifactsSection(findings) {
             </table>
           </div>
         `
-            : ''
+            : ""
         }
       </div>
     </details>
@@ -171,7 +172,7 @@ function renderBuildArtifactsSection(findings) {
  */
 function renderDuplicateAssetsSection(findings) {
   const items = findings?.assetConsolidation || [];
-  if (!items.length) return '';
+  if (!items.length) return "";
 
   const rows = items
     .map(
@@ -179,19 +180,19 @@ function renderDuplicateAssetsSection(findings) {
     <tr>
       <td><code>${escapeHtml(f.keeper)}</code></td>
       <td>
-        ${f.duplicates.map((d) => `<code>${escapeHtml(d)}</code>`).join('<br>')}
+        ${f.duplicates.map((d) => `<code>${escapeHtml(d)}</code>`).join("<br>")}
       </td>
-      <td><code class="text-muted" style="font-size: var(--font-size-xs);">${escapeHtml(f.hash ? f.hash.slice(0, 16) + '…' : '—')}</code></td>
+      <td><code class="text-muted" style="font-size: var(--font-size-xs);">${escapeHtml(f.hash ? f.hash.slice(0, 16) + "…" : "—")}</code></td>
       <td>${formatBytes(f.sizeBytes)}</td>
       <td>${formatBytes(f.reclaimableBytes)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4">
-      <summary><strong>Duplicate assets</strong> <span class="text-muted">(${items.length} group${items.length !== 1 ? 's' : ''})</span></summary>
+      <summary><strong>Duplicate assets</strong> <span class="text-muted">(${items.length} group${items.length !== 1 ? "s" : ""})</span></summary>
       <div class="mt-4">
         <div class="table-wrapper mb-3">
           <table class="results-table" style="font-size: var(--font-size-sm);">
@@ -211,20 +212,20 @@ function renderDuplicateAssetsSection(findings) {
  */
 function renderUnusedFilesSection(findings) {
   const items = findings?.unusedFiles || [];
-  if (!items.length) return '';
+  if (!items.length) return "";
 
   const rows = items
     .map(
       (f) => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
-      <td>${escapeHtml(f.reason || '')}</td>
+      <td>${escapeHtml(f.reason || "")}</td>
       <td>${confidenceBadge(f.confidence)}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4">
@@ -251,38 +252,38 @@ function renderUnusedFilesSection(findings) {
  */
 function renderDirectoryBloatSection(findings) {
   const items = findings?.directoryBloat || [];
-  if (!items.length) return '';
+  if (!items.length) return "";
 
-  const dirs = items.filter((f) => f.kind === 'directory');
-  const files = items.filter((f) => f.kind === 'file');
+  const dirs = items.filter((f) => f.kind === "directory");
+  const files = items.filter((f) => f.kind === "file");
 
   const dirRows = dirs
     .map(
       (f) => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
-      <td>${escapeHtml(f.category || f.reason || '')}</td>
+      <td>${escapeHtml(f.category || f.reason || "")}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
       <td>${formatNumber(f.fileCount || 0)}</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   const fileRows = files
     .map(
       (f) => `
     <tr>
       <td><code>${escapeHtml(f.path)}</code></td>
-      <td>${escapeHtml(f.category || f.reason || '')}</td>
+      <td>${escapeHtml(f.category || f.reason || "")}</td>
       <td>${actionBadge(f.action, f.severity)}</td>
       <td>—</td>
       <td>${formatBytes(f.sizeBytes)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4">
@@ -299,7 +300,7 @@ function renderDirectoryBloatSection(findings) {
             </table>
           </div>
         `
-            : ''
+            : ""
         }
         ${
           files.length
@@ -312,7 +313,7 @@ function renderDirectoryBloatSection(findings) {
             </table>
           </div>
         `
-            : ''
+            : ""
         }
       </div>
     </details>
@@ -325,21 +326,21 @@ function renderDirectoryBloatSection(findings) {
  * @returns {any}
  */
 function renderGenericFindings(allFindings) {
-  if (!allFindings.length) return '';
+  if (!allFindings.length) return "";
 
   const rows = allFindings
     .map(
       (finding) => `
     <tr>
-      <td><span class="severity-pill ${escapeHtml(finding.severity || 'low')}">${escapeHtml(finding.severity || 'low')}</span></td>
-      <td>${escapeHtml(finding.type || finding.category || 'finding')}</td>
-      <td><code>${escapeHtml(finding.path || finding.filePath || finding.file || finding.id || '—')}</code></td>
-      <td>${escapeHtml(finding.message || finding.description || finding.reason || finding.recommendation || finding.action || '')}</td>
-      <td>${escapeHtml(finding.action || finding.recommendation || 'Review')}</td>
+      <td><span class="severity-pill ${escapeHtml(finding.severity || "low")}">${escapeHtml(finding.severity || "low")}</span></td>
+      <td>${escapeHtml(finding.type || finding.category || "finding")}</td>
+      <td><code>${escapeHtml(finding.path || finding.filePath || finding.file || finding.id || "—")}</code></td>
+      <td>${escapeHtml(finding.message || finding.description || finding.reason || finding.recommendation || finding.action || "")}</td>
+      <td>${escapeHtml(finding.action || finding.recommendation || "Review")}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4">
@@ -364,10 +365,11 @@ function renderGenericFindings(allFindings) {
  */
 function renderFileReductionPlan(scan, profile) {
   const plan = scan.fileReductionPlan;
-  if (!plan) return '';
+  if (!plan) return "";
 
-  const effectiveProfile = profile || scan.scanProfile || 'all';
-  if (effectiveProfile !== 'file-reduction' && effectiveProfile !== 'all') return '';
+  const effectiveProfile = profile || scan.scanProfile || "all";
+  if (effectiveProfile !== "file-reduction" && effectiveProfile !== "all")
+    return "";
 
   const totals = plan.totals || {};
   const safe = plan.safeToDelete || {};
@@ -387,9 +389,9 @@ function renderFileReductionPlan(scan, profile) {
       <code>${escapeHtml(entry.path)}</code>
       <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatNumber(entry.files)} file(s)</span>
     </li>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   /**
    * Review logs.
@@ -400,9 +402,9 @@ function renderFileReductionPlan(scan, profile) {
     .map(
       (entry) => `
     <li><code>${escapeHtml(entry.path)}</code> <span class="text-muted">· ${formatBytes(entry.bytes)}</span></li>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   /**
    * Summary rows.
@@ -415,12 +417,12 @@ function renderFileReductionPlan(scan, profile) {
     <tr>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.files)}</td>
-      <td>${row.bytes == null ? '—' : formatBytes(row.bytes)}</td>
+      <td>${row.bytes == null ? "—" : formatBytes(row.bytes)}</td>
       <td>${escapeHtml(row.action)}</td>
     </tr>
-  `
+  `,
     )
-    .join('');
+    .join("");
 
   return `
     <details class="card mb-4" open>
@@ -433,7 +435,7 @@ function renderFileReductionPlan(scan, profile) {
           <div class="metric-chip"><strong>${formatNumber(duplicates.groups)}</strong> duplicate groups</div>
           <div class="metric-chip"><strong>${formatNumber(unused.candidates)}</strong> unused candidates</div>
         </div>
-        <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(plan.scopeNote || '')}</p>
+        <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(plan.scopeNote || "")}</p>
         <table class="table mb-4" style="width:100%; font-size: var(--font-size-sm);">
           <thead>
             <tr><th>Category</th><th>Files</th><th>Size</th><th>Action</th></tr>
@@ -446,7 +448,7 @@ function renderFileReductionPlan(scan, profile) {
           <h3 class="mb-2" style="font-size: var(--font-size-base);">Top safe-to-delete directories</h3>
           <ul class="mb-4" style="padding-left: 1.25rem;">${topDirs}</ul>
         `
-            : ''
+            : ""
         }
         ${
           reviewLogs
@@ -454,16 +456,16 @@ function renderFileReductionPlan(scan, profile) {
           <h3 class="mb-2" style="font-size: var(--font-size-base);">Review before delete (logs)</h3>
           <ul class="mb-4" style="padding-left: 1.25rem;">${reviewLogs}</ul>
         `
-            : ''
+            : ""
         }
         ${
           (plan.recommendations || []).length
             ? `
           <p class="text-muted" style="font-size: var(--font-size-xs);">
-            ${plan.recommendations.map((item) => escapeHtml(item)).join(' · ')}
+            ${plan.recommendations.map((item) => escapeHtml(item)).join(" · ")}
           </p>
         `
-            : ''
+            : ""
         }
       </div>
     </details>
@@ -478,41 +480,48 @@ function renderFileReductionPlan(scan, profile) {
  */
 function renderScannerStatistics(scan, profile) {
   const stats = scan.scannerStatistics;
-  if (!stats?.scanners) return '';
+  if (!stats?.scanners) return "";
 
-  const effectiveProfile = profile || scan.scanProfile || 'all';
-  const isDataQuality = effectiveProfile === 'data-quality' || effectiveProfile === 'all';
-  if (!isDataQuality) return '';
+  const effectiveProfile = profile || scan.scanProfile || "all";
+  const isDataQuality =
+    effectiveProfile === "data-quality" || effectiveProfile === "all";
+  if (!isDataQuality) return "";
 
   const rows = [
-    ['Config Management', stats.scanners['config-management']],
-    ['Dependency Health', stats.scanners['dependency-health']],
-    ['Environment Variables', stats.scanners['environment-variables']],
-    ['Data Freshness', stats.scanners['data-freshness']],
-    ['Data Access Patterns', stats.scanners['data-access-patterns']],
-    ['Data Privacy', stats.scanners['data-privacy']],
-    ['Data Lineage', stats.scanners['data-lineage']],
-    ['Data Consistency', stats.scanners['data-consistency']],
+    ["Config Management", stats.scanners["config-management"]],
+    ["Dependency Health", stats.scanners["dependency-health"]],
+    ["Environment Variables", stats.scanners["environment-variables"]],
+    ["Data Freshness", stats.scanners["data-freshness"]],
+    ["Data Access Patterns", stats.scanners["data-access-patterns"]],
+    ["Data Privacy", stats.scanners["data-privacy"]],
+    ["Data Lineage", stats.scanners["data-lineage"]],
+    ["Data Consistency", stats.scanners["data-consistency"]],
   ].filter(([, block]) => block);
 
   const statLines = rows
     .map(([label, block]) => {
       const pairs = Object.entries(block.stats || {})
-        .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
-        .join(' · ');
+        .map(
+          ([key, value]) =>
+            `${key.replace(/([A-Z])/g, " $1").trim()}: ${formatNumber(value)}`,
+        )
+        .join(" · ");
       const findingPairs = Object.entries(block.findings || {})
-        .filter(([key]) => key !== 'total')
-        .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
-        .join(' · ');
+        .filter(([key]) => key !== "total")
+        .map(
+          ([key, value]) =>
+            `${key.replace(/([A-Z])/g, " $1").trim()}: ${formatNumber(value)}`,
+        )
+        .join(" · ");
       return `
       <div class="consolidation-card card mb-2">
         <div class="consolidation-meta">${escapeHtml(label)} · ${formatNumber(block.findings?.total)} finding(s)</div>
         <p class="text-muted" style="font-size: var(--font-size-sm);">${escapeHtml(pairs)}</p>
-        ${findingPairs ? `<p class="text-muted" style="font-size: var(--font-size-xs);">Findings: ${escapeHtml(findingPairs)}</p>` : ''}
+        ${findingPairs ? `<p class="text-muted" style="font-size: var(--font-size-xs);">Findings: ${escapeHtml(findingPairs)}</p>` : ""}
       </div>
     `;
     })
-    .join('');
+    .join("");
 
   const piiCategories = scan.executiveSummary?.security?.piiByCategory || [];
   const piiBlock = piiCategories.length
@@ -525,19 +534,19 @@ function renderScannerStatistics(scan, profile) {
         <div class="metric-chip" title="${escapeHtml(entry.categoryLabel)}">
           <strong>${formatNumber(entry.count)}</strong> ${escapeHtml(entry.categoryLabel)}
         </div>
-      `
+      `,
         )
-        .join('')}
+        .join("")}
       <div class="metric-chip"><strong>${formatNumber(scan.executiveSummary?.security?.piiNeedingReview)}</strong> need review</div>
     </div>
   `
-    : '';
+    : "";
 
   return `
     <details class="card mb-4">
       <summary><strong>Scanner statistics</strong> <span class="text-muted">(workspace-scoped)</span></summary>
       <div class="mt-4">
-        <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(stats.scopeNote || '')}</p>
+        <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(stats.scopeNote || "")}</p>
         ${statLines}
         ${piiBlock}
       </div>
@@ -553,11 +562,13 @@ function renderScannerStatistics(scan, profile) {
  */
 function renderExecutiveSummary(scan, profile) {
   const summary = scan.executiveSummary;
-  if (!summary) return '';
+  if (!summary) return "";
 
-  const effectiveProfile = profile || scan.scanProfile || 'all';
-  const showFileReduction = effectiveProfile === 'file-reduction' || effectiveProfile === 'all';
-  const showDataQuality = effectiveProfile === 'data-quality' || effectiveProfile === 'all';
+  const effectiveProfile = profile || scan.scanProfile || "all";
+  const showFileReduction =
+    effectiveProfile === "file-reduction" || effectiveProfile === "all";
+  const showDataQuality =
+    effectiveProfile === "data-quality" || effectiveProfile === "all";
   const actions = summary.priorityActions || [];
   const credentials = summary.security?.credentials || [];
   const notes = summary.notes || [];
@@ -571,9 +582,9 @@ function renderExecutiveSummary(scan, profile) {
           <strong>${escapeHtml(action.title)}</strong>
           <span class="text-muted"> — ${escapeHtml(action.detail)}</span>
         </li>
-      `
+      `,
         )
-        .join('')
+        .join("")
     : '<li class="text-muted">No immediate actions — review top findings below.</li>';
 
   const credentialItems = credentials.length
@@ -581,13 +592,13 @@ function renderExecutiveSummary(scan, profile) {
         .map(
           (item) => `
         <li>
-          <code>${escapeHtml(item.path || '—')}${item.line ? `:${item.line}` : ''}</code>
-          <span class="text-muted"> · ${escapeHtml(item.categoryLabel || item.category || 'Review required')}</span>
+          <code>${escapeHtml(item.path || "—")}${item.line ? `:${item.line}` : ""}</code>
+          <span class="text-muted"> · ${escapeHtml(item.categoryLabel || item.category || "Review required")}</span>
         </li>
-      `
+      `,
         )
-        .join('')
-    : '';
+        .join("")
+    : "";
 
   const workspace = summary.workspace || {};
   const data = summary.data || {};
@@ -613,7 +624,7 @@ function renderExecutiveSummary(scan, profile) {
       <div class="metric-chip"><strong>${formatNumber(data.syncIoPatterns)}</strong> sync I/O</div>
     </div>
   `
-    : '';
+    : "";
 
   const fileReductionRows = showFileReduction
     ? `
@@ -624,7 +635,7 @@ function renderExecutiveSummary(scan, profile) {
       <div class="metric-chip"><strong>${formatNumber(fileReduction.unusedFileCandidates)}</strong> unused files</div>
     </div>
   `
-    : '';
+    : "";
 
   return `
     <details class="card mb-4" open>
@@ -644,16 +655,16 @@ function renderExecutiveSummary(scan, profile) {
             ${credentialItems}
           </ul>
         `
-            : ''
+            : ""
         }
         ${
           notes.length
             ? `
           <p class="text-muted" style="font-size: var(--font-size-xs);">
-            ${notes.map((note) => escapeHtml(note)).join(' · ')}
+            ${notes.map((note) => escapeHtml(note)).join(" · ")}
           </p>
         `
-            : ''
+            : ""
         }
       </div>
     </details>
@@ -683,7 +694,7 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
   const inv = scan.inventory || {};
   const sev = scan.aggregation?.bySeverity || {};
   const enabled = scan.enabledScanners || Object.keys(scan.scanners || {});
-  const effectiveProfile = profile || scan.scanProfile || 'all';
+  const effectiveProfile = profile || scan.scanProfile || "all";
   const allFindings = scan.allFindings || scan.findings || scan.issues || [];
 
   const fileReductionChips = [
@@ -705,9 +716,9 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
   ];
 
   const metricChips =
-    effectiveProfile === 'file-reduction'
+    effectiveProfile === "file-reduction"
       ? fileReductionChips
-      : effectiveProfile === 'data-quality'
+      : effectiveProfile === "data-quality"
         ? dataQualityChips
         : [...fileReductionChips, ...dataQualityChips];
 
@@ -719,17 +730,17 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
       <div class="metric-chip" title="Files walked for this scan"><strong>${formatNumber(inv.totalFiles)}</strong> files scanned</div>
       <div class="metric-chip"><strong>${formatNumber(s.totalFindings)}</strong> findings</div>
       <div class="metric-chip"><strong>${formatBytes(s.reclaimableBytes)}</strong> reclaimable</div>
-      ${sev.critical ? `<div class="metric-chip"><strong>${formatNumber(sev.critical)}</strong> critical</div>` : ''}
-      ${sev.high ? `<div class="metric-chip"><strong>${formatNumber(sev.high)}</strong> high</div>` : ''}
-      ${sev.medium ? `<div class="metric-chip"><strong>${formatNumber(sev.medium)}</strong> medium</div>` : ''}
-      ${scan.durationMs != null ? `<div class="metric-chip"><strong>${Math.round(scan.durationMs / 1000)}s</strong> runtime</div>` : ''}
+      ${sev.critical ? `<div class="metric-chip"><strong>${formatNumber(sev.critical)}</strong> critical</div>` : ""}
+      ${sev.high ? `<div class="metric-chip"><strong>${formatNumber(sev.high)}</strong> high</div>` : ""}
+      ${sev.medium ? `<div class="metric-chip"><strong>${formatNumber(sev.medium)}</strong> medium</div>` : ""}
+      ${scan.durationMs != null ? `<div class="metric-chip"><strong>${Math.round(scan.durationMs / 1000)}s</strong> runtime</div>` : ""}
     </div>
     <div class="metrics-row mb-4">
-      ${metricChips.join('')}
+      ${metricChips.join("")}
     </div>
     <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">
       ${escapeHtml(profileTitle(effectiveProfile))} · dry-run only · workspace-scoped dep/config counts · scanners:
-      ${enabled.map((id) => escapeHtml(SCANNER_LABELS[id] || id)).join(' · ')}
+      ${enabled.map((id) => escapeHtml(SCANNER_LABELS[id] || id)).join(" · ")}
     </p>
     <div class="flex gap-2 mb-4">
       <button type="button" class="btn btn-secondary btn-sm data-cleanup-download-json" data-profile="${escapeHtml(effectiveProfile)}" title="Download all findings as JSON">Download JSON</button>
@@ -750,24 +761,26 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
  */
 export function buildDataCleanupConclusion(scan, profile) {
   if (!scan?.summary) {
-    return 'No data cleanup scan available.';
+    return "No data cleanup scan available.";
   }
   const s = scan.summary;
   const inv = scan.inventory || {};
-  const label = profileTitle(profile || scan.scanProfile || 'all');
+  const label = profileTitle(profile || scan.scanProfile || "all");
   const sev = scan.aggregation?.bySeverity || {};
   const severityNote =
-    sev.critical || sev.high ? ` ${formatNumber(sev.critical)} critical, ${formatNumber(sev.high)} high severity.` : '';
+    sev.critical || sev.high
+      ? ` ${formatNumber(sev.critical)} critical, ${formatNumber(sev.high)} high severity.`
+      : "";
   const exec = scan.executiveSummary;
   const reviewNote = exec?.security?.credentialsNeedingReview
     ? ` ${formatNumber(exec.security.credentialsNeedingReview)} credential hit(s) need manual review.`
     : exec?.security?.credentialHits
-      ? ' Credential hits are documented examples or test fixtures.'
-      : '';
+      ? " Credential hits are documented examples or test fixtures."
+      : "";
   const piiNote = exec?.security?.piiNeedingReview
     ? ` ${formatNumber(exec.security.piiNeedingReview)} PII hit(s) need manual review.`
     : exec?.security?.piiHits
-      ? ' PII hits are in docs, reports, or mock/sample data.'
-      : '';
+      ? " PII hits are in docs, reports, or mock/sample data."
+      : "";
   return `${label}: ${formatNumber(s.totalFindings)} finding(s) across ${formatNumber(inv.totalFiles)} files — ${formatBytes(s.reclaimableBytes)} potentially reclaimable (dry-run).${severityNote}${reviewNote}${piiNote}`;
 }

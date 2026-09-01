@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { navigate } from "../router/HashRouter";
-import { isTokenExpired, clearAuthToken, clearLicenseToken, apiUrl, authHeaders } from "../config";
+import { isTokenExpired, clearAuthToken } from "../config";
 
 /**
  * Decode a JWT payload without verifying (verification happens server-side).
@@ -20,17 +20,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 }
 
 export function useAuth() {
-  // Initialize synchronously from localStorage so the route guard doesn't
-  // bounce authenticated users to signin on page refresh. The useEffect
-  // below still runs to populate user/tier details and listen for events.
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return !isTokenExpired();
-    } catch {
-      return false;
-    }
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isFreeTier, setIsFreeTier] = useState(true);
   const [user, setUser] = useState<{
     email?: string;
@@ -121,42 +111,12 @@ export function useAuth() {
     };
   }, []);
 
-  const signOut = useCallback(async () => {
-    // Call backend logout to invalidate session server-side (non-blocking)
-    try {
-      await fetch(apiUrl("/auth/logout"), {
-        method: "POST",
-        headers: { ...authHeaders() },
-      });
-    } catch {
-      /* non-blocking — proceed with local cleanup */
-    }
-    // Clear all auth token keys (9 keys across dashboard + marketing pages)
+  const signOut = useCallback(() => {
     clearAuthToken();
-    // Clear license tokens
-    clearLicenseToken();
-    // Clear user data keys
     localStorage.removeItem("sb_user");
     localStorage.removeItem("sb-user");
-    // Clear session storage
-    try { sessionStorage.clear(); } catch { /* ignore */ }
-    // Clear auth cookies by setting them expired
-    try {
-      const cookieKeys = [
-        "sb_auth_token", "sb_token", "sb-token", "auth_token",
-        "simplebeacon_token", "cascadeAuthToken", "access_token",
-        "token", "authToken", "sb_user", "sb-user",
-      ];
-      for (const key of cookieKeys) {
-        document.cookie = `${key}=;path=/;max-age=0;SameSite=Lax`;
-        document.cookie = `${key}=;path=/;max-age=0;SameSite=Lax;domain=${window.location.hostname}`;
-      }
-    } catch { /* ignore */ }
-    // Reset React state
     setIsAuthenticated(false);
     setUser(null);
-    setIsFreeTier(true);
-    // Notify other tabs/components
     try {
       window.dispatchEvent(new Event("sb:logout"));
     } catch {

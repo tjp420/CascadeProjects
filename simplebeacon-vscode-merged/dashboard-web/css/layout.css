@@ -223,7 +223,7 @@
   background: var(--surface-hover);
 }
 
-.nav-group-toggle[aria-expanded='false'] .nav-group-chevron {
+.nav-group-toggle[aria-expanded="false"] .nav-group-chevron {
   transform: rotate(-90deg);
 }
 
@@ -276,7 +276,7 @@
 }
 
 .nav-link.active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 6px;
@@ -311,6 +311,20 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+}
+
+/* Add safe bottom spacing so footer / action buttons are not overlapped
+   by IDE panels, OS taskbars, or in-app overlays (e.g. VS Code preview).
+   Apply only when embedded in the IDE and when the main app area or the
+   specific nav item exists (surgical selector using :has()). */
+html[data-ide-preview="true"] .app-body:has(#app-main) .app-nav,
+html[data-ide-preview="true"] .app-nav:has(.nav-link[data-view="analyze"]) {
+  /* preserve existing padding and add safe inset fallback */
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 24px));
+}
+
+html[data-ide-preview="true"] .app-body:has(#app-main) .app-main {
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 24px));
 }
 
 .nav-footer-link {

@@ -9,7 +9,7 @@ export function createEventBus() {
   const listeners = new Map();
   return {
     on(event, handler) {
-      if (typeof handler !== 'function') return () => {};
+      if (typeof handler !== "function") return () => {};
       const set = listeners.get(event);
       if (set) set.add(handler);
       else listeners.set(event, new Set([handler]));
@@ -31,7 +31,7 @@ export function createEventBus() {
       }
     },
     once(event, handler) {
-      if (typeof handler !== 'function') return () => {};
+      if (typeof handler !== "function") return () => {};
       const wrapped = (payload) => {
         this.off(event, wrapped);
         handler(payload);
@@ -47,7 +47,7 @@ export function createEventBus() {
  * @returns {{post:Function,on:Function,off:Function,close:Function}}
  */
 export function createBroadcastChannel(name) {
-  if (typeof BroadcastChannel !== 'undefined') {
+  if (typeof BroadcastChannel !== "undefined") {
     const bc = new BroadcastChannel(name);
     return {
       post(data) {
@@ -82,11 +82,11 @@ export function createBroadcastChannel(name) {
     },
     on(handler) {
       currentHandler = handler;
-      window.addEventListener('storage', onStorage);
+      window.addEventListener("storage", onStorage);
     },
     off() {
       currentHandler = null;
-      window.removeEventListener('storage', onStorage);
+      window.removeEventListener("storage", onStorage);
     },
     close() {
       this.off();

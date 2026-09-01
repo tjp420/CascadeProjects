@@ -7,7 +7,7 @@
  * @returns {T | undefined}
  */
 export function localStorageGet(key, fallback) {
-  if (typeof window === 'undefined' || !window.localStorage) return fallback;
+  if (typeof window === "undefined" || !window.localStorage) return fallback;
   try {
     const raw = window.localStorage.getItem(key);
     if (raw === null) return fallback;
@@ -23,7 +23,7 @@ export function localStorageGet(key, fallback) {
  * @returns {boolean} True if the write succeeded.
  */
 export function localStorageSet(key, value) {
-  if (typeof window === 'undefined' || !window.localStorage) return false;
+  if (typeof window === "undefined" || !window.localStorage) return false;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
     return true;
@@ -37,7 +37,7 @@ export function localStorageSet(key, value) {
  * @returns {boolean} True if removal succeeded or key did not exist.
  */
 export function localStorageRemove(key) {
-  if (typeof window === 'undefined' || !window.localStorage) return false;
+  if (typeof window === "undefined" || !window.localStorage) return false;
   try {
     window.localStorage.removeItem(key);
     return true;
@@ -52,7 +52,7 @@ export function localStorageRemove(key) {
  * @returns {string | undefined}
  */
 export function localStorageGetString(key, fallback) {
-  if (typeof window === 'undefined' || !window.localStorage) return fallback;
+  if (typeof window === "undefined" || !window.localStorage) return fallback;
   try {
     const raw = window.localStorage.getItem(key);
     if (raw === null) return fallback;
@@ -68,7 +68,7 @@ export function localStorageGetString(key, fallback) {
  * @returns {boolean} True if the write succeeded.
  */
 export function localStorageSetString(key, value) {
-  if (typeof window === 'undefined' || !window.localStorage) return false;
+  if (typeof window === "undefined" || !window.localStorage) return false;
   try {
     window.localStorage.setItem(key, String(value));
     return true;
@@ -84,7 +84,7 @@ export function localStorageSetString(key, value) {
  * @returns {T | undefined}
  */
 export function sessionStorageGet(key, fallback) {
-  if (typeof window === 'undefined' || !window.sessionStorage) return fallback;
+  if (typeof window === "undefined" || !window.sessionStorage) return fallback;
   try {
     const raw = window.sessionStorage.getItem(key);
     if (raw === null) return fallback;
@@ -100,7 +100,7 @@ export function sessionStorageGet(key, fallback) {
  * @returns {boolean} True if the write succeeded.
  */
 export function sessionStorageSet(key, value) {
-  if (typeof window === 'undefined' || !window.sessionStorage) return false;
+  if (typeof window === "undefined" || !window.sessionStorage) return false;
   try {
     window.sessionStorage.setItem(key, JSON.stringify(value));
     return true;
@@ -114,7 +114,7 @@ export function sessionStorageSet(key, value) {
  * @returns {boolean} True if removal succeeded or key did not exist.
  */
 export function sessionStorageRemove(key) {
-  if (typeof window === 'undefined' || !window.sessionStorage) return false;
+  if (typeof window === "undefined" || !window.sessionStorage) return false;
   try {
     window.sessionStorage.removeItem(key);
     return true;

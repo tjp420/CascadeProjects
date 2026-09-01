@@ -1,5 +1,5 @@
 // simplebeacon-ignore documentation
-import { escapeHtml } from '../utils.js';
+import { escapeHtml } from "../utils.js";
 
 /**
  * Render zscript report panel.
@@ -9,29 +9,30 @@ import { escapeHtml } from '../utils.js';
  */
 export function renderZscriptReportPanel(zscriptReport, options = {}) {
   const report = zscriptReport?.report || zscriptReport;
-  if (!report || report.type !== 'zscript-mod-report') {
+  if (!report || report.type !== "zscript-mod-report") {
     if (options.error) {
       return `<div class="card mb-4"><p class="text-muted" style="margin:0;">ZScript report: ${escapeHtml(options.error)}</p></div>`;
     }
-    return '';
+    return "";
   }
 
   const diagnosis = report.problem_diagnosis || {};
   const cvars = report.cvars?.cvars || {};
   const cvarNames = Object.keys(cvars);
-  const intensityCvars = report.cvars?.intensityCvars || diagnosis.cvar_candidates || [];
+  const intensityCvars =
+    report.cvars?.intensityCvars || diagnosis.cvar_candidates || [];
   const fnKeys = Object.keys(report.function_analysis || {}).slice(0, 6);
 
   return `
     <div class="card mb-4">
       <p class="text-muted mb-2" style="margin-top: 0; font-size: var(--font-size-xs);">
-        ZScript mod report · focus ${escapeHtml(report.focus || 'lighting-intensity')}
-        · ${report.structure?.filesScanned ?? '—'} .zs file(s)
+        ZScript mod report · focus ${escapeHtml(report.focus || "lighting-intensity")}
+        · ${report.structure?.filesScanned ?? "—"} .zs file(s)
       </p>
       <div class="metrics-row mb-4">
         <div class="metric-chip"><strong>${cvarNames.length}</strong> CVARs</div>
         <div class="metric-chip"><strong>${intensityCvars.length}</strong> intensity CVARs</div>
-        <div class="metric-chip"><strong>${report.structure?.class_hierarchy?.classCount ?? '—'}</strong> classes</div>
+        <div class="metric-chip"><strong>${report.structure?.class_hierarchy?.classCount ?? "—"}</strong> classes</div>
         <div class="metric-chip"><strong>${fnKeys.length}</strong> traced functions</div>
       </div>
       ${
@@ -43,22 +44,22 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
           (diagnosis.suspected_root_causes || []).length
             ? `
           <ul style="margin: var(--space-2) 0; padding-left: 1.25rem; font-size: var(--font-size-sm);">
-            ${diagnosis.suspected_root_causes.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')}
+            ${diagnosis.suspected_root_causes.map((item) => `<li>${escapeHtml(String(item))}</li>`).join("")}
           </ul>
         `
-            : ''
+            : ""
         }
         ${
           (diagnosis.recommended_validation || []).length
             ? `
           <p class="text-muted" style="font-size: var(--font-size-xs); margin-bottom: 0;">
-            Validation: ${diagnosis.recommended_validation.map((item) => escapeHtml(String(item))).join(' · ')}
+            Validation: ${diagnosis.recommended_validation.map((item) => escapeHtml(String(item))).join(" · ")}
           </p>
         `
-            : ''
+            : ""
         }
       `
-          : ''
+          : ""
       }
       ${
         intensityCvars.length
@@ -73,16 +74,16 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
               <div class="consolidation-card card">
                 <div class="consolidation-meta"><code>${escapeHtml(name)}</code></div>
                 <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
-                  default ${escapeHtml(String(entry.defaultValue ?? entry.current_value ?? '—'))}
+                  default ${escapeHtml(String(entry.defaultValue ?? entry.current_value ?? "—"))}
                   · used in ${(entry.usedIn || []).length} file(s)
                 </p>
               </div>
             `;
             })
-            .join('')}
+            .join("")}
         </div>
       `
-          : ''
+          : ""
       }
       ${
         fnKeys.length
@@ -96,24 +97,24 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
               <div class="consolidation-card card">
                 <div class="consolidation-meta"><code>${escapeHtml(key)}</code></div>
                 <p style="font-size: var(--font-size-sm); margin: var(--space-1) 0 0;">
-                  ${escapeHtml(fn.purpose || 'ZScript method')}
+                  ${escapeHtml(fn.purpose || "ZScript method")}
                 </p>
                 ${
                   (fn.currentLogic || []).length
                     ? `
                   <ul style="margin: var(--space-1) 0 0; padding-left: 1.25rem; font-size: var(--font-size-xs);">
-                    ${fn.currentLogic.map((step) => `<li>${escapeHtml(String(step))}</li>`).join('')}
+                    ${fn.currentLogic.map((step) => `<li>${escapeHtml(String(step))}</li>`).join("")}
                   </ul>
                 `
-                    : ''
+                    : ""
                 }
               </div>
             `;
             })
-            .join('')}
+            .join("")}
         </div>
       `
-          : ''
+          : ""
       }
     </div>
   `;
@@ -126,7 +127,7 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
  */
 export function buildZscriptConclusion(zscriptReport) {
   const report = zscriptReport?.report || zscriptReport;
-  if (!report?.problem_diagnosis?.problem) return '';
-  const cvars = (report.problem_diagnosis.cvar_candidates || []).join(', ');
-  return `${report.problem_diagnosis.problem}${cvars ? ` — check CVARs: ${cvars}` : ''}.`;
+  if (!report?.problem_diagnosis?.problem) return "";
+  const cvars = (report.problem_diagnosis.cvar_candidates || []).join(", ");
+  return `${report.problem_diagnosis.problem}${cvars ? ` — check CVARs: ${cvars}` : ""}.`;
 }

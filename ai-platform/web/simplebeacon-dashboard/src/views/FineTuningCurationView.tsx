@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { getApiBase } from "@/config";
+import { getApiBase, authHeaders } from "@/config";
 import { toast } from "sonner";
 import {
   Database,
@@ -50,14 +50,6 @@ interface Dataset {
 function apiUrl(path: string): string {
   const base = getApiBase();
   return `${base}/api${path}`;
-}
-
-function authHeaders(): Record<string, string> {
-  const token =
-    localStorage.getItem("sb_token") ||
-    localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 const LABELS = ["include", "exclude", "review", "golden"];

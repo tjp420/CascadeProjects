@@ -2,7 +2,7 @@
  * Browser mirror of npm-audit-export-sanitize.js — keep in sync.
  */
 
-import { redactProjectPathForExport } from './quality-export.browser.js?v=20260716cachefix1';
+import { redactProjectPathForExport } from "./quality-export.browser.js?v=20260716cachefix1";
 
 /**
  * Normalize rel.
@@ -10,8 +10,8 @@ import { redactProjectPathForExport } from './quality-export.browser.js?v=202607
  * @returns {any}
  */
 function normalizeRel(filePath) {
-  return String(filePath || '')
-    .replace(/\\/g, '/')
+  return String(filePath || "")
+    .replace(/\\/g, "/")
     .toLowerCase();
 }
 
@@ -21,9 +21,9 @@ function normalizeRel(filePath) {
  * @returns {any}
  */
 function projectLabelFromPath(projectPath) {
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
+  const normalized = String(projectPath || "ai-platform").replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "ai-platform";
 }
 
 /**
@@ -33,7 +33,7 @@ function projectLabelFromPath(projectPath) {
  */
 function isBenchmarkCacheProjectPath(projectPath) {
   const rel = normalizeRel(projectPath);
-  return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
+  return rel.includes("/github-cache/") || rel.startsWith("github-cache/");
 }
 
 /**
@@ -42,8 +42,8 @@ function isBenchmarkCacheProjectPath(projectPath) {
  * @returns {any}
  */
 function resolveProductPlatformRoot(projectPath) {
-  const normalized = String(projectPath || '').replace(/\\/g, '/');
-  const idx = normalized.toLowerCase().indexOf('/github-cache/');
+  const normalized = String(projectPath || "").replace(/\\/g, "/");
+  const idx = normalized.toLowerCase().indexOf("/github-cache/");
   if (idx <= 0) return null;
   return normalized.slice(0, idx);
 }
@@ -54,10 +54,15 @@ function resolveProductPlatformRoot(projectPath) {
  * @param {string} projectPath
  * @returns {any}
  */
-function redactNpmAuditExportPaths(audit, projectPath = '') {
-  const raw = String(projectPath || audit.projectPath || audit.auditRoot || '').replace(/\\/g, '/');
+function redactNpmAuditExportPaths(audit, projectPath = "") {
+  const raw = String(
+    projectPath || audit.projectPath || audit.auditRoot || "",
+  ).replace(/\\/g, "/");
   const label = projectLabelFromPath(raw);
-  const packageJsonRaw = String(audit.packageJsonPath || '').replace(/\\/g, '/');
+  const packageJsonRaw = String(audit.packageJsonPath || "").replace(
+    /\\/g,
+    "/",
+  );
   return {
     projectPath: redactProjectPathForExport(raw, label),
     auditRoot: redactProjectPathForExport(audit.auditRoot || raw, label),
@@ -68,7 +73,10 @@ function redactNpmAuditExportPaths(audit, projectPath = '') {
           ? redactProjectPathForExport(audit.packageJsonPath, label)
           : undefined,
     productPlatformRoot: audit.productPlatformRoot
-      ? redactProjectPathForExport(audit.productPlatformRoot, projectLabelFromPath(audit.productPlatformRoot))
+      ? redactProjectPathForExport(
+          audit.productPlatformRoot,
+          projectLabelFromPath(audit.productPlatformRoot),
+        )
       : undefined,
   };
 }
@@ -79,15 +87,15 @@ function redactNpmAuditExportPaths(audit, projectPath = '') {
  * @returns {any}
  */
 function resolveSupplyChainStatus(audit) {
-  if (!audit || audit.error) return 'error';
-  if (audit.skipped) return 'skipped';
+  if (!audit || audit.error) return "error";
+  if (audit.skipped) return "skipped";
   const summary = audit.summary || {};
   const deps = summary.dependencies ?? audit.dependencies?.total ?? null;
-  if (deps == null) return 'not-applicable';
+  if (deps == null) return "not-applicable";
   const critical = Number(summary.critical) || 0;
   const high = Number(summary.high) || 0;
-  if (critical === 0 && high === 0) return 'pass';
-  return 'review';
+  if (critical === 0 && high === 0) return "pass";
+  return "review";
 }
 
 /**
@@ -108,7 +116,10 @@ function resolveNpmAuditGateContext(audit, options = {}) {
     hygiene.gateRepositoryFilesTotal ??
     null;
   const credentialScanned =
-    gateReport.credentialScanned ?? gateReport.productionLeakScanned ?? hygiene.contentFilesScanned ?? null;
+    gateReport.credentialScanned ??
+    gateReport.productionLeakScanned ??
+    hygiene.contentFilesScanned ??
+    null;
   const contentScanned =
     gateReport.scanScope?.fullDirectoryStats?.contentScanned ??
     gateReport.scanScope?.fullDirectoryStats?.filesContentScanned ??
@@ -117,7 +128,10 @@ function resolveNpmAuditGateContext(audit, options = {}) {
     hygiene.contentFilesScanned ??
     null;
   const gateProfile =
-    gateReport.scanScope?.profile ?? scanScope.gateRuleBundleProfile ?? hygiene.gateRuleBundleProfile ?? null;
+    gateReport.scanScope?.profile ??
+    scanScope.gateRuleBundleProfile ??
+    hygiene.gateRuleBundleProfile ??
+    null;
   const fictionJsonFilesScanned =
     gateReport.fictionJsonFilesScanned ??
     gateReport.scanScope?.fictionJsonFilesScanned ??
@@ -130,7 +144,11 @@ function resolveNpmAuditGateContext(audit, options = {}) {
     hygiene.fictionSampleFilesScanned ??
     null;
   const gatePass = gateReport.gate?.pass ?? hygiene.gatePass ?? null;
-  const blockingCount = gateReport.gate?.blockingCount ?? gateReport.issueCount ?? hygiene.blockingCount ?? null;
+  const blockingCount =
+    gateReport.gate?.blockingCount ??
+    gateReport.issueCount ??
+    hygiene.blockingCount ??
+    null;
   return {
     gateReport,
     repositoryFilesTotal,
@@ -167,17 +185,22 @@ function buildNpmAuditHygieneSummary(audit, context = {}) {
   const deps = summary.dependencies ?? audit.dependencies?.total ?? null;
   return {
     dependencyTotal: deps,
-    prodDependencies: summary.prodDependencies ?? audit.dependencies?.prod ?? null,
+    prodDependencies:
+      summary.prodDependencies ?? audit.dependencies?.prod ?? null,
     devDependencies: summary.devDependencies ?? audit.dependencies?.dev ?? null,
-    optionalDependencies: audit.dependencies?.optional ?? summary.optionalDependencies ?? null,
+    optionalDependencies:
+      audit.dependencies?.optional ?? summary.optionalDependencies ?? null,
     critical: Number(summary.critical) || 0,
     high: Number(summary.high) || 0,
     moderate: Number(summary.moderate) || 0,
     low: Number(summary.low) || 0,
-    supplyChainStatus: context.supplyChainStatus ?? resolveSupplyChainStatus(audit),
+    supplyChainStatus:
+      context.supplyChainStatus ?? resolveSupplyChainStatus(audit),
     auditPackageJson: context.packageJsonPath ?? audit.packageJsonPath ?? null,
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
-    ...(gateTotal != null && credentialScanned != null && gateTotal > credentialScanned
+    ...(gateTotal != null &&
+    credentialScanned != null &&
+    gateTotal > credentialScanned
       ? { gateMetadataOnlyFiles: gateTotal - credentialScanned }
       : {}),
     ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
@@ -186,10 +209,12 @@ function buildNpmAuditHygieneSummary(audit, context = {}) {
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     ...(gatePass != null ? { gatePass } : {}),
     ...(blockingCount != null ? { blockingCount } : {}),
-    ...(gateReport.jestBaselineChecked === false || audit.hygieneSummary?.jestBaselineChecked === false
+    ...(gateReport.jestBaselineChecked === false ||
+    audit.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff certification.',
+    attestationNote:
+      "npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff certification.",
   };
 }
 
@@ -204,14 +229,14 @@ function buildProductNpmAuditScanScope(audit, options = {}) {
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
   return {
     ...(audit.scanScope || {}),
-    resultsViewScope: 'product-root-npm-audit',
-    reportHealth: audit.scanScope?.reportHealth || 'platform-scoped',
+    resultsViewScope: "product-root-npm-audit",
+    reportHealth: audit.scanScope?.reportHealth || "platform-scoped",
     securityHandoffEligible: false,
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     supplyChainNote:
       audit.scanScope?.supplyChainNote ||
-      'npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff clearance.',
+      "npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff clearance.",
   };
 }
 
@@ -222,7 +247,13 @@ function buildProductNpmAuditScanScope(audit, options = {}) {
  * @returns {any}
  */
 function buildNpmAuditExportNotes(audit, context = {}) {
-  const { benchmarkScan, skipped, supplyChainStatus, deps, summary = {} } = context;
+  const {
+    benchmarkScan,
+    skipped,
+    supplyChainStatus,
+    deps,
+    summary = {},
+  } = context;
   const gateContext = resolveNpmAuditGateContext(audit, {
     gateReport: context.gateReport,
     repositoryFilesTotal: context.repositoryFilesTotal,
@@ -237,76 +268,93 @@ function buildNpmAuditExportNotes(audit, context = {}) {
     fictionSampleFilesScanned,
   } = gateContext;
   const notes = [
-    'Absolute scan paths are redacted to project label in operator exports.',
-    'securityHandoffEligible is false — npm audit pass is supply-chain hygiene only, not vendor security handoff.',
+    "Absolute scan paths are redacted to project label in operator exports.",
+    "securityHandoffEligible is false — npm audit pass is supply-chain hygiene only, not vendor security handoff.",
   ];
 
   if (skipped) {
-    notes.push(context.scopeNote || 'npm audit was not run for this scan path.');
+    notes.push(
+      context.scopeNote || "npm audit was not run for this scan path.",
+    );
     return [...new Set(notes)].slice(0, 6);
   }
 
-  if (supplyChainStatus === 'pass' && deps != null) {
+  if (supplyChainStatus === "pass" && deps != null) {
     const moderate = Number(summary.moderate) || 0;
     const low = Number(summary.low) || 0;
     notes.push(
-      `npm audit: 0 critical, 0 high across ${deps} dependencies (${Number(summary.prodDependencies ?? audit.dependencies?.prod ?? 0)} prod / ${Number(summary.devDependencies ?? audit.dependencies?.dev ?? 0)} dev).`
+      `npm audit: 0 critical, 0 high across ${deps} dependencies (${Number(summary.prodDependencies ?? audit.dependencies?.prod ?? 0)} prod / ${Number(summary.devDependencies ?? audit.dependencies?.dev ?? 0)} dev).`,
     );
     notes.push(
       moderate || low
         ? `${moderate} moderate and ${low} low — review SUPPLY-002 policy before handoff.`
-        : 'Supply-chain gate: no critical or high npm audit findings at audit root.'
+        : "Supply-chain gate: no critical or high npm audit findings at audit root.",
     );
     if (!benchmarkScan && !skipped) {
       notes.push(
-        'handoffEligible reflects SUPPLY-001 automation pass — not SimpleBeacon vendor security handoff clearance.'
+        "handoffEligible reflects SUPPLY-001 automation pass — not SimpleBeacon vendor security handoff clearance.",
       );
       notes.push(
-        'Single-root npm audit — dependency tree reflects audit-root lockfile and npm workspaces only; standalone nested package.json directories are not included.'
+        "Single-root npm audit — dependency tree reflects audit-root lockfile and npm workspaces only; standalone nested package.json directories are not included.",
       );
       if (gateTotal != null && deps != null && gateTotal !== deps) {
         notes.push(
-          `Gate full-tree inventory is ${Number(gateTotal).toLocaleString()} repository paths — npm audit resolved ${Number(deps).toLocaleString()} lockfile package(s) at product root.`
+          `Gate full-tree inventory is ${Number(gateTotal).toLocaleString()} repository paths — npm audit resolved ${Number(deps).toLocaleString()} lockfile package(s) at product root.`,
         );
       }
-      if (gateTotal != null && credentialScanned != null && credentialScanned < gateTotal) {
+      if (
+        gateTotal != null &&
+        credentialScanned != null &&
+        credentialScanned < gateTotal
+      ) {
         notes.push(
-          `Gate content-scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(gateTotal).toLocaleString()}.`
+          `Gate content-scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(gateTotal).toLocaleString()}.`,
         );
       }
-      if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null) {
+      if (
+        fictionJsonFilesScanned != null &&
+        fictionSampleFilesScanned != null
+      ) {
         notes.push(
           // simplebeacon:production-leak-intent - legitimate KPI reference for npm audit reporting
-          `Gate fiction KPI rules evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) with ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched — npm audit covers lockfile packages only.`
+          `Gate fiction KPI rules evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) with ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched — npm audit covers lockfile packages only.`,
         );
       }
       if (gateProfile) {
         notes.push(
-          `Gate rule bundle profile: ${gateProfile} — pair npm audit with json/simplebeacon-gate.json for handoff evidence.`
+          `Gate rule bundle profile: ${gateProfile} — pair npm audit with json/simplebeacon-gate.json for handoff evidence.`,
         );
       }
       if (gatePass === false && (blockingCount ?? 0) > 0) {
         notes.push(
-          `Gate FAIL — ${Number(blockingCount).toLocaleString()} blocking finding(s) in bundled scan — SUPPLY-001 npm audit pass does not clear production-path gate; see json/simplebeacon-gate.json.`
+          `Gate FAIL — ${Number(blockingCount).toLocaleString()} blocking finding(s) in bundled scan — SUPPLY-001 npm audit pass does not clear production-path gate; see json/simplebeacon-gate.json.`,
         );
       }
-      const optional = audit.dependencies?.optional ?? summary.optionalDependencies;
+      const optional =
+        audit.dependencies?.optional ?? summary.optionalDependencies;
       if (optional != null && optional > 0) {
         notes.push(
-          `${Number(optional).toLocaleString()} optional dependency package(s) in audit metadata — verify before production deploy if optional peers are enabled.`
+          `${Number(optional).toLocaleString()} optional dependency package(s) in audit metadata — verify before production deploy if optional peers are enabled.`,
         );
       }
-      notes.push('npm audit does not run Jest — use gate/complete scan for test attestation.');
+      notes.push(
+        "npm audit does not run Jest — use gate/complete scan for test attestation.",
+      );
     }
-  } else if (supplyChainStatus === 'review') {
+  } else if (supplyChainStatus === "review") {
     notes.push(
-      `npm audit: ${summary.critical || 0} critical, ${summary.high || 0} high — upgrade dependencies before client handoff.`
+      `npm audit: ${summary.critical || 0} critical, ${summary.high || 0} high — upgrade dependencies before client handoff.`,
     );
-  } else if (supplyChainStatus === 'error') {
-    notes.push('npm audit failed or returned an error — re-run at product root before handoff.');
+  } else if (supplyChainStatus === "error") {
+    notes.push(
+      "npm audit failed or returned an error — re-run at product root before handoff.",
+    );
   }
 
-  if (audit.scopeNote && !notes.some((n) => String(n).includes(String(audit.scopeNote)))) {
+  if (
+    audit.scopeNote &&
+    !notes.some((n) => String(n).includes(String(audit.scopeNote)))
+  ) {
     notes.push(String(audit.scopeNote));
   }
 
@@ -320,12 +368,16 @@ function buildNpmAuditExportNotes(audit, context = {}) {
  * @param {Object} options
  * @returns {any}
  */
-export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
-  if (!audit || typeof audit !== 'object') return audit;
+export function sanitizeNpmAuditExport(audit, projectPath = "", options = {}) {
+  if (!audit || typeof audit !== "object") return audit;
 
-  const rawPath = String(projectPath || audit.projectPath || '').replace(/\\/g, '/');
+  const rawPath = String(projectPath || audit.projectPath || "").replace(
+    /\\/g,
+    "/",
+  );
   const paths = redactNpmAuditExportPaths(audit, rawPath);
-  const benchmarkScan = isBenchmarkCacheProjectPath(rawPath) || Boolean(audit.benchmarkScan);
+  const benchmarkScan =
+    isBenchmarkCacheProjectPath(rawPath) || Boolean(audit.benchmarkScan);
   const skipped = Boolean(audit.skipped);
   const supplyChainStatus = resolveSupplyChainStatus(audit);
   const summary = { ...(audit.summary || {}) };
@@ -333,15 +385,19 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
 
   const next = {
     ...audit,
-    type: audit.type || 'simplebeacon-npm-audit',
-    source: audit.source || audit.dataSource || 'npm-audit',
+    type: audit.type || "simplebeacon-npm-audit",
+    source: audit.source || audit.dataSource || "npm-audit",
     projectPath: paths.projectPath || audit.projectPath,
     exportNormalized: true,
     exportSanitized: true,
     supplyChainStatus,
-    scanTargetProfile: benchmarkScan ? 'benchmark-cache' : skipped ? 'non-npm-project' : 'product',
+    scanTargetProfile: benchmarkScan
+      ? "benchmark-cache"
+      : skipped
+        ? "non-npm-project"
+        : "product",
     securityHandoffEligible: false,
-    handoffEligible: !benchmarkScan && !skipped && supplyChainStatus === 'pass',
+    handoffEligible: !benchmarkScan && !skipped && supplyChainStatus === "pass",
   };
 
   if (!skipped) {
@@ -354,16 +410,19 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
   if (benchmarkScan) {
     next.benchmarkScan = true;
     next.handoffEligible = false;
-    next.productPlatformRoot = paths.productPlatformRoot || resolveProductPlatformRoot(rawPath) || undefined;
+    next.productPlatformRoot =
+      paths.productPlatformRoot ||
+      resolveProductPlatformRoot(rawPath) ||
+      undefined;
     if (next.productPlatformRoot) {
       next.productPlatformRoot = redactProjectPathForExport(
         next.productPlatformRoot,
-        projectLabelFromPath(next.productPlatformRoot)
+        projectLabelFromPath(next.productPlatformRoot),
       );
     }
     if (!next.scopeNote && skipped) {
       next.scopeNote =
-        'OSS clone under github-cache/ has no package.json — npm audit was not run (npm would otherwise audit the parent ai-platform lockfile).';
+        "OSS clone under github-cache/ has no package.json — npm audit was not run (npm would otherwise audit the parent ai-platform lockfile).";
     }
   }
 
@@ -400,12 +459,13 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
     deps,
     summary,
     gateReport: options.gateReport,
-    repositoryFilesTotal: options.repositoryFilesTotal ?? options.gateReport?.repositoryFilesTotal,
+    repositoryFilesTotal:
+      options.repositoryFilesTotal ?? options.gateReport?.repositoryFilesTotal,
   };
 
   next.exportNotes = buildNpmAuditExportNotes(audit, noteContext);
 
-  if (supplyChainStatus === 'review') {
+  if (supplyChainStatus === "review") {
     next.handoffEligible = false;
   }
 
@@ -415,7 +475,9 @@ export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
       supplyChainStatus,
       packageJsonPath: next.packageJsonPath,
       gateReport: options.gateReport,
-      repositoryFilesTotal: options.repositoryFilesTotal ?? options.gateReport?.repositoryFilesTotal,
+      repositoryFilesTotal:
+        options.repositoryFilesTotal ??
+        options.gateReport?.repositoryFilesTotal,
     });
   }
 

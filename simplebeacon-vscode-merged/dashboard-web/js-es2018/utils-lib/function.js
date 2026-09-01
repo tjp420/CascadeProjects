@@ -7,9 +7,9 @@
  * @param {string} [message]
  * @returns {never}
  */
-export function assertNever(value, message = 'Unexpected value') {
+export function assertNever(value, message = "Unexpected value") {
   const display =
-    typeof value === 'string'
+    typeof value === "string"
       ? value
       : (() => {
           try {
@@ -38,7 +38,10 @@ export function tryFn(fn, ...args) {
   try {
     return { ok: true, value: fn.apply(this, args) };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err : new Error(String(err)) };
+    return {
+      ok: false,
+      error: err instanceof Error ? err : new Error(String(err)),
+    };
   }
 }
 /**
@@ -60,7 +63,8 @@ export function flow(...fns) {
  * @returns {Function}
  */
 export function negate(predicate) {
-  if (typeof predicate !== 'function') throw new TypeError('negate requires a function');
+  if (typeof predicate !== "function")
+    throw new TypeError("negate requires a function");
   return function (...args) {
     return !predicate.apply(this, args);
   };
@@ -91,10 +95,15 @@ export function pipe(...fns) {
  * @returns {Array}
  */
 export function zipWith(arr1, arr2, fn) {
-  if (!arr1 || typeof arr1.length !== 'number' || !arr2 || typeof arr2.length !== 'number') {
+  if (
+    !arr1 ||
+    typeof arr1.length !== "number" ||
+    !arr2 ||
+    typeof arr2.length !== "number"
+  ) {
     return [];
   }
-  if (typeof fn !== 'function') return [];
+  if (typeof fn !== "function") return [];
   const len = Math.min(arr1.length, arr2.length);
   const result = new Array(len);
   for (let i = 0; i < len; i++) {
@@ -108,7 +117,8 @@ export function zipWith(arr1, arr2, fn) {
  * @returns {Function}
  */
 export function curry(fn) {
-  if (typeof fn !== 'function') throw new TypeError('curry requires a function');
+  if (typeof fn !== "function")
+    throw new TypeError("curry requires a function");
   return function curried(...args) {
     if (args.length >= fn.length) {
       return fn.apply(this, args);
@@ -125,7 +135,8 @@ export function curry(fn) {
  * @returns {Function}
  */
 export function partial(fn, ...presetArgs) {
-  if (typeof fn !== 'function') throw new TypeError('partial requires a function');
+  if (typeof fn !== "function")
+    throw new TypeError("partial requires a function");
   return function (...args) {
     return fn.apply(this, presetArgs.concat(args));
   };
@@ -147,10 +158,11 @@ export function tap(value, fn) {
  * @returns {any}
  */
 export function deepFreeze(obj) {
-  if (obj == null || typeof obj !== 'object') return obj;
+  if (obj == null || typeof obj !== "object") return obj;
   if (Object.isFrozen(obj)) return obj;
   const ctor = obj.constructor;
-  if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet) return obj;
+  if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet)
+    return obj;
   if (ctor === Map) {
     for (const [k, v] of obj) obj.set(k, deepFreeze(v));
     return Object.freeze(obj);
@@ -168,7 +180,7 @@ export function deepFreeze(obj) {
   }
   for (const key of Object.keys(obj)) {
     const value = obj[key];
-    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    if (value && typeof value === "object" && !Object.isFrozen(value)) {
       deepFreeze(value);
     }
   }

@@ -9,7 +9,11 @@ export function npmAuditSummary(audit) {
     high: summary.high ?? 0,
     moderate: summary.moderate ?? summary.medium ?? 0,
     low: summary.low ?? 0,
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? audit?.vulnerabilities?.length ?? 0,
+    vulnerabilityTotal:
+      summary.vulnerabilityTotal ??
+      summary.total ??
+      audit?.vulnerabilities?.length ??
+      0,
     generatedAt: audit?.generatedAt ?? null,
   };
 }

@@ -2,20 +2,31 @@
  * Get the dashboard API base URL from a meta tag or fall back to relative root.
  * @returns {string}
  */
-const SB_API_BASE_KEY = 'sb_api_base';
-const SB_NOTIFY_BASE_KEY = 'sb_notify_base';
+const SB_API_BASE_KEY = "sb_api_base";
+const SB_NOTIFY_BASE_KEY = "sb_notify_base";
 
 function _normalizeApiBase(value) {
-  if (!value) return '';
-  return String(value).replace(/\/api\/?$/, '');
+  if (!value) return "";
+  return String(value).replace(/\/api\/?$/, "");
 }
 
 function _isLocalDevHost() {
-  if (typeof location === 'undefined') return false;
+  if (typeof location === "undefined") return false;
   return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
 }
 function _isLoopbackHost(hostname) {
-  return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ''));
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ""));
+}
+/**
+ * True when the dashboard is served from a remote (non-localhost) host.
+ * Used to gate local-path features that only work on localhost.
+ * @returns {boolean}
+ */
+export function isRemoteDashboardHost() {
+  return (
+    typeof window !== "undefined" &&
+    !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+  );
 }
 function _isAllowedApiBase(value) {
   if (!value) return false;
@@ -26,8 +37,11 @@ function _isAllowedApiBase(value) {
     // appear in test or CI configs but do not resolve in developer machines.
     // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
     // failures don't cause noisy errors.
-    const hostname = String(url.hostname || '');
-    if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+    const hostname = String(url.hostname || "");
+    if (
+      !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) &&
+      hostname.indexOf(".") === -1
+    ) {
       return false;
     }
     // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.
@@ -35,15 +49,17 @@ function _isAllowedApiBase(value) {
     // loopback while the page is HTTPS (simplebeacon.pages.dev).
     if (!_isLocalDevHost() && isLoopback) {
       try {
-        const params = new URLSearchParams(location.search || '');
-        if (params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY)) return true;
+        const params = new URLSearchParams(location.search || "");
+        if (params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY))
+          return true;
       } catch (_b) {
         /* ignore */
       }
       try {
         if (
-          typeof sessionStorage !== 'undefined' &&
-          (sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem(SB_NOTIFY_BASE_KEY))
+          typeof sessionStorage !== "undefined" &&
+          (sessionStorage.getItem(SB_API_BASE_KEY) ||
+            sessionStorage.getItem(SB_NOTIFY_BASE_KEY))
         ) {
           return true;
         }
@@ -54,7 +70,8 @@ function _isAllowedApiBase(value) {
     }
     // HTTPS pages cannot call an HTTP data server — including loopback — because
     // mixed-content / Local Network Access policies block the fetch.
-    if (location.protocol === 'https:' && url.protocol === 'http:') return false;
+    if (location.protocol === "https:" && url.protocol === "http:")
+      return false;
     if (_isStaleLoopbackApiBase(value)) return false;
     return true;
   } catch (_a) {
@@ -64,15 +81,19 @@ function _isAllowedApiBase(value) {
 
 /** Persist VS Code extension bridge params for hosted dashboard routes (Ollama proxy, notify). */
 export function persistExtensionBridge(apiBase, options = {}) {
-  if (typeof window === 'undefined' || !apiBase) return false;
-  const raw = String(apiBase).replace(/\/+$/, '');
+  if (typeof window === "undefined" || !apiBase) return false;
+  const raw = String(apiBase).replace(/\/+$/, "");
   // Normalize to host root without trailing `/api`
-  const hostRoot = raw.replace(/\/api\/?$/i, '');
-  const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
+  const hostRoot = raw.replace(/\/api\/?$/i, "");
+  const apiUrl = hostRoot.endsWith("/") ? `${hostRoot}api` : `${hostRoot}/api`;
   if (!_isAllowedApiBase(apiUrl)) return false;
-  if (_isLocalDevHost() && typeof location !== 'undefined' && location.protocol === 'http:') {
+  if (
+    _isLocalDevHost() &&
+    typeof location !== "undefined" &&
+    location.protocol === "http:"
+  ) {
     try {
-      if (new URL(apiUrl).port === '4000') return false;
+      if (new URL(apiUrl).port === "4000") return false;
     } catch (_port) {
       /* ignore */
     }
@@ -81,9 +102,9 @@ export function persistExtensionBridge(apiBase, options = {}) {
   _storeApiBase(hostRoot);
   _storeNotifyBase(hostRoot);
   window.__SB_BRIDGE_HOST__ = hostRoot;
-  if (options.websiteMode !== false && typeof sessionStorage !== 'undefined') {
+  if (options.websiteMode !== false && typeof sessionStorage !== "undefined") {
     try {
-      sessionStorage.setItem('sb_website_mode', '1');
+      sessionStorage.setItem("sb_website_mode", "1");
     } catch (_a) {
       /* ignore */
     }
@@ -94,9 +115,10 @@ export function persistExtensionBridge(apiBase, options = {}) {
       // Persist the host root (no trailing `/api`) in the URL to keep storage consistent.
       url.searchParams.set(SB_API_BASE_KEY, hostRoot);
       url.searchParams.set(SB_NOTIFY_BASE_KEY, hostRoot);
-      url.searchParams.set('sb_website_mode', '1');
-      if (!url.searchParams.has('sb_parent_urlbar')) url.searchParams.set('sb_parent_urlbar', '1');
-      window.history.replaceState({}, '', url.toString());
+      url.searchParams.set("sb_website_mode", "1");
+      if (!url.searchParams.has("sb_parent_urlbar"))
+        url.searchParams.set("sb_parent_urlbar", "1");
+      window.history.replaceState({}, "", url.toString());
     } catch (_b) {
       /* ignore */
     }
@@ -106,7 +128,7 @@ export function persistExtensionBridge(apiBase, options = {}) {
 
 /** Drop stale extension bridge state when the local data server is unreachable. */
 export function clearExtensionBridge(options = {}) {
-  if (typeof sessionStorage !== 'undefined') {
+  if (typeof sessionStorage !== "undefined") {
     try {
       sessionStorage.removeItem(SB_API_BASE_KEY);
       sessionStorage.removeItem(SB_NOTIFY_BASE_KEY);
@@ -114,20 +136,25 @@ export function clearExtensionBridge(options = {}) {
       /* ignore */
     }
   }
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     try {
       delete window.__SB_BRIDGE_HOST__;
     } catch (_b) {
       /* ignore */
     }
   }
-  if (options.updateUrl !== false && typeof window !== 'undefined') {
+  if (options.updateUrl !== false && typeof window !== "undefined") {
     try {
       const url = new URL(window.location.href);
-      [SB_API_BASE_KEY, SB_NOTIFY_BASE_KEY, 'sb_website_mode', 'sb_parent_urlbar'].forEach((key) => {
+      [
+        SB_API_BASE_KEY,
+        SB_NOTIFY_BASE_KEY,
+        "sb_website_mode",
+        "sb_parent_urlbar",
+      ].forEach((key) => {
         url.searchParams.delete(key);
       });
-      window.history.replaceState({}, '', url.toString());
+      window.history.replaceState({}, "", url.toString());
     } catch (_c) {
       /* ignore */
     }
@@ -135,13 +162,13 @@ export function clearExtensionBridge(options = {}) {
 }
 
 function _readStoredApiBase() {
-  if (typeof sessionStorage !== 'undefined') {
+  if (typeof sessionStorage !== "undefined") {
     try {
       const value = sessionStorage.getItem(SB_API_BASE_KEY);
       if (value) {
         return String(value)
-          .replace(/\/api\/?$/, '')
-          .replace(/\/+$/, '');
+          .replace(/\/api\/?$/, "")
+          .replace(/\/+$/, "");
       }
     } catch (_a) {
       /* ignore */
@@ -151,7 +178,7 @@ function _readStoredApiBase() {
 }
 
 function _storeApiBase(value) {
-  if (typeof sessionStorage !== 'undefined' && value) {
+  if (typeof sessionStorage !== "undefined" && value) {
     try {
       sessionStorage.setItem(SB_API_BASE_KEY, value);
     } catch (_a) {
@@ -161,7 +188,7 @@ function _storeApiBase(value) {
 }
 
 function _storeNotifyBase(value) {
-  if (typeof sessionStorage !== 'undefined' && value) {
+  if (typeof sessionStorage !== "undefined" && value) {
     try {
       sessionStorage.setItem(SB_NOTIFY_BASE_KEY, value);
     } catch (_a) {
@@ -171,34 +198,45 @@ function _storeNotifyBase(value) {
 }
 
 function _isStaleLoopbackApiBase(value) {
-  if (!value || typeof location === 'undefined') return false;
+  if (!value || typeof location === "undefined") return false;
   try {
-    const url = new URL(String(value).startsWith('http') ? value : `http:${value}`, location.href);
-    const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
-    const basePort = url.port || (url.protocol === 'https:' ? '443' : '80');
-    return _isLoopbackHost(url.hostname) && _isLoopbackHost(location.hostname) && basePort !== currentPort;
+    const url = new URL(
+      String(value).startsWith("http") ? value : `http:${value}`,
+      location.href,
+    );
+    const currentPort =
+      location.port || (location.protocol === "https:" ? "443" : "80");
+    const basePort = url.port || (url.protocol === "https:" ? "443" : "80");
+    return (
+      _isLoopbackHost(url.hostname) &&
+      _isLoopbackHost(location.hostname) &&
+      basePort !== currentPort
+    );
   } catch (_e) {
     return false;
   }
 }
 
 function _readEmbedApiBaseFromQuery() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
+    const override =
+      params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
     if (override) {
       // Normalize into host root without trailing `/api`
-      const raw = String(override).replace(/\/+$/, '');
-      const hostRoot = raw.replace(/\/api\/?$/i, '');
-      const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
+      const raw = String(override).replace(/\/+$/, "");
+      const hostRoot = raw.replace(/\/api\/?$/i, "");
+      const apiUrl = hostRoot.endsWith("/")
+        ? `${hostRoot}api`
+        : `${hostRoot}/api`;
       if (_isAllowedApiBase(apiUrl) && !_isStaleLoopbackApiBase(apiUrl)) {
         _storeApiBase(hostRoot);
         if (params.get(SB_NOTIFY_BASE_KEY)) {
           _storeNotifyBase(
             String(params.get(SB_NOTIFY_BASE_KEY))
-              .replace(/\/+$/, '')
-              .replace(/\/api\/?$/i, '')
+              .replace(/\/+$/, "")
+              .replace(/\/api\/?$/i, ""),
           );
         }
         return hostRoot;
@@ -212,11 +250,15 @@ function _readEmbedApiBaseFromQuery() {
 }
 
 export function apiBaseUrl() {
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     // Runtime config injected by the API server or extension bridge.
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const env = window.__SIMPLEBEACON_ENV__ || {};
-      const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || window.__SB_API_HOST__ || '';
+      const envBase =
+        env.API_BASE_URL ||
+        env.DASHBOARD_BASE_URL ||
+        window.__SB_API_HOST__ ||
+        "";
       if (envBase && _isAllowedApiBase(envBase)) {
         return _normalizeApiBase(envBase);
       }
@@ -228,29 +270,43 @@ export function apiBaseUrl() {
       return fromQuery;
     }
     const stored = _readStoredApiBase();
-    if (stored && _isAllowedApiBase(stored) && !_isStaleLoopbackApiBase(stored)) {
+    if (
+      stored &&
+      _isAllowedApiBase(stored) &&
+      !_isStaleLoopbackApiBase(stored)
+    ) {
       return stored;
     }
-    if (stored && _isAllowedApiBase(stored) && _isStaleLoopbackApiBase(stored)) {
+    if (
+      stored &&
+      _isAllowedApiBase(stored) &&
+      _isStaleLoopbackApiBase(stored)
+    ) {
       clearExtensionBridge({ updateUrl: false });
     }
     const meta = document.querySelector('meta[name="api-base-url"]');
     if (meta) {
-      const metaBase = meta.getAttribute('content') || '';
+      const metaBase = meta.getAttribute("content") || "";
       if (metaBase) return _normalizeApiBase(metaBase);
     }
   }
-  if (typeof location !== 'undefined') {
+  if (typeof location !== "undefined") {
     const host = location.hostname;
-    if (host === 'simplebeacon.ai') {
+    if (
+      host === "simplebeacon.ai" ||
+      host.endsWith(".simplebeacon.pages.dev")
+    ) {
       return location.origin;
     }
-    // Cloudflare Pages previews and other non-local/custom domains talk to the production API.
-    if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host) && !host.endsWith('.onrender.com')) {
-      return 'https://simplebeacon.ai';
+    // Other non-local/custom domains fall back to production API.
+    if (
+      !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host) &&
+      !host.endsWith(".onrender.com")
+    ) {
+      return "https://simplebeacon.ai";
     }
   }
-  return '/';
+  return "/";
 }
 /**
  * Build a full API URL from a path segment.
@@ -258,9 +314,9 @@ export function apiBaseUrl() {
  * @returns {string}
  */
 export function apiUrl(path) {
-  const base = apiBaseUrl().replace(/\/+$/, '');
-  const segment = String(path || '').replace(/^\/+/, '');
-  if (!segment) return base || '/';
+  const base = apiBaseUrl().replace(/\/+$/, "");
+  const segment = String(path || "").replace(/^\/+/, "");
+  if (!segment) return base || "/";
   return `${base}/${segment}`;
 }
 /**
@@ -276,16 +332,21 @@ export async function fetchWithTimeout(
   url,
   options = {},
   ms = 10000,
-  retry = { count: 0, delay: 1000, maxDelay: 30000 }
+  retry = { count: 0, delay: 1000, maxDelay: 30000 },
 ) {
-  const target = String(url || '');
-  let opts = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
+  const target = String(url || "");
+  let opts =
+    options && typeof options === "object" && !Array.isArray(options)
+      ? options
+      : {};
   const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
   const retryCfg = {
     count: 0,
     delay: 1000,
     maxDelay: 30000,
-    ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}),
+    ...(retry && typeof retry === "object" && !Array.isArray(retry)
+      ? retry
+      : {}),
   };
   const attempt = async (attemptNum) => {
     var _a;
@@ -293,53 +354,71 @@ export async function fetchWithTimeout(
     let timer;
     let cleanup = null;
     try {
-      if (opts.signal && typeof opts.signal.addEventListener === 'function') {
+      if (opts.signal && typeof opts.signal.addEventListener === "function") {
         if (opts.signal.aborted) {
-          throw new Error('Request aborted by caller');
+          throw new Error("Request aborted by caller");
         }
         const onAbort = () => controller.abort();
-        opts.signal.addEventListener('abort', onAbort, { once: true });
-        cleanup = () => opts.signal.removeEventListener('abort', onAbort);
+        opts.signal.addEventListener("abort", onAbort, { once: true });
+        cleanup = () => opts.signal.removeEventListener("abort", onAbort);
       }
       timer = setTimeout(() => controller.abort(), timeoutMs);
       // If caller requested credentials and target is cross-origin, avoid sending credentials
       // because many production APIs respond with Access-Control-Allow-Origin: '*' which
       // is incompatible with credentialed requests and causes a CORS failure in browsers.
       try {
-        const targetUrl = new URL(target, typeof location !== 'undefined' ? location.href : undefined);
+        const targetUrl = new URL(
+          target,
+          typeof location !== "undefined" ? location.href : undefined,
+        );
         if (
-          typeof location !== 'undefined' &&
+          typeof location !== "undefined" &&
           opts &&
-          opts.credentials === 'include' &&
+          opts.credentials === "include" &&
           targetUrl.origin !== location.origin
         ) {
-          opts = { ...opts, credentials: 'omit' };
+          opts = { ...opts, credentials: "omit" };
         }
       } catch (_c) {
         /* ignore if URL parsing fails */
       }
       const res = await fetch(target, { ...opts, signal: controller.signal });
       if (!res.ok) {
-        const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;
+        const shouldRetry =
+          retryCfg.count > 0 &&
+          attemptNum < retryCfg.count &&
+          res.status >= 500;
         if (shouldRetry) {
-          const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
+          const backoff = Math.min(
+            retryCfg.delay * Math.pow(2, attemptNum),
+            retryCfg.maxDelay,
+          );
           await new Promise((r) => setTimeout(r, backoff));
           return attempt(attemptNum + 1);
         }
         if (opts.acceptNon2xx !== true) {
-          throw new Error(`HTTP ${res.status}${res.statusText ? ' ' + res.statusText : ''} — ${target}`);
+          throw new Error(
+            `HTTP ${res.status}${res.statusText ? " " + res.statusText : ""} — ${target}`,
+          );
         }
       }
       return res;
     } catch (err) {
-      if (err.name === 'AbortError') {
-        if ((_a = opts.signal) === null || _a === void 0 ? void 0 : _a.aborted) {
-          throw new Error('Request aborted by caller');
+      if (err.name === "AbortError") {
+        if (
+          (_a = opts.signal) === null || _a === void 0 ? void 0 : _a.aborted
+        ) {
+          throw new Error("Request aborted by caller");
         }
-        throw new Error(`Request timed out — is the server running? (${target})`);
+        throw new Error(
+          `Request timed out — is the server running? (${target})`,
+        );
       }
       if (retryCfg.count > 0 && attemptNum < retryCfg.count) {
-        const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
+        const backoff = Math.min(
+          retryCfg.delay * Math.pow(2, attemptNum),
+          retryCfg.maxDelay,
+        );
         await new Promise((r) => setTimeout(r, backoff));
         return attempt(attemptNum + 1);
       }
@@ -357,19 +436,19 @@ export async function fetchWithTimeout(
  * @returns {Record<string, string | string[]>} Parsed key-value pairs.
  */
 export function parseQueryString(queryString) {
-  if (typeof queryString !== 'string') return {};
-  const qs = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+  if (typeof queryString !== "string") return {};
+  const qs = queryString.startsWith("?") ? queryString.slice(1) : queryString;
   const result = {};
   if (!qs) return result;
-  for (const pair of qs.split('&')) {
-    const eqIdx = pair.indexOf('=');
+  for (const pair of qs.split("&")) {
+    const eqIdx = pair.indexOf("=");
     const rawKey = eqIdx >= 0 ? pair.slice(0, eqIdx) : pair;
-    const rawValue = eqIdx >= 0 ? pair.slice(eqIdx + 1) : '';
+    const rawValue = eqIdx >= 0 ? pair.slice(eqIdx + 1) : "";
     if (!rawKey) continue;
     let key, value;
     try {
-      key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
-      value = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+      key = decodeURIComponent(rawKey.replace(/\+/g, " "));
+      value = decodeURIComponent(rawValue.replace(/\+/g, " "));
     } catch (_a) {
       key = rawKey;
       value = rawValue;
@@ -389,19 +468,24 @@ export function parseQueryString(queryString) {
  * @returns {string} Query string without leading `?`.
  */
 export function stringifyQueryString(params) {
-  if (!params || typeof params !== 'object') return '';
+  if (!params || typeof params !== "object") return "";
   const pairs = [];
   for (const [key, value] of Object.entries(params)) {
-    if (value == null || value === '') continue;
+    if (value == null || value === "") continue;
     if (Array.isArray(value)) {
       for (const v of value) {
-        if (v != null && v !== '') pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
+        if (v != null && v !== "")
+          pairs.push(
+            `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`,
+          );
       }
     } else {
-      pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+      pairs.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+      );
     }
   }
-  return pairs.join('&');
+  return pairs.join("&");
 }
 /**
  * Get a single query parameter value from the current window URL.
@@ -409,7 +493,7 @@ export function stringifyQueryString(params) {
  * @returns {string|null}
  */
 export function getQueryParam(key) {
-  if (typeof window === 'undefined' || !window.location || !key) return null;
+  if (typeof window === "undefined" || !window.location || !key) return null;
   const params = new URLSearchParams(window.location.search);
   return params.has(key) ? params.get(key) : null;
 }
@@ -421,13 +505,14 @@ export function getQueryParam(key) {
  */
 export function setQueryParam(key, value) {
   var _a;
-  if (typeof window === 'undefined' || !window.location || !key) {
-    return typeof window !== 'undefined'
-      ? ((_a = window.location) === null || _a === void 0 ? void 0 : _a.href) || ''
-      : '';
+  if (typeof window === "undefined" || !window.location || !key) {
+    return typeof window !== "undefined"
+      ? ((_a = window.location) === null || _a === void 0 ? void 0 : _a.href) ||
+          ""
+      : "";
   }
   const url = new URL(window.location.href);
-  if (value == null || value === '') {
+  if (value == null || value === "") {
     url.searchParams.delete(key);
   } else {
     url.searchParams.set(key, String(value));
@@ -443,7 +528,7 @@ export function setQueryParam(key, value) {
 export function buildUrl(base, params) {
   const qs = stringifyQueryString(params);
   if (!qs) return base;
-  const sep = base.includes('?') ? '&' : '?';
+  const sep = base.includes("?") ? "&" : "?";
   return `${base}${sep}${qs}`;
 }
 /**
@@ -452,10 +537,10 @@ export function buildUrl(base, params) {
  * @returns {boolean}
  */
 export function isValidUrl(str) {
-  if (typeof str !== 'string' || !str) return false;
+  if (typeof str !== "string" || !str) return false;
   try {
     const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch (_a) {
     return false;
   }
@@ -465,10 +550,10 @@ export function isValidUrl(str) {
  * @returns {boolean}
  */
 export function isUrl(str) {
-  if (typeof str !== 'string') return false;
+  if (typeof str !== "string") return false;
   try {
     const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch (_a) {
     return false;
   }

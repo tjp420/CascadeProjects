@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { apiUrl } from '@/config';
-import { isPassingReferralGrade } from '@/lib/gradeFromScore';
-import { Copy, Check, Trophy, Mail } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { apiUrl } from "@/config";
+import { isPassingReferralGrade } from "@/lib/gradeFromScore";
+import { Copy, Check, Trophy, Mail } from "lucide-react";
 
 interface ResultsReferralBannerProps {
   userEmail?: string;
@@ -13,7 +13,10 @@ interface ResultsReferralBannerProps {
 /**
  * High-visibility referral banner shown after a B-or-better scan result.
  */
-export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsReferralBannerProps) {
+export function ResultsReferralBanner({
+  userEmail,
+  currentScanGrade,
+}: ResultsReferralBannerProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,7 +28,9 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
 
     let cancelled = false;
     setLoading(true);
-    fetch(`${apiUrl('referral/link')}?email=${encodeURIComponent(userEmail)}&channel=dashboard`)
+    fetch(
+      `${apiUrl("referral/link")}?email=${encodeURIComponent(userEmail)}&channel=dashboard`,
+    )
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && data?.success && data.shareUrl) {
@@ -47,7 +52,8 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
   if (!isPassingReferralGrade(currentScanGrade)) return null;
 
   const computedTrackingUrl =
-    shareUrl || `https://simplebeacon.ai/?ref=${encodeURIComponent(userEmail ? 'pending' : 'dev-token')}`;
+    shareUrl ||
+    `https://simplebeacon.ai/?ref=${encodeURIComponent(userEmail ? "pending" : "dev-token")}`;
 
   const handleCopyAction = async () => {
     try {
@@ -64,7 +70,7 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
     setEmailSending(true);
     try {
       const res = await fetch(
-        `${apiUrl('referral/link')}?email=${encodeURIComponent(userEmail)}&channel=dashboard&sendEmail=true`
+        `${apiUrl("referral/link")}?email=${encodeURIComponent(userEmail)}&channel=dashboard&sendEmail=true`,
       );
       const data = await res.json();
       if (data?.success && (data.emailSent || data.emailQueued)) {
@@ -88,13 +94,15 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
               Pass Your Next Compliance Audit For Free
             </h4>
             <p className="text-foreground-muted text-sm mt-1 leading-relaxed">
-              Your repository achieved a secure{' '}
-              <span className="text-emerald-400 font-bold font-mono">[{currentScanGrade}]</span>. Share SimpleBeacon
-              with another engineering manager. When they execute a private local code debt scan, you both instantly
-              unlock{' '}
+              Your repository achieved a secure{" "}
+              <span className="text-emerald-400 font-bold font-mono">
+                [{currentScanGrade}]
+              </span>
+              . Share SimpleBeacon with another engineering manager. When they
+              execute a private local code debt scan, you both instantly unlock{" "}
               <span className="text-foreground font-semibold">
                 Unlimited SOC 2 Compliance PDF Certificate Generation
-              </span>{' '}
+              </span>{" "}
               for 30 days.
             </p>
 
@@ -102,7 +110,9 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
               <input
                 type="text"
                 readOnly
-                value={loading ? 'Generating your share link…' : computedTrackingUrl}
+                value={
+                  loading ? "Generating your share link…" : computedTrackingUrl
+                }
                 className="bg-transparent text-foreground-muted text-xs px-2 py-1 w-full font-mono outline-none truncate"
               />
               <Button
@@ -119,7 +129,8 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
                   </>
                 ) : (
                   <>
-                    <Mail className="h-3.5 w-3.5 mr-1" /> {emailSending ? 'Sending…' : 'Email Link'}
+                    <Mail className="h-3.5 w-3.5 mr-1" />{" "}
+                    {emailSending ? "Sending…" : "Email Link"}
                   </>
                 )}
               </Button>
@@ -129,7 +140,7 @@ export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsRe
                 onClick={handleCopyAction}
                 disabled={loading || !shareUrl}
                 className={`whitespace-nowrap text-xs shrink-0 ${
-                  isCopied ? 'bg-emerald-600 hover:bg-emerald-600' : ''
+                  isCopied ? "bg-emerald-600 hover:bg-emerald-600" : ""
                 }`}
               >
                 {isCopied ? (

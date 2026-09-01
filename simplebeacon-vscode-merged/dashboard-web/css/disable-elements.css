@@ -1,10 +1,10 @@
 /* User-requested disabled dashboard elements — hard hide at stylesheet level */
 
 /* Hide Outreach nav link */
-.nav-link[data-view='outreach'],
-a.nav-link[href='#/outreach'],
-.app-nav .nav-link[data-view='outreach'],
-#app-nav .nav-link[data-view='outreach'] {
+.nav-link[data-view="outreach"],
+a.nav-link[href="#/outreach"],
+.app-nav .nav-link[data-view="outreach"],
+#app-nav .nav-link[data-view="outreach"] {
   display: none !important;
 }
 

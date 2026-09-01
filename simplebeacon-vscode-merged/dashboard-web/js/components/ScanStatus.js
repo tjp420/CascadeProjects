@@ -1,7 +1,15 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-import { escapeHtml, formatPercent } from '../utils.js';
-import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
+import { escapeHtml, formatPercent } from "../utils.js";
+import {
+  canUseDirectoryPicker,
+  isFilePickerBlockedError,
+  filePickerBlockedMessage,
+} from "../utils-lib/dom.js";
+import {
+  resolveDisplayScore,
+  formatScanScopeSummary,
+  formatScanInventoryNote,
+} from "../services/analyzeService.js";
 
 /**
  * Resolve initial scan root.
@@ -10,7 +18,7 @@ import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } 
  * @returns {any}
  */
 function resolveInitialScanRoot(report, { lastProjectPath } = {}) {
-  return lastProjectPath || report?.projectRoot || report?.platformRoot || '';
+  return lastProjectPath || report?.projectRoot || report?.platformRoot || "";
 }
 
 /**
@@ -20,10 +28,10 @@ function resolveInitialScanRoot(report, { lastProjectPath } = {}) {
  * @returns {any}
  */
 function resolveScanRootFromInput(input, { lastProjectPath } = {}) {
-  const trimmed = String(input?.value || '').trim();
-  if (trimmed && !trimmed.startsWith('…')) return trimmed;
+  const trimmed = String(input?.value || "").trim();
+  if (trimmed && !trimmed.startsWith("…")) return trimmed;
   if (lastProjectPath) return lastProjectPath;
-  return '';
+  return "";
 }
 
 /** Shared path resolution for Dashboard scan controls (Scan button + Quick Actions). */
@@ -40,9 +48,9 @@ export function resolveDashboardScanPath(input, { lastProjectPath } = {}) {
 export function runDashboardScanFromInput(input, options = {}) {
   const {
     onRescan,
-    getLastProjectPath = () => '',
+    getLastProjectPath = () => "",
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => '',
+    getDefaultProjectPath = () => "",
   } = options;
   if (!onRescan) return;
   let path = resolveScanRootFromInput(input, {
@@ -65,8 +73,8 @@ export function runDashboardScanFromInput(input, options = {}) {
  * @returns {any}
  */
 function formatScanPathDisplay(path) {
-  if (!path) return '';
-  return String(path).replace(/\\/g, '\\');
+  if (!path) return "";
+  return String(path).replace(/\\/g, "\\");
 }
 
 /**
@@ -77,8 +85,11 @@ function formatScanPathDisplay(path) {
 function formatFreshnessWarning(report) {
   if (!report) return null;
   const cacheHit = report.cacheHit === true;
-  const cacheAgeMs = typeof report.cacheAgeMs === 'number' ? report.cacheAgeMs : null;
-  const generatedAt = report.generatedAt ? new Date(report.generatedAt).getTime() : null;
+  const cacheAgeMs =
+    typeof report.cacheAgeMs === "number" ? report.cacheAgeMs : null;
+  const generatedAt = report.generatedAt
+    ? new Date(report.generatedAt).getTime()
+    : null;
   const now = Date.now();
   const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -93,8 +104,11 @@ function formatFreshnessWarning(report) {
 
   const mins = Math.round(ageMs / 60 / 1000);
   const hours = Math.round(ageMs / 60 / 60 / 1000);
-  const ageLabel = hours >= 1 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${mins} minute${mins > 1 ? 's' : ''}`;
-  const reason = cacheHit ? 'cached' : 'old';
+  const ageLabel =
+    hours >= 1
+      ? `${hours} hour${hours > 1 ? "s" : ""}`
+      : `${mins} minute${mins > 1 ? "s" : ""}`;
+  const reason = cacheHit ? "cached" : "old";
   return `Report is ${ageLabel} ${reason} — re-scan for current findings.`;
 }
 
@@ -110,7 +124,7 @@ function renderScanPathControls(report, options = {}) {
   const pathCount = scanPaths.length;
   const hasSaved = Boolean(lastProjectPath);
   const hasDefault = Boolean(defaultProjectPath);
-  const resolvedPath = lastProjectPath || defaultProjectPath || '';
+  const resolvedPath = lastProjectPath || defaultProjectPath || "";
 
   return `
     <div class="scan-status-scope" id="scan-status-scope">
@@ -130,26 +144,26 @@ function renderScanPathControls(report, options = {}) {
             autocomplete="off"
             aria-label="Folder path on the dashboard server"
             value="${escapeHtml(resolvedPath)}"
-            ${scanning ? 'disabled' : ''}
+            ${scanning ? "disabled" : ""}
           >
         </div>
-        <input type="file" id="scan-browse-input" webkitdirectory directory style="position:absolute;left:-9999px;top:0;opacity:0;width:1px;height:1px;" aria-label="Select folder to scan">
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+        <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+        <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? "disabled" : ""} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
           <i data-lucide="folder-open" class="icon-16"></i> Browse
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+        <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? "disabled" : ""} title="Reset to default path">
           <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+        <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? "disabled" : ""} title="Clear saved folder">
           <i data-lucide="x" class="icon-16"></i> Clear
         </button>
-        <button type="button" class="btn btn-primary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+        <button type="button" class="btn btn-primary" id="rescan-btn" ${scanning ? "disabled" : ""} title="Run gate scan on this folder">
           ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
         </button>
       </div>
       <p class="scan-status-scope-hint text-muted">
         Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
-        Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
+        Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ""}
       </p>
     </div>
   `;
@@ -164,8 +178,16 @@ function renderScanPathControls(report, options = {}) {
 export function renderScanStatus(report, options = {}) {
   const { scanning = false, config } = options;
   const gate = report?.gate || {};
-  const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
-  const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
+  const gateClass = gate.pass
+    ? "pass"
+    : gate.blockingCount > 0
+      ? "fail"
+      : "warn";
+  const gateLabel = gate.pass
+    ? "PASS"
+    : gate.blockingCount > 0
+      ? "FAIL"
+      : "WARN";
   const inventoryNote = formatScanInventoryNote(report);
   const scope = formatScanScopeSummary(report);
   const score = formatPercent(resolveDisplayScore(report));
@@ -176,22 +198,22 @@ export function renderScanStatus(report, options = {}) {
       <div class="dashboard-scan-header">
         <div class="dashboard-scan-meta">
           <div class="dashboard-scan-title">Last scan</div>
-          <div class="dashboard-scan-time">${escapeHtml(report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'No scan yet')}</div>
-          ${freshness ? `<div class="dashboard-scan-freshness">${escapeHtml(freshness)}</div>` : ''}
+          <div class="dashboard-scan-time">${escapeHtml(report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : "No scan yet")}</div>
+          ${freshness ? `<div class="dashboard-scan-freshness">${escapeHtml(freshness)}</div>` : ""}
         </div>
         <span class="dashboard-scan-badge ${gateClass}">${gateLabel}</span>
       </div>
       <div class="dashboard-scan-body">
         <div class="dashboard-scan-metrics">
           <div class="dashboard-scan-metric">
-            <span class="dashboard-scan-metric-value">${scope ? escapeHtml(scope) : '—'}</span>
+            <span class="dashboard-scan-metric-value">${scope ? escapeHtml(scope) : "—"}</span>
           </div>
           <div class="dashboard-scan-metric">
             <span class="dashboard-scan-metric-label">Consistency</span>
             <span class="dashboard-scan-metric-value">${score}</span>
           </div>
         </div>
-        ${inventoryNote ? `<div class="dashboard-scan-inventory">${escapeHtml(inventoryNote)}</div>` : ''}
+        ${inventoryNote ? `<div class="dashboard-scan-inventory">${escapeHtml(inventoryNote)}</div>` : ""}
       </div>
       ${renderScanPathControls(report, { ...options, config, scanning })}
     </div>
@@ -201,19 +223,29 @@ export function renderScanStatus(report, options = {}) {
 /** Surgically update an existing scan card without replacing innerHTML — prevents flicker. */
 export function updateScanStatusDom(root, report) {
   if (!root) return false;
-  const card = root.querySelector('.dashboard-scan-card');
+  const card = root.querySelector(".dashboard-scan-card");
   if (!card) return false;
 
   const gate = report?.gate || {};
-  const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
-  const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
+  const gateClass = gate.pass
+    ? "pass"
+    : gate.blockingCount > 0
+      ? "fail"
+      : "warn";
+  const gateLabel = gate.pass
+    ? "PASS"
+    : gate.blockingCount > 0
+      ? "FAIL"
+      : "WARN";
   const inventoryNote = formatScanInventoryNote(report);
   const scope = formatScanScopeSummary(report);
   const score = formatPercent(resolveDisplayScore(report));
-  const timeText = report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'No scan yet';
+  const timeText = report?.generatedAt
+    ? new Date(report.generatedAt).toLocaleString()
+    : "No scan yet";
 
   // Update badge
-  const badge = card.querySelector('.dashboard-scan-badge');
+  const badge = card.querySelector(".dashboard-scan-badge");
   if (badge) {
     const nextClass = `dashboard-scan-badge ${gateClass}`;
     if (badge.className !== nextClass) badge.className = nextClass;
@@ -221,20 +253,21 @@ export function updateScanStatusDom(root, report) {
   }
 
   // Update time
-  const timeEl = card.querySelector('.dashboard-scan-time');
+  const timeEl = card.querySelector(".dashboard-scan-time");
   if (timeEl && timeEl.textContent !== timeText) timeEl.textContent = timeText;
 
   // Update freshness warning
   const freshnessText = formatFreshnessWarning(report);
-  const freshnessEl = card.querySelector('.dashboard-scan-freshness');
+  const freshnessEl = card.querySelector(".dashboard-scan-freshness");
   if (freshnessText) {
     if (freshnessEl) {
-      if (freshnessEl.textContent !== freshnessText) freshnessEl.textContent = freshnessText;
+      if (freshnessEl.textContent !== freshnessText)
+        freshnessEl.textContent = freshnessText;
     } else {
-      const meta = card.querySelector('.dashboard-scan-meta');
+      const meta = card.querySelector(".dashboard-scan-meta");
       if (meta) {
-        const div = document.createElement('div');
-        div.className = 'dashboard-scan-freshness';
+        const div = document.createElement("div");
+        div.className = "dashboard-scan-freshness";
         div.textContent = freshnessText;
         meta.appendChild(div);
       }
@@ -244,26 +277,32 @@ export function updateScanStatusDom(root, report) {
   }
 
   // Update scope metric
-  const scopeEl = card.querySelector('.dashboard-scan-metric:first-child .dashboard-scan-metric-value');
+  const scopeEl = card.querySelector(
+    ".dashboard-scan-metric:first-child .dashboard-scan-metric-value",
+  );
   if (scopeEl) {
-    const scopeDisplay = scope ? escapeHtml(scope) : '—';
-    if (scopeEl.textContent !== scopeDisplay) scopeEl.textContent = scopeDisplay;
+    const scopeDisplay = scope ? escapeHtml(scope) : "—";
+    if (scopeEl.textContent !== scopeDisplay)
+      scopeEl.textContent = scopeDisplay;
   }
 
   // Update consistency score
-  const scoreEl = card.querySelector('.dashboard-scan-metric:last-child .dashboard-scan-metric-value');
+  const scoreEl = card.querySelector(
+    ".dashboard-scan-metric:last-child .dashboard-scan-metric-value",
+  );
   if (scoreEl && scoreEl.textContent !== score) scoreEl.textContent = score;
 
   // Update inventory note
-  const invEl = card.querySelector('.dashboard-scan-inventory');
+  const invEl = card.querySelector(".dashboard-scan-inventory");
   if (inventoryNote) {
     if (invEl) {
-      if (invEl.textContent !== inventoryNote) invEl.textContent = inventoryNote;
+      if (invEl.textContent !== inventoryNote)
+        invEl.textContent = inventoryNote;
     } else {
-      const body = card.querySelector('.dashboard-scan-body');
+      const body = card.querySelector(".dashboard-scan-body");
       if (body) {
-        const div = document.createElement('div');
-        div.className = 'dashboard-scan-inventory';
+        const div = document.createElement("div");
+        div.className = "dashboard-scan-inventory";
         div.textContent = inventoryNote;
         body.appendChild(div);
       }
@@ -284,21 +323,21 @@ export function updateScanStatusDom(root, report) {
 export function bindScanStatus(container, options = {}) {
   const {
     onRescan,
-    getLastProjectPath = () => '',
+    getLastProjectPath = () => "",
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => '',
+    getDefaultProjectPath = () => "",
   } = options;
 
-  const input = container.querySelector('#scan-root-input');
-  const clearBtn = container.querySelector('#scan-clear-btn');
-  const setDefaultBtn = container.querySelector('#scan-set-default-btn');
-  const scanBtn = container.querySelector('#rescan-btn');
-  const browseBtn = container.querySelector('#scan-browse-btn');
-  const browseInput = container.querySelector('#scan-browse-input');
+  const input = container.querySelector("#scan-root-input");
+  const clearBtn = container.querySelector("#scan-clear-btn");
+  const setDefaultBtn = container.querySelector("#scan-set-default-btn");
+  const scanBtn = container.querySelector("#rescan-btn");
+  const browseBtn = container.querySelector("#scan-browse-btn");
+  const browseInput = container.querySelector("#scan-browse-input");
 
   // Restore input value from state if empty (e.g. after full re-render)
   if (input && !input.value.trim()) {
-    const fallbackPath = getLastProjectPath() || getDefaultProjectPath() || '';
+    const fallbackPath = getLastProjectPath() || getDefaultProjectPath() || "";
     if (fallbackPath) input.value = fallbackPath;
   }
 
@@ -314,22 +353,27 @@ export function bindScanStatus(container, options = {}) {
    * @returns {any}
    */
   function deriveUserHomeBase() {
-    const defaultPath = getDefaultProjectPath() || getLastProjectPath() || '';
+    const defaultPath = getDefaultProjectPath() || getLastProjectPath() || "";
     if (defaultPath) {
       // Strip trailing segments to get a reasonable base (e.g. .../ai-platform -> parent)
-      const normalized = defaultPath.replace(/\\/g, '/');
-      const isUnixAbsolute = normalized.startsWith('/');
-      const parts = normalized.split('/').filter(Boolean);
+      const normalized = defaultPath.replace(/\\/g, "/");
+      const isUnixAbsolute = normalized.startsWith("/");
+      const parts = normalized.split("/").filter(Boolean);
       // If last part looks like a server subfolder, remove it
-      if (parts.length > 1 && /^(ai-platform|server|app|src|dist|build)$/i.test(parts[parts.length - 1])) {
+      if (
+        parts.length > 1 &&
+        /^(ai-platform|server|app|src|dist|build)$/i.test(
+          parts[parts.length - 1],
+        )
+      ) {
         parts.pop();
       }
       if (parts.length > 0) {
         // On Windows: if parts start with C: and Users, keep up to the user folder
-        if (parts[0].endsWith(':')) {
-          return parts.slice(0, 3).join('/'); // e.g. C:/Users/Trevor
+        if (parts[0].endsWith(":")) {
+          return parts.slice(0, 3).join("/"); // e.g. C:/Users/Trevor
         }
-        const base = parts.join('/');
+        const base = parts.join("/");
         // Preserve leading slash for Unix absolute paths so the fallback stays absolute.
         return isUnixAbsolute ? `/${base}` : base;
       }
@@ -337,47 +381,49 @@ export function bindScanStatus(container, options = {}) {
     // Fallback: preserve the drive letter from defaultPath/lastProjectPath if available,
     // so users on D:, E:, etc. don't get forced back to C:/Users.
     const driveMatch = String(defaultPath).match(/^([a-zA-Z]:)/);
-    return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
+    return driveMatch ? `${driveMatch[1]}/Users` : "C:/Users";
   }
 
-  scanBtn?.addEventListener('click', runScan);
+  scanBtn?.addEventListener("click", runScan);
 
   // Hidden file input for webkitdirectory fallback
-  browseInput?.addEventListener('change', (e) => {
+  browseInput?.addEventListener("change", (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     // In Electron / Tauri the file objects expose the absolute filesystem path.
     const filePath = files[0].path;
-    const relPath = files[0].webkitRelativePath || '';
+    const relPath = files[0].webkitRelativePath || "";
     if (filePath && relPath) {
-      const normalizedFull = filePath.replace(/\\/g, '/');
-      const normalizedRel = relPath.replace(/\\/g, '/');
+      const normalizedFull = filePath.replace(/\\/g, "/");
+      const normalizedRel = relPath.replace(/\\/g, "/");
       if (normalizedFull.endsWith(normalizedRel)) {
-        const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
-        const folderName = normalizedRel.split('/')[0] || '';
+        const baseDir = normalizedFull
+          .slice(0, -normalizedRel.length)
+          .replace(/\/$/, "");
+        const folderName = normalizedRel.split("/")[0] || "";
         const resolvedPath = baseDir ? `${baseDir}/${folderName}` : folderName;
         if (input) {
           input.value = resolvedPath;
           setLastProjectPath(resolvedPath);
           if (clearBtn) clearBtn.disabled = false;
         }
-        const toast = document.getElementById('toast-container');
+        const toast = document.getElementById("toast-container");
         if (toast) {
-          const msg = document.createElement('div');
-          msg.className = 'toast toast-info';
+          const msg = document.createElement("div");
+          msg.className = "toast toast-info";
           msg.textContent = `Folder "${folderName}" selected.`;
           toast.appendChild(msg);
           setTimeout(() => msg.remove(), 4000);
         }
-        browseInput.value = '';
+        browseInput.value = "";
         return;
       }
     }
 
     // Standard browser fallback — no absolute path available.
-    const firstPath = files[0].webkitRelativePath || files[0].name || '';
-    const folderName = firstPath.split('/')[0] || firstPath;
+    const firstPath = files[0].webkitRelativePath || files[0].name || "";
+    const folderName = firstPath.split("/")[0] || firstPath;
     const homePath = deriveUserHomeBase();
     const resolvedPath = `${homePath}/${folderName}`;
     if (input) {
@@ -385,30 +431,32 @@ export function bindScanStatus(container, options = {}) {
       setLastProjectPath(resolvedPath);
       if (clearBtn) clearBtn.disabled = false;
     }
-    const toast = document.getElementById('toast-container');
+    const toast = document.getElementById("toast-container");
     if (toast) {
-      const msg = document.createElement('div');
-      msg.className = 'toast toast-info';
+      const msg = document.createElement("div");
+      msg.className = "toast toast-info";
       msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
       toast.appendChild(msg);
       setTimeout(() => msg.remove(), 4000);
     }
-    browseInput.value = '';
+    browseInput.value = "";
   });
 
   // Detect environments (e.g. Electron) where file inputs expose real absolute paths.
   const isElectronLike = Boolean(
-    typeof window !== 'undefined' && (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
+    typeof window !== "undefined" &&
+    (window.process?.versions?.electron ||
+      /Electron/.test(navigator.userAgent)),
   );
 
   // Browse button — use File System Access API when available, fall back to hidden file input
-  browseBtn?.addEventListener('click', async () => {
+  browseBtn?.addEventListener("click", async () => {
     // In Electron-like environments skip showDirectoryPicker because it cannot
     // reveal absolute paths; the webkitdirectory fallback gives files with .path.
     if (canUseDirectoryPicker() && !isElectronLike) {
       try {
         const dirHandle = await window.showDirectoryPicker();
-        const folderName = dirHandle.name || '';
+        const folderName = dirHandle.name || "";
         const homePath = deriveUserHomeBase();
         const fallbackPath = `${homePath}/${folderName}`;
         if (input) {
@@ -416,26 +464,29 @@ export function bindScanStatus(container, options = {}) {
           setLastProjectPath(fallbackPath);
           if (clearBtn) clearBtn.disabled = false;
         }
-        const toast = document.getElementById('toast-container');
+        const toast = document.getElementById("toast-container");
         if (toast) {
-          const msg = document.createElement('div');
-          msg.className = 'toast toast-info';
+          const msg = document.createElement("div");
+          msg.className = "toast toast-info";
           msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
           toast.appendChild(msg);
           setTimeout(() => msg.remove(), 4000);
         }
         return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          window['console']['warn']('[ScanStatus] Directory picker failed:', err);
+        if (err.name !== "AbortError") {
+          window["console"]["warn"](
+            "[ScanStatus] Directory picker failed:",
+            err,
+          );
           if (isFilePickerBlockedError(err)) {
             try {
               if (browseInput) browseInput.click();
             } catch (_) {}
-            const toast = document.getElementById('toast-container');
+            const toast = document.getElementById("toast-container");
             if (toast) {
-              const msg = document.createElement('div');
-              msg.className = 'toast toast-warning';
+              const msg = document.createElement("div");
+              msg.className = "toast toast-warning";
               msg.textContent = filePickerBlockedMessage();
               toast.appendChild(msg);
               setTimeout(() => msg.remove(), 6000);
@@ -452,15 +503,15 @@ export function bindScanStatus(container, options = {}) {
     }
   });
 
-  clearBtn?.addEventListener('click', () => {
+  clearBtn?.addEventListener("click", () => {
     if (!input) return;
-    input.value = '';
-    setLastProjectPath('');
+    input.value = "";
+    setLastProjectPath("");
     clearBtn.disabled = true;
     input.focus();
   });
 
-  setDefaultBtn?.addEventListener('click', () => {
+  setDefaultBtn?.addEventListener("click", () => {
     if (!input) return;
     const defaultPath = getDefaultProjectPath();
     input.value = defaultPath;
@@ -469,49 +520,49 @@ export function bindScanStatus(container, options = {}) {
     input.focus();
   });
 
-  input?.addEventListener('input', () => {
+  input?.addEventListener("input", () => {
     const value = input.value.trim();
-    setLastProjectPath(value || '');
+    setLastProjectPath(value || "");
     if (clearBtn) clearBtn.disabled = !value;
   });
 
-  input?.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
+  input?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
       event.preventDefault();
       runScan();
     }
   });
 
   // Drag & drop on scan-status-scope
-  const scope = container.querySelector('#scan-status-scope');
-  const dragOverlay = container.querySelector('#scan-drag-overlay');
+  const scope = container.querySelector("#scan-status-scope");
+  const dragOverlay = container.querySelector("#scan-drag-overlay");
   if (scope && dragOverlay && input) {
     let dragDepth = 0;
-    scope.addEventListener('dragenter', (event) => {
+    scope.addEventListener("dragenter", (event) => {
       event.preventDefault();
       event.stopPropagation();
       dragDepth++;
-      dragOverlay.classList.add('is-active');
+      dragOverlay.classList.add("is-active");
     });
-    scope.addEventListener('dragover', (event) => {
+    scope.addEventListener("dragover", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      event.dataTransfer.dropEffect = 'copy';
+      event.dataTransfer.dropEffect = "copy";
     });
-    scope.addEventListener('dragleave', (event) => {
+    scope.addEventListener("dragleave", (event) => {
       event.preventDefault();
       event.stopPropagation();
       dragDepth--;
       if (dragDepth <= 0) {
-        dragOverlay.classList.remove('is-active');
+        dragOverlay.classList.remove("is-active");
         dragDepth = 0;
       }
     });
-    scope.addEventListener('drop', (event) => {
+    scope.addEventListener("drop", (event) => {
       event.preventDefault();
       event.stopPropagation();
       dragDepth = 0;
-      dragOverlay.classList.remove('is-active');
+      dragOverlay.classList.remove("is-active");
 
       const items = event.dataTransfer?.items;
       const files = event.dataTransfer?.files;
@@ -520,17 +571,17 @@ export function bindScanStatus(container, options = {}) {
       if (items?.length) {
         const entry = items[0].webkitGetAsEntry?.();
         if (entry?.isDirectory) {
-          const name = entry.name || '';
+          const name = entry.name || "";
           const homePath = deriveUserHomeBase();
           const fallbackPath = `${homePath}/${name}`;
           input.value = fallbackPath;
           setLastProjectPath(fallbackPath);
           if (clearBtn) clearBtn.disabled = false;
           // Notify user to verify path
-          const toast = document.getElementById('toast-container');
+          const toast = document.getElementById("toast-container");
           if (toast) {
-            const msg = document.createElement('div');
-            msg.className = 'toast toast-info';
+            const msg = document.createElement("div");
+            msg.className = "toast toast-info";
             msg.textContent = `Folder "${name}" dropped. Path is estimated — please verify before scanning.`;
             toast.appendChild(msg);
             setTimeout(() => msg.remove(), 4000);

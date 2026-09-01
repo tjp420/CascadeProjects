@@ -45,6 +45,94 @@ let pendingProbe = null;
 let cachedAgent4000Status = null;
 let cachedAgent4000At = 0;
 let pendingProbe4000 = null;
+// Bridge token cache — the extension data server requires this header on
+// /api/scan, /api/find-folder, /api/analyze/pick-folder, etc.
+let cachedBridgeToken = null;
+const BRIDGE_TOKEN_KEY = "sb_bridge_token";
+/**
+ * Read the bridge token from sessionStorage (set during bridge discovery).
+ * @returns {string|null}
+ */
+function readStoredBridgeToken() {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    return sessionStorage.getItem(BRIDGE_TOKEN_KEY) || null;
+  } catch (_a) {
+    return null;
+  }
+}
+/**
+ * Persist the bridge token to sessionStorage for the current tab.
+ * @param {string} token
+ */
+function storeBridgeToken(token) {
+  cachedBridgeToken = token;
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    if (token) sessionStorage.setItem(BRIDGE_TOKEN_KEY, token);
+    else sessionStorage.removeItem(BRIDGE_TOKEN_KEY);
+  } catch (_a) {
+    /* ignore */
+  }
+}
+/**
+ * Fetch the bridge token from the extension data server's /api/health endpoint.
+ * Caches the result for the tab session.
+ * @param {string} [origin] — bridge origin; defaults to getExtensionBridgeOrigin()
+ * @returns {Promise<string|null>}
+ */
+async function fetchBridgeToken(origin) {
+  const bridge = origin || getExtensionBridgeOrigin();
+  if (!bridge) return null;
+  if (cachedBridgeToken) return cachedBridgeToken;
+  const stored = readStoredBridgeToken();
+  if (stored) {
+    cachedBridgeToken = stored;
+    return stored;
+  }
+  const doFetch = getLocalBridgeFetch();
+  try {
+    const res = await doFetch(`${bridge}/api/health`, {
+      signal: AbortSignal.timeout(2500),
+    });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const token = data?.bridgeToken || null;
+      if (token) storeBridgeToken(token);
+      return token;
+    }
+  } catch (_a) {
+    /* fall through to ping-based fetch */
+    try {
+      const pingRes = await doFetch(`${bridge}/api/ping`, {
+        signal: AbortSignal.timeout(2500),
+      });
+      if (pingRes.ok) {
+        const pingData = await pingRes.json().catch(() => ({}));
+        const token = pingData?.bridgeToken || null;
+        if (token) storeBridgeToken(token);
+        return token;
+      }
+    } catch (_b) {
+      /* no token available */
+    }
+  }
+  return null;
+}
+/**
+ * Build fetch headers with the bridge token included.
+ * @param {Object} [extra] — additional headers to merge
+ * @returns {Promise<Object>}
+ */
+async function bridgeHeaders(extra) {
+  const headers = Object.assign(
+    { Accept: "application/json", "Content-Type": "application/json" },
+    extra || {},
+  );
+  const token = await fetchBridgeToken();
+  if (token) headers["X-SimpleBeacon-Bridge-Token"] = token;
+  return headers;
+}
 /** Dashboard + API on the same localhost machine (e.g. coming-soon dev on :59150). */
 export function isIntegratedLocalDashboard() {
   if (typeof window === "undefined") return false;
@@ -328,6 +416,7 @@ export async function probeExtensionDataServer(
           (data.service === "simplebeacon-bridge" ||
             data.platform === "Simplebeacon")
         ) {
+          if (data.bridgeToken) storeBridgeToken(data.bridgeToken);
           return `${origin}/api`;
         }
       }
@@ -336,8 +425,10 @@ export async function probeExtensionDataServer(
       });
       if (!pingRes.ok) continue;
       const data = await pingRes.json().catch(() => ({}));
-      if (data && (data.online === true || data.status === "ok"))
+      if (data && (data.online === true || data.status === "ok")) {
+        if (data.bridgeToken) storeBridgeToken(data.bridgeToken);
         return `${origin}/api`;
+      }
     } catch {
       /* extension not on this port */
     }
@@ -586,6 +677,8 @@ export async function probeExtensionBridgeHealth() {
       return { ok: false, reason: "ping-failed", status: res.status };
     }
     const data = await res.json().catch(() => ({}));
+    // Cache the bridge token if the ping response includes it
+    if (data?.bridgeToken) storeBridgeToken(data.bridgeToken);
     return { ok: data?.online !== false, reason: "ping-ok" };
   } catch (err) {
     return {
@@ -761,8 +854,10 @@ export async function findFolderViaBridge(folderName) {
   if (!health.ok) return null;
   const doFetch = getLocalBridgeFetch();
   try {
+    const statusHeaders = await bridgeHeaders({ "Content-Type": undefined });
+    delete statusHeaders["Content-Type"];
     const statusRes = await doFetch(`${origin}/api/status`, {
-      headers: { Accept: "application/json" },
+      headers: statusHeaders,
     });
     const status = await statusRes.json().catch(() => ({}));
     if (status.workspace) {
@@ -780,10 +875,7 @@ export async function findFolderViaBridge(folderName) {
       `${origin}/api/find-folder`,
       {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        headers: await bridgeHeaders(),
         body: JSON.stringify({ folderName }),
       },
       25000,
@@ -813,10 +905,7 @@ export async function pickFolderViaExtensionBridge() {
       `${origin}/api/analyze/pick-folder`,
       {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        headers: await bridgeHeaders(),
         body: "{}",
       },
       AGENT_TIMEOUT_MS,
@@ -1184,18 +1273,23 @@ const SCAN_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 async function pollForScanCompletion(origin, projectPath, doFetch) {
   const startTime = Date.now();
   let inactiveCount = 0;
+  const pollHeaders = await bridgeHeaders({ "Content-Type": undefined });
+  delete pollHeaders["Content-Type"];
   while (Date.now() - startTime < SCAN_POLL_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, SCAN_POLL_INTERVAL_MS));
     try {
       const progressRes = await doFetch(
         `${origin}/api/simplebeacon/scan/progress?projectPath=${encodeURIComponent(projectPath)}`,
+        { headers: pollHeaders },
       );
       const progressData = await progressRes.json().catch(() => ({}));
       const progress = progressData.progress || {};
       if (!progress.active) {
         inactiveCount++;
         if (inactiveCount >= 3) {
-          const reportRes = await doFetch(`${origin}/api/report`);
+          const reportRes = await doFetch(`${origin}/api/report`, {
+            headers: pollHeaders,
+          });
           const reportData = await reportRes.json().catch(() => ({}));
           if (reportData && Object.keys(reportData).length > 0) {
             return reportData;
@@ -1225,10 +1319,7 @@ export async function scanViaAgent4000(
     const doFetch = getLocalBridgeFetch();
     const response = await doFetch(`${origin}/api/scan`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
+      headers: await bridgeHeaders(),
       body: JSON.stringify({ path: projectPath }),
     });
     const data = await response.json().catch(() => ({}));

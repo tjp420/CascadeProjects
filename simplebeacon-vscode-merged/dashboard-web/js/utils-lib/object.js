@@ -1,4 +1,4 @@
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 /**
  * Deep-clone a serializable object.
@@ -9,7 +9,7 @@ const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
  * @returns {unknown}
  */
 export function deepClone(obj) {
-  if (typeof structuredClone === 'function') {
+  if (typeof structuredClone === "function") {
     try {
       return structuredClone(obj);
     } catch {
@@ -26,13 +26,13 @@ export function deepClone(obj) {
  * @returns {unknown}
  */
 export function clone(obj) {
-  if (obj == null || typeof obj !== 'object') return obj;
+  if (obj == null || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return [...obj];
   return { ...obj };
 }
 
 function _deepClone(obj, seen = new WeakMap()) {
-  if (obj === null || typeof obj !== 'object') return obj;
+  if (obj === null || typeof obj !== "object") return obj;
   if (seen.has(obj)) return seen.get(obj);
   if (obj instanceof Date) return new Date(obj.getTime());
   if (obj instanceof RegExp) return new RegExp(obj.source, obj.flags);
@@ -93,10 +93,12 @@ export function deepEqual(a, b) {
   if (a === b) return true;
   if (a == null || b == null) return a === b;
   if (typeof a !== typeof b) return false;
-  if (typeof a !== 'object') return false;
+  if (typeof a !== "object") return false;
 
-  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
-  if (a instanceof RegExp && b instanceof RegExp) return a.source === b.source && a.flags === b.flags;
+  if (a instanceof Date && b instanceof Date)
+    return a.getTime() === b.getTime();
+  if (a instanceof RegExp && b instanceof RegExp)
+    return a.source === b.source && a.flags === b.flags;
 
   if (a instanceof Map && b instanceof Map) {
     if (a.size !== b.size) return false;
@@ -147,9 +149,14 @@ export function deepEqual(a, b) {
  * @returns {Pick<T, K>}
  */
 export function pick(obj, keys) {
-  if (!obj || typeof obj !== 'object') return {};
+  if (!obj || typeof obj !== "object") return {};
   const result = {};
-  if (!keys || typeof keys === 'string' || typeof keys[Symbol.iterator] !== 'function') return result;
+  if (
+    !keys ||
+    typeof keys === "string" ||
+    typeof keys[Symbol.iterator] !== "function"
+  )
+    return result;
   for (const key of keys) {
     if (Object.hasOwn(obj, key)) result[key] = obj[key];
   }
@@ -164,8 +171,14 @@ export function pick(obj, keys) {
  * @returns {Partial<T>}
  */
 export function omit(obj, keys) {
-  if (!obj || typeof obj !== 'object') return {};
-  const set = new Set(keys && typeof keys !== 'string' && typeof keys[Symbol.iterator] === 'function' ? keys : []);
+  if (!obj || typeof obj !== "object") return {};
+  const set = new Set(
+    keys &&
+      typeof keys !== "string" &&
+      typeof keys[Symbol.iterator] === "function"
+      ? keys
+      : [],
+  );
   const result = {};
   for (const key of Object.keys(obj)) {
     if (!set.has(key)) result[key] = obj[key];
@@ -180,10 +193,10 @@ export function omit(obj, keys) {
  * @returns {Object}
  */
 export function defaults(target, ...sources) {
-  if (!target || typeof target !== 'object') return {};
+  if (!target || typeof target !== "object") return {};
   const result = { ...target };
   for (const src of sources) {
-    if (!src || typeof src !== 'object') continue;
+    if (!src || typeof src !== "object") continue;
     for (const key of Object.keys(src)) {
       if (!(key in result)) result[key] = src[key];
     }
@@ -198,19 +211,19 @@ export function defaults(target, ...sources) {
  * @returns {Object}
  */
 export function merge(target, ...sources) {
-  if (!target || typeof target !== 'object') return {};
+  if (!target || typeof target !== "object") return {};
   const result = { ...target };
   for (const src of sources) {
-    if (!src || typeof src !== 'object') continue;
+    if (!src || typeof src !== "object") continue;
     for (const key of Object.keys(src)) {
       if (DANGEROUS_KEYS.has(key)) continue;
       const val = src[key];
       if (
         val &&
-        typeof val === 'object' &&
+        typeof val === "object" &&
         !Array.isArray(val) &&
         result[key] &&
-        typeof result[key] === 'object' &&
+        typeof result[key] === "object" &&
         !Array.isArray(result[key])
       ) {
         result[key] = merge(result[key], val);
@@ -226,7 +239,7 @@ export function merge(target, ...sources) {
  * @returns {Object}
  */
 export function invert(obj) {
-  if (!obj || typeof obj !== 'object') return {};
+  if (!obj || typeof obj !== "object") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[String(val)] = key;
@@ -241,7 +254,7 @@ export function invert(obj) {
  * @returns {Object}
  */
 export function mapValues(obj, fn) {
-  if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[key] = fn(val, key);
@@ -256,7 +269,7 @@ export function mapValues(obj, fn) {
  * @returns {Object}
  */
 export function mapKeys(obj, fn) {
-  if (!obj || typeof obj !== 'object' || typeof fn !== 'function') return {};
+  if (!obj || typeof obj !== "object" || typeof fn !== "function") return {};
   const result = {};
   for (const [key, val] of Object.entries(obj)) {
     result[fn(key, val)] = val;
@@ -271,7 +284,7 @@ export function mapKeys(obj, fn) {
  * @returns {boolean}
  */
 export function has(obj, key) {
-  return obj != null && typeof obj === 'object' && Object.hasOwn(obj, key);
+  return obj != null && typeof obj === "object" && Object.hasOwn(obj, key);
 }
 
 /**
@@ -282,11 +295,12 @@ export function has(obj, key) {
  * @returns {unknown}
  */
 export function get(obj, path, fallback) {
-  if (!obj || typeof obj !== 'object' || typeof path !== 'string') return fallback;
-  const keys = path.split('.');
+  if (!obj || typeof obj !== "object" || typeof path !== "string")
+    return fallback;
+  const keys = path.split(".");
   let current = obj;
   for (const key of keys) {
-    if (current == null || typeof current !== 'object') return fallback;
+    if (current == null || typeof current !== "object") return fallback;
     current = current[key];
   }
   return current === undefined ? fallback : current;
@@ -300,13 +314,13 @@ export function get(obj, path, fallback) {
  * @returns {Object}
  */
 export function set(obj, path, value) {
-  if (!obj || typeof obj !== 'object' || typeof path !== 'string') return obj;
-  const keys = path.split('.');
+  if (!obj || typeof obj !== "object" || typeof path !== "string") return obj;
+  const keys = path.split(".");
   if (keys.some((key) => DANGEROUS_KEYS.has(key))) return obj;
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    if (current[key] == null || typeof current[key] !== 'object') {
+    if (current[key] == null || typeof current[key] !== "object") {
       current[key] = {};
     }
     current = current[key];
@@ -358,11 +372,11 @@ export function constant(value) {
  * @returns {T[]}
  */
 export function at(obj, paths) {
-  if (!obj || typeof obj !== 'object') return [];
+  if (!obj || typeof obj !== "object") return [];
   if (!Array.isArray(paths)) return [];
   const result = [];
   for (const p of paths) {
-    const parts = String(p).split('.');
+    const parts = String(p).split(".");
     let current = obj;
     for (const part of parts) {
       current = current?.[part];
@@ -380,15 +394,20 @@ export function at(obj, paths) {
  * @returns {boolean}
  */
 export function unset(obj, path) {
-  if (!obj || typeof obj !== 'object') return false;
-  const parts = String(path).split('.');
+  if (!obj || typeof obj !== "object") return false;
+  const parts = String(path).split(".");
   let current = obj;
   for (let i = 0; i < parts.length - 1; i++) {
-    if (current == null || typeof current !== 'object' || !(parts[i] in current)) return false;
+    if (
+      current == null ||
+      typeof current !== "object" ||
+      !(parts[i] in current)
+    )
+      return false;
     current = current[parts[i]];
   }
   const last = parts[parts.length - 1];
-  if (current != null && typeof current === 'object' && last in current) {
+  if (current != null && typeof current === "object" && last in current) {
     delete current[last];
     return true;
   }
@@ -402,18 +421,18 @@ export function unset(obj, path) {
  * @returns {Record<string, unknown>}
  */
 export function defaultsDeep(target, ...sources) {
-  if (!target || typeof target !== 'object') return target;
+  if (!target || typeof target !== "object") return target;
   for (const source of sources) {
-    if (!source || typeof source !== 'object') continue;
+    if (!source || typeof source !== "object") continue;
     for (const key of Object.keys(source)) {
       if (DANGEROUS_KEYS.has(key)) continue;
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (
         target[key] != null &&
-        typeof target[key] === 'object' &&
+        typeof target[key] === "object" &&
         source[key] != null &&
-        typeof source[key] === 'object' &&
+        typeof source[key] === "object" &&
         !Array.isArray(target[key]) &&
         !Array.isArray(source[key])
       ) {

@@ -17,13 +17,13 @@
  *   // Later: zone.unmount();
  */
 
-import { adaptCliReport } from '../utils/cli-report-adapter.js';
-import { generateSampleReport } from '../utils/sample-report.js';
-import { CliMetricsWidget } from './CliMetricsWidget.js';
+import { adaptCliReport } from "../utils/cli-report-adapter.js";
+import { generateSampleReport } from "../utils/sample-report.js";
+import { CliMetricsWidget } from "./CliMetricsWidget.js";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-const ACCEPTED_EXTENSIONS = ['.json'];
-const ACCEPTED_MIME_TYPES = ['application/json', 'text/plain'];
+const ACCEPTED_EXTENSIONS = [".json"];
+const ACCEPTED_MIME_TYPES = ["application/json", "text/plain"];
 
 export class CliReportUploadZone {
   /**
@@ -56,8 +56,8 @@ export class CliReportUploadZone {
     this.container.replaceChildren();
     this.container.appendChild(this._renderDropZone());
     if (this.showWidget) {
-      this._widgetContainer = document.createElement('div');
-      this._widgetContainer.className = 'cli-upload-widget-container';
+      this._widgetContainer = document.createElement("div");
+      this._widgetContainer.className = "cli-upload-widget-container";
       this.container.appendChild(this._widgetContainer);
     }
     this._bindEvents();
@@ -86,7 +86,7 @@ export class CliReportUploadZone {
     try {
       raw = JSON.parse(jsonText);
     } catch (err) {
-      this._handleError(new Error('Invalid JSON: ' + err.message));
+      this._handleError(new Error("Invalid JSON: " + err.message));
       return null;
     }
     return this._processReport(raw);
@@ -104,8 +104,8 @@ export class CliReportUploadZone {
     if (file.size > MAX_FILE_SIZE) {
       this._handleError(
         new Error(
-          `File too large (${this._formatBytes(file.size)}). Maximum size is ${this._formatBytes(MAX_FILE_SIZE)}.`
-        )
+          `File too large (${this._formatBytes(file.size)}). Maximum size is ${this._formatBytes(MAX_FILE_SIZE)}.`,
+        ),
       );
       return null;
     }
@@ -113,7 +113,9 @@ export class CliReportUploadZone {
     // Validate file extension
     const ext = this._getFileExtension(file.name);
     if (!ACCEPTED_EXTENSIONS.includes(ext)) {
-      this._handleError(new Error(`Unsupported file type: ${ext}. Please upload a .json file.`));
+      this._handleError(
+        new Error(`Unsupported file type: ${ext}. Please upload a .json file.`),
+      );
       return null;
     }
 
@@ -122,7 +124,7 @@ export class CliReportUploadZone {
     try {
       text = await this._readFileAsText(file);
     } catch (err) {
-      this._handleError(new Error('Failed to read file: ' + err.message));
+      this._handleError(new Error("Failed to read file: " + err.message));
       return null;
     }
 
@@ -134,8 +136,8 @@ export class CliReportUploadZone {
   // ═══════════════════════════════════════════════
 
   _renderDropZone() {
-    const zone = document.createElement('div');
-    zone.className = 'cli-upload-zone';
+    const zone = document.createElement("div");
+    zone.className = "cli-upload-zone";
     zone.style.cssText = `
             border: 2px dashed var(--border, #334155);
             border-radius: var(--radius-lg, 12px);
@@ -180,8 +182,8 @@ export class CliReportUploadZone {
         `;
 
     this._dropZone = zone;
-    this._fileInput = zone.querySelector('.cli-upload-file-input');
-    this._pasteInput = zone.querySelector('.cli-upload-paste-input');
+    this._fileInput = zone.querySelector(".cli-upload-file-input");
+    this._pasteInput = zone.querySelector(".cli-upload-paste-input");
     return zone;
   }
 
@@ -193,86 +195,98 @@ export class CliReportUploadZone {
     if (!this._dropZone) return;
 
     // Click to browse
-    const browseBtn = this._dropZone.querySelector('.cli-upload-browse-btn');
+    const browseBtn = this._dropZone.querySelector(".cli-upload-browse-btn");
     this._boundHandlers.browseClick = () => this._fileInput?.click();
-    browseBtn?.addEventListener('click', this._boundHandlers.browseClick);
+    browseBtn?.addEventListener("click", this._boundHandlers.browseClick);
 
     // Click on zone itself (but not when clicking paste area)
     this._boundHandlers.zoneClick = (e) => {
-      if (e.target.closest('.cli-upload-paste-area') || e.target.closest('button')) return;
+      if (
+        e.target.closest(".cli-upload-paste-area") ||
+        e.target.closest("button")
+      )
+        return;
       this._fileInput?.click();
     };
-    this._dropZone.addEventListener('click', this._boundHandlers.zoneClick);
+    this._dropZone.addEventListener("click", this._boundHandlers.zoneClick);
 
     // File input change
     this._boundHandlers.fileChange = async (e) => {
       const file = e.target.files?.[0];
       if (file) await this.loadFromFile(file);
-      e.target.value = '';
+      e.target.value = "";
     };
-    this._fileInput?.addEventListener('change', this._boundHandlers.fileChange);
+    this._fileInput?.addEventListener("change", this._boundHandlers.fileChange);
 
     // Drag and drop
     this._boundHandlers.dragOver = (e) => this._onDragOver(e);
     this._boundHandlers.dragLeave = (e) => this._onDragLeave(e);
     this._boundHandlers.drop = (e) => this._onDrop(e);
-    this._dropZone.addEventListener('dragover', this._boundHandlers.dragOver);
-    this._dropZone.addEventListener('dragleave', this._boundHandlers.dragLeave);
-    this._dropZone.addEventListener('drop', this._boundHandlers.drop);
+    this._dropZone.addEventListener("dragover", this._boundHandlers.dragOver);
+    this._dropZone.addEventListener("dragleave", this._boundHandlers.dragLeave);
+    this._dropZone.addEventListener("drop", this._boundHandlers.drop);
 
     // Paste JSON toggle
-    const pasteBtn = this._dropZone.querySelector('.cli-upload-paste-btn');
-    const pasteArea = this._dropZone.querySelector('.cli-upload-paste-area');
+    const pasteBtn = this._dropZone.querySelector(".cli-upload-paste-btn");
+    const pasteArea = this._dropZone.querySelector(".cli-upload-paste-area");
     this._boundHandlers.pasteToggle = () => {
-      if (pasteArea) pasteArea.style.display = pasteArea.style.display === 'none' ? 'block' : 'none';
-      if (pasteArea.style.display === 'block') this._pasteInput?.focus();
+      if (pasteArea)
+        pasteArea.style.display =
+          pasteArea.style.display === "none" ? "block" : "none";
+      if (pasteArea.style.display === "block") this._pasteInput?.focus();
     };
-    pasteBtn?.addEventListener('click', this._boundHandlers.pasteToggle);
+    pasteBtn?.addEventListener("click", this._boundHandlers.pasteToggle);
 
     // Paste submit
-    const pasteSubmit = this._dropZone.querySelector('.cli-upload-paste-submit');
+    const pasteSubmit = this._dropZone.querySelector(
+      ".cli-upload-paste-submit",
+    );
     this._boundHandlers.pasteSubmit = () => {
       const text = this._pasteInput?.value?.trim();
       if (!text) {
-        this._setStatus('Please paste JSON text first', 'error');
+        this._setStatus("Please paste JSON text first", "error");
         return;
       }
       this.loadFromText(text);
     };
-    pasteSubmit?.addEventListener('click', this._boundHandlers.pasteSubmit);
+    pasteSubmit?.addEventListener("click", this._boundHandlers.pasteSubmit);
 
     // Paste cancel
-    const pasteCancel = this._dropZone.querySelector('.cli-upload-paste-cancel');
+    const pasteCancel = this._dropZone.querySelector(
+      ".cli-upload-paste-cancel",
+    );
     this._boundHandlers.pasteCancel = () => {
-      if (pasteArea) pasteArea.style.display = 'none';
-      if (this._pasteInput) this._pasteInput.value = '';
+      if (pasteArea) pasteArea.style.display = "none";
+      if (this._pasteInput) this._pasteInput.value = "";
     };
-    pasteCancel?.addEventListener('click', this._boundHandlers.pasteCancel);
+    pasteCancel?.addEventListener("click", this._boundHandlers.pasteCancel);
 
     // Sample report button
-    const sampleBtn = this._dropZone.querySelector('.cli-upload-sample-btn');
+    const sampleBtn = this._dropZone.querySelector(".cli-upload-sample-btn");
     this._boundHandlers.sampleClick = () => this._loadSampleReport();
-    sampleBtn?.addEventListener('click', this._boundHandlers.sampleClick);
+    sampleBtn?.addEventListener("click", this._boundHandlers.sampleClick);
   }
 
   _unbindEvents() {
     if (!this._dropZone) return;
     for (const [name, handler] of Object.entries(this._boundHandlers)) {
       const targets = {
-        browseClick: this._dropZone.querySelector('.cli-upload-browse-btn'),
+        browseClick: this._dropZone.querySelector(".cli-upload-browse-btn"),
         zoneClick: this._dropZone,
         fileChange: this._fileInput,
         dragOver: this._dropZone,
         dragLeave: this._dropZone,
         drop: this._dropZone,
-        pasteToggle: this._dropZone.querySelector('.cli-upload-paste-btn'),
-        pasteSubmit: this._dropZone.querySelector('.cli-upload-paste-submit'),
-        pasteCancel: this._dropZone.querySelector('.cli-upload-paste-cancel'),
-        sampleClick: this._dropZone.querySelector('.cli-upload-sample-btn'),
+        pasteToggle: this._dropZone.querySelector(".cli-upload-paste-btn"),
+        pasteSubmit: this._dropZone.querySelector(".cli-upload-paste-submit"),
+        pasteCancel: this._dropZone.querySelector(".cli-upload-paste-cancel"),
+        sampleClick: this._dropZone.querySelector(".cli-upload-sample-btn"),
       };
       targets[name]?.removeEventListener(
-        name.replace(/([A-Z])/g, (_, c) => c.toLowerCase()).replace(/^./, (c) => c.toLowerCase()),
-        handler
+        name
+          .replace(/([A-Z])/g, (_, c) => c.toLowerCase())
+          .replace(/^./, (c) => c.toLowerCase()),
+        handler,
       );
     }
     this._boundHandlers = {};
@@ -283,8 +297,8 @@ export class CliReportUploadZone {
     e.stopPropagation();
     if (!this._isDragging) {
       this._isDragging = true;
-      this._dropZone.style.borderColor = 'var(--primary, #6366f1)';
-      this._dropZone.style.background = 'rgba(99, 102, 241, 0.05)';
+      this._dropZone.style.borderColor = "var(--primary, #6366f1)";
+      this._dropZone.style.background = "rgba(99, 102, 241, 0.05)";
     }
   }
 
@@ -294,8 +308,8 @@ export class CliReportUploadZone {
     // Only reset if leaving the zone itself (not a child element)
     if (e.target === this._dropZone) {
       this._isDragging = false;
-      this._dropZone.style.borderColor = 'var(--border, #334155)';
-      this._dropZone.style.background = 'var(--surface, #f8fafc)';
+      this._dropZone.style.borderColor = "var(--border, #334155)";
+      this._dropZone.style.background = "var(--surface, #f8fafc)";
     }
   }
 
@@ -303,8 +317,8 @@ export class CliReportUploadZone {
     e.preventDefault();
     e.stopPropagation();
     this._isDragging = false;
-    this._dropZone.style.borderColor = 'var(--border, #334155)';
-    this._dropZone.style.background = 'var(--surface, #f8fafc)';
+    this._dropZone.style.borderColor = "var(--border, #334155)";
+    this._dropZone.style.background = "var(--surface, #f8fafc)";
 
     const files = e.dataTransfer?.files;
     if (!files || files.length === 0) return;
@@ -320,23 +334,25 @@ export class CliReportUploadZone {
   _loadSampleReport() {
     try {
       const sample = generateSampleReport();
-      this._setStatus('Loading sample report...', 'info');
+      this._setStatus("Loading sample report...", "info");
       this._processReport(sample);
     } catch (err) {
-      this._handleError(new Error('Failed to generate sample report: ' + err.message));
+      this._handleError(
+        new Error("Failed to generate sample report: " + err.message),
+      );
     }
   }
 
   _processReport(rawReport) {
     // Validate it looks like a SimpleBeacon report
-    if (!rawReport || typeof rawReport !== 'object') {
-      this._handleError(new Error('File does not contain a valid JSON object'));
+    if (!rawReport || typeof rawReport !== "object") {
+      this._handleError(new Error("File does not contain a valid JSON object"));
       return null;
     }
 
     // Check for SimpleBeacon report markers
     const isSbReport =
-      rawReport.type?.includes('simplebeacon') ||
+      rawReport.type?.includes("simplebeacon") ||
       rawReport.reportVersion !== undefined ||
       rawReport.gate !== undefined ||
       rawReport.severityCounts !== undefined ||
@@ -346,9 +362,9 @@ export class CliReportUploadZone {
     if (!isSbReport) {
       this._handleError(
         new Error(
-          'File does not appear to be a SimpleBeacon CLI report. ' +
-            'Expected fields: type, reportVersion, gate, severityCounts, or rawIssues.'
-        )
+          "File does not appear to be a SimpleBeacon CLI report. " +
+            "Expected fields: type, reportVersion, gate, severityCounts, or rawIssues.",
+        ),
       );
       return null;
     }
@@ -364,10 +380,10 @@ export class CliReportUploadZone {
 
     // Update status
     const issueCount = adapted.issueCount || 0;
-    const gateStatus = adapted.gate?.pass ? 'PASSED' : 'FAILED';
+    const gateStatus = adapted.gate?.pass ? "PASSED" : "FAILED";
     this._setStatus(
-      `Report loaded: ${issueCount} issue${issueCount === 1 ? '' : 's'} · Gate: ${gateStatus}`,
-      'success'
+      `Report loaded: ${issueCount} issue${issueCount === 1 ? "" : "s"} · Gate: ${gateStatus}`,
+      "success",
     );
 
     // Callback
@@ -383,17 +399,17 @@ export class CliReportUploadZone {
   // ═══════════════════════════════════════════════
 
   _handleError(error) {
-    this._setStatus(error.message, 'error');
+    this._setStatus(error.message, "error");
     if (this.onError) this.onError(error);
   }
 
-  _setStatus(message, type = 'info') {
-    const status = this._dropZone?.querySelector('.cli-upload-status');
+  _setStatus(message, type = "info") {
+    const status = this._dropZone?.querySelector(".cli-upload-status");
     if (!status) return;
     const colors = {
-      info: 'var(--text-muted, #94a3b8)',
-      success: '#10B981',
-      error: '#EF4444',
+      info: "var(--text-muted, #94a3b8)",
+      success: "#10B981",
+      error: "#EF4444",
     };
     status.style.color = colors[type] || colors.info;
     status.textContent = message;
@@ -403,19 +419,19 @@ export class CliReportUploadZone {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.onerror = () => reject(new Error("FileReader error"));
       reader.readAsText(file);
     });
   }
 
   _getFileExtension(filename) {
-    const idx = filename.lastIndexOf('.');
-    return idx > 0 ? filename.slice(idx).toLowerCase() : '';
+    const idx = filename.lastIndexOf(".");
+    return idx > 0 ? filename.slice(idx).toLowerCase() : "";
   }
 
   _formatBytes(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   }
 }

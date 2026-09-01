@@ -2,7 +2,7 @@
 /**
  * @module download
  */
-import { notifyDownloadComplete } from './notify.js';
+import { notifyDownloadComplete } from "./notify.js";
 
 /**
  * Download a Blob as a file.
@@ -15,16 +15,16 @@ import { notifyDownloadComplete } from './notify.js';
  */
 export function normalDownload(blob, filename) {
   if (!(blob instanceof Blob)) {
-    throw new Error('Download is unavailable: invalid blob.');
+    throw new Error("Download is unavailable: invalid blob.");
   }
-  if (typeof document === 'undefined' || !document.body) {
-    throw new Error('Download is unavailable in this environment.');
+  if (typeof document === "undefined" || !document.body) {
+    throw new Error("Download is unavailable in this environment.");
   }
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = filename || 'download';
-  a.rel = 'noopener';
+  a.download = filename || "download";
+  a.rel = "noopener";
   document.body.appendChild(a);
   try {
     a.click();
@@ -32,13 +32,16 @@ export function normalDownload(blob, filename) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
-  notifyDownloadComplete(filename || 'download');
+  notifyDownloadComplete(filename || "download");
 }
 export function downloadBlob(blob, filename) {
   if (!(blob instanceof Blob)) {
-    throw new Error('Download is unavailable: no valid blob provided.');
+    throw new Error("Download is unavailable: no valid blob provided.");
   }
-  if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  ) {
     let vscode;
     try {
       vscode = window.acquireVsCodeApi();
@@ -48,19 +51,24 @@ export function downloadBlob(blob, filename) {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      const result = String(reader.result || '');
-      const commaIdx = result.indexOf(',');
+      const result = String(reader.result || "");
+      const commaIdx = result.indexOf(",");
       const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
-      vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
+      vscode.postMessage({
+        command: "downloadFile",
+        filename: filename || "download",
+        mimeType: blob.type,
+        base64,
+      });
     };
     reader.onerror = () => {
-      window['console']['error'](
-        'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
+      window["console"]["error"](
+        "FileReader failed to convert blob for VS Code download. Falling back to normal download.",
       );
       try {
         normalDownload(blob, filename);
       } catch (err) {
-        window['console']['error']('Fallback download failed:', err);
+        window["console"]["error"]("Fallback download failed:", err);
       }
     };
     reader.readAsDataURL(blob);
@@ -77,16 +85,18 @@ export function downloadBlob(blob, filename) {
  * @throws {Error} When JSON serialization fails.
  */
 export function downloadJson(data, filename) {
-  if (typeof filename !== 'string') {
-    throw new Error('Download requires a valid filename string.');
+  if (typeof filename !== "string") {
+    throw new Error("Download requires a valid filename string.");
   }
   let json;
   try {
     json = JSON.stringify(data, null, 2);
   } catch (err) {
-    throw new Error(`Failed to serialize data to JSON: ${err?.message || String(err)}`);
+    throw new Error(
+      `Failed to serialize data to JSON: ${err?.message || String(err)}`,
+    );
   }
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   downloadBlob(blob, filename);
 }
 
@@ -97,12 +107,12 @@ export function downloadJson(data, filename) {
  * @param {string} [mime='text/plain']
  * @returns {void}
  */
-export function downloadText(content, filename, mime = 'text/plain') {
+export function downloadText(content, filename, mime = "text/plain") {
   if (content == null) {
-    throw new Error('Download is unavailable: no content provided.');
+    throw new Error("Download is unavailable: no content provided.");
   }
-  if (typeof filename !== 'string') {
-    throw new Error('Download requires a valid filename string.');
+  if (typeof filename !== "string") {
+    throw new Error("Download requires a valid filename string.");
   }
   const blob = new Blob([content], { type: mime });
   downloadBlob(blob, filename);

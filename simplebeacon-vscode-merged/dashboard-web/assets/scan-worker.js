@@ -10,6 +10,37 @@ import {
   findingsToIssues,
 } from "./scan-wasm-bridge.js";
 import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js";
+
+/**
+ * Verify a scan attestation token (client-side structural check).
+ *
+ * This checks that the attestation JWT is well-formed, has the correct
+ * issuer/audience, and has not expired. The authoritative signature
+ * verification happens server-side when the attestation is issued.
+ *
+ * This is a barrier to casual copying, not a cryptographic guarantee —
+ * a determined attacker can modify this check. The real protection is
+ * that server-trusted results (compliance certs, uploaded reports)
+ * require a valid attestation that the server independently verifies.
+ */
+function verifyAttestation(attestation) {
+  if (!attestation || typeof attestation !== "string") return false;
+  try {
+    const parts = attestation.split(".");
+    if (parts.length !== 3) return false;
+    // Decode payload (base64url)
+    const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(payloadB64));
+    // Check issuer and audience
+    if (payload.iss !== "simplebeacon-edge") return false;
+    if (payload.aud !== "simplebeacon-scan-worker") return false;
+    // Check expiry (5-minute TTL, allow 10s clock skew)
+    if (payload.exp && Date.now() >= payload.exp * 1000 - 10000) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 const MAX_DISCOVERED_FILES = 999999999; // No cap — scan all files (matches legacy /audit page)
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -18,7 +49,7 @@ const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
 const BINARY_EXTENSIONS =
-  /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage|idx|s2ma|s2ml|s2gs|s2vh|bank|stormmap|stormmod|replay|mng|snp|tga|dds|anim|model|fx|s2ga|s2ua|s2sa|s2ta|s2wa|s2ih|s2rh|s2ph|s2ch|s2nh|s2mh|s2dh|s2oh|s2ee|s2sb|s2gb|s2mb|s2ab|s2vb|s2lb|s2hb|s2cb|s2nb|s2pb|s2tb|s2wb|s2yb|s2zb|s2fb|s2qb|s2rb|s2xb|s2jb|s2kb|s2ib|s2eb|s2ob|s2ub)$/i;
+  /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|db-wal|db-shm|db-journal|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage|idx|s2ma|s2ml|s2gs|s2vh|bank|stormmap|stormmod|replay|mng|snp|tga|dds|anim|model|fx|s2ga|s2ua|s2sa|s2ta|s2wa|s2ih|s2rh|s2ph|s2ch|s2nh|s2mh|s2dh|s2oh|s2ee|s2sb|s2gb|s2mb|s2ab|s2vb|s2lb|s2hb|s2cb|s2nb|s2pb|s2tb|s2wb|s2yb|s2zb|s2fb|s2qb|s2rb|s2xb|s2jb|s2kb|s2ib|s2eb|s2ob|s2ub|sys|pak|legacy|mdl|cat|pdb|lib|a|o|ko|elf|dylib|swf|flv|dat|key|pem|crt|der|pfx|p12|kdbx|1cd|cd|vmdk|vdi|qcow2|vhd|vhdx|wim|esd|tib|gho|bki|mrimg|arc|lzo|lz|lz4|lzma|zst|br|xz|txz|tbz2|tgz|zlib|snappy|parquet|arrow|avro|orc|feather|h5|hdf5|nc|npy|npz|pkl|pickle|joblib|msgpack|cbor|bson|protobuf|flatbuf|cap|pcap|pcapng|raw|cr2|nef|arw|dng|raf|rw2|orf|srw|heic|heif|avif|psd|ai|sketch|fig|indd|idml|icml|epub|mobi|azw|azw3|azw4|kf8|kfx|lrf|lrx|pdb|pdb|prc|doc|docx|odt|rtf|pages|wpd|xls|xlsx|ods|numbers|gnumeric|csv|tsv|key|ppt|pptx|odp|pps|ppsx|otp|ots|odg|odf|odc|odb|odm|ott|oth|odt|fodt|fods|fodp|fodg|epub|iba|itmsp)$/i;
 const LANGUAGE_REGISTRY = {
   javascript: { extensions: ["js", "cjs", "mjs", "ts", "tsx", "jsx"] },
   python: { extensions: ["py", "pyw", "pyi"] },
@@ -1049,6 +1080,18 @@ self.onmessage = async (e) => {
     return;
   }
   if (type === "scan-start") {
+    // Verify attestation token before starting the scan.
+    // This prevents casual copying of the scan worker — it won't run
+    // without a valid, server-issued attestation token.
+    // However, attestation is optional for browser-local scans — the real
+    // protection is server-side attestation for compliance certs and uploaded
+    // reports. If attestation is missing, the scan proceeds with a warning.
+    const { attestation, attestationScanId } = e.data;
+    if (!verifyAttestation(attestation)) {
+      console.warn(
+        "[scan-worker] Attestation missing or invalid — proceeding without it. Server-trusted features (compliance certs, uploaded reports) will require sign-in.",
+      );
+    }
     self.scanState = {
       scanId,
       totalFiles: totalFiles || 0,
@@ -1061,6 +1104,7 @@ self.onmessage = async (e) => {
       issuesTruncated: false,
       deepScan: Boolean(deepScan),
       ignoreCtx: e.data.ignoreCtx || null,
+      attestationScanId: attestationScanId || null,
     };
     self.postMessage({
       type: "started",

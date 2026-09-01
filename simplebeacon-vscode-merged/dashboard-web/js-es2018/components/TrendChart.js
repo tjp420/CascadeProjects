@@ -4,10 +4,12 @@
 export class TrendChart {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext("2d");
   }
   render(history, _options = {}) {
-    const data = history.length ? history : [{ date: new Date().toISOString(), issueCount: 0, qualityScore: 99 }];
+    const data = history.length
+      ? history
+      : [{ date: new Date().toISOString(), issueCount: 0, qualityScore: 99 }];
     const dpr = window.devicePixelRatio || 1;
     const rect = this.canvas.parentElement.getBoundingClientRect();
     this.canvas.width = rect.width * dpr;
@@ -19,24 +21,34 @@ export class TrendChart {
     const chartW = w - pad.left - pad.right;
     const chartH = h - pad.top - pad.bottom;
     const styles = getComputedStyle(document.documentElement);
-    const border = styles.getPropertyValue('--border').trim() || '#334155';
-    const text = styles.getPropertyValue('--text-muted').trim() || '#94a3b8';
-    const primary = styles.getPropertyValue('--primary').trim() || '#6366f1';
-    const success = styles.getPropertyValue('--success').trim() || '#10b981';
+    const border = styles.getPropertyValue("--border").trim() || "#334155";
+    const text = styles.getPropertyValue("--text-muted").trim() || "#94a3b8";
+    const primary = styles.getPropertyValue("--primary").trim() || "#6366f1";
+    const success = styles.getPropertyValue("--success").trim() || "#10b981";
     this.ctx.clearRect(0, 0, w, h);
     const maxIssues = Math.max(
       1,
       ...data.map((d) => {
         var _a;
         return (_a = d.issueCount) !== null && _a !== void 0 ? _a : 0;
-      })
+      }),
     );
     const points = data.map((d, i) => {
       var _a;
       return {
         x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
-        y: pad.top + chartH - (((_a = d.issueCount) !== null && _a !== void 0 ? _a : 0) / maxIssues) * chartH,
-        label: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
+        y:
+          pad.top +
+          chartH -
+          (((_a = d.issueCount) !== null && _a !== void 0 ? _a : 0) /
+            maxIssues) *
+            chartH,
+        label: d.date
+          ? new Date(d.date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })
+          : "",
       };
     });
     // Grid lines
@@ -51,9 +63,14 @@ export class TrendChart {
     }
     // Area fill
     if (points.length > 1) {
-      const grad = this.ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
-      grad.addColorStop(0, primary + '40');
-      grad.addColorStop(1, primary + '05');
+      const grad = this.ctx.createLinearGradient(
+        0,
+        pad.top,
+        0,
+        pad.top + chartH,
+      );
+      grad.addColorStop(0, primary + "40");
+      grad.addColorStop(1, primary + "05");
       this.ctx.fillStyle = grad;
       this.ctx.beginPath();
       this.ctx.moveTo(points[0].x, pad.top + chartH);
@@ -75,15 +92,22 @@ export class TrendChart {
     points.forEach((p) => {
       var _a;
       this.ctx.fillStyle =
-        data.length === 1 && ((_a = data[0].issueCount) !== null && _a !== void 0 ? _a : 0) === 0 ? success : primary;
+        data.length === 1 &&
+        ((_a = data[0].issueCount) !== null && _a !== void 0 ? _a : 0) === 0
+          ? success
+          : primary;
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       this.ctx.fill();
     });
     // X labels (first, middle, last)
     this.ctx.fillStyle = text;
-    this.ctx.font = '11px system-ui, sans-serif';
-    const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+    this.ctx.font = "11px system-ui, sans-serif";
+    const labelIdx = [
+      0,
+      Math.floor(points.length / 2),
+      points.length - 1,
+    ].filter((v, i, a) => a.indexOf(v) === i);
     labelIdx.forEach((i) => {
       var _a;
       if ((_a = points[i]) === null || _a === void 0 ? void 0 : _a.label) {
@@ -94,7 +118,7 @@ export class TrendChart {
     this.ctx.save();
     this.ctx.translate(12, pad.top + chartH / 2);
     this.ctx.rotate(-Math.PI / 2);
-    this.ctx.fillText('Issues', 0, 0);
+    this.ctx.fillText("Issues", 0, 0);
     this.ctx.restore();
   }
 }
@@ -133,7 +157,7 @@ export function renderTrendSection(history) {
  * @returns {any}
  */
 export function mountTrendChart(container, history) {
-  const canvas = container.querySelector('#trend-canvas');
+  const canvas = container.querySelector("#trend-canvas");
   if (!canvas) return null;
   const chart = new TrendChart(canvas);
   chart.render(history);
@@ -142,6 +166,6 @@ export function mountTrendChart(container, history) {
    * @returns {any}
    */
   const onResize = () => chart.render(history);
-  window.addEventListener('resize', onResize);
-  return () => window.removeEventListener('resize', onResize);
+  window.addEventListener("resize", onResize);
+  return () => window.removeEventListener("resize", onResize);
 }

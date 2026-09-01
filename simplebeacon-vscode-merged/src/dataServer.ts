@@ -5819,10 +5819,14 @@ ${
   dataServer = http.createServer((req, res) => handleRequest(req, res));
 
   dataServer.on('error', (err: NodeJS.ErrnoException) => {
-    if (err.code === 'EADDRINUSE') {
+    // EADDRINUSE: port already taken by another process
+    // EACCES: port is in a Windows reserved/excluded port range (Hyper-V/WSL/Docker dynamic exclusions)
+    // Both should fall back to a random ephemeral port rather than hard-failing.
+    const isBindableError = err.code === 'EADDRINUSE' || err.code === 'EACCES';
+    if (isBindableError) {
       if (outputChannel) {
         outputChannel.appendLine(
-          `[SimpleBeacon DataServer] Port ${dataServerPort} in use, creating new server on random port...`
+          `[SimpleBeacon DataServer] Port ${dataServerPort} unavailable (${err.code}), creating new server on random port...`
         );
       }
       try {

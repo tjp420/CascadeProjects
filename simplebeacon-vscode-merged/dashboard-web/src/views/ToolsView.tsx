@@ -1,8 +1,14 @@
-import { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+import { useState, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   Wrench,
   RefreshCw,
@@ -17,12 +23,12 @@ import {
   Calculator,
   Zap,
   Clock,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
-import { navigate } from '@/router/HashRouter';
+} from "lucide-react";
+import { toast } from "sonner";
+import { getApiBase, apiUrl, authHeaders } from "@/config";
+import { navigate } from "@/router/HashRouter";
 
-type ToolStatus = 'idle' | 'running' | 'done' | 'error';
+type ToolStatus = "idle" | "running" | "done" | "error";
 
 type ToolDef = {
   id: string;
@@ -31,68 +37,71 @@ type ToolDef = {
   icon: typeof Wrench;
   analysisType?: string;
   endpoint?: string;
-  method?: 'GET' | 'POST';
+  method?: "GET" | "POST";
   color: string;
 };
 
 const TOOLS: ToolDef[] = [
   {
-    id: 'data-cleanup',
-    name: 'Data Cleanup Scan',
-    description: 'Directory bloat, stale data, config sprawl, and privacy findings',
+    id: "data-cleanup",
+    name: "Data Cleanup Scan",
+    description:
+      "Directory bloat, stale data, config sprawl, and privacy findings",
     icon: Trash2,
-    analysisType: 'data-cleanup',
-    color: 'text-orange-500',
+    analysisType: "data-cleanup",
+    color: "text-orange-500",
   },
   {
-    id: 'file-reduction',
-    name: 'File Reduction',
-    description: 'Build artifacts, duplicate assets, and unused files (dry-run)',
+    id: "file-reduction",
+    name: "File Reduction",
+    description:
+      "Build artifacts, duplicate assets, and unused files (dry-run)",
     icon: FileText,
-    analysisType: 'file-reduction',
-    color: 'text-blue-500',
+    analysisType: "file-reduction",
+    color: "text-blue-500",
   },
   {
-    id: 'data-quality',
-    name: 'Data Quality Scan',
-    description: 'Config drift, env keys, stale data, lineage, and shape drift',
+    id: "data-quality",
+    name: "Data Quality Scan",
+    description: "Config drift, env keys, stale data, lineage, and shape drift",
     icon: Database,
-    analysisType: 'data-quality',
-    color: 'text-purple-500',
+    analysisType: "data-quality",
+    color: "text-purple-500",
   },
   {
-    id: 'npm-audit',
-    name: 'NPM Audit',
-    description: 'Dependency vulnerability scan via npm audit',
+    id: "npm-audit",
+    name: "NPM Audit",
+    description: "Dependency vulnerability scan via npm audit",
     icon: Shield,
-    analysisType: 'npm-audit',
-    color: 'text-red-500',
+    analysisType: "npm-audit",
+    color: "text-red-500",
   },
   {
-    id: 'compliance',
-    name: 'Compliance Export',
-    description: 'Gate layers, compliance checklist, and audit bundle export',
+    id: "compliance",
+    name: "Compliance Export",
+    description: "Gate layers, compliance checklist, and audit bundle export",
     icon: Download,
-    analysisType: 'compliance',
-    color: 'text-green-500',
+    analysisType: "compliance",
+    color: "text-green-500",
   },
   {
-    id: 'ai-math-audit',
-    name: 'AI Math Audit',
-    description: 'Detect fabricated metrics and hallucinated KPIs in AI outputs',
+    id: "ai-math-audit",
+    name: "AI Math Audit",
+    description:
+      "Detect fabricated metrics and hallucinated KPIs in AI outputs",
     icon: Calculator,
-    endpoint: '/analyze/ai-math-audit',
-    method: 'POST',
-    color: 'text-cyan-500',
+    endpoint: "/analyze/ai-math-audit",
+    method: "POST",
+    color: "text-cyan-500",
   },
   {
-    id: 'fix-strategies',
-    name: 'Fix Strategies',
-    description: 'List supported auto-remediation strategies by finding type',
+    id: "fix-strategies",
+    name: "Fix Strategies",
+    description: "List supported auto-remediation strategies by finding type",
     icon: Zap,
-    endpoint: '/v2/fixes/strategies',
-    method: 'GET',
-    color: 'text-yellow-500',
+    endpoint: "/v2/fixes/strategies",
+    method: "GET",
+    color: "text-yellow-500",
   },
 ];
 
@@ -102,19 +111,19 @@ export function ToolsView() {
     Record<string, { status: ToolStatus; data?: unknown; error?: string }>
   >({});
   const [progress, setProgress] = useState(0);
-  const [progressLabel, setProgressLabel] = useState('');
+  const [progressLabel, setProgressLabel] = useState("");
   const apiBase = getApiBase();
 
   const runTool = useCallback(async (tool: ToolDef) => {
     setRunningTool(tool.id);
-    setToolResults((prev) => ({ ...prev, [tool.id]: { status: 'running' } }));
+    setToolResults((prev) => ({ ...prev, [tool.id]: { status: "running" } }));
     setProgress(10);
     setProgressLabel(`Starting ${tool.name}...`);
 
     try {
-      let projectPath = 'CascadeProjects';
+      let projectPath = "CascadeProjects";
       try {
-        const stored = localStorage.getItem('sb_last_scan_full');
+        const stored = localStorage.getItem("sb_last_scan_full");
         if (stored) {
           const scan = JSON.parse(stored);
           if (scan?.projectPath) projectPath = scan.projectPath;
@@ -128,26 +137,29 @@ export function ToolsView() {
 
       let resp: Response;
 
-      if (tool.endpoint && tool.method === 'GET') {
+      if (tool.endpoint && tool.method === "GET") {
         resp = await fetch(apiUrl(tool.endpoint), {
           headers: authHeaders(),
         });
-      } else if (tool.endpoint && tool.method === 'POST') {
+      } else if (tool.endpoint && tool.method === "POST") {
         resp = await fetch(apiUrl(tool.endpoint), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ projectPath }),
         });
       } else {
-        resp = await fetch(apiUrl('/analyze/flexible'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ projectPath, analysisType: tool.analysisType }),
+        resp = await fetch(apiUrl("/analyze/flexible"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({
+            projectPath,
+            analysisType: tool.analysisType,
+          }),
         });
       }
 
       setProgress(80);
-      setProgressLabel('Processing results...');
+      setProgressLabel("Processing results...");
 
       if (!resp.ok) {
         const errBody = await resp.json().catch(() => ({}));
@@ -156,17 +168,23 @@ export function ToolsView() {
 
       const data = await resp.json();
       setProgress(100);
-      setProgressLabel('Complete');
-      setToolResults((prev) => ({ ...prev, [tool.id]: { status: 'done', data } }));
+      setProgressLabel("Complete");
+      setToolResults((prev) => ({
+        ...prev,
+        [tool.id]: { status: "done", data },
+      }));
       toast.success(`${tool.name} completed`);
     } catch (e: any) {
-      setToolResults((prev) => ({ ...prev, [tool.id]: { status: 'error', error: e?.message || 'Failed' } }));
-      toast.error(`${tool.name} failed: ${e?.message || 'Unknown error'}`);
+      setToolResults((prev) => ({
+        ...prev,
+        [tool.id]: { status: "error", error: e?.message || "Failed" },
+      }));
+      toast.error(`${tool.name} failed: ${e?.message || "Unknown error"}`);
     } finally {
       setRunningTool(null);
       setTimeout(() => {
         setProgress(0);
-        setProgressLabel('');
+        setProgressLabel("");
       }, 2000);
     }
   }, []);
@@ -174,9 +192,11 @@ export function ToolsView() {
   const downloadResult = (toolId: string) => {
     const result = toolResults[toolId];
     if (!result?.data) return;
-    const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(result.data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `simplebeacon-${toolId}-${Date.now()}.json`;
     a.click();
@@ -186,20 +206,21 @@ export function ToolsView() {
   // Export arbitrary file from server archive by requesting a download endpoint
   const exportArchiveFile = async (filename: string) => {
     try {
-      const resp = await fetch(apiUrl(`/archive/download?name=${encodeURIComponent(filename)}`), {
-        headers: authHeaders(),
-      });
+      const resp = await fetch(
+        apiUrl(`/archive/download?name=${encodeURIComponent(filename)}`),
+        { headers: authHeaders() },
+      );
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Export started');
+      toast.success("Export started");
     } catch (err: any) {
-      toast.error('Export failed: ' + (err?.message || 'unknown'));
+      toast.error("Export failed: " + (err?.message || "unknown"));
     }
   };
 
@@ -207,11 +228,13 @@ export function ToolsView() {
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Tools</h1>
-        <p className="text-foreground-muted">Advanced scanning tools and utilities</p>
+        <p className="text-foreground-muted">
+          Advanced scanning tools and utilities
+        </p>
         {!apiBase && (
           <p className="text-xs text-yellow-600">
-            No local API server detected — tools will run against the remote backend. Start your local SimpleBeacon
-            server for current data.
+            No local API server detected — tools will run against the remote
+            backend. Start your local SimpleBeacon server for current data.
           </p>
         )}
       </div>
@@ -243,32 +266,51 @@ export function ToolsView() {
                     </div>
                     <div>
                       <CardTitle className="text-base">{tool.name}</CardTitle>
-                      <CardDescription className="text-xs">{tool.description}</CardDescription>
+                      <CardDescription className="text-xs">
+                        {tool.description}
+                      </CardDescription>
                     </div>
                   </div>
-                  {result?.status === 'done' && <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />}
-                  {result?.status === 'error' && <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />}
+                  {result?.status === "done" && (
+                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                  )}
+                  {result?.status === "error" && (
+                    <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {result?.status === 'error' && <p className="text-xs text-red-500">{result.error}</p>}
-                {result?.status === 'done' && result.data != null && (
+                {result?.status === "error" && (
+                  <p className="text-xs text-red-500">{result.error}</p>
+                )}
+                {result?.status === "done" && result.data != null && (
                   <div className="space-y-2">
                     <div className="rounded-md bg-muted p-2 text-xs font-mono max-h-32 overflow-y-auto scrollbar-thin">
-                      <pre className="whitespace-pre-wrap">{JSON.stringify(result.data, null, 2).slice(0, 2000)}</pre>
-                      {JSON.stringify(result.data).length > 2000 && '...'}
+                      <pre className="whitespace-pre-wrap">
+                        {JSON.stringify(result.data, null, 2).slice(0, 2000)}
+                      </pre>
+                      {JSON.stringify(result.data).length > 2000 && "..."}
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => downloadResult(tool.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadResult(tool.id)}
+                    >
                       <Download className="h-3 w-3" /> Export JSON
                     </Button>
                   </div>
                 )}
-                <Button size="sm" className="w-full" disabled={isRunning} onClick={() => runTool(tool)}>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={isRunning}
+                  onClick={() => runTool(tool)}
+                >
                   {isRunning ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" /> Running...
                     </>
-                  ) : result?.status === 'done' ? (
+                  ) : result?.status === "done" ? (
                     <>
                       <RefreshCw className="h-4 w-4" /> Re-run
                     </>
@@ -291,29 +333,47 @@ export function ToolsView() {
           <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('analyze')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("analyze")}
+          >
             <Wrench className="h-4 w-4" /> Full Scan
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('audit')}>
+          <Button variant="outline" size="sm" onClick={() => navigate("audit")}>
             <Shield className="h-4 w-4" /> Audit Report
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('remediation')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("remediation")}
+          >
             <Clock className="h-4 w-4" /> Remediation Roadmap
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('security')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("security")}
+          >
             <Shield className="h-4 w-4" /> Security View
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportArchiveFile('simplebeacon-fix-strategies-1785040174360.json')}
+            onClick={() =>
+              exportArchiveFile(
+                "simplebeacon-fix-strategies-1785040174360.json",
+              )
+            }
           >
             <Download className="h-4 w-4" /> Export Fix Strategies
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportArchiveFile('security-export-2026-07-26T04-26-28-205Z.json')}
+            onClick={() =>
+              exportArchiveFile("security-export-2026-07-26T04-26-28-205Z.json")
+            }
           >
             <Download className="h-4 w-4" /> Export Security Export
           </Button>

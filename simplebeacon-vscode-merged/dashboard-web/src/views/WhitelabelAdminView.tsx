@@ -1,13 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Palette, Plus, Trash2, RefreshCw, Building2, Globe, CheckCircle2, XCircle, Eye, Code } from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
-import { toast } from 'sonner';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Palette,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Building2,
+  Globe,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  Code,
+} from "lucide-react";
+import { apiUrl, authHeaders } from "@/config";
+import { toast } from "sonner";
 
 type Partner = {
   partnerId: string;
@@ -48,33 +65,33 @@ type Partner = {
 };
 
 const COLOR_FIELDS = [
-  'primaryColor',
-  'secondaryColor',
-  'accentColor',
-  'backgroundColor',
-  'surfaceColor',
-  'textColor',
-  'emailTemplateColor',
+  "primaryColor",
+  "secondaryColor",
+  "accentColor",
+  "backgroundColor",
+  "surfaceColor",
+  "textColor",
+  "emailTemplateColor",
 ];
 const TEXT_FIELDS = [
-  'productName',
-  'tagline',
-  'reportHeader',
-  'reportFooter',
-  'emailFromName',
-  'emailFromAddress',
-  'legalName',
+  "productName",
+  "tagline",
+  "reportHeader",
+  "reportFooter",
+  "emailFromName",
+  "emailFromAddress",
+  "legalName",
 ];
 const URL_FIELDS = [
-  'logoUrl',
-  'logoDarkUrl',
-  'faviconUrl',
-  'customDomain',
-  'customSubdomain',
-  'privacyPolicyUrl',
-  'termsUrl',
-  'supportUrl',
-  'helpUrl',
+  "logoUrl",
+  "logoDarkUrl",
+  "faviconUrl",
+  "customDomain",
+  "customSubdomain",
+  "privacyPolicyUrl",
+  "termsUrl",
+  "supportUrl",
+  "helpUrl",
 ];
 
 export function WhitelabelAdminView() {
@@ -84,31 +101,33 @@ export function WhitelabelAdminView() {
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [previewCss, setPreviewCss] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
-    name: '',
-    displayName: '',
-    domains: '',
-    productName: '',
-    primaryColor: '#4A90D9',
-    secondaryColor: '#36A64F',
-    accentColor: '#FF6600',
-    backgroundColor: '#0F172A',
-    surfaceColor: '#1E293B',
-    textColor: '#F1F5F9',
-    reportHeader: '',
-    customDomain: '',
-    customSubdomain: '',
+    name: "",
+    displayName: "",
+    domains: "",
+    productName: "",
+    primaryColor: "#4A90D9",
+    secondaryColor: "#36A64F",
+    accentColor: "#FF6600",
+    backgroundColor: "#0F172A",
+    surfaceColor: "#1E293B",
+    textColor: "#F1F5F9",
+    reportHeader: "",
+    customDomain: "",
+    customSubdomain: "",
   });
 
   const fetchPartners = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await fetch(apiUrl('/whitelabel/partners'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl("/whitelabel/partners"), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         setPartners(data.partners || []);
       }
     } catch {
-      toast.error('Failed to load whitelabel partners');
+      toast.error("Failed to load whitelabel partners");
     } finally {
       setLoading(false);
     }
@@ -120,11 +139,11 @@ export function WhitelabelAdminView() {
 
   const handleCreate = async () => {
     const domains = createForm.domains
-      .split(',')
+      .split(",")
       .map((d) => d.trim())
       .filter(Boolean);
     if (!createForm.name || domains.length === 0) {
-      toast.error('Name and at least one domain are required');
+      toast.error("Name and at least one domain are required");
       return;
     }
 
@@ -138,90 +157,98 @@ export function WhitelabelAdminView() {
     }
 
     try {
-      const resp = await fetch(apiUrl('/whitelabel/partners'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      const resp = await fetch(apiUrl("/whitelabel/partners"), {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (!resp.ok) {
         const err = await resp.json();
-        throw new Error(err.message || 'Create failed');
+        throw new Error(err.message || "Create failed");
       }
-      toast.success('Whitelabel partner created');
+      toast.success("Whitelabel partner created");
       setShowCreate(false);
       setCreateForm({
-        name: '',
-        displayName: '',
-        domains: '',
-        productName: '',
-        primaryColor: '#4A90D9',
-        secondaryColor: '#36A64F',
-        accentColor: '#FF6600',
-        backgroundColor: '#0F172A',
-        surfaceColor: '#1E293B',
-        textColor: '#F1F5F9',
-        reportHeader: '',
-        customDomain: '',
-        customSubdomain: '',
+        name: "",
+        displayName: "",
+        domains: "",
+        productName: "",
+        primaryColor: "#4A90D9",
+        secondaryColor: "#36A64F",
+        accentColor: "#FF6600",
+        backgroundColor: "#0F172A",
+        surfaceColor: "#1E293B",
+        textColor: "#F1F5F9",
+        reportHeader: "",
+        customDomain: "",
+        customSubdomain: "",
       });
       fetchPartners();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create partner');
+      toast.error(err.message || "Failed to create partner");
     }
   };
 
   const handleDelete = async (partnerId: string) => {
     try {
       const resp = await fetch(apiUrl(`/whitelabel/partners/${partnerId}`), {
-        method: 'DELETE',
+        method: "DELETE",
         headers: authHeaders(),
       });
-      if (!resp.ok) throw new Error('Delete failed');
-      toast.success('Partner deleted');
+      if (!resp.ok) throw new Error("Delete failed");
+      toast.success("Partner deleted");
       fetchPartners();
     } catch {
-      toast.error('Failed to delete partner');
+      toast.error("Failed to delete partner");
     }
   };
 
   const handleToggle = async (partner: Partner) => {
     try {
-      const resp = await fetch(apiUrl(`/whitelabel/partners/${partner.partnerId}`), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: !partner.enabled }),
-      });
-      if (!resp.ok) throw new Error('Toggle failed');
-      toast.success(`Partner ${!partner.enabled ? 'enabled' : 'disabled'}`);
+      const resp = await fetch(
+        apiUrl(`/whitelabel/partners/${partner.partnerId}`),
+        {
+          method: "PUT",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !partner.enabled }),
+        },
+      );
+      if (!resp.ok) throw new Error("Toggle failed");
+      toast.success(`Partner ${!partner.enabled ? "enabled" : "disabled"}`);
       fetchPartners();
     } catch {
-      toast.error('Failed to toggle partner');
+      toast.error("Failed to toggle partner");
     }
   };
 
   const handlePreviewCss = async (partnerId: string) => {
     try {
-      const resp = await fetch(apiUrl(`/whitelabel/${partnerId}/brand.css`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/whitelabel/${partnerId}/brand.css`), {
+        headers: authHeaders(),
+      });
       const css = await resp.text();
       setPreviewCss(css);
     } catch {
-      toast.error('Failed to load CSS');
+      toast.error("Failed to load CSS");
     }
   };
 
   const handleSaveBrand = async (partner: Partner) => {
     try {
-      const resp = await fetch(apiUrl(`/whitelabel/partners/${partner.partnerId}`), {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand: partner.brand }),
-      });
-      if (!resp.ok) throw new Error('Save failed');
-      toast.success('Brand settings saved');
+      const resp = await fetch(
+        apiUrl(`/whitelabel/partners/${partner.partnerId}`),
+        {
+          method: "PUT",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ brand: partner.brand }),
+        },
+      );
+      if (!resp.ok) throw new Error("Save failed");
+      toast.success("Brand settings saved");
       setEditingPartner(null);
       fetchPartners();
     } catch {
-      toast.error('Failed to save brand settings');
+      toast.error("Failed to save brand settings");
     }
   };
 
@@ -239,12 +266,19 @@ export function WhitelabelAdminView() {
         <div>
           <h3 className="text-lg font-semibold">Whitelabel Partner Branding</h3>
           <p className="text-sm text-muted-foreground">
-            Customize logos, colors, and report headers for enterprise reseller sub-tenants
+            Customize logos, colors, and report headers for enterprise reseller
+            sub-tenants
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchPartners} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchPartners}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{" "}
+            Refresh
           </Button>
           <Button size="sm" onClick={() => setShowCreate(!showCreate)}>
             <Plus className="h-4 w-4" /> Add Partner
@@ -257,7 +291,9 @@ export function WhitelabelAdminView() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">New Whitelabel Partner</CardTitle>
-            <CardDescription>Configure branding for a reseller organization</CardDescription>
+            <CardDescription>
+              Configure branding for a reseller organization
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -266,7 +302,9 @@ export function WhitelabelAdminView() {
                 <Input
                   id="name"
                   value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -274,7 +312,12 @@ export function WhitelabelAdminView() {
                 <Input
                   id="displayName"
                   value={createForm.displayName}
-                  onChange={(e) => setCreateForm({ ...createForm, displayName: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      displayName: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -284,7 +327,9 @@ export function WhitelabelAdminView() {
                 id="domains"
                 placeholder="acme.com, partner.acme.com"
                 value={createForm.domains}
-                onChange={(e) => setCreateForm({ ...createForm, domains: e.target.value })}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, domains: e.target.value })
+                }
               />
             </div>
             <div className="grid gap-4 md:grid-cols-3">
@@ -293,7 +338,12 @@ export function WhitelabelAdminView() {
                 <Input
                   id="productName"
                   value={createForm.productName}
-                  onChange={(e) => setCreateForm({ ...createForm, productName: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      productName: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -302,7 +352,12 @@ export function WhitelabelAdminView() {
                   id="customSubdomain"
                   placeholder="acme"
                   value={createForm.customSubdomain}
-                  onChange={(e) => setCreateForm({ ...createForm, customSubdomain: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      customSubdomain: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -311,7 +366,12 @@ export function WhitelabelAdminView() {
                   id="customDomain"
                   placeholder="compliance.acme.com"
                   value={createForm.customDomain}
-                  onChange={(e) => setCreateForm({ ...createForm, customDomain: e.target.value })}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      customDomain: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -319,7 +379,9 @@ export function WhitelabelAdminView() {
               {COLOR_FIELDS.slice(0, 4).map((field) => (
                 <div key={field} className="space-y-2">
                   <Label htmlFor={field}>
-                    {field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+                    {field
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (s) => s.toUpperCase())}
                   </Label>
                   <div className="flex gap-2">
                     <Input
@@ -327,12 +389,22 @@ export function WhitelabelAdminView() {
                       type="color"
                       className="w-12 p-1"
                       value={(createForm as any)[field]}
-                      onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          [field]: e.target.value,
+                        })
+                      }
                     />
                     <Input
                       className="flex-1"
                       value={(createForm as any)[field]}
-                      onChange={(e) => setCreateForm({ ...createForm, [field]: e.target.value })}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          [field]: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -353,24 +425,32 @@ export function WhitelabelAdminView() {
       {editingPartner && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Edit Brand: {editingPartner.displayName}</CardTitle>
-            <CardDescription>Customize visual identity and report headers</CardDescription>
+            <CardTitle className="text-base">
+              Edit Brand: {editingPartner.displayName}
+            </CardTitle>
+            <CardDescription>
+              Customize visual identity and report headers
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               {COLOR_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
+                  <Label>
+                    {field
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (s) => s.toUpperCase())}
+                  </Label>
                   <div className="flex gap-2">
                     <Input
                       type="color"
                       className="w-12 p-1"
-                      value={(editingPartner.brand as any)[field] || '#000000'}
+                      value={(editingPartner.brand as any)[field] || "#000000"}
                       onChange={(e) => updateBrandField(field, e.target.value)}
                     />
                     <Input
                       className="flex-1"
-                      value={(editingPartner.brand as any)[field] || ''}
+                      value={(editingPartner.brand as any)[field] || ""}
                       onChange={(e) => updateBrandField(field, e.target.value)}
                     />
                   </div>
@@ -381,9 +461,13 @@ export function WhitelabelAdminView() {
             <div className="grid gap-4 md:grid-cols-2">
               {TEXT_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
+                  <Label>
+                    {field
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (s) => s.toUpperCase())}
+                  </Label>
                   <Input
-                    value={(editingPartner.brand as any)[field] || ''}
+                    value={(editingPartner.brand as any)[field] || ""}
                     onChange={(e) => updateBrandField(field, e.target.value)}
                   />
                 </div>
@@ -393,9 +477,13 @@ export function WhitelabelAdminView() {
             <div className="grid gap-4 md:grid-cols-2">
               {URL_FIELDS.map((field) => (
                 <div key={field} className="space-y-2">
-                  <Label>{field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</Label>
+                  <Label>
+                    {field
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (s) => s.toUpperCase())}
+                  </Label>
                   <Input
-                    value={(editingPartner.brand as any)[field] || ''}
+                    value={(editingPartner.brand as any)[field] || ""}
                     onChange={(e) => updateBrandField(field, e.target.value)}
                   />
                 </div>
@@ -407,12 +495,14 @@ export function WhitelabelAdminView() {
               <textarea
                 className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono"
                 placeholder="/* Add custom CSS overrides */"
-                value={editingPartner.brand.customCss || ''}
-                onChange={(e) => updateBrandField('customCss', e.target.value)}
+                value={editingPartner.brand.customCss || ""}
+                onChange={(e) => updateBrandField("customCss", e.target.value)}
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => handleSaveBrand(editingPartner)}>Save Brand</Button>
+              <Button onClick={() => handleSaveBrand(editingPartner)}>
+                Save Brand
+              </Button>
               <Button variant="outline" onClick={() => setEditingPartner(null)}>
                 Cancel
               </Button>
@@ -427,13 +517,19 @@ export function WhitelabelAdminView() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">CSS Preview</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => setPreviewCss(null)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPreviewCss(null)}
+              >
                 Close
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <pre className="text-xs font-mono bg-muted p-4 rounded-md overflow-auto max-h-80">{previewCss}</pre>
+            <pre className="text-xs font-mono bg-muted p-4 rounded-md overflow-auto max-h-80">
+              {previewCss}
+            </pre>
           </CardContent>
         </Card>
       )}
@@ -443,8 +539,12 @@ export function WhitelabelAdminView() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Palette className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No whitelabel partners configured</p>
-            <p className="text-xs text-muted-foreground mt-1">Click "Add Partner" to get started</p>
+            <p className="text-muted-foreground">
+              No whitelabel partners configured
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Click "Add Partner" to get started
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -460,12 +560,16 @@ export function WhitelabelAdminView() {
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm">{partner.displayName}</CardTitle>
-                    <CardDescription className="text-xs">{partner.name}</CardDescription>
+                    <CardTitle className="text-sm">
+                      {partner.displayName}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {partner.name}
+                    </CardDescription>
                   </div>
                 </div>
-                <Badge variant={partner.enabled ? 'default' : 'secondary'}>
-                  {partner.enabled ? 'Active' : 'Disabled'}
+                <Badge variant={partner.enabled ? "default" : "secondary"}>
+                  {partner.enabled ? "Active" : "Disabled"}
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -478,7 +582,9 @@ export function WhitelabelAdminView() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Brand colors:</span>
+                  <span className="text-xs text-muted-foreground">
+                    Brand colors:
+                  </span>
                   {COLOR_FIELDS.slice(0, 5).map((field) => (
                     <div
                       key={field}
@@ -489,20 +595,42 @@ export function WhitelabelAdminView() {
                   ))}
                 </div>
                 {partner.subTenants.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{partner.subTenants.length} sub-tenant(s)</p>
+                  <p className="text-xs text-muted-foreground">
+                    {partner.subTenants.length} sub-tenant(s)
+                  </p>
                 )}
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditingPartner(partner)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingPartner(partner)}
+                  >
                     <Palette className="h-3 w-3" /> Edit Brand
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handlePreviewCss(partner.partnerId)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePreviewCss(partner.partnerId)}
+                  >
                     <Code className="h-3 w-3" /> CSS
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleToggle(partner)}>
-                    {partner.enabled ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                    {partner.enabled ? 'Disable' : 'Enable'}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggle(partner)}
+                  >
+                    {partner.enabled ? (
+                      <XCircle className="h-3 w-3" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3" />
+                    )}
+                    {partner.enabled ? "Disable" : "Enable"}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(partner.partnerId)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(partner.partnerId)}
+                  >
                     <Trash2 className="h-3 w-3" /> Delete
                   </Button>
                 </div>

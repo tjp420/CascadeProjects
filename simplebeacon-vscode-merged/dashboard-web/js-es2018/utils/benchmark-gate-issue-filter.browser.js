@@ -3,13 +3,18 @@
  */
 const SCANNER_IMPL_PATH_RE =
   /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
-const OSS_SCANNER_ROOT_FILES = new Set(['src/scan.js', 'src/config.js', 'src/project-detect.js', 'src/index.js']);
+const OSS_SCANNER_ROOT_FILES = new Set([
+  "src/scan.js",
+  "src/config.js",
+  "src/project-detect.js",
+  "src/index.js",
+]);
 const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
-  'scanner-meta',
-  'repository-audit-loader',
-  'repository-audit-stub-loader',
-  'config-metadata',
-  'demo-tool-sample',
+  "scanner-meta",
+  "repository-audit-loader",
+  "repository-audit-stub-loader",
+  "config-metadata",
+  "demo-tool-sample",
 ]);
 /**
  * Normalize rel.
@@ -17,7 +22,7 @@ const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
  * @returns {any}
  */
 function normalizeRel(filePath) {
-  return String(filePath || '').replace(/\\/g, '/');
+  return String(filePath || "").replace(/\\/g, "/");
 }
 /**
  * Is scanner implementation path.
@@ -39,13 +44,22 @@ export function isBenchmarkCloneNoiseIssue(issue) {
   var _a, _b;
   if (!issue) return false;
   const pattern = String(
-    issue.pattern || ((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.patternId) || ''
+    issue.pattern ||
+      ((_a = issue.metadata) === null || _a === void 0
+        ? void 0
+        : _a.patternId) ||
+      "",
   );
   const category = String(
-    issue.category || ((_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.category) || ''
+    issue.category ||
+      ((_b = issue.metadata) === null || _b === void 0
+        ? void 0
+        : _b.category) ||
+      "",
   );
-  const type = String(issue.type || '');
-  if (/SB-HANDOFF/i.test(pattern) || category === 'handoff-integrity') return true;
+  const type = String(issue.type || "");
+  if (/SB-HANDOFF/i.test(pattern) || category === "handoff-integrity")
+    return true;
   if (/EUAI-/i.test(pattern) || /EU AI Act/i.test(type)) return true;
   return false;
 }
@@ -57,11 +71,18 @@ export function isBenchmarkCloneNoiseIssue(issue) {
 export function isBenchmarkScannerMetaIssue(issue) {
   var _a, _b;
   if (!issue) return false;
-  const intent = String(((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.intent) || issue.intent || '');
+  const intent = String(
+    ((_a = issue.metadata) === null || _a === void 0 ? void 0 : _a.intent) ||
+      issue.intent ||
+      "",
+  );
   if (intent && SUPPRESSED_PRODUCTION_LEAK_INTENTS.has(intent)) return true;
-  if (!/production leak/i.test(String(issue.type || ''))) return false;
+  if (!/production leak/i.test(String(issue.type || ""))) return false;
   const filePath =
-    issue.filePath || issue.file || ((_b = issue.filePaths) === null || _b === void 0 ? void 0 : _b[0]) || '';
+    issue.filePath ||
+    issue.file ||
+    ((_b = issue.filePaths) === null || _b === void 0 ? void 0 : _b[0]) ||
+    "";
   return filePath ? isScannerImplementationPath(filePath) : false;
 }
 /**
@@ -92,8 +113,8 @@ export function filterBenchmarkGateIssues(issues = [], benchmarkScan) {
  * @returns {any}
  */
 export function recomputeGateFromIssues(issues, gateConfig = {}) {
-  const failOn = gateConfig.failOn || ['high'];
-  const warnOn = gateConfig.warnOn || ['medium', 'low'];
+  const failOn = gateConfig.failOn || ["high"];
+  const warnOn = gateConfig.warnOn || ["medium", "low"];
   const blockingCount = issues
     .filter((issue) => failOn.includes(issue.severityBand || issue.severity))
     .reduce((sum, issue) => sum + (issue.count || 1), 0);
@@ -115,18 +136,24 @@ export function recomputeGateFromIssues(issues, gateConfig = {}) {
  */
 export function normalizeBenchmarkGateReport(report, projectPath) {
   var _a, _b;
-  if (!report || report.type !== 'simplebeacon-report') return report;
-  const projectKey = normalizeRel(projectPath || report.projectRoot || '');
-  const isBenchmark = /\/github-cache\//i.test(projectKey) || projectKey.startsWith('github-cache/');
+  if (!report || report.type !== "simplebeacon-report") return report;
+  const projectKey = normalizeRel(projectPath || report.projectRoot || "");
+  const isBenchmark =
+    /\/github-cache\//i.test(projectKey) ||
+    projectKey.startsWith("github-cache/");
   if (!isBenchmark) return report;
-  const sourceIssues = ((_a = report.rawIssues) === null || _a === void 0 ? void 0 : _a.length)
+  const sourceIssues = (
+    (_a = report.rawIssues) === null || _a === void 0 ? void 0 : _a.length
+  )
     ? report.rawIssues
     : report.detectedIssues || [];
   const benchmarkCloneNoiseIssues = [];
   const deduped = [];
   const seen = new Set();
   for (const issue of sourceIssues) {
-    const key = issue.id || `${issue.severity}|${issue.type}|${issue.filePath}|${issue.description}`;
+    const key =
+      issue.id ||
+      `${issue.severity}|${issue.type}|${issue.filePath}|${issue.description}`;
     if (seen.has(key)) continue;
     seen.add(key);
     if (isBenchmarkDigestExcludedIssue(issue, true)) {
@@ -136,35 +163,37 @@ export function normalizeBenchmarkGateReport(report, projectPath) {
     deduped.push(issue);
   }
   const gateConfig = report.gate ||
-    ((_b = report.scanScope) === null || _b === void 0 ? void 0 : _b.gatePolicy) || {
-      failOn: ['high'],
-      warnOn: ['medium', 'low'],
-    };
+    ((_b = report.scanScope) === null || _b === void 0
+      ? void 0
+      : _b.gatePolicy) || { failOn: ["high"], warnOn: ["medium", "low"] };
   const gate = recomputeGateFromIssues(deduped, gateConfig);
   const productionLeakFindings = deduped
-    .filter((i) => /production leak/i.test(String(i.type || '')))
+    .filter((i) => /production leak/i.test(String(i.type || "")))
     .reduce((sum, i) => sum + (i.count || 1), 0);
   return {
     ...report,
     projectRoot: projectKey || report.projectRoot,
     rawIssues: deduped,
     detectedIssues: deduped.slice(0, 12),
-    benchmarkCloneNoiseIssues: benchmarkCloneNoiseIssues.length ? benchmarkCloneNoiseIssues : undefined,
+    benchmarkCloneNoiseIssues: benchmarkCloneNoiseIssues.length
+      ? benchmarkCloneNoiseIssues
+      : undefined,
     issueCount: gate.blockingCount + gate.warningCount,
     productionLeakFindings,
     gate,
     benchmarkScan: true,
-    scanTargetProfile: 'benchmark-cache',
+    scanTargetProfile: "benchmark-cache",
     handoffEligible: false,
     scanScope: {
       ...(report.scanScope || {}),
-      resultsViewScope: 'benchmark-clone',
-      reportHealth: 'benchmark-clone-scan',
+      resultsViewScope: "benchmark-clone",
+      reportHealth: "benchmark-clone-scan",
       benchmarkScanTarget: true,
-      benchmarkCloneNoiseExcluded: benchmarkCloneNoiseIssues.length || undefined,
+      benchmarkCloneNoiseExcluded:
+        benchmarkCloneNoiseIssues.length || undefined,
       rescanRecommended: false,
       limitations: [
-        'Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.',
+        "Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.",
       ],
     },
   };

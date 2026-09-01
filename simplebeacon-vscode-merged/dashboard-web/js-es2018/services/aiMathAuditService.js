@@ -1,5 +1,5 @@
-import { fetchJsonWithGuidance } from './analyzeService.js';
-import { escapeHtml } from '../utils.js';
+import { fetchJsonWithGuidance } from "./analyzeService.js";
+import { escapeHtml } from "../utils.js";
 
 /**
  * Fetch AI Math Audit report for a project path.
@@ -8,13 +8,13 @@ import { escapeHtml } from '../utils.js';
  */
 export async function fetchAiMathAudit(projectPath) {
   return fetchJsonWithGuidance(
-    '/api/analyze/ai-math-audit',
+    "/api/analyze/ai-math-audit",
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectPath }),
     },
-    180_000
+    180_000,
   );
 }
 
@@ -24,11 +24,11 @@ export async function fetchAiMathAudit(projectPath) {
  * @returns {any}
  */
 export function slimAiMathAuditForAudit(payload) {
-  if (!payload || typeof payload !== 'object') return null;
+  if (!payload || typeof payload !== "object") return null;
   const report = payload.report || payload;
   const summary = report.summary || {};
   return {
-    type: 'ai-math-audit',
+    type: "ai-math-audit",
     generatedAt: report.audit_timestamp,
     source: report.source,
     summary: {
@@ -59,18 +59,18 @@ export function buildAiMathAuditCsv(payload) {
   const report = payload.report || payload;
   const findings = report.findings || [];
   const rows = [
-    ['severity', 'type', 'layer', 'token', 'detail', 'metrics'].join(','),
+    ["severity", "type", "layer", "token", "detail", "metrics"].join(","),
     ...findings.map((f) => {
       const metrics = JSON.stringify(f.metrics || {}).replace(/"/g, '\\"');
       return [
-        escapeHtml(f.severity || ''),
-        escapeHtml(f.type || ''),
-        escapeHtml(f.layer || ''),
-        escapeHtml(f.token || ''),
-        `"${escapeHtml(f.detail || '').replace(/"/g, '\\"')}"`,
+        escapeHtml(f.severity || ""),
+        escapeHtml(f.type || ""),
+        escapeHtml(f.layer || ""),
+        escapeHtml(f.token || ""),
+        `"${escapeHtml(f.detail || "").replace(/"/g, '\\"')}"`,
         `"${metrics}"`,
-      ].join(',');
+      ].join(",");
     }),
   ];
-  return rows.join('\n');
+  return rows.join("\n");
 }

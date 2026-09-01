@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-import { fetchSiemTelemetry } from '../services/siemTelemetryService.js';
+import { fetchSiemTelemetry } from "../services/siemTelemetryService.js";
 
 let refreshInterval = null;
 let isRefreshing = false;
@@ -9,38 +9,38 @@ let isRefreshing = false;
  * @returns {HTMLElement}
  */
 export function renderSiemTelemetryDashboard() {
-  const container = document.createElement('div');
-  container.className = 'card';
-  container.id = 'siem-telemetry-dashboard';
+  const container = document.createElement("div");
+  container.className = "card";
+  container.id = "siem-telemetry-dashboard";
 
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  const flex = document.createElement('div');
-  flex.className = 'flex items-center gap-3';
-  const title = document.createElement('span');
-  title.className = 'card-title';
-  title.textContent = 'SIEM Cluster Telemetry';
-  const refreshBtn = document.createElement('button');
-  refreshBtn.id = 'siem-telemetry-refresh';
-  refreshBtn.className = 'btn btn-sm btn-ghost';
+  const header = document.createElement("div");
+  header.className = "card-header";
+  const flex = document.createElement("div");
+  flex.className = "flex items-center gap-3";
+  const title = document.createElement("span");
+  title.className = "card-title";
+  title.textContent = "SIEM Cluster Telemetry";
+  const refreshBtn = document.createElement("button");
+  refreshBtn.id = "siem-telemetry-refresh";
+  refreshBtn.className = "btn btn-sm btn-ghost";
   refreshBtn.disabled = true;
-  refreshBtn.textContent = 'Refresh';
+  refreshBtn.textContent = "Refresh";
   flex.appendChild(title);
   flex.appendChild(refreshBtn);
-  const statusBadge = document.createElement('span');
-  statusBadge.id = 'siem-telemetry-status';
-  statusBadge.className = 'badge badge-ghost';
-  statusBadge.textContent = 'Loading...';
+  const statusBadge = document.createElement("span");
+  statusBadge.id = "siem-telemetry-status";
+  statusBadge.className = "badge badge-ghost";
+  statusBadge.textContent = "Loading...";
   header.appendChild(flex);
   header.appendChild(statusBadge);
 
-  const body = document.createElement('div');
-  body.className = 'card-body';
-  const content = document.createElement('div');
-  content.id = 'siem-telemetry-content';
-  const loading = document.createElement('div');
-  loading.className = 'text-gray-500';
-  loading.textContent = 'Loading SIEM telemetry...';
+  const body = document.createElement("div");
+  body.className = "card-body";
+  const content = document.createElement("div");
+  content.id = "siem-telemetry-content";
+  const loading = document.createElement("div");
+  loading.className = "text-gray-500";
+  loading.textContent = "Loading SIEM telemetry...";
   content.appendChild(loading);
   body.appendChild(content);
 
@@ -56,9 +56,9 @@ export function renderSiemTelemetryDashboard() {
  * @param {HTMLElement} container
  */
 function bindSiemTelemetryDashboard(container) {
-  const refreshBtn = container.querySelector('#siem-telemetry-refresh');
+  const refreshBtn = container.querySelector("#siem-telemetry-refresh");
 
-  refreshBtn.addEventListener('click', () => {
+  refreshBtn.addEventListener("click", () => {
     if (!isRefreshing) {
       loadSiemTelemetryData(container);
     }
@@ -79,47 +79,54 @@ function bindSiemTelemetryDashboard(container) {
  * @param {boolean} isInitial
  */
 async function loadSiemTelemetryData(container, isInitial = false) {
-  const content = container.querySelector('#siem-telemetry-content');
-  const statusBadge = container.querySelector('#siem-telemetry-status');
-  const refreshBtn = container.querySelector('#siem-telemetry-refresh');
+  const content = container.querySelector("#siem-telemetry-content");
+  const statusBadge = container.querySelector("#siem-telemetry-status");
+  const refreshBtn = container.querySelector("#siem-telemetry-refresh");
 
   if (isInitial) {
     // simplebeacon-ignore innerhtml-usage — static loading text
-    content.innerHTML = '<div class="text-gray-500">Loading SIEM telemetry...</div>';
+    content.innerHTML =
+      '<div class="text-gray-500">Loading SIEM telemetry...</div>';
   } else {
     isRefreshing = true;
     refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Refreshing...';
+    refreshBtn.textContent = "Refreshing...";
   }
 
   try {
     const data = await fetchSiemTelemetry();
 
-    if (data.status === 'success') {
+    if (data.status === "success") {
       renderSiemTelemetryContent(content, data);
-      const syncClass = data.distributedSyncEnabled ? 'badge-success' : 'badge-ghost';
-      const syncLabel = data.distributedSyncEnabled ? `Sync: ${data.peerCount} peers` : 'Single-node';
+      const syncClass = data.distributedSyncEnabled
+        ? "badge-success"
+        : "badge-ghost";
+      const syncLabel = data.distributedSyncEnabled
+        ? `Sync: ${data.peerCount} peers`
+        : "Single-node";
       statusBadge.className = `badge ${syncClass}`;
       statusBadge.textContent = syncLabel;
-    } else if (data.status === 'unavailable') {
+    } else if (data.status === "unavailable") {
       // simplebeacon-ignore innerhtml-usage — static offline message
       content.innerHTML =
         '<div class="text-muted" style="font-size:0.85rem;">SIEM telemetry unavailable — running offline or broker not initialized.</div>';
-      statusBadge.className = 'badge badge-ghost';
-      statusBadge.textContent = 'Offline';
+      statusBadge.className = "badge badge-ghost";
+      statusBadge.textContent = "Offline";
     } else {
       // simplebeacon-ignore innerhtml-usage — static error message
-      content.innerHTML = '<div class="text-red-500">Failed to load SIEM telemetry.</div>';
+      content.innerHTML =
+        '<div class="text-red-500">Failed to load SIEM telemetry.</div>';
     }
   } catch (error) {
     const msg = (error && error.message) || String(error);
-    console.error('Error fetching SIEM telemetry:', msg);
+    console.error("Error fetching SIEM telemetry:", msg);
     // simplebeacon-ignore innerhtml-usage — static error message
-    content.innerHTML = '<div class="text-red-500">Failed to load SIEM telemetry.</div>';
+    content.innerHTML =
+      '<div class="text-red-500">Failed to load SIEM telemetry.</div>';
   } finally {
     isRefreshing = false;
     refreshBtn.disabled = false;
-    refreshBtn.textContent = 'Refresh';
+    refreshBtn.textContent = "Refresh";
   }
 }
 
@@ -136,11 +143,14 @@ function renderSiemTelemetryContent(container, data) {
   // Weight-related calculations
   const nodeWeight = data.nodeWeight || 1;
   const clusterWeight = data.clusterWeight || nodeWeight;
-  const proportionalSharePct = clusterWeight > 0 ? ((nodeWeight / clusterWeight) * 100).toFixed(1) : '100.0';
+  const proportionalSharePct =
+    clusterWeight > 0
+      ? ((nodeWeight / clusterWeight) * 100).toFixed(1)
+      : "100.0";
 
   // Build weight entries for all nodes (self + peers) for the allocation bar
   const allWeightEntries = [
-    { id: data.nodeId || 'self', weight: nodeWeight, isSelf: true },
+    { id: data.nodeId || "self", weight: nodeWeight, isSelf: true },
     ...peerEntries.map(([peerId, peer]) => ({
       id: peerId,
       weight: peer.weight || 1,
@@ -216,14 +226,20 @@ function renderSiemTelemetryContent(container, data) {
       <div class="siem-weight-bar">
         ${allWeightEntries
           .map((entry) => {
-            const pct = totalBarWeight > 0 ? (entry.weight / totalBarWeight) * 100 : 0;
-            const cls = entry.isSelf ? 'siem-weight-seg-self' : 'siem-weight-seg-peer';
-            const label = entry.id.length > 12 ? entry.id.substring(0, 10) + '..' : entry.id;
+            const pct =
+              totalBarWeight > 0 ? (entry.weight / totalBarWeight) * 100 : 0;
+            const cls = entry.isSelf
+              ? "siem-weight-seg-self"
+              : "siem-weight-seg-peer";
+            const label =
+              entry.id.length > 12
+                ? entry.id.substring(0, 10) + ".."
+                : entry.id;
             return `<div class="siem-weight-seg ${cls}" style="width:${pct}%;" title="${entry.id}: weight ${entry.weight} (${pct.toFixed(1)}%)">
             <span class="siem-weight-seg-label">${label} (${entry.weight})</span>
           </div>`;
           })
-          .join('')}
+          .join("")}
       </div>
       <div class="siem-weight-bar-legend">
         <span class="siem-weight-legend-item"><span class="siem-weight-legend-dot siem-weight-legend-self"></span>Self (weight ${nodeWeight})</span>
@@ -232,7 +248,7 @@ function renderSiemTelemetryContent(container, data) {
     </div>
 
     <div class="table-container mb-4">
-      <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;">Cluster Nodes (${data.nodeCount || '—'} total, ${peerEntries.length} peers seen)</h4>
+      <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;">Cluster Nodes (${data.nodeCount || "—"} total, ${peerEntries.length} peers seen)</h4>
       <table class="data-table">
         <thead>
           <tr>
@@ -246,7 +262,7 @@ function renderSiemTelemetryContent(container, data) {
         </thead>
         <tbody>
           <tr>
-            <td class="font-mono">${data.nodeId || '—'} (self)</td>
+            <td class="font-mono">${data.nodeId || "—"} (self)</td>
             <td>${nodeWeight}</td>
             <td>${proportionalSharePct}%</td>
             <td>${data.localTokens || 0}</td>
@@ -256,7 +272,10 @@ function renderSiemTelemetryContent(container, data) {
           ${peerEntries
             .map(([peerId, peer]) => {
               const peerWeight = peer.weight || 1;
-              const peerSharePct = clusterWeight > 0 ? ((peerWeight / clusterWeight) * 100).toFixed(1) : '100.0';
+              const peerSharePct =
+                clusterWeight > 0
+                  ? ((peerWeight / clusterWeight) * 100).toFixed(1)
+                  : "100.0";
               return `
             <tr>
               <td class="font-mono">${peerId}</td>
@@ -264,11 +283,11 @@ function renderSiemTelemetryContent(container, data) {
               <td>${peerSharePct}%</td>
               <td>${peer.localTokens}</td>
               <td>${peer.maxLocalTokens}</td>
-              <td>${peer.lastSeen ? new Date(peer.lastSeen).toLocaleTimeString() : '—'}</td>
+              <td>${peer.lastSeen ? new Date(peer.lastSeen).toLocaleTimeString() : "—"}</td>
             </tr>
           `;
             })
-            .join('')}
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -281,8 +300,8 @@ function renderSiemTelemetryContent(container, data) {
     }
 
     <div class="flex justify-between text-xs text-gray-400 font-mono">
-      <span>Node: ${data.nodeId || '—'} | Weight: ${nodeWeight} | Fair share: ${data.fairShare || '—'} | Reserve floor: ${data.reserveFloor || '—'}</span>
-      <span>Refreshed: ${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '—'}</span>
+      <span>Node: ${data.nodeId || "—"} | Weight: ${nodeWeight} | Fair share: ${data.fairShare || "—"} | Reserve floor: ${data.reserveFloor || "—"}</span>
+      <span>Refreshed: ${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : "—"}</span>
     </div>
   `;
 }

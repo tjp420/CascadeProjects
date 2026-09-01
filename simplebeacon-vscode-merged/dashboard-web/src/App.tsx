@@ -6,11 +6,8 @@ import { BrandProvider } from "./contexts/BrandContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { useAuth } from "./hooks/useAuth";
-import { useFeatureAccess } from "./hooks/useFeatureAccess";
 import { useTheme } from "./hooks/useTheme";
-import { isTokenExpired, processAgentParams, install401Handler } from "./config";
-import { getViewUpgradeInfo } from "./config/viewAccess";
-import { ViewPaywall } from "./components/ViewPaywall";
+import { isTokenExpired, processAgentParams } from "./config";
 
 // P1 views
 import { DashboardView } from "./views/DashboardView";
@@ -64,6 +61,7 @@ const PUBLIC_VIEWS = new Set([
   "about",
   "getting-started",
 ]);
+const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([
   "dashboard",
   "upload",
@@ -71,6 +69,11 @@ const WRITE_HEAVY_VIEWS = new Set([
   "admin",
   "chatbot",
 ]);
+
+function isHostedDashboard(): boolean {
+  if (typeof window === "undefined") return false;
+  return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
 
 function isIdeEmbedSurface(): boolean {
   if (typeof window === "undefined") return false;
@@ -165,16 +168,13 @@ const viewMap: Record<string, React.ComponentType> = {
 };
 
 export default function App() {
-  // Install global 401 interceptor once on startup — clears stale tokens
-  // and redirects to signin when the backend rejects an API request
+  // Process agent URL params (sb_auth, sb_license_token, sb_agent, sb_agent_token) on first load
   useEffect(() => {
-    install401Handler();
     processAgentParams();
   }, []);
 
   const [route, setRoute] = useState(getCurrentRoute());
   const { isAuthenticated, isFreeTier, user } = useAuth();
-  const { hasFeature } = useFeatureAccess();
   useTheme();
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
@@ -199,13 +199,16 @@ export default function App() {
   }, [route.view]);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
-  // Strict route guard: all routes require authentication unless explicitly
-  // listed in PUBLIC_VIEWS. IDE embed surfaces bypass auth (local bridge).
   useEffect(() => {
     if (PUBLIC_VIEWS.has(route.view)) return;
-    if (isIdeEmbedSurface()) return;
-    if (isAuthenticated && !isTokenExpired()) return;
-    // Block all non-public routes for unauthenticated users
+    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
+      navigate("signin");
+      setRoute(getCurrentRoute());
+      return;
+    }
+    if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
+    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
+    if (!isTokenExpired()) return;
     navigate("signin");
     setRoute(getCurrentRoute());
   }, [route.view, isAuthenticated]);
@@ -217,11 +220,6 @@ export default function App() {
 
   const CurrentView = viewMap[route.view] || DashboardView;
   const isPublic = PUBLIC_VIEWS.has(route.view);
-
-  // Tier gate: if the view requires a feature the user's tier doesn't
-  // include, render the inline paywall instead of the view.
-  const upgradeInfo = getViewUpgradeInfo(route.view);
-  const isTierLocked = upgradeInfo ? !hasFeature(upgradeInfo.flag) : false;
 
   return (
     <BrandProvider>
@@ -242,7 +240,7 @@ export default function App() {
                 </div>
               }
             >
-              {isTierLocked ? <ViewPaywall view={route.view} /> : <CurrentView />}
+              <CurrentView />
             </Suspense>
           </ErrorBoundary>
         </AppShell>

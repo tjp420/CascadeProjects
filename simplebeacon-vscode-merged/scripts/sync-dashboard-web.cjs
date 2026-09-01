@@ -14,9 +14,10 @@ if (!fs.existsSync(source)) {
 
 fs.mkdirSync(dest, { recursive: true });
 
-// Copy newer/changed files from ai-platform source without deleting extras in dashboard-web.
+// Copy all files from ai-platform source (force-copy to avoid stale files from timestamp drift).
+// xcopy /D only copies if source is newer, which breaks when dest timestamps get bumped by builds.
 const isWindows = process.platform === 'win32';
-const cmd = isWindows ? `xcopy "${source}" "${dest}" /D /E /Y /I` : `cp -r "${source}/." "${dest}/"`;
+const cmd = isWindows ? `xcopy "${source}" "${dest}" /E /Y /I` : `cp -r "${source}/." "${dest}/"`;
 console.log(`[sync-dashboard-web] ${cmd}`);
 execSync(cmd, { stdio: 'inherit', shell: true });
 

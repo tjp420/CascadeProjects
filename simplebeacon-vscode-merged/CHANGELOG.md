@@ -1,5 +1,30 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.567] - 2026-09-01
+
+### Fixed
+
+- **401 on telemetry API calls** — `FineTuningCurationView.tsx` had a local `authHeaders()` function that only checked `sb_token`, `sb-token`, and `auth_token` in localStorage, missing the primary `sb_auth_token` key used by the dashboard login flow. Replaced with the global `authHeaders()` from `config.ts` which checks all 9 token storage keys in priority order. This caused `GET /api/telemetry/collect` and `/api/telemetry/datasets` to return 401 even when the user was signed in.
+
+## [3.0.566] - 2026-09-01
+
+### Fixed
+
+- **Bridge token 401 on /api/scan and /api/find-folder** — The legacy `js-es2018` dashboard (served by the extension) was missing the `X-SimpleBeacon-Bridge-Token` header on requests to `/api/scan`, `/api/find-folder`, and `/api/analyze/pick-folder`. The bridge token check was only implemented in the React build (`pages-publish`), not in the `js-es2018` dashboard that the extension actually serves. This caused all scan and folder-find requests to return `401 Unauthorized` even when the user was signed in. Added bridge token fetching from `/api/health` and `/api/ping`, caching to `sessionStorage`, and the `X-SimpleBeacon-Bridge-Token` header to all extension bridge API calls in `localAgentService.js`.
+
+## [3.0.565] - 2026-08-31
+
+### Fixed
+
+- **Stale dashboard-web assets** — Force-synced all `js-es2018` files from `ai-platform/web/simplebeacon-dashboard` source. The sync script used `xcopy /D` (only-if-newer) which silently skipped files when destination timestamps drifted from prior builds, causing missing exports like `isAbsoluteLocalPath` from `utils.js` that broke the dashboard with `SyntaxError: The requested module does not provide an export named 'isAbsoluteLocalPath'`.
+- **Sync script** — Changed `sync-dashboard-web.cjs` from `xcopy /D` (skip-if-newer) to `xcopy` (force-copy) to prevent timestamp-drift staleness in future syncs.
+
+## [3.0.564] - 2026-08-31
+
+### Fixed
+
+- **EACCES port-bind fallback** — Data server now falls back to a random ephemeral port when the configured `dataServerPort` is in a Windows reserved/excluded port range (Hyper-V/WSL/Docker dynamic exclusions), not just when the port is already in use (`EADDRINUSE`). Previously, `EACCES` on the default port 54358 caused the data server to silently fail, leaving the dashboard sign-in page blank with `net::ERR_FAILED` on all `/api/auth/*` calls.
+
 ## [3.0.562] - 2026-09-15
 
 ### Changed

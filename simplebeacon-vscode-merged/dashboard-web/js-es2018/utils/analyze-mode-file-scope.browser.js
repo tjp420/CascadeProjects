@@ -3,39 +3,51 @@
  * Per-mode file/path scope for Analyze page mode pills — mirrors SimpleBeacon config + scanScope.
  * simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path configuration for analysis mode file scope
  */
-import { escapeHtml, formatNumber } from '../utils.js';
-import { isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
+import { escapeHtml, formatNumber } from "../utils.js";
+import { isBenchmarkCachePath } from "./complete-scan-artifact-profile.browser.js";
 // simplebeacon:production-leak-intent: web-data-sample - Scan path configuration reference for analysis mode
-const DEFAULT_SCAN_PATHS = ['web/data', 'data/mock', 'tests/fixtures', 'data'];
-const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/'];
+const DEFAULT_SCAN_PATHS = ["web/data", "data/mock", "tests/fixtures", "data"];
+const DEFAULT_PRODUCTION_PATHS = ["server/", "src/", "app/", "lib/"];
 const FILE_REDUCTION_SKIP = [
-  'node_modules/',
-  'coverage/',
-  'dist/',
-  'build/',
-  '.git/',
-  'github-cache/',
-  'deliverables/',
+  "node_modules/",
+  "coverage/",
+  "dist/",
+  "build/",
+  ".git/",
+  "github-cache/",
+  "deliverables/",
 ];
 const DATA_QUALITY_SCANNERS = [
-  'config-sprawl',
-  'env-key-hygiene',
-  'data-freshness',
-  'privacy-exposure',
-  'lineage-gaps',
-  'schema-drift',
-  'duplicate-config',
-  'consistency-anchors',
+  "config-sprawl",
+  "env-key-hygiene",
+  "data-freshness",
+  "privacy-exposure",
+  "lineage-gaps",
+  "schema-drift",
+  "duplicate-config",
+  "consistency-anchors",
 ];
-const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
+const FILE_REDUCTION_SCANNERS = [
+  "build-artifacts",
+  "asset-consolidation",
+  "unused-files",
+  "directory-bloat",
+];
 /** Normalize roadmap payload from analyze API, complete step, or imported export JSON. */
 export function normalizeRoadmapRoot(payload) {
   var _a, _b;
-  if (!payload || typeof payload !== 'object') return null;
-  if (payload.roadmap && typeof payload.roadmap === 'object') return payload.roadmap;
-  if (payload.type === 'dynamic-project-roadmap-analysis' || payload.codeAnalysis) return payload;
-  if ((_a = payload.data) === null || _a === void 0 ? void 0 : _a.roadmap) return payload.data.roadmap;
-  if ((_b = payload.data) === null || _b === void 0 ? void 0 : _b.codeAnalysis) return payload.data;
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.roadmap && typeof payload.roadmap === "object")
+    return payload.roadmap;
+  if (
+    payload.type === "dynamic-project-roadmap-analysis" ||
+    payload.codeAnalysis
+  )
+    return payload;
+  if ((_a = payload.data) === null || _a === void 0 ? void 0 : _a.roadmap)
+    return payload.data.roadmap;
+  if ((_b = payload.data) === null || _b === void 0 ? void 0 : _b.codeAnalysis)
+    return payload.data;
   return null;
 }
 /**
@@ -47,11 +59,18 @@ export function extractRoadmapFileMetrics(payload) {
   var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
   const root = normalizeRoadmapRoot(payload);
   if (!root) return null;
-  const structure = (_a = root.codeAnalysis) === null || _a === void 0 ? void 0 : _a.structure;
-  const sourceMetrics = (_b = root.strategicInsights) === null || _b === void 0 ? void 0 : _b.sourceMetrics;
+  const structure =
+    (_a = root.codeAnalysis) === null || _a === void 0 ? void 0 : _a.structure;
+  const sourceMetrics =
+    (_b = root.strategicInsights) === null || _b === void 0
+      ? void 0
+      : _b.sourceMetrics;
   const totalFiles =
     (_d =
-      (_c = structure === null || structure === void 0 ? void 0 : structure.totalFiles) !== null && _c !== void 0
+      (_c =
+        structure === null || structure === void 0
+          ? void 0
+          : structure.totalFiles) !== null && _c !== void 0
         ? _c
         : sourceMetrics === null || sourceMetrics === void 0
           ? void 0
@@ -60,7 +79,10 @@ export function extractRoadmapFileMetrics(payload) {
       : null;
   const codeFiles =
     (_f =
-      (_e = structure === null || structure === void 0 ? void 0 : structure.codeFiles) !== null && _e !== void 0
+      (_e =
+        structure === null || structure === void 0
+          ? void 0
+          : structure.codeFiles) !== null && _e !== void 0
         ? _e
         : sourceMetrics === null || sourceMetrics === void 0
           ? void 0
@@ -69,7 +91,10 @@ export function extractRoadmapFileMetrics(payload) {
       : null;
   const apiRoutes =
     (_j =
-      (_h = (_g = root.aiIntegration) === null || _g === void 0 ? void 0 : _g.apiRouteCount) !== null && _h !== void 0
+      (_h =
+        (_g = root.aiIntegration) === null || _g === void 0
+          ? void 0
+          : _g.apiRouteCount) !== null && _h !== void 0
         ? _h
         : sourceMetrics === null || sourceMetrics === void 0
           ? void 0
@@ -77,7 +102,10 @@ export function extractRoadmapFileMetrics(payload) {
       ? _j
       : null;
   const generatedAt =
-    (_l = (_k = root.generatedAt) !== null && _k !== void 0 ? _k : root.timestamp) !== null && _l !== void 0
+    (_l =
+      (_k = root.generatedAt) !== null && _k !== void 0
+        ? _k
+        : root.timestamp) !== null && _l !== void 0
       ? _l
       : null;
   if (totalFiles == null && codeFiles == null) return null;
@@ -88,8 +116,10 @@ export function extractRoadmapFileMetrics(payload) {
     generatedAt,
     dataSource:
       root.dataSource ||
-      (sourceMetrics === null || sourceMetrics === void 0 ? void 0 : sourceMetrics.dataSource) ||
-      'filesystem-scan',
+      (sourceMetrics === null || sourceMetrics === void 0
+        ? void 0
+        : sourceMetrics.dataSource) ||
+      "filesystem-scan",
   };
 }
 /**
@@ -98,9 +128,29 @@ export function extractRoadmapFileMetrics(payload) {
  * @returns {any}
  */
 function resolveScopeContext(context = {}) {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
+  var _a,
+    _b,
+    _c,
+    _d,
+    _e,
+    _f,
+    _g,
+    _h,
+    _j,
+    _k,
+    _l,
+    _m,
+    _o,
+    _p,
+    _q,
+    _r,
+    _s,
+    _t,
+    _u,
+    _v;
   const { config, report, projectPath, lastResult } = context;
-  const scope = (report === null || report === void 0 ? void 0 : report.scanScope) || {};
+  const scope =
+    (report === null || report === void 0 ? void 0 : report.scanScope) || {};
   /**
    * Roadmap metrics.
    * @param {any} (
@@ -109,32 +159,54 @@ function resolveScopeContext(context = {}) {
   const roadmapMetrics = (() => {
     var _a;
     if (!lastResult) return null;
-    if (lastResult.kind === 'roadmap') return extractRoadmapFileMetrics(lastResult.data);
-    if (lastResult.kind === 'complete') {
-      const step = (_a = lastResult.steps) === null || _a === void 0 ? void 0 : _a.find((s) => s.id === 'roadmap');
-      return extractRoadmapFileMetrics(step === null || step === void 0 ? void 0 : step.data);
+    if (lastResult.kind === "roadmap")
+      return extractRoadmapFileMetrics(lastResult.data);
+    if (lastResult.kind === "complete") {
+      const step =
+        (_a = lastResult.steps) === null || _a === void 0
+          ? void 0
+          : _a.find((s) => s.id === "roadmap");
+      return extractRoadmapFileMetrics(
+        step === null || step === void 0 ? void 0 : step.data,
+      );
     }
     return null;
   })();
   const scanPaths =
-    Array.isArray(report === null || report === void 0 ? void 0 : report.scanPaths) && report.scanPaths.length
+    Array.isArray(
+      report === null || report === void 0 ? void 0 : report.scanPaths,
+    ) && report.scanPaths.length
       ? report.scanPaths
-      : Array.isArray(config === null || config === void 0 ? void 0 : config.scanPaths) && config.scanPaths.length
+      : Array.isArray(
+            config === null || config === void 0 ? void 0 : config.scanPaths,
+          ) && config.scanPaths.length
         ? config.scanPaths
         : DEFAULT_SCAN_PATHS;
-  const productionPaths = ((_a = scope.productionPaths) === null || _a === void 0 ? void 0 : _a.length)
+  const productionPaths = (
+    (_a = scope.productionPaths) === null || _a === void 0 ? void 0 : _a.length
+  )
     ? scope.productionPaths
     : (
-          (_b = config === null || config === void 0 ? void 0 : config.productionPaths) === null || _b === void 0
+          (_b =
+            config === null || config === void 0
+              ? void 0
+              : config.productionPaths) === null || _b === void 0
             ? void 0
             : _b.length
         )
       ? config.productionPaths
       : DEFAULT_PRODUCTION_PATHS;
-  const sourceCodeScanPaths = ((_c = scope.sourceCodeScanPaths) === null || _c === void 0 ? void 0 : _c.length)
+  const sourceCodeScanPaths = (
+    (_c = scope.sourceCodeScanPaths) === null || _c === void 0
+      ? void 0
+      : _c.length
+  )
     ? scope.sourceCodeScanPaths
     : (
-          (_d = config === null || config === void 0 ? void 0 : config.sourceCodeScanPaths) === null || _d === void 0
+          (_d =
+            config === null || config === void 0
+              ? void 0
+              : config.sourceCodeScanPaths) === null || _d === void 0
             ? void 0
             : _d.length
         )
@@ -144,10 +216,15 @@ function resolveScopeContext(context = {}) {
     scanPaths,
     productionPaths,
     sourceCodeScanPaths,
-    profile: scope.profile || (config === null || config === void 0 ? void 0 : config.profile) || 'standard',
-    ignore: (config === null || config === void 0 ? void 0 : config.ignore) || [],
+    profile:
+      scope.profile ||
+      (config === null || config === void 0 ? void 0 : config.profile) ||
+      "standard",
+    ignore:
+      (config === null || config === void 0 ? void 0 : config.ignore) || [],
     benchmarkScan: Boolean(
-      (report === null || report === void 0 ? void 0 : report.benchmarkScan) || isBenchmarkCachePath(projectPath)
+      (report === null || report === void 0 ? void 0 : report.benchmarkScan) ||
+      isBenchmarkCachePath(projectPath),
     ),
     counts: {
       repositoryFiles:
@@ -223,7 +300,9 @@ function resolveScopeContext(context = {}) {
           ? _v
           : null,
     },
-    reportFresh: Boolean(report === null || report === void 0 ? void 0 : report.generatedAt),
+    reportFresh: Boolean(
+      report === null || report === void 0 ? void 0 : report.generatedAt,
+    ),
     roadmapMetrics,
   };
 }
@@ -236,33 +315,38 @@ function gateFileSections(ctx) {
   var _a;
   return [
     {
-      label: 'Mock / sample JSON (scanPaths)',
+      label: "Mock / sample JSON (scanPaths)",
       paths: ctx.scanPaths,
       count: ctx.counts.mockSample,
-      countLabel: 'sample files in paths',
-      note: 'Schema, sample-consistency, roadmap page specs, mock fiction KPI rules.',
+      countLabel: "sample files in paths",
+      note: "Schema, sample-consistency, roadmap page specs, mock fiction KPI rules.",
     },
     {
-      label: 'Production code (credentials + production-leak)',
+      label: "Production code (credentials + production-leak)",
       paths: ctx.productionPaths,
       count: ctx.counts.productionDirs,
-      countLabel: 'files under production dirs',
+      countLabel: "files under production dirs",
       // simplebeacon:production-leak-intent - legitimate sample path reference for file scope analysis
-      note: 'Credential patterns and hardcoded *-sample.json references from prod directories.',
+      note: "Credential patterns and hardcoded *-sample.json references from prod directories.",
     },
     {
-      label: 'Source code pattern rules',
-      paths: ctx.sourceCodeScanPaths.length ? ctx.sourceCodeScanPaths : ctx.productionPaths,
-      count: (_a = ctx.counts.sourceCode) !== null && _a !== void 0 ? _a : ctx.counts.llmSlop,
-      countLabel: 'source files scanned',
-      note: 'Fiction KPI in code, LLM slop markers, agency handoff patterns.',
+      label: "Source code pattern rules",
+      paths: ctx.sourceCodeScanPaths.length
+        ? ctx.sourceCodeScanPaths
+        : ctx.productionPaths,
+      count:
+        (_a = ctx.counts.sourceCode) !== null && _a !== void 0
+          ? _a
+          : ctx.counts.llmSlop,
+      countLabel: "source files scanned",
+      note: "Fiction KPI in code, LLM slop markers, agency handoff patterns.",
     },
     {
-      label: 'Repository fiction JSON',
-      paths: ['**/*.json (repo-wide, respects ignore)'],
+      label: "Repository fiction JSON",
+      paths: ["**/*.json (repo-wide, respects ignore)"],
       count: ctx.counts.fictionJson,
-      countLabel: 'JSON files',
-      note: 'Fiction KPI / consistency patterns across repository JSON (not just scanPaths).',
+      countLabel: "JSON files",
+      note: "Fiction KPI / consistency patterns across repository JSON (not just scanPaths).",
     },
   ];
 }
@@ -276,52 +360,58 @@ function modeSections(modeValue, ctx) {
   var _a, _b, _c;
   const gate = gateFileSections(ctx);
   switch (modeValue) {
-    case 'simplebeacon':
+    case "simplebeacon":
       return gate;
-    case 'eu-ai-act':
+    case "eu-ai-act":
       return [
         ...gate,
         {
-          label: 'EU AI Act patterns (eu-ai-act profile)',
-          paths: ctx.sourceCodeScanPaths.length ? ctx.sourceCodeScanPaths : ctx.productionPaths,
+          label: "EU AI Act patterns (eu-ai-act profile)",
+          paths: ctx.sourceCodeScanPaths.length
+            ? ctx.sourceCodeScanPaths
+            : ctx.productionPaths,
           count: ctx.counts.euAiAct,
-          countLabel: 'files scanned for EU markers',
-          note: 'Transparency, documentation, human oversight, logging — plus checklist on gate report.',
+          countLabel: "files scanned for EU markers",
+          note: "Transparency, documentation, human oversight, logging — plus checklist on gate report.",
         },
         {
-          label: 'Artifacts written',
+          label: "Artifacts written",
           paths: [
-            '.simplebeacon/eu-ai-act-compliance.json',
-            '.simplebeacon/eu-ai-act-assessment.json',
-            '.simplebeacon/eu-ai-act-report.json',
+            ".simplebeacon/eu-ai-act-compliance.json",
+            ".simplebeacon/eu-ai-act-assessment.json",
+            ".simplebeacon/eu-ai-act-report.json",
           ],
-          note: 'Product root only — github-cache benchmark clones are blocked.',
+          note: "Product root only — github-cache benchmark clones are blocked.",
         },
       ];
-    case 'mock-scan':
+    case "mock-scan":
       return [
         {
-          label: 'Fiction KPI digest',
-          paths: ['**/*.json (repository-wide)'],
+          label: "Fiction KPI digest",
+          paths: ["**/*.json (repository-wide)"],
           count: ctx.counts.fictionJson,
-          countLabel: 'JSON files',
-          note: 'Filters to fiction / KPI / consistency issue types from the gate fiction rules.',
+          countLabel: "JSON files",
+          note: "Filters to fiction / KPI / consistency issue types from the gate fiction rules.",
         },
       ];
-    case 'roadmap': {
+    case "roadmap": {
       const live = ctx.roadmapMetrics;
       const sections = [
         {
-          label: 'Filesystem roadmap generator',
-          paths: ['**/* (project tree)'],
+          label: "Filesystem roadmap generator",
+          paths: ["**/* (project tree)"],
           count:
-            (_a = live === null || live === void 0 ? void 0 : live.totalFiles) !== null && _a !== void 0
+            (_a =
+              live === null || live === void 0 ? void 0 : live.totalFiles) !==
+              null && _a !== void 0
               ? _a
               : ctx.counts.repositoryFiles,
-          countLabel: live ? 'files in roadmap walk' : 'repo files indexed (gate cache)',
+          countLabel: live
+            ? "files in roadmap walk"
+            : "repo files indexed (gate cache)",
           note: live
-            ? `Sprint phases, dependency graph, effort — ${(_b = formatNumber(live.codeFiles)) !== null && _b !== void 0 ? _b : '—'} code files · ${(_c = formatNumber(live.apiRoutes)) !== null && _c !== void 0 ? _c : '—'} API routes · ${live.dataSource || 'filesystem-scan'}.`
-            : 'Sprint phases, dependency graph, effort — respects .simplebeacon ignore patterns. Run Roadmap analysis for a live walk count.',
+            ? `Sprint phases, dependency graph, effort — ${(_b = formatNumber(live.codeFiles)) !== null && _b !== void 0 ? _b : "—"} code files · ${(_c = formatNumber(live.apiRoutes)) !== null && _c !== void 0 ? _c : "—"} API routes · ${live.dataSource || "filesystem-scan"}.`
+            : "Sprint phases, dependency graph, effort — respects .simplebeacon ignore patterns. Run Roadmap analysis for a live walk count.",
         },
       ];
       if (
@@ -330,148 +420,157 @@ function modeSections(modeValue, ctx) {
         Number(live.totalFiles) !== Number(ctx.counts.repositoryFiles)
       ) {
         sections.push({
-          label: 'Gate inventory (reference)',
-          paths: ['from .simplebeacon/report.json repositoryInventory'],
+          label: "Gate inventory (reference)",
+          paths: ["from .simplebeacon/report.json repositoryInventory"],
           count: ctx.counts.repositoryFiles,
-          countLabel: 'repo files (gate audit profile)',
-          note: 'Different walker than roadmap — gate uses Simplebeacon scan profile; roadmap uses code-roadmap-generator ignore rules.',
+          countLabel: "repo files (gate audit profile)",
+          note: "Different walker than roadmap — gate uses Simplebeacon scan profile; roadmap uses code-roadmap-generator ignore rules.",
         });
       }
       return sections;
     }
-    case 'consolidation':
+    case "consolidation":
       return [
         {
-          label: 'Sample JSON (scanPaths)',
+          label: "Sample JSON (scanPaths)",
           paths: ctx.scanPaths,
           count: ctx.counts.mockSample,
-          countLabel: 'sample JSON in paths',
-          note: 'Structure similarity and merge candidates among configured mock/sample folders.',
+          countLabel: "sample JSON in paths",
+          note: "Structure similarity and merge candidates among configured mock/sample folders.",
         },
         {
-          label: 'Duplicate detection',
-          paths: ['**/*.json (repository-wide hash)'],
+          label: "Duplicate detection",
+          paths: ["**/*.json (repository-wide hash)"],
           count: ctx.counts.fictionJson,
-          countLabel: 'JSON hashed',
-          note: 'Exact duplicate groups across all repo JSON, not only scanPaths.',
+          countLabel: "JSON hashed",
+          note: "Exact duplicate groups across all repo JSON, not only scanPaths.",
         },
       ];
-    case 'codebase':
+    case "codebase":
       return [
         {
-          label: 'Full codebase depth',
-          paths: ['**/*.{js,mjs,cjs,ts,tsx,jsx,py,...}', 'ESLint when available'],
+          label: "Full codebase depth",
+          paths: [
+            "**/*.{js,mjs,cjs,ts,tsx,jsx,py,...}",
+            "ESLint when available",
+          ],
           count: ctx.counts.repositoryFiles,
-          countLabel: 'repo files indexed',
-          note: 'Tech debt, debug artifacts, understanding layers — every discovered code file.',
+          countLabel: "repo files indexed",
+          note: "Tech debt, debug artifacts, understanding layers — every discovered code file.",
         },
       ];
-    case 'file-reduction':
+    case "file-reduction":
       return [
         {
-          label: 'Repo walk (skips regenerable dirs)',
+          label: "Repo walk (skips regenerable dirs)",
           // simplebeacon:production-leak-intent: template-sample - File scope analysis scanner configuration
           paths: FILE_REDUCTION_SKIP.map((p) => `skip ${p}`),
-          note: 'Walks project tree excluding regenerable / vendor directories.',
+          note: "Walks project tree excluding regenerable / vendor directories.",
         },
         {
-          label: 'Scanners',
-          paths: FILE_REDUCTION_SCANNERS.map((id) => id.replace(/-/g, ' ')),
-          note: 'Dry-run only — build artifacts, duplicate assets, unused-file candidates.',
+          label: "Scanners",
+          paths: FILE_REDUCTION_SCANNERS.map((id) => id.replace(/-/g, " ")),
+          note: "Dry-run only — build artifacts, duplicate assets, unused-file candidates.",
         },
       ];
-    case 'data-quality':
+    case "data-quality":
       return [
         {
-          label: 'Repo walk',
-          paths: ['**/* (excludes node_modules, coverage, dist, build, .git)'],
+          label: "Repo walk",
+          paths: ["**/* (excludes node_modules, coverage, dist, build, .git)"],
           count: ctx.counts.repositoryFiles,
-          countLabel: 'repo files indexed',
-          note: 'Eight data-cleanup scanners run over discovered files.',
+          countLabel: "repo files indexed",
+          note: "Eight data-cleanup scanners run over discovered files.",
         },
         {
-          label: 'Scanners',
-          paths: DATA_QUALITY_SCANNERS.map((id) => id.replace(/-/g, ' ')),
+          label: "Scanners",
+          paths: DATA_QUALITY_SCANNERS.map((id) => id.replace(/-/g, " ")),
         },
       ];
-    case 'cleanup-assistant':
+    case "cleanup-assistant":
       return [
-        ...modeSections('file-reduction', ctx),
-        ...modeSections('data-quality', ctx),
+        ...modeSections("file-reduction", ctx),
+        ...modeSections("data-quality", ctx),
         {
-          label: 'Agent brief output',
-          paths: ['tiered safe-delete list', 'protected mock paths from scanPaths'],
-          note: 'Combines file-reduction + data-quality; exports Cursor cleanup brief.',
+          label: "Agent brief output",
+          paths: [
+            "tiered safe-delete list",
+            "protected mock paths from scanPaths",
+          ],
+          note: "Combines file-reduction + data-quality; exports Cursor cleanup brief.",
         },
       ];
-    case 'compliance':
+    case "compliance":
       return [
         ...gate,
         {
-          label: 'Checklist evaluation',
-          paths: ['Uses fresh gate report.json — no extra file walk'],
-          note: 'Corporate safety / EU checklist rules evaluated on the gate scan above.',
+          label: "Checklist evaluation",
+          paths: ["Uses fresh gate report.json — no extra file walk"],
+          note: "Corporate safety / EU checklist rules evaluated on the gate scan above.",
         },
       ];
-    case 'npm-audit':
+    case "npm-audit":
       return [
         {
-          label: 'npm dependency tree',
-          paths: ['package.json', 'package-lock.json (or npm-shrinkwrap.json)'],
-          note: 'Live npm audit at the project path on the dashboard server.',
+          label: "npm dependency tree",
+          paths: ["package.json", "package-lock.json (or npm-shrinkwrap.json)"],
+          note: "Live npm audit at the project path on the dashboard server.",
         },
       ];
-    case 'auto':
+    case "auto":
       return [
         {
-          label: 'Smart pick (at run time)',
+          label: "Smart pick (at run time)",
           // simplebeacon:production-leak-intent: web-data-sample - Auto-mode path configuration reference
-          paths: ['web/data · data/mock · *ai-platform* → Simplebeacon gate', 'other paths → Roadmap filesystem scan'],
-          note: 'See Simplebeacon or Roadmap rows for full path lists.',
+          paths: [
+            "web/data · data/mock · *ai-platform* → Simplebeacon gate",
+            "other paths → Roadmap filesystem scan",
+          ],
+          note: "See Simplebeacon or Roadmap rows for full path lists.",
         },
       ];
-    case 'complete': {
+    case "complete": {
       const uniquePaths = Array.from(new Set(gate.flatMap((s) => s.paths)));
       return [
         {
-          label: 'Step 1 — Simplebeacon gate',
+          label: "Step 1 — Simplebeacon gate",
           paths: uniquePaths.slice(0, 6),
-          note: 'Credentials, production-leak, schema, fiction KPI, LLM slop, agency handoff.',
+          note: "Credentials, production-leak, schema, fiction KPI, LLM slop, agency handoff.",
         },
         {
-          label: 'Step 2 — Consolidation',
-          paths: ['scanPaths sample JSON', '**/*.json repo hash'],
-          note: 'Duplicate groups + merge candidates.',
+          label: "Step 2 — Consolidation",
+          paths: ["scanPaths sample JSON", "**/*.json repo hash"],
+          note: "Duplicate groups + merge candidates.",
         },
         {
-          label: 'Step 3 — Fiction digest',
-          paths: ['**/*.json (repository-wide)'],
-          note: 'KPI consistency patterns across all repo JSON.',
+          label: "Step 3 — Fiction digest",
+          paths: ["**/*.json (repository-wide)"],
+          note: "KPI consistency patterns across all repo JSON.",
         },
         {
-          label: 'Step 4 — Roadmap',
-          paths: ['**/* project tree'],
-          note: 'Sprint phases, dependency graph, effort estimates.',
+          label: "Step 4 — Roadmap",
+          paths: ["**/* project tree"],
+          note: "Sprint phases, dependency graph, effort estimates.",
         },
         {
-          label: 'Step 5 — Codebase',
-          paths: ['All discovered code files (full depth)'],
-          note: 'Tech debt, debug artifacts, ESLint, understanding layers.',
+          label: "Step 5 — Codebase",
+          paths: ["All discovered code files (full depth)"],
+          note: "Tech debt, debug artifacts, ESLint, understanding layers.",
         },
         {
-          label: 'Steps 6–8 — File reduction · Data quality · Cleanup',
-          paths: ['Repo walk (see those modes)'],
-          note: 'Dry-run disk hygiene + data-cleanup scanners + tiered safe-delete brief.',
+          label: "Steps 6–8 — File reduction · Data quality · Cleanup",
+          paths: ["Repo walk (see those modes)"],
+          note: "Dry-run disk hygiene + data-cleanup scanners + tiered safe-delete brief.",
         },
         {
-          label: 'Step 9 — Compliance',
-          paths: ['Gate report + 8-rule checklist'],
-          note: 'Corporate safety / EU checklist rules evaluated on gate results.',
+          label: "Step 9 — Compliance",
+          paths: ["Gate report + 8-rule checklist"],
+          note: "Corporate safety / EU checklist rules evaluated on gate results.",
         },
         {
-          label: 'Step 10 — npm audit',
-          paths: ['package.json + lockfile'],
-          note: 'Live npm audit for supply-chain vulnerabilities.',
+          label: "Step 10 — npm audit",
+          paths: ["package.json + lockfile"],
+          note: "Live npm audit for supply-chain vulnerabilities.",
         },
       ];
     }
@@ -490,22 +589,22 @@ function renderSection(section, index) {
   const hasCount = section.count != null && section.countLabel;
   const stepNum = section.step
     ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--primary);color:#fff;font-size:0.7rem;font-weight:700;margin-right:0.5rem;flex-shrink:0;">${section.step}</span>`
-    : '';
+    : "";
   return `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;flex-direction:column;gap:0.5rem;">
       <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
         ${stepNum}
         <strong style="font-size:0.85rem;color:var(--text-primary);flex:1;">${escapeHtml(section.label)}</strong>
-        ${hasCount ? `<span style="font-size:0.75rem;color:var(--success);background:rgba(var(--success-rgb),0.1);padding:0.15rem 0.5rem;border-radius:999px;font-weight:600;white-space:nowrap;">${formatNumber(section.count)} ${escapeHtml(section.countLabel)}</span>` : ''}
+        ${hasCount ? `<span style="font-size:0.75rem;color:var(--success);background:rgba(var(--success-rgb),0.1);padding:0.15rem 0.5rem;border-radius:999px;font-weight:600;white-space:nowrap;">${formatNumber(section.count)} ${escapeHtml(section.countLabel)}</span>` : ""}
       </div>
       ${
         paths.length
           ? `<div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
-        ${paths.map((p) => `<span style="font-size:0.75rem;background:var(--bg);color:var(--text-secondary);padding:0.2rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:var(--font-mono,monospace);">${escapeHtml(String(p))}</span>`).join('')}
+        ${paths.map((p) => `<span style="font-size:0.75rem;background:var(--bg);color:var(--text-secondary);padding:0.2rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:var(--font-mono,monospace);">${escapeHtml(String(p))}</span>`).join("")}
       </div>`
-          : ''
+          : ""
       }
-      ${section.note ? `<p style="font-size:0.75rem;color:var(--text-muted);margin:0;line-height:1.4;">${escapeHtml(section.note)}</p>` : ''}
+      ${section.note ? `<p style="font-size:0.75rem;color:var(--text-muted);margin:0;line-height:1.4;">${escapeHtml(section.note)}</p>` : ""}
     </div>
   `;
 }
@@ -522,19 +621,19 @@ function renderSection(section, index) {
 export function renderModeFileScopePanel(modeValue, context = {}) {
   const ctx = resolveScopeContext(context);
   const sections = modeSections(modeValue, ctx);
-  if (!sections.length) return '';
+  if (!sections.length) return "";
   const profileLine = `<span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.75rem;background:var(--bg);color:var(--text-secondary);padding:0.25rem 0.6rem;border-radius:999px;border:1px solid var(--border);">
     <span style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--success);display:inline-block;"></span>
     ${escapeHtml(ctx.profile)}
   </span>`;
-  const roadmapLive = modeValue === 'roadmap' && ctx.roadmapMetrics;
+  const roadmapLive = modeValue === "roadmap" && ctx.roadmapMetrics;
   const liveLine = roadmapLive
-    ? `<strong>${formatNumber(ctx.roadmapMetrics.totalFiles)}</strong> files · <strong>${formatNumber(ctx.roadmapMetrics.codeFiles)}</strong> code · ${ctx.roadmapMetrics.generatedAt ? new Date(ctx.roadmapMetrics.generatedAt).toLocaleDateString() : 'just now'}`
+    ? `<strong>${formatNumber(ctx.roadmapMetrics.totalFiles)}</strong> files · <strong>${formatNumber(ctx.roadmapMetrics.codeFiles)}</strong> code · ${ctx.roadmapMetrics.generatedAt ? new Date(ctx.roadmapMetrics.generatedAt).toLocaleDateString() : "just now"}`
     : ctx.reportFresh && ctx.counts.ruleScoped != null
       ? `<strong>${formatNumber(ctx.counts.ruleScoped)}</strong> rule-scoped · <strong>${formatNumber(ctx.counts.repositoryFiles)}</strong> repo inventory`
-      : 'Run analysis to attach live file counts';
+      : "Run analysis to attach live file counts";
   const benchmarkLine = ctx.benchmarkScan
-    ? 'Benchmark clone under github-cache/ — product scanPaths and production rules are not walked. Use ai-platform root for handoff evidence.'
+    ? "Benchmark clone under github-cache/ — product scanPaths and production rules are not walked. Use ai-platform root for handoff evidence."
     : null;
   return `
     <div class="analyze-mode-file-scope" style="margin-top:1rem;">
@@ -552,10 +651,10 @@ export function renderModeFileScopePanel(modeValue, context = {}) {
           ? `<div style="font-size:0.75rem;color:var(--warning);background:rgba(var(--warning-rgb),0.08);border:1px solid var(--warning-border, var(--border));border-radius:var(--radius-sm);padding:0.5rem 0.75rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
         <span>⚠️</span> ${escapeHtml(benchmarkLine)}
       </div>`
-          : ''
+          : ""
       }
       <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:0.75rem;">
-        ${sections.map(renderSection).join('')}
+        ${sections.map(renderSection).join("")}
       </div>
       <p style="font-size:0.7rem;color:var(--text-muted);margin:0.75rem 0 0;text-align:right;">
         Config: <code style="font-size:0.7rem;">.simplebeacon/config.json</code> · <a href="/dashboard/settings" style="color:var(--primary);">Edit paths</a>

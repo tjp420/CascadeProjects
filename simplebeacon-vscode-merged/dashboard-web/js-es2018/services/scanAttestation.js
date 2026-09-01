@@ -21,14 +21,19 @@
 
 const ATTEST_ENDPOINT = "/api/scan/attest";
 const REFRESH_BUFFER_MS = 60 * 1000; // Refresh 1 minute before expiry
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 2000;
+const MAX_RETRY_ATTEMPTS = 1; // Single attempt — attestation is optional, scan proceeds without it
+const RETRY_DELAY_MS = 1000;
+// Backoff after a failure (401, 429, network error) — don't spam the endpoint.
+// 401 means the auth token is expired/invalid; retrying immediately is pointless.
+// 429 means we're rate limited; retrying makes it worse.
+const FAILURE_BACKOFF_MS = 60 * 1000; // 1 minute cooldown after any failure
 
 let cachedAttestation = null;
 let cachedExpiresAt = 0;
 let cachedScanId = null;
 let refreshTimer = null;
 let deviceFingerprint = null;
+let lastFailureAt = 0; // Timestamp of last attestation failure (0 = no failure)
 
 /**
  * Generate a stable device fingerprint from browser characteristics.
@@ -157,7 +162,9 @@ async function fetchAttestation() {
     }
   }
 
-  console.error("[scanAttest] Failed to acquire attestation:", lastError);
+  // Attestation is optional — the scan proceeds without it. Log at debug level
+  // to avoid alarming users when the endpoint is unavailable or network fails.
+  console.debug("[scanAttest] Attestation unavailable (scan will proceed without it):", lastError);
   return null;
 }
 
@@ -192,9 +199,19 @@ export async function getAttestation() {
     };
   }
 
+  // Backoff: if the last attempt failed recently, don't spam the endpoint.
+  // This prevents 30+ redundant 401/429 requests when the auth token is expired.
+  if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_BACKOFF_MS) {
+    return null;
+  }
+
   // Need a fresh attestation
   const result = await fetchAttestation();
-  if (!result) return null;
+  if (!result) {
+    lastFailureAt = Date.now();
+    return null;
+  }
+  lastFailureAt = 0;
   return {
     attestation: result.attestation,
     scanId: result.scanId,
@@ -220,6 +237,7 @@ export function clearAttestation() {
   cachedAttestation = null;
   cachedExpiresAt = 0;
   cachedScanId = null;
+  lastFailureAt = 0;
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = null;

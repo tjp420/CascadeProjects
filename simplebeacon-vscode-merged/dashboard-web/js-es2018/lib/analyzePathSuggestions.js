@@ -1,22 +1,25 @@
 /**
  * Shared path suggestion datalist for Analyze path bar + Dashboard scan input.
  */
-import { escapeHtml, redactPathForDisplay, formatPathLabel } from '../utils.js';
-import { normalizeProjectPath } from '../services/analyzeService.js?v=20260726sevfix1';
-import { isRemoteRepoUrl } from './analyzePathSources.js';
+import { escapeHtml, redactPathForDisplay, formatPathLabel } from "../utils.js";
+import { normalizeProjectPath } from "../services/analyzeService.js?v=20260726sevfix1";
+import { isRemoteRepoUrl } from "./analyzePathSources.js";
 /**
  * P a t h  s u g g e s t i o n s  l i s t  i d.
  */
-export const PATH_SUGGESTIONS_LIST_ID = 'project-path-suggestions';
-const RECENT_PATHS_KEY = 'simplebeaconRecentPaths';
+export const PATH_SUGGESTIONS_LIST_ID = "project-path-suggestions";
+const RECENT_PATHS_KEY = "simplebeaconRecentPaths";
 /**
  * Basename path.
  * @param {string} projectPath
  * @returns {any}
  */
-function basenamePath(projectPath) {
-  if (!projectPath) return '';
-  const parts = String(projectPath).replace(/\\/g, '/').split('/').filter(Boolean);
+export function basenamePath(projectPath) {
+  if (!projectPath) return "";
+  const parts = String(projectPath)
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean);
   return parts[parts.length - 1] || projectPath;
 }
 /**
@@ -25,18 +28,24 @@ function basenamePath(projectPath) {
  * @returns {any}
  */
 export function isPlausibleSuggestionPath(value) {
-  const raw = String(value || '').trim();
+  const raw = String(value || "").trim();
   if (!raw || raw.length > 280) return false;
   if (isRemoteRepoUrl(raw)) return true;
-  if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
+  if (
+    /outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(
+      raw,
+    )
+  ) {
     return false;
   }
-  if (/allowedAnalysisRoots|ANALYZE_ALLOWED_ROOTS|restart the server/i.test(raw)) {
+  if (
+    /allowedAnalysisRoots|ANALYZE_ALLOWED_ROOTS|restart the server/i.test(raw)
+  ) {
     return false;
   }
   if (/\.(bat|cmd|exe|ps1|sh|js|json|html?|md|txt)$/i.test(raw)) return false;
   if (/^[a-zA-Z]:[\\/]/.test(raw)) return true;
-  if (raw.startsWith('\\\\') || raw.startsWith('/')) return true;
+  if (raw.startsWith("\\\\") || raw.startsWith("/")) return true;
   if (/^[\w.-]+([\\/]|$)/.test(raw)) return true;
   return false;
 }
@@ -61,7 +70,10 @@ export function loadRecentPaths() {
  */
 export function saveRecentPath(path) {
   if (!isPlausibleSuggestionPath(path)) return;
-  const recent = [path, ...loadRecentPaths().filter((p) => p !== path)].slice(0, 8);
+  const recent = [path, ...loadRecentPaths().filter((p) => p !== path)].slice(
+    0,
+    8,
+  );
   localStorage.setItem(RECENT_PATHS_KEY, JSON.stringify(recent));
 }
 /**
@@ -70,7 +82,7 @@ export function saveRecentPath(path) {
  * @returns {any}
  */
 export function removeRecentPath(path) {
-  const raw = String(path || '').trim();
+  const raw = String(path || "").trim();
   if (!raw) return;
   const recent = loadRecentPaths().filter((p) => p !== raw);
   localStorage.setItem(RECENT_PATHS_KEY, JSON.stringify(recent));
@@ -87,8 +99,8 @@ export function collectPathSuggestions(app, testSources = []) {
    * @param {any} kind
    * @returns {any}
    */
-  const add = (value, label, kind = 'path') => {
-    const full = String(value || '').trim();
+  const add = (value, label, kind = "path") => {
+    const full = String(value || "").trim();
     if (!full || !isPlausibleSuggestionPath(full)) return;
     const key = normalizeProjectPath(full);
     if (seen.has(key)) return;
@@ -101,22 +113,27 @@ export function collectPathSuggestions(app, testSources = []) {
     });
   };
   const defaultPath = String(
-    ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+    ((_a = app === null || app === void 0 ? void 0 : app.state) === null ||
+    _a === void 0
       ? void 0
-      : _a.defaultProjectPath) || ''
+      : _a.defaultProjectPath) || "",
   ).trim();
   if (defaultPath) {
-    add(defaultPath, `Server default · ${basenamePath(defaultPath)}`, 'default');
+    add(
+      defaultPath,
+      `Server default · ${basenamePath(defaultPath)}`,
+      "default",
+    );
   }
   for (const recent of loadRecentPaths()) {
     if (recent === defaultPath) continue;
-    add(recent, formatPathLabel(recent) || basenamePath(recent), 'recent');
+    add(recent, formatPathLabel(recent) || basenamePath(recent), "recent");
   }
   for (const source of testSources || []) {
     add(
       source === null || source === void 0 ? void 0 : source.value,
       source === null || source === void 0 ? void 0 : source.label,
-      (source === null || source === void 0 ? void 0 : source.kind) || 'preset'
+      (source === null || source === void 0 ? void 0 : source.kind) || "preset",
     );
   }
   return entries;
@@ -127,21 +144,21 @@ export function collectPathSuggestions(app, testSources = []) {
  * @returns {any}
  */
 export function renderPathSuggestionsDatalistHtml(entries = []) {
-  if (!entries.length) return '';
+  if (!entries.length) return "";
   return entries
     .map(({ full, label, displayValue }) => {
       const value = displayValue || full;
       const title = full !== value ? full : label;
       return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}" title="${escapeHtml(title)}"></option>`;
     })
-    .join('');
+    .join("");
 }
 function createDatalistOptions(entries) {
   const fragment = document.createDocumentFragment();
   entries.forEach(({ full, label, displayValue }) => {
     const value = displayValue || full;
     const title = full !== value ? full : label;
-    const opt = document.createElement('option');
+    const opt = document.createElement("option");
     opt.value = value;
     opt.label = label;
     opt.title = title;
@@ -156,7 +173,11 @@ function createDatalistOptions(entries) {
  * @param {Array} testSources
  * @returns {any}
  */
-export function refreshPathSuggestionsDatalist(container, app, testSources = []) {
+export function refreshPathSuggestionsDatalist(
+  container,
+  app,
+  testSources = [],
+) {
   if (!container) return [];
   const entries = collectPathSuggestions(app, testSources);
   const datalist = container.querySelector(`#${PATH_SUGGESTIONS_LIST_ID}`);
@@ -168,35 +189,44 @@ export function refreshPathSuggestionsDatalist(container, app, testSources = [])
 /** Map redacted UI path (…/CascadeProjects/foo) back to full server path when possible. */
 export function expandDisplayPathToFull(inputValue, app, testSources = []) {
   var _a, _b;
-  const trimmed = String(inputValue || '').trim();
-  if (!trimmed) return '';
-  if (!trimmed.startsWith('…') && !trimmed.startsWith('...')) return trimmed;
+  const trimmed = String(inputValue || "").trim();
+  if (!trimmed) return "";
+  if (!trimmed.startsWith("…") && !trimmed.startsWith("...")) return trimmed;
   const entries = collectPathSuggestions(app, testSources);
   for (const entry of entries) {
     if (entry.displayValue === trimmed) return entry.full;
   }
-  const suffix = trimmed.replace(/^(?:…|\.{3})/, '').replace(/\\/g, '/');
+  const suffix = trimmed.replace(/^(?:…|\.{3})/, "").replace(/\\/g, "/");
   if (suffix) {
     for (const entry of entries) {
-      const norm = entry.full.replace(/\\/g, '/');
-      if (norm.endsWith(suffix) || norm.toLowerCase().endsWith(suffix.toLowerCase())) {
+      const norm = entry.full.replace(/\\/g, "/");
+      if (
+        norm.endsWith(suffix) ||
+        norm.toLowerCase().endsWith(suffix.toLowerCase())
+      ) {
         return entry.full;
       }
     }
     const defaultPath = String(
-      ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+      ((_a = app === null || app === void 0 ? void 0 : app.state) === null ||
+      _a === void 0
         ? void 0
-        : _a.defaultProjectPath) || ''
-    ).replace(/\\/g, '/');
-    if (defaultPath && (defaultPath.endsWith(suffix) || defaultPath.toLowerCase().endsWith(suffix.toLowerCase()))) {
+        : _a.defaultProjectPath) || "",
+    ).replace(/\\/g, "/");
+    if (
+      defaultPath &&
+      (defaultPath.endsWith(suffix) ||
+        defaultPath.toLowerCase().endsWith(suffix.toLowerCase()))
+    ) {
       return app.state.defaultProjectPath;
     }
   }
   return (
     String(
-      ((_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0
+      ((_b = app === null || app === void 0 ? void 0 : app.state) === null ||
+      _b === void 0
         ? void 0
-        : _b.defaultProjectPath) || ''
+        : _b.defaultProjectPath) || "",
     ).trim() || trimmed
   );
 }

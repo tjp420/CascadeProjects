@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   LayoutDashboard,
   FolderSearch,
@@ -11,6 +10,7 @@ import {
   FileText,
   Map,
   BarChart3,
+  TrendingUp,
   User,
   Users,
   Wrench,
@@ -23,23 +23,17 @@ import {
   Github,
   BookOpen,
   Download,
-  Upload,
-  ScrollText,
   Building2,
   Server,
-  TrendingUp,
-  Radio,
-  Megaphone,
-  Layers,
-  SlidersHorizontal,
-  Zap,
+  Mail,
+  Briefcase,
+  Database,
+  Webhook,
   FileBarChart,
   KeyRound,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { getViewUpgradeInfo } from '@/config/viewAccess';
-import { UpgradeModal } from '@/components/UpgradeModal';
+  Activity,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   currentView: string;
@@ -47,6 +41,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  isAuthenticated?: boolean;
 }
 
 interface NavItem {
@@ -62,90 +57,81 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: 'Scan',
+    label: "Scan",
     items: [
-      { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { view: 'analyze', label: 'Analyze', icon: FolderSearch },
-      { view: 'results', label: 'Results', icon: ClipboardList },
-      { view: 'repository-health', label: 'Repo Health', icon: Package },
-      { view: 'upload', label: 'Upload', icon: Upload },
+      { view: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { view: "analyze", label: "Analyze", icon: FolderSearch },
+      { view: "results", label: "Results", icon: ClipboardList },
+      { view: "repository-health", label: "Repo Health", icon: Package },
     ],
   },
   {
-    label: 'Compliance',
+    label: "Compliance",
     items: [
-      { view: 'audit', label: 'Audit Report', icon: ClipboardCheck },
-      { view: 'security', label: 'Security', icon: Lock },
-      { view: 'quality', label: 'Quality', icon: Award },
-      { view: 'trust', label: 'Trust', icon: BadgeCheck },
-      { view: 'compliance', label: 'Compliance', icon: ScrollText },
+      { view: "audit", label: "Audit Report", icon: ClipboardCheck },
+      { view: "security", label: "Security", icon: Lock },
+      { view: "quality", label: "Quality", icon: Award },
+      { view: "trust", label: "Trust", icon: BadgeCheck },
     ],
   },
   {
-    label: 'Operations',
+    label: "Operations",
     items: [
-      { view: 'assessments', label: 'Assessments', icon: FileText },
-      { view: 'remediation', label: 'Remediation', icon: Map },
-      { view: 'platform', label: 'Platform', icon: BarChart3 },
-      { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Megaphone },
-      { view: 'ops-report', label: 'Ops Report', icon: FileBarChart },
-      { view: 'workspace', label: 'Workspace', icon: Layers },
-      { view: 'profile', label: 'Profile', icon: User },
-      { view: 'admin', label: 'Admin', icon: Users },
+      { view: "assessments", label: "Assessments", icon: FileText },
+      { view: "remediation", label: "Remediation", icon: Map },
+      { view: "platform", label: "Platform", icon: BarChart3 },
+      { view: "team-metrics", label: "Team Metrics", icon: TrendingUp },
+      { view: "telemetry", label: "Advanced Telemetry", icon: Activity },
+      { view: "outreach-analytics", label: "Outreach Analytics", icon: Mail },
+      { view: "organization", label: "Organization", icon: Building2 },
+      { view: "enterprise", label: "Enterprise", icon: Server },
+      { view: "workspace", label: "Workspace", icon: Briefcase },
+      { view: "fine-tuning", label: "Fine-Tuning", icon: Database },
+      { view: "webhook-events", label: "Webhook Events", icon: Webhook },
+      { view: "ops-report", label: "Ops Report", icon: FileBarChart },
+      { view: "license-manager", label: "License Manager", icon: KeyRound },
+      { view: "profile", label: "Profile", icon: User },
+      { view: "admin", label: "Admin", icon: Users },
     ],
   },
   {
-    label: 'Team & Enterprise',
+    label: "System",
     items: [
-      { view: 'organization', label: 'Organization', icon: Building2 },
-      { view: 'enterprise', label: 'Enterprise', icon: Server },
-      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
-      { view: 'telemetry', label: 'Advanced Telemetry', icon: Radio },
-      { view: 'fine-tuning', label: 'Fine-Tuning Curation', icon: SlidersHorizontal },
-      { view: 'webhook-events', label: 'Webhook Events', icon: Zap },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { view: 'tools', label: 'Tools', icon: Wrench },
-      { view: 'settings', label: 'Settings', icon: Settings },
-      { view: 'license-manager', label: 'License Manager', icon: KeyRound },
-      { view: 'help', label: 'Help', icon: HelpCircle },
-      { view: 'getting-started', label: 'Getting Started', icon: Rocket },
-      { view: 'chatbot', label: 'Chatbot', icon: Bot },
-      { view: 'about', label: 'About', icon: Info },
+      { view: "tools", label: "Tools", icon: Wrench },
+      { view: "settings", label: "Settings", icon: Settings },
+      { view: "help", label: "Help", icon: HelpCircle },
+      { view: "getting-started", label: "Getting Started", icon: Rocket },
+      { view: "chatbot", label: "Chatbot", icon: Bot },
+      { view: "about", label: "About", icon: Info },
     ],
   },
 ];
 
-export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: SidebarProps) {
-  const { hasFeature } = useFeatureAccess();
-  const [upgradeView, setUpgradeView] = useState<string | null>(null);
+// Views that require authentication — hidden from sidebar when signed out
+// Align with App.tsx AUTH_REQUIRED_VIEWS — only organization and workspace
+// truly require auth at the router level. Admin is handled separately below.
+const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 
-  const handleNavigate = (view: string) => {
-    const info = getViewUpgradeInfo(view);
-    if (info && !hasFeature(info.flag)) {
-      setUpgradeView(view);
-      return;
-    }
-    onNavigate(view);
-  };
-
-  const upgradeInfo = upgradeView ? getViewUpgradeInfo(upgradeView) : null;
-  const upgradeLabel = upgradeView
-    ? navGroups
-        .flatMap((g) => g.items)
-        .find((i) => i.view === upgradeView)?.label
-    : undefined;
-
+export function Sidebar({
+  currentView,
+  onNavigate,
+  isOpen,
+  onClose,
+  isAdmin,
+  isAuthenticated,
+}: SidebarProps) {
   return (
     <>
-      {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onClose}
+        />
+      )}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-card transition-transform lg:static lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          "fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-card transition-transform lg:static lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
@@ -162,7 +148,9 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
                 <polyline points="9 12 12 15 16 10" />
               </svg>
             </div>
-            <span className="text-sm font-bold tracking-tight">SimpleBeacon</span>
+            <span className="text-sm font-bold tracking-tight">
+              SimpleBeacon
+            </span>
           </div>
         </div>
 
@@ -172,9 +160,9 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
               key={group.label}
               group={group}
               currentView={currentView}
-              onNavigate={handleNavigate}
+              onNavigate={onNavigate}
               isAdmin={!!isAdmin}
-              hasFeature={hasFeature}
+              isAuthenticated={!!isAuthenticated}
             />
           ))}
         </nav>
@@ -186,6 +174,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="GitHub"
+            aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
           </a>
@@ -195,33 +184,38 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
             title="Docs"
+            aria-label="Documentation"
           >
             <BookOpen className="h-4 w-4" />
           </a>
           <button
             type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/simplebeacon/report");
+                if (!res.ok) return;
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "simplebeacon-report.json";
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+                /* ignore download errors */
+              }
+            }}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="Export"
+            title="Export Report"
+            aria-label="Export report"
           >
             <Download className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => handleNavigate('about')}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="About"
-          >
-            <Info className="h-4 w-4" />
-          </button>
         </div>
       </aside>
-
-      <UpgradeModal
-        open={upgradeView !== null}
-        onOpenChange={(o) => { if (!o) setUpgradeView(null); }}
-        viewLabel={upgradeLabel}
-        info={upgradeInfo}
-      />
     </>
   );
 }
@@ -231,13 +225,13 @@ function NavGroupSection({
   currentView,
   onNavigate,
   isAdmin,
-  hasFeature,
+  isAuthenticated,
 }: {
   group: NavGroup;
   currentView: string;
   onNavigate: (v: string) => void;
   isAdmin: boolean;
-  hasFeature: (f: import('@/hooks/useFeatureAccess').FeatureFlag) => boolean;
+  isAuthenticated: boolean;
 }) {
   return (
     <div className="mb-2">
@@ -248,31 +242,34 @@ function NavGroupSection({
       <div className="space-y-0.5">
         {group.items
           .filter((item) => {
-            // Hide admin-only views from non-admin users
-            if ((item.view === 'assessments' || item.view === 'admin') && !isAdmin) return false;
+            // Hide admin-only items from non-admin users
+            if (
+              !isAdmin &&
+              (item.view === "admin" || item.view === "workspace")
+            )
+              return false;
+            // Hide auth-required items from signed-out users
+            if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view))
+              return false;
             return true;
           })
           .map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.view;
-            const info = getViewUpgradeInfo(item.view);
-            const isLocked = info ? !hasFeature(info.flag) : false;
             return (
               <button
                 key={item.view}
                 type="button"
                 onClick={() => onNavigate(item.view)}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+                  "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
                   isActive
-                    ? 'bg-primary-subtle text-primary'
-                    : 'text-foreground-secondary hover:bg-muted hover:text-foreground',
-                  isLocked && 'opacity-70'
+                    ? "bg-primary-subtle text-primary"
+                    : "text-foreground-secondary hover:bg-muted hover:text-foreground",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">{item.label}</span>
-                {isLocked && <Lock className="h-3 w-3 shrink-0 text-foreground-muted" />}
+                <span>{item.label}</span>
               </button>
             );
           })}

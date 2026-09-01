@@ -1,14 +1,14 @@
 // simplebeacon-ignore documentation
 /** Keep in sync with server/lib/path-safety.js DEFAULT_ALLOWED_HOSTS */
 export const REMOTE_REPO_HOSTS = [
-  'github.com',
-  'www.github.com',
-  'gitlab.com',
-  'www.gitlab.com',
-  'bitbucket.org',
-  'www.bitbucket.org',
-  'codeberg.org',
-  'www.codeberg.org',
+  "github.com",
+  "www.github.com",
+  "gitlab.com",
+  "www.gitlab.com",
+  "bitbucket.org",
+  "www.bitbucket.org",
+  "codeberg.org",
+  "www.codeberg.org",
 ];
 
 /**
@@ -17,10 +17,10 @@ export const REMOTE_REPO_HOSTS = [
  * @returns {any}
  */
 export function isRemoteRepoUrl(value) {
-  const raw = String(value || '').trim();
+  const raw = String(value || "").trim();
   if (!raw) return false;
   if (/^git@[^:]+:[\w.\-/]+/i.test(raw)) return true;
-  if (raw.startsWith('ssh://git@') || raw.startsWith('ssh://')) {
+  if (raw.startsWith("ssh://git@") || raw.startsWith("ssh://")) {
     try {
       const host = new URL(raw).hostname.toLowerCase();
       return REMOTE_REPO_HOSTS.includes(host);
@@ -30,7 +30,7 @@ export function isRemoteRepoUrl(value) {
   }
   try {
     const parsed = new URL(raw);
-    if (parsed.protocol !== 'https:') return false;
+    if (parsed.protocol !== "https:") return false;
     return REMOTE_REPO_HOSTS.includes(parsed.hostname.toLowerCase());
   } catch {
     return false;
@@ -48,7 +48,12 @@ export function isGithubRepoUrl(value) {
  * @returns {any}
  */
 export function sourceChipTitle(source) {
-  const hint = source?.hint ? ` — ${source.hint}` : '';
-  const kind = source?.kind === 'remote' ? 'HTTPS clone' : source?.kind === 'cached' ? 'Cached clone' : 'Local folder';
+  const hint = source?.hint ? ` — ${source.hint}` : "";
+  const kind =
+    source?.kind === "remote"
+      ? "HTTPS clone"
+      : source?.kind === "cached"
+        ? "Cached clone"
+        : "Local folder";
   return `${kind}${hint}`;
 }

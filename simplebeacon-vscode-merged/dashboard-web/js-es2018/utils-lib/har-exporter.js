@@ -21,7 +21,7 @@
  */
 
 /** Headers that should be redacted in HAR output for security. */
-const REDACTED_HEADERS = ['authorization', 'cookie', 'set-cookie', 'x-api-key'];
+const REDACTED_HEADERS = ["authorization", "cookie", "set-cookie", "x-api-key"];
 
 /** URL paths that should have request bodies excluded for security. */
 const SENSITIVE_PATH_PATTERNS = [
@@ -57,7 +57,7 @@ function isSensitivePath(url) {
 function redactHeaders(headers) {
   return headers.map(([name, value]) => {
     if (REDACTED_HEADERS.includes(name.toLowerCase())) {
-      return [name, '[REDACTED]'];
+      return [name, "[REDACTED]"];
     }
     return [name, value];
   });
@@ -70,11 +70,11 @@ function redactHeaders(headers) {
  */
 function headersToArray(headers) {
   if (!headers) return [];
-  if (typeof headers.entries === 'function') {
+  if (typeof headers.entries === "function") {
     return Array.from(headers.entries());
   }
   const result = [];
-  if (typeof headers.forEach === 'function') {
+  if (typeof headers.forEach === "function") {
     headers.forEach((value, name) => result.push([name, value]));
   }
   return result;
@@ -158,15 +158,21 @@ export class HarExporter {
    * @private
    */
   _interceptFetch() {
-    if (typeof window.fetch !== 'function') return;
+    if (typeof window.fetch !== "function") return;
     const self = this;
     this._origFetch = window.fetch;
     window.fetch = function (input, init) {
-      const url = typeof input === 'string' ? input : (input && input.url) || '';
-      const method = (init && init.method) || (input && input.method) || 'GET';
-      const reqHeaders = headersToArray(init && init.headers ? new Headers(init.headers) : new Headers());
+      const url =
+        typeof input === "string" ? input : (input && input.url) || "";
+      const method = (init && init.method) || (input && input.method) || "GET";
+      const reqHeaders = headersToArray(
+        init && init.headers ? new Headers(init.headers) : new Headers(),
+      );
       const sensitive = isSensitivePath(url);
-      const reqBody = !sensitive && init && init.body ? String(init.body).slice(0, 4096) : undefined;
+      const reqBody =
+        !sensitive && init && init.body
+          ? String(init.body).slice(0, 4096)
+          : undefined;
       const startedTime = Date.now();
       return self._origFetch
         .apply(this, arguments)
@@ -176,13 +182,13 @@ export class HarExporter {
             url,
             method,
             status: res.status,
-            statusText: res.statusText || '',
+            statusText: res.statusText || "",
             reqHeaders: redactHeaders(reqHeaders),
             resHeaders: redactHeaders(responseHeaders),
             reqBody: sensitive ? undefined : reqBody,
             startedTime,
             time: Date.now() - startedTime,
-            resourceType: 'fetch',
+            resourceType: "fetch",
           });
           return res;
         })
@@ -191,13 +197,13 @@ export class HarExporter {
             url,
             method,
             status: 0,
-            statusText: 'Error: ' + ((err && err.message) || String(err)),
+            statusText: "Error: " + ((err && err.message) || String(err)),
             reqHeaders: redactHeaders(reqHeaders),
             resHeaders: [],
             reqBody: sensitive ? undefined : reqBody,
             startedTime,
             time: Date.now() - startedTime,
-            resourceType: 'fetch',
+            resourceType: "fetch",
           });
           throw err;
         });
@@ -209,7 +215,7 @@ export class HarExporter {
    * @private
    */
   _interceptXhr() {
-    if (typeof XMLHttpRequest !== 'function') return;
+    if (typeof XMLHttpRequest !== "function") return;
     const self = this;
     this._origXhrOpen = XMLHttpRequest.prototype.open;
     this._origXhrSend = XMLHttpRequest.prototype.send;
@@ -223,15 +229,19 @@ export class HarExporter {
       if (data) {
         data.startedTime = Date.now();
         const sensitive = isSensitivePath(data.url);
-        const reqBody = !sensitive && body ? String(body).slice(0, 4096) : undefined;
-        this.addEventListener('loadend', function () {
+        const reqBody =
+          !sensitive && body ? String(body).slice(0, 4096) : undefined;
+        this.addEventListener("loadend", function () {
           const resHeaders = [];
-          const rawHeaders = (this.getAllResponseHeaders() || '').trim();
+          const rawHeaders = (this.getAllResponseHeaders() || "").trim();
           if (rawHeaders) {
-            for (const line of rawHeaders.split('\r\n')) {
-              const idx = line.indexOf(':');
+            for (const line of rawHeaders.split("\r\n")) {
+              const idx = line.indexOf(":");
               if (idx > 0) {
-                resHeaders.push([line.slice(0, idx).trim(), line.slice(idx + 1).trim()]);
+                resHeaders.push([
+                  line.slice(0, idx).trim(),
+                  line.slice(idx + 1).trim(),
+                ]);
               }
             }
           }
@@ -239,13 +249,13 @@ export class HarExporter {
             url: data.url,
             method: data.method,
             status: this.status,
-            statusText: this.statusText || '',
+            statusText: this.statusText || "",
             reqHeaders: [],
             resHeaders: redactHeaders(resHeaders),
             reqBody: sensitive ? undefined : reqBody,
             startedTime: data.startedTime,
             time: Date.now() - data.startedTime,
-            resourceType: 'xhr',
+            resourceType: "xhr",
           });
         });
       }
@@ -259,7 +269,7 @@ export class HarExporter {
    * @private
    */
   _startPerfObserver() {
-    if (typeof window.PerformanceObserver !== 'function') return;
+    if (typeof window.PerformanceObserver !== "function") return;
     const self = this;
     try {
       this._perfObserver = new PerformanceObserver(function (list) {
@@ -269,20 +279,20 @@ export class HarExporter {
           if (!exists) {
             self._addEntry({
               url: entry.name,
-              method: 'GET',
+              method: "GET",
               status: 200,
-              statusText: 'OK',
+              statusText: "OK",
               reqHeaders: [],
               resHeaders: [],
               reqBody: undefined,
               startedTime: performance.timeOrigin + entry.startTime,
               time: entry.duration,
-              resourceType: entry.initiatorType || 'other',
+              resourceType: entry.initiatorType || "other",
             });
           }
         }
       });
-      this._perfObserver.observe({ entryTypes: ['resource'] });
+      this._perfObserver.observe({ entryTypes: ["resource"] });
     } catch {
       /* PerformanceObserver not supported */
     }
@@ -311,21 +321,23 @@ export class HarExporter {
       request: {
         method: e.method,
         url: e.url,
-        httpVersion: 'HTTP/1.1',
+        httpVersion: "HTTP/1.1",
         headers: e.reqHeaders.map(([name, value]) => ({ name, value })),
         queryString: [],
         headersSize: -1,
         bodySize: e.reqBody ? e.reqBody.length : 0,
-        postData: e.reqBody ? { mimeType: 'application/json', text: e.reqBody } : undefined,
+        postData: e.reqBody
+          ? { mimeType: "application/json", text: e.reqBody }
+          : undefined,
       },
       response: {
         status: e.status,
         statusText: e.statusText,
-        httpVersion: 'HTTP/1.1',
+        httpVersion: "HTTP/1.1",
         headers: e.resHeaders.map(([name, value]) => ({ name, value })),
         cookies: [],
-        content: { size: 0, mimeType: 'application/json' },
-        redirectURL: '',
+        content: { size: 0, mimeType: "application/json" },
+        redirectURL: "",
         headersSize: -1,
         bodySize: -1,
       },
@@ -335,10 +347,10 @@ export class HarExporter {
     }));
     return {
       log: {
-        version: '1.2',
+        version: "1.2",
         creator: {
-          name: 'SimpleBeacon Dashboard',
-          version: '1.0',
+          name: "SimpleBeacon Dashboard",
+          version: "1.0",
         },
         pages: [],
         entries: harEntries,

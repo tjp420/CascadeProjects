@@ -237,38 +237,8 @@ export function clearAuthAndRedirect(): void {
   if (typeof window === "undefined") return;
   clearAuthToken();
   localStorage.removeItem("sb_user");
-  try { window.dispatchEvent(new Event("sb:logout")); } catch { /* ignore */ }
   if (window.location.hash && window.location.hash.includes("signin")) return;
   window.location.hash = "#/signin";
-}
-
-/**
- * Install a global 401 interceptor on window.fetch.
- * When any API call returns 401, clear stale auth tokens and redirect to signin.
- * This prevents the "stuck authenticated but can't use anything" state where
- * the client thinks the user is logged in but the backend rejects the token.
- * Call once from App.tsx on startup.
- */
-let _fetch401Installed = false;
-export function install401Handler(): void {
-  if (_fetch401Installed || typeof window === "undefined") return;
-  _fetch401Installed = true;
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const resp = await originalFetch(input as RequestInfo, init);
-    if (resp.status === 401) {
-      const url = typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : (input as Request)?.url || "";
-      // Only intercept API calls, not static assets or same-origin dashboard fetches
-      if (url.includes("/api/") || url.includes("/analyze/") || url.includes("/simplebeacon/") || url.includes("/trust/") || url.includes("/verify-")) {
-        clearAuthAndRedirect();
-      }
-    }
-    return resp;
-  };
 }
 
 export function apiUrl(path: string): string {

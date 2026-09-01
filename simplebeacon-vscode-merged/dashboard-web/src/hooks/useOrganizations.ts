@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from "react";
 
 export type OrgMember = {
   id: string;
@@ -33,7 +33,7 @@ export function useOrganizations() {
       const org = organizations.find((o) => o.id === id);
       setActiveOrg(org || null);
     },
-    [organizations]
+    [organizations],
   );
 
   useEffect(() => {
@@ -45,12 +45,19 @@ export function useOrganizations() {
     activeOrg,
     loading,
     error,
-    createOrganization: async (name: string, slug: string) => ({ id: slug, name, slug, max_seats: 10 }) as Organization,
-    updateOrganization: async (id: string, _updates: Partial<Organization>) => activeOrg,
+    createOrganization: async (name: string, slug: string) =>
+      ({ id: slug, name, slug, max_seats: 10 }) as Organization,
+    updateOrganization: async (id: string, _updates: Partial<Organization>) =>
+      activeOrg,
     deleteOrganization: async (_id: string) => {},
     getMembers: async (_orgId: string) => [] as OrgMember[],
-    inviteMember: async (_orgId: string, _email: string, _role: string) => ({}) as OrgMember,
-    updateMemberRole: async (_orgId: string, _memberId: string, _role: string) => {},
+    inviteMember: async (_orgId: string, _email: string, _role: string) =>
+      ({}) as OrgMember,
+    updateMemberRole: async (
+      _orgId: string,
+      _memberId: string,
+      _role: string,
+    ) => {},
     removeMember: async (_orgId: string, _memberId: string) => {},
     acceptInvitation: async (_token: string) => ({}) as Organization,
     getMetrics: async (_orgId: string) => ({}) as any,

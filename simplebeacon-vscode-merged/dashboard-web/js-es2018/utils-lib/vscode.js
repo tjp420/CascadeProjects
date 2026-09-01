@@ -6,7 +6,10 @@
  * @returns {boolean}
  */
 export function isVSCodeWebview() {
-  return typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+  return (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  );
 }
 /**
  * Check whether the code is running outside a VS Code: webview (standalone browser).
@@ -20,7 +23,10 @@ export function isStandalone() {
  * @returns {any|null}
  */
 export function getVSCodeApi() {
-  if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.acquireVsCodeApi === "function"
+  ) {
     try {
       return window.acquireVsCodeApi();
     } catch (_a) {

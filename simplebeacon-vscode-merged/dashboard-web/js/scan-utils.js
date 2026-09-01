@@ -1,5 +1,5 @@
 // simplebeacon-ignore memory-leak
-import { scanService } from './services/scanService.js';
+import { scanService } from "./services/scanService.js";
 
 /**
  * Global scan utility wrapper for non-module consumers and quick scripting.
@@ -34,7 +34,10 @@ window.ScanUtils = {
     try {
       await scanService.fetchReport();
       return {
-        issues: scanService.report?.rawIssues || scanService.report?.detectedIssues || [],
+        issues:
+          scanService.report?.rawIssues ||
+          scanService.report?.detectedIssues ||
+          [],
         projectPath: scanService.report?.projectRoot || null,
         timestamp: scanService.report?.timestamp || null,
         gateFailed: scanService.report?.gateFailed || false,
