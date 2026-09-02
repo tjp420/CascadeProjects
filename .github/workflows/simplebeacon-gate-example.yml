@@ -28,13 +28,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install SimpleBeacon
-        run: npm install -g @simplebeacon/cli
+      - name: Install dependencies (local)
+        run: npm ci --prefer-offline --no-audit || npm install --no-audit --no-fund
 
-      - name: Run gate scan
+      - name: Run gate scan (local CLI)
         run: |
-          npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json
-          npx simplebeacon gate status
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline --format json --output .simplebeacon/report.json
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Upload report
         if: always()
