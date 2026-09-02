@@ -30,41 +30,60 @@ jobs:
         run: |
           # Install workspace deps, fallback to npm install if lockfile mismatch occurs
           npm ci || npm install --no-audit --no-fund --legacy-peer-deps
-          # Ensure AJV is present for the inline validator even if not in lockfile
-          npm install --no-save ajv ajv-formats
+          # Ensure AJV is present for the inline validator even if not in lockfile (pin to a CJS-friendly version)
+          npm install --no-save ajv@8.20.0 ajv-formats@2.1.0
           cat > /tmp/validate_pricing.js <<'JS'
           const fs = require('fs');
-          let Ajv;
-          let addFormats;
-          try {
-            // Prefer CJS entry points when available to avoid ESM-only resolution issues on newer Node runtimes
-            Ajv = require('ajv/dist/ajv.cjs');
-          } catch (e) {
-            Ajv = require('ajv');
-          }
-          try {
-            addFormats = require('ajv-formats/dist/ajv-formats.cjs');
-          } catch (e) {
-            addFormats = require('ajv-formats');
-          }
-          const schema = JSON.parse(fs.readFileSync('marketing/content/pricing.schema.json', 'utf8'));
-          const data = JSON.parse(fs.readFileSync('marketing/content/pricing.json', 'utf8'));
-          const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
-          addFormats(ajv);
-          const validate = ajv.compile(schema);
-          const isValid = validate(data);
-          if (!isValid) {
-            console.error('\n❌ AJV Contract Verification Failed: Schema Integrity Violated.');
-            validate.errors.forEach(err => {
-              console.error(`   - Path: data${err.instancePath} | Message: ${err.message}`);
-            });
-            if (process.env.SB_FAIL_ON_PRICING === '1') {
-              process.exit(1);
-            } else {
-              console.warn('\n⚠️ AJV found schema mismatches but SB_FAIL_ON_PRICING is not set; continuing as non-fatal.');
+          (async () => {
+            // Attempt dynamic import of CJS entrypoints first, then ESM, then fall back to require()
+            let AjvModule = null;
+            let Ajv = null;
+            let addFormatsModule = null;
+            let addFormats = null;
+
+            try {
+              AjvModule = await import('ajv/dist/ajv.cjs').catch(() => null);
+            } catch (e) { AjvModule = null; }
+            if (!AjvModule) {
+              try { AjvModule = await import('ajv').catch(() => null); } catch (e) { AjvModule = null; }
             }
-          } else {
-            console.log('✅ Success: Pricing configuration complies 100% with the AJV data contract!');
-          }
-          JS
+            if (AjvModule) Ajv = AjvModule.default || AjvModule;
+            if (!Ajv) {
+              try { Ajv = require('ajv'); } catch (e) { console.error('Failed to load Ajv via import or require:', e); process.exit(1); }
+            }
+
+            try {
+              addFormatsModule = await import('ajv-formats/dist/ajv-formats.cjs').catch(() => null);
+            } catch (e) { addFormatsModule = null; }
+            if (!addFormatsModule) {
+              try { addFormatsModule = await import('ajv-formats').catch(() => null); } catch (e) { addFormatsModule = null; }
+            }
+            if (addFormatsModule) addFormats = addFormatsModule.default || addFormatsModule;
+            if (!addFormats) {
+              try { addFormats = require('ajv-formats'); } catch (e) { console.warn('ajv-formats not found; continuing without additional formats.'); }
+            }
+
+            const schema = JSON.parse(fs.readFileSync('marketing/content/pricing.schema.json', 'utf8'));
+            const data = JSON.parse(fs.readFileSync('marketing/content/pricing.json', 'utf8'));
+            const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
+            if (addFormats) {
+              if (typeof addFormats === 'function') addFormats(ajv);
+              else if (addFormats && addFormats.default) addFormats.default(ajv);
+            }
+            const validate = ajv.compile(schema);
+            const isValid = validate(data);
+            if (!isValid) {
+              console.error('\n❌ AJV Contract Verification Failed: Schema Integrity Violated.');
+              validate.errors.forEach(err => {
+                console.error(`   - Path: data${err.instancePath} | Message: ${err.message}`);
+              });
+              if (process.env.SB_FAIL_ON_PRICING === '1') {
+                process.exit(1);
+              } else {
+                console.warn('\n⚠️ AJV found schema mismatches but SB_FAIL_ON_PRICING is not set; continuing as non-fatal.');
+              }
+            } else {
+              console.log('✅ Success: Pricing configuration complies 100% with the AJV data contract!');
+            }
+          })().catch(err => { console.error('Validator runtime error', err); process.exit(1); });
           node /tmp/validate_pricing.js
