@@ -37,3 +37,4 @@ jobs:
         with:
           name: simplebeacon-attestation
           path: ./.simplebeacon/verify-isolation.json
+          if-no-files-found: ignore
