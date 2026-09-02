@@ -170,8 +170,14 @@ jobs:
         id: action
         run: |
           mkdir -p .simplebeacon
+          # Use a stricter fail-on level for the dirty-repo case so low-severity "AI slop" becomes blocking
+          if [ "${{ matrix.profile.name }}" = "dirty-repo" ]; then
+            FAIL_ON=low
+          else
+            FAIL_ON=high
+          fi
           node "$LOCAL_CLI" scan --path /tmp/stress-test-repo --gate --offline \
-            --fail-on high --format json --output .simplebeacon/report.json
+            --fail-on $FAIL_ON --format json --output .simplebeacon/report.json
         continue-on-error: true
 
       # ── Validate gate expectation ────────────────────────────────────────────
