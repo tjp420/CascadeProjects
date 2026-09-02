@@ -101,6 +101,8 @@ jobs:
     needs: resolve-scope
     if: needs.resolve-scope.outputs.cli == 'true'
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -140,13 +142,15 @@ jobs:
           fi
 
       - name: Sign Package Tarball
+        if: ${{ env.HAS_GPG_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js packages/simplebeacon-cli/*.tgz
+        run: node packages/simplebeacon-cli/scripts.sign-artifacts.js packages/simplebeacon-cli/*.tgz
 
       - name: Verify Signature
+        if: ${{ env.HAS_GPG_KEY != '' }}
         run: |
           for f in packages/simplebeacon-cli/*.tgz.sig; do
             gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true
@@ -176,6 +180,8 @@ jobs:
     needs: resolve-scope
     if: needs.resolve-scope.outputs.vscode == 'true'
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -213,13 +219,15 @@ jobs:
           fi
 
       - name: Sign VSIX Package
+        if: ${{ env.HAS_GPG_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js simplebeacon-vscode-merged/*.vsix
+        run: node packages/simplebeacon-cli/scripts.sign-artifacts.js simplebeacon-vscode-merged/*.vsix
 
       - name: Verify VSIX Signature
+        if: ${{ env.HAS_GPG_KEY != '' }}
         run: |
           for f in simplebeacon-vscode-merged/*.vsix.sig; do
             gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true

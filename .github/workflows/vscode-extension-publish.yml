@@ -30,6 +30,8 @@ jobs:
       startsWith(github.event.release.tag_name, 'vscode-v') ||
       startsWith(github.event.release.tag_name, 'vscode@')
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,6 +71,7 @@ jobs:
           fi
 
       - name: Sign VSIX Package
+        if: ${{ env.HAS_GPG_KEY != '' }}
         continue-on-error: true
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -77,6 +80,7 @@ jobs:
         run: node packages/simplebeacon-cli/scripts/sign-artifacts.js simplebeacon-vscode-merged/*.vsix
 
       - name: Verify VSIX Signature
+        if: ${{ env.HAS_GPG_KEY != '' }}
         continue-on-error: true
         run: |
           for f in simplebeacon-vscode-merged/*.vsix.sig; do
