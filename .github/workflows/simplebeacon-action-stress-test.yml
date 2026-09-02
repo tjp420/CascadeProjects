@@ -223,6 +223,7 @@ jobs:
         with:
           name: stress-test-report-${{ matrix.profile.name }}
           path: .simplebeacon/report.json
+          if-no-files-found: ignore
 
       # ── Job summary ───────────────────────────────────────────────────────────
       - name: Summary

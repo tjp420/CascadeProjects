@@ -294,6 +294,7 @@ jobs:
           name: simplebeacon-report
           path: .simplebeacon/report.json
           if-no-files-found: ignore
+          if-no-files-found: ignore
 
   container-security:
     name: Container security (Trivy)
