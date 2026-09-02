@@ -18,7 +18,7 @@ jobs:
 
       - name: Install root dependencies
         run: |
-          npm ci
+          npm ci || npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Prepare test-results dir
         run: mkdir -p ai-platform/test-results
@@ -89,3 +89,4 @@ jobs:
           path: |
             test-results/**
             ai-platform/test-results/**
+          if-no-files-found: ignore

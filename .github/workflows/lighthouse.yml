@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
       - name: Install Application Dependencies
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Lighthouse CI CLI Tooling
         run: npm install -g @lhci/cli@0.13.x

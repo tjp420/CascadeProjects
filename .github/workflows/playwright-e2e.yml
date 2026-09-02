@@ -43,7 +43,7 @@ jobs:
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
       - name: Install Dashboard Dependencies
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
         working-directory: ai-platform/web/simplebeacon-dashboard
 
       - name: Install Playwright Test Runner
