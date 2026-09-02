@@ -1,6 +1,7 @@
 // simplebeacon-ignore memory-leak — static UI bindings and file upload handlers
 import * as vscode from 'vscode';
 import { getSbConfig, getNonce } from '../utils/vscode';
+import { GuardedExtensionPanel } from './scanPanel';
 
 /**
  * Webview panel for uploading scan reports to the SimpleBeacon platform.
@@ -9,9 +10,10 @@ export class UploadPanel {
   public static currentPanel: UploadPanel | undefined;
   public static readonly viewType = 'simplebeaconUpload';
 
-  private readonly _panel: vscode.WebviewPanel;
-  private readonly _extensionUri: vscode.Uri;
-  private _disposables: vscode.Disposable[] = [];
+    private readonly _panel: vscode.WebviewPanel;
+    private readonly _extensionUri: vscode.Uri;
+    // Guarded listener container to avoid registering listeners after disposal
+    private _guard = new GuardedExtensionPanel();
 
   public static createOrShow(extensionUri: vscode.Uri): UploadPanel {
     const column = vscode.ViewColumn.One;
@@ -36,10 +38,11 @@ export class UploadPanel {
 
     this._update();
 
-    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        const d1 = this._panel.onDidDispose(() => this.dispose());
+        this._guard.register(d1);
 
-    this._panel.webview.onDidReceiveMessage(
-      async (message) => {
+        const d2 = this._panel.webview.onDidReceiveMessage(
+            async (message) => {
         switch (message.command) {
           case 'showError':
             vscode.window.showErrorMessage(message.text);
@@ -51,10 +54,8 @@ export class UploadPanel {
             await this._uploadReport(message.data);
             return;
         }
-      },
-      null,
-      this._disposables
-    );
+        });
+        this._guard.register(d2);
   }
 
   private _update() {
@@ -857,11 +858,8 @@ export class UploadPanel {
   }
 
   public dispose() {
-    UploadPanel.currentPanel = undefined;
-    this._panel.dispose();
-    while (this._disposables.length) {
-      const x = this._disposables.pop();
-      if (x) x.dispose();
-    }
+        UploadPanel.currentPanel = undefined;
+        try { this._guard.dispose(); } catch (err) { console.error('Error disposing upload panel guard', err); }
+        try { this._panel.dispose(); } catch (err) { console.error('Error disposing panel', err); }
   }
 }
