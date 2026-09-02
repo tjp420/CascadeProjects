@@ -1,0 +1,105 @@
+{
+  "tiers": [
+    {
+      "name": "Free",
+      "badge": "Start",
+      "price": { "monthly": 0, "annual": 0 },
+      "highlights": [
+        "Local scans up to 5 files",
+        "Community ruleset",
+        "Email support"
+      ],
+      "cta": { "command": "npx simplebeacon scan --profile=free --path=." }
+    },
+    {
+      "name": "Pro",
+      "badge": "Popular",
+      "price": { "monthly": 99, "annual": 948 },
+      "highlights": [
+        "Full local scan engine",
+        "Custom rule packs",
+        "Priority email support"
+      ],
+      "cta": { "url": "/signup?plan=pro", "text": "Start 14‑day Trial" }
+    },
+    {
+      "name": "Enterprise",
+      "badge": "Contact",
+      "price": { "monthly": "Custom", "annual": "Custom" },
+      "highlights": [
+        "On-prem installs and SSO",
+        "Dedicated rule engineering",
+        "SLA & compliance attestation"
+      ],
+      "cta": { "url": "mailto:sales@simplebeacon.ai?subject=Enterprise%20Inquiry", "text": "Contact Sales" }
+    }
+  ]
+}
+{
+  "currency": "USD",
+  "billingCycles": ["monthly", "annual"],
+  "meta": {
+    "frameworkVersion": "3.0.575",
+    "lastUpdated": "2026-09-02T05:00:00.000Z",
+    "complianceFocus": "EU AI Act Article 50"
+  },
+  "tiers": [
+    {
+      "id": "developer",
+      "name": "Developer",
+      "price": {
+        "monthly": 0,
+        "annual": 0
+      },
+      "cta": {
+        "text": "Install Now",
+        "command": "code --install-extension simplebeacon.simplebeacon-vscode"
+      },
+      "badge": "Community Free",
+      "highlights": [
+        "Local IDE Extensions & Cursor Sandbox Workspace",
+        "48 Deterministic Core Logic Checkers",
+        "100% Offline execution via Zero-Upload Guarantee",
+        "Local Markdown bug template exporter script"
+      ]
+    },
+    {
+      "id": "team_step",
+      "name": "High-Velocity Team Step",
+      "price": {
+        "monthly": 499,
+        "annual": 4790
+      },
+      "cta": {
+        "text": "Start 14-Day Free Pilot",
+        "url": "https://simplebeacon.ai"
+      },
+      "badge": "Most Popular / Outbound Sweet Spot",
+      "highlights": [
+        "Automated CI/CD Commit Gates (GitHub, GitLab)",
+        "Printable Board Compliance Certificates (EU AI Act)",
+        "Up to 25 concurrently monitored repositories",
+        "Includes up to 15 internal engineering seats"
+      ]
+    },
+    {
+      "id": "sovereign_enterprise",
+      "name": "Sovereign Enterprise",
+      "price": {
+        "monthly": "Custom",
+        "annual": "Custom"
+      },
+      "cta": {
+        "text": "Contact Sales / Enterprise Trial",
+        "url": "https://simplebeacon.ai"
+      },
+      "badge": "Air-Gapped & Regulated Platforms",
+      "highlights": [
+        "Self-Hosted Private Virtual Cloud (VPC) Deployment",
+        "Custom Schema Compliance Converters (SOC2/ISO)",
+        "Unlimited software repositories and user seats",
+        "Priority dedicated engineering channels & SLAs"
+      ]
+    }
+  ]
+}
