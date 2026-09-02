@@ -29,7 +29,7 @@ jobs:
         run: ver
         shell: cmd
       - name: Install ai-platform dependencies
-        run: npm ci --prefix ai-platform
+        run: npm install --no-audit --prefix ai-platform
 
       - name: Run MaxFiles test
         run: |
