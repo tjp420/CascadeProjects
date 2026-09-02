@@ -1975,6 +1975,17 @@ async function startServer() {
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use("/api/auth", authRoutes);
 
+  // Auth inline routes (login, register, refresh, token-status, sign-report, verify-signature)
+  // These are separate from auth.cjs and include the report-signing endpoint used by
+  // the VS Code extension for premium export authorization.
+  try {
+    const authInlineRoutes = require("./server/routes/auth-inline-routes.cjs");
+    app.use("/api", authInlineRoutes);
+    logger.info("[Routes] Auth inline routes loaded at /api (sign-report, verify-signature)");
+  } catch (err) {
+    logger.error("[Routes] Auth inline routes not loaded:", err?.message || err);
+  }
+
   // SSO auth handler — OIDC + SAML 2.0 protocol flows
   try {
     const ssoAuthHandler = require("./server/routes/sso-auth-handler.cjs");
