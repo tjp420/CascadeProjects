@@ -1,0 +1,56 @@
+name: "🚀 Production VSIX Marketplace Release"
+
+on:
+  push:
+    tags:
+      - 'v*' # Fires exclusively when a production version tag (e.g. v3.0.575) is pushed
+
+jobs:
+  preflight_dry_run:
+    name: "🕵️ Preflight Integrity Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "📥 Checkout Code Tree"
+        uses: actions/checkout@v4
+
+      - name: "⚙️ Setup Node.js Runtime Environment"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: "🛠️ Compile Extension Binary"
+        run: |
+          cd simplebeacon-vscode-merged
+          npm install --no-audit --no-fund
+          npx @vscode/vsce package --no-dependencies --out simplebeacon-vscode-3.0.575.vsix
+
+      - name: "🔬 Execute Automated Preflight Safety Gates"
+        run: node scripts/publish-vsix-preflight.cjs
+
+  publish_marketplace:
+    name: "📦 Broadcast Build to Live Marketplace"
+    needs: preflight_dry_run
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: "📥 Checkout Code Tree"
+        uses: actions/checkout@v4
+
+      - name: "⚙️ Setup Node.js Runtime Environment"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: "🛠️ Re-compile Release Binary Artifact"
+        run: |
+          cd simplebeacon-vscode-merged
+          npm install --no-audit --no-fund
+          npx @vscode/vsce package --no-dependencies --out simplebeacon-vscode-3.0.575.vsix
+
+      - name: "📡 Broadcast Binary Package to Public VS Code Directory"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          cd simplebeacon-vscode-merged
+          npx @vscode/vsce publish --packagePath ./simplebeacon-vscode-3.0.575.vsix
