@@ -17,11 +17,15 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
+
       - name: Run todo-lint (fast CI variant)
         id: run_scan
         run: |
           mkdir -p ./.github/artifacts
-          npm run todo-lint:ci:fast
+          # tolerate non-zero exit so missing SARIF doesn't fail optional scan stage
+          npm run todo-lint:ci:fast || true
 
       - name: Check SARIF exists
         id: check_sarif

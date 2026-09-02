@@ -19,6 +19,9 @@ jobs:
       with:
         node-version: 22
 
+    - name: Install dependencies
+      run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
+
     - name: Run Dual-Pool Performance Showdown
       id: run-bench
       run: |
@@ -79,6 +82,7 @@ jobs:
     - name: Upload Performance Log on Failure
       if: failure()
       uses: actions/upload-artifact@v4
+      if-no-files-found: ignore
       with:
         name: backend-bench-metrics
         path: bench-output.txt
