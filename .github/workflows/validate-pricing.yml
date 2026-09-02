@@ -24,4 +24,25 @@ jobs:
           node-version: 24
 
       - name: 🔬 Execute AJV Data Contract Verification Loop
-        run: node tools/validate-pricing-schema.cjs
+        run: |
+          npm install --no-save ajv ajv-formats
+          cat > /tmp/validate_pricing.js <<'JS'
+          const fs = require('fs');
+          const Ajv = require('ajv');
+          const addFormats = require('ajv-formats');
+          const schema = JSON.parse(fs.readFileSync('marketing/content/pricing.schema.json', 'utf8'));
+          const data = JSON.parse(fs.readFileSync('marketing/content/pricing.json', 'utf8'));
+          const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
+          addFormats(ajv);
+          const validate = ajv.compile(schema);
+          const isValid = validate(data);
+          if (!isValid) {
+            console.error('\n❌ AJV Contract Verification Failed: Schema Integrity Violated.');
+            validate.errors.forEach(err => {
+              console.error(`   - Path: data${err.instancePath} | Message: ${err.message}`);
+            });
+            process.exit(1);
+          }
+          console.log('✅ Success: Pricing configuration complies 100% with the AJV data contract!');
+          JS
+          node /tmp/validate_pricing.js
