@@ -25,6 +25,9 @@ jobs:
 
       - name: 🔬 Execute AJV Data Contract Verification Loop
         run: |
+          # Install workspace deps, fallback to npm install if lockfile mismatch occurs
+          npm ci || npm install --no-audit --no-fund --legacy-peer-deps
+          # Ensure AJV is present for the inline validator even if not in lockfile
           npm install --no-save ajv ajv-formats
           cat > /tmp/validate_pricing.js <<'JS'
           const fs = require('fs');
