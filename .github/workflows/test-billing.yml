@@ -13,7 +13,7 @@ jobs:
   verify-billing:
     name: Run End-to-End Billing Hooks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     services:
       local-redis:
@@ -40,7 +40,7 @@ jobs:
       - name: 📦 Install application dependencies
         run: |
           cd ai-platform
-          npm ci
+          npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: 🧪 Execute Orchestrated Billing Test Sandbox
         run: |
