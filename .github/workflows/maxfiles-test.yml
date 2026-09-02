@@ -28,6 +28,9 @@ jobs:
         if: runner.os == 'Windows'
         run: ver
         shell: cmd
+      - name: Install ai-platform dependencies
+        run: npm ci --prefix ai-platform
+
       - name: Run MaxFiles test
         run: |
           node --test ai-platform/src/api/__tests__/simplebeacon-api-maxfiles.test.cjs
