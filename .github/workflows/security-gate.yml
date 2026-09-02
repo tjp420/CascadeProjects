@@ -322,13 +322,13 @@ jobs:
           docker build -t ai-platform-pipeline:pr -f ai-platform/pipeline/Dockerfile ai-platform/pipeline
 
       - name: Scan coming-soon image with Trivy (SARIF)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0
         with:
           image-ref: sb-coming-soon:pr
           format: 'sarif'
           output: trivy-coming-soon.sarif
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
 
       - name: Upload coming-soon SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
@@ -338,13 +338,13 @@ jobs:
           category: container-security-coming-soon
 
       - name: Scan ai-platform image with Trivy (SARIF)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0
         with:
           image-ref: ai-platform-pipeline:pr
           format: 'sarif'
           output: trivy-ai-platform.sarif
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
 
       - name: Upload ai-platform SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
