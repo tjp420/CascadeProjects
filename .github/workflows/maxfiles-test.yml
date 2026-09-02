@@ -17,10 +17,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
                 node-version: '24'
-      - name: Show environment
-        run: |
-          node --version
-          uname -a || ver
+      - name: Show Node version
+        run: node --version
+
+      - name: Show OS (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: uname -a
+
+      - name: Show OS (Windows)
+        if: runner.os == 'Windows'
+        run: ver
+        shell: cmd
       - name: Run MaxFiles test
         run: |
           node --test ai-platform/src/api/__tests__/simplebeacon-api-maxfiles.test.cjs
