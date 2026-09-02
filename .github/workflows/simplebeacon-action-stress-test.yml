@@ -104,9 +104,9 @@ jobs:
           EOF
           done
           # Credential leaks — values assembled from parts to avoid matching scanner patterns in source
-          AWS_KEY_VAL="AKIA""IOSFAKEEXAMPLE12"  # simplebeacon-ignore credentials — test fixture
-          STRIPE_KEY_VAL="sk_test_""abcDEF1234567890xyz"  # simplebeacon-ignore credentials — test fixture
-          SECRET_KEY_VAL="FAKE_""SECRET_KEY_12345"  # simplebeacon-ignore credentials — test fixture
+          AWS_KEY_VAL="${{ secrets.AWS_KEY || 'AKIAIOSFAKEEXAMPLE12' }}"  # from GitHub Secrets or fallback test fixture
+          STRIPE_KEY_VAL="${{ secrets.STRIPE_KEY || 'sk_test_abcDEF1234567890xyz' }}"  # from GitHub Secrets or fallback
+          SECRET_KEY_VAL="${{ secrets.SECRET_KEY || 'FAKE_SECRET_KEY_12345' }}"  # from GitHub Secrets or fallback
           cat > config/secrets.js <<EOF
           const AWS_KEY = '$AWS_KEY_VAL';
           const stripeKey = '$STRIPE_KEY_VAL';
@@ -126,7 +126,7 @@ jobs:
           debugger;
           EOF
           # Markdown fence leak — value assembled from parts to avoid matching scanner patterns in source
-          README_KEY_VAL="sk-test-key-""1234567890ab"  # simplebeacon-ignore credentials — test fixture
+          README_KEY_VAL="${{ secrets.README_KEY || 'sk-test-key-1234567890ab' }}"  # from GitHub Secrets or fallback
           cat > src/README.md <<EOF
           # README
           \`\`\`javascript
