@@ -803,6 +803,12 @@ router.post("/simplebeacon/user/sign-report", optionalAuthenticate, async (req, 
       });
   }
 
+  // Build a canonical signing payload. Only the hash + small metadata are signed.
+  // The server never sees the full report or any source code.
+  const signedAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7-day validity
+  const userSub = String(user.id || user.sub || user.email || "unknown");
+
   // Rate limit: per-user, max 30 signed reports per minute.
   const rateKey = "sign-report:" + userSub;
   const now = Date.now();
@@ -820,11 +826,6 @@ router.post("/simplebeacon/user/sign-report", optionalAuthenticate, async (req, 
   hits.push(now);
   signReportRateBucket.set(rateKey, hits);
 
-  // Build a canonical signing payload. Only the hash + small metadata are signed.
-  // The server never sees the full report or any source code.
-  const signedAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7-day validity
-  const userSub = String(user.id || user.sub || user.email || "unknown");
   const metadataBlock = {
     reportHash,
     reportType,
