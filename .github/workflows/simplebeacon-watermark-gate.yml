@@ -1,0 +1,55 @@
+name: "🕵️ SimpleBeacon AI Watermark Compliance Audit"
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  watermark_audit:
+    name: AI Provenance & Signature Pass
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🌐 Checkout Repository Code Tree
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: 🔍 Execute Local Watermark Analysis Sweep
+        id: run_audit
+        run: |
+          mkdir -p ./.simplebeacon
+          echo "🚀 Initiating Abstract Syntax Tree (AST) watermark scan pass..."
+          npm run scan:watermarks > ./.simplebeacon/watermark-report.txt 2>&1 || true
+          echo "----- REPORT BEGIN -----"
+          if [ -f ./.simplebeacon/watermark-report.txt ]; then sed -n '1,400p' ./.simplebeacon/watermark-report.txt || true; fi
+          echo "----- REPORT END -----"
+
+      - name: 💾 Archive Compliance Audit Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-watermark-compliance-report
+          path: |
+            ./.simplebeacon/watermark-report.txt
+            test_fixtures/
+          if-no-files-found: ignore
+          retention-days: 14
