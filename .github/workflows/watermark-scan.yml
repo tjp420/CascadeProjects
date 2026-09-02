@@ -1,0 +1,31 @@
+name: Watermark Scan
+
+on:
+  push:
+    branches: [ 'feat/maxfiles-ci' ]
+  workflow_dispatch: {}
+
+jobs:
+  run-watermark-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (none required)
+        run: python -V
+
+      - name: Run watermark test harness
+        run: |
+          python tools/test_watermarks.py > .simplebeacon/report-watermarks.json || true
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-watermarks
+          path: .simplebeacon/report-watermarks.json
