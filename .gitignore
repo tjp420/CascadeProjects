@@ -19,6 +19,7 @@ backups/
 # IDE configuration files
 .cursor/
 .vscode/
+!.vscode/extensions.json
 .idea/
 .vscode-test/
 
