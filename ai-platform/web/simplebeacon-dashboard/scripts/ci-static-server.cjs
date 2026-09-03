@@ -3,8 +3,16 @@ const fs = require('fs');
 const path = require('path');
 
 const port = process.env.PORT || process.argv[2] || 61455;
-const root = path.resolve(__dirname, '..', 'dist');
+// Prefer dist but fall back to assets (vite config uses outDir: 'assets')
+const candidates = [
+  path.resolve(__dirname, '..', 'dist'),
+  path.resolve(__dirname, '..', 'assets')
+];
+let root = candidates.find(p => {
+  try { return fs.statSync(p).isDirectory(); } catch (e) { return false; }
+}) || path.resolve(__dirname, '..', 'dist');
 const indexPath = path.join(root, 'index.html');
+console.log('CI static server root:', root);
 
 const mime = {
   '.html': 'text/html',
