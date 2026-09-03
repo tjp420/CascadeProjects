@@ -422,7 +422,11 @@ jobs:
           set -euo pipefail
           # Rebase on latest main in case another matrix job pushed first
           git fetch origin main
-          git rebase origin/main
+          # Stash any unrelated local changes (untracked included) to allow rebase to proceed
+          git stash push --include-untracked -m "ci-temp-stash" || true
+          git rebase origin/main || { git rebase --abort || true; }
+          # Restore stashed changes after rebase (may be empty)
+          git stash pop --index || true
 
           git add "${{ matrix.package-path }}/package.json" "${{ matrix.changelog-path }}"
           git commit -m "chore(release): ${{ matrix.package-name }} v${{ steps.bump.outputs.new_version }}
