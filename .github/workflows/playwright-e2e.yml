@@ -81,6 +81,13 @@ jobs:
           echo "cwd:" && pwd && echo "ls root:" && ls -la || true
           echo "--- package.json preview ---" && sed -n '1,120p' package.json || true
           npm run build || (echo "npm run build exited $?"; ls -la || true; exit 1)
+
+          # 💾 Guarantee index.html presence in the server outDir to prevent ENOENT races
+          if [ -d assets ] && [ ! -f assets/index.html ] && [ -f index.html ]; then
+            echo "📋 Copying project root index.html -> assets/index.html for static server"
+            cp index.html assets/index.html
+          fi
+
           # Diagnostics: list dist contents and show a short preview of index.html
           echo "--- dist listing ---" && ls -la dist || true
           echo "--- index.html preview (first 40 lines) ---" && head -n 40 dist/index.html || true
