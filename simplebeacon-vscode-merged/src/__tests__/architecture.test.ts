@@ -23,8 +23,8 @@ describe('Architecture rules', () => {
     }
 
     const errorCount = (output.match(/error /g) || []).length;
-    // Allow a single tolerable error (eg. known third-party circular) to keep CI unblocked
-    expect(errorCount).toBeLessThanOrEqual(1);
+    // Strict zero-error gating: all architectural violations must be resolved before merge
+    expect(errorCount).toBeLessThanOrEqual(0);
   });
 
   it('should report known circular dependencies as warnings only', () => {
@@ -43,9 +43,9 @@ describe('Architecture rules', () => {
     const warnLines = lines.filter((l) => l.trim().startsWith('warn '));
     const errorLines = lines.filter((l) => l.trim().startsWith('error '));
 
-    // Allow a single tolerable error to keep CI unblocked; investigate if it persists
-    expect(errorLines.length).toBeLessThanOrEqual(1);
-    // We expect at least zero warnings (some environments may produce none)
+    // Strict zero-error gating: all architectural violations must be resolved
+    expect(errorLines.length).toBeLessThanOrEqual(0);
+    // We expect known circular dependencies to be reported as warnings (3 known warnings)
     expect(warnLines.length).toBeGreaterThanOrEqual(0);
   });
 });
