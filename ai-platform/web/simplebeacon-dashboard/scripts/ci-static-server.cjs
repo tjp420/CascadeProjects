@@ -37,10 +37,42 @@ const mime = {
   '.wasm': 'application/wasm'
 };
 
+// Configure API proxy target (the CI mock API listens on this host:port)
+const API_PROXY_HOST = '127.0.0.1';
+const API_PROXY_PORT = process.env.CI_MOCK_API_PORT || 53900;
+
+function proxyRequest(req, res, targetHost, targetPort) {
+  const options = {
+    hostname: targetHost,
+    port: targetPort,
+    path: req.url,
+    method: req.method,
+    headers: req.headers
+  };
+  const proxy = http.request(options, (pres) => {
+    res.writeHead(pres.statusCode, pres.headers);
+    pres.pipe(res, { end: true });
+  });
+  proxy.on('error', (err) => {
+    console.error('[PROXY] error proxying to %s:%s %s', targetHost, targetPort, err && err.stack ? err.stack : err);
+    try { res.writeHead(502, { 'Content-Type': 'text/plain' }); res.end('Bad gateway'); } catch (__) {}
+  });
+  // Pipe request body
+  req.pipe(proxy, { end: true });
+}
+
 const server = http.createServer((req, res) => {
   try {
     const baseUrl = new URL(req.url, 'http://localhost');
     let urlPath = decodeURIComponent(baseUrl.pathname);
+
+    // If the request appears to be an API call, proxy it to the CI mock API so
+    // the frontend can fetch JSON from the same origin in CI without modifying
+    // application code. This mirrors the dev server proxy used locally.
+    if (urlPath.startsWith('/api')) {
+      console.log('[PROXY] %s %s -> proxy to %s:%s', req.method, urlPath, API_PROXY_HOST, API_PROXY_PORT);
+      return proxyRequest(req, res, API_PROXY_HOST, API_PROXY_PORT);
+    }
 
     // Strip the Vite base prefix ('/dashboard/') so that asset requests
     // like /dashboard/assets/index-[hash].js resolve to <root>/assets/index-[hash].js
