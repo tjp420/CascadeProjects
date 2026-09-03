@@ -26,6 +26,7 @@ const server = http.createServer((req, res) => {
     // normalize and prevent path traversal
     let filePath = path.join(root, urlPath);
     if (!filePath.startsWith(root)) {
+      console.log('[HTTP] %s %s -> 403 (forbidden)', req.method, urlPath);
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       return res.end('Forbidden');
     }
@@ -33,6 +34,7 @@ const server = http.createServer((req, res) => {
     fs.stat(filePath, (err, stats) => {
       if (!err && stats.isFile()) {
         const ext = path.extname(filePath).toLowerCase();
+        console.log('[HTTP] %s %s -> 200 (file)', req.method, urlPath);
         res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
         fs.createReadStream(filePath).pipe(res);
         return;
@@ -41,15 +43,17 @@ const server = http.createServer((req, res) => {
       // SPA fallback to index.html
       fs.readFile(indexPath, (rerr, data) => {
         if (rerr) {
+          console.error('[HTTP] %s %s -> 500 (index read error)', req.method, urlPath, rerr && rerr.stack ? rerr.stack : rerr);
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           return res.end('index.html not found');
         }
+        console.log('[HTTP] %s %s -> 200 (index fallback)', req.method, urlPath);
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(data);
       });
     });
   } catch (e) {
-    console.error('ci-static-server error', e);
+    console.error('ci-static-server error', e && e.stack ? e.stack : e);
     try { res.writeHead(500); res.end('error'); } catch (__) {}
   }
 });

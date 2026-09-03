@@ -79,6 +79,9 @@ jobs:
         run: |
           # Build static assets and start a lightweight in-repo static server (SPA fallback)
           npm run build
+          # Diagnostics: list dist contents and show a short preview of index.html
+          echo "--- dist listing ---" && ls -la dist || true
+          echo "--- index.html preview (first 40 lines) ---" && head -n 40 dist/index.html || true
           # Start the CI static server script (uses dist/ and serves index.html for SPA routes)
           node scripts/ci-static-server.cjs > serve.log 2>&1 &
           echo $! > serve.pid
