@@ -11,7 +11,17 @@ const candidates = [
 let root = candidates.find(p => {
   try { return fs.statSync(p).isDirectory(); } catch (e) { return false; }
 }) || path.resolve(__dirname, '..', 'dist');
-const indexPath = path.join(root, 'index.html');
+let indexPath = path.join(root, 'index.html');
+// If index.html isn't in the detected outDir, also try the project root (some builds emit index.html to project root)
+if (!fs.existsSync(indexPath)) {
+  const projectRoot = path.resolve(__dirname, '..');
+  const projectIndex = path.join(projectRoot, 'index.html');
+  if (fs.existsSync(projectIndex)) {
+    console.log('index.html not found in outDir; falling back to project root index.html at', projectIndex);
+    root = projectRoot;
+    indexPath = projectIndex;
+  }
+}
 console.log('CI static server root:', root);
 
 const mime = {
