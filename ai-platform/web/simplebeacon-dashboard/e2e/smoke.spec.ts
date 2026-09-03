@@ -1,4 +1,34 @@
 import { test, expect } from "@playwright/test";
+import fs from 'fs';
+import path from 'path';
+
+// Capture console messages and save HTML + screenshot when a test fails to aid CI diagnostics
+let _consoleMessages: string[] = [];
+
+test.beforeEach(async ({ page }) => {
+  _consoleMessages = [];
+  page.on('console', (msg) => {
+    _consoleMessages.push(`${msg.type()}: ${msg.text()}`);
+  });
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== 'passed') {
+    const resultsDir = path.resolve(process.cwd(), 'test-results');
+    try { fs.mkdirSync(resultsDir, { recursive: true }); } catch (e) { /* ignore */ }
+    const name = testInfo.title.replace(/[^a-z0-9-_]/gi, '_');
+    try {
+      const html = await page.content();
+      fs.writeFileSync(path.join(resultsDir, `${name}.html`), html, 'utf8');
+    } catch (e) { /* ignore write errors */ }
+    try {
+      fs.writeFileSync(path.join(resultsDir, `${name}.console.log`), _consoleMessages.join('\n'), 'utf8');
+    } catch (e) { /* ignore */ }
+    try {
+      await page.screenshot({ path: path.join(resultsDir, `${name}.png`), fullPage: true });
+    } catch (e) { /* ignore screenshot errors */ }
+  }
+});
 
 const DASHBOARD_BASE = "/dashboard/";
 const SIGNIN_URL = `${DASHBOARD_BASE}?sb_force_signin=1#/signin`;
