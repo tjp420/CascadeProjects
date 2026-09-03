@@ -79,9 +79,31 @@ jobs:
         run: |
           # Build static assets and serve the production build to avoid dev-server timing issues
           npm run build
-          # Serve the production build as a SPA (fallback to index.html) to ensure /dashboard/ resolves
+          # Install serve and start it in the background
           npm install --no-save serve
-          npx start-server-and-test "npx serve -s dist -l 61455" http://localhost:61455/dashboard/index.html "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
+          npx serve -s dist -l 61455 > serve.log 2>&1 &
+          echo $! > serve.pid
+
+          # Poll the server with an explicit GET for index.html (wait up to 30s)
+          status=000
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:61455/index.html || true)
+            echo "health-check $i -> $status"
+            if [ "$status" = "200" ]; then
+              echo "Server ready"
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$status" != "200" ]; then
+            echo "Server failed to become ready; dumping serve.log" >&2
+            tail -n 200 serve.log || true
+            exit 1
+          fi
+
+          # Run Playwright tests
+          npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html
         working-directory: ai-platform/web/simplebeacon-dashboard
         env:
           NODE_ENV: test
