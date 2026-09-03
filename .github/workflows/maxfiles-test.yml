@@ -1,0 +1,36 @@
+name: MaxFiles Test
+
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+
+jobs:
+  maxfiles-test:
+    name: Run maxfiles integration test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+                node-version: '24'
+      - name: Show Node version
+        run: node --version
+
+      - name: Show OS (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: uname -a
+
+      - name: Show OS (Windows)
+        if: runner.os == 'Windows'
+        run: ver
+        shell: cmd
+      - name: Install ai-platform dependencies
+        run: npm install --no-audit --prefix ai-platform
+
+      - name: Run MaxFiles test
+        run: |
+          node --test ai-platform/src/api/__tests__/simplebeacon-api-maxfiles.test.cjs

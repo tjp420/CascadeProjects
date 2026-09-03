@@ -17,10 +17,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci || npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Run core tests and lint (fast)
         run: |
@@ -37,3 +38,4 @@ jobs:
         with:
           name: simplebeacon-attestation
           path: ./.simplebeacon/verify-isolation.json
+          if-no-files-found: ignore

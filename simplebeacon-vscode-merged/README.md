@@ -1,6 +1,6 @@
 # SimpleBeacon AI Slop Cop
 
-[![Version](https://img.shields.io/badge/version-3.0.552-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
+[![Version](https://img.shields.io/badge/version-3.0.575-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.84.0+-green.svg)](https://code.visualstudio.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Security: Zero Upload](https://img.shields.io/badge/security-zero%20upload-brightgreen.svg)](#-zero-upload-security)
@@ -91,6 +91,7 @@ npx simplebeacon scan --gate --fail-on-blocking
 - **EU AI Act Compliance**: Risk classification gaps, transparency requirements, documentation holes
 - **SOC 2 Controls**: Access control, audit logging, change management, data handling
 - **OWASP LLM Top 10**: Prompt injection, training data poisoning, model supply chain risks
+- **Unregistered Domain Detection**: DNS-resolves URL/domain references in source and config to flag unregistered or hijackable domains (NXDOMAIN) — catches stale webhook URLs, dead API endpoints, and abandoned infrastructure references before they're exploited
 - **Code Quality**: Dead code, dependency graph issues, naming conventions, type safety
 
 ### Dashboard

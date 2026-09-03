@@ -43,7 +43,7 @@ jobs:
           cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
 
       - name: Install Dashboard Dependencies
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
         working-directory: ai-platform/web/simplebeacon-dashboard
 
       - name: Install Playwright Test Runner
@@ -72,12 +72,45 @@ jobs:
       - name: Start lightweight mock API server (for CI)
         working-directory: ai-platform/web/simplebeacon-dashboard
         run: |
-          node -e "const http=require('http');const port=53900;const server=http.createServer((req,res)=>{try{if(req.url==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({ok:true,env:'mock'}));}if(req.url.startsWith('/api/config')){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({pricing:[],features:{}}));}if(req.url.startsWith('/api/')){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({mock:true,path:req.url}));}res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}catch(e){console.error('mock-api error',e);res.writeHead(500);res.end('error');}});server.listen(port,'127.0.0.1',()=>console.log('Mock API listening on',port));setInterval(()=>{},1e6)" > mock-api.log 2>&1 &
+          # Use an in-repo CI mock API script that logs requests and returns realistic shapes
+          node scripts/ci-mock-api.cjs > mock-api.log 2>&1 &
           echo $! > mock-api.pid
 
       - name: Run E2E Test Suite
         run: |
-          PORT=61455 npx start-server-and-test "npm run dev" http://localhost:61455/dashboard/ "npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html"
+          # Build static assets and start a lightweight in-repo static server (SPA fallback)
+          echo "cwd:" && pwd && echo "ls root:" && ls -la || true
+          echo "--- package.json preview ---" && sed -n '1,120p' package.json || true
+          npm run build || (echo "npm run build exited $?"; ls -la || true; exit 1)
+
+          # Diagnostics: list build output and verify main.js was created by prepare-worker-assets
+          echo "--- assets listing ---" && ls -la assets/ | head -n 30 || true
+          echo "--- index.html preview (first 20 lines) ---" && head -n 20 index.html || true
+          # Start the CI static server (root = project root, serves index.html + assets/ + js/)
+          node scripts/ci-static-server.cjs > serve.log 2>&1 &
+          echo $! > serve.pid
+
+          # Poll the server with an explicit GET for index.html (follow redirects, wait up to 60s)
+          status=000
+          for i in $(seq 1 60); do
+            # Follow redirects (-L) because some static servers return 301 -> /index.html/
+            status=$(curl -s -L -o /dev/null -w "%{http_code}" http://localhost:61455/index.html || true)
+            echo "health-check $i -> $status"
+            if [ "$status" = "200" ]; then
+              echo "Server ready"
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$status" != "200" ]; then
+            echo "Server failed to become ready; dumping serve.log" >&2
+            tail -n 200 serve.log || true
+            exit 1
+          fi
+
+          # Run Playwright tests
+          npx playwright test --config=e2e-playwright.config.ts e2e/smoke.spec.ts --reporter=html
         working-directory: ai-platform/web/simplebeacon-dashboard
         env:
           NODE_ENV: test
@@ -91,7 +124,17 @@ jobs:
           mkdir -p playwright-report || true
           if [ -f dev.log ]; then cp dev.log playwright-report/dev.log; fi
           if [ -f mock-api.log ]; then cp mock-api.log playwright-report/mock-api.log; fi
+          if [ -f serve.log ]; then cp serve.log playwright-report/serve.log; fi
+
           echo "report placeholder" > playwright-report/README.txt
+
+      - name: Upload test-results (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ai-platform/web/simplebeacon-dashboard/test-results/
+          retention-days: 7
 
       - name: Archive Playwright Test Traces on Failure
         if: failure()
@@ -100,6 +143,19 @@ jobs:
           name: playwright-traces-report
           path: ai-platform/web/simplebeacon-dashboard/playwright-report/
           retention-days: 30
+
+      - name: Upload test-results diagnostics on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            ai-platform/web/simplebeacon-dashboard/test-results/
+            ai-platform/web/simplebeacon-dashboard/serve.log
+            ai-platform/web/simplebeacon-dashboard/mock-api.log
+            ai-platform/web/simplebeacon-dashboard/dev.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload playwright-report (always)
         if: always()

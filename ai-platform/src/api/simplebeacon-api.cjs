@@ -504,11 +504,25 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
         analyzeCodebase,
       } = require("../../server/lib/codebase-analyzer.cjs");
       const scanRoot = projectPath || PROJECT_ROOT;
+      // Resolve per-tier maxFiles and forward to programmatic analyzeCodebase
+      let programmaticMaxFiles = undefined;
+      try {
+        const { getTierLimits } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
+        const limits = getTierLimits(opts.tier || "developer") || {};
+        if (Number.isFinite(limits.maxFilesPerScan)) {
+          programmaticMaxFiles = Number(limits.maxFilesPerScan);
+        } else if (limits.maxFilesPerScan === Infinity) {
+          programmaticMaxFiles = 0; // 0 means unlimited in scanner options
+        }
+      } catch (e) {
+        programmaticMaxFiles = undefined;
+      }
       const analysis = await analyzeCodebase(scanRoot, {
         includeEslint: false,
         includeBrowserAnalyzers: opts.includeBrowserAnalyzers,
         includeAllFiles: opts.fullDirectoryScan,
         context: "dashboard",
+        maxFiles: programmaticMaxFiles,
       });
       const analyzedCount =
         analysis.summary?.codeFilesAnalyzed ??
@@ -604,23 +618,45 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
   let stdout = "";
   let stderr = "";
   let cliExitCode = 0;
-  try {
     try {
-      const result = await execAsync(scanCmd, {
-        cwd: PROJECT_ROOT,
-        timeout:
-          Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) ||
-          constants.TIMEOUT_10M,
-        env: {
+      try {
+        // Enforce per-tier max files for full-directory scans by passing
+        // SIMPLEBEACON_FULL_SCAN_MAX_FILES to the CLI environment. Use the
+        // CLI's tier detector to resolve canonical limits.
+        let maxFilesEnv = "";
+        try {
+          const { getTierLimits } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
+          const limits = getTierLimits(opts.tier || "developer") || {};
+          const maxFiles = limits.maxFilesPerScan;
+          // Scanner interprets <=0 as unlimited; pass '0' for Infinity.
+          if (Number.isFinite(maxFiles)) {
+            maxFilesEnv = String(Math.max(0, Number(maxFiles)));
+          } else {
+            maxFilesEnv = "0";
+          }
+        } catch (e) {
+          // If tier detector isn't available, fall back to existing env behavior.
+          maxFilesEnv = process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES || "";
+        }
+
+        const execEnv = {
           ...process.env,
           FORCE_COLOR: "0",
           SIMPLEBEACON_LICENSE_TOKEN: licenseToken,
           SIMPLEBEACON_LICENSE_SECRET: licenseSecret,
-        },
-      });
-      stdout = result.stdout || "";
-      stderr = result.stderr || "";
-    } catch (err) {
+        };
+        if (maxFilesEnv !== "") execEnv.SIMPLEBEACON_FULL_SCAN_MAX_FILES = maxFilesEnv;
+
+        const result = await execAsync(scanCmd, {
+          cwd: PROJECT_ROOT,
+          timeout:
+            Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) ||
+            constants.TIMEOUT_10M,
+          env: execEnv,
+        });
+        stdout = result.stdout || "";
+        stderr = result.stderr || "";
+      } catch (err) {
       stdout = err.stdout || "";
       stderr = err.stderr || "";
       cliExitCode = typeof err.code === "number" ? err.code : 1;

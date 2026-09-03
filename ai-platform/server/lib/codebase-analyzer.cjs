@@ -224,6 +224,13 @@ const BINARY_EXTENSIONS = new Set([
 const WALK_MAX_DEPTH = 128;
 const MAX_FILE_BYTES =
   Number(process.env.CODEBASE_MAX_FILE_BYTES) || 262144; // 256KB default
+
+function isLocaleCatalog(relativePath) {
+  return /(?:^|\/)(?:locales|localizations|translations)\/[^/]+\/[^/]+\.json$/i.test(
+    relativePath,
+  );
+}
+
 const GOVERNANCE_FILE_BASENAMES = new Set([
   "license",
   "license.md",
@@ -5052,6 +5059,14 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     return finalizeFileAnalysis(findings, rel, structure);
   }
 
+  if (BINARY_EXTENSIONS.has(String(file.ext || "").toLowerCase())) {
+    return finalizeFileAnalysis(findings, rel, structure);
+  }
+
+  if (isLocaleCatalog(rel)) {
+    return finalizeFileAnalysis(findings, rel, structure);
+  }
+
   if (file.size > MAX_FILE_BYTES) {
     pushFinding(findings, {
       category: "oversized",
@@ -5063,10 +5078,6 @@ async function analyzeFileContent(file, rootDir, options = {}) {
       recommendedAction:
         "Split, compress, or move large generated assets out of source",
     });
-    return finalizeFileAnalysis(findings, rel, structure);
-  }
-
-  if (BINARY_EXTENSIONS.has(String(file.ext || "").toLowerCase())) {
     return finalizeFileAnalysis(findings, rel, structure);
   }
 

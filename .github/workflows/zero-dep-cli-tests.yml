@@ -1,0 +1,34 @@
+name: zero-dep-cli Tests
+
+on:
+  push:
+    paths:
+      - 'zero-dep-cli/**'
+  pull_request:
+    paths:
+      - 'zero-dep-cli/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install (noop if no deps)
+        run: |
+          cd zero-dep-cli
+          npm ci --no-audit --no-fund || true
+
+      - name: Run tests
+        run: |
+          cd zero-dep-cli
+          node --test

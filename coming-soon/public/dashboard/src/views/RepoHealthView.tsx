@@ -16,6 +16,12 @@ import {
   Download,
 } from "lucide-react";
 import { getApiBase, apiUrl, authHeaders, waitForApiBase } from "@/config";
+import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
+
+function isHostedDashboard(): boolean {
+  if (typeof window === "undefined") return false;
+  return !/^(localhost|127\.0.0\.1)$/i.test(window.location.hostname);
+}
 
 type CategoryInfo = {
   category: string;
@@ -76,6 +82,14 @@ export function RepoHealthView() {
   const apiBase = getApiBase();
 
   const fetchData = useCallback(async () => {
+    // On the hosted dashboard, don't auto-fire /analyze/flexible with a hardcoded
+    // local path — the remote backend can't access the user's filesystem. Only
+    // proceed if a local extension bridge is connected.
+    if (isHostedDashboard() && !getExtensionBridgeOrigin()) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

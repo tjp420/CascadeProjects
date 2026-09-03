@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getApiBase, apiUrl, authHeaders } from "@/config";
+import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
 
 type ToolStatus = "idle" | "running" | "done" | "error";
@@ -130,6 +131,21 @@ export function ToolsView() {
         }
       } catch {
         /* ignore */
+      }
+
+      // On the hosted dashboard without a local bridge, local paths can't be
+      // resolved by the remote backend.
+      const isLocalPath = !/^https?:\/\//i.test(projectPath) &&
+        !/^(git@|ssh:\/\/)/i.test(projectPath);
+      if (
+        typeof window !== "undefined" &&
+        !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
+        isLocalPath &&
+        !getExtensionBridgeOrigin()
+      ) {
+        throw new Error(
+          "Local project paths require the VS Code extension bridge. Open this dashboard from the extension or provide a remote repository URL.",
+        );
       }
 
       setProgress(30);

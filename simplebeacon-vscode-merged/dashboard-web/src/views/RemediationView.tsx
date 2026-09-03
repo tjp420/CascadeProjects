@@ -17,6 +17,7 @@ import {
   Download,
 } from "lucide-react";
 import { apiUrl, authHeaders } from "@/config";
+import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
 
 type Phase = {
@@ -135,6 +136,20 @@ export function RemediationView() {
         }
       } catch {
         /* ignore */
+      }
+
+      // On the hosted dashboard, don't auto-fire /analyze/flexible with a local
+      // path — the remote backend can't access the user's filesystem.
+      const isLocalPath = !/^https?:\/\//i.test(projectPath) &&
+        !/^(git@|ssh:\/\/)/i.test(projectPath);
+      if (
+        typeof window !== "undefined" &&
+        !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
+        isLocalPath &&
+        !getExtensionBridgeOrigin()
+      ) {
+        setLoading(false);
+        return;
       }
 
       const resp = await fetch(apiUrl("/analyze/flexible"), {

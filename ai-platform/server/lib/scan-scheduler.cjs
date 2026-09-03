@@ -109,7 +109,10 @@ function createScheduler(options) {
     if (!cfg.enabled) return;
 
     try {
-      const result = await runSimplebeaconScan(cfg.projectPath || null);
+      // Ensure per-tier limits are enforced by forwarding the configured tier
+      // to the central scan dispatcher (`runSimplebeaconScan`).
+      const tier = String(cfg.tier || cfg.scheduleTier || 'starter');
+      const result = await runSimplebeaconScan(cfg.projectPath || null, { tier });
       if (result.skipped) {
         logger.info("[Schedule] Scan skipped:", result.reason);
         return;

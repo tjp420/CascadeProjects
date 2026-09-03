@@ -216,10 +216,10 @@ async function runLocalInventory(targetPath, scanOptions = {}) {
       "SimpleBeacon inventory is not available; install dependencies and run from the monorepo root",
     );
   }
-  return scannerApi.countRepositoryInventory(
-    targetPath,
-    buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)),
-  );
+  const invOptions = Object.assign({}, buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)));
+  if (scanOptions.tier) invOptions.tier = scanOptions.tier;
+  if (typeof scanOptions.maxFiles === 'number') invOptions.maxFiles = scanOptions.maxFiles;
+  return scannerApi.countRepositoryInventory(targetPath, invOptions);
 }
 
 /**
@@ -236,6 +236,8 @@ async function runLocalScan(targetPath, scanOptions = {}) {
     fullDirectoryScan: Boolean(scanOptions.fullDirectoryScan),
     offline: true,
   };
+  if (scanOptions.tier) options.tier = scanOptions.tier;
+  if (typeof scanOptions.maxFiles === 'number') options.maxFiles = scanOptions.maxFiles;
 
   try {
     const report = await scannerApi.runScan(targetPath, options);
@@ -392,7 +394,9 @@ app.post("/scan", async (req, res) => {
     const fullDirectoryScan =
       req.body?.fullDirectoryScan === true ||
       req.body?.fullDirectoryScan === "true";
-    const report = await runLocalScan(targetPath, { fullDirectoryScan });
+    const tier = req.body?.tier || undefined;
+    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
+    const report = await runLocalScan(targetPath, { fullDirectoryScan, tier, maxFiles });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
     process.stderr.write(
@@ -442,8 +446,12 @@ app.post("/inventory", async (req, res) => {
     const fullDirectoryScan =
       req.body?.fullDirectoryScan === true ||
       req.body?.fullDirectoryScan === "true";
+    const tier = req.body?.tier || undefined;
+    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
     const inventory = await runLocalInventory(targetPath, {
       fullDirectoryScan,
+      tier,
+      maxFiles,
     });
     res.json({ success: true, projectPath: targetPath, inventory });
   } catch (err) {
@@ -466,7 +474,9 @@ app.post("/summary", async (req, res) => {
   try {
     const rawPath = req.body?.projectPath;
     const targetPath = validateTargetPath(rawPath);
-    const report = await runLocalScan(targetPath);
+    const tier = req.body?.tier || undefined;
+    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
+    const report = await runLocalScan(targetPath, { tier, maxFiles });
     const summary = toPrivacySummaryReport(report);
     res.json({ success: true, projectPath: targetPath, summary });
   } catch (err) {

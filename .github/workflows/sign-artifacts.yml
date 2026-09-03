@@ -45,6 +45,8 @@ jobs:
   sign:
     name: Sign Artifacts with GPG
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,6 +64,7 @@ jobs:
           gpg --version
 
       - name: Sign Artifacts
+        if: ${{ env.HAS_GPG_KEY != '' }}
         working-directory: ${{ inputs.working-directory }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}

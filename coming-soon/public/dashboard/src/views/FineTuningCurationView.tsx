@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { getApiBase, authHeaders } from "@/config";
+import { getApiBase, authHeaders, getAuthToken, isTokenExpired } from "@/config";
 import { toast } from "sonner";
 import {
   Database,
@@ -139,6 +139,10 @@ export function FineTuningCurationView() {
   useEffect(() => {
     if (!isAdmin) return;
     if (fetchErrorRef.current) return;
+    // Don't auto-fire telemetry requests when there's no valid auth token.
+    // This prevents 401 error spam on the hosted dashboard when the session
+    // has expired but user data is still in localStorage.
+    if (!getAuthToken() || isTokenExpired()) return;
     fetchEntries();
     fetchDatasets();
   }, [isAdmin, fetchEntries, fetchDatasets]);

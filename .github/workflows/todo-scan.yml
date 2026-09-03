@@ -1,0 +1,39 @@
+name: TODO Lint Scan
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  todo-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci || npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Run todo-lint (fast CI variant)
+        id: run_scan
+        run: |
+          mkdir -p ./.github/artifacts
+          # tolerate non-zero exit so missing SARIF doesn't fail optional scan stage
+          npm run todo-lint:ci:fast || true
+
+      - name: Check SARIF exists
+        id: check_sarif
+        run: |
+          if [ -f ./.github/artifacts/todo.sarif ]; then echo "exists=true" >> $GITHUB_OUTPUT; else echo "exists=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Upload SARIF to Code Scanning
+        if: steps.check_sarif.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ./.github/artifacts/todo.sarif

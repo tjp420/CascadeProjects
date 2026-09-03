@@ -5154,7 +5154,7 @@ async function runScan(
       }, 800);
 
       try {
-        const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory }, agentPort);
+        const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory, tier: ModernSidebarProvider.getCachedTier() || '', maxFiles }, agentPort);
         clearInterval(agentProgressInterval);
         if (report) {
           const localInv = countLocalDirectoryInventory(projectPath);
@@ -5257,7 +5257,7 @@ async function runScan(
           const child = spawn(cmd, cliArgs, {
             cwd: projectPath,
             shell: useShell,
-            env: { ...process.env, FORCE_COLOR: '0' },
+            env: { ...process.env, FORCE_COLOR: '0', SIMPLEBEACON_FULL_SCAN_MAX_FILES: String(maxFiles) },
           });
 
           let stdout = '';

@@ -9,6 +9,7 @@
 // Optionally mock heavy config constants to avoid loading the full constants
 // facade in tests. Set MOCK_CONSTANTS=1 to enable the mock; otherwise the
 // real `constants.cjs` is used so most tests run against production-like values.
+process.env.MOCK_CONSTANTS = process.env.MOCK_CONSTANTS || '1';
 if (process.env.MOCK_CONSTANTS === "1") {
   jest.mock("../server/config/constants.cjs", () => ({
     TIMEOUT_30S: 30000,
@@ -16,7 +17,29 @@ if (process.env.MOCK_CONSTANTS === "1") {
     TIMEOUT_12S: 12000,
     TIMEOUT_1M: 60000,
     MAX_RATE_LIMIT: 1000,
+    // Rate limit defaults used by auth routes
+    RATE_LIMIT_WINDOW_MS: 60000,
+    AUTH_RATE_LIMIT: 100,
+    // Server port defaults
+    DEFAULT_PORT: 3000,
+    PORT: 3000,
+    SERVER_PORT: 3000,
     safeJsonLimit: () => "1mb",
+    // Minimal parseSize shim for tests: accepts strings like '5mb', '100kb' or numeric bytes
+    parseSize: (v) => {
+      try {
+        if (typeof v === 'number') return v;
+        if (!v || typeof v !== 'string') return 0;
+        const s = v.trim().toLowerCase();
+        const num = parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+        if (s.endsWith('kb')) return Math.round(num * 1024);
+        if (s.endsWith('mb')) return Math.round(num * 1024 * 1024);
+        if (s.endsWith('gb')) return Math.round(num * 1024 * 1024 * 1024);
+        return Math.round(num);
+      } catch (e) {
+        return 0;
+      }
+    },
   }));
 }
 const constants = require("../server/config/constants.cjs");
@@ -116,6 +139,8 @@ process.env.JWT_REFRESH_SECRET =
 process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || "true";
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD =
   process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || "true";
+// Avoid startup audit logs during Jest runs which may schedule async I/O after teardown
+process.env.TEST_DISABLE_STARTUP_LOG = process.env.TEST_DISABLE_STARTUP_LOG || "1";
 
 // Isolate token-registry.json from test runs: point token-db.cjs at a temp file
 // so tests that indirectly write session tokens (e.g. session-token-replicator.test.cjs)

@@ -16,15 +16,20 @@ function createStartupManager({ app, logger, logSystemEvent, constants }) {
     logger.info(`Status: /api/status`);
     logger.info("Security: Enhanced security features enabled");
     logger.info("Audit: Comprehensive audit logging active");
-    logSystemEvent("server_start", {
-      port,
-      environment: process.env.NODE_ENV || "development",
-      security: {
-        rateLimiting: true,
-        authentication: true,
-        auditLogging: true,
-      },
-    });
+    // During tests we may want to avoid triggering the audit subsystem
+    // (which can run async tasks after Jest teardown). Honor TEST_DISABLE_STARTUP_LOG=1
+    // to keep test runs hermetic.
+    if (process.env.TEST_DISABLE_STARTUP_LOG !== "1") {
+      logSystemEvent("server_start", {
+        port,
+        environment: process.env.NODE_ENV || "development",
+        security: {
+          rateLimiting: true,
+          authentication: true,
+          auditLogging: true,
+        },
+      });
+    }
   }
 
   /**

@@ -735,6 +735,14 @@ export function AdminView() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
+          // Distinguish "Invalid admin password" from actual session expiry.
+          // The admin endpoints return 401 for wrong password — that's not
+          // a session expiry, so don't sign the user out.
+          const errMsg = String(data.error || data.message || "").toLowerCase();
+          if (errMsg.includes("password")) {
+            toast.error(data.error || data.message || "Invalid admin password");
+            throw new Error(data.error || data.message || "Invalid admin password");
+          }
           toast.error("Your session has expired. Please sign in again.");
           setTimeout(() => clearAuthAndRedirect(), 1500);
           throw new Error("Session expired");

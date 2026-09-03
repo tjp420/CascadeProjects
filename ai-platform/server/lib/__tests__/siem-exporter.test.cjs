@@ -198,7 +198,10 @@ describe("siem-exporter mTLS transport (unit)", () => {
     );
     fs.writeFileSync(
       path.join(tmpDir, "client-key.pem"),
-      "-----BEGIN RSA PRIVATE KEY-----\nMIIBdummyKey==\n-----END RSA PRIVATE KEY-----\n",
+      // Use a harmless placeholder instead of a real private key header to avoid
+      // committing high-entropy secrets into the repository. Tests only need
+      // the file to exist and contain some content; do not include real keys.
+      "CLIENT_PRIVATE_KEY_PLACEHOLDER\n",
     );
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "cascade-monorepo",
-  "version": "1.0.0",
+  "version": "3.0.575",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -26,6 +26,20 @@
     "scan:csv": "npm run scan:gate && node report_to_csv.js",
     "scan:git-history": "node scripts/git-history-secret-scan.cjs",
     "scan:ci-env": "node scripts/ci-env-scan.cjs",
+    "scan:bounty": "node --max-old-space-size=8192 packages/simplebeacon-cli/bin/simplebeacon.js scan --profile=bounty_hunting --format json --offline --path . --output .simplebeacon/report-bounty.json",
+    "scan:bounty:export-h1": "npm run scan:bounty && node tools/generate-h1-report.cjs .simplebeacon/report-bounty.json .simplebeacon/H1_REPORT_TEMPLATE.md",
+    "outreach:prepare": "node tools/outreach-prepare.cjs",
+    "scan:watermarks": "python tools/test_watermarks.py",
+    "vscode:vsix:build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-install-vsix.ps1 -BuildOnly",
+    "vscode:vsix:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-install-vsix.ps1 -InstallOnly",
+    "vscode:vsix:update": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-install-vsix.ps1",
+    "outreach:certificate": "node tools/generate-certificate.cjs .simplebeacon/report-bounty.json marketing/targets/executive-certificate.html",
+    "outreach:package": "npm run scan:bounty:export-h1 && npm run outreach:certificate && node tools/format-outreach-email.cjs .simplebeacon/H1_REPORT_TEMPLATE.md marketing/targets/outreach-email.txt && npm run outreach:zip && node tools/log-target-archive.cjs",
+    "outreach:zip": "node tools/package-zip.cjs",
+    "marketing:scaffold-assets": "node tools/scaffold-launch-assets.cjs",
+    "marketing:package-pack": "node tools/package-marketing-pack.cjs",
+    "marketing:preview": "node tools/marketing-preview-server.cjs",
+    "marketing:hn-ticket": "node tools/create-hn-reminder.cjs",
     "quality:monthly": "cd packages/simplebeacon-cli && node --max-old-space-size=8192 bin/simplebeacon.js scan --path ../.. --gate --full --format json --offline --config ../.simplebeacon/config.json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
     "ai:check": "node scripts/ai-check.js",
     "audit:context": "node scripts/audit-context.cjs",
@@ -53,7 +67,10 @@
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js",
     "build:ci": "node scripts/build-ci.js",
-    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs"
+    "verify:deployment": "node ai-platform/tools/verify-deployment.cjs",
+    "todo-lint": "node zero-dep-cli/bin/todo-lint.js",
+    "todo-lint:ci": "node zero-dep-cli/bin/todo-lint.js --path . --format sarif --output ./.github/artifacts/todo.sarif --failOn high",
+    "todo-lint:ci:fast": "node -e \"const {spawnSync}=require('child_process'); const paths=['ai-platform','packages','coming-soon']; let code=0; for(const p of paths){ console.log('\\n--- Scanning',p,'---\\n'); const out='./.github/artifacts/todo.'+p+'.sarif'; const r=spawnSync(process.execPath,['zero-dep-cli/bin/todo-lint.js','--path',p,'--format','sarif','--output',out,'--failOn','high'],{stdio:'inherit'}); if(r.status) code=r.status;} if(code===0){ console.log('Merging SARIF outputs...'); const m=spawnSync(process.execPath,['zero-dep-cli/scripts/merge-sarif.js','./.github/artifacts','./.github/artifacts/todo.sarif'],{stdio:'inherit'}); if(m.status) code=m.status;} process.exit(code);\""
   },
   "prepare": "husky install",
   "dependencies": {
@@ -66,7 +83,6 @@
     "express-rate-limit": "^8.6.1",
     "js-yaml": "^5.2.3",
     "nodemailer": "^9.0.3",
-    "puppeteer": "^25.8.0",
     "stripe": "^22.3.2",
     "tmp": "^0.2.7"
   },
@@ -76,14 +92,19 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "ajv-formats": "^2.1.0",
     "dotenv": "^16.6.1",
     "helmet": "^7.2.0",
     "husky": "^8.0.3",
     "jest": "^30.2.0",
+    "pdf-lib": "^1.17.1",
     "playwright": "^1.44.0",
+    "puppeteer": "^25.9.0",
     "vite": "^8.0.16",
     "why-is-node-running": "^3.2.2"
   },
+
   "optionalDependencies": {
     "@rolldown/binding-linux-x64-gnu": "^1.1.5"
   },

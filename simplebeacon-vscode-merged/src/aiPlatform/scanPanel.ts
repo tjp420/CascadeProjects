@@ -7,6 +7,7 @@ import { escapeHtml } from '../utils/string';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
 import { provider, diagnosticsManager } from '../extension';
+import { ModernSidebarProvider } from '../modernSidebarProvider';
 
 interface ScanOptions {
   mode?: string;
@@ -57,13 +58,42 @@ interface ApiIssue {
 /**
  * Webview panel for running and displaying SimpleBeacon scan results.
  */
+/**
+ * Lightweight guard to prevent registering disposables after the host is disposed.
+ */
+export class GuardedExtensionPanel implements vscode.Disposable {
+  private _disposables: vscode.Disposable[] = [];
+  private _isDisposed = false;
+
+  register(disposable: vscode.Disposable): boolean {
+    if (this._isDisposed) {
+      try { disposable.dispose(); } catch (e) {}
+      console.warn('GuardedExtensionPanel: rejected registration to already-disposed container');
+      return false;
+    }
+    this._disposables.push(disposable);
+    return true;
+  }
+
+  dispose() {
+    if (this._isDisposed) return;
+    this._isDisposed = true;
+    while (this._disposables.length) {
+      const d = this._disposables.pop();
+      if (d) {
+        try { d.dispose(); } catch (err) { console.error('Error disposing listener', err); }
+      }
+    }
+  }
+}
+
 export class ScanPanel {
   public static currentPanel: ScanPanel | undefined;
   public static readonly viewType = 'simplebeaconScan';
-
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
-  private _disposables: vscode.Disposable[] = [];
+  // Guarded listener container to avoid registering listeners after disposal
+  private _guard = new GuardedExtensionPanel();
   private _targetPath: string;
 
   public static createOrShow(extensionUri: vscode.Uri, targetPath: string): ScanPanel {
@@ -92,9 +122,10 @@ export class ScanPanel {
 
     this._update();
 
-    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    const d1 = this._panel.onDidDispose(() => this.dispose());
+    this._guard.register(d1);
 
-    this._panel.webview.onDidReceiveMessage(
+    const d2 = this._panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
           case 'scan':
@@ -134,10 +165,9 @@ export class ScanPanel {
             }
             return;
         }
-      },
-      null,
-      this._disposables
+      }
     );
+    this._guard.register(d2);
   }
 
   private _pollTimer?: NodeJS.Timeout;
@@ -164,12 +194,14 @@ export class ScanPanel {
       this._panel.webview.postMessage({ command: 'scanning', status: 'running', path: targetPath });
 
       // Call the server's synchronous scan endpoint
+      const tier = ModernSidebarProvider.getCachedTier() || '';
       const payload = {
         projectPath: targetPath,
         mode: options.mode || 'full',
         fullDirectoryScan: options.fullDirectory !== false,
         analysisType: (options.mode || 'full') === 'full' ? 'complete' : options.mode || 'simplebeacon',
         ...(options.aiProvider ? { aiProvider: options.aiProvider } : {}),
+        ...(tier ? { tier } : {}),
       };
       const data = (await postJson(`${apiUrl}/api/scan-directory`, payload, apiKey)) as ApiScanResponse;
       if (!data) {
@@ -729,11 +761,9 @@ export class ScanPanel {
 
   public dispose() {
     ScanPanel.currentPanel = undefined;
-    this._panel.dispose();
-    while (this._disposables.length) {
-      const x = this._disposables.pop();
-      if (x) x.dispose();
-    }
+    // Dispose registered listeners first, then the panel
+    try { this._guard.dispose(); } catch (err) { console.error('Error disposing guard', err); }
+    try { this._panel.dispose(); } catch (err) { console.error('Error disposing panel', err); }
   }
 }
 

@@ -39,7 +39,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: |
+          set -e
+          if npm ci; then
+            echo "npm ci succeeded"
+          else
+            npm install --no-audit --no-fund --legacy-peer-deps
+          fi
 
       - name: Stage PR changed files (for lint-assets and pre-commit-gate)
         run: |
@@ -49,9 +55,11 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
             BASE="main"
           fi
-          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | while read -r f; do
+            git check-ignore -q "$f" || git add "$f" || true
+          done || true
           echo "Staged files:"
-          git diff --cached --name-only
+          git diff --cached --name-only || true
 
       - name: Run asset hygiene lint (mojibake + path regressions)
         run: node .simplebeacon/qa/lint-assets.cjs
@@ -78,7 +86,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: |
+          set -e
+          if npm ci; then
+            echo "npm ci succeeded"
+          else
+            npm install --no-audit --no-fund --legacy-peer-deps
+          fi
 
       - name: Gitleaks scan (strict fail-closed in CI)
         uses: gitleaks/gitleaks-action@v2
@@ -94,7 +108,9 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "null" ]; then
             BASE="main"
           fi
-          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | xargs -r git add
+          git diff --name-only --diff-filter=ACM origin/$BASE...HEAD | while read -r f; do
+            git check-ignore -q "$f" || git add "$f" || true
+          done || true
 
       - name: Run Track113 secret scanner
         run: |

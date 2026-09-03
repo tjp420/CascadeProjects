@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SimpleBeaconPricingConfig",
+  "type": "object",
+  "required": ["currency", "billingCycles", "meta", "tiers"],
+  "additionalProperties": false,
+  "properties": {
+    "currency": {
+      "type": "string",
+      "enum": ["USD", "EUR", "GBP"]
+    },
+    "billingCycles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["monthly", "annual"]
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["frameworkVersion", "lastUpdated", "complianceFocus"],
+      "additionalProperties": false,
+      "properties": {
+        "frameworkVersion": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "complianceFocus": { "type": "string" }
+      }
+    },
+    "tiers": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "price", "cta", "badge", "highlights"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "price": {
+            "type": "object",
+            "required": ["monthly", "annual"],
+            "additionalProperties": false,
+            "properties": {
+              "monthly": { "type": ["number", "string"] },
+              "annual": { "type": ["number", "string"] }
+            }
+          },
+          "cta": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string" },
+              "command": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          },
+          "badge": { "type": "string" },
+          "highlights": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.575] - 2026-09-02
+
+### VS Code Extension
+
+- **Added**: Defensive unregistered-domain hijack scanner — detects URL/domain references in source and config files, performs live DNS checks via `dns.resolve4`, flags NXDOMAIN/ENOTFOUND as high-severity `unregistered-domain-reference` findings. Includes 50-query DNS budget, offline-safe fallback, domain whitelist (GitHub, Google, Microsoft, etc.), and local/loopback TLD exclusions.
+- **Fixed**: DNS lookup performance — switched from `dns.lookup` (~11s for NXDOMAIN on Windows) to `dns.resolve4` (~65ms).
+- **Fixed**: VS Code engine compatibility — restored `engines.vscode` to `^1.84.0` (was exact `1.84.0` in 3.0.574, blocking install on VS Code 1.135.0).
+
 ## [3.0.520] - 2026-08-25
 
 ### VS Code Extension

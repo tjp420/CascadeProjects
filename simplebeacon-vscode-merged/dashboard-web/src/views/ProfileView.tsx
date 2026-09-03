@@ -82,6 +82,7 @@ export function ProfileView() {
     try {
       localStorage.removeItem("sb_user");
       localStorage.removeItem("sb-user");
+      window.dispatchEvent(new Event("sb:logout"));
     } catch { /* ignore */ }
     navigate("signin");
   };

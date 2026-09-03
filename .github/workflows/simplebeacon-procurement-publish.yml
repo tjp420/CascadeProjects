@@ -11,6 +11,8 @@ on:
 jobs:
   publish-kit:
     runs-on: ubuntu-latest
+    env:
+      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
     permissions:
       contents: write
     steps:
@@ -20,7 +22,7 @@ jobs:
       - name: Initialize Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install Runtime Dependencies
@@ -61,7 +63,7 @@ jobs:
       - name: Verify GPG Secret Availability
         id: check_keys
         run: |
-          if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+          if [ -z "${{ env.HAS_GPG_KEY }}" ]; then
             echo "HAS_GPG=false" >> $GITHUB_ENV
             echo "::warning:: GPG_PRIVATE_KEY is missing. Skipping cryptographic detached signing for this workflow run."
           else
@@ -69,7 +71,7 @@ jobs:
           fi
 
       - name: Sign Procurement Kit Archive
-        if: env.HAS_GPG == 'true'
+        if: ${{ env.HAS_GPG_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -77,13 +79,13 @@ jobs:
         run: node packages/simplebeacon-cli/scripts/sign-artifacts.js generated/simplebeacon-procurement-kit.zip
 
       - name: Verify Archive Signature
-        if: env.HAS_GPG == 'true'
+        if: ${{ env.HAS_GPG_KEY != '' }}
         run: |
           gpg --batch --verify generated/simplebeacon-procurement-kit.zip.sig generated/simplebeacon-procurement-kit.zip 2>&1 || true
           echo "✅ Procurement kit signature verified ($(wc -c < generated/simplebeacon-procurement-kit.zip.sig) bytes)"
 
       - name: Verify Archive Signature (skipped)
-        if: env.HAS_GPG != 'true'
+        if: ${{ env.HAS_GPG_KEY == '' }}
         run: |
           echo "GPG not configured; skipping signature generation and verification."
 
@@ -93,7 +95,7 @@ jobs:
           git push origin :refs/tags/procurement-kit-latest || true
 
       - name: Publish to Rolling Release Tag (unsigned)
-        if: env.HAS_GPG != 'true'
+        if: ${{ env.HAS_GPG_KEY == '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: procurement-kit-latest
@@ -111,7 +113,7 @@ jobs:
           make_latest: true
 
       - name: Publish to Rolling Release Tag (signed)
-        if: env.HAS_GPG == 'true'
+        if: ${{ env.HAS_GPG_KEY != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: procurement-kit-latest
