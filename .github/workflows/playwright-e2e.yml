@@ -149,6 +149,19 @@ jobs:
           path: ai-platform/web/simplebeacon-dashboard/playwright-report/
           retention-days: 30
 
+      - name: Upload test-results diagnostics on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            ai-platform/web/simplebeacon-dashboard/test-results/
+            ai-platform/web/simplebeacon-dashboard/serve.log
+            ai-platform/web/simplebeacon-dashboard/mock-api.log
+            ai-platform/web/simplebeacon-dashboard/dev.log
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload playwright-report (always)
         if: always()
         uses: actions/upload-artifact@v4

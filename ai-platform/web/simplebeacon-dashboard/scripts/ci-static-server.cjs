@@ -41,6 +41,18 @@ const server = http.createServer((req, res) => {
   try {
     const baseUrl = new URL(req.url, 'http://localhost');
     let urlPath = decodeURIComponent(baseUrl.pathname);
+
+    // Strip the Vite base prefix ('/dashboard/') so that asset requests
+    // like /dashboard/assets/index-[hash].js resolve to <root>/assets/index-[hash].js
+    // instead of <root>/dashboard/assets/index-[hash].js (which misses and
+    // triggers an incorrect text/html SPA fallback for a .js module).
+    const BASE_PREFIX = '/dashboard/';
+    if (urlPath.startsWith(BASE_PREFIX)) {
+      urlPath = urlPath.slice(BASE_PREFIX.length);
+    } else if (urlPath === '/dashboard') {
+      urlPath = '/';
+    }
+
     // normalize and prevent path traversal
     let filePath = path.join(root, urlPath);
     if (!filePath.startsWith(root)) {
@@ -58,7 +70,18 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      // SPA fallback to index.html
+      // Only SPA-fallback for extensionless routes (e.g. /signin, /reports/123).
+      // Requests for files with extensions that are missing must return 404
+      // so the browser does not interpret an HTML payload as JavaScript
+      // (which triggers "Expected a JavaScript-or-Wasm module script" errors).
+      const ext = path.extname(urlPath).toLowerCase();
+      if (ext) {
+        console.log('[HTTP] %s %s -> 404 (missing file with extension)', req.method, urlPath);
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        return res.end('Not found');
+      }
+
+      // SPA fallback to index.html for client-side routes
       fs.readFile(indexPath, (rerr, data) => {
         if (rerr) {
           console.error('[HTTP] %s %s -> 500 (index read error)', req.method, urlPath, rerr && rerr.stack ? rerr.stack : rerr);
