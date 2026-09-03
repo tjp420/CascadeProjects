@@ -1,5 +1,20 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.576] - 2026-09-03
+
+### Fixed
+
+- **Report export 404 on production backend** — The monolithic `simplebeacon-server.cjs` did not mount `auth-inline-routes.cjs`, causing `POST /api/simplebeacon/user/sign-report` to return 404. The route is now mounted so JSON/PDF/HTML/CSV exports can be authorized and signed.
+- **`userSub` temporal dead zone in sign-report handler** — The report-signing route referenced `userSub` before its declaration, causing a `ReferenceError` for authenticated export requests. Fixed variable ordering.
+- **Webview lifecycle guards in scan/upload panels** — `scanPanel.ts` and `uploadPanel.ts` now guard against disposed webviews and stale panel references, preventing `WebviewEditorProvider` crashes when panels are closed mid-scan.
+- **CI static server base-path collision** — The Playwright CI static server joined raw URL paths (including Vite's `/dashboard/` base prefix) to the build outDir, causing asset requests to resolve to a double-nested `assets/assets/` path. The server now strips the base prefix and uses the project root, so module scripts load with correct MIME types and React mounts in headless Chromium.
+- **SPA fallback serving text/html for missing .js files** — The CI static server's SPA fallback now only applies to extensionless routes. Missing files with extensions return 404 instead of `index.html`, preventing the "Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of text/html" error.
+- **Playwright E2E diagnostic capture** — Added `beforeEach`/`afterEach` hooks to capture console messages, HTML snapshots, and screenshots on test failure. Artifacts are uploaded to GitHub Actions for offline inspection.
+
+### Changed
+
+- **Playwright E2E workflow hardened** — Added mock API server, API proxying in CI static server, test-results artifact upload, and improved diagnostics listing build output contents.
+
 ## [3.0.573] - 2026-09-01
 
 ### Fixed
