@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.578] - 2026-09-03
+
+### VS Code Extension
+
+- **Fixed**: Dashboard serving stale vanilla UI — removed `index.vanilla.html` preference so the local data server always serves the current React dashboard build.
+
+## [3.0.577] - 2026-09-03
+
+### VS Code Extension
+
+- **Fixed**: "JSON report export could not be authorized: UnauthorizedError" — local data server now handles sign-report requests directly, validating tokens locally without calling the Render backend. Falls back to production with user-friendly error messages when local server is unavailable.
+
+## [3.0.576] - 2026-09-03
+
+### VS Code Extension
+
+- **Fixed**: Report export 404 on production backend — mounted `auth-inline-routes.cjs` in `simplebeacon-server.cjs` so `POST /api/simplebeacon/user/sign-report` resolves correctly.
+- **Fixed**: `userSub` temporal dead zone in sign-report handler — variable ordering corrected to prevent `ReferenceError` for authenticated export requests.
+- **Fixed**: Webview lifecycle guards in scan/upload panels — prevents crashes when panels are closed mid-scan.
+- **Fixed**: CI static server base-path collision — strips Vite `/dashboard/` prefix and uses project root, fixing double-nested `assets/assets/` path that prevented React from mounting in Playwright E2E tests.
+- **Fixed**: SPA fallback serving `text/html` for missing `.js` files — now returns 404 for files with extensions, preventing MIME-type mismatch errors.
+- **Changed**: Playwright E2E workflow hardened with mock API server, API proxying, diagnostic artifact capture, and improved build output listing.
+
 ## [3.0.575] - 2026-09-02
 
 ### VS Code Extension

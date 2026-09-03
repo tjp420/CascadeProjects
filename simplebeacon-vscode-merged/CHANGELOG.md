@@ -1,5 +1,33 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.578] - 2026-09-03
+
+### Fixed
+
+- **Dashboard serving stale vanilla UI** — The local data server preferred `index.vanilla.html` (the old non-React dashboard) over `index.html` (the React build). Removed the vanilla preference so the server always serves the current React dashboard with `./assets/main.js`. Also updated `dashboardRootHasAssets` to check for `assets/main.js` instead of the legacy `js-es2018/main.js`.
+
+## [3.0.577] - 2026-09-03
+
+### Fixed
+
+- **"JSON report export could not be authorized: UnauthorizedError"** — The export gate sent sign-report requests to the production Render backend, which rejected locally-issued JWTs with a raw `UnauthorizedError` class name. Now the local data server handles sign-report requests directly, validating the user's token (JWT or license) locally and signing the report hash with HMAC-SHA256 using the workspace token pepper. When the local server is unreachable, the export gate falls back to the production backend and maps the error to a user-friendly message ("Your session has expired — please sign in again").
+- **Unhelpful export error messages** — Server errors during report signing are now mapped to actionable user messages instead of showing internal error class names. 401 → "session expired", 403 → "paid plan required", 503 → "signing unavailable", network errors → "check your connection".
+
+## [3.0.576] - 2026-09-03
+
+### Fixed
+
+- **Report export 404 on production backend** — The monolithic `simplebeacon-server.cjs` did not mount `auth-inline-routes.cjs`, causing `POST /api/simplebeacon/user/sign-report` to return 404. The route is now mounted so JSON/PDF/HTML/CSV exports can be authorized and signed.
+- **`userSub` temporal dead zone in sign-report handler** — The report-signing route referenced `userSub` before its declaration, causing a `ReferenceError` for authenticated export requests. Fixed variable ordering.
+- **Webview lifecycle guards in scan/upload panels** — `scanPanel.ts` and `uploadPanel.ts` now guard against disposed webviews and stale panel references, preventing `WebviewEditorProvider` crashes when panels are closed mid-scan.
+- **CI static server base-path collision** — The Playwright CI static server joined raw URL paths (including Vite's `/dashboard/` base prefix) to the build outDir, causing asset requests to resolve to a double-nested `assets/assets/` path. The server now strips the base prefix and uses the project root, so module scripts load with correct MIME types and React mounts in headless Chromium.
+- **SPA fallback serving text/html for missing .js files** — The CI static server's SPA fallback now only applies to extensionless routes. Missing files with extensions return 404 instead of `index.html`, preventing the "Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of text/html" error.
+- **Playwright E2E diagnostic capture** — Added `beforeEach`/`afterEach` hooks to capture console messages, HTML snapshots, and screenshots on test failure. Artifacts are uploaded to GitHub Actions for offline inspection.
+
+### Changed
+
+- **Playwright E2E workflow hardened** — Added mock API server, API proxying in CI static server, test-results artifact upload, and improved diagnostics listing build output contents.
+
 ## [3.0.573] - 2026-09-01
 
 ### Fixed
