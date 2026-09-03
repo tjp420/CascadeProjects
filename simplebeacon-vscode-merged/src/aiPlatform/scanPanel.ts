@@ -6,7 +6,10 @@ import { getSbConfig, getNonce } from '../utils/vscode';
 import { escapeHtml } from '../utils/string';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
-import { provider, diagnosticsManager } from '../extension';
+// Lazy-load extension exports to avoid compile-time circular imports
+function _getExtensionExports() {
+  try { return require('../extension'); } catch (e) { return {}; }
+}
 import { ModernSidebarProvider } from '../modernSidebarProvider';
 
 interface ScanOptions {
@@ -58,34 +61,7 @@ interface ApiIssue {
 /**
  * Webview panel for running and displaying SimpleBeacon scan results.
  */
-/**
- * Lightweight guard to prevent registering disposables after the host is disposed.
- */
-export class GuardedExtensionPanel implements vscode.Disposable {
-  private _disposables: vscode.Disposable[] = [];
-  private _isDisposed = false;
-
-  register(disposable: vscode.Disposable): boolean {
-    if (this._isDisposed) {
-      try { disposable.dispose(); } catch (e) {}
-      console.warn('GuardedExtensionPanel: rejected registration to already-disposed container');
-      return false;
-    }
-    this._disposables.push(disposable);
-    return true;
-  }
-
-  dispose() {
-    if (this._isDisposed) return;
-    this._isDisposed = true;
-    while (this._disposables.length) {
-      const d = this._disposables.pop();
-      if (d) {
-        try { d.dispose(); } catch (err) { console.error('Error disposing listener', err); }
-      }
-    }
-  }
-}
+import { GuardedExtensionPanel } from '../utils/guardedExtensionPanel';
 
 export class ScanPanel {
   public static currentPanel: ScanPanel | undefined;
@@ -265,11 +241,12 @@ export class ScanPanel {
 
       this._panel.webview.postMessage({ command: 'scanComplete', result });
 
-      if (diagnosticsManager) {
-        diagnosticsManager.updateDiagnostics(result.issues);
+      const _ext = _getExtensionExports();
+      if (_ext && _ext.diagnosticsManager) {
+        try { _ext.diagnosticsManager.updateDiagnostics(result.issues); } catch (e) { /* ignore */ }
       }
-      if (provider) {
-        provider.setResult(result);
+      if (_ext && _ext.provider) {
+        try { _ext.provider.setResult(result); } catch (e) { /* ignore */ }
       }
       vscode.commands.executeCommand('simplebeacon.refreshDashboard', {
         issues: result.issues.length,
