@@ -133,6 +133,14 @@ jobs:
 
           echo "report placeholder" > playwright-report/README.txt
 
+      - name: Upload test-results (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ai-platform/web/simplebeacon-dashboard/test-results/
+          retention-days: 7
+
       - name: Archive Playwright Test Traces on Failure
         if: failure()
         uses: actions/upload-artifact@v4
