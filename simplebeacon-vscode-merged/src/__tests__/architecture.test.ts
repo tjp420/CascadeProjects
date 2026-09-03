@@ -23,8 +23,8 @@ describe('Architecture rules', () => {
     }
 
     const errorCount = (output.match(/error /g) || []).length;
-    // Allow a single tolerable error (eg. known third-party circular) to keep CI unblocked
-    expect(errorCount).toBeLessThanOrEqual(1);
+    // Enforce zero dependency-cruiser errors
+    expect(errorCount).toBe(0);
   });
 
   it('should report known circular dependencies as warnings only', () => {
@@ -43,8 +43,8 @@ describe('Architecture rules', () => {
     const warnLines = lines.filter((l) => l.trim().startsWith('warn '));
     const errorLines = lines.filter((l) => l.trim().startsWith('error '));
 
-    // Allow a single tolerable error to keep CI unblocked; investigate if it persists
-    expect(errorLines.length).toBeLessThanOrEqual(1);
+    // Enforce zero dependency-cruiser errors
+    expect(errorLines.length).toBe(0);
     // We expect at least zero warnings (some environments may produce none)
     expect(warnLines.length).toBeGreaterThanOrEqual(0);
   });
