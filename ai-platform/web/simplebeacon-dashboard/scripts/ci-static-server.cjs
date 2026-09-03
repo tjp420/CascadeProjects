@@ -3,26 +3,28 @@ const fs = require('fs');
 const path = require('path');
 
 const port = process.env.PORT || process.argv[2] || 61455;
-// Prefer dist but fall back to assets (vite config uses outDir: 'assets')
-const candidates = [
-  path.resolve(__dirname, '..', 'dist'),
-  path.resolve(__dirname, '..', 'assets')
-];
-let root = candidates.find(p => {
-  try { return fs.statSync(p).isDirectory(); } catch (e) { return false; }
-}) || path.resolve(__dirname, '..', 'dist');
+
+// The CI static server root must be the PROJECT ROOT (the dashboard directory),
+// not the Vite outDir. The source index.html references assets via relative
+// paths like "./assets/main.js" and "/dashboard/js/vendor/jszip.min.js".
+// After stripping the /dashboard/ base prefix, these resolve to
+// "assets/main.js" and "js/vendor/jszip.min.js" — which must be joined
+// against the project root, not against the assets/ subdirectory.
+// Using assets/ as the root causes a double-nesting: assets/assets/main.js.
+const projectRoot = path.resolve(__dirname, '..');
+const root = projectRoot;
 let indexPath = path.join(root, 'index.html');
-// If index.html isn't in the detected outDir, also try the project root (some builds emit index.html to project root)
 if (!fs.existsSync(indexPath)) {
-  const projectRoot = path.resolve(__dirname, '..');
-  const projectIndex = path.join(projectRoot, 'index.html');
-  if (fs.existsSync(projectIndex)) {
-    console.log('index.html not found in outDir; falling back to project root index.html at', projectIndex);
-    root = projectRoot;
-    indexPath = projectIndex;
+  // Fallback: some builds emit index.html into the outDir instead of the root
+  const outDirIndex = path.join(root, 'assets', 'index.html');
+  if (fs.existsSync(outDirIndex)) {
+    indexPath = outDirIndex;
+  } else {
+    console.error('No index.html found at project root or assets/');
   }
 }
 console.log('CI static server root:', root);
+console.log('CI static server index:', indexPath);
 
 const mime = {
   '.html': 'text/html',

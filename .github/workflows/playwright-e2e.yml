@@ -83,16 +83,10 @@ jobs:
           echo "--- package.json preview ---" && sed -n '1,120p' package.json || true
           npm run build || (echo "npm run build exited $?"; ls -la || true; exit 1)
 
-          # 💾 Guarantee index.html presence in the server outDir to prevent ENOENT races
-          if [ -d assets ] && [ ! -f assets/index.html ] && [ -f index.html ]; then
-            echo "📋 Copying project root index.html -> assets/index.html for static server"
-            cp index.html assets/index.html
-          fi
-
-          # Diagnostics: list dist contents and show a short preview of index.html
-          echo "--- dist listing ---" && ls -la dist || true
-          echo "--- index.html preview (first 40 lines) ---" && head -n 40 dist/index.html || true
-          # Start the CI static server script (uses dist/ and serves index.html for SPA routes)
+          # Diagnostics: list build output and verify main.js was created by prepare-worker-assets
+          echo "--- assets listing ---" && ls -la assets/ | head -n 30 || true
+          echo "--- index.html preview (first 20 lines) ---" && head -n 20 index.html || true
+          # Start the CI static server (root = project root, serves index.html + assets/ + js/)
           node scripts/ci-static-server.cjs > serve.log 2>&1 &
           echo $! > serve.pid
 
