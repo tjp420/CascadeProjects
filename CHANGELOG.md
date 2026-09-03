@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.578] - 2026-09-03
+
+### VS Code Extension
+
+- **Fixed**: Dashboard serving stale vanilla UI — removed `index.vanilla.html` preference so the local data server always serves the current React dashboard build.
+
 ## [3.0.577] - 2026-09-03
 
 ### VS Code Extension

@@ -1488,9 +1488,9 @@ const DASHBOARD_ROOT_CACHE_TTL = 30000; // 30 seconds
 function dashboardRootHasAssets(p: string): boolean {
   return (
     fs.existsSync(p) &&
-    fs.existsSync(path.join(p, 'index.vanilla.html')) &&
-    fs.existsSync(path.join(p, 'css', 'variables.css')) &&
-    fs.existsSync(path.join(p, 'js-es2018', 'main.js'))
+    fs.existsSync(path.join(p, 'index.html')) &&
+    (fs.existsSync(path.join(p, 'assets', 'main.js')) ||
+      fs.existsSync(path.join(p, 'css', 'variables.css')))
   );
 }
 
@@ -5496,8 +5496,7 @@ ${
     // Demo route — read-only dashboard without auth
     if (parsed.pathname === '/demo' || parsed.pathname === '/demo/') {
       const dashboardRoot = resolveDashboardRoot(context);
-      const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
-      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
+      const indexPath = path.join(dashboardRoot, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',
@@ -5573,8 +5572,7 @@ ${
         res.end(fs.readFileSync(requestedPath));
         return;
       }
-      const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
-      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
+      const indexPath = path.join(dashboardRoot, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',

@@ -1,5 +1,11 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.578] - 2026-09-03
+
+### Fixed
+
+- **Dashboard serving stale vanilla UI** — The local data server preferred `index.vanilla.html` (the old non-React dashboard) over `index.html` (the React build). Removed the vanilla preference so the server always serves the current React dashboard with `./assets/main.js`. Also updated `dashboardRootHasAssets` to check for `assets/main.js` instead of the legacy `js-es2018/main.js`.
+
 ## [3.0.577] - 2026-09-03
 
 ### Fixed
