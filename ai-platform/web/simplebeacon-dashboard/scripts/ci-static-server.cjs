@@ -102,6 +102,26 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      // Attempt to find the requested file in alternative candidate roots
+      const alternativeRoots = [
+        path.resolve(__dirname, '..', 'dist'),
+        path.resolve(__dirname, '..') // project root
+      ];
+      for (const altRoot of alternativeRoots) {
+        try {
+          const altPath = path.join(altRoot, urlPath);
+          if (fs.existsSync(altPath) && fs.statSync(altPath).isFile()) {
+            const ext = path.extname(altPath).toLowerCase();
+            console.log('[HTTP] %s %s -> 200 (file via altRoot %s)', req.method, urlPath, altRoot);
+            res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
+            fs.createReadStream(altPath).pipe(res);
+            return;
+          }
+        } catch (e) {
+          // ignore errors and continue
+        }
+      }
+
       // Only SPA-fallback for extensionless routes (e.g. /signin, /reports/123).
       // Requests for files with extensions that are missing must return 404
       // so the browser does not interpret an HTML payload as JavaScript
