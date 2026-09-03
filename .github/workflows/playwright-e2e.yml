@@ -84,10 +84,11 @@ jobs:
           npx serve -s dist -l 61455 > serve.log 2>&1 &
           echo $! > serve.pid
 
-          # Poll the server with an explicit GET for index.html (wait up to 30s)
+          # Poll the server with an explicit GET for index.html (follow redirects, wait up to 60s)
           status=000
-          for i in $(seq 1 30); do
-            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:61455/index.html || true)
+          for i in $(seq 1 60); do
+            # Follow redirects (-L) because some static servers return 301 -> /index.html/
+            status=$(curl -s -L -o /dev/null -w "%{http_code}" http://localhost:61455/index.html || true)
             echo "health-check $i -> $status"
             if [ "$status" = "200" ]; then
               echo "Server ready"
