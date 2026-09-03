@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.577] - 2026-09-03
+
+### VS Code Extension
+
+- **Fixed**: "JSON report export could not be authorized: UnauthorizedError" — local data server now handles sign-report requests directly, validating tokens locally without calling the Render backend. Falls back to production with user-friendly error messages when local server is unavailable.
+
 ## [3.0.576] - 2026-09-03
 
 ### VS Code Extension

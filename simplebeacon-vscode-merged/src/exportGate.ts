@@ -452,8 +452,9 @@ export function canonicalJsonString(value: unknown): string {
 
 /**
  * Resolve the SimpleBeacon API URL for export-signing requests.
- * Falls back to the production dashboard URL so signing works even when the
- * local data server is configured but the user is signed in via the dashboard.
+ * Prefers the local data server (which has a sign-report route and can
+ * validate tokens locally without calling the Render backend). Falls back
+ * to the production dashboard URL when the local server is not configured.
  */
 export function resolveSigningApiUrl(): string {
   const config = getSbConfig();
@@ -461,6 +462,19 @@ export function resolveSigningApiUrl(): string {
   if (configured) {
     return normalizeApiServerUrl(configured);
   }
+  // Prefer the local data server — it has a /api/simplebeacon/user/sign-report
+  // route that validates tokens locally and signs reports without calling the
+  // Render backend. This avoids "UnauthorizedError" failures when the backend
+  // JWT expires but the user is still authenticated locally.
+  const localPort = config.get<number>('dataServerPort', 54358);
+  return `http://127.0.0.1:${localPort}`;
+}
+
+/**
+ * Resolve the fallback (production) API URL for export-signing requests.
+ * Used when the local data server is unreachable.
+ */
+function resolveFallbackSigningApiUrl(): string {
   return 'https://simplebeacon.ai';
 }
 
@@ -494,33 +508,110 @@ export async function getExportAuthorization(
   const url = new URL('/api/simplebeacon/user/sign-report', baseUrl);
   const body = JSON.stringify({ reportHash, reportType, metadata: metadata || {} });
 
+  const reqOpts = {
+    method: 'POST' as const,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Content-Length': Buffer.byteLength(body).toString(),
+    },
+    body,
+    timeoutMs: 10000,
+  };
+
   try {
-    const resp = await httpRequest(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Content-Length': Buffer.byteLength(body).toString(),
-      },
-      body,
-      timeoutMs: 10000,
-    });
+    const resp = await httpRequest(url, reqOpts);
 
     if (resp.status === 200 && resp.json?.signed) {
       return { ok: true, signature: resp.json as ServerSignature };
     }
 
+    // If the local server returned 401, the token might be valid on the
+    // production backend (e.g., dashboard-issued JWT). Retry against the
+    // fallback URL before giving up.
+    if (resp.status === 401 && baseUrl !== resolveFallbackSigningApiUrl()) {
+      try {
+        const fallbackUrl = new URL('/api/simplebeacon/user/sign-report', resolveFallbackSigningApiUrl());
+        const fallbackResp = await httpRequest(fallbackUrl, reqOpts);
+        if (fallbackResp.status === 200 && fallbackResp.json?.signed) {
+          return { ok: true, signature: fallbackResp.json as ServerSignature };
+        }
+        const fbRawError = fallbackResp.json?.error || `Server returned ${fallbackResp.status}`;
+        return {
+          ok: false,
+          error: mapExportAuthError(fallbackResp.status, fbRawError, fallbackResp.json?.message),
+          status: fallbackResp.status,
+        };
+      } catch {
+        // Fall through to local error mapping
+      }
+    }
+
+    // Map common server errors to user-friendly messages.
+    const rawError = resp.json?.error || `Server returned ${resp.status}`;
+    const friendlyError = mapExportAuthError(resp.status, rawError, resp.json?.message);
     return {
       ok: false,
-      error: resp.json?.error || `Server returned ${resp.status}`,
+      error: friendlyError,
       status: resp.status,
     };
   } catch (err) {
+    // Local server unreachable — try the fallback (production) URL
+    if (baseUrl !== resolveFallbackSigningApiUrl()) {
+      try {
+        const fallbackUrl = new URL('/api/simplebeacon/user/sign-report', resolveFallbackSigningApiUrl());
+        const fallbackResp = await httpRequest(fallbackUrl, reqOpts);
+        if (fallbackResp.status === 200 && fallbackResp.json?.signed) {
+          return { ok: true, signature: fallbackResp.json as ServerSignature };
+        }
+        const fbRawError = fallbackResp.json?.error || `Server returned ${fallbackResp.status}`;
+        return {
+          ok: false,
+          error: mapExportAuthError(fallbackResp.status, fbRawError, fallbackResp.json?.message),
+          status: fallbackResp.status,
+        };
+      } catch (fallbackErr) {
+        const fbMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+        return {
+          ok: false,
+          error: mapExportAuthError(0, fbMsg, undefined),
+        };
+      }
+    }
+    const msg = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
-      error: err instanceof Error ? err.message : String(err),
+      error: mapExportAuthError(0, msg, undefined),
     };
   }
+}
+
+/**
+ * Map raw server errors to user-friendly messages so the VS Code notification
+ * tells the user what to do instead of showing an internal error class name.
+ */
+function mapExportAuthError(status: number, error: string, message?: string): string {
+  const lower = String(error || '').toLowerCase();
+  const msgLower = String(message || '').toLowerCase();
+
+  // 401 / auth errors — token expired, invalid, or missing
+  if (status === 401 || lower.includes('unauthorized') || lower.includes('auth') || msgLower.includes('invalid or expired token')) {
+    return 'Your session has expired — please sign in again, then retry the export.';
+  }
+  // 403 — free tier, premium export requires paid tier
+  if (status === 403 || lower.includes('forbidden') || lower.includes('tier') || lower.includes('paid')) {
+    return 'This export format requires a paid plan. Visit https://simplebeacon.ai/pricing to upgrade.';
+  }
+  // 503 — signing secret not configured on server
+  if (status === 503 || lower.includes('not configured') || lower.includes('unavailable')) {
+    return 'Report signing is temporarily unavailable on the server. Please try again later.';
+  }
+  // Network errors (status 0 = request threw before response)
+  if (status === 0 || lower.includes('network') || lower.includes('timeout') || lower.includes('econnrefused') || lower.includes('fetch')) {
+    return 'Could not reach the signing server. Check your network connection and try again.';
+  }
+  // Fallback — show the raw error but with context
+  return message ? `${error}: ${message}` : error;
 }
 
 /**

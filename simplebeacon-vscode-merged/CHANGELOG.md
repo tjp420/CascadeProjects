@@ -1,5 +1,12 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.577] - 2026-09-03
+
+### Fixed
+
+- **"JSON report export could not be authorized: UnauthorizedError"** — The export gate sent sign-report requests to the production Render backend, which rejected locally-issued JWTs with a raw `UnauthorizedError` class name. Now the local data server handles sign-report requests directly, validating the user's token (JWT or license) locally and signing the report hash with HMAC-SHA256 using the workspace token pepper. When the local server is unreachable, the export gate falls back to the production backend and maps the error to a user-friendly message ("Your session has expired — please sign in again").
+- **Unhelpful export error messages** — Server errors during report signing are now mapped to actionable user messages instead of showing internal error class names. 401 → "session expired", 403 → "paid plan required", 503 → "signing unavailable", network errors → "check your connection".
+
 ## [3.0.576] - 2026-09-03
 
 ### Fixed

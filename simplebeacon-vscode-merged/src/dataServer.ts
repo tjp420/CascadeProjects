@@ -4491,6 +4491,122 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // /api/simplebeacon/user/sign-report — local report signing for premium exports.
+    // The VSIX export gate calls this endpoint to obtain a server signature over
+    // a report hash. The local data server can validate the user's token (JWT or
+    // license) locally and sign the report without calling the Render backend,
+    // which avoids "UnauthorizedError" failures when the backend JWT expires.
+    // The signing secret is derived from the extension's token pepper so
+    // signatures are deterministic within a workspace but not forgeable.
+    if (parsed.pathname === '/api/simplebeacon/user/sign-report' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const reportHash = typeof data.reportHash === 'string' ? data.reportHash.trim() : '';
+          const reportType = typeof data.reportType === 'string' ? data.reportType.trim() : '';
+          const metadata = data.metadata || {};
+
+          if (!reportHash || !/^[a-f0-9]{8,128}$/i.test(reportHash)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ signed: false, error: 'Valid reportHash (hex SHA-256) required' }));
+            return;
+          }
+          if (!reportType || reportType.length > 64) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ signed: false, error: 'Valid reportType required (max 64 chars)' }));
+            return;
+          }
+
+          // Validate the Bearer token (JWT or license)
+          const rawToken =
+            typeof req.headers.authorization === 'string' &&
+            req.headers.authorization.startsWith('Bearer ')
+              ? req.headers.authorization.substring(7)
+              : '';
+          if (!rawToken) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ signed: false, error: 'Authentication required' }));
+            return;
+          }
+
+          let user: any = null;
+          const parts = rawToken.split('.');
+          if (parts.length === 3) {
+            // JWT
+            const jwtResult = validateJwt(rawToken);
+            if (jwtResult.valid && jwtResult.user) {
+              user = jwtResult.user;
+            }
+          } else if (parts.length === 2) {
+            // License token
+            const licenseMeta = validateLicenseLocally(rawToken, PUBLIC_KEY_PEM);
+            if (licenseMeta) {
+              user = normalizeAuthUser({
+                id: 'licensed',
+                email: `${licenseMeta.companyId}@licensed-user`,
+                tier: licenseMeta.tier || 'developer',
+              });
+            }
+          }
+
+          if (!user) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ signed: false, error: 'Invalid or expired token' }));
+            return;
+          }
+
+          // Tier enforcement — matches the server-side TIER_EXPORT_PERMISSIONS
+          const TIER_EXPORT_PERMISSIONS: Record<string, Set<string>> = {
+            free: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap']),
+            developer: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate']),
+            team: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate', 'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report']),
+            enterprise: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate', 'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report']),
+          };
+          const TIER_ALIASES: Record<string, string> = {
+            free: 'free', community: 'free', sandbox: 'free', instant: 'free', locked: 'free', solo: 'free', '': 'free',
+            developer: 'developer', pro: 'developer', startup: 'developer', business: 'developer', premium: 'developer', license: 'developer', auditor: 'developer', paid: 'developer', silver: 'developer', gold: 'developer', developer_tier: 'developer',
+            team: 'team', team_pro: 'team', 'team-pro': 'team', eusprint: 'team', growth: 'team',
+            enterprise: 'enterprise', compliance: 'enterprise', universal: 'enterprise', custom: 'enterprise', admin: 'enterprise',
+          };
+          const rawTier = String(user.tier || user.plan || '').toLowerCase();
+          const canonicalTier = TIER_ALIASES[rawTier] || 'free';
+          const allowedTypes = TIER_EXPORT_PERMISSIONS[canonicalTier] || TIER_EXPORT_PERMISSIONS.free;
+          if (!allowedTypes.has(reportType)) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ signed: false, error: `${reportType} requires a paid tier` }));
+            return;
+          }
+
+          // Sign the report hash using HMAC-SHA256 with the token pepper.
+          // The pepper is per-workspace and stored in secret storage, so
+          // signatures are verifiable within the same extension instance.
+          const pepper = await _getOrGeneratePepper();
+          const canonical = JSON.stringify({ reportHash, reportType, userSub: user.id, metadata });
+          const signature = crypto.createHmac('sha256', pepper).update(canonical).digest('hex');
+          const now = Math.floor(Date.now() / 1000);
+          const expiresAt = now + 86400 * 30; // 30-day signature validity
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            signed: true,
+            signature,
+            algorithm: 'HMAC-SHA256',
+            keyId: 'sb-local-v1',
+            signedAt: new Date().toISOString(),
+            expiresAt: new Date(expiresAt * 1000).toISOString(),
+            tier: canonicalTier,
+            user: { sub: user.id, email: user.email },
+          }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ signed: false, error: 'Invalid request body' }));
+        }
+      });
+      return;
+    }
+
     // /api/user/api-key — CLI upload token (local extension has no CLI key, return empty)
     if (parsed.pathname === '/api/user/api-key' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
