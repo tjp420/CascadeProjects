@@ -77,11 +77,10 @@ jobs:
 
       - name: Run E2E Test Suite
         run: |
-          # Build static assets and serve the production build to avoid dev-server timing issues
+          # Build static assets and start a lightweight in-repo static server (SPA fallback)
           npm run build
-          # Install serve and start it in the background
-          npm install --no-save serve
-          npx serve -s dist -l 61455 > serve.log 2>&1 &
+          # Start the CI static server script (uses dist/ and serves index.html for SPA routes)
+          node scripts/ci-static-server.cjs > serve.log 2>&1 &
           echo $! > serve.pid
 
           # Poll the server with an explicit GET for index.html (follow redirects, wait up to 60s)
