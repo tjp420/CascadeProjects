@@ -122,6 +122,8 @@ jobs:
           mkdir -p playwright-report || true
           if [ -f dev.log ]; then cp dev.log playwright-report/dev.log; fi
           if [ -f mock-api.log ]; then cp mock-api.log playwright-report/mock-api.log; fi
+          if [ -f serve.log ]; then cp serve.log playwright-report/serve.log; fi
+
           echo "report placeholder" > playwright-report/README.txt
 
       - name: Archive Playwright Test Traces on Failure
