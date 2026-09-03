@@ -78,7 +78,9 @@ jobs:
       - name: Run E2E Test Suite
         run: |
           # Build static assets and start a lightweight in-repo static server (SPA fallback)
-          npm run build
+          echo "cwd:" && pwd && echo "ls root:" && ls -la || true
+          echo "--- package.json preview ---" && sed -n '1,120p' package.json || true
+          npm run build || (echo "npm run build exited $?"; ls -la || true; exit 1)
           # Diagnostics: list dist contents and show a short preview of index.html
           echo "--- dist listing ---" && ls -la dist || true
           echo "--- index.html preview (first 40 lines) ---" && head -n 40 dist/index.html || true
