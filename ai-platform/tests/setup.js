@@ -48,21 +48,33 @@ const constants = require("../server/config/constants.cjs");
 // an object with named exports while other code expects a callable function.
 try {
   jest.mock("minimatch", () => {
-    // Defer to the real package and wrap it if needed
+    // Defer to the real package and normalize exported shapes.
     // eslint-disable-next-line global-require
     const real = require("minimatch");
-    if (typeof real === "function") return real;
-    // v9+ exports named functions; expose a callable signature compatible with older code
-    const fn = function (pattern, str, opts) {
-      if (typeof real === "function") return real(pattern, str, opts);
-      if (real && typeof real.minimatch === "function")
-        return real.minimatch(str, pattern, opts);
-      if (real && typeof real.match === "function")
-        return real.match(str, pattern, opts);
+
+    // Resolve a callable implementation from possible shapes:
+    // - CommonJS function export: (path, pattern, opts)
+    // - ESM default export: { default: [Function] }
+    // - Named export: { minimatch: fn } or { match: fn }
+    let impl = null;
+    if (typeof real === "function") impl = real;
+    else if (real && typeof real.default === "function") impl = real.default;
+    else if (real && typeof real.minimatch === "function") impl = real.minimatch;
+    else if (real && typeof real.match === "function") impl = real.match;
+
+    if (!impl) {
+      // Fall back to throwing from the shim so tests fail clearly when unsupported
       throw new Error("minimatch shim: underlying minimatch shape unsupported");
+    }
+
+    // Return a stable callable with the common signature (path, pattern, opts)
+    const fn = function (path, pattern, opts) {
+      return impl(path, pattern, opts);
     };
-    // copy properties
-    Object.assign(fn, real);
+    // copy properties from the real package onto the shim function
+    try {
+      Object.assign(fn, real);
+    } catch (e) {}
     return fn;
   });
 } catch (e) {
