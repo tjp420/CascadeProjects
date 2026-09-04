@@ -79,8 +79,6 @@ if (rootEl) {
     const AUTH_ENDPOINTS = [
       "/auth/me",
       "/auth/verify",
-      "/auth/token-status",
-      "/auth/refresh",
       "/auth/session",
       "/users/me",
     ];

@@ -6,12 +6,28 @@
 export const DEFAULT_API_BASE =
   import.meta.env.VITE_API_BASE || "http://127.0.0.1:58000";
 
+/** Hash view to restore after a sign-in redirect (deep links like #/team-metrics). */
+export const POST_LOGIN_VIEW_KEY = "sb_post_login_view";
+
+export function isForeignPagesPreviewBase(value: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const url = new URL(value, window.location.href);
+    const host = url.hostname || "";
+    const here = window.location.hostname || "";
+    if (!host.endsWith(".simplebeacon.pages.dev")) return false;
+    return host !== here;
+  } catch {
+    return false;
+  }
+}
+
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
     const explicit = params.get("sb_api_base");
-    if (explicit) {
+    if (explicit && !isForeignPagesPreviewBase(explicit)) {
       const trimmed = explicit.replace(/\/+$/, "");
       if (/\/api$/i.test(trimmed)) return trimmed.replace(/\/api$/i, "");
       return trimmed;
@@ -30,7 +46,12 @@ export function getApiBase(): string {
       win.__SB_API_HOST__ ||
       win.__SIMPLEBEACON_DETECTED_API_BASE ||
       (typeof envBase === "string" ? String(envBase).replace(/\/+$/, "") : "");
-    if (detected && typeof detected === "string" && detected.length > 0)
+    if (
+      detected &&
+      typeof detected === "string" &&
+      detected.length > 0 &&
+      !isForeignPagesPreviewBase(detected)
+    )
       return String(detected).replace(/\/+$/, "");
     const host = window.location.hostname || "";
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
@@ -84,17 +105,39 @@ export function getApiBase(): string {
  */
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem("sb_auth_token") ||
-    localStorage.getItem("sb_token") ||
-    localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token") ||
-    localStorage.getItem("simplebeacon_token") ||
-    localStorage.getItem("cascadeAuthToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken")
-  );
+  const keys = [
+    "sb_auth_token",
+    "sb_token",
+    "sb-token",
+    "auth_token",
+    "simplebeacon_token",
+    "cascadeAuthToken",
+    "access_token",
+    "token",
+    "authToken",
+  ];
+  for (const key of keys) {
+    const token = localStorage.getItem(key);
+    if (!token) continue;
+    if (!isStoredTokenUsable(token)) continue;
+    return token;
+  }
+  return null;
+}
+
+function isStoredTokenUsable(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2 && parts.length !== 3) return false;
+    const payloadPart = parts.length === 2 ? parts[0] : parts[1];
+    const payload = JSON.parse(
+      atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    if (payload.exp && Date.now() >= payload.exp * 1000) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function getLicenseToken(): string | null {

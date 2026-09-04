@@ -1839,7 +1839,8 @@ export function AnalyzeView() {
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({
               projectPath: scanPath,
-              analysisType: "codebase",
+              analysisType: "complete",
+              maxFileBytes: 5 * 1024 * 1024,
             }),
             signal: controller.signal,
           });

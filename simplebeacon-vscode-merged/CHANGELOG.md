@@ -1,5 +1,12 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.580] - 2026-09-04
+
+### Fixed
+
+- **Hosted dashboard auth bounce** — The React dashboard now keeps a valid session across `/audit` extra tokens and failed `/auth/refresh` calls, restores `#/team-metrics` after sign-in, and ignores stale Cloudflare Pages preview API bases.
+- **Analyze oversize skip** — Dashboard scans request a complete SimpleBeacon run and raise the 256 KB file skip so large source files are analyzed instead of reported only as oversized.
+
 ## [3.0.579] - 2026-09-03
 
 ### Fixed
