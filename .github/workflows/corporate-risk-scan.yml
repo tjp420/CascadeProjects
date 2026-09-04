@@ -1,0 +1,36 @@
+name: Enterprise Corporate Risk Scan
+
+on:
+  push:
+    branches: [ 'main', 'master', 'develop' ]
+  pull_request:
+    branches: [ 'main', 'master' ]
+
+permissions:
+  contents: read
+
+jobs:
+  compliance-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Risk Analyzer Engine
+        id: run_scan
+        run: |
+          python corporate_risk_analyzer.py --path . --fail-severity HIGH --out compliance-report.json
+
+      - name: Upload Compliance Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-compliance-report
+          path: compliance-report.json
+          retention-days: 14
