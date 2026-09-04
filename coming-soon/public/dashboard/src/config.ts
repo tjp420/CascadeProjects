@@ -6,16 +6,74 @@
 export const DEFAULT_API_BASE =
   import.meta.env.VITE_API_BASE || "http://127.0.0.1:58000";
 
+/** Hash view to restore after a sign-in redirect (deep links like #/team-metrics). */
+export const POST_LOGIN_VIEW_KEY = "sb_post_login_view";
+
+/**
+ * Cloudflare Pages preview hostnames are unique per deploy. A stored or injected
+ * API base pointing at a *different* preview must not win over the current origin.
+ */
+export function isForeignPagesPreviewBase(value: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const url = new URL(value, window.location.href);
+    const host = url.hostname || "";
+    const here = window.location.hostname || "";
+    if (!host.endsWith(".simplebeacon.pages.dev")) return false;
+    return host !== here;
+  } catch {
+    return false;
+  }
+}
+
+/** HTTPS simplebeacon.ai cannot fetch http://127.0.0.1 (mixed content / PNA). */
+export function hostedHttpsCannotUseLoopbackApi(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+  );
+}
+
+function normalizeApiBaseCandidate(raw: string): string {
+  const trimmed = String(raw || "").replace(/\/+$/, "");
+  if (/\/api$/i.test(trimmed)) return trimmed.replace(/\/api$/i, "");
+  return trimmed;
+}
+
+function isHttpLoopbackApiBase(value: string): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(
+      value,
+      typeof location !== "undefined" ? location.href : "http://localhost",
+    );
+    return (
+      url.protocol === "http:" &&
+      /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Drop loopback sb_api_base on hosted HTTPS — browsers throw NetworkError on that fetch. */
+function usableApiBase(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = normalizeApiBaseCandidate(raw);
+  if (!trimmed || isForeignPagesPreviewBase(trimmed)) return null;
+  if (hostedHttpsCannotUseLoopbackApi() && isHttpLoopbackApiBase(trimmed)) {
+    return null;
+  }
+  return trimmed;
+}
+
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
-    const explicit = params.get("sb_api_base");
-    if (explicit) {
-      const trimmed = explicit.replace(/\/+$/, "");
-      if (/\/api$/i.test(trimmed)) return trimmed.replace(/\/api$/i, "");
-      return trimmed;
-    }
+    const fromQuery = usableApiBase(params.get("sb_api_base"));
+    if (fromQuery) return fromQuery;
     // Prefer an already-detected local API host (populated by background probe)
     // Window variable kept for compatibility with legacy bundles.
     // Example value: "http://127.0.0.1:58000"
@@ -25,12 +83,22 @@ export function getApiBase(): string {
     // If present, prefer the detected host (do not append /api here).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win: any = window as any;
+    const envBase = win.__SIMPLEBEACON_ENV__?.DASHBOARD_BASE_URL;
     const detected =
-      win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
-    if (detected && typeof detected === "string" && detected.length > 0)
-      return String(detected).replace(/\/+$/, "");
+      win.__SB_API_HOST__ ||
+      win.__SIMPLEBEACON_DETECTED_API_BASE ||
+      (typeof envBase === "string" ? String(envBase).replace(/\/+$/, "") : "");
+    const fromDetected = usableApiBase(
+      detected && typeof detected === "string" ? detected : "",
+    );
+    if (fromDetected) return fromDetected;
     const host = window.location.hostname || "";
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      const port = String(window.location.port || "");
+      const isViteDev = port === "5173" || port === "4173" || port === "61455";
+      if (!isViteDev) {
+        return window.location.origin;
+      }
       // If the probe completed and found no local server, fall back to production API
       // to avoid CORS errors from trying to reach a non-existent local server.
       if (_probeDone && !detected) {
@@ -76,17 +144,39 @@ export function getApiBase(): string {
  */
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem("sb_auth_token") ||
-    localStorage.getItem("sb_token") ||
-    localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token") ||
-    localStorage.getItem("simplebeacon_token") ||
-    localStorage.getItem("cascadeAuthToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken")
-  );
+  const keys = [
+    "sb_auth_token",
+    "sb_token",
+    "sb-token",
+    "auth_token",
+    "simplebeacon_token",
+    "cascadeAuthToken",
+    "access_token",
+    "token",
+    "authToken",
+  ];
+  for (const key of keys) {
+    const token = localStorage.getItem(key);
+    if (!token) continue;
+    if (!isStoredTokenUsable(token)) continue;
+    return token;
+  }
+  return null;
+}
+
+function isStoredTokenUsable(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2 && parts.length !== 3) return false;
+    const payloadPart = parts.length === 2 ? parts[0] : parts[1];
+    const payload = JSON.parse(
+      atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    if (payload.exp && Date.now() >= payload.exp * 1000) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function getLicenseToken(): string | null {
@@ -241,8 +331,46 @@ export function clearAuthAndRedirect(): void {
   window.location.hash = "#/signin";
 }
 
-export function apiUrl(path: string): string {
-  const base = getApiBase() || "";
+/** Same-origin production API for hosted dashboards (simplebeacon.ai / Pages). */
+export function getHostedCloudApiBase(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname || "";
+  if (host === "simplebeacon.ai" || host.endsWith(".simplebeacon.pages.dev")) {
+    return window.location.origin;
+  }
+  return "";
+}
+
+function isLoopbackHttpBase(value: string): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(
+      value,
+      typeof location !== "undefined" ? location.href : "http://localhost",
+    );
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Website/IDE mode sets sb_api_base to the extension data server on loopback.
+ * That server does not implement GitHub clone and stubs /analyze/flexible —
+ * those must stay on the hosted API (same as /dashboard/#/analyze with no bridge).
+ */
+export function shouldUseHostedCloudApiForGithub(): boolean {
+  const cloud = getHostedCloudApiBase();
+  if (!cloud) return false;
+  return isLoopbackHttpBase(getApiBase());
+}
+
+export function apiUrl(
+  path: string,
+  options?: { preferCloud?: boolean },
+): string {
+  const cloud = options?.preferCloud ? getHostedCloudApiBase() : "";
+  const base = cloud || getApiBase() || "";
   const normalized = String(base)
     .replace(/\/+$/, "")
     .replace(/\/api$/i, "");
@@ -250,6 +378,47 @@ export function apiUrl(path: string): string {
   if (!segment) return normalized || "/";
   if (normalized) return `${normalized}/api/${segment}`;
   return `/api/${segment}`;
+}
+
+export function isBlockedLoopbackFetchError(err: unknown): boolean {
+  const name = err instanceof Error ? err.name : "";
+  const msg = err instanceof Error ? err.message : String(err || "");
+  return (
+    name === "TypeError" &&
+    /NetworkError|Failed to fetch|Load failed|network error/i.test(msg)
+  );
+}
+
+/** HTTPS dashboard cannot fetch the extension data server on http://127.0.0.1. */
+export function hostedLoopbackScanErrorMessage(err: unknown): string | null {
+  if (!isBlockedLoopbackFetchError(err)) return null;
+  if (!getHostedCloudApiBase() || !isLoopbackHttpBase(getApiBase())) return null;
+  return (
+    "This HTTPS page cannot reach the local extension (http://127.0.0.1). " +
+    "Use Select Folder for a private in-browser scan, or a GitHub URL to clone via simplebeacon.ai. " +
+    "Public-repo scans also work at /dashboard/#/analyze without website-mode query params."
+  );
+}
+
+export async function fetchApiPath(
+  path: string,
+  init?: RequestInit,
+  options?: { preferCloud?: boolean; fallbackCloudOnNetworkError?: boolean },
+): Promise<Response> {
+  const preferCloud = options?.preferCloud === true;
+  try {
+    return await fetch(apiUrl(path, { preferCloud }), init);
+  } catch (err) {
+    if (
+      options?.fallbackCloudOnNetworkError &&
+      !preferCloud &&
+      getHostedCloudApiBase() &&
+      isLoopbackHttpBase(getApiBase())
+    ) {
+      return await fetch(apiUrl(path, { preferCloud: true }), init);
+    }
+    throw err;
+  }
 }
 
 // Kick off an asynchronous probe to detect a local running API server on common developer ports.

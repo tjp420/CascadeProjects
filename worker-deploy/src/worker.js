@@ -80,20 +80,33 @@ function withCookieBanner(response, pathname) {
  * Also strips integrity/crossorigin attributes from any auto-injected Cloudflare
  * beacon scripts to prevent SRI hash mismatch errors when the CDN returns 204.
  */
-function withCfAnalytics(response, env) {
+function withCfAnalytics(response, env, pathname) {
   const token = String(env.CF_ANALYTICS_TOKEN || "").trim();
-  // Strip integrity/crossorigin from Cloudflare beacon scripts (auto-injected by CF)
+  // Drop auto-injected Cloudflare beacon tags. Stripping only `src` while
+  // leaving `integrity` makes the browser hash empty content and log SRI errors.
   const stripRewriter = new HTMLRewriter().on(
     "script[src*='cloudflareinsights.com/beacon.min.js']",
     {
       element(el) {
-        el.removeAttribute("integrity");
-        el.removeAttribute("crossorigin");
+        try {
+          el.removeAttribute("integrity");
+        } catch (_e) {
+          /* ignore */
+        }
+        try {
+          el.removeAttribute("crossorigin");
+        } catch (_e) {
+          /* ignore */
+        }
+        el.remove();
       },
     },
   );
   let r = stripRewriter.transform(response);
-  if (!token) return r;
+  const isSpa =
+    pathname &&
+    (pathname.startsWith("/dashboard") || pathname.startsWith("/app"));
+  if (!token || isSpa) return r;
   const beacon = `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;:&quot;${token.replace(/[^a-zA-Z0-9]/g, "")}&quot;}"></script>`;
   const rewriter = new HTMLRewriter().on("body", {
     element(element) {
@@ -112,7 +125,7 @@ function withCfAnalytics(response, env) {
 function withHtmlInjections(response, env, pathname) {
   let r = withGaInjection(response, env);
   r = withCookieBanner(r, pathname);
-  r = withCfAnalytics(r, env);
+  r = withCfAnalytics(r, env, pathname);
   return r;
 }
 
@@ -662,11 +675,11 @@ export default {
       const isDashboard = url.pathname.startsWith("/dashboard/");
       const entryCandidates = isDashboard
         ? [
+            "/dashboard/index.html",
             "/dashboard/__entry",
             "/dashboard/entry-20260806.html",
-            "/dashboard/index.html",
           ]
-        : ["/app/__entry", "/app/entry-20260806.html", "/app/index.html"];
+        : ["/app/index.html", "/app/__entry", "/app/entry-20260806.html"];
       for (const entryPath of entryCandidates) {
         const assetUrl = new URL(entryPath, url.origin);
         assetUrl.searchParams.set("_cb", cacheBust);
@@ -680,7 +693,7 @@ export default {
           headers.set("CDN-Cache-Control", "no-store");
           headers.set("Edge-Cache-TTL", "0");
           headers.set("X-SB-Worker-Entry", entryPath);
-          headers.set("X-SB-Worker-Deploy", "2026-08-31-pdfix1");
+          headers.set("X-SB-Worker-Deploy", "2026-09-04-signin-fix");
           return withSecurityHeaders(
             withHtmlInjections(
               new Response(candidate.body, {
@@ -1106,9 +1119,15 @@ export default {
       const targetUrl =
         backendUrl.replace(/\/+$/, "") + url.pathname + url.search;
       const isGetOrHead = request.method === "GET" || request.method === "HEAD";
-      const cacheKey = isGetOrHead
-        ? "api:" + url.pathname + ":" + url.search
-        : null;
+      // Live job status must never be KV-cached — polling would freeze at "scanning".
+      const isLiveProgressGet =
+        isGetOrHead &&
+        (url.pathname === "/api/analyze/progress" ||
+          url.pathname.endsWith("/analyze/progress"));
+      const cacheKey =
+        isGetOrHead && !isLiveProgressGet
+          ? "api:" + url.pathname + ":" + url.search
+          : null;
 
       // --- Step 1: Extract body text for non-GET methods BEFORE any await ---
       // This reads the request body stream once, up front, so the retry loop
@@ -1370,7 +1389,7 @@ export default {
         ) &&
         !url.pathname.startsWith("/dashboard/assets/"))
     ) {
-      const assetUrl = new URL("/dashboard/entry-20260806.html", url.origin);
+      const assetUrl = new URL("/dashboard/index.html", url.origin);
       assetUrl.searchParams.set("_cb", Date.now().toString());
       const resp = await env.ASSETS.fetch(
         new Request(assetUrl.toString(), { method: "GET" }),

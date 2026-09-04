@@ -757,6 +757,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           context: scanContext,
           concurrency: Math.max(24, Number(process.env.CODEBASE_DASHBOARD_CONCURRENCY) || 48),
         };
+        const explicitMaxBytes = Number(body.maxFileBytes);
+        if (Number.isFinite(explicitMaxBytes) && explicitMaxBytes > 0) {
+          analyzeOpts.maxFileBytes = explicitMaxBytes;
+        }
         if (maxDeepAnalyze != null) {
           analyzeOpts.maxDeepAnalyze = maxDeepAnalyze;
         }
@@ -917,12 +921,36 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         logger.info(
           `[Flexible Analyze] Running complete analysis for ${projectPath}`,
         );
+        // Return 202 immediately. Render and Cloudflare both cut hanging
+        // POSTs at ~30s, which is why hosted dashboard scans were 502.
+        const asyncScanId = crypto.randomUUID();
+        const fileCount = await countFiles(projectPath);
+        scanJobs.set(asyncScanId, {
+          status: "scanning",
+          current: 0,
+          total: fileCount,
+          percent: 0,
+          createdAt: Date.now(),
+          filename: safeBasename(projectPath),
+        });
+
+        const userTier = req.user?.tier || req.body?.tier || "starter";
+
+        (async () => {
+          const startedAt = Date.now();
+          const updateJob = (patch) => {
+            const job = scanJobs.get(asyncScanId);
+            if (!job || job.status !== "scanning") return;
+            scanJobs.set(asyncScanId, { ...job, ...patch });
+          };
+          try {
         const results = {};
         const enginesRun = [];
 
         // Resolve tier limits for the requesting user
-        const userTier = req.user?.tier || req.body?.tier || "starter";
         const tierLimits = getLimits(userTier);
+
+        updateJob({ percent: 8, filename: "simplebeacon" });
 
         // Run simplebeacon scan first — its programmatic fallback already calls analyzeCodebase
         try {
@@ -996,6 +1024,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           }
         }
 
+        updateJob({
+          percent: 40,
+          current: Math.round(fileCount * 0.4),
+          filename: "engines",
+        });
+
         // Run file-reduction, removable-files, npm-audit, and data-cleanup in parallel
         const [
           fileReductionResult,
@@ -1067,6 +1101,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           );
         }
 
+        updateJob({
+          percent: 85,
+          current: Math.round(fileCount * 0.85),
+          filename: "compliance",
+        });
+
         // Run compliance checklist after cleanup
         try {
           const dataCleanupForCompliance =
@@ -1120,28 +1160,69 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           tierLimits: { showQualityScore: tierLimits.showQualityScore },
         };
 
-        return sendAnalyzeJson(
-          res,
-          {
-            success: true,
-            analysisType: "complete",
-            aiProvider,
+        const completePayload = {
+          success: true,
+          analysisType: "complete",
+          aiProvider,
+          enginesRun,
+          results,
+          summary,
+          completeScan: {
+            type: "simplebeacon-complete-scan",
+            version: "1.3.0",
+            generatedAt: new Date().toISOString(),
+            projectPath,
             enginesRun,
-            results,
             summary,
-            completeScan: {
-              type: "simplebeacon-complete-scan",
-              version: "1.3.0",
-              generatedAt: new Date().toISOString(),
-              projectPath,
-              enginesRun,
-              summary,
-              results,
-            },
+            results,
           },
-          200,
-          sendAnalyzeJsonOpts,
+        };
+        let reportJson = completePayload;
+        try {
+          reportJson = JSON.parse(JSON.stringify(completePayload));
+          delete reportJson.projectPath;
+        } catch {
+          /* keep original payload */
+        }
+        if (
+          publicGateEnabled &&
+          typeof applyPublicGateToAnalyzeResponse === "function"
+        ) {
+          reportJson = applyPublicGateToAnalyzeResponse(reportJson);
+        }
+        scanJobs.set(asyncScanId, {
+          ...scanJobs.get(asyncScanId),
+          status: "complete",
+          percent: 100,
+          current: fileCount,
+          reportJson,
+          completedAt: Date.now(),
+        });
+        logger.info(
+          `[Async Complete] ${asyncScanId} completed in ${Date.now() - startedAt}ms`,
         );
+          } catch (err) {
+            logger.error(
+              "[Async Complete] fatal error:",
+              safeErrorMessage(err),
+            );
+            scanJobs.set(asyncScanId, {
+              ...scanJobs.get(asyncScanId),
+              status: "error",
+              error: safeErrorMessage(err) || "Complete scan failed",
+            });
+          }
+        })();
+
+        return res.status(202).json({
+          success: true,
+          asyncScan: true,
+          scanId: asyncScanId,
+          status: "scanning",
+          total: fileCount,
+          message:
+            "Complete scan started. Poll /api/analyze/progress?scanId=... for results.",
+        });
       }
 
       if (analysisType === "file-reduction") {
