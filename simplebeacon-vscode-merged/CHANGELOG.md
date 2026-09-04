@@ -1,5 +1,21 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.580] - 2026-09-04
+
+### Fixed
+
+- **Hosted dashboard auth bounce** — The React dashboard now keeps a valid session across `/audit` extra tokens and failed `/auth/refresh` calls, restores `#/team-metrics` after sign-in, and ignores stale Cloudflare Pages preview API bases.
+- **Analyze oversize skip** — Dashboard scans request a complete SimpleBeacon run and raise the 256 KB file skip so large source files are analyzed instead of reported only as oversized.
+
+## [3.0.579] - 2026-09-03
+
+### Fixed
+
+- **Sidebar sign-in did not stick** — After 3.0.578 started serving the React dashboard, login succeeded in the iframe but never reached the IDE sidebar. The data server now injects an auth bridge that listens for `sb:login` / `sb_auth_token` and posts `setAuthState` to the parent webview and `/api/notify`.
+- **Real accounts rejected in the sidebar** — Local `/api/auth/login` only accepted demo users (`admin@simplebeacon.ai` / `dev@simplebeacon.ai`). Failed local lookups now proxy to `https://simplebeacon.ai/api/auth/login` so production credentials work in the extension.
+- **Login API hit the wrong port** — The React dashboard defaulted to `127.0.0.1:58000` instead of the data server that served the page. The server now sets `window.__SB_API_HOST__` and iframe URLs always include `sb_api_base`.
+- **OAuth callback broke in Cursor** — Provider sign-in hardcoded `vscode://` instead of `vscode.env.uriScheme`, so Cursor never received the auth callback.
+
 ## [3.0.578] - 2026-09-03
 
 ### Fixed

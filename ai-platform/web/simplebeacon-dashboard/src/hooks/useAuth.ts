@@ -26,8 +26,17 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+function readStoredAuth(): boolean {
+  try {
+    const token = getAuthToken();
+    return !!(token && !isTokenExpired());
+  } catch {
+    return false;
+  }
+}
+
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
   const [isFreeTier, setIsFreeTier] = useState(true);
   const [user, setUser] = useState<{
     email?: string;

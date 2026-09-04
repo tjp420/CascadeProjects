@@ -2333,7 +2333,7 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           const { createSession } = await import('./auth/pkce');
           const port = getDataServerPort();
-          const session = createSession(selected, `vscode://simplebeacon.simplebeacon-vscode/auth-callback`);
+          const session = createSession(selected, `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/auth-callback`);
           const authorizeUrl = `http://127.0.0.1:${port}/api/auth/oauth/authorize?provider=${selected}&redirect_uri=${encodeURIComponent(session.redirectUri || '')}&code_challenge=${session.codeChallenge}&state=${session.state}`;
           await vscode.env.openExternal(vscode.Uri.parse(authorizeUrl));
         } catch (e) {

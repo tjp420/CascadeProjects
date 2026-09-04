@@ -201,6 +201,13 @@ export default function App() {
     if (PUBLIC_VIEWS.has(route.view)) return;
     // All non-public views require authentication
     if (!isAuthenticated) {
+      try {
+        if (route.view && route.view !== "signin" && route.view !== "register") {
+          sessionStorage.setItem("sb_post_login_view", route.view);
+        }
+      } catch {
+        /* ignore */
+      }
       navigate("signin");
       setRoute(getCurrentRoute());
       return;
@@ -220,6 +227,23 @@ export default function App() {
     navigate("signin");
     setRoute(getCurrentRoute());
   }, [route.view, isAuthenticated, user]);
+
+  useEffect(() => {
+    if (route.view !== "signin" && route.view !== "register") return;
+    if (!isAuthenticated) return;
+    let nextView = "dashboard";
+    try {
+      const saved = sessionStorage.getItem("sb_post_login_view");
+      if (saved && saved !== "signin" && saved !== "register") {
+        sessionStorage.removeItem("sb_post_login_view");
+        nextView = saved;
+      }
+    } catch {
+      /* ignore */
+    }
+    navigate(nextView);
+    setRoute(getCurrentRoute());
+  }, [route.view, isAuthenticated]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);
