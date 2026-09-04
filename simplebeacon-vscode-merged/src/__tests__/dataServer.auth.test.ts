@@ -155,4 +155,26 @@ describe('/api/auth/me contract', () => {
     expect(Array.isArray(json.user.features)).toBe(true);
     expect(json.user.trustLevel).toBe('gold');
   });
+
+  it('proxies unknown credentials to the hosted login API', async () => {
+    const origFetch = global.fetch;
+    const cloudToken = 'eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InJlYWxAZXhhbXBsZS5jb20ifQ.sig';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, token: cloudToken, user: { email: 'real@example.com', tier: 'developer' } }),
+    }) as unknown as typeof fetch;
+    try {
+      const login = await request('POST', '/api/auth/login', {
+        email: 'real@example.com',
+        password: 'correct-horse',
+      });
+      expect(login.status).toBe(200);
+      const json = JSON.parse(login.body);
+      expect(json.token).toBe(cloudToken);
+      expect(json.user.email).toBe('real@example.com');
+      expect(global.fetch).toHaveBeenCalled();
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
 });

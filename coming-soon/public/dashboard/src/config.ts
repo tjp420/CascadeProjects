@@ -25,12 +25,20 @@ export function getApiBase(): string {
     // If present, prefer the detected host (do not append /api here).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win: any = window as any;
+    const envBase = win.__SIMPLEBEACON_ENV__?.DASHBOARD_BASE_URL;
     const detected =
-      win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
+      win.__SB_API_HOST__ ||
+      win.__SIMPLEBEACON_DETECTED_API_BASE ||
+      (typeof envBase === "string" ? String(envBase).replace(/\/+$/, "") : "");
     if (detected && typeof detected === "string" && detected.length > 0)
       return String(detected).replace(/\/+$/, "");
     const host = window.location.hostname || "";
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      const port = String(window.location.port || "");
+      const isViteDev = port === "5173" || port === "4173" || port === "61455";
+      if (!isViteDev) {
+        return window.location.origin;
+      }
       // If the probe completed and found no local server, fall back to production API
       // to avoid CORS errors from trying to reach a non-existent local server.
       if (_probeDone && !detected) {

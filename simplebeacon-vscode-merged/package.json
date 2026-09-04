@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/tjp420/CascadeProjects.git"
   },
-  "version": "3.0.578",
+  "version": "3.0.579",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -626,7 +626,7 @@
   "scripts": {
     "build": "npm run compile",
     "vscode:prepublish": "npm run compile",
-    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}});\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}});\"",
+    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('../packages/simplebeacon-cli/src/rules/'+f+'.json','src/rules/'+f+'.json');}catch(e){}});\" && npx tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); ['llm-slop-catalog','security-patterns','owasp-llm-patterns','compliance-patterns'].forEach(f=>{try{fs.copyFileSync('src/rules/'+f+'.json','out/rules/'+f+'.json');}catch(e){}});\"",
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -643,6 +643,7 @@
     "arch": "depcruise src --config .dependency-cruiser.js",
     "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",
     "arch:graph": "depcruise src --config .dependency-cruiser.js --output-type dot | dot -T svg > architecture.svg",
+    "arch:large": "node --max-old-space-size=8192 -e \"require('child_process').execSync('npx depcruise src --config .dependency-cruiser.js', {stdio:'inherit'})\"",
     "quality:check": "npm run lint && npm run compile && npm run arch:validate && npm run test"
   },
   "devDependencies": {

@@ -27,6 +27,7 @@ import {
   isWebsiteDashboardPanelOpen,
   buildDashboardUrl,
   appendDashboardEmbedParams,
+  rewriteIdePreviewUrl,
   getDashboardUrlBarStyles,
   getDashboardUrlBarHtml,
 } from './sidebarMessenger';
@@ -622,6 +623,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       `_${Date.now()}`,
     ];
     let authUrl = buildDashboardUrl(dashboardBase, route, extraParts.join('&'));
+    authUrl = rewriteIdePreviewUrl(authUrl, localBase, websiteMode);
     authUrl = appendDashboardEmbedParams(authUrl, notifyBase, websiteMode);
     const panelTitle = route === '/register' ? 'Create Account' : 'Sign In';
     if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(authUrl)) {
@@ -6137,7 +6139,10 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
     const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
     const dashboardBaseUrl = websiteMode ? 'https://simplebeacon.pages.dev' : localDashboardBase;
-    const initialDashboardSrc = websiteMode ? `${dashboardBaseUrl}/dashboard` : `${localDashboardBase}/dashboard`;
+    const notifyBase = `${localDashboardBase}/api`;
+    let initialDashboardSrc = websiteMode ? `${dashboardBaseUrl}/dashboard` : `${localDashboardBase}/dashboard`;
+    initialDashboardSrc = rewriteIdePreviewUrl(initialDashboardSrc, localDashboardBase, websiteMode);
+    initialDashboardSrc = appendDashboardEmbedParams(initialDashboardSrc, notifyBase, websiteMode);
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
@@ -6380,9 +6385,15 @@ body.tabs-open #browserTabBar{display:flex !important;}
       }
       const host = parsed.hostname.toLowerCase();
       const isRemote = host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai') || host.endsWith('.onrender.com') || host.endsWith('.netlify.app') || host.endsWith('.pages.dev');
-      if (isRemote && !parsed.searchParams.has('sb_notify_base')) {
-        const notifyBase = (typeof window !== 'undefined' && window.__SB_DATA_SERVER_URL__ ? window.__SB_DATA_SERVER_URL__ : DASHBOARD_URL).replace(/\/$/, '') + '/api';
+      const notifyBase = (typeof window !== 'undefined' && window.__SB_DATA_SERVER_URL__ ? window.__SB_DATA_SERVER_URL__ : DASHBOARD_URL).replace(/\/$/, '') + '/api';
+      if (!parsed.searchParams.has('sb_notify_base')) {
         parsed.searchParams.set('sb_notify_base', notifyBase);
+      }
+      if (!parsed.searchParams.has('sb_api_base')) {
+        parsed.searchParams.set('sb_api_base', notifyBase);
+      }
+      if (isRemote && WEBSITE_MODE && !parsed.searchParams.has('sb_website_mode')) {
+        parsed.searchParams.set('sb_website_mode', '1');
       }
       return parsed.toString();
     } catch (e) {

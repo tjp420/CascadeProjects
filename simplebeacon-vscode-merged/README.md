@@ -1,6 +1,6 @@
 # SimpleBeacon AI Slop Cop
 
-[![Version](https://img.shields.io/badge/version-3.0.575-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
+[![Version](https://img.shields.io/badge/version-3.0.579-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.84.0+-green.svg)](https://code.visualstudio.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Security: Zero Upload](https://img.shields.io/badge/security-zero%20upload-brightgreen.svg)](#-zero-upload-security)

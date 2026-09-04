@@ -240,7 +240,7 @@ let _tokenPepper: string | null = null;
 // --- Module-level constants for repeated inline scripts ---
 const SESSION_REGISTRATION_SCRIPT = `<script>
 (function() {
-  const TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];
+  const TOKEN_KEYS = ['sb_auth_token','sb_token','sb-token','cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];
   function clearSessionFromServer() {
     try {
       TOKEN_KEYS.forEach(function(k) { localStorage.removeItem(k); });
@@ -255,7 +255,7 @@ const SESSION_REGISTRATION_SCRIPT = `<script>
   }
   function register() {
     try {
-      const token = localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
+      const token = localStorage.getItem('sb_auth_token') || localStorage.getItem('sb_token') || localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
       if (token && token.length > 10) {
         fetch('/api/auth/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }), credentials: 'include' })
           .then(function(r) { return r.json().catch(function() { return {}; }); })
@@ -336,9 +336,54 @@ const HIDE_PRICING_SCRIPT = `<script>
 })();
 </script>`;
 
+/** Injected into every dashboard HTML response so React SignInView (sb_auth_token + sb:login) reaches the IDE sidebar. */
+const AUTH_BRIDGE_SCRIPT = `<script>
+(function() {
+  var TOKEN_KEYS = ['sb_auth_token','sb_token','sb-token','cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+  function getToken() {
+    for (var i = 0; i < TOKEN_KEYS.length; i++) {
+      try {
+        var v = localStorage.getItem(TOKEN_KEYS[i]);
+        if (v && v.length > 10 && v.indexOf('@') === -1) return v;
+      } catch (e) {}
+    }
+    return '';
+  }
+  function readUser() {
+    try {
+      var raw = localStorage.getItem('sb_user') || localStorage.getItem('sb-user');
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function postAuthState(signedIn, token) {
+    var user = readUser();
+    var tier = user.tier || user.plan || '';
+    var role = String(user.role || '').toLowerCase();
+    var isAdmin = role === 'admin' || role === 'owner' || role === 'superadmin' || String(tier).toLowerCase() === 'admin';
+    var payload = { command: 'setAuthState', signedIn: !!signedIn, token: token || '', tier: tier, isAdmin: isAdmin, userEmail: user.email || '', userName: user.name || '' };
+    try {
+      if (window.parent && window.parent !== window) window.parent.postMessage(payload, '*');
+    } catch (e) {}
+    try {
+      fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'setAuthState', payload: payload }) }).catch(function() {});
+    } catch (e) {}
+  }
+  function broadcast() {
+    var token = getToken();
+    postAuthState(!!token, token);
+  }
+  window.addEventListener('sb:login', broadcast);
+  window.addEventListener('sb:license', broadcast);
+  window.addEventListener('sb:logout', function() { postAuthState(false, ''); });
+  window.addEventListener('storage', broadcast);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', broadcast);
+  else setTimeout(broadcast, 0);
+})();
+<\/script>`;
+
 const SIGNIN_MODAL_SCRIPT = `<script>
 (function() {
-  const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+  const TOKEN_KEYS = ['sb_auth_token','sb_token','sb-token','cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
   function hasAnyToken() {
     return TOKEN_KEYS.some(k => { const v = localStorage.getItem(k); return v && v.length > 10; });
   }
@@ -1140,6 +1185,31 @@ async function validateLocalUser(emailOrUsername: string, password: string): Pro
   if (!user) return null;
   const valid = _verifyPassword(password, user.passwordHash);
   return valid ? user : null;
+}
+
+const CLOUD_LOGIN_URL = 'https://simplebeacon.ai/api/auth/login';
+
+/** Fall back to the hosted API so real SimpleBeacon accounts can sign in from the IDE sidebar. */
+async function loginAgainstCloud(
+  email: string,
+  password: string
+): Promise<{ token: string; user?: Record<string, unknown> } | null> {
+  try {
+    const resp = await fetch(CLOUD_LOGIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email, password }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { token?: string; success?: boolean; user?: Record<string, unknown> };
+    if (data && typeof data.token === 'string' && data.token.length > 10) {
+      return { token: data.token, user: data.user };
+    }
+  } catch {
+    /* cloud unreachable — stay on local auth */
+  }
+  return null;
 }
 
 function issueLocalJwt(user: LocalUser): string {
@@ -3947,8 +4017,23 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 })
               );
             } else {
-              res.writeHead(401, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
+              const cloud = await loginAgainstCloud(emailOrUsername, password);
+              if (cloud) {
+                lastBrowserSessionToken = cloud.token;
+                lastBrowserSessionTime = Date.now();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    success: true,
+                    token: cloud.token,
+                    user: cloud.user || { email: emailOrUsername },
+                    authMethod: 'email',
+                  })
+                );
+              } else {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
+              }
             }
             return;
           }
@@ -5595,8 +5680,12 @@ ${
           publicBase +
           '/api",DATA_SERVER_PORT:' +
           dataPort +
-          '};<\/script>';
-        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
+          '};window.__SB_API_HOST__="' +
+          publicBase +
+          '";window.__SIMPLEBEACON_DETECTED_API_BASE="' +
+          publicBase +
+          '";<\/script>';
+        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + AUTH_BRIDGE_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           html = html.slice(0, bodyClose) + THEME_SCRIPT + html.slice(bodyClose);
@@ -5725,11 +5814,12 @@ ${
               DOWNLOAD_NOTIFY_SCRIPT +
               THEME_SCRIPT +
               SESSION_REGISTRATION_SCRIPT +
+              AUTH_BRIDGE_SCRIPT +
               html.slice(bodyClose),
             'utf8'
           );
         } else {
-          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT, 'utf8');
+          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + AUTH_BRIDGE_SCRIPT, 'utf8');
         }
       }
       res.end(content);
