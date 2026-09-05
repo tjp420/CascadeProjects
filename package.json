@@ -106,7 +106,7 @@
   },
 
   "optionalDependencies": {
-    "@rolldown/binding-linux-x64-gnu": "^1.1.5"
+    "@rolldown/binding-linux-x64-gnu": "^1.2.7"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
