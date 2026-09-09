@@ -8,11 +8,13 @@
       content="SimpleBeacon is an AI safety scanning platform that detects AI slop, credential leaks, and compliance risks in your codebase."
     />
     <script>
-      // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
+      // Neutralize Cloudflare Web Analytics beacons. Zone injection often ships
+      // an integrity hash; blockers return an empty body (SHA-512 of "").
+      // Strip integrity BEFORE touching src, and never removeChild while SRI is set.
       (function () {
         function isBeacon(el) {
           if (!el || el.tagName !== "SCRIPT") return false;
-          var src = el.src || "";
+          var src = el.src || el.getAttribute("src") || "";
           var cf = el.getAttribute("data-cf-beacon");
           return (
             src.indexOf("static.cloudflareinsights.com/beacon.min.js") !== -1 ||
@@ -22,16 +24,16 @@
         function neutralize(el) {
           if (!isBeacon(el)) return;
           try {
-            el.removeAttribute("src");
+            el.removeAttribute("integrity");
+          } catch (_) {}
+          try {
+            el.removeAttribute("crossorigin");
           } catch (_) {}
           try {
             el.type = "text/plain";
           } catch (_) {}
           try {
-            el.removeAttribute("integrity");
-          } catch (_) {}
-          try {
-            el.removeAttribute("crossorigin");
+            el.removeAttribute("src");
           } catch (_) {}
         }
         var origCreate = document.createElement.bind(document);
@@ -40,6 +42,17 @@
           if (typeof tag === "string" && tag.toLowerCase() === "script") {
             var origSetAttr = el.setAttribute.bind(el);
             el.setAttribute = function (name, value) {
+              var beaconSrc =
+                (typeof value === "string" &&
+                  value.indexOf(
+                    "static.cloudflareinsights.com/beacon.min.js",
+                  ) !== -1) ||
+                (typeof el.src === "string" &&
+                  el.src.indexOf(
+                    "static.cloudflareinsights.com/beacon.min.js",
+                  ) !== -1);
+              if (beaconSrc && name === "integrity") return;
+              if (beaconSrc && name === "crossorigin") return;
               if (
                 name === "src" &&
                 typeof value === "string" &&
@@ -53,15 +66,6 @@
                   el.removeAttribute("crossorigin");
                 } catch (_) {}
               }
-              if (
-                (name === "integrity" || name === "crossorigin") &&
-                typeof el.src === "string" &&
-                el.src.indexOf(
-                  "static.cloudflareinsights.com/beacon.min.js",
-                ) !== -1
-              ) {
-                return;
-              }
               return origSetAttr(name, value);
             };
           }
@@ -70,6 +74,9 @@
         if (window.MutationObserver) {
           var mo = new MutationObserver(function (records) {
             records.forEach(function (record) {
+              if (record.type === "attributes" && record.target) {
+                neutralize(record.target);
+              }
               Array.prototype.forEach.call(
                 record.addedNodes || [],
                 function (node) {
@@ -89,19 +96,18 @@
           mo.observe(document.documentElement, {
             childList: true,
             subtree: true,
+            attributes: true,
+            attributeFilter: ["src", "integrity", "crossorigin"],
           });
-          // Stop observing after 5s — edge injection happens during initial load
-          setTimeout(function () {
-            mo.disconnect();
-          }, 5000);
         }
-        // Sweep existing scripts on DOMContentLoaded for any injected before observer
-        document.addEventListener("DOMContentLoaded", function () {
+        function sweep() {
           Array.prototype.forEach.call(
             document.querySelectorAll("script"),
             neutralize,
           );
-        });
+        }
+        sweep();
+        document.addEventListener("DOMContentLoaded", sweep);
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -481,10 +487,7 @@
         } catch (_) {}
       })();
     </script>
-    <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode",pricing:{plans:[]}};</script>
-  <script src="/site-config.js"></script>
-  <script src="/js-es2018/referral-capture.js" defer></script>
-</head>
+  </head>
   <body>
     <noscript
       ><div style="padding: 40px; text-align: center">
@@ -709,7 +712,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="/dashboard/assets/main.js?v=1788256381977"></script>
+    <script type="module" src="./assets/main.js"></script>
     <script>
       (function () {
         try {

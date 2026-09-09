@@ -37,6 +37,9 @@ import {
   authHeaders,
   isTokenExpired,
   clearAuthAndRedirect,
+  shouldUseHostedCloudApiForGithub,
+  fetchApiPath,
+  hostedLoopbackScanErrorMessage,
 } from "@/config";
 import { setLargeItem, removeLargeItem } from "@/utils/dbStorage";
 import {
@@ -264,6 +267,121 @@ interface ScanResult {
     resultsViewScope: string;
     codeFilesAnalyzed: number;
   };
+}
+
+function firstFiniteCount(...values: unknown[]): number | null {
+  for (const value of values) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return null;
+}
+
+function unwrapFlexibleAnalyzePayload(data: any): any {
+  if (!data || typeof data !== "object") return {};
+  if (data.reportJson && typeof data.reportJson === "object") {
+    return unwrapFlexibleAnalyzePayload(data.reportJson);
+  }
+  return data;
+}
+
+/** Complete scans return { results, completeScan } with no top-level `report`. */
+function extractFlexibleScanPresentation(
+  raw: any,
+  fallbackPath: string,
+): { result: ScanResult; report: any } {
+  const data = unwrapFlexibleAnalyzePayload(raw);
+  const complete =
+    data.completeScan && typeof data.completeScan === "object"
+      ? data.completeScan
+      : data.analysisType === "complete"
+        ? data
+        : null;
+  const results = complete?.results || data.results || {};
+  const simplebeacon = results.simplebeacon || data.simplebeacon;
+  const codebase = results.codebase || data.codebase || data.report;
+  const report = simplebeacon || codebase || data.report || complete || data;
+  const summary = report?.summary || {};
+  const completeSummary = complete?.summary || data.summary || {};
+  const inventory = report?.repositoryInventory || {};
+  const findingsLen = Array.isArray(report?.rawIssues)
+    ? report.rawIssues.length
+    : Array.isArray(report?.findings)
+      ? report.findings.length
+      : Array.isArray(report?.detectedIssues)
+        ? report.detectedIssues.length
+        : 0;
+  const totalFiles =
+    firstFiniteCount(
+      summary.repositoryFilesTotal,
+      report?.repositoryFilesTotal,
+      inventory.totalFiles,
+      report?.totalFiles,
+      summary.totalFiles,
+      data.repositoryFilesTotal,
+      summary.codeFilesDiscovered,
+      summary.codeFilesAnalyzed,
+      report?.filesAnalyzed,
+      report?.ruleScopedFilesAnalyzed,
+    ) ?? 0;
+  const issueCount =
+    firstFiniteCount(
+      summary.findingsTotal,
+      report?.issueCount,
+      completeSummary.simplebeaconIssues,
+      completeSummary.codebaseFindings,
+      findingsLen,
+      data.issueCount,
+    ) ?? 0;
+  const codeFilesAnalyzed =
+    firstFiniteCount(
+      summary.codeFilesAnalyzed,
+      report?.ruleScopedFilesAnalyzed,
+      report?.filesAnalyzed,
+      report?.scanScope?.codeFilesAnalyzed,
+      data.scanScope?.codeFilesAnalyzed,
+    ) ?? 0;
+  const result: ScanResult = {
+    totalFiles,
+    issueCount,
+    severityCounts: summary.severityCounts ||
+      report?.severityCounts ||
+      data.severityCounts || {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        info: 0,
+      },
+    gate: report?.gate ||
+      data.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+    qualityScore:
+      summary.healthScore ??
+      report?.qualityScore ??
+      completeSummary.codebaseHealthScore ??
+      data.qualityScore ??
+      null,
+    projectPath:
+      report?.projectRoot ||
+      report?.projectPath ||
+      complete?.projectPath ||
+      data.projectPath ||
+      fallbackPath,
+    scanScope: {
+      profile:
+        report?.scanScope?.scanProfile ||
+        report?.scanScope?.profile ||
+        data.scanScope?.profile ||
+        "standard",
+      resultsViewScope:
+        report?.scanScope?.scanContext ||
+        report?.scanScope?.resultsViewScope ||
+        data.scanScope?.resultsViewScope ||
+        (complete ? "complete-scan" : "platform-only"),
+      codeFilesAnalyzed,
+    },
+  };
+  return { result, report: complete || report };
 }
 
 function extractIssueListForSidebar(report: any): any[] {
@@ -1161,9 +1279,25 @@ export function AnalyzeView() {
         toast.error(
           "Please enter a project folder name (e.g. CascadeProjects) or use the Browse Folder button.",
         );
+        scanInFlightRef.current = false;
         return;
       }
     }
+
+    if (
+      hosted &&
+      mode === "server" &&
+      !isGithubUrl(scanInput) &&
+      !/^https?:\/\//i.test(scanInput)
+    ) {
+      toast.error(
+        "Server Path on simplebeacon.ai scans the cloud host, not your computer. Use Local Path + Browse Folder, or GitHub URL.",
+      );
+      setShowAgentModal(true);
+      scanInFlightRef.current = false;
+      return;
+    }
+
     setScanState("scanning");
     setProgress(0);
     setRequiresManualTrigger(false);
@@ -1308,11 +1442,8 @@ export function AnalyzeView() {
       // On a hosted dashboard, the remote server cannot access the user's local filesystem.
       // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
       // trigger the browser-local scan via File System Access API.
-      // Exception: the server's own defaultProjectPath should be scanned remotely, not locally.
       const isUrl = /^https?:\/\//i.test(scanPath);
-      const isServerDefaultPath =
-        !!serverDefaultPath && scanPath === serverDefaultPath;
-      if (!isUrl && !isGithubUrl(scanPath) && hosted && !isServerDefaultPath) {
+      if (!isUrl && !isGithubUrl(scanPath) && hosted) {
         const hasFsaEarly =
           typeof (window as any).showDirectoryPicker === "function";
         // Relative names like "Games" cannot be resolved on hosted without bridge or FSA.
@@ -1668,7 +1799,8 @@ export function AnalyzeView() {
       }
 
       // Detect Windows path when no local server — use server's defaultProjectPath
-      if (isWindowsPath(scanPath) && !apiBase) {
+      // Never do this on the hosted dashboard: Render's cwd is not the user's repo.
+      if (isWindowsPath(scanPath) && !apiBase && !hosted) {
         appendLog(
           `[SimpleBeacon] Windows path "${scanPath}" detected but no local server running.`,
         );
@@ -1794,15 +1926,29 @@ export function AnalyzeView() {
       }
 
       // GitHub URL: clone first, then scan the local clone path
+      const githubCloudApi =
+        isGithubUrl(scanPath) && shouldUseHostedCloudApiForGithub();
       if (isGithubUrl(scanPath)) {
         setProgressLabel("Cloning GitHub repository...");
         setProgress(20);
         appendLog(`[SimpleBeacon] Cloning ${scanPath}...`);
-        const cloneResp = await fetch(apiUrl("/analyze/github-clone"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({ repoUrl: scanPath }),
-        });
+        if (githubCloudApi) {
+          appendLog(
+            "[SimpleBeacon] Using hosted API for GitHub clone (extension bridge cannot clone remotes).",
+          );
+        }
+        const cloneResp = await fetchApiPath(
+          "/analyze/github-clone",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify({ repoUrl: scanPath }),
+          },
+          {
+            preferCloud: githubCloudApi,
+            fallbackCloudOnNetworkError: true,
+          },
+        );
         if (!cloneResp.ok) {
           const cloneErr = await cloneResp.json().catch(() => ({}));
           throw new Error(
@@ -1823,9 +1969,11 @@ export function AnalyzeView() {
       setProgress(50);
 
       if (apiBase || hosted) {
-        const scanMode = apiBase
-          ? "local server"
-          : "remote backend (Render proxy)";
+        const scanMode = githubCloudApi
+          ? "hosted API (GitHub)"
+          : apiBase
+            ? "local server"
+            : "remote backend (Render proxy)";
         appendLog(`[SimpleBeacon] Requesting server scan via ${scanMode}...`);
         setProgressLabel(`Scanning via ${scanMode}...`);
         setProgress(60);
@@ -1834,15 +1982,23 @@ export function AnalyzeView() {
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         let resp: Response;
         try {
-          resp = await fetch(apiUrl("/analyze/flexible"), {
+          resp = await fetchApiPath(
+            "/analyze/flexible",
+            {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({
               projectPath: scanPath,
-              analysisType: "codebase",
+              analysisType: "complete",
+              maxFileBytes: 5 * 1024 * 1024,
             }),
             signal: controller.signal,
-          });
+          },
+            {
+              preferCloud: githubCloudApi,
+              fallbackCloudOnNetworkError: true,
+            },
+          );
         } catch (fetchErr: any) {
           clearTimeout(timeoutId);
           if (fetchErr?.name === "AbortError") {
@@ -1866,7 +2022,21 @@ export function AnalyzeView() {
             toast.error("Your session has expired. Please sign in again.");
             return;
           }
-          throw new Error(`Server returned ${resp.status}`);
+          let detail = "";
+          try {
+            detail = (await resp.text()).trim().slice(0, 300);
+          } catch {
+            /* ignore */
+          }
+          if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+            throw new Error(
+              `Scan proxy returned ${resp.status} (Cloudflare/Render cut the request around 30s). The complete scan must run as a background job.` +
+                (detail ? ` ${detail}` : ""),
+            );
+          }
+          throw new Error(
+            `Server returned ${resp.status}${detail ? `: ${detail}` : ""}`,
+          );
         }
         const data = await resp.json();
 
@@ -1883,12 +2053,14 @@ export function AnalyzeView() {
             await new Promise((resolve) => setTimeout(resolve, 2000));
             pollAttempts++;
             try {
-              const pollResp = await fetch(
-                apiUrl(
-                  `/analyze/progress?scanId=${encodeURIComponent(scanId)}`,
-                ),
+              const pollResp = await fetchApiPath(
+                `/analyze/progress?scanId=${encodeURIComponent(scanId)}`,
                 {
                   headers: authHeaders(),
+                },
+                {
+                  preferCloud: githubCloudApi,
+                  fallbackCloudOnNetworkError: true,
                 },
               );
               if (!pollResp.ok) {
@@ -1935,54 +2107,26 @@ export function AnalyzeView() {
         setProgressLabel("Processing results...");
         setProgress(90);
 
-        const r = data.report || {};
-        const s = r.summary || {};
-        const scope = r.scanScope || data.scanScope || {};
-        const scanResult: ScanResult = {
-          totalFiles:
-            s.repositoryFilesTotal ||
-            r.repositoryFilesTotal ||
-            r.repositoryInventory?.totalFiles ||
-            data.repositoryFilesTotal ||
-            0,
-          issueCount: s.findingsTotal || r.issueCount || data.issueCount || 0,
-          severityCounts: s.severityCounts ||
-            r.severityCounts ||
-            data.severityCounts || {
-              critical: 0,
-              high: 0,
-              medium: 0,
-              low: 0,
-              info: 0,
-            },
-          gate: r.gate ||
-            data.gate || { pass: true, blockingCount: 0, warningCount: 0 },
-          qualityScore:
-            s.healthScore ?? r.qualityScore ?? data.qualityScore ?? null,
-          projectPath:
-            r.projectRoot || r.projectPath || data.projectPath || scanPath,
-          scanScope: {
-            profile: scope.scanProfile || scope.profile || "standard",
-            resultsViewScope:
-              scope.scanContext || scope.resultsViewScope || "platform-only",
-            codeFilesAnalyzed:
-              s.codeFilesAnalyzed ||
-              s.ruleScopedFilesAnalyzed ||
-              r.ruleScopedFilesAnalyzed ||
-              r.filesAnalyzed ||
-              0,
-          },
-        };
+        const presented = extractFlexibleScanPresentation(data, scanPath);
+        const scanResult = presented.result;
+        const presentedReport = presented.report;
 
         setResult(scanResult);
-        setFullReport(data.report || data);
+        setFullReport(presentedReport);
         setScanState("complete");
         setProgress(100);
         appendLog(
           `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
         );
 
-        persistScanResult(scanResult, data.report || data);
+        try {
+          persistScanResult(scanResult, presentedReport);
+        } catch (persistErr) {
+          console.warn(
+            "[SimpleBeacon] Failed to persist scan result:",
+            persistErr,
+          );
+        }
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel("Browser sandbox not available in React mode yet");
@@ -1993,7 +2137,9 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState("error");
-      const errMsg = err?.message || String(err || "Unknown error");
+      const loopbackMsg = hostedLoopbackScanErrorMessage(err);
+      const errMsg =
+        loopbackMsg || err?.message || String(err || "Unknown error");
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error("[SimpleBeacon] Scan error:", err);
@@ -3222,6 +3368,11 @@ export function AnalyzeView() {
           terminalOutput={terminalOutput}
           isRemoteBackend={isRemoteBackend}
           fullReport={fullReport}
+          onBrowseFolder={handleBrowseFolder}
+          onUseGithub={() => {
+            setMode("github");
+            toast.info("Paste a GitHub repository URL, then click Scan.");
+          }}
         />
       )}
 
@@ -3249,11 +3400,15 @@ function ScanResults({
   terminalOutput,
   isRemoteBackend,
   fullReport,
+  onBrowseFolder,
+  onUseGithub,
 }: {
   result: ScanResult;
   terminalOutput: string[];
   isRemoteBackend: boolean;
   fullReport?: any;
+  onBrowseFolder?: () => void;
+  onUseGithub?: () => void;
 }) {
   const isZeroResult = result.totalFiles === 0 && result.issueCount === 0;
   return (
@@ -3262,15 +3417,25 @@ function ScanResults({
         <Card className="border-yellow-400/30 bg-yellow-50/30">
           <CardContent className="flex items-start gap-3 p-4">
             <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-sm font-medium">
                 Scan returned no files or issues
               </p>
               <p className="text-xs text-foreground-muted">
                 {isRemoteBackend
-                  ? "The remote server's project directory may be stale or empty. Start your local SimpleBeacon server (npm start in ai-platform) and refresh to scan your local codebase."
+                  ? "simplebeacon.ai cannot see folders on your computer. Browse a local folder (files stay in the browser), paste a GitHub URL, or connect the VS Code extension. Do not scan the remote server path."
                   : "The scanned path may not contain any files, or the server's scan paths are not configured. Verify the path and try again."}
               </p>
+              {isRemoteBackend && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button size="sm" onClick={onBrowseFolder}>
+                    Browse folder
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={onUseGithub}>
+                    Use GitHub URL
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
