@@ -808,6 +808,11 @@ export function AnalyzeView() {
           },
           rawIssues: rawIssues.slice(0, 50),
           detectedIssues: rawIssues.slice(0, 50),
+          qualityIssues: (Array.isArray(report?.qualityIssues)
+            ? report.qualityIssues
+            : []
+          ).slice(0, 50),
+          contextLanes: report?.contextLanes,
           issuesTruncated: Boolean(
             report?.issuesTruncated || rawIssues.length > 50,
           ),
@@ -1949,6 +1954,11 @@ export function AnalyzeView() {
         );
         if (!cloneResp.ok) {
           const cloneErr = await cloneResp.json().catch(() => ({}));
+          if (cloneResp.status === 401 || cloneErr.error === "UnauthorizedError") {
+            throw new Error(
+              "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
+            );
+          }
           throw new Error(
             cloneErr.error || `GitHub clone failed (${cloneResp.status})`,
           );
@@ -2121,7 +2131,10 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState("error");
-      const errMsg = err?.message || String(err || "Unknown error");
+      let errMsg = err?.message || String(err || "Unknown error");
+      if (errMsg === "UnauthorizedError" || errMsg.includes("UnauthorizedError")) {
+        errMsg = "Sign in required for server-side scans. Use file upload or drag-drop for offline scanning without an account.";
+      }
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error("[SimpleBeacon] Scan error:", err);
