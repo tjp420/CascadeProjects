@@ -90,23 +90,52 @@ export const TIER_EXPORT_PERMISSIONS: Readonly<Record<AccountTier, ReadonlySet<E
   free: new Set<ExportType>(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap']),
   developer: new Set<ExportType>([
     // Basic
-    'report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap',
+    'report-markdown',
+    'diagnostic-log',
+    'code-map',
+    'ai-context',
+    'roadmap',
     // Developer: structural JSON + individual certificates
-    'report-json', 'report-csv', 'report-html', 'certificate',
+    'report-json',
+    'report-csv',
+    'report-html',
+    'certificate',
   ]),
   team: new Set<ExportType>([
     // Basic
-    'report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap',
+    'report-markdown',
+    'diagnostic-log',
+    'code-map',
+    'ai-context',
+    'roadmap',
     // Developer
-    'report-json', 'report-csv', 'report-html', 'certificate',
+    'report-json',
+    'report-csv',
+    'report-html',
+    'certificate',
     // Team Pro: board-ready + compliance
-    'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report',
+    'report-pdf',
+    'report-excel',
+    'trust-report',
+    'ai-report',
+    'email-report',
   ]),
   enterprise: new Set<ExportType>([
     // All exports unlocked
-    'report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap',
-    'report-json', 'report-csv', 'report-html', 'certificate',
-    'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report',
+    'report-markdown',
+    'diagnostic-log',
+    'code-map',
+    'ai-context',
+    'roadmap',
+    'report-json',
+    'report-csv',
+    'report-html',
+    'certificate',
+    'report-pdf',
+    'report-excel',
+    'trust-report',
+    'ai-report',
+    'email-report',
   ]),
 };
 
@@ -131,7 +160,7 @@ const TIER_ALIAS_MAP: Record<string, AccountTier> = {
   gold: 'developer',
   developer_tier: 'developer',
   team: 'team',
-  'team_pro': 'team',
+  team_pro: 'team',
   'team-pro': 'team',
   eusprint: 'team',
   growth: 'team',
@@ -147,7 +176,9 @@ const TIER_ALIAS_MAP: Record<string, AccountTier> = {
  * Accepts aliases used in JWT claims, license tokens, and legacy configs.
  */
 export function normalizeAccountTier(raw: string | undefined): AccountTier {
-  const t = String(raw || '').toLowerCase().trim();
+  const t = String(raw || '')
+    .toLowerCase()
+    .trim();
   return TIER_ALIAS_MAP[t] || 'free';
 }
 
@@ -267,7 +298,7 @@ export function filterFindingsForDeveloperTier(findings: RawFinding[]): Record<s
  */
 export function buildFreeTierMarkdown(
   findings: RawFinding[],
-  reportMeta?: { projectRoot?: string; scanTime?: string },
+  reportMeta?: { projectRoot?: string; scanTime?: string }
 ): string {
   const m = calculateSummary(findings);
   const lines = [
@@ -314,7 +345,7 @@ function groupFindingsByCategory(findings: RawFinding[]): string[] {
  */
 export function buildDeveloperTierJson(
   findings: RawFinding[],
-  reportMeta?: { projectRoot?: string; scanTime?: string },
+  reportMeta?: { projectRoot?: string; scanTime?: string }
 ): string {
   const m = calculateSummary(findings);
   const payload = {
@@ -336,7 +367,7 @@ export function buildDeveloperTierJson(
 export function buildTeamTierJson(
   findings: RawFinding[],
   reportMeta?: { projectRoot?: string; scanTime?: string },
-  complianceMappings?: Record<string, unknown>,
+  complianceMappings?: Record<string, unknown>
 ): string {
   const m = calculateSummary(findings);
   const payload = {
@@ -361,10 +392,7 @@ export function buildTeamTierJson(
  * Developer:  findings replaced with structural objects (file paths + lines)
  * Team+:      findings kept as-is (full data + compliance mappings)
  */
-export function filterReportByTier<T extends Record<string, unknown>>(
-  report: T,
-  tier: string | undefined,
-): T {
+export function filterReportByTier<T extends Record<string, unknown>>(report: T, tier: string | undefined): T {
   const canonical = normalizeAccountTier(tier);
   if (canonical === 'team' || canonical === 'enterprise') {
     return report; // Full access — no filtering
@@ -495,7 +523,7 @@ export async function getExportAuthorization(
   token: string,
   reportType: ExportType,
   reportHash: string,
-  metadata?: Record<string, unknown>,
+  metadata?: Record<string, unknown>
 ): Promise<ExportAuthorization> {
   if (!token || typeof token !== 'string') {
     return { ok: false, error: 'Auth token required', status: 401 };
@@ -595,7 +623,12 @@ function mapExportAuthError(status: number, error: string, message?: string): st
   const msgLower = String(message || '').toLowerCase();
 
   // 401 / auth errors — token expired, invalid, or missing
-  if (status === 401 || lower.includes('unauthorized') || lower.includes('auth') || msgLower.includes('invalid or expired token')) {
+  if (
+    status === 401 ||
+    lower.includes('unauthorized') ||
+    lower.includes('auth') ||
+    msgLower.includes('invalid or expired token')
+  ) {
     return 'Your session has expired — please sign in again, then retry the export.';
   }
   // 403 — free tier, premium export requires paid tier
@@ -607,7 +640,13 @@ function mapExportAuthError(status: number, error: string, message?: string): st
     return 'Report signing is temporarily unavailable on the server. Please try again later.';
   }
   // Network errors (status 0 = request threw before response)
-  if (status === 0 || lower.includes('network') || lower.includes('timeout') || lower.includes('econnrefused') || lower.includes('fetch')) {
+  if (
+    status === 0 ||
+    lower.includes('network') ||
+    lower.includes('timeout') ||
+    lower.includes('econnrefused') ||
+    lower.includes('fetch')
+  ) {
     return 'Could not reach the signing server. Check your network connection and try again.';
   }
   // Fallback — show the raw error but with context
@@ -618,10 +657,7 @@ function mapExportAuthError(status: number, error: string, message?: string): st
  * Embed a server signature into a report object (mutates a copy).
  * The signature is placed under `report.serverSignature` so consumers can verify.
  */
-export function embedServerSignature<T extends Record<string, unknown>>(
-  report: T,
-  auth: ServerSignature,
-): T {
+export function embedServerSignature<T extends Record<string, unknown>>(report: T, auth: ServerSignature): T {
   return { ...report, serverSignature: auth };
 }
 
@@ -640,7 +676,7 @@ export function embedServerSignature<T extends Record<string, unknown>>(
 export function verifySignatureLocally(
   signature: string,
   metadata: { reportHash: string; reportType: string; tier: string; userSub: string; signedAt: string },
-  publicKeyPem: string,
+  publicKeyPem: string
 ): boolean {
   try {
     // Reconstruct the canonical message (sorted keys, no whitespace)
@@ -674,7 +710,7 @@ export function verifySignatureLocally(
  */
 export async function verifySignatureRemotely(
   signature: string,
-  metadata: ServerSignature['metadata'],
+  metadata: ServerSignature['metadata']
 ): Promise<{ valid: boolean; algorithm?: string; error?: string }> {
   if (!signature || !metadata) {
     return { valid: false, error: 'Signature and metadata required' };
@@ -722,7 +758,7 @@ export async function promptUpgradeForExport(featureName: string): Promise<void>
   const choice = await vscode.window.showInformationMessage(
     `${featureName} is a premium export. Upgrade to a paid SimpleBeacon tier to unlock server-signed PDF, JSON, certificate, and board-ready reports.`,
     'Upgrade',
-    'Maybe Later',
+    'Maybe Later'
   );
   if (choice === 'Upgrade') {
     vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
@@ -772,7 +808,7 @@ function httpRequest(url: URL, opts: HttpRequestOptions): Promise<HttpResponse> 
           }
           resolve({ status: res.statusCode || 0, json, text: data });
         });
-      },
+      }
     );
     req.on('error', reject);
     req.setTimeout(opts.timeoutMs || 10000, () => {

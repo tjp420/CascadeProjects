@@ -21,17 +21,17 @@
         }
         function neutralize(el) {
           if (!isBeacon(el)) return;
-          try {
-            el.removeAttribute("src");
-          } catch (_) {}
-          try {
-            el.type = "text/plain";
-          } catch (_) {}
+          // Strip SRI first. Removing src while integrity remains hashes
+          // empty content (sha512 of "") and logs a console error.
           try {
             el.removeAttribute("integrity");
           } catch (_) {}
           try {
             el.removeAttribute("crossorigin");
+          } catch (_) {}
+          try {
+            if (el.parentNode) el.parentNode.removeChild(el);
+            else if (typeof el.remove === "function") el.remove();
           } catch (_) {}
         }
         var origCreate = document.createElement.bind(document);
@@ -106,6 +106,12 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
+    <!-- Block Cloudflare Insights beacon from loading — prevents SRI mismatch
+         console errors when the edge injects the beacon with a stale integrity hash. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src 'self' 'unsafe-inline'; img-src * data: blob:; font-src * data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self';"
+    />
     <meta
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"

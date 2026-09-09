@@ -133,6 +133,7 @@ import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { handleAuthRoutes } from './routes/auth';
 import { handleScanReportRoutes } from './routes/scanReport';
 import { handleScanConfigRoutes } from './routes/scanConfig';
+import { handleLocalDashboardStubs } from './routes/localDashboardStubs';
 
 export { ServerState, listDirectories } from './serverState';
 import type { ServerState } from './serverState';
@@ -173,7 +174,7 @@ export function drainNotificationQueue(): NotifyEntry[] {
   notificationQueue.length = 0;
   return drained;
 }
-let currentTheme: 'light' | 'dark' = 'light';
+let currentTheme: 'light' | 'dark' = 'dark';
 let extensionContext: vscode.ExtensionContext | null = null;
 const BRIDGE_TOKEN_KEY = 'sb_bridge_token';
 
@@ -316,7 +317,46 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 })();
 </script>`;
 
-const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;if(typeof document!=='undefined'&&document.visibilityState==='hidden')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){console.error('Failed to broadcast theme change:',e);}}}).catch(()=>{});}p();setInterval(p,30000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){console.error('Failed to listen for theme changes:',e);}})();</script>`;
+const THEME_SCRIPT = `<script>(function(){
+  var h=document.documentElement;if(!h)return;
+  var KEYS=['sb_theme','simplebeacon-theme'];
+  function saved(){
+    try{
+      for(var i=0;i<KEYS.length;i++){
+        var v=localStorage.getItem(KEYS[i]);
+        if(v==='dark'||v==='light'||v==='fox') return v;
+      }
+    }catch(e){}
+    return null;
+  }
+  function apply(t){
+    if(!t) return;
+    var pref=saved();
+    if(pref) t=pref;
+    h.setAttribute('data-theme',t);
+  }
+  var pref=saved();
+  if(pref){
+    apply(pref);
+  }else{
+    apply(h.getAttribute('data-theme')||'dark');
+    try{localStorage.setItem('sb_theme','dark');}catch(e){}
+  }
+  function poll(){
+    if(saved()) return;
+    if(typeof fetch!=='function') return;
+    if(typeof document!=='undefined'&&document.visibilityState==='hidden') return;
+    fetch('/api/theme').then(function(r){return r.json();}).then(function(d){
+      if(d&&d.theme&&!saved()) apply(d.theme);
+    }).catch(function(){});
+  }
+  poll();
+  setInterval(poll,30000);
+  try{
+    var bc=new BroadcastChannel('sb-theme');
+    bc.onmessage=function(e){if(e.data&&e.data.theme&&!saved()) apply(e.data.theme);};
+  }catch(e){}
+})();</script>`;
 
 const HIDE_PRICING_SCRIPT = `<script>
 (function() {
@@ -370,12 +410,23 @@ const AUTH_BRIDGE_SCRIPT = `<script>
   }
   function broadcast() {
     var token = getToken();
-    postAuthState(!!token, token);
+    if (!token) return;
+    postAuthState(true, token);
   }
   window.addEventListener('sb:login', broadcast);
   window.addEventListener('sb:license', broadcast);
-  window.addEventListener('sb:logout', function() { postAuthState(false, ''); });
-  window.addEventListener('storage', broadcast);
+  window.addEventListener('sb:logout', function() {
+    var payload = { command: 'setAuthState', signedIn: false, token: '', tier: '', isAdmin: false, explicitSignOut: true };
+    try {
+      if (window.parent && window.parent !== window) window.parent.postMessage(payload, '*');
+    } catch (e) {}
+    try {
+      fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'setAuthState', payload: payload }) }).catch(function() {});
+    } catch (e) {}
+  });
+  window.addEventListener('storage', function() {
+    if (getToken()) broadcast();
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', broadcast);
   else setTimeout(broadcast, 0);
 })();
@@ -630,6 +681,31 @@ const DASHBOARD_ASSET_EXTENSIONS = /\.(js|mjs|css|png|jpg|jpeg|gif|svg|ico|woff2
 
 function isDashboardStaticAsset(pathname: string): boolean {
   return DASHBOARD_ASSET_EXTENSIONS.test(pathname);
+}
+
+function rewriteDashboardAssetUrls(html: string): string {
+  return html
+    .replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/')
+    .replace(/(["'(=]\s*)\.\/assets\//g, '$1/dashboard/assets/');
+}
+
+function resolveDashboardStaticFile(dashboardRoot: string, relativePath: string): string | null {
+  if (!relativePath) return null;
+  const candidates = [path.join(dashboardRoot, relativePath)];
+  if (!relativePath.startsWith('assets/') && !relativePath.startsWith(`assets${path.sep}`)) {
+    candidates.push(path.join(dashboardRoot, 'assets', path.basename(relativePath)));
+  }
+  for (const candidate of candidates) {
+    if (!isPathWithinRoot(candidate, dashboardRoot)) continue;
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    } catch {
+      // ignore unreadable candidates
+    }
+  }
+  return null;
 }
 
 const DASHBOARD_SPA_ROUTES = new Set([
@@ -1559,8 +1635,7 @@ function dashboardRootHasAssets(p: string): boolean {
   return (
     fs.existsSync(p) &&
     fs.existsSync(path.join(p, 'index.html')) &&
-    (fs.existsSync(path.join(p, 'assets', 'main.js')) ||
-      fs.existsSync(path.join(p, 'css', 'variables.css')))
+    (fs.existsSync(path.join(p, 'assets', 'main.js')) || fs.existsSync(path.join(p, 'css', 'variables.css')))
   );
 }
 
@@ -3500,8 +3575,6 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const payload = body ? JSON.parse(body) : {};
             if (payload.theme === 'dark' || payload.theme === 'light') {
               currentTheme = payload.theme;
-            } else {
-              currentTheme = currentTheme === 'light' ? 'dark' : 'light';
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ theme: currentTheme }));
@@ -3976,6 +4049,81 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         });
         res.end(JSON.stringify({ signedIn: false, clearSession: true }));
       });
+      return;
+    }
+    if (parsed.pathname === '/api/auth/refresh' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', async () => {
+        try {
+          JSON.parse(body || '{}');
+        } catch {
+          /* empty body is fine */
+        }
+        const token = getBearerToken(req) || lastBrowserSessionToken || '';
+        if (token && token.split('.').length === 3) {
+          const jwtResult = validateJwt(token);
+          if (jwtResult.valid && jwtResult.user) {
+            const u = jwtResult.user as LocalUser;
+            const refreshed =
+              token.endsWith('.local-jwt') || String(token.split('.')[2] || '').startsWith('local')
+                ? issueLocalJwt({
+                    id: String(u.id || 'user'),
+                    email: String(u.email || ''),
+                    passwordHash: '',
+                    createdAt: new Date().toISOString(),
+                    tier: String(u.tier || 'pro'),
+                    name: u.name,
+                  })
+                : token;
+            lastBrowserSessionToken = refreshed;
+            lastBrowserSessionTime = Date.now();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                success: true,
+                token: refreshed,
+                user: jwtResult.user,
+              })
+            );
+            return;
+          }
+          try {
+            const cloud = await fetch('https://simplebeacon.ai/api/auth/refresh', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ longLived: true }),
+              signal: AbortSignal.timeout(8000),
+            });
+            if (cloud.ok) {
+              const data = await cloud.json();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(data));
+              return;
+            }
+          } catch {
+            /* fall through */
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, refreshed: false }));
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/sso/resolve' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, found: false, sso: false }));
+      return;
+    }
+    if (parsed.pathname === '/api/whitelabel/resolve' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, found: false }));
       return;
     }
     if (parsed.pathname === '/api/auth/login' && req.method === 'POST') {
@@ -4494,7 +4642,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // extension bridge routes API calls to the local data server.
     if (parsed.pathname === '/api/auth/token-status' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
@@ -4511,15 +4661,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             if (jwtResult.valid && jwtResult.user) {
               const u = jwtResult.user;
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                registered: true,
-                valid: true,
-                email: u.email || '',
-                tier: u.tier || u.plan || 'developer',
-                features: u.features || [],
-                role: u.role || 'user',
-                registeredAt: new Date().toISOString(),
-              }));
+              res.end(
+                JSON.stringify({
+                  registered: true,
+                  valid: true,
+                  email: u.email || '',
+                  tier: u.tier || u.plan || 'developer',
+                  features: u.features || [],
+                  role: u.role || 'user',
+                  registeredAt: new Date().toISOString(),
+                })
+              );
             } else {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ registered: true, valid: false }));
@@ -4531,15 +4683,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const meta = validateLicenseLocally(token, PUBLIC_KEY_PEM);
             if (meta) {
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                registered: true,
-                valid: true,
-                email: '',
-                tier: meta.tier || 'developer',
-                features: [],
-                registeredAt: new Date().toISOString(),
-                expiresAt: meta.expiresAt || '',
-              }));
+              res.end(
+                JSON.stringify({
+                  registered: true,
+                  valid: true,
+                  email: '',
+                  tier: meta.tier || 'developer',
+                  features: [],
+                  registeredAt: new Date().toISOString(),
+                  expiresAt: meta.expiresAt || '',
+                })
+              );
             } else {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ registered: true, valid: false }));
@@ -4585,7 +4739,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // signatures are deterministic within a workspace but not forgeable.
     if (parsed.pathname === '/api/simplebeacon/user/sign-report' && req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       req.on('end', async () => {
         try {
           const data = JSON.parse(body);
@@ -4606,8 +4762,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
           // Validate the Bearer token (JWT or license)
           const rawToken =
-            typeof req.headers.authorization === 'string' &&
-            req.headers.authorization.startsWith('Bearer ')
+            typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')
               ? req.headers.authorization.substring(7)
               : '';
           if (!rawToken) {
@@ -4645,15 +4800,79 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           // Tier enforcement — matches the server-side TIER_EXPORT_PERMISSIONS
           const TIER_EXPORT_PERMISSIONS: Record<string, Set<string>> = {
             free: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap']),
-            developer: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate']),
-            team: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate', 'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report']),
-            enterprise: new Set(['report-markdown', 'diagnostic-log', 'code-map', 'ai-context', 'roadmap', 'report-json', 'report-csv', 'report-html', 'certificate', 'report-pdf', 'report-excel', 'trust-report', 'ai-report', 'email-report']),
+            developer: new Set([
+              'report-markdown',
+              'diagnostic-log',
+              'code-map',
+              'ai-context',
+              'roadmap',
+              'report-json',
+              'report-csv',
+              'report-html',
+              'certificate',
+            ]),
+            team: new Set([
+              'report-markdown',
+              'diagnostic-log',
+              'code-map',
+              'ai-context',
+              'roadmap',
+              'report-json',
+              'report-csv',
+              'report-html',
+              'certificate',
+              'report-pdf',
+              'report-excel',
+              'trust-report',
+              'ai-report',
+              'email-report',
+            ]),
+            enterprise: new Set([
+              'report-markdown',
+              'diagnostic-log',
+              'code-map',
+              'ai-context',
+              'roadmap',
+              'report-json',
+              'report-csv',
+              'report-html',
+              'certificate',
+              'report-pdf',
+              'report-excel',
+              'trust-report',
+              'ai-report',
+              'email-report',
+            ]),
           };
           const TIER_ALIASES: Record<string, string> = {
-            free: 'free', community: 'free', sandbox: 'free', instant: 'free', locked: 'free', solo: 'free', '': 'free',
-            developer: 'developer', pro: 'developer', startup: 'developer', business: 'developer', premium: 'developer', license: 'developer', auditor: 'developer', paid: 'developer', silver: 'developer', gold: 'developer', developer_tier: 'developer',
-            team: 'team', team_pro: 'team', 'team-pro': 'team', eusprint: 'team', growth: 'team',
-            enterprise: 'enterprise', compliance: 'enterprise', universal: 'enterprise', custom: 'enterprise', admin: 'enterprise',
+            free: 'free',
+            community: 'free',
+            sandbox: 'free',
+            instant: 'free',
+            locked: 'free',
+            solo: 'free',
+            '': 'free',
+            developer: 'developer',
+            pro: 'developer',
+            startup: 'developer',
+            business: 'developer',
+            premium: 'developer',
+            license: 'developer',
+            auditor: 'developer',
+            paid: 'developer',
+            silver: 'developer',
+            gold: 'developer',
+            developer_tier: 'developer',
+            team: 'team',
+            team_pro: 'team',
+            'team-pro': 'team',
+            eusprint: 'team',
+            growth: 'team',
+            enterprise: 'enterprise',
+            compliance: 'enterprise',
+            universal: 'enterprise',
+            custom: 'enterprise',
+            admin: 'enterprise',
           };
           const rawTier = String(user.tier || user.plan || '').toLowerCase();
           const canonicalTier = TIER_ALIASES[rawTier] || 'free';
@@ -4674,16 +4893,18 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const expiresAt = now + 86400 * 30; // 30-day signature validity
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            signed: true,
-            signature,
-            algorithm: 'HMAC-SHA256',
-            keyId: 'sb-local-v1',
-            signedAt: new Date().toISOString(),
-            expiresAt: new Date(expiresAt * 1000).toISOString(),
-            tier: canonicalTier,
-            user: { sub: user.id, email: user.email },
-          }));
+          res.end(
+            JSON.stringify({
+              signed: true,
+              signature,
+              algorithm: 'HMAC-SHA256',
+              keyId: 'sb-local-v1',
+              signedAt: new Date().toISOString(),
+              expiresAt: new Date(expiresAt * 1000).toISOString(),
+              tier: canonicalTier,
+              user: { sub: user.id, email: user.email },
+            })
+          );
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ signed: false, error: 'Invalid request body' }));
@@ -5546,6 +5767,13 @@ ${
       return;
     }
 
+    // Vite base sometimes requests /assets/* instead of /dashboard/assets/*
+    if (parsed.pathname === '/assets' || parsed.pathname.startsWith('/assets/')) {
+      res.writeHead(302, { Location: '/dashboard' + parsed.pathname + (parsed.search || '') });
+      res.end();
+      return;
+    }
+
     // Redirect legacy dashboard URL path used by older extension builds
     if (
       parsed.pathname === '/ai-platform/web/simplebeacon-dashboard/' ||
@@ -5591,6 +5819,7 @@ ${
         });
         let html = fs.readFileSync(indexPath, 'utf8');
         html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
+        html = rewriteDashboardAssetUrls(html);
         const dataPort = getDataServerPort();
         const publicBase = getPublicBaseUrl(req);
         const envScript =
@@ -5647,14 +5876,20 @@ ${
         res.end('Forbidden');
         return;
       }
-      if (fs.existsSync(requestedPath) && fs.statSync(requestedPath).isFile()) {
+      const existingAsset = resolveDashboardStaticFile(dashboardRoot, relativePath);
+      if (existingAsset) {
         res.writeHead(200, {
-          'Content-Type': getMimeType(requestedPath),
+          'Content-Type': getMimeType(existingAsset),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
           Expires: '0',
         });
-        res.end(fs.readFileSync(requestedPath));
+        res.end(fs.readFileSync(existingAsset));
+        return;
+      }
+      if (isDashboardStaticAsset(parsed.pathname)) {
+        res.writeHead(404, { 'Content-Type': getMimeType(parsed.pathname) });
+        res.end('Not found');
         return;
       }
       const indexPath = path.join(dashboardRoot, 'index.html');
@@ -5668,8 +5903,7 @@ ${
         let html = fs.readFileSync(indexPath, 'utf8');
         // Convert any hardcoded file:// coming-soon links to relative HTTP paths
         html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
-        // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
-        html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
+        html = rewriteDashboardAssetUrls(html);
         // Inject env flag so client knows it's being served by the real data server
         const dataPort = getDataServerPort();
         const publicBase = getPublicBaseUrl(req);
@@ -5788,8 +6022,22 @@ ${
       staticPath = '/';
     }
     let filePath = path.join(dashboardRoot, staticPath === '/' ? 'index.html' : staticPath);
+    if (staticPath !== '/' && isDashboardStaticAsset(parsed.pathname)) {
+      const resolvedAsset = resolveDashboardStaticFile(
+        dashboardRoot,
+        staticPath.startsWith('/') ? staticPath.slice(1) : staticPath
+      );
+      if (resolvedAsset) {
+        filePath = resolvedAsset;
+      }
+    }
     // SPA fallback: page routes (no extension) are handled client-side by index.html
     if ((!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) && parsed.pathname.startsWith('/dashboard/')) {
+      if (isDashboardStaticAsset(parsed.pathname)) {
+        res.writeHead(404, { 'Content-Type': getMimeType(parsed.pathname) });
+        res.end('Not found');
+        return;
+      }
       const hasExt = path.extname(parsed.pathname).length > 0;
       if (!hasExt) {
         filePath = path.join(dashboardRoot, 'index.html');
@@ -5805,8 +6053,7 @@ ${
       let content = fs.readFileSync(filePath);
       if (getMimeType(filePath) === 'text/html') {
         let html = content.toString('utf8');
-        // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
-        html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
+        html = rewriteDashboardAssetUrls(html);
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           content = Buffer.from(
@@ -5819,7 +6066,10 @@ ${
             'utf8'
           );
         } else {
-          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + AUTH_BRIDGE_SCRIPT, 'utf8');
+          content = Buffer.from(
+            html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + AUTH_BRIDGE_SCRIPT,
+            'utf8'
+          );
         }
       }
       res.end(content);
@@ -6032,6 +6282,7 @@ ${
             'simplebeacon.signIn',
             'simplebeacon.signInWithProvider',
             'simplebeacon.signOut',
+            'simplebeacon.restartDataServer',
           ]);
           const commandAliasMap: Record<string, string> = {
             scan: 'simplebeacon.scanWorkspace',
@@ -6080,6 +6331,10 @@ ${
     if (parsed.pathname === '/api/command' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (handleLocalDashboardStubs(req, res, parsed)) {
       return;
     }
 
