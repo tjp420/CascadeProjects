@@ -38,11 +38,6 @@ import {
   isTokenExpired,
   clearAuthAndRedirect,
   shouldUseHostedCloudApiForGithub,
-<<<<<<< Updated upstream
-  fetchApiPath,
-  hostedLoopbackScanErrorMessage,
-=======
->>>>>>> Stashed changes
 } from "@/config";
 import { setLargeItem, removeLargeItem } from "@/utils/dbStorage";
 import {
@@ -959,16 +954,9 @@ export function AnalyzeView() {
       projectPath: string;
       logLabel?: string;
     }) => {
-      if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
-        setScanState("auth_required");
-        setProgress(0);
-        setProgressLabel("Sign in required to run analysis.");
-        setLastErrorMsg(
-          "Sign in required to run analysis on the hosted dashboard.",
-        );
-        toast.error("Sign in to run analysis.");
-        return;
-      }
+      // Browser-local scans run entirely in a Web Worker on the user's machine.
+      // No server-side resources are used, so authentication is NOT required.
+      // This allows offline demo / proof-of-capability without signing in.
       if (
         options.files &&
         refuseIncompleteBrowserDrop(
@@ -1113,17 +1101,28 @@ export function AnalyzeView() {
   );
 
   const ensureScanAuthorized = useCallback((): boolean => {
+    // Browser-local scans (file upload, drag-drop, directory picker) run
+    // entirely in a Web Worker — no server resources needed, no auth required.
+    // Only server-side scans (server mode, GitHub URL, website URL) need auth.
+    const dirHandle = (window as any).__sbDroppedDirHandle as
+      | FileSystemDirectoryHandle
+      | undefined;
+    const isBrowserLocal =
+      mode === "local" || (dirHandle && dirHandle.name === path.trim());
+    if (isBrowserLocal) return true;
     if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
     setScanState("auth_required");
     setProgress(0);
-    setProgressLabel("Sign in required to run analysis.");
+    setProgressLabel("Sign in required for server-side analysis.");
     setLastErrorMsg(
-      "Sign in required to run analysis on the hosted dashboard.",
+      "Sign in to run server-side analysis. Browser-local scans (file upload, drag-drop) work without signing in.",
     );
-    appendLog("[SimpleBeacon] Authentication required before scan.");
-    toast.error("Sign in to run analysis.");
+    appendLog(
+      "[SimpleBeacon] Authentication required for server-side scan. Use file upload or drag-drop for offline scanning.",
+    );
+    toast.error("Sign in for server-side scans, or use file upload for offline scanning.");
     return false;
-  }, [appendLog, hosted]);
+  }, [appendLog, hosted, mode, path]);
 
   // Debounced append to reduce layout churn when many logs arrive quickly
   const debouncedAppendLog = useCallback((line: string) => {
@@ -1940,25 +1939,13 @@ export function AnalyzeView() {
             "[SimpleBeacon] Using hosted API for GitHub clone (extension bridge cannot clone remotes).",
           );
         }
-<<<<<<< Updated upstream
-        const cloneResp = await fetchApiPath(
-          "/analyze/github-clone",
-=======
         const cloneResp = await fetch(
           apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
->>>>>>> Stashed changes
           {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ repoUrl: scanPath }),
           },
-<<<<<<< Updated upstream
-          {
-            preferCloud: githubCloudApi,
-            fallbackCloudOnNetworkError: true,
-          },
-=======
->>>>>>> Stashed changes
         );
         if (!cloneResp.ok) {
           const cloneErr = await cloneResp.json().catch(() => ({}));
@@ -1993,13 +1980,8 @@ export function AnalyzeView() {
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         let resp: Response;
         try {
-<<<<<<< Updated upstream
-          resp = await fetchApiPath(
-            "/analyze/flexible",
-=======
           resp = await fetch(
             apiUrl("/analyze/flexible", { preferCloud: githubCloudApi }),
->>>>>>> Stashed changes
             {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -2009,12 +1991,7 @@ export function AnalyzeView() {
               maxFileBytes: 5 * 1024 * 1024,
             }),
             signal: controller.signal,
-          },
-            {
-              preferCloud: githubCloudApi,
-              fallbackCloudOnNetworkError: true,
-            },
-          );
+          });
         } catch (fetchErr: any) {
           clearTimeout(timeoutId);
           if (fetchErr?.name === "AbortError") {
@@ -2069,14 +2046,12 @@ export function AnalyzeView() {
             await new Promise((resolve) => setTimeout(resolve, 2000));
             pollAttempts++;
             try {
-              const pollResp = await fetchApiPath(
-                `/analyze/progress?scanId=${encodeURIComponent(scanId)}`,
+              const pollResp = await fetch(
+                apiUrl(
+                  `/analyze/progress?scanId=${encodeURIComponent(scanId)}`,
+                ),
                 {
                   headers: authHeaders(),
-                },
-                {
-                  preferCloud: githubCloudApi,
-                  fallbackCloudOnNetworkError: true,
                 },
               );
               if (!pollResp.ok) {
@@ -2135,18 +2110,7 @@ export function AnalyzeView() {
           `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
         );
 
-<<<<<<< Updated upstream
-        try {
-          persistScanResult(scanResult, presentedReport);
-        } catch (persistErr) {
-          console.warn(
-            "[SimpleBeacon] Failed to persist scan result:",
-            persistErr,
-          );
-        }
-=======
         persistScanResult(scanResult, presentedReport);
->>>>>>> Stashed changes
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel("Browser sandbox not available in React mode yet");
@@ -2157,9 +2121,7 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState("error");
-      const loopbackMsg = hostedLoopbackScanErrorMessage(err);
-      const errMsg =
-        loopbackMsg || err?.message || String(err || "Unknown error");
+      const errMsg = err?.message || String(err || "Unknown error");
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error("[SimpleBeacon] Scan error:", err);
@@ -2195,15 +2157,7 @@ export function AnalyzeView() {
       e.preventDefault();
       setDragOver(false);
 
-      if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
-        setScanState("auth_required");
-        setLastErrorMsg(
-          "Sign in required to run analysis on the hosted dashboard.",
-        );
-        toast.error("Sign in to run analysis.");
-        return;
-      }
-
+      // Drag-and-drop is a browser-local scan — no auth required.
       const capturedEntries = captureDropEntries(e.dataTransfer.items);
       const dtFiles = Array.from(e.dataTransfer.files);
       const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & {
@@ -2462,15 +2416,7 @@ export function AnalyzeView() {
         e.target.value = "";
         return;
       }
-      if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
-        setScanState("auth_required");
-        setLastErrorMsg(
-          "Sign in required to run analysis on the hosted dashboard.",
-        );
-        toast.error("Sign in to run analysis.");
-        e.target.value = "";
-        return;
-      }
+      // File upload is a browser-local scan — no auth required.
       console.warn(
         "[SimpleBeacon] handleFileSelect: files.length =",
         files.length,

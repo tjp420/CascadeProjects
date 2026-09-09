@@ -358,8 +358,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
       "/progress",
       "/providers",
       "/test-sources",
-      "/github-clone",
-      "/flexible",
     ]);
     app.use("/api/analyze/upload-directory", optionalAuthenticate);
     app.use("/api/analyze/progress", optionalAuthenticate);
@@ -757,10 +755,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             body.includeEslint === true || scanContext === "complete",
           scanProfile,
           context: scanContext,
-          concurrency: Math.max(
-            24,
-            Number(process.env.CODEBASE_DASHBOARD_CONCURRENCY) || 48,
-          ),
+          concurrency: Math.max(24, Number(process.env.CODEBASE_DASHBOARD_CONCURRENCY) || 48),
         };
         const explicitMaxBytes = Number(body.maxFileBytes);
         if (Number.isFinite(explicitMaxBytes) && explicitMaxBytes > 0) {
@@ -790,10 +785,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             ...job,
             current: info.current || job.current,
             total: info.total || job.total,
-            percent: Math.min(
-              99,
-              Math.round((info.current / Math.max(1, info.total)) * 100),
-            ),
+            percent: Math.min(99, Math.round((info.current / Math.max(1, info.total)) * 100)),
             filename: info.filename || job.filename,
           });
         };
@@ -941,7 +933,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           createdAt: Date.now(),
           filename: safeBasename(projectPath),
         });
-<<<<<<< Updated upstream
 
         const userTier = req.user?.tier || req.body?.tier || "starter";
 
@@ -1009,46 +1000,30 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             },
             categories: results.simplebeacon.categories || [],
             findings: simplebeaconFindings,
-=======
-
-        const userTier = req.user?.tier || req.body?.tier || "starter";
-
-        (async () => {
-          const startedAt = Date.now();
-          const updateJob = (patch) => {
-            const job = scanJobs.get(asyncScanId);
-            if (!job || job.status !== "scanning") return;
-            scanJobs.set(asyncScanId, { ...job, ...patch });
->>>>>>> Stashed changes
           };
+          enginesRun.push("codebase");
+        } else {
+          // Fallback: run codebase analysis directly if simplebeacon didn't provide findings
           try {
-            const results = {};
-            const enginesRun = [];
-
-            // Resolve tier limits for the requesting user
-            const tierLimits = getLimits(userTier);
-
-            updateJob({ percent: 8, filename: "simplebeacon" });
-
-            // Run simplebeacon scan first — its programmatic fallback already calls analyzeCodebase
-            try {
-              const {
-                runSimplebeaconScan,
-              } = require("../../src/api/simplebeacon-api.cjs");
-              const scanRes = await runSimplebeaconScan(projectPath, {
+            results.codebase = await withTimeout(
+              getAnalyzeCodebase()(projectPath, {
+                includeEslint: false,
+                context: "complete",
+                scanProfile: "default",
                 includeBrowserAnalyzers: true,
-                tier: userTier,
-              });
-              results.simplebeacon = scanRes.report || null;
-              if (scanRes.report) enginesRun.push("simplebeacon");
-            } catch (scanErr) {
-              logger.warn(
-                "[Complete] simplebeacon scan failed:",
-                safeErrorMessage(scanErr),
-              );
-            }
+              }),
+              90_000,
+              "complete fallback codebase analysis",
+            );
+            enginesRun.push("codebase");
+          } catch (cbErr) {
+            logger.warn(
+              "[Complete] codebase analysis failed:",
+              safeErrorMessage(cbErr),
+            );
+          }
+        }
 
-<<<<<<< Updated upstream
         updateJob({
           percent: 40,
           current: Math.round(fileCount * 0.4),
@@ -1085,121 +1060,47 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             "complete data-cleanup",
           ),
         ]);
-=======
-            // Derive codebase report from simplebeacon scan to avoid double file walk
-            // The simplebeacon programmatic fallback already runs analyzeCodebase
-            const simplebeaconFindings =
-              results.simplebeacon?.findings ||
-              results.simplebeacon?.rawIssues ||
-              null;
-            if (simplebeaconFindings) {
-              results.codebase = {
-                type: "codebase-analyzer-report",
-                reportVersion: 1,
-                title: "Codebase Analysis Report",
-                generatedAt: results.simplebeacon.generatedAt,
-                projectRoot: projectPath,
-                summary: {
-                  codeFilesAnalyzed:
-                    results.simplebeacon.filesAnalyzed ??
-                    results.simplebeacon.ruleScopedFilesAnalyzed ??
-                    results.simplebeacon.repositoryFilesTotal ??
-                    null,
-                  findingsTotal: simplebeaconFindings.length ?? 0,
-                  findingsReturned: simplebeaconFindings.length ?? 0,
-                  healthScore: results.simplebeacon.gate?.score ?? 100,
-                  severityCounts: results.simplebeacon.summary
-                    ?.severityCounts ?? {
-                    high: 0,
-                    medium: 0,
-                    low: 0,
-                  },
-                },
-                categories: results.simplebeacon.categories || [],
-                findings: simplebeaconFindings,
-              };
-              enginesRun.push("codebase");
-            } else {
-              // Fallback: run codebase analysis directly if simplebeacon didn't provide findings
-              try {
-                results.codebase = await withTimeout(
-                  getAnalyzeCodebase()(projectPath, {
-                    includeEslint: false,
-                    context: "complete",
-                    scanProfile: "default",
-                    includeBrowserAnalyzers: true,
-                  }),
-                  90_000,
-                  "complete fallback codebase analysis",
-                );
-                enginesRun.push("codebase");
-              } catch (cbErr) {
-                logger.warn(
-                  "[Complete] codebase analysis failed:",
-                  safeErrorMessage(cbErr),
-                );
-              }
-            }
->>>>>>> Stashed changes
 
-            updateJob({
-              percent: 40,
-              current: Math.round(fileCount * 0.4),
-              filename: "engines",
-            });
+        if (fileReductionResult.status === "fulfilled") {
+          results.fileReduction = fileReductionResult.value;
+          enginesRun.push("file-reduction");
+        } else {
+          logger.warn(
+            "[Complete] file reduction failed:",
+            safeErrorMessage(fileReductionResult.reason),
+          );
+        }
 
-            // Run file-reduction, removable-files, npm-audit, and data-cleanup in parallel
-            const [
-              fileReductionResult,
-              removableFilesResult,
-              npmAuditResult,
-              dataCleanupResult,
-            ] = await Promise.allSettled([
-              withTimeout(
-                scanFileMergerReduction(projectPath, {
-                  includeRepositoryInventory: true,
-                }),
-                120_000,
-                "complete file-reduction",
-              ),
-              withTimeout(
-                scanRemovableFiles(projectPath),
-                120_000,
-                "complete removable-files",
-              ),
-              withTimeout(
-                runNpmAuditAsync(projectPath, { force: false }),
-                120_000,
-                "complete npm-audit",
-              ),
-              withTimeout(
-                runDataCleanupScan(projectPath, { profile: "all" }),
-                180_000,
-                "complete data-cleanup",
-              ),
-            ]);
+        if (removableFilesResult.status === "fulfilled") {
+          results.removableFiles = removableFilesResult.value;
+          enginesRun.push("removable-files");
+        } else {
+          logger.warn(
+            "[Complete] removable files scan failed:",
+            safeErrorMessage(removableFilesResult.reason),
+          );
+        }
 
-            if (fileReductionResult.status === "fulfilled") {
-              results.fileReduction = fileReductionResult.value;
-              enginesRun.push("file-reduction");
-            } else {
-              logger.warn(
-                "[Complete] file reduction failed:",
-                safeErrorMessage(fileReductionResult.reason),
-              );
-            }
+        if (npmAuditResult.status === "fulfilled") {
+          results.npmAudit = npmAuditResult.value;
+          enginesRun.push("npm-audit");
+        } else {
+          logger.warn(
+            "[Complete] npm audit failed:",
+            safeErrorMessage(npmAuditResult.reason),
+          );
+        }
 
-            if (removableFilesResult.status === "fulfilled") {
-              results.removableFiles = removableFilesResult.value;
-              enginesRun.push("removable-files");
-            } else {
-              logger.warn(
-                "[Complete] removable files scan failed:",
-                safeErrorMessage(removableFilesResult.reason),
-              );
-            }
+        if (dataCleanupResult.status === "fulfilled") {
+          results.dataCleanup = dataCleanupResult.value;
+          enginesRun.push("data-cleanup");
+        } else {
+          logger.warn(
+            "[Complete] data-cleanup failed:",
+            safeErrorMessage(dataCleanupResult.reason),
+          );
+        }
 
-<<<<<<< Updated upstream
         updateJob({
           percent: 85,
           current: Math.round(fileCount * 0.85),
@@ -1225,29 +1126,40 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             safeErrorMessage(complianceErr),
           );
         }
-=======
-            if (npmAuditResult.status === "fulfilled") {
-              results.npmAudit = npmAuditResult.value;
-              enginesRun.push("npm-audit");
-            } else {
-              logger.warn(
-                "[Complete] npm audit failed:",
-                safeErrorMessage(npmAuditResult.reason),
-              );
-            }
->>>>>>> Stashed changes
 
-            if (dataCleanupResult.status === "fulfilled") {
-              results.dataCleanup = dataCleanupResult.value;
-              enginesRun.push("data-cleanup");
-            } else {
-              logger.warn(
-                "[Complete] data-cleanup failed:",
-                safeErrorMessage(dataCleanupResult.reason),
-              );
-            }
+        // Build summary
+        const simplebeaconReport = results.simplebeacon;
+        const codebaseReport = results.codebase;
+        const fileReductionReport = results.fileReduction;
+        const dataCleanupReport = results.dataCleanup;
+        const summary = {
+          stepCount: enginesRun.length,
+          stepsCompleted: enginesRun.length,
+          enginesRun,
+          scanDurationMs: null,
+          simplebeaconGatePass: simplebeaconReport?.gate?.pass ?? null,
+          simplebeaconIssues:
+            simplebeaconReport?.gate?.blockingCount ??
+            simplebeaconReport?.issueCount ??
+            null,
+          codebaseHealthScore: tierLimits.showQualityScore
+            ? (codebaseReport?.summary?.healthScore ?? null)
+            : null,
+          codebaseFindings: codebaseReport?.summary?.findingsTotal ?? null,
+          fileReductionFindings:
+            fileReductionReport?.summary?.totalFindings ?? null,
+          dataCleanupFindings:
+            dataCleanupReport?.summary?.totalFindings ?? null,
+          compliancePassed: results.compliance?.summary?.passed ?? null,
+          complianceFailed: results.compliance?.summary?.failed ?? null,
+          npmVulnerabilities: results.npmAudit?.vulnerabilities?.total ?? null,
+          handoffEligible:
+            simplebeaconReport?.gate?.pass === true &&
+            (codebaseReport?.summary?.healthScore || 100) >= 80,
+          tier: userTier,
+          tierLimits: { showQualityScore: tierLimits.showQualityScore },
+        };
 
-<<<<<<< Updated upstream
         const completePayload = {
           success: true,
           analysisType: "complete",
@@ -1289,109 +1201,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         logger.info(
           `[Async Complete] ${asyncScanId} completed in ${Date.now() - startedAt}ms`,
         );
-=======
-            updateJob({
-              percent: 85,
-              current: Math.round(fileCount * 0.85),
-              filename: "compliance",
-            });
-
-            // Run compliance checklist after cleanup
-            try {
-              const dataCleanupForCompliance =
-                results.dataCleanup || results.fileReduction || null;
-              results.compliance = evaluateComplianceChecklist(
-                results.simplebeacon || {},
-                {
-                  projectRoot: projectPath,
-                  npmAudit: results.npmAudit,
-                  dataCleanup: dataCleanupForCompliance,
-                },
-              );
-              enginesRun.push("compliance");
-            } catch (complianceErr) {
-              logger.warn(
-                "[Complete] compliance failed:",
-                safeErrorMessage(complianceErr),
-              );
-            }
-
-            // Build summary
-            const simplebeaconReport = results.simplebeacon;
-            const codebaseReport = results.codebase;
-            const fileReductionReport = results.fileReduction;
-            const dataCleanupReport = results.dataCleanup;
-            const summary = {
-              stepCount: enginesRun.length,
-              stepsCompleted: enginesRun.length,
-              enginesRun,
-              scanDurationMs: null,
-              simplebeaconGatePass: simplebeaconReport?.gate?.pass ?? null,
-              simplebeaconIssues:
-                simplebeaconReport?.gate?.blockingCount ??
-                simplebeaconReport?.issueCount ??
-                null,
-              codebaseHealthScore: tierLimits.showQualityScore
-                ? (codebaseReport?.summary?.healthScore ?? null)
-                : null,
-              codebaseFindings: codebaseReport?.summary?.findingsTotal ?? null,
-              fileReductionFindings:
-                fileReductionReport?.summary?.totalFindings ?? null,
-              dataCleanupFindings:
-                dataCleanupReport?.summary?.totalFindings ?? null,
-              compliancePassed: results.compliance?.summary?.passed ?? null,
-              complianceFailed: results.compliance?.summary?.failed ?? null,
-              npmVulnerabilities:
-                results.npmAudit?.vulnerabilities?.total ?? null,
-              handoffEligible:
-                simplebeaconReport?.gate?.pass === true &&
-                (codebaseReport?.summary?.healthScore || 100) >= 80,
-              tier: userTier,
-              tierLimits: { showQualityScore: tierLimits.showQualityScore },
-            };
-
-            const completePayload = {
-              success: true,
-              analysisType: "complete",
-              aiProvider,
-              enginesRun,
-              results,
-              summary,
-              completeScan: {
-                type: "simplebeacon-complete-scan",
-                version: "1.3.0",
-                generatedAt: new Date().toISOString(),
-                projectPath,
-                enginesRun,
-                summary,
-                results,
-              },
-            };
-            let reportJson = completePayload;
-            try {
-              reportJson = JSON.parse(JSON.stringify(completePayload));
-              delete reportJson.projectPath;
-            } catch {
-              /* keep original payload */
-            }
-            if (
-              publicGateEnabled &&
-              typeof applyPublicGateToAnalyzeResponse === "function"
-            ) {
-              reportJson = applyPublicGateToAnalyzeResponse(reportJson);
-            }
-            scanJobs.set(asyncScanId, {
-              ...scanJobs.get(asyncScanId),
-              status: "complete",
-              percent: 100,
-              current: fileCount,
-              reportJson,
-              completedAt: Date.now(),
-            });
-            logger.info(
-              `[Async Complete] ${asyncScanId} completed in ${Date.now() - startedAt}ms`,
-            );
->>>>>>> Stashed changes
           } catch (err) {
             logger.error(
               "[Async Complete] fatal error:",
@@ -3931,13 +3740,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     if (!match) throw new Error("Not a GitHub repository URL");
     const owner = match[1];
     const repo = match[2];
-    let branch = "";
+    let branch = "HEAD";
     const branchMatch = repoUrl.match(/(?:ref=|\/tree\/|\/blob\/)([^/?#]+)/);
     if (branchMatch) branch = branchMatch[1];
     // When no specific branch is given, use the bare /zip/HEAD endpoint
     // which follows the repo's default branch. Using /zip/refs/heads/HEAD
-    // returns 404 because HEAD is not a real branch name.
-    const zipUrl = branch
+    // returns 404 on many repos because "HEAD" is not a literal branch name.
+    const zipUrl = branch && branch !== "HEAD"
       ? `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${branch}`
       : `https://codeload.github.com/${owner}/${repo}/zip/HEAD`;
     const tmpDir = path.join(os.tmpdir(), `sb-zip-${Date.now()}`);
