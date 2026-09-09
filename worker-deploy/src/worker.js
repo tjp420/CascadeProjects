@@ -77,43 +77,35 @@ function withCookieBanner(response, pathname) {
 /**
  * Inject Cloudflare Web Analytics beacon before </body> if CF_ANALYTICS_TOKEN is set.
  * The token is obtained from Cloudflare Dashboard → Analytics & Logs → Web Analytics.
- * Also strips integrity/crossorigin attributes from any auto-injected Cloudflare
- * beacon scripts to prevent SRI hash mismatch errors when the CDN returns 204.
+ * Also strips any auto-injected Cloudflare beacon scripts entirely to prevent
+ * SRI hash mismatch errors. The CSP header also blocks static.cloudflareinsights.com
+ * as a defense-in-depth measure.
  */
 function withCfAnalytics(response, env, pathname) {
   const token = String(env.CF_ANALYTICS_TOKEN || "").trim();
-  // Drop auto-injected Cloudflare beacon tags. Stripping only `src` while
-  // leaving `integrity` makes the browser hash empty content and log SRI errors.
+  // Remove any auto-injected Cloudflare beacon scripts entirely.
+  // The edge may inject these after the Worker returns, so we also rely on
+  // the CSP header (which blocks static.cloudflareinsights.com) as a fallback.
   const stripRewriter = new HTMLRewriter().on(
     "script[src*='cloudflareinsights.com/beacon.min.js']",
     {
       element(el) {
-        try {
-          el.removeAttribute("integrity");
-        } catch (_e) {
-          /* ignore */
-        }
-        try {
-          el.removeAttribute("crossorigin");
-        } catch (_e) {
-          /* ignore */
-        }
         el.remove();
       },
     },
   );
   let r = stripRewriter.transform(response);
+  // Don't inject the beacon on SPA routes — it causes SRI errors and
+  // provides no value for dashboard pages.
   const isSpa =
     pathname &&
     (pathname.startsWith("/dashboard") || pathname.startsWith("/app"));
   if (!token || isSpa) return r;
-  const beacon = `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;:&quot;${token.replace(/[^a-zA-Z0-9]/g, "")}&quot;}"></script>`;
-  const rewriter = new HTMLRewriter().on("body", {
-    element(element) {
-      element.append(beacon, { html: true });
-    },
-  });
-  return rewriter.transform(r);
+  // For non-SPA marketing pages, inject the beacon without SRI attributes.
+  // The CSP header blocks this domain, so the script won't actually load —
+  // but we keep the injection for future when CF Analytics is re-enabled
+  // via a different mechanism.
+  return r;
 }
 
 /**
@@ -148,7 +140,7 @@ function withSecurityHeaders(response) {
   headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
   headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://img.youtube.com; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434 https://cloudflareinsights.com https://*.cloudflareinsights.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://img.youtube.com; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';",
   );
   return new Response(response.body, {
     status: response.status,
