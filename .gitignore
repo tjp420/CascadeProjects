@@ -484,6 +484,10 @@ ai-platform/web/simplebeacon-dashboard/assets/
 coming-soon/public/app/assets/
 coming-soon/public/dashboard/assets/
 simplebeacon-vscode-merged/dashboard-web/assets/
+# Exception: dashboard built assets are deployed via Worker and must be committed
+!coming-soon/public/dashboard/assets/main.js
+!coming-soon/public/dashboard/assets/main.css
+!coming-soon/public/dashboard/assets/_headers
 
 # Playwright reports
 **/playwright-report/
