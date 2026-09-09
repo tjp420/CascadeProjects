@@ -6,15 +6,45 @@
 export const DEFAULT_API_BASE =
   import.meta.env.VITE_API_BASE || "http://127.0.0.1:58000";
 
+/** Hash view to restore after a sign-in redirect (deep links like #/team-metrics). */
+export const POST_LOGIN_VIEW_KEY = "sb_post_login_view";
+
+export function isForeignPagesPreviewBase(value: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const url = new URL(value, window.location.href);
+    const host = url.hostname || "";
+    const here = window.location.hostname || "";
+    if (!host.endsWith(".simplebeacon.pages.dev")) return false;
+    return host !== here;
+  } catch {
+    return false;
+  }
+}
+
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
     const explicit = params.get("sb_api_base");
-    if (explicit) {
+    if (explicit && !isForeignPagesPreviewBase(explicit)) {
       const trimmed = explicit.replace(/\/+$/, "");
-      if (/\/api$/i.test(trimmed)) return trimmed.replace(/\/api$/i, "");
-      return trimmed;
+      const base = /\/api$/i.test(trimmed)
+        ? trimmed.replace(/\/api$/i, "")
+        : trimmed;
+      const hostedHttps =
+        window.location.protocol === "https:" &&
+        !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      let loopback = false;
+      try {
+        const u = new URL(base, window.location.href);
+        loopback =
+          u.protocol === "http:" &&
+          /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(u.hostname);
+      } catch {
+        loopback = false;
+      }
+      if (!(hostedHttps && loopback)) return base;
     }
     // Prefer an already-detected local API host (populated by background probe)
     // Window variable kept for compatibility with legacy bundles.
@@ -25,12 +55,25 @@ export function getApiBase(): string {
     // If present, prefer the detected host (do not append /api here).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win: any = window as any;
+    const envBase = win.__SIMPLEBEACON_ENV__?.DASHBOARD_BASE_URL;
     const detected =
-      win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
-    if (detected && typeof detected === "string" && detected.length > 0)
+      win.__SB_API_HOST__ ||
+      win.__SIMPLEBEACON_DETECTED_API_BASE ||
+      (typeof envBase === "string" ? String(envBase).replace(/\/+$/, "") : "");
+    if (
+      detected &&
+      typeof detected === "string" &&
+      detected.length > 0 &&
+      !isForeignPagesPreviewBase(detected)
+    )
       return String(detected).replace(/\/+$/, "");
     const host = window.location.hostname || "";
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      const port = String(window.location.port || "");
+      const isViteDev = port === "5173" || port === "4173" || port === "61455";
+      if (!isViteDev) {
+        return window.location.origin;
+      }
       // If the probe completed and found no local server, fall back to production API
       // to avoid CORS errors from trying to reach a non-existent local server.
       if (_probeDone && !detected) {
@@ -76,24 +119,45 @@ export function getApiBase(): string {
  */
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem("sb_auth_token") ||
-    localStorage.getItem("sb_token") ||
-    localStorage.getItem("sb-token") ||
-    localStorage.getItem("auth_token") ||
-    localStorage.getItem("simplebeacon_token") ||
-    localStorage.getItem("cascadeAuthToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken")
-  );
+  const keys = [
+    "sb_auth_token",
+    "sb_token",
+    "sb-token",
+    "auth_token",
+    "simplebeacon_token",
+    "cascadeAuthToken",
+    "access_token",
+    "token",
+    "authToken",
+  ];
+  for (const key of keys) {
+    const token = localStorage.getItem(key);
+    if (!token) continue;
+    if (!isStoredTokenUsable(token)) continue;
+    return token;
+  }
+  return null;
+}
+
+function isStoredTokenUsable(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2 && parts.length !== 3) return false;
+    const payloadPart = parts.length === 2 ? parts[0] : parts[1];
+    const payload = JSON.parse(
+      atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    if (payload.exp && Date.now() >= payload.exp * 1000) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function getLicenseToken(): string | null {
   if (typeof window === "undefined") return null;
   return (
-    localStorage.getItem("sb_license") ||
-    localStorage.getItem("sb-license")
+    localStorage.getItem("sb_license") || localStorage.getItem("sb-license")
   );
 }
 
@@ -128,7 +192,11 @@ export function clearAuthToken(): void {
     "authToken",
   ];
   for (const key of allKeys) {
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -151,7 +219,9 @@ export function isTokenExpired(): boolean {
     // 3-part JWT tokens (header.data.signature) — decode second part as payload
     if (parts.length !== 2 && parts.length !== 3) return true;
     const payloadPart = parts.length === 2 ? parts[0] : parts[1];
-    const payload = JSON.parse(atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")),
+    );
     if (payload.exp && Date.now() >= payload.exp * 1000) return true;
     return false;
   } catch {
@@ -193,7 +263,11 @@ export async function processAgentParams(): Promise<void> {
           if (data.success && data.authToken) {
             setAuthToken(data.authToken);
             if (data.licenseToken) setLicenseToken(data.licenseToken);
-            try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+            try {
+              sessionStorage.setItem("sb_agent_mode", "1");
+            } catch {
+              /* ignore */
+            }
             // Clean the URL — remove the token param
             const cleanUrl = window.location.pathname + window.location.hash;
             window.history.replaceState({}, "", cleanUrl);
@@ -217,7 +291,11 @@ export async function processAgentParams(): Promise<void> {
       setLicenseToken(licenseToken);
     }
     if (agentMode === "1") {
-      try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem("sb_agent_mode", "1");
+      } catch {
+        /* ignore */
+      }
     }
   } catch {
     /* ignore */
@@ -241,8 +319,40 @@ export function clearAuthAndRedirect(): void {
   window.location.hash = "#/signin";
 }
 
-export function apiUrl(path: string): string {
-  const base = getApiBase() || "";
+export function getHostedCloudApiBase(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname || "";
+  if (host === "simplebeacon.ai" || host.endsWith(".simplebeacon.pages.dev")) {
+    return window.location.origin;
+  }
+  return "";
+}
+
+function isLoopbackHttpBase(value: string): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(
+      value,
+      typeof location !== "undefined" ? location.href : "http://localhost",
+    );
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function shouldUseHostedCloudApiForGithub(): boolean {
+  const cloud = getHostedCloudApiBase();
+  if (!cloud) return false;
+  return isLoopbackHttpBase(getApiBase());
+}
+
+export function apiUrl(
+  path: string,
+  options?: { preferCloud?: boolean },
+): string {
+  const cloud = options?.preferCloud ? getHostedCloudApiBase() : "";
+  const base = cloud || getApiBase() || "";
   const normalized = String(base)
     .replace(/\/+$/, "")
     .replace(/\/api$/i, "");

@@ -195,7 +195,17 @@ export function SignInView() {
           /* ignore */
         }
         toast.success(mode === "signin" ? "Signed in" : "Account created");
-        navigate("dashboard");
+        let nextView = "dashboard";
+        try {
+          const saved = sessionStorage.getItem("sb_post_login_view");
+          sessionStorage.removeItem("sb_post_login_view");
+          if (saved && saved !== "signin" && saved !== "register") {
+            nextView = saved;
+          }
+        } catch {
+          /* ignore */
+        }
+        navigate(nextView);
       } else {
         throw new Error("No token received from server");
       }

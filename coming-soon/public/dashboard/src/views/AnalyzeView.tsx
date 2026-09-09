@@ -808,6 +808,11 @@ export function AnalyzeView() {
           },
           rawIssues: rawIssues.slice(0, 50),
           detectedIssues: rawIssues.slice(0, 50),
+          qualityIssues: (Array.isArray(report?.qualityIssues)
+            ? report.qualityIssues
+            : []
+          ).slice(0, 50),
+          contextLanes: report?.contextLanes,
           issuesTruncated: Boolean(
             report?.issuesTruncated || rawIssues.length > 50,
           ),

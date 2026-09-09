@@ -61,7 +61,7 @@ jobs:
         run: |
           # Ensure certify routes appear before the generic /api/ proxy block
           CERTIFY_LINE=$(grep -n '/api/v1/certify' src/worker.js | head -1 | cut -d: -f1)
-          PROXY_LINE=$(grep -n "startsWith('/api/')" src/worker.js | head -1 | cut -d: -f1)
+          PROXY_LINE=$(grep -n 'startsWith.*"/api/"' src/worker.js | head -1 | cut -d: -f1)
           if [ -z "$CERTIFY_LINE" ] || [ -z "$PROXY_LINE" ]; then
             echo "ERROR: Could not find certify or proxy route lines"
             exit 1
