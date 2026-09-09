@@ -497,6 +497,58 @@ function validateRepoUrl(rawUrl, options = {}) {
 }
 
 /**
+ * Parse a GitHub HTTPS repository URL into owner/repo for clone and zipball.
+ * Rejects org pages, search URLs, and paths that are not owner/repo.
+ * @param {string} rawUrl
+ * @returns {{ owner: string, repo: string, branch: string, cloneUrl: string }}
+ */
+function parseGithubRepoUrl(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) {
+    throw new Error("repoUrl is required");
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(
+      "Not a GitHub repository URL. Use https://github.com/owner/repo",
+    );
+  }
+  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  if (parsed.protocol !== "https:" || host !== "github.com") {
+    throw new Error(
+      "Not a GitHub repository URL. Use https://github.com/owner/repo",
+    );
+  }
+  const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+  const owner = parts[0] || "";
+  const repo = String(parts[1] || "").replace(/\.git$/i, "");
+  if (!/^[-.\w]+$/.test(owner) || !/^[-.\w]+$/.test(repo)) {
+    throw new Error(
+      "Not a GitHub repository URL. Use https://github.com/owner/repo",
+    );
+  }
+  let branch = "HEAD";
+  if (parts[2] === "tree" && parts[3]) {
+    try {
+      branch = decodeURIComponent(parts[3]);
+    } catch {
+      branch = parts[3];
+    }
+    if (!/^[-.\w/]+$/.test(branch)) {
+      branch = "HEAD";
+    }
+  }
+  return {
+    owner,
+    repo,
+    branch,
+    cloneUrl: `https://github.com/${owner}/${repo}.git`,
+  };
+}
+
+/**
  * Assert safe executable path.
  * @param {string} binPath
  * @param {any} label
@@ -529,6 +581,7 @@ module.exports = {
   assertSafeProjectPath,
   dedupeResolvedRoots,
   validateRepoUrl,
+  parseGithubRepoUrl,
   assertSafeExecutablePath,
   DEFAULT_ALLOWED_HOSTS,
 };
