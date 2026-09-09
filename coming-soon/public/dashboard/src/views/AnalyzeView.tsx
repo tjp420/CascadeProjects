@@ -38,8 +38,11 @@ import {
   isTokenExpired,
   clearAuthAndRedirect,
   shouldUseHostedCloudApiForGithub,
+<<<<<<< Updated upstream
   fetchApiPath,
   hostedLoopbackScanErrorMessage,
+=======
+>>>>>>> Stashed changes
 } from "@/config";
 import { setLargeItem, removeLargeItem } from "@/utils/dbStorage";
 import {
@@ -1937,17 +1940,25 @@ export function AnalyzeView() {
             "[SimpleBeacon] Using hosted API for GitHub clone (extension bridge cannot clone remotes).",
           );
         }
+<<<<<<< Updated upstream
         const cloneResp = await fetchApiPath(
           "/analyze/github-clone",
+=======
+        const cloneResp = await fetch(
+          apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
+>>>>>>> Stashed changes
           {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
             body: JSON.stringify({ repoUrl: scanPath }),
           },
+<<<<<<< Updated upstream
           {
             preferCloud: githubCloudApi,
             fallbackCloudOnNetworkError: true,
           },
+=======
+>>>>>>> Stashed changes
         );
         if (!cloneResp.ok) {
           const cloneErr = await cloneResp.json().catch(() => ({}));
@@ -1982,8 +1993,13 @@ export function AnalyzeView() {
         const timeoutId = setTimeout(() => controller.abort(), 120000);
         let resp: Response;
         try {
+<<<<<<< Updated upstream
           resp = await fetchApiPath(
             "/analyze/flexible",
+=======
+          resp = await fetch(
+            apiUrl("/analyze/flexible", { preferCloud: githubCloudApi }),
+>>>>>>> Stashed changes
             {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -2119,6 +2135,7 @@ export function AnalyzeView() {
           `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
         );
 
+<<<<<<< Updated upstream
         try {
           persistScanResult(scanResult, presentedReport);
         } catch (persistErr) {
@@ -2127,6 +2144,9 @@ export function AnalyzeView() {
             persistErr,
           );
         }
+=======
+        persistScanResult(scanResult, presentedReport);
+>>>>>>> Stashed changes
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel("Browser sandbox not available in React mode yet");

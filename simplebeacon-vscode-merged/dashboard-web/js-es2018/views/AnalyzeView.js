@@ -757,20 +757,18 @@ function groupEnginesByCategory(engineIds) {
       (opt === null || opt === void 0 ? void 0 : opt.category) ||
       'Other';
     if (!groups.has(category)) groups.set(category, []);
-    groups
-      .get(category)
-      .push({
+    groups.get(category).push({
+      id,
+      label:
+        (step === null || step === void 0 ? void 0 : step.label) ||
+        (opt === null || opt === void 0 ? void 0 : opt.label) ||
         id,
-        label:
-          (step === null || step === void 0 ? void 0 : step.label) ||
-          (opt === null || opt === void 0 ? void 0 : opt.label) ||
-          id,
-        desc:
-          (step === null || step === void 0 ? void 0 : step.desc) ||
-          (opt === null || opt === void 0 ? void 0 : opt.hint) ||
-          '',
-        optional: !!opt,
-      });
+      desc:
+        (step === null || step === void 0 ? void 0 : step.desc) ||
+        (opt === null || opt === void 0 ? void 0 : opt.hint) ||
+        '',
+      optional: !!opt,
+    });
   }
   return groups;
 }

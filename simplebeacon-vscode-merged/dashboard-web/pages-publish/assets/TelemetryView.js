@@ -1,7 +1,1029 @@
-import{E as ce,j as e,G as ie,B,H as de,I as xe,J as me,r as K,A as w,c as N,g as k,h as S,K as G,z as X,k as C,R as U,d as y,e as V,F as Z,n as ue,M as Q,N as ee,f as se,l as R,L as te,m as E,X as O,Y as L,o as $,p as P,q as ae,s as re,t as W,S as pe,Z as he,i as oe,y as le,D as Y,u as ge,v as ne}from"./main.js";/**
+import {
+  E as ce,
+  j as e,
+  G as ie,
+  B,
+  H as de,
+  I as xe,
+  J as me,
+  r as K,
+  A as w,
+  c as N,
+  g as k,
+  h as S,
+  K as G,
+  z as X,
+  k as C,
+  R as U,
+  d as y,
+  e as V,
+  F as Z,
+  n as ue,
+  M as Q,
+  N as ee,
+  f as se,
+  l as R,
+  L as te,
+  m as E,
+  X as O,
+  Y as L,
+  o as $,
+  p as P,
+  q as ae,
+  s as re,
+  t as W,
+  S as pe,
+  Z as he,
+  i as oe,
+  y as le,
+  D as Y,
+  u as ge,
+  v as ne,
+} from './main.js';
+/**
  * @license lucide-react v0.460.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const fe=ce("Timer",[["line",{x1:"10",x2:"14",y1:"2",y2:"2",key:"14vaq8"}],["line",{x1:"12",x2:"15",y1:"14",y2:"11",key:"17fdiu"}],["circle",{cx:"12",cy:"14",r:"8",key:"1e1u0o"}]]),je={scan_limit:{title:"Free Scan Limit Reached",description:"You have used all 3 free scans this month. Upgrade to Developer for unlimited scans and CI gate export.",cta:"Upgrade to Developer — $49/mo",tierLabel:"Developer"},ci_gate:{title:"CI/CD Integration is a Developer Feature",description:"Export gate-ready CI configs, SARIF reports, and pipeline snippets with a Developer plan or higher.",cta:"Upgrade to Developer — $49/mo",tierLabel:"Developer"},eu_ai_act:{title:"EU AI Act Mapping is a Team Pro Feature",description:"Unlock EU AI Act compliance mapping, board-ready analytics, and advanced telemetry with Team Pro.",cta:"Upgrade to Team Pro — $149/mo",tierLabel:"Team Pro"},board_pdf:{title:"Board PDF Export is a Team Pro Feature",description:"Generate board-ready PDF compliance reports with Team Pro or Enterprise.",cta:"Upgrade to Team Pro — $149/mo",tierLabel:"Team Pro"}};function ve({reason:s,className:n}){const c=je[s];return e.jsxs("div",{className:xe("flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 px-6 py-10 text-center",n),children:[e.jsx("div",{className:"flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary",children:e.jsx(ie,{className:"h-6 w-6"})}),e.jsxs("div",{className:"space-y-2 max-w-md",children:[e.jsx("h3",{className:"text-lg font-semibold",children:c.title}),e.jsx("p",{className:"text-sm text-foreground-muted",children:c.description})]}),e.jsxs(B,{className:"gap-2",onClick:()=>window.open("/pricing","_blank"),children:[e.jsx(de,{className:"h-4 w-4"}),c.cta]}),e.jsxs("p",{className:"text-xs text-foreground-muted",children:[c.tierLabel," plan required"]})]})}function _(s){try{return new Date(s).toLocaleDateString(void 0,{month:"short",day:"numeric"})}catch{return s.slice(0,10)}}function H(s){return s<1e3?`${s}ms`:s<6e4?`${(s/1e3).toFixed(1)}s`:`${(s/6e4).toFixed(1)}m`}function J(s){return s<1e3?`${s}`:s<1e6?`${(s/1e3).toFixed(1)}K`:`${(s/1e6).toFixed(2)}M`}function Ne(s){var T;if(!s.length)return{totalSweeps:0,totalFiles:0,totalChunks:0,totalTokens:0,totalDurationMs:0,avgDurationMs:0,avgFilesPerSweep:0,avgTokensPerChunk:0,totalErrors:0,latestDurationMs:0,durationTrend:"flat"};const n=s.length,c=s.reduce((p,h)=>p+h.totalFiles,0),d=s.reduce((p,h)=>p+h.totalChunks,0),x=s.reduce((p,h)=>p+h.totalTokensEstimated,0),u=s.reduce((p,h)=>p+h.durationMs,0),i=s.reduce((p,h)=>p+h.errors,0),f=Math.round(u/n),j=Math.round(c/n),b=d>0?Math.round(x/d):0,a=s[s.length-1],r=(a==null?void 0:a.durationMs)??0;let o="flat";if(s.length>=2){const p=((T=s[s.length-2])==null?void 0:T.durationMs)??0;r<p*.9?o="down":r>p*1.1&&(o="up")}return{totalSweeps:n,totalFiles:c,totalChunks:d,totalTokens:x,totalDurationMs:u,avgDurationMs:f,avgFilesPerSweep:j,avgTokensPerChunk:b,totalErrors:i,latestDurationMs:r,durationTrend:o}}function ye(s){var b;if(!s.length)return{totalScans:0,avgEuAiAct:0,avgSoc2:0,avgGate:0,avgOverall:0,latestOverall:0,overallTrend:"flat"};const n=s.length,c=Math.round(s.reduce((a,r)=>a+r.euAiActScore,0)/n),d=Math.round(s.reduce((a,r)=>a+r.soc2Score,0)/n),x=Math.round(s.reduce((a,r)=>a+r.gateScore,0)/n),u=Math.round(s.reduce((a,r)=>a+r.overallScore,0)/n),i=s[s.length-1],f=(i==null?void 0:i.overallScore)??0;let j="flat";if(s.length>=2){const a=((b=s[s.length-2])==null?void 0:b.overallScore)??0;f>a?j="up":f<a&&(j="down")}return{totalScans:n,avgEuAiAct:c,avgSoc2:d,avgGate:x,avgOverall:u,latestOverall:f,overallTrend:j}}function be(s){var j,b,a;if(!s.length)return{totalNew:0,totalResolved:0,netChange:0,currentOpen:0,resolutionRate:0,latestResolved:0,resolutionTrend:"flat"};const n=s.reduce((r,o)=>r+o.newIssues,0),c=s.reduce((r,o)=>r+o.resolvedIssues,0),d=n-c,x=((j=s[s.length-1])==null?void 0:j.openTotal)??0,u=n>0?Math.round(c/n*100):0,i=((b=s[s.length-1])==null?void 0:b.resolvedIssues)??0;let f="flat";if(s.length>=2){const r=((a=s[s.length-2])==null?void 0:a.resolvedIssues)??0;i>r?f="up":i<r&&(f="down")}return{totalNew:n,totalResolved:c,netChange:d,currentOpen:x,resolutionRate:u,latestResolved:i,resolutionTrend:f}}function ke(){const{hasFeature:s}=me(),[n,c]=K.useState({batchHistory:[],complianceHistory:[],resolutionHistory:[],loading:!0,error:null}),d=K.useCallback(async()=>{c(t=>({...t,loading:!0,error:null}));try{let t=[],M=[],D=[];try{const v=localStorage.getItem("sb_telemetry_batches");if(v){const m=JSON.parse(v);Array.isArray(m)&&(t=m)}}catch{}try{const v=localStorage.getItem("sb_telemetry_compliance");if(v){const m=JSON.parse(v);Array.isArray(m)&&(M=m)}}catch{}try{const v=localStorage.getItem("sb_telemetry_resolution");if(v){const m=JSON.parse(v);Array.isArray(m)&&(D=m)}}catch{}if(t.length===0||M.length===0||D.length===0)try{const v=localStorage.getItem("sb_scan_history");if(v){const m=JSON.parse(v);Array.isArray(m)&&(t.length===0&&(t=m.map(l=>({scanId:l.scanId||`scan-${l.date}`,date:l.date,totalFiles:l.totalFilesScanned||0,totalChunks:Math.max(1,Math.ceil((l.totalFilesScanned||0)/10)),totalBatches:Math.max(1,Math.ceil((l.totalFilesScanned||0)/50)),totalTokensEstimated:(l.totalFilesScanned||0)*350,durationMs:l.processingTimeMs||Math.round((l.totalFilesScanned||0)*12),avgChunkTokens:350,errors:0}))),M.length===0&&(M=m.map(l=>{var q;const A=l.gatePass?100:Math.max(0,100-(l.issueCount||0)*5),I=Math.max(0,Math.min(100,A-(l.fictionPatternsFound||0)*3)),F=Math.max(0,Math.min(100,A-(((q=l.severityCounts)==null?void 0:q.critical)||0)*10)),z=Math.round((I+F+A)/3);return{scanId:l.scanId||`scan-${l.date}`,date:l.date,euAiActScore:I,soc2Score:F,gateScore:A,overallScore:z}})),D.length===0&&m.length>=2&&(D=m.slice(1).map((l,A)=>{const I=m[A],F=Math.max(0,(l.issueCount||0)-(I.issueCount||0)),z=Math.max(0,(I.issueCount||0)-(l.issueCount||0));return{scanId:l.scanId||`scan-${l.date}`,date:l.date,newIssues:F,resolvedIssues:z,netChange:F-z,openTotal:l.issueCount||0}})))}}catch{}c({batchHistory:t,complianceHistory:M,resolutionHistory:D,loading:!1,error:null})}catch(t){c({batchHistory:[],complianceHistory:[],resolutionHistory:[],loading:!1,error:t instanceof Error?t.message:"Failed to load telemetry"})}},[]);K.useEffect(()=>{d()},[d]);const{batchHistory:x,complianceHistory:u,resolutionHistory:i,loading:f,error:j}=n;if(!s("canMapEuAiAct"))return e.jsxs("div",{className:"mx-auto max-w-5xl p-6 space-y-6",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(w,{className:"h-7 w-7 text-primary"}),e.jsxs("div",{children:[e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Advanced Telemetry"}),e.jsx("p",{className:"text-sm text-foreground-muted",children:"Multi-file batch analytics, compliance trends, and issue resolution tracking"})]})]}),e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(G,{className:"h-5 w-5"}),"Advanced Telemetry Analytics",e.jsx(X,{className:"bg-primary/15 text-primary border-primary/30",children:"Team Pro"})]}),e.jsx(C,{children:"Batch execution times, EU AI Act compliance trends, and issue resolution tracking"})]}),e.jsx(ve,{reason:"eu_ai_act",className:"min-h-[300px]"})]})]});if(f)return e.jsxs("div",{className:"mx-auto max-w-7xl p-6 space-y-8",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(w,{className:"h-7 w-7 text-primary"}),e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Advanced Telemetry"})]}),e.jsxs("div",{className:"flex flex-col items-center gap-3 py-20 text-center",children:[e.jsx(U,{className:"h-8 w-8 animate-spin text-foreground-muted"}),e.jsx("p",{className:"text-sm text-foreground-muted",children:"Loading telemetry data..."})]})]});if(j)return e.jsxs("div",{className:"mx-auto max-w-7xl p-6 space-y-8",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(w,{className:"h-7 w-7 text-primary"}),e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Advanced Telemetry"})]}),e.jsx(N,{children:e.jsxs(y,{className:"flex flex-col items-center gap-3 py-12 text-center",children:[e.jsx(V,{className:"h-10 w-10 text-danger"}),e.jsx("p",{className:"text-sm text-danger",children:j}),e.jsxs(B,{size:"sm",onClick:d,className:"gap-2",children:[e.jsx(U,{className:"h-4 w-4"})," Retry"]})]})})]});if(!(x.length>0||u.length>0||i.length>0))return e.jsxs("div",{className:"mx-auto max-w-7xl p-6 space-y-8",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(w,{className:"h-7 w-7 text-primary"}),e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Advanced Telemetry"})]}),e.jsx(N,{children:e.jsxs(y,{className:"flex flex-col items-center gap-4 py-16 text-center",children:[e.jsx(w,{className:"h-12 w-12 text-foreground-muted"}),e.jsxs("div",{className:"space-y-1",children:[e.jsx("p",{className:"text-lg font-semibold",children:"No telemetry data yet"}),e.jsx("p",{className:"text-sm text-foreground-muted",children:"Run multi-file scans to start tracking batch execution times, compliance trends, and issue resolution rates."})]}),e.jsxs(B,{onClick:()=>ue("analyze"),className:"gap-2",children:[e.jsx(Z,{className:"h-4 w-4"})," Run First Scan"]})]})})]});const a=Ne(x),r=ye(u),o=be(i),T=x.map(t=>({date:_(t.date),durationMs:t.durationMs,files:t.totalFiles,chunks:t.totalChunks,tokens:t.totalTokensEstimated})),p=u.map(t=>({date:_(t.date),euAiAct:t.euAiActScore,soc2:t.soc2Score,gate:t.gateScore,overall:t.overallScore})),h=i.map(t=>({date:_(t.date),newIssues:t.newIssues,resolvedIssues:t.resolvedIssues,openTotal:t.openTotal}));return e.jsxs("div",{className:"mx-auto max-w-7xl p-6 space-y-8",children:[e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx(w,{className:"h-7 w-7 text-primary"}),e.jsxs("div",{children:[e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Advanced Telemetry"}),e.jsx("p",{className:"text-sm text-foreground-muted",children:"Batch execution, compliance trends, and issue resolution analytics"})]})]}),e.jsxs(B,{variant:"outline",size:"sm",onClick:d,className:"gap-2",children:[e.jsx(U,{className:"h-4 w-4"})," Refresh"]})]}),e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx(fe,{className:"h-5 w-5 text-primary"}),e.jsx("h2",{className:"text-lg font-semibold",children:"Multi-File Batch Execution"})]}),e.jsxs("div",{className:"grid gap-4 sm:grid-cols-2 lg:grid-cols-4",children:[e.jsx(g,{icon:Q,label:"Avg Sweep Duration",value:H(a.avgDurationMs),subtitle:`Latest: ${H(a.latestDurationMs)}`,trend:a.durationTrend==="down"?"up":a.durationTrend==="up"?"down":"flat",color:a.durationTrend==="down"?"success":a.durationTrend==="up"?"warning":"muted"}),e.jsx(g,{icon:Z,label:"Total Files Processed",value:a.totalFiles.toLocaleString(),subtitle:`Avg ${a.avgFilesPerSweep} per sweep`,color:"info"}),e.jsx(g,{icon:ee,label:"Total Chunks",value:a.totalChunks.toLocaleString(),subtitle:`Avg ${a.avgTokensPerChunk} tokens/chunk`,color:"info"}),e.jsx(g,{icon:se,label:"Chunk Errors",value:a.totalErrors.toLocaleString(),subtitle:a.totalErrors===0?"No errors":"Some chunks failed",color:a.totalErrors>0?"warning":"success"})]}),x.length>0&&e.jsxs("div",{className:"grid gap-6 lg:grid-cols-2",children:[e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(Q,{className:"h-5 w-5 text-primary"}),"Sweep Duration Trend"]}),e.jsx(C,{children:"Execution time per multi-file sweep"})]}),e.jsx(y,{children:e.jsx(R,{width:"100%",height:260,children:e.jsxs(te,{data:T,margin:{top:5,right:20,bottom:5,left:0},children:[e.jsx(E,{strokeDasharray:"3 3",className:"opacity-30"}),e.jsx(O,{dataKey:"date",tick:{fontSize:12}}),e.jsx(L,{tick:{fontSize:12},tickFormatter:t=>H(t)}),e.jsx($,{contentStyle:{backgroundColor:"var(--color-card, #fff)",border:"1px solid var(--color-border, #e2e8f0)",borderRadius:"8px",fontSize:"13px"},formatter:t=>H(Number(t))}),e.jsx(P,{type:"monotone",dataKey:"durationMs",stroke:"#3b82f6",strokeWidth:2,dot:{r:4},activeDot:{r:6},name:"Duration"})]})})})]}),e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(ee,{className:"h-5 w-5 text-info"}),"Token Volume per Sweep"]}),e.jsx(C,{children:"Estimated tokens processed per sweep"})]}),e.jsx(y,{children:e.jsx(R,{width:"100%",height:260,children:e.jsxs(ae,{data:T,margin:{top:5,right:20,bottom:5,left:0},children:[e.jsx("defs",{children:e.jsxs("linearGradient",{id:"tokenGradient",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#8b5cf6",stopOpacity:.3}),e.jsx("stop",{offset:"95%",stopColor:"#8b5cf6",stopOpacity:0})]})}),e.jsx(E,{strokeDasharray:"3 3",className:"opacity-30"}),e.jsx(O,{dataKey:"date",tick:{fontSize:12}}),e.jsx(L,{tick:{fontSize:12},tickFormatter:t=>J(t)}),e.jsx($,{contentStyle:{backgroundColor:"var(--color-card, #fff)",border:"1px solid var(--color-border, #e2e8f0)",borderRadius:"8px",fontSize:"13px"},formatter:t=>J(Number(t))+" tokens"}),e.jsx(re,{type:"monotone",dataKey:"tokens",stroke:"#8b5cf6",strokeWidth:2,fill:"url(#tokenGradient)",name:"Tokens"})]})})})]})]}),x.length>0&&e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsx(S,{children:"Recent Batch Executions"}),e.jsx(C,{children:"Detailed history of multi-file sweep performance"})]}),e.jsx(y,{children:e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-foreground-muted",children:[e.jsx("th",{className:"pb-2 pr-4",children:"Date"}),e.jsx("th",{className:"pb-2 pr-4",children:"Files"}),e.jsx("th",{className:"pb-2 pr-4",children:"Chunks"}),e.jsx("th",{className:"pb-2 pr-4",children:"Batches"}),e.jsx("th",{className:"pb-2 pr-4",children:"Tokens"}),e.jsx("th",{className:"pb-2 pr-4",children:"Duration"}),e.jsx("th",{className:"pb-2 pr-4",children:"Errors"})]})}),e.jsx("tbody",{children:[...x].reverse().slice(0,10).map(t=>e.jsxs("tr",{className:"border-b border-border/50 hover:bg-muted/30",children:[e.jsx("td",{className:"py-2 pr-4 text-foreground-muted",children:_(t.date)}),e.jsx("td",{className:"py-2 pr-4",children:t.totalFiles.toLocaleString()}),e.jsx("td",{className:"py-2 pr-4",children:t.totalChunks.toLocaleString()}),e.jsx("td",{className:"py-2 pr-4",children:t.totalBatches}),e.jsx("td",{className:"py-2 pr-4 text-info",children:J(t.totalTokensEstimated)}),e.jsx("td",{className:"py-2 pr-4 font-medium",children:H(t.durationMs)}),e.jsx("td",{className:"py-2 pr-4",children:t.errors>0?e.jsx(X,{variant:"warning",className:"text-xs",children:t.errors}):e.jsx(W,{className:"h-4 w-4 text-success"})})]},t.scanId))})]})})})]})]}),u.length>0&&e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx(G,{className:"h-5 w-5 text-primary"}),e.jsx("h2",{className:"text-lg font-semibold",children:"Historical Compliance Scores"})]}),e.jsxs("div",{className:"grid gap-4 sm:grid-cols-2 lg:grid-cols-4",children:[e.jsx(g,{icon:G,label:"Avg Overall Score",value:`${r.avgOverall}%`,subtitle:`Latest: ${r.latestOverall}%`,trend:r.overallTrend,color:r.avgOverall>=80?"success":r.avgOverall>=60?"warning":"danger"}),e.jsx(g,{icon:W,label:"Avg EU AI Act",value:`${r.avgEuAiAct}%`,color:r.avgEuAiAct>=80?"success":"warning"}),e.jsx(g,{icon:pe,label:"Avg SOC 2",value:`${r.avgSoc2}%`,color:r.avgSoc2>=80?"success":"warning"}),e.jsx(g,{icon:he,label:"Avg Gate Score",value:`${r.avgGate}%`,color:r.avgGate>=80?"success":"warning"})]}),e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(oe,{className:"h-5 w-5 text-primary"}),"Compliance Score Trends"]}),e.jsx(C,{children:"EU AI Act, SOC 2, and Gate scores over time"})]}),e.jsx(y,{children:e.jsx(R,{width:"100%",height:300,children:e.jsxs(te,{data:p,margin:{top:5,right:20,bottom:5,left:0},children:[e.jsx(E,{strokeDasharray:"3 3",className:"opacity-30"}),e.jsx(O,{dataKey:"date",tick:{fontSize:12}}),e.jsx(L,{domain:[0,100],tick:{fontSize:12}}),e.jsx($,{contentStyle:{backgroundColor:"var(--color-card, #fff)",border:"1px solid var(--color-border, #e2e8f0)",borderRadius:"8px",fontSize:"13px"}}),e.jsx(le,{}),e.jsx(P,{type:"monotone",dataKey:"overall",stroke:"#3b82f6",strokeWidth:2,dot:{r:3},name:"Overall"}),e.jsx(P,{type:"monotone",dataKey:"euAiAct",stroke:"#8b5cf6",strokeWidth:2,dot:{r:3},name:"EU AI Act"}),e.jsx(P,{type:"monotone",dataKey:"soc2",stroke:"#22c55e",strokeWidth:2,dot:{r:3},name:"SOC 2"}),e.jsx(P,{type:"monotone",dataKey:"gate",stroke:"#f97316",strokeWidth:2,dot:{r:3},name:"Gate"})]})})})]})]}),i.length>0&&e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx(Y,{className:"h-5 w-5 text-primary"}),e.jsx("h2",{className:"text-lg font-semibold",children:"Issue Resolution Tracking"})]}),e.jsxs("div",{className:"grid gap-4 sm:grid-cols-2 lg:grid-cols-4",children:[e.jsx(g,{icon:se,label:"Total New Issues",value:o.totalNew.toLocaleString(),subtitle:"Across all scans",color:"warning"}),e.jsx(g,{icon:W,label:"Total Resolved",value:o.totalResolved.toLocaleString(),subtitle:`Latest: ${o.latestResolved}`,trend:o.resolutionTrend,color:"success"}),e.jsx(g,{icon:G,label:"Resolution Rate",value:`${o.resolutionRate}%`,subtitle:"Resolved / New",color:o.resolutionRate>=80?"success":o.resolutionRate>=50?"warning":"danger"}),e.jsx(g,{icon:V,label:"Currently Open",value:o.currentOpen.toLocaleString(),subtitle:o.netChange>0?`+${o.netChange} net`:`${o.netChange} net`,color:o.currentOpen===0?"success":"warning"})]}),e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(w,{className:"h-5 w-5 text-primary"}),"New vs. Resolved Issues"]}),e.jsx(C,{children:"Issue inflow vs. resolution over time"})]}),e.jsx(y,{children:e.jsx(R,{width:"100%",height:300,children:e.jsxs(ge,{data:h,margin:{top:5,right:20,bottom:5,left:0},children:[e.jsx(E,{strokeDasharray:"3 3",className:"opacity-30"}),e.jsx(O,{dataKey:"date",tick:{fontSize:12}}),e.jsx(L,{tick:{fontSize:12},allowDecimals:!1}),e.jsx($,{contentStyle:{backgroundColor:"var(--color-card, #fff)",border:"1px solid var(--color-border, #e2e8f0)",borderRadius:"8px",fontSize:"13px"}}),e.jsx(le,{}),e.jsx(ne,{dataKey:"newIssues",fill:"#f97316",radius:[4,4,0,0],name:"New Issues"}),e.jsx(ne,{dataKey:"resolvedIssues",fill:"#22c55e",radius:[4,4,0,0],name:"Resolved"})]})})})]}),e.jsxs(N,{children:[e.jsxs(k,{children:[e.jsxs(S,{className:"flex items-center gap-2",children:[e.jsx(Y,{className:"h-5 w-5 text-success"}),"Open Issue Backlog"]}),e.jsx(C,{children:"Total open issues over time"})]}),e.jsx(y,{children:e.jsx(R,{width:"100%",height:220,children:e.jsxs(ae,{data:h,margin:{top:5,right:20,bottom:5,left:0},children:[e.jsx("defs",{children:e.jsxs("linearGradient",{id:"backlogGradient",x1:"0",y1:"0",x2:"0",y2:"1",children:[e.jsx("stop",{offset:"5%",stopColor:"#ef4444",stopOpacity:.3}),e.jsx("stop",{offset:"95%",stopColor:"#ef4444",stopOpacity:0})]})}),e.jsx(E,{strokeDasharray:"3 3",className:"opacity-30"}),e.jsx(O,{dataKey:"date",tick:{fontSize:12}}),e.jsx(L,{tick:{fontSize:12},allowDecimals:!1}),e.jsx($,{contentStyle:{backgroundColor:"var(--color-card, #fff)",border:"1px solid var(--color-border, #e2e8f0)",borderRadius:"8px",fontSize:"13px"}}),e.jsx(re,{type:"monotone",dataKey:"openTotal",stroke:"#ef4444",strokeWidth:2,fill:"url(#backlogGradient)",name:"Open Issues"})]})})})]})]})]})}function g({icon:s,label:n,value:c,subtitle:d,color:x="muted",trend:u}){const i={info:"text-info",success:"text-success",warning:"text-warning",danger:"text-danger",muted:"text-foreground-muted"};return e.jsx(N,{children:e.jsxs(y,{className:"flex items-center gap-3 p-4",children:[e.jsx("div",{className:`flex h-10 w-10 items-center justify-center rounded-md bg-muted ${i[x]}`,children:e.jsx(s,{className:"h-5 w-5"})}),e.jsxs("div",{className:"flex flex-col",children:[e.jsx("span",{className:"text-xs font-medium text-foreground-muted",children:n}),e.jsxs("div",{className:"flex items-center gap-1.5",children:[e.jsx("span",{className:"text-xl font-bold",children:c}),u==="up"&&e.jsx(oe,{className:"h-3.5 w-3.5 text-success"}),u==="down"&&e.jsx(Y,{className:"h-3.5 w-3.5 text-danger"})]}),d&&e.jsx("span",{className:"text-xs text-foreground-muted",children:d})]})]})})}export{ke as TelemetryView};
+ */ const fe = ce('Timer', [
+    ['line', { x1: '10', x2: '14', y1: '2', y2: '2', key: '14vaq8' }],
+    ['line', { x1: '12', x2: '15', y1: '14', y2: '11', key: '17fdiu' }],
+    ['circle', { cx: '12', cy: '14', r: '8', key: '1e1u0o' }],
+  ]),
+  je = {
+    scan_limit: {
+      title: 'Free Scan Limit Reached',
+      description:
+        'You have used all 3 free scans this month. Upgrade to Developer for unlimited scans and CI gate export.',
+      cta: 'Upgrade to Developer — $49/mo',
+      tierLabel: 'Developer',
+    },
+    ci_gate: {
+      title: 'CI/CD Integration is a Developer Feature',
+      description:
+        'Export gate-ready CI configs, SARIF reports, and pipeline snippets with a Developer plan or higher.',
+      cta: 'Upgrade to Developer — $49/mo',
+      tierLabel: 'Developer',
+    },
+    eu_ai_act: {
+      title: 'EU AI Act Mapping is a Team Pro Feature',
+      description: 'Unlock EU AI Act compliance mapping, board-ready analytics, and advanced telemetry with Team Pro.',
+      cta: 'Upgrade to Team Pro — $149/mo',
+      tierLabel: 'Team Pro',
+    },
+    board_pdf: {
+      title: 'Board PDF Export is a Team Pro Feature',
+      description: 'Generate board-ready PDF compliance reports with Team Pro or Enterprise.',
+      cta: 'Upgrade to Team Pro — $149/mo',
+      tierLabel: 'Team Pro',
+    },
+  };
+function ve({ reason: s, className: n }) {
+  const c = je[s];
+  return e.jsxs('div', {
+    className: xe(
+      'flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 px-6 py-10 text-center',
+      n
+    ),
+    children: [
+      e.jsx('div', {
+        className: 'flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary',
+        children: e.jsx(ie, { className: 'h-6 w-6' }),
+      }),
+      e.jsxs('div', {
+        className: 'space-y-2 max-w-md',
+        children: [
+          e.jsx('h3', { className: 'text-lg font-semibold', children: c.title }),
+          e.jsx('p', { className: 'text-sm text-foreground-muted', children: c.description }),
+        ],
+      }),
+      e.jsxs(B, {
+        className: 'gap-2',
+        onClick: () => window.open('/pricing', '_blank'),
+        children: [e.jsx(de, { className: 'h-4 w-4' }), c.cta],
+      }),
+      e.jsxs('p', { className: 'text-xs text-foreground-muted', children: [c.tierLabel, ' plan required'] }),
+    ],
+  });
+}
+function _(s) {
+  try {
+    return new Date(s).toLocaleDateString(void 0, { month: 'short', day: 'numeric' });
+  } catch {
+    return s.slice(0, 10);
+  }
+}
+function H(s) {
+  return s < 1e3 ? `${s}ms` : s < 6e4 ? `${(s / 1e3).toFixed(1)}s` : `${(s / 6e4).toFixed(1)}m`;
+}
+function J(s) {
+  return s < 1e3 ? `${s}` : s < 1e6 ? `${(s / 1e3).toFixed(1)}K` : `${(s / 1e6).toFixed(2)}M`;
+}
+function Ne(s) {
+  var T;
+  if (!s.length)
+    return {
+      totalSweeps: 0,
+      totalFiles: 0,
+      totalChunks: 0,
+      totalTokens: 0,
+      totalDurationMs: 0,
+      avgDurationMs: 0,
+      avgFilesPerSweep: 0,
+      avgTokensPerChunk: 0,
+      totalErrors: 0,
+      latestDurationMs: 0,
+      durationTrend: 'flat',
+    };
+  const n = s.length,
+    c = s.reduce((p, h) => p + h.totalFiles, 0),
+    d = s.reduce((p, h) => p + h.totalChunks, 0),
+    x = s.reduce((p, h) => p + h.totalTokensEstimated, 0),
+    u = s.reduce((p, h) => p + h.durationMs, 0),
+    i = s.reduce((p, h) => p + h.errors, 0),
+    f = Math.round(u / n),
+    j = Math.round(c / n),
+    b = d > 0 ? Math.round(x / d) : 0,
+    a = s[s.length - 1],
+    r = (a == null ? void 0 : a.durationMs) ?? 0;
+  let o = 'flat';
+  if (s.length >= 2) {
+    const p = ((T = s[s.length - 2]) == null ? void 0 : T.durationMs) ?? 0;
+    r < p * 0.9 ? (o = 'down') : r > p * 1.1 && (o = 'up');
+  }
+  return {
+    totalSweeps: n,
+    totalFiles: c,
+    totalChunks: d,
+    totalTokens: x,
+    totalDurationMs: u,
+    avgDurationMs: f,
+    avgFilesPerSweep: j,
+    avgTokensPerChunk: b,
+    totalErrors: i,
+    latestDurationMs: r,
+    durationTrend: o,
+  };
+}
+function ye(s) {
+  var b;
+  if (!s.length)
+    return {
+      totalScans: 0,
+      avgEuAiAct: 0,
+      avgSoc2: 0,
+      avgGate: 0,
+      avgOverall: 0,
+      latestOverall: 0,
+      overallTrend: 'flat',
+    };
+  const n = s.length,
+    c = Math.round(s.reduce((a, r) => a + r.euAiActScore, 0) / n),
+    d = Math.round(s.reduce((a, r) => a + r.soc2Score, 0) / n),
+    x = Math.round(s.reduce((a, r) => a + r.gateScore, 0) / n),
+    u = Math.round(s.reduce((a, r) => a + r.overallScore, 0) / n),
+    i = s[s.length - 1],
+    f = (i == null ? void 0 : i.overallScore) ?? 0;
+  let j = 'flat';
+  if (s.length >= 2) {
+    const a = ((b = s[s.length - 2]) == null ? void 0 : b.overallScore) ?? 0;
+    f > a ? (j = 'up') : f < a && (j = 'down');
+  }
+  return { totalScans: n, avgEuAiAct: c, avgSoc2: d, avgGate: x, avgOverall: u, latestOverall: f, overallTrend: j };
+}
+function be(s) {
+  var j, b, a;
+  if (!s.length)
+    return {
+      totalNew: 0,
+      totalResolved: 0,
+      netChange: 0,
+      currentOpen: 0,
+      resolutionRate: 0,
+      latestResolved: 0,
+      resolutionTrend: 'flat',
+    };
+  const n = s.reduce((r, o) => r + o.newIssues, 0),
+    c = s.reduce((r, o) => r + o.resolvedIssues, 0),
+    d = n - c,
+    x = ((j = s[s.length - 1]) == null ? void 0 : j.openTotal) ?? 0,
+    u = n > 0 ? Math.round((c / n) * 100) : 0,
+    i = ((b = s[s.length - 1]) == null ? void 0 : b.resolvedIssues) ?? 0;
+  let f = 'flat';
+  if (s.length >= 2) {
+    const r = ((a = s[s.length - 2]) == null ? void 0 : a.resolvedIssues) ?? 0;
+    i > r ? (f = 'up') : i < r && (f = 'down');
+  }
+  return {
+    totalNew: n,
+    totalResolved: c,
+    netChange: d,
+    currentOpen: x,
+    resolutionRate: u,
+    latestResolved: i,
+    resolutionTrend: f,
+  };
+}
+function ke() {
+  const { hasFeature: s } = me(),
+    [n, c] = K.useState({ batchHistory: [], complianceHistory: [], resolutionHistory: [], loading: !0, error: null }),
+    d = K.useCallback(async () => {
+      c((t) => ({ ...t, loading: !0, error: null }));
+      try {
+        let t = [],
+          M = [],
+          D = [];
+        try {
+          const v = localStorage.getItem('sb_telemetry_batches');
+          if (v) {
+            const m = JSON.parse(v);
+            Array.isArray(m) && (t = m);
+          }
+        } catch {}
+        try {
+          const v = localStorage.getItem('sb_telemetry_compliance');
+          if (v) {
+            const m = JSON.parse(v);
+            Array.isArray(m) && (M = m);
+          }
+        } catch {}
+        try {
+          const v = localStorage.getItem('sb_telemetry_resolution');
+          if (v) {
+            const m = JSON.parse(v);
+            Array.isArray(m) && (D = m);
+          }
+        } catch {}
+        if (t.length === 0 || M.length === 0 || D.length === 0)
+          try {
+            const v = localStorage.getItem('sb_scan_history');
+            if (v) {
+              const m = JSON.parse(v);
+              Array.isArray(m) &&
+                (t.length === 0 &&
+                  (t = m.map((l) => ({
+                    scanId: l.scanId || `scan-${l.date}`,
+                    date: l.date,
+                    totalFiles: l.totalFilesScanned || 0,
+                    totalChunks: Math.max(1, Math.ceil((l.totalFilesScanned || 0) / 10)),
+                    totalBatches: Math.max(1, Math.ceil((l.totalFilesScanned || 0) / 50)),
+                    totalTokensEstimated: (l.totalFilesScanned || 0) * 350,
+                    durationMs: l.processingTimeMs || Math.round((l.totalFilesScanned || 0) * 12),
+                    avgChunkTokens: 350,
+                    errors: 0,
+                  }))),
+                M.length === 0 &&
+                  (M = m.map((l) => {
+                    var q;
+                    const A = l.gatePass ? 100 : Math.max(0, 100 - (l.issueCount || 0) * 5),
+                      I = Math.max(0, Math.min(100, A - (l.fictionPatternsFound || 0) * 3)),
+                      F = Math.max(
+                        0,
+                        Math.min(100, A - (((q = l.severityCounts) == null ? void 0 : q.critical) || 0) * 10)
+                      ),
+                      z = Math.round((I + F + A) / 3);
+                    return {
+                      scanId: l.scanId || `scan-${l.date}`,
+                      date: l.date,
+                      euAiActScore: I,
+                      soc2Score: F,
+                      gateScore: A,
+                      overallScore: z,
+                    };
+                  })),
+                D.length === 0 &&
+                  m.length >= 2 &&
+                  (D = m.slice(1).map((l, A) => {
+                    const I = m[A],
+                      F = Math.max(0, (l.issueCount || 0) - (I.issueCount || 0)),
+                      z = Math.max(0, (I.issueCount || 0) - (l.issueCount || 0));
+                    return {
+                      scanId: l.scanId || `scan-${l.date}`,
+                      date: l.date,
+                      newIssues: F,
+                      resolvedIssues: z,
+                      netChange: F - z,
+                      openTotal: l.issueCount || 0,
+                    };
+                  })));
+            }
+          } catch {}
+        c({ batchHistory: t, complianceHistory: M, resolutionHistory: D, loading: !1, error: null });
+      } catch (t) {
+        c({
+          batchHistory: [],
+          complianceHistory: [],
+          resolutionHistory: [],
+          loading: !1,
+          error: t instanceof Error ? t.message : 'Failed to load telemetry',
+        });
+      }
+    }, []);
+  K.useEffect(() => {
+    d();
+  }, [d]);
+  const { batchHistory: x, complianceHistory: u, resolutionHistory: i, loading: f, error: j } = n;
+  if (!s('canMapEuAiAct'))
+    return e.jsxs('div', {
+      className: 'mx-auto max-w-5xl p-6 space-y-6',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center gap-3',
+          children: [
+            e.jsx(w, { className: 'h-7 w-7 text-primary' }),
+            e.jsxs('div', {
+              children: [
+                e.jsx('h1', { className: 'text-2xl font-bold tracking-tight', children: 'Advanced Telemetry' }),
+                e.jsx('p', {
+                  className: 'text-sm text-foreground-muted',
+                  children: 'Multi-file batch analytics, compliance trends, and issue resolution tracking',
+                }),
+              ],
+            }),
+          ],
+        }),
+        e.jsxs(N, {
+          children: [
+            e.jsxs(k, {
+              children: [
+                e.jsxs(S, {
+                  className: 'flex items-center gap-2',
+                  children: [
+                    e.jsx(G, { className: 'h-5 w-5' }),
+                    'Advanced Telemetry Analytics',
+                    e.jsx(X, { className: 'bg-primary/15 text-primary border-primary/30', children: 'Team Pro' }),
+                  ],
+                }),
+                e.jsx(C, {
+                  children: 'Batch execution times, EU AI Act compliance trends, and issue resolution tracking',
+                }),
+              ],
+            }),
+            e.jsx(ve, { reason: 'eu_ai_act', className: 'min-h-[300px]' }),
+          ],
+        }),
+      ],
+    });
+  if (f)
+    return e.jsxs('div', {
+      className: 'mx-auto max-w-7xl p-6 space-y-8',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center gap-3',
+          children: [
+            e.jsx(w, { className: 'h-7 w-7 text-primary' }),
+            e.jsx('h1', { className: 'text-2xl font-bold tracking-tight', children: 'Advanced Telemetry' }),
+          ],
+        }),
+        e.jsxs('div', {
+          className: 'flex flex-col items-center gap-3 py-20 text-center',
+          children: [
+            e.jsx(U, { className: 'h-8 w-8 animate-spin text-foreground-muted' }),
+            e.jsx('p', { className: 'text-sm text-foreground-muted', children: 'Loading telemetry data...' }),
+          ],
+        }),
+      ],
+    });
+  if (j)
+    return e.jsxs('div', {
+      className: 'mx-auto max-w-7xl p-6 space-y-8',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center gap-3',
+          children: [
+            e.jsx(w, { className: 'h-7 w-7 text-primary' }),
+            e.jsx('h1', { className: 'text-2xl font-bold tracking-tight', children: 'Advanced Telemetry' }),
+          ],
+        }),
+        e.jsx(N, {
+          children: e.jsxs(y, {
+            className: 'flex flex-col items-center gap-3 py-12 text-center',
+            children: [
+              e.jsx(V, { className: 'h-10 w-10 text-danger' }),
+              e.jsx('p', { className: 'text-sm text-danger', children: j }),
+              e.jsxs(B, {
+                size: 'sm',
+                onClick: d,
+                className: 'gap-2',
+                children: [e.jsx(U, { className: 'h-4 w-4' }), ' Retry'],
+              }),
+            ],
+          }),
+        }),
+      ],
+    });
+  if (!(x.length > 0 || u.length > 0 || i.length > 0))
+    return e.jsxs('div', {
+      className: 'mx-auto max-w-7xl p-6 space-y-8',
+      children: [
+        e.jsxs('div', {
+          className: 'flex items-center gap-3',
+          children: [
+            e.jsx(w, { className: 'h-7 w-7 text-primary' }),
+            e.jsx('h1', { className: 'text-2xl font-bold tracking-tight', children: 'Advanced Telemetry' }),
+          ],
+        }),
+        e.jsx(N, {
+          children: e.jsxs(y, {
+            className: 'flex flex-col items-center gap-4 py-16 text-center',
+            children: [
+              e.jsx(w, { className: 'h-12 w-12 text-foreground-muted' }),
+              e.jsxs('div', {
+                className: 'space-y-1',
+                children: [
+                  e.jsx('p', { className: 'text-lg font-semibold', children: 'No telemetry data yet' }),
+                  e.jsx('p', {
+                    className: 'text-sm text-foreground-muted',
+                    children:
+                      'Run multi-file scans to start tracking batch execution times, compliance trends, and issue resolution rates.',
+                  }),
+                ],
+              }),
+              e.jsxs(B, {
+                onClick: () => ue('analyze'),
+                className: 'gap-2',
+                children: [e.jsx(Z, { className: 'h-4 w-4' }), ' Run First Scan'],
+              }),
+            ],
+          }),
+        }),
+      ],
+    });
+  const a = Ne(x),
+    r = ye(u),
+    o = be(i),
+    T = x.map((t) => ({
+      date: _(t.date),
+      durationMs: t.durationMs,
+      files: t.totalFiles,
+      chunks: t.totalChunks,
+      tokens: t.totalTokensEstimated,
+    })),
+    p = u.map((t) => ({
+      date: _(t.date),
+      euAiAct: t.euAiActScore,
+      soc2: t.soc2Score,
+      gate: t.gateScore,
+      overall: t.overallScore,
+    })),
+    h = i.map((t) => ({
+      date: _(t.date),
+      newIssues: t.newIssues,
+      resolvedIssues: t.resolvedIssues,
+      openTotal: t.openTotal,
+    }));
+  return e.jsxs('div', {
+    className: 'mx-auto max-w-7xl p-6 space-y-8',
+    children: [
+      e.jsxs('div', {
+        className: 'flex items-center justify-between',
+        children: [
+          e.jsxs('div', {
+            className: 'flex items-center gap-3',
+            children: [
+              e.jsx(w, { className: 'h-7 w-7 text-primary' }),
+              e.jsxs('div', {
+                children: [
+                  e.jsx('h1', { className: 'text-2xl font-bold tracking-tight', children: 'Advanced Telemetry' }),
+                  e.jsx('p', {
+                    className: 'text-sm text-foreground-muted',
+                    children: 'Batch execution, compliance trends, and issue resolution analytics',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          e.jsxs(B, {
+            variant: 'outline',
+            size: 'sm',
+            onClick: d,
+            className: 'gap-2',
+            children: [e.jsx(U, { className: 'h-4 w-4' }), ' Refresh'],
+          }),
+        ],
+      }),
+      e.jsxs('div', {
+        className: 'space-y-4',
+        children: [
+          e.jsxs('div', {
+            className: 'flex items-center gap-2',
+            children: [
+              e.jsx(fe, { className: 'h-5 w-5 text-primary' }),
+              e.jsx('h2', { className: 'text-lg font-semibold', children: 'Multi-File Batch Execution' }),
+            ],
+          }),
+          e.jsxs('div', {
+            className: 'grid gap-4 sm:grid-cols-2 lg:grid-cols-4',
+            children: [
+              e.jsx(g, {
+                icon: Q,
+                label: 'Avg Sweep Duration',
+                value: H(a.avgDurationMs),
+                subtitle: `Latest: ${H(a.latestDurationMs)}`,
+                trend: a.durationTrend === 'down' ? 'up' : a.durationTrend === 'up' ? 'down' : 'flat',
+                color: a.durationTrend === 'down' ? 'success' : a.durationTrend === 'up' ? 'warning' : 'muted',
+              }),
+              e.jsx(g, {
+                icon: Z,
+                label: 'Total Files Processed',
+                value: a.totalFiles.toLocaleString(),
+                subtitle: `Avg ${a.avgFilesPerSweep} per sweep`,
+                color: 'info',
+              }),
+              e.jsx(g, {
+                icon: ee,
+                label: 'Total Chunks',
+                value: a.totalChunks.toLocaleString(),
+                subtitle: `Avg ${a.avgTokensPerChunk} tokens/chunk`,
+                color: 'info',
+              }),
+              e.jsx(g, {
+                icon: se,
+                label: 'Chunk Errors',
+                value: a.totalErrors.toLocaleString(),
+                subtitle: a.totalErrors === 0 ? 'No errors' : 'Some chunks failed',
+                color: a.totalErrors > 0 ? 'warning' : 'success',
+              }),
+            ],
+          }),
+          x.length > 0 &&
+            e.jsxs('div', {
+              className: 'grid gap-6 lg:grid-cols-2',
+              children: [
+                e.jsxs(N, {
+                  children: [
+                    e.jsxs(k, {
+                      children: [
+                        e.jsxs(S, {
+                          className: 'flex items-center gap-2',
+                          children: [e.jsx(Q, { className: 'h-5 w-5 text-primary' }), 'Sweep Duration Trend'],
+                        }),
+                        e.jsx(C, { children: 'Execution time per multi-file sweep' }),
+                      ],
+                    }),
+                    e.jsx(y, {
+                      children: e.jsx(R, {
+                        width: '100%',
+                        height: 260,
+                        children: e.jsxs(te, {
+                          data: T,
+                          margin: { top: 5, right: 20, bottom: 5, left: 0 },
+                          children: [
+                            e.jsx(E, { strokeDasharray: '3 3', className: 'opacity-30' }),
+                            e.jsx(O, { dataKey: 'date', tick: { fontSize: 12 } }),
+                            e.jsx(L, { tick: { fontSize: 12 }, tickFormatter: (t) => H(t) }),
+                            e.jsx($, {
+                              contentStyle: {
+                                backgroundColor: 'var(--color-card, #fff)',
+                                border: '1px solid var(--color-border, #e2e8f0)',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                              },
+                              formatter: (t) => H(Number(t)),
+                            }),
+                            e.jsx(P, {
+                              type: 'monotone',
+                              dataKey: 'durationMs',
+                              stroke: '#3b82f6',
+                              strokeWidth: 2,
+                              dot: { r: 4 },
+                              activeDot: { r: 6 },
+                              name: 'Duration',
+                            }),
+                          ],
+                        }),
+                      }),
+                    }),
+                  ],
+                }),
+                e.jsxs(N, {
+                  children: [
+                    e.jsxs(k, {
+                      children: [
+                        e.jsxs(S, {
+                          className: 'flex items-center gap-2',
+                          children: [e.jsx(ee, { className: 'h-5 w-5 text-info' }), 'Token Volume per Sweep'],
+                        }),
+                        e.jsx(C, { children: 'Estimated tokens processed per sweep' }),
+                      ],
+                    }),
+                    e.jsx(y, {
+                      children: e.jsx(R, {
+                        width: '100%',
+                        height: 260,
+                        children: e.jsxs(ae, {
+                          data: T,
+                          margin: { top: 5, right: 20, bottom: 5, left: 0 },
+                          children: [
+                            e.jsx('defs', {
+                              children: e.jsxs('linearGradient', {
+                                id: 'tokenGradient',
+                                x1: '0',
+                                y1: '0',
+                                x2: '0',
+                                y2: '1',
+                                children: [
+                                  e.jsx('stop', { offset: '5%', stopColor: '#8b5cf6', stopOpacity: 0.3 }),
+                                  e.jsx('stop', { offset: '95%', stopColor: '#8b5cf6', stopOpacity: 0 }),
+                                ],
+                              }),
+                            }),
+                            e.jsx(E, { strokeDasharray: '3 3', className: 'opacity-30' }),
+                            e.jsx(O, { dataKey: 'date', tick: { fontSize: 12 } }),
+                            e.jsx(L, { tick: { fontSize: 12 }, tickFormatter: (t) => J(t) }),
+                            e.jsx($, {
+                              contentStyle: {
+                                backgroundColor: 'var(--color-card, #fff)',
+                                border: '1px solid var(--color-border, #e2e8f0)',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                              },
+                              formatter: (t) => J(Number(t)) + ' tokens',
+                            }),
+                            e.jsx(re, {
+                              type: 'monotone',
+                              dataKey: 'tokens',
+                              stroke: '#8b5cf6',
+                              strokeWidth: 2,
+                              fill: 'url(#tokenGradient)',
+                              name: 'Tokens',
+                            }),
+                          ],
+                        }),
+                      }),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          x.length > 0 &&
+            e.jsxs(N, {
+              children: [
+                e.jsxs(k, {
+                  children: [
+                    e.jsx(S, { children: 'Recent Batch Executions' }),
+                    e.jsx(C, { children: 'Detailed history of multi-file sweep performance' }),
+                  ],
+                }),
+                e.jsx(y, {
+                  children: e.jsx('div', {
+                    className: 'overflow-x-auto',
+                    children: e.jsxs('table', {
+                      className: 'w-full text-sm',
+                      children: [
+                        e.jsx('thead', {
+                          children: e.jsxs('tr', {
+                            className:
+                              'border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-foreground-muted',
+                            children: [
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Date' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Files' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Chunks' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Batches' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Tokens' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Duration' }),
+                              e.jsx('th', { className: 'pb-2 pr-4', children: 'Errors' }),
+                            ],
+                          }),
+                        }),
+                        e.jsx('tbody', {
+                          children: [...x]
+                            .reverse()
+                            .slice(0, 10)
+                            .map((t) =>
+                              e.jsxs(
+                                'tr',
+                                {
+                                  className: 'border-b border-border/50 hover:bg-muted/30',
+                                  children: [
+                                    e.jsx('td', { className: 'py-2 pr-4 text-foreground-muted', children: _(t.date) }),
+                                    e.jsx('td', { className: 'py-2 pr-4', children: t.totalFiles.toLocaleString() }),
+                                    e.jsx('td', { className: 'py-2 pr-4', children: t.totalChunks.toLocaleString() }),
+                                    e.jsx('td', { className: 'py-2 pr-4', children: t.totalBatches }),
+                                    e.jsx('td', {
+                                      className: 'py-2 pr-4 text-info',
+                                      children: J(t.totalTokensEstimated),
+                                    }),
+                                    e.jsx('td', { className: 'py-2 pr-4 font-medium', children: H(t.durationMs) }),
+                                    e.jsx('td', {
+                                      className: 'py-2 pr-4',
+                                      children:
+                                        t.errors > 0
+                                          ? e.jsx(X, { variant: 'warning', className: 'text-xs', children: t.errors })
+                                          : e.jsx(W, { className: 'h-4 w-4 text-success' }),
+                                    }),
+                                  ],
+                                },
+                                t.scanId
+                              )
+                            ),
+                        }),
+                      ],
+                    }),
+                  }),
+                }),
+              ],
+            }),
+        ],
+      }),
+      u.length > 0 &&
+        e.jsxs('div', {
+          className: 'space-y-4',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-2',
+              children: [
+                e.jsx(G, { className: 'h-5 w-5 text-primary' }),
+                e.jsx('h2', { className: 'text-lg font-semibold', children: 'Historical Compliance Scores' }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'grid gap-4 sm:grid-cols-2 lg:grid-cols-4',
+              children: [
+                e.jsx(g, {
+                  icon: G,
+                  label: 'Avg Overall Score',
+                  value: `${r.avgOverall}%`,
+                  subtitle: `Latest: ${r.latestOverall}%`,
+                  trend: r.overallTrend,
+                  color: r.avgOverall >= 80 ? 'success' : r.avgOverall >= 60 ? 'warning' : 'danger',
+                }),
+                e.jsx(g, {
+                  icon: W,
+                  label: 'Avg EU AI Act',
+                  value: `${r.avgEuAiAct}%`,
+                  color: r.avgEuAiAct >= 80 ? 'success' : 'warning',
+                }),
+                e.jsx(g, {
+                  icon: pe,
+                  label: 'Avg SOC 2',
+                  value: `${r.avgSoc2}%`,
+                  color: r.avgSoc2 >= 80 ? 'success' : 'warning',
+                }),
+                e.jsx(g, {
+                  icon: he,
+                  label: 'Avg Gate Score',
+                  value: `${r.avgGate}%`,
+                  color: r.avgGate >= 80 ? 'success' : 'warning',
+                }),
+              ],
+            }),
+            e.jsxs(N, {
+              children: [
+                e.jsxs(k, {
+                  children: [
+                    e.jsxs(S, {
+                      className: 'flex items-center gap-2',
+                      children: [e.jsx(oe, { className: 'h-5 w-5 text-primary' }), 'Compliance Score Trends'],
+                    }),
+                    e.jsx(C, { children: 'EU AI Act, SOC 2, and Gate scores over time' }),
+                  ],
+                }),
+                e.jsx(y, {
+                  children: e.jsx(R, {
+                    width: '100%',
+                    height: 300,
+                    children: e.jsxs(te, {
+                      data: p,
+                      margin: { top: 5, right: 20, bottom: 5, left: 0 },
+                      children: [
+                        e.jsx(E, { strokeDasharray: '3 3', className: 'opacity-30' }),
+                        e.jsx(O, { dataKey: 'date', tick: { fontSize: 12 } }),
+                        e.jsx(L, { domain: [0, 100], tick: { fontSize: 12 } }),
+                        e.jsx($, {
+                          contentStyle: {
+                            backgroundColor: 'var(--color-card, #fff)',
+                            border: '1px solid var(--color-border, #e2e8f0)',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                          },
+                        }),
+                        e.jsx(le, {}),
+                        e.jsx(P, {
+                          type: 'monotone',
+                          dataKey: 'overall',
+                          stroke: '#3b82f6',
+                          strokeWidth: 2,
+                          dot: { r: 3 },
+                          name: 'Overall',
+                        }),
+                        e.jsx(P, {
+                          type: 'monotone',
+                          dataKey: 'euAiAct',
+                          stroke: '#8b5cf6',
+                          strokeWidth: 2,
+                          dot: { r: 3 },
+                          name: 'EU AI Act',
+                        }),
+                        e.jsx(P, {
+                          type: 'monotone',
+                          dataKey: 'soc2',
+                          stroke: '#22c55e',
+                          strokeWidth: 2,
+                          dot: { r: 3 },
+                          name: 'SOC 2',
+                        }),
+                        e.jsx(P, {
+                          type: 'monotone',
+                          dataKey: 'gate',
+                          stroke: '#f97316',
+                          strokeWidth: 2,
+                          dot: { r: 3 },
+                          name: 'Gate',
+                        }),
+                      ],
+                    }),
+                  }),
+                }),
+              ],
+            }),
+          ],
+        }),
+      i.length > 0 &&
+        e.jsxs('div', {
+          className: 'space-y-4',
+          children: [
+            e.jsxs('div', {
+              className: 'flex items-center gap-2',
+              children: [
+                e.jsx(Y, { className: 'h-5 w-5 text-primary' }),
+                e.jsx('h2', { className: 'text-lg font-semibold', children: 'Issue Resolution Tracking' }),
+              ],
+            }),
+            e.jsxs('div', {
+              className: 'grid gap-4 sm:grid-cols-2 lg:grid-cols-4',
+              children: [
+                e.jsx(g, {
+                  icon: se,
+                  label: 'Total New Issues',
+                  value: o.totalNew.toLocaleString(),
+                  subtitle: 'Across all scans',
+                  color: 'warning',
+                }),
+                e.jsx(g, {
+                  icon: W,
+                  label: 'Total Resolved',
+                  value: o.totalResolved.toLocaleString(),
+                  subtitle: `Latest: ${o.latestResolved}`,
+                  trend: o.resolutionTrend,
+                  color: 'success',
+                }),
+                e.jsx(g, {
+                  icon: G,
+                  label: 'Resolution Rate',
+                  value: `${o.resolutionRate}%`,
+                  subtitle: 'Resolved / New',
+                  color: o.resolutionRate >= 80 ? 'success' : o.resolutionRate >= 50 ? 'warning' : 'danger',
+                }),
+                e.jsx(g, {
+                  icon: V,
+                  label: 'Currently Open',
+                  value: o.currentOpen.toLocaleString(),
+                  subtitle: o.netChange > 0 ? `+${o.netChange} net` : `${o.netChange} net`,
+                  color: o.currentOpen === 0 ? 'success' : 'warning',
+                }),
+              ],
+            }),
+            e.jsxs(N, {
+              children: [
+                e.jsxs(k, {
+                  children: [
+                    e.jsxs(S, {
+                      className: 'flex items-center gap-2',
+                      children: [e.jsx(w, { className: 'h-5 w-5 text-primary' }), 'New vs. Resolved Issues'],
+                    }),
+                    e.jsx(C, { children: 'Issue inflow vs. resolution over time' }),
+                  ],
+                }),
+                e.jsx(y, {
+                  children: e.jsx(R, {
+                    width: '100%',
+                    height: 300,
+                    children: e.jsxs(ge, {
+                      data: h,
+                      margin: { top: 5, right: 20, bottom: 5, left: 0 },
+                      children: [
+                        e.jsx(E, { strokeDasharray: '3 3', className: 'opacity-30' }),
+                        e.jsx(O, { dataKey: 'date', tick: { fontSize: 12 } }),
+                        e.jsx(L, { tick: { fontSize: 12 }, allowDecimals: !1 }),
+                        e.jsx($, {
+                          contentStyle: {
+                            backgroundColor: 'var(--color-card, #fff)',
+                            border: '1px solid var(--color-border, #e2e8f0)',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                          },
+                        }),
+                        e.jsx(le, {}),
+                        e.jsx(ne, { dataKey: 'newIssues', fill: '#f97316', radius: [4, 4, 0, 0], name: 'New Issues' }),
+                        e.jsx(ne, {
+                          dataKey: 'resolvedIssues',
+                          fill: '#22c55e',
+                          radius: [4, 4, 0, 0],
+                          name: 'Resolved',
+                        }),
+                      ],
+                    }),
+                  }),
+                }),
+              ],
+            }),
+            e.jsxs(N, {
+              children: [
+                e.jsxs(k, {
+                  children: [
+                    e.jsxs(S, {
+                      className: 'flex items-center gap-2',
+                      children: [e.jsx(Y, { className: 'h-5 w-5 text-success' }), 'Open Issue Backlog'],
+                    }),
+                    e.jsx(C, { children: 'Total open issues over time' }),
+                  ],
+                }),
+                e.jsx(y, {
+                  children: e.jsx(R, {
+                    width: '100%',
+                    height: 220,
+                    children: e.jsxs(ae, {
+                      data: h,
+                      margin: { top: 5, right: 20, bottom: 5, left: 0 },
+                      children: [
+                        e.jsx('defs', {
+                          children: e.jsxs('linearGradient', {
+                            id: 'backlogGradient',
+                            x1: '0',
+                            y1: '0',
+                            x2: '0',
+                            y2: '1',
+                            children: [
+                              e.jsx('stop', { offset: '5%', stopColor: '#ef4444', stopOpacity: 0.3 }),
+                              e.jsx('stop', { offset: '95%', stopColor: '#ef4444', stopOpacity: 0 }),
+                            ],
+                          }),
+                        }),
+                        e.jsx(E, { strokeDasharray: '3 3', className: 'opacity-30' }),
+                        e.jsx(O, { dataKey: 'date', tick: { fontSize: 12 } }),
+                        e.jsx(L, { tick: { fontSize: 12 }, allowDecimals: !1 }),
+                        e.jsx($, {
+                          contentStyle: {
+                            backgroundColor: 'var(--color-card, #fff)',
+                            border: '1px solid var(--color-border, #e2e8f0)',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                          },
+                        }),
+                        e.jsx(re, {
+                          type: 'monotone',
+                          dataKey: 'openTotal',
+                          stroke: '#ef4444',
+                          strokeWidth: 2,
+                          fill: 'url(#backlogGradient)',
+                          name: 'Open Issues',
+                        }),
+                      ],
+                    }),
+                  }),
+                }),
+              ],
+            }),
+          ],
+        }),
+    ],
+  });
+}
+function g({ icon: s, label: n, value: c, subtitle: d, color: x = 'muted', trend: u }) {
+  const i = {
+    info: 'text-info',
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-danger',
+    muted: 'text-foreground-muted',
+  };
+  return e.jsx(N, {
+    children: e.jsxs(y, {
+      className: 'flex items-center gap-3 p-4',
+      children: [
+        e.jsx('div', {
+          className: `flex h-10 w-10 items-center justify-center rounded-md bg-muted ${i[x]}`,
+          children: e.jsx(s, { className: 'h-5 w-5' }),
+        }),
+        e.jsxs('div', {
+          className: 'flex flex-col',
+          children: [
+            e.jsx('span', { className: 'text-xs font-medium text-foreground-muted', children: n }),
+            e.jsxs('div', {
+              className: 'flex items-center gap-1.5',
+              children: [
+                e.jsx('span', { className: 'text-xl font-bold', children: c }),
+                u === 'up' && e.jsx(oe, { className: 'h-3.5 w-3.5 text-success' }),
+                u === 'down' && e.jsx(Y, { className: 'h-3.5 w-3.5 text-danger' }),
+              ],
+            }),
+            d && e.jsx('span', { className: 'text-xs text-foreground-muted', children: d }),
+          ],
+        }),
+      ],
+    }),
+  });
+}
+export { ke as TelemetryView };
 //# sourceMappingURL=TelemetryView.js.map

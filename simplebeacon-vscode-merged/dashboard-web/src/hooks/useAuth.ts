@@ -55,7 +55,8 @@ export function useAuth() {
           setIsAuthenticated(true);
           // Start with sb_user localStorage data, fall back to sb-user (legacy)
           let userData: Record<string, unknown> = {};
-          const stored = localStorage.getItem("sb_user") || localStorage.getItem("sb-user");
+          const stored =
+            localStorage.getItem("sb_user") || localStorage.getItem("sb-user");
           if (stored) {
             try {
               userData = JSON.parse(stored);

@@ -21,17 +21,17 @@
         }
         function neutralize(el) {
           if (!isBeacon(el)) return;
-          try {
-            el.removeAttribute("src");
-          } catch (_) {}
-          try {
-            el.type = "text/plain";
-          } catch (_) {}
+          // Strip SRI first. Removing src while integrity remains hashes
+          // empty content (sha512 of "") and logs a console error.
           try {
             el.removeAttribute("integrity");
           } catch (_) {}
           try {
             el.removeAttribute("crossorigin");
+          } catch (_) {}
+          try {
+            if (el.parentNode) el.parentNode.removeChild(el);
+            else if (typeof el.remove === "function") el.remove();
           } catch (_) {}
         }
         var origCreate = document.createElement.bind(document);
@@ -709,7 +709,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="/dashboard/assets/main.js?v=1788256381977"></script>
+    <script type="module" src="/dashboard/assets/main.js?v=1788599479476"></script>
     <script>
       (function () {
         try {

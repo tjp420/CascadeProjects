@@ -1009,7 +1009,9 @@ export function bindScanStatus(container, options = {}) {
         const files = e.target.files;
         if (!files || files.length === 0) return;
         if (_browseScanInProgress) {
-          console.warn("[ScanStatus] Browse scan already in progress — ignoring duplicate change event");
+          console.warn(
+            "[ScanStatus] Browse scan already in progress — ignoring duplicate change event",
+          );
           browseInput.value = "";
           return;
         }

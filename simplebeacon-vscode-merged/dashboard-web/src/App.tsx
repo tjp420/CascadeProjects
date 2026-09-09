@@ -58,6 +58,8 @@ const TelemetryView = lazy(() =>
 const PUBLIC_VIEWS = new Set([
   "signin",
   "register",
+  "analyze",
+  "results",
 ]);
 const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([

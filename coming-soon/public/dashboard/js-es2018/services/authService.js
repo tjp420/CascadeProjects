@@ -720,7 +720,10 @@ export class AuthService {
     try {
       const res = await fetch(`${apiBase()}/api/auth/refresh`, {
         method: "POST",
-        headers: { ...this.getAuthHeaders(), "Content-Type": "application/json" },
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ longLived: false }),
       });
       const body = await readJsonResponseBody(res, {});
@@ -760,13 +763,16 @@ export class AuthService {
     const refreshAt = expSeconds * 1000 - 2 * 60 * 1000; // 2 minutes before expiry
     const delay = refreshAt - Date.now();
     if (delay <= 0) return; // Already expired or about to — let isAuthenticated handle it
-    this._refreshTimer = setTimeout(async () => {
-      try {
-        await this.refreshToken(false);
-      } catch {
-        // Refresh failed — the next isAuthenticated() call will handle it
-      }
-    }, Math.min(delay, 13 * 60 * 1000)); // Cap at 13 minutes for 15-min tokens
+    this._refreshTimer = setTimeout(
+      async () => {
+        try {
+          await this.refreshToken(false);
+        } catch {
+          // Refresh failed — the next isAuthenticated() call will handle it
+        }
+      },
+      Math.min(delay, 13 * 60 * 1000),
+    ); // Cap at 13 minutes for 15-min tokens
   }
   _decodeJwtPayload(token) {
     try {

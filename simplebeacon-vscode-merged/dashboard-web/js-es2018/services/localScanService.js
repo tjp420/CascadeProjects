@@ -16,10 +16,7 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
 } from "../utils-lib/simplebeaconignore.browser.js";
-import {
-  getAttestation,
-  isAttestationValid,
-} from "./scanAttestation.js";
+import { getAttestation, isAttestationValid } from "./scanAttestation.js";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
@@ -86,7 +83,9 @@ async function persistWorkerToCache(scriptText) {
       headers: { "Content-Type": "application/javascript" },
     });
     await cache.put("simplebeacon-scan-worker-inlined", resp);
-    console.warn("[localScan] Worker script persisted to Cache API for offline use");
+    console.warn(
+      "[localScan] Worker script persisted to Cache API for offline use",
+    );
   } catch (e) {
     console.warn("[localScan] Cache API persist failed:", e?.message || e);
   }
@@ -100,7 +99,9 @@ async function loadWorkerFromCache() {
     if (resp && resp.ok) {
       const text = await resp.text();
       if (text && text.length > 100) {
-        console.warn(`[localScan] Loaded worker from Cache API (${text.length} bytes) — offline-ready`);
+        console.warn(
+          `[localScan] Loaded worker from Cache API (${text.length} bytes) — offline-ready`,
+        );
         return text;
       }
     }
@@ -133,7 +134,10 @@ function prefetchWorkerScript() {
 
       // Fetch the worker script and all its imports in parallel
       const bridgeUrl = new URL("./scan-wasm-bridge.js", workerBaseUrl);
-      const ignoreLibUrl = new URL("../utils-lib/simplebeaconignore.browser.js", workerBaseUrl);
+      const ignoreLibUrl = new URL(
+        "../utils-lib/simplebeaconignore.browser.js",
+        workerBaseUrl,
+      );
 
       console.warn("[localScan] Prefetching worker + imports...");
       const [workerText, bridgeText, ignoreLibText] = await Promise.all([
@@ -143,15 +147,25 @@ function prefetchWorkerScript() {
       ]);
 
       // Create blob URLs for the imported modules (these are in-memory, no DNS needed)
-      const bridgeBlob = new Blob([bridgeText], { type: "application/javascript" });
+      const bridgeBlob = new Blob([bridgeText], {
+        type: "application/javascript",
+      });
       const bridgeBlobUrl = URL.createObjectURL(bridgeBlob);
-      const ignoreLibBlob = new Blob([ignoreLibText], { type: "application/javascript" });
+      const ignoreLibBlob = new Blob([ignoreLibText], {
+        type: "application/javascript",
+      });
       const ignoreLibBlobUrl = URL.createObjectURL(ignoreLibBlob);
 
       // Rewrite the worker script's imports to use blob URLs
       let inlinedScript = workerText
-        .replace(/from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g, `from "${bridgeBlobUrl}"`)
-        .replace(/from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g, `from "${ignoreLibBlobUrl}"`);
+        .replace(
+          /from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g,
+          `from "${bridgeBlobUrl}"`,
+        )
+        .replace(
+          /from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g,
+          `from "${ignoreLibBlobUrl}"`,
+        );
 
       // Also rewrite any other relative imports to absolute URLs as a safety net
       inlinedScript = inlinedScript.replace(
@@ -170,14 +184,23 @@ function prefetchWorkerScript() {
       _cachedWorkerScript = inlinedScript;
       console.warn(
         "[localScan] Prefetched and inlined worker + imports:",
-        workerText.length, "+", bridgeText.length, "+", ignoreLibText.length,
-        "= ", inlinedScript.length, "bytes (self-contained)",
+        workerText.length,
+        "+",
+        bridgeText.length,
+        "+",
+        ignoreLibText.length,
+        "= ",
+        inlinedScript.length,
+        "bytes (self-contained)",
       );
       // Persist to Cache API for offline use across sessions
       await persistWorkerToCache(inlinedScript);
       return inlinedScript;
     } catch (e) {
-      console.warn("[localScan] Worker prefetch failed (will retry at scan time):", e?.message || e);
+      console.warn(
+        "[localScan] Worker prefetch failed (will retry at scan time):",
+        e?.message || e,
+      );
       // Try loading from Cache API as fallback (offline scenario)
       const cached = await loadWorkerFromCache();
       if (cached) {
@@ -1058,12 +1081,10 @@ export async function runLocalScan(options = {}) {
       ) {
         files.push({ path, handle: f });
         _debugKept++;
-        if (_debugKeptSamples.length < 5)
-          _debugKeptSamples.push(path);
+        if (_debugKeptSamples.length < 5) _debugKeptSamples.push(path);
       } else {
         _debugExcluded++;
-        if (_debugExcludedSamples.length < 5)
-          _debugExcludedSamples.push(path);
+        if (_debugExcludedSamples.length < 5) _debugExcludedSamples.push(path);
       }
       if (i % 5000 === 0 && i > 0) await new Promise((r) => setTimeout(r, 0));
     }
@@ -1120,9 +1141,7 @@ export async function runLocalScan(options = {}) {
     // If the user's .simplebeaconignore filtered out every file, fall back to built-in
     // exclusions so a misconfigured catch-all doesn't silently block the scan.
     if (files.length === 0 && fileArray.length > 0) {
-      console.warn(
-        "[localScan] Falling back to built-in ignore patterns.",
-      );
+      console.warn("[localScan] Falling back to built-in ignore patterns.");
       ignoreCtx = createIgnoreContext(
         getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo),
         projectName,
@@ -1300,12 +1319,16 @@ export async function runLocalScan(options = {}) {
         }
         // If prefetch failed (offline), try Cache API directly
         if (!scriptText) {
-          console.warn("[localScan] Prefetch returned nothing — trying Cache API fallback...");
+          console.warn(
+            "[localScan] Prefetch returned nothing — trying Cache API fallback...",
+          );
           scriptText = await loadWorkerFromCache();
         }
         if (scriptText) {
           // The cached script already has imports inlined as blob URLs — no rewriting needed
-          const blob = new Blob([scriptText], { type: "application/javascript" });
+          const blob = new Blob([scriptText], {
+            type: "application/javascript",
+          });
           blobUrlForWorker = URL.createObjectURL(blob);
           console.warn(
             "[localScan] Created blob worker from prefetched self-contained script (no network request needed)",
@@ -1314,13 +1337,18 @@ export async function runLocalScan(options = {}) {
           workerCreated = true;
         }
       } catch (cacheErr) {
-        console.error("[localScan] Cached script blob worker failed:", cacheErr);
+        console.error(
+          "[localScan] Cached script blob worker failed:",
+          cacheErr,
+        );
       }
     }
 
     // Approach 2: Inline shim blob worker (import via absolute URL)
     if (!workerCreated) {
-      const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+      const isFirefox =
+        typeof navigator !== "undefined" &&
+        /firefox/i.test(navigator.userAgent);
       try {
         const absWorkerUrl = new URL(workerUrlStr);
         absWorkerUrl.search = "";
@@ -1328,7 +1356,9 @@ export async function runLocalScan(options = {}) {
           absWorkerUrl.searchParams.set("_sbcb", `${Date.now()}`);
         }
         const shimCode = `// Inline shim — imports the real worker module\nimport "${absWorkerUrl.href}";\n`;
-        const shimBlob = new Blob([shimCode], { type: "application/javascript" });
+        const shimBlob = new Blob([shimCode], {
+          type: "application/javascript",
+        });
         blobUrlForWorker = URL.createObjectURL(shimBlob);
         console.warn(
           `[localScan] ${isFirefox ? "Firefox" : "Chrome/Edge"}: inline shim blob worker importing:`,
@@ -1346,7 +1376,10 @@ export async function runLocalScan(options = {}) {
       try {
         const fetchUrl = new URL(workerUrlStr);
         fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
-        console.warn("[localScan] Fetching worker script (cache-busted):", fetchUrl.href);
+        console.warn(
+          "[localScan] Fetching worker script (cache-busted):",
+          fetchUrl.href,
+        );
         const resp = await fetch(fetchUrl.href);
         if (!resp.ok)
           throw new Error(`Fetch failed with status ${resp.status}`);
@@ -1387,11 +1420,17 @@ export async function runLocalScan(options = {}) {
       try {
         const directUrl = new URL(workerUrlStr);
         directUrl.search = "";
-        console.warn("[localScan] Fallback: direct module worker:", directUrl.href);
+        console.warn(
+          "[localScan] Fallback: direct module worker:",
+          directUrl.href,
+        );
         worker = new Worker(directUrl, { type: "module" });
         workerCreated = true;
       } catch (ctorErr) {
-        console.error("[localScan] direct Worker construction also failed:", ctorErr);
+        console.error(
+          "[localScan] direct Worker construction also failed:",
+          ctorErr,
+        );
         throw new Error(
           `Failed to create module worker from ${workerUrlStr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`,
         );
@@ -1413,10 +1452,20 @@ export async function runLocalScan(options = {}) {
   // If we created a blob URL for the worker script, keep it alive until the worker posts its first message or errors.
   // Also add an early error listener to catch module loading failures before runBatchedWorkerScan sets up its own handler.
   let earlyWorkerError = null;
-  worker.addEventListener("error", (err) => {
-    console.error("[localScan] Early worker error:", err.message || err, err.filename, err.lineno, err.colno);
-    earlyWorkerError = err;
-  }, { once: true });
+  worker.addEventListener(
+    "error",
+    (err) => {
+      console.error(
+        "[localScan] Early worker error:",
+        err.message || err,
+        err.filename,
+        err.lineno,
+        err.colno,
+      );
+      earlyWorkerError = err;
+    },
+    { once: true },
+  );
 
   if (blobUrlForWorker) {
     const cleanupBlobUrl = () => {

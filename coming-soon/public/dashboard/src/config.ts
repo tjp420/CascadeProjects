@@ -9,10 +9,13 @@ export const DEFAULT_API_BASE =
 /** Hash view to restore after a sign-in redirect (deep links like #/team-metrics). */
 export const POST_LOGIN_VIEW_KEY = "sb_post_login_view";
 
+<<<<<<< Updated upstream
 /**
  * Cloudflare Pages preview hostnames are unique per deploy. A stored or injected
  * API base pointing at a *different* preview must not win over the current origin.
  */
+=======
+>>>>>>> Stashed changes
 export function isForeignPagesPreviewBase(value: string): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -26,6 +29,7 @@ export function isForeignPagesPreviewBase(value: string): boolean {
   }
 }
 
+<<<<<<< Updated upstream
 /** HTTPS simplebeacon.ai cannot fetch http://127.0.0.1 (mixed content / PNA). */
 export function hostedHttpsCannotUseLoopbackApi(): boolean {
   return (
@@ -68,12 +72,37 @@ function usableApiBase(raw: string | null | undefined): string | null {
   return trimmed;
 }
 
+=======
+>>>>>>> Stashed changes
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
+<<<<<<< Updated upstream
     const fromQuery = usableApiBase(params.get("sb_api_base"));
     if (fromQuery) return fromQuery;
+=======
+    const explicit = params.get("sb_api_base");
+    if (explicit && !isForeignPagesPreviewBase(explicit)) {
+      const trimmed = explicit.replace(/\/+$/, "");
+      const base = /\/api$/i.test(trimmed)
+        ? trimmed.replace(/\/api$/i, "")
+        : trimmed;
+      const hostedHttps =
+        window.location.protocol === "https:" &&
+        !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+      let loopback = false;
+      try {
+        const u = new URL(base, window.location.href);
+        loopback =
+          u.protocol === "http:" &&
+          /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(u.hostname);
+      } catch {
+        loopback = false;
+      }
+      if (!(hostedHttps && loopback)) return base;
+    }
+>>>>>>> Stashed changes
     // Prefer an already-detected local API host (populated by background probe)
     // Window variable kept for compatibility with legacy bundles.
     // Example value: "http://127.0.0.1:58000"
@@ -88,10 +117,20 @@ export function getApiBase(): string {
       win.__SB_API_HOST__ ||
       win.__SIMPLEBEACON_DETECTED_API_BASE ||
       (typeof envBase === "string" ? String(envBase).replace(/\/+$/, "") : "");
+<<<<<<< Updated upstream
     const fromDetected = usableApiBase(
       detected && typeof detected === "string" ? detected : "",
     );
     if (fromDetected) return fromDetected;
+=======
+    if (
+      detected &&
+      typeof detected === "string" &&
+      detected.length > 0 &&
+      !isForeignPagesPreviewBase(detected)
+    )
+      return String(detected).replace(/\/+$/, "");
+>>>>>>> Stashed changes
     const host = window.location.hostname || "";
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
       const port = String(window.location.port || "");
@@ -182,8 +221,7 @@ function isStoredTokenUsable(token: string): boolean {
 export function getLicenseToken(): string | null {
   if (typeof window === "undefined") return null;
   return (
-    localStorage.getItem("sb_license") ||
-    localStorage.getItem("sb-license")
+    localStorage.getItem("sb_license") || localStorage.getItem("sb-license")
   );
 }
 
@@ -218,7 +256,11 @@ export function clearAuthToken(): void {
     "authToken",
   ];
   for (const key of allKeys) {
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -241,7 +283,9 @@ export function isTokenExpired(): boolean {
     // 3-part JWT tokens (header.data.signature) — decode second part as payload
     if (parts.length !== 2 && parts.length !== 3) return true;
     const payloadPart = parts.length === 2 ? parts[0] : parts[1];
-    const payload = JSON.parse(atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/")),
+    );
     if (payload.exp && Date.now() >= payload.exp * 1000) return true;
     return false;
   } catch {
@@ -283,7 +327,11 @@ export async function processAgentParams(): Promise<void> {
           if (data.success && data.authToken) {
             setAuthToken(data.authToken);
             if (data.licenseToken) setLicenseToken(data.licenseToken);
-            try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+            try {
+              sessionStorage.setItem("sb_agent_mode", "1");
+            } catch {
+              /* ignore */
+            }
             // Clean the URL — remove the token param
             const cleanUrl = window.location.pathname + window.location.hash;
             window.history.replaceState({}, "", cleanUrl);
@@ -307,7 +355,11 @@ export async function processAgentParams(): Promise<void> {
       setLicenseToken(licenseToken);
     }
     if (agentMode === "1") {
-      try { sessionStorage.setItem("sb_agent_mode", "1"); } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem("sb_agent_mode", "1");
+      } catch {
+        /* ignore */
+      }
     }
   } catch {
     /* ignore */
@@ -331,7 +383,10 @@ export function clearAuthAndRedirect(): void {
   window.location.hash = "#/signin";
 }
 
+<<<<<<< Updated upstream
 /** Same-origin production API for hosted dashboards (simplebeacon.ai / Pages). */
+=======
+>>>>>>> Stashed changes
 export function getHostedCloudApiBase(): string {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname || "";
@@ -354,11 +409,14 @@ function isLoopbackHttpBase(value: string): boolean {
   }
 }
 
+<<<<<<< Updated upstream
 /**
  * Website/IDE mode sets sb_api_base to the extension data server on loopback.
  * That server does not implement GitHub clone and stubs /analyze/flexible —
  * those must stay on the hosted API (same as /dashboard/#/analyze with no bridge).
  */
+=======
+>>>>>>> Stashed changes
 export function shouldUseHostedCloudApiForGithub(): boolean {
   const cloud = getHostedCloudApiBase();
   if (!cloud) return false;
