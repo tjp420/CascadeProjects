@@ -487,7 +487,10 @@
         } catch (_) {}
       })();
     </script>
-  </head>
+    <script>window.__SB_SITE_CONFIG=window.__SB_SITE_CONFIG||{brand:{name:"SimpleBeacon",logo:"/favicon.svg"},vsixDownloadUrl:"https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode",pricing:{plans:[]}};</script>
+  <script src="/site-config.js"></script>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+</head>
   <body>
     <noscript
       ><div style="padding: 40px; text-align: center">
@@ -693,8 +696,8 @@
       })();
     </script>
 
-    <!-- DOMPurify for sanitization -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
+    <!-- DOMPurify for sanitization (local — dashboard CSP does not allow jsDelivr) -->
+    <script src="/dashboard/js/vendor/purify.min.js"></script>
 
     <!-- JSZip for export functionality -->
     <script>
@@ -712,7 +715,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="./assets/main.js"></script>
+    <script type="module" src="/dashboard/assets/main.js?v=1788996010751"></script>
     <script>
       (function () {
         try {

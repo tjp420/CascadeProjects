@@ -75,6 +75,7 @@ const {
   dedupeResolvedRoots,
   logResolvedAllowedRoots,
   formatAllowedRootsSummary,
+  parseGithubRepoUrl,
 } = require("../lib/path-safety.cjs");
 const { toClientError } = require("../../shared-utils/index.cjs");
 const { sendError } = require("../lib/response-helpers.cjs");
@@ -3733,16 +3734,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     }
   });
 
-  async function downloadGithubZipball(repoUrl, destPath) {
-    const match = repoUrl.match(
-      /github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?(?:$|[?#])/i,
-    );
-    if (!match) throw new Error("Not a GitHub repository URL");
-    const owner = match[1];
-    const repo = match[2];
-    let branch = "HEAD";
-    const branchMatch = repoUrl.match(/(?:ref=|\/tree\/|\/blob\/)([^/?#]+)/);
-    if (branchMatch) branch = branchMatch[1];
+  async function downloadGithubZipball(parsedRepo, destPath) {
+    const owner = parsedRepo.owner;
+    const repo = parsedRepo.repo;
+    let branch = parsedRepo.branch || "HEAD";
     // When no specific branch is given, use the bare /zip/HEAD endpoint
     // which follows the repo's default branch. Using /zip/refs/heads/HEAD
     // returns 404 on many repos because "HEAD" is not a literal branch name.
@@ -3807,10 +3802,16 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     if (!repoUrl) {
       return sendError(res, 400, "repoUrl is required");
     }
+    let parsedRepo;
+    try {
+      parsedRepo = parseGithubRepoUrl(repoUrl);
+    } catch (parseErr) {
+      return sendError(res, 400, safeErrorMessage(parseErr));
+    }
     const refresh = body.refresh === true;
     const cacheKey = crypto
       .createHash("sha256")
-      .update(repoUrl)
+      .update(parsedRepo.cloneUrl)
       .digest("hex")
       .slice(0, 16);
     const cacheDir = path.join(os.tmpdir(), "sb-github-cache");
@@ -3827,7 +3828,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
       if (cacheExists) {
         await fs.promises.rm(projectPath, { recursive: true, force: true });
       }
-      const safeRepoUrl = repoUrl.replace(/["';`$|&<>(){}[\]\n\r]/g, "");
+      const safeRepoUrl = parsedRepo.cloneUrl;
       let cloneMethod = "git";
       try {
         const { stdout, stderr } = await execAsync(
@@ -3843,7 +3844,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           safeErrorMessage(gitErr),
         );
         cloneMethod = "zipball";
-        await downloadGithubZipball(repoUrl, projectPath);
+        await downloadGithubZipball(parsedRepo, projectPath);
       }
       return res.json({
         success: true,

@@ -1223,7 +1223,9 @@ export function AnalyzeView() {
   };
 
   const isGithubUrl = (url: string) =>
-    /^https?:\/\/github\.com\//i.test(url.trim());
+    /^https:\/\/(?:www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(
+      url.trim(),
+    );
 
   const isWindowsPath = (p: string) => /^[A-Za-z]:[\\/]/.test(p.trim());
 
@@ -1959,9 +1961,17 @@ export function AnalyzeView() {
               "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
             );
           }
-          throw new Error(
-            cloneErr.error || `GitHub clone failed (${cloneResp.status})`,
-          );
+          const cloneMsg =
+            typeof cloneErr.error === "string"
+              ? cloneErr.error
+              : `GitHub clone failed (${cloneResp.status})`;
+          if (cloneResp.status === 400) {
+            throw new Error(
+              cloneMsg +
+                " For a local folder, use Select Folder so the scan stays on this machine.",
+            );
+          }
+          throw new Error(cloneMsg);
         }
         const cloneData = await cloneResp.json();
         if (!cloneData.success)
