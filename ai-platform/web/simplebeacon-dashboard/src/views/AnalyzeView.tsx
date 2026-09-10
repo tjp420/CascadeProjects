@@ -39,7 +39,8 @@ import {
   clearAuthAndRedirect,
   shouldUseHostedCloudApiForGithub,
 } from "@/config";
-import { setLargeItem, removeLargeItem } from "@/utils/dbStorage";
+import { setLargeItem, removeLargeItem, getLargeItem } from "@/utils/dbStorage";
+import { collectScanIssues } from "@/lib/collect-scan-issues";
 import {
   checkLocalNetworkAccess,
   isLoopbackHost,
@@ -267,6 +268,24 @@ interface ScanResult {
   };
 }
 
+function isBrowserNetworkError(err: unknown): boolean {
+  const name = String((err as { name?: string })?.name || "");
+  const msg = String((err as { message?: string })?.message || err || "");
+  return (
+    /NetworkError/i.test(msg) ||
+    /Failed to fetch/i.test(msg) ||
+    /Load failed/i.test(msg) ||
+    (name === "TypeError" && /fetch/i.test(msg))
+  );
+}
+
+function scanApiUnreachableMessage(kind: "clone" | "scan"): string {
+  if (kind === "clone") {
+    return "Could not reach the GitHub clone API (cloud backend timed out, sleeping, or blocked). Large repos often fail in the browser. Clone on your machine and run: npx simplebeacon scan --gate --offline. Or use Select Folder.";
+  }
+  return "Could not reach the scan API. Retry once (the cloud host may be waking up), or scan offline: npx simplebeacon scan --gate --offline";
+}
+
 function firstFiniteCount(...values: unknown[]): number | null {
   for (const value of values) {
     const n = Number(value);
@@ -383,22 +402,7 @@ function extractFlexibleScanPresentation(
 }
 
 function extractIssueListForSidebar(report: any): any[] {
-  if (Array.isArray(report?.rawIssues) && report.rawIssues.length)
-    return report.rawIssues;
-  if (Array.isArray(report?.detectedIssues) && report.detectedIssues.length)
-    return report.detectedIssues;
-  if (Array.isArray(report?.findings) && report.findings.length) {
-    return report.findings.map((f: any) => ({
-      filePath: f.filePath || f.file || "",
-      line: f.line || 1,
-      severity: f.severity || "medium",
-      severityBand: f.severityBand || f.severity || "medium",
-      type: f.category || f.type || "finding",
-      description: f.message || f.description || "Finding detected",
-      count: Number(f.count) || 1,
-    }));
-  }
-  return [];
+  return collectScanIssues(report, 200);
 }
 
 function syncReportToVscodeSidebar(
@@ -756,11 +760,8 @@ export function AnalyzeView() {
   const persistScanResult = useCallback(
     (scanResult: ScanResult, fullReportData?: any) => {
       const buildCompactReport = (report: any) => {
-        const rawIssues = Array.isArray(report?.rawIssues)
-          ? report.rawIssues
-          : Array.isArray(report?.detectedIssues)
-            ? report.detectedIssues
-            : [];
+        const collected = collectScanIssues(report, 500);
+        const rawIssues = collected.slice(0, 50);
         const fullSummary = report?.summary || {};
         return {
           type: report?.type || "simplebeacon-report",
@@ -854,8 +855,19 @@ export function AnalyzeView() {
       } catch (e) {
         console.warn("[SimpleBeacon] Failed to store sb_last_scan:", e);
       }
+      const auditIssues = collectScanIssues(fullReportData || scanResult, 200);
+      const auditSnapshot = {
+        ...scanResult,
+        generatedAt: fullReportData?.generatedAt || new Date().toISOString(),
+        projectRoot:
+          fullReportData?.projectRoot ||
+          fullReportData?.projectPath ||
+          scanResult.projectPath,
+        rawIssues: auditIssues,
+        detectedIssues: auditIssues,
+      };
       try {
-        localStorage.setItem("sb_last_scan_full", JSON.stringify(scanResult));
+        localStorage.setItem("sb_last_scan_full", JSON.stringify(auditSnapshot));
       } catch (e) {
         console.warn(
           "[SimpleBeacon] Failed to store sb_last_scan_full (may exceed quota):",
@@ -863,19 +875,25 @@ export function AnalyzeView() {
         );
         clearBulkyScanKeys();
         try {
-          localStorage.setItem("sb_last_scan_full", JSON.stringify(scanResult));
-        } catch {
-          toast.warning(
-            "Results summary may be limited — localStorage quota exceeded.",
+          localStorage.setItem(
+            "sb_last_scan_full",
+            JSON.stringify(auditSnapshot),
           );
+        } catch {
+          try {
+            localStorage.setItem(
+              "sb_last_scan_full",
+              JSON.stringify(scanResult),
+            );
+          } catch {
+            toast.warning(
+              "Results summary may be limited — localStorage quota exceeded.",
+            );
+          }
         }
       }
       if (fullReportData) {
-        const rawIssues = Array.isArray(fullReportData?.rawIssues)
-          ? fullReportData.rawIssues
-          : Array.isArray(fullReportData?.detectedIssues)
-            ? fullReportData.detectedIssues
-            : [];
+        const rawIssues = collectScanIssues(fullReportData, 500);
         const useCompactFirst =
           rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
         const payload = useCompactFirst
@@ -1946,36 +1964,91 @@ export function AnalyzeView() {
             "[SimpleBeacon] Using hosted API for GitHub clone (extension bridge cannot clone remotes).",
           );
         }
-        const cloneResp = await fetch(
-          apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify({ repoUrl: scanPath }),
-          },
-        );
-        if (!cloneResp.ok) {
-          const cloneErr = await cloneResp.json().catch(() => ({}));
-          if (cloneResp.status === 401 || cloneErr.error === "UnauthorizedError") {
-            throw new Error(
-              "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
-            );
+        let cloneData: any;
+        try {
+          const cloneResp = await fetch(
+            apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...authHeaders(),
+              },
+              body: JSON.stringify({ repoUrl: scanPath }),
+            },
+          );
+          if (!cloneResp.ok) {
+            const cloneErr = await cloneResp.json().catch(() => ({}));
+            if (
+              cloneResp.status === 401 ||
+              cloneErr.error === "UnauthorizedError"
+            ) {
+              throw new Error(
+                "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
+              );
+            }
+            const cloneMsg =
+              typeof cloneErr.error === "string"
+                ? cloneErr.error
+                : `GitHub clone failed (${cloneResp.status})`;
+            if (cloneResp.status === 400) {
+              throw new Error(
+                cloneMsg +
+                  " For a local folder, use Select Folder so the scan stays on this machine.",
+              );
+            }
+            throw new Error(cloneMsg);
           }
-          const cloneMsg =
-            typeof cloneErr.error === "string"
-              ? cloneErr.error
-              : `GitHub clone failed (${cloneResp.status})`;
-          if (cloneResp.status === 400) {
-            throw new Error(
-              cloneMsg +
-                " For a local folder, use Select Folder so the scan stays on this machine.",
-            );
+          cloneData = await cloneResp.json();
+        } catch (cloneFetchErr: any) {
+          if (isBrowserNetworkError(cloneFetchErr)) {
+            throw new Error(scanApiUnreachableMessage("clone"));
           }
-          throw new Error(cloneMsg);
+          throw cloneFetchErr;
         }
-        const cloneData = await cloneResp.json();
-        if (!cloneData.success)
+        if (cloneData.pending && cloneData.jobId) {
+          appendLog("[SimpleBeacon] Clone started on server — polling status...");
+          const deadline = Date.now() + 180000;
+          while (Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const stResp = await fetch(
+              apiUrl(
+                `/analyze/github-clone/status?jobId=${encodeURIComponent(cloneData.jobId)}`,
+                { preferCloud: githubCloudApi },
+              ),
+              { headers: authHeaders() },
+            );
+            const st = await stResp.json().catch(() => ({}));
+            if (stResp.status === 404) {
+              throw new Error(
+                "Clone job expired on the server. Retry the scan.",
+              );
+            }
+            if (!stResp.ok && !st.pending) {
+              throw new Error(
+                typeof st.error === "string"
+                  ? st.error
+                  : "GitHub clone failed",
+              );
+            }
+            if (st.pending) {
+              setProgressLabel("Cloning GitHub repository...");
+              continue;
+            }
+            cloneData = st;
+            break;
+          }
+          if (cloneData.pending) {
+            throw new Error(
+              "GitHub clone is still running after 3 minutes. Use: npx simplebeacon scan --gate --offline",
+            );
+          }
+        }
+        if (!cloneData.success && !cloneData.projectPath)
           throw new Error(cloneData.error || "GitHub clone failed");
+        if (!cloneData.projectPath) {
+          throw new Error("GitHub clone did not return a project path");
+        }
         scanPath = cloneData.projectPath;
         appendLog(
           `[SimpleBeacon] Clone complete: ${scanPath} (method: ${cloneData.method || "git"})`,
@@ -2018,6 +2091,9 @@ export function AnalyzeView() {
             throw new Error(
               "Scan timed out after 120 seconds. The server may be unresponsive.",
             );
+          }
+          if (isBrowserNetworkError(fetchErr)) {
+            throw new Error(scanApiUnreachableMessage("scan"));
           }
           throw fetchErr;
         }
@@ -2142,6 +2218,11 @@ export function AnalyzeView() {
     } catch (err: any) {
       setScanState("error");
       let errMsg = err?.message || String(err || "Unknown error");
+      if (isBrowserNetworkError(err)) {
+        errMsg = scanApiUnreachableMessage(
+          isGithubUrl(path) ? "clone" : "scan",
+        );
+      }
       if (errMsg === "UnauthorizedError" || errMsg.includes("UnauthorizedError")) {
         errMsg = "Sign in required for server-side scans. Use file upload or drag-drop for offline scanning without an account.";
       }
@@ -3843,14 +3924,65 @@ function ScanResults({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   try {
-                    const raw = localStorage.getItem("sb_last_scan_full");
-                    if (!raw) {
+                    let storedReport: any = null;
+                    try {
+                      storedReport = await getLargeItem("sb_last_scan_report");
+                    } catch {
+                      /* ignore */
+                    }
+                    let lsReport: any = null;
+                    try {
+                      const raw = localStorage.getItem("sb_last_scan_full");
+                      if (raw) lsReport = JSON.parse(raw);
+                    } catch {
+                      /* ignore */
+                    }
+                    if (!fullReport && !storedReport && !lsReport && !result) {
                       toast.error("No scan report found — run a scan first");
                       return;
                     }
-                    const report = JSON.parse(raw);
+                    const report: any = {
+                      ...(lsReport || {}),
+                      ...(storedReport || {}),
+                      ...(fullReport || {}),
+                      qualityScore:
+                        result.qualityScore ??
+                        fullReport?.qualityScore ??
+                        lsReport?.qualityScore,
+                      issueCount:
+                        result.issueCount ??
+                        fullReport?.issueCount ??
+                        lsReport?.issueCount,
+                      totalFiles:
+                        result.totalFiles ||
+                        fullReport?.repositoryFilesTotal ||
+                        lsReport?.totalFiles,
+                      repositoryFilesTotal:
+                        result.totalFiles ||
+                        fullReport?.repositoryFilesTotal ||
+                        lsReport?.repositoryFilesTotal,
+                      severityCounts:
+                        result.severityCounts ||
+                        fullReport?.severityCounts ||
+                        lsReport?.severityCounts ||
+                        {},
+                      gate: result.gate || fullReport?.gate || lsReport?.gate || {},
+                      projectRoot:
+                        result.projectPath ||
+                        fullReport?.projectRoot ||
+                        lsReport?.projectRoot,
+                      generatedAt:
+                        fullReport?.generatedAt ||
+                        lsReport?.generatedAt ||
+                        new Date().toISOString(),
+                    };
+                    let issues = collectScanIssues(fullReport, 200);
+                    if (!issues.length)
+                      issues = collectScanIssues(storedReport, 200);
+                    if (!issues.length)
+                      issues = collectScanIssues(lsReport, 200);
                     let history: any[] = [];
                     try {
                       const histRaw = localStorage.getItem("sb_scan_history");
@@ -3865,8 +3997,6 @@ function ScanResults({
                       report.generatedAt || new Date().toISOString();
                     const gate = report.gate || {};
                     const sev = report.severityCounts || {};
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
                     const qualityScore =
                       report.qualityScore != null
                         ? report.qualityScore
@@ -3896,7 +4026,7 @@ function ScanResults({
                         return `<tr><td>${e(entry.date)}</td><td>${e(entry.gatePass === true ? "PASS" : "FAIL")}</td><td>${e(entry.qualityScore ?? "—")}</td><td>${e(entry.issueCount ?? "—")}</td><td>${e(s.critical || 0)}</td><td>${e(s.high || 0)}</td><td>${e(s.medium || 0)}</td><td>${e(s.low || 0)}</td></tr>`;
                       })
                       .join("");
-                    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleBeacon Audit — ${e(projectLabel)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;padding:40px;line-height:1.5}.header{border-bottom:2px solid #6366f1;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:1.5rem}.header .meta{font-size:0.8rem;color:#666;text-align:right}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}.summary-card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}.summary-card .label{font-size:0.7rem;color:#666;text-transform:uppercase;letter-spacing:0.05em}.summary-card .value{font-size:1.5rem;font-weight:700;margin-top:4px}.gate-pass{color:#16a34a}.gate-fail{color:#dc2626}.gate-review{color:#d97706}h2{font-size:1.1rem;margin:24px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f9fafb;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-weight:600}td{padding:6px 8px;border-bottom:1px solid #f3f4f6}.critical{background:#fef2f2;color:#dc2626;font-weight:600}.high{background:#fff7ed;color:#ea580c;font-weight:600}.medium{background:#fefce8;color:#ca8a04}.low{color:#6b7280}.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:0.7rem;color:#999}@media print{body{padding:20px}}</style></head><body><div class="header"><h1>SimpleBeacon Compliance Audit Report</h1><div class="meta"><div><strong>Project:</strong> ${e(projectLabel)}</div><div><strong>Generated:</strong> ${e(generatedAt)}</div><div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Quality Score</div><div class="value">${e(qualityScore)}</div></div><div class="summary-card"><div class="label">Total Issues</div><div class="value">${e(report.issueCount)}</div></div><div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${e(gate.blockingCount || 0)}</div></div><div class="summary-card"><div class="label">Files Scanned</div><div class="value">${e(report.totalFiles || report.repositoryFilesTotal || "—")}</div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${e(sev.critical || 0)}</div></div><div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${e(sev.high || 0)}</div></div><div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${e(sev.medium || 0)}</div></div><div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${e(sev.low || 0)}</div></div></div><h2>Detected Issues (${issues.length}${issues.length > 200 ? " — showing first 200" : ""})</h2><table><thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead><tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No issues detected</td></tr>'}</tbody></table>${trendRows ? `<h2>Vulnerability Trend (${history.length} scans)</h2><table><thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${trendRows}</tbody></table>` : ""}<div class="footer"><p>Generated by SimpleBeacon — Compliance Audit Report</p><p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`;
+                    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleBeacon Audit — ${e(projectLabel)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;padding:40px;line-height:1.5}.header{border-bottom:2px solid #6366f1;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:1.5rem}.header .meta{font-size:0.8rem;color:#666;text-align:right}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}.summary-card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}.summary-card .label{font-size:0.7rem;color:#666;text-transform:uppercase;letter-spacing:0.05em}.summary-card .value{font-size:1.5rem;font-weight:700;margin-top:4px}.gate-pass{color:#16a34a}.gate-fail{color:#dc2626}.gate-review{color:#d97706}h2{font-size:1.1rem;margin:24px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f9fafb;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-weight:600}td{padding:6px 8px;border-bottom:1px solid #f3f4f6}.critical{background:#fef2f2;color:#dc2626;font-weight:600}.high{background:#fff7ed;color:#ea580c;font-weight:600}.medium{background:#fefce8;color:#ca8a04}.low{color:#6b7280}.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:0.7rem;color:#999}@media print{body{padding:20px}.summary-grid{display:grid!important;grid-template-columns:1fr 1fr 1fr 1fr!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.summary-card{break-inside:avoid}}</style></head><body><div class="header"><h1>SimpleBeacon Compliance Audit Report</h1><div class="meta"><div><strong>Project:</strong> ${e(projectLabel)}</div><div><strong>Generated:</strong> ${e(generatedAt)}</div><div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Quality Score</div><div class="value">${e(qualityScore)}</div></div><div class="summary-card"><div class="label">Total Issues</div><div class="value">${e(report.issueCount)}</div></div><div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${e(gate.blockingCount || 0)}</div></div><div class="summary-card"><div class="label">Files Scanned</div><div class="value">${e(report.totalFiles || report.repositoryFilesTotal || "—")}</div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${e(sev.critical || 0)}</div></div><div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${e(sev.high || 0)}</div></div><div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${e(sev.medium || 0)}</div></div><div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${e(sev.low || 0)}</div></div></div><h2>Detected Issues (${issues.length}${issues.length > 200 ? " — showing first 200" : ""})</h2><table><thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead><tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No issues detected</td></tr>'}</tbody></table>${trendRows ? `<h2>Vulnerability Trend (${history.length} scans)</h2><table><thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${trendRows}</tbody></table>` : ""}<div class="footer"><p>Generated by SimpleBeacon — Compliance Audit Report</p><p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`;
                     const w = window.open("", "_blank");
                     if (!w) {
                       toast.error(

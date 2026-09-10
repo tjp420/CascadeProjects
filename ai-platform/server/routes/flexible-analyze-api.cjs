@@ -3847,6 +3847,55 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     };
   }
 
+  const githubCloneJobs = new Map();
+
+  async function performGithubClone(parsedRepo, projectPath, cacheDir) {
+    await fs.promises.mkdir(cacheDir, { recursive: true });
+    const cacheExists = await fs.promises
+      .access(projectPath)
+      .then(() => true)
+      .catch(() => false);
+    if (cacheExists) {
+      await fs.promises.rm(projectPath, { recursive: true, force: true });
+    }
+    const safeRepoUrl = parsedRepo.cloneUrl;
+    let cloneMethod = "git";
+    try {
+      await execAsync(`git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`, {
+        timeout: 180000,
+        maxBuffer: 1024 * 1024,
+      });
+    } catch (gitErr) {
+      logger.warn(
+        "[GitHub Clone] git clone failed, trying zipball fallback:",
+        safeErrorMessage(gitErr),
+      );
+      cloneMethod = "zipball";
+      await downloadGithubZipball(parsedRepo, projectPath);
+    }
+    return cloneMethod;
+  }
+
+  app.get("/api/analyze/github-clone/status", (req, res) => {
+    const jobId = String(req.query.jobId || "").trim();
+    if (!jobId) return sendError(res, 400, "jobId is required");
+    const job = githubCloneJobs.get(jobId);
+    if (!job) return sendError(res, 404, "Clone job not found");
+    if (job.status === "running") {
+      return res.json({ success: true, pending: true, jobId });
+    }
+    if (job.status === "error") {
+      return sendError(res, 500, job.error || "GitHub clone failed");
+    }
+    return res.json({
+      success: true,
+      pending: false,
+      projectPath: job.projectPath,
+      cached: Boolean(job.cached),
+      method: job.method || "git",
+    });
+  });
+
   app.post("/api/analyze/github-clone", async (req, res) => {
     const body = req.body || {};
     const repoUrl = String(body.repoUrl || "").trim();
@@ -3860,6 +3909,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
       return sendError(res, 400, safeErrorMessage(parseErr));
     }
     const refresh = body.refresh === true;
+    const waitForClone = body.wait === true;
     const cacheKey = crypto
       .createHash("sha256")
       .update(parsedRepo.cloneUrl)
@@ -3875,34 +3925,54 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
       if (!refresh && cacheExists) {
         return res.json({ success: true, projectPath, cached: true });
       }
-      await fs.promises.mkdir(cacheDir, { recursive: true });
-      if (cacheExists) {
-        await fs.promises.rm(projectPath, { recursive: true, force: true });
+      const existing = githubCloneJobs.get(cacheKey);
+      if (existing && existing.status === "running") {
+        return res.json({ success: true, pending: true, jobId: cacheKey });
       }
-      const safeRepoUrl = parsedRepo.cloneUrl;
-      let cloneMethod = "git";
-      try {
-        const { stdout, stderr } = await execAsync(
-          `git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`,
-          { timeout: 120000, maxBuffer: 1024 * 1024 },
-        );
-        if (stderr && !stderr.includes("Cloning into")) {
-          logger.warn("[GitHub Clone] stderr:", stderr);
+      githubCloneJobs.set(cacheKey, { status: "running", projectPath });
+
+      const runJob = async () => {
+        try {
+          const method = await performGithubClone(
+            parsedRepo,
+            projectPath,
+            cacheDir,
+          );
+          githubCloneJobs.set(cacheKey, {
+            status: "done",
+            projectPath,
+            method,
+            cached: false,
+          });
+        } catch (err) {
+          githubCloneJobs.set(cacheKey, {
+            status: "error",
+            error: safeErrorMessage(err) || "GitHub clone failed",
+          });
         }
-      } catch (gitErr) {
-        logger.warn(
-          "[GitHub Clone] git clone failed, trying zipball fallback:",
-          safeErrorMessage(gitErr),
-        );
-        cloneMethod = "zipball";
-        await downloadGithubZipball(parsedRepo, projectPath);
+      };
+
+      if (waitForClone) {
+        await runJob();
+        const job = githubCloneJobs.get(cacheKey);
+        if (job.status === "error") {
+          return sendError(res, 500, job.error);
+        }
+        return res.json({
+          success: true,
+          projectPath,
+          cached: false,
+          method: job.method,
+        });
       }
-      return res.json({
-        success: true,
-        projectPath,
-        cached: false,
-        method: cloneMethod,
+
+      res.json({ success: true, pending: true, jobId: cacheKey });
+      setImmediate(() => {
+        runJob().catch((err) => {
+          logger.error("[GitHub Clone] background job failed:", safeErrorMessage(err));
+        });
       });
+      return;
     } catch (err) {
       logger.error("[GitHub Clone] failed:", safeErrorMessage(err));
       return sendError(

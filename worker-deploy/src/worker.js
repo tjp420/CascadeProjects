@@ -1115,7 +1115,11 @@ export default {
       const isLiveProgressGet =
         isGetOrHead &&
         (url.pathname === "/api/analyze/progress" ||
-          url.pathname.endsWith("/analyze/progress"));
+          url.pathname.endsWith("/analyze/progress") ||
+          url.pathname.includes("/analyze/github-clone"));
+      const skipProxyRetry =
+        request.method === "POST" &&
+        url.pathname.includes("/analyze/github-clone");
       const cacheKey =
         isGetOrHead && !isLiveProgressGet
           ? "api:" + url.pathname + ":" + url.search
@@ -1205,7 +1209,7 @@ export default {
       }
 
       // --- Step 4: Retry loop with pristine Request per attempt ---
-      const maxRetries = 3;
+      const maxRetries = skipProxyRetry ? 0 : 3;
       let lastErr = null;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
