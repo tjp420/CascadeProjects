@@ -1,0 +1,36 @@
+{
+  "id": "adversarial-plausible-wording",
+  "description": "Plausible vulnerability wording without source corroboration must not Verified",
+  "finding": {
+    "filePath": "app/render.js",
+    "type": "innerHTMLXss",
+    "category": "xss",
+    "severity": "high",
+    "answers": {
+      "attackerControlledInput": "yes",
+      "reachesDangerousOperation": "yes",
+      "dangerousOperationExecuted": "yes",
+      "privilegesRequired": "browser-user",
+      "existingControl": "none — sanitizer bypassed",
+      "attackPath": "user markdown → renderer → innerHTML assignment enabling XSS",
+      "sourceLines": [10]
+    }
+  },
+  "options": {
+    "links": [
+      {
+        "from": "req.body.comment",
+        "to": "renderMarkdown()",
+        "mechanism": "unsanitized"
+      },
+      {
+        "from": "renderMarkdown()",
+        "to": "element.innerHTML",
+        "mechanism": "DOM sink"
+      }
+    ],
+    "impactClass": "xss",
+    "sourceText": "element.textContent = sanitize(req.body.comment);\n"
+  },
+  "expectVerified": false
+}

@@ -1,0 +1,159 @@
+{
+  "benchmark": "verification-funnel-v1",
+  "nodegoat": {
+    "sourceFile": "app/routes/contributions.js",
+    "rawIssues": [
+      {
+        "type": "evalDanger",
+        "severity": "critical",
+        "filePath": "app/routes/contributions.js",
+        "line": 23,
+        "description": "eval(req.body.preTax) — SSJS injection surface"
+      },
+      {
+        "type": "evalDanger",
+        "severity": "critical",
+        "filePath": "app/routes/contributions.js",
+        "line": 24,
+        "description": "eval(req.body.afterTax)"
+      },
+      {
+        "type": "evalDanger",
+        "severity": "critical",
+        "filePath": "app/routes/contributions.js",
+        "line": 25,
+        "description": "eval(req.body.roth)"
+      }
+    ],
+    "expectedVerified": [
+      {
+        "id": "ssjs-eval-rce",
+        "filePath": "app/routes/contributions.js",
+        "type": "evalDanger",
+        "category": "evalDanger",
+        "severity": "critical",
+        "evidence": {
+          "answers": {
+            "attackerControlledInput": "yes",
+            "reachesDangerousOperation": "yes",
+            "dangerousOperationExecuted": "yes",
+            "privilegesRequired": "authenticated-user",
+            "existingControl": "none — upstream parseInt fix is present only as commented-out code",
+            "attackPath": "HTTP request body preTax → eval(req.body.preTax) executes attacker-controlled JavaScript on the server",
+            "sourceLines": [22, 23, 24]
+          },
+          "links": [
+            {
+              "from": "req.body.preTax",
+              "to": "eval()",
+              "mechanism": "request body string passed directly to eval without parsing"
+            },
+            {
+              "from": "eval()",
+              "to": "server JavaScript runtime",
+              "mechanism": "eval executes the attacker-controlled expression in-process"
+            }
+          ],
+          "impactClass": "rce"
+        }
+      }
+    ]
+  },
+  "xssFixture": {
+    "sourceFile": "app/comment-renderer.js",
+    "rawIssues": [
+      {
+        "type": "innerHTMLXss",
+        "severity": "high",
+        "filePath": "app/comment-renderer.js",
+        "line": 21,
+        "description": "element.innerHTML = renderMarkdown(req.body.comment)"
+      }
+    ],
+    "expectedVerified": [
+      {
+        "id": "slice6-dom-xss",
+        "filePath": "app/comment-renderer.js",
+        "type": "innerHTMLXss",
+        "category": "xss",
+        "severity": "high",
+        "evidence": {
+          "answers": {
+            "attackerControlledInput": "yes",
+            "reachesDangerousOperation": "yes",
+            "dangerousOperationExecuted": "yes",
+            "privilegesRequired": "authenticated-user",
+            "existingControl": "none — sanitizer not applied on this path",
+            "attackPath": "HTTP request body comment → renderMarkdown() → element.innerHTML assignment",
+            "sourceLines": [18, 19, 20]
+          },
+          "links": [
+            {
+              "from": "req.body.comment",
+              "to": "renderMarkdown()",
+              "mechanism": "unsanitized string passthrough"
+            },
+            {
+              "from": "renderMarkdown()",
+              "to": "element.innerHTML",
+              "mechanism": "DOM sink write"
+            }
+          ],
+          "impactClass": "xss"
+        }
+      }
+    ]
+  },
+  "kubernetesNoise": {
+    "files": [
+      "docs/example-secrets.md",
+      "test/fake-credential.test.js",
+      "examples/eval-demo.js",
+      "pkg/apis/doc-comments.go"
+    ],
+    "rawIssues": [
+      {
+        "type": "evalDanger",
+        "severity": "critical",
+        "filePath": "examples/eval-demo.js",
+        "line": 7,
+        "description": "eval() in examples/"
+      },
+      {
+        "type": "hardcodedCredential",
+        "severity": "high",
+        "filePath": "docs/example-secrets.md",
+        "line": 1,
+        "description": "credential-like string in docs"
+      },
+      {
+        "type": "hardcodedCredential",
+        "severity": "high",
+        "filePath": "test/fake-credential.test.js",
+        "line": 1,
+        "description": "test fixture credential"
+      },
+      {
+        "type": "hardcodedCredential",
+        "severity": "medium",
+        "filePath": "pkg/apis/doc-comments.go",
+        "line": 1,
+        "description": "doc comment example token"
+      },
+      {
+        "type": "documentation",
+        "severity": "low",
+        "filePath": "docs/example-secrets.md",
+        "line": 1,
+        "description": "docs sample"
+      },
+      {
+        "type": "documentation",
+        "severity": "low",
+        "filePath": "pkg/apis/doc-comments.go",
+        "line": 1,
+        "description": "TODO / CIDR docs mention"
+      }
+    ]
+  }
+}

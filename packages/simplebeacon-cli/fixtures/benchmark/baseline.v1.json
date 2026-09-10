@@ -1,0 +1,49 @@
+{
+  "benchmark": "verification-funnel-v1",
+  "status": "frozen",
+  "frozenAt": "2026-09-10",
+  "claim": "100% verified recall on the current labeled positive controls, with zero unsupported promotions.",
+  "claimIsNot": "100% vulnerability detection accuracy — corpus too small for that claim.",
+  "doNot": [
+    "tune Verified gate to improve these numbers",
+    "change production dashboard for this baseline",
+    "deploy to make V1 look better",
+    "fold Kubernetes noise counts into vulnerability recall"
+  ],
+  "nextMilestone": "v2-ground-truth-expansion",
+  "nextMilestoneNotes": "Expand labeled positives (more NodeGoat paths + Juice Shop classes). A 9/10 with 0 unsupported Verified is more valuable than forcing 10/10 by loosening the gate.",
+  "positiveControls": {
+    "nodegoat": { "id": "ssjs-eval-rce", "known": 1, "verified": 1 },
+    "xss-fixture": { "id": "slice6-dom-xss", "known": 1, "verified": 1 }
+  },
+  "negativeControls": {
+    "open-webui": { "verified": 0 },
+    "gitea": { "verified": 0 },
+    "immich": { "verified": 0 }
+  },
+  "noiseControl": {
+    "kubernetes": {
+      "verified": 0,
+      "question": "Can contextual matches avoid becoming Verified?",
+      "notPartOf": "vulnerability-recall"
+    }
+  },
+  "acceptance": {
+    "knownVulnerabilities": 2,
+    "verifiedBySimpleBeacon": 2,
+    "verifiedRecall": 1,
+    "unsupportedVerified": 0,
+    "recall": "PASS",
+    "noiseRejection": "PASS",
+    "explainability": "PASS"
+  },
+  "productionPath": [
+    "rawIssues",
+    "compileGateStatus",
+    "attachVerifiedFindings",
+    "attachSignalTriage",
+    "attachSemanticVerification",
+    "applyVerifiedEngine",
+    "maintainerHeadline"
+  ]
+}

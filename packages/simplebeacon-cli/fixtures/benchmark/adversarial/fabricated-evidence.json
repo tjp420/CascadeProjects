@@ -1,0 +1,31 @@
+{
+  "id": "adversarial-fabricated-evidence",
+  "description": "Fabricated chain that does not corroborate source must not Verified",
+  "finding": {
+    "filePath": "app/safe.js",
+    "type": "evalDanger",
+    "category": "evalDanger",
+    "severity": "critical",
+    "answers": {
+      "attackerControlledInput": "yes",
+      "reachesDangerousOperation": "yes",
+      "dangerousOperationExecuted": "yes",
+      "privilegesRequired": "authenticated-user",
+      "existingControl": "none",
+      "attackPath": "HTTP request body payload → eval() executes attacker JavaScript",
+      "sourceLines": [3, 4]
+    }
+  },
+  "options": {
+    "links": [
+      {
+        "from": "req.body.payload",
+        "to": "eval()",
+        "mechanism": "direct passthrough"
+      }
+    ],
+    "impactClass": "rce",
+    "sourceText": "function add(a, b) {\n  return a + b;\n}\n"
+  },
+  "expectVerified": false
+}

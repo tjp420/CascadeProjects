@@ -1,0 +1,34 @@
+{
+  "name": "gitea-mini",
+  "role": "golden-negative-control",
+  "maintainerHeadline": {
+    "signalsAnalyzed": 80,
+    "automaticallyDismissed": 72,
+    "requireReview": 8,
+    "verifiedVulnerabilities": 0,
+    "summary": "80 code signals analyzed. 72 automatically dismissed. 8 require review. 0 verified vulnerabilities."
+  },
+  "verification": {
+    "dismissed": [],
+    "investigate": [
+      {
+        "filePath": "gitea/web_src/js/utils/dom.ts",
+        "type": "innerHTMLXss",
+        "category": "xss",
+        "severity": "high",
+        "verification": "investigate",
+        "verificationReason": "Unsafe innerHTML helper exists, but reachability is not proven.",
+        "answers": {
+          "attackerControlledInput": "unknown",
+          "reachesDangerousOperation": "unknown",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "createElementFromHTML rejects strings that do not start with '<'",
+          "attackPath": "Not established.",
+          "sourceLines": [12]
+        }
+      }
+    ],
+    "verified": []
+  }
+}

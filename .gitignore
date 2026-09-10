@@ -29,6 +29,7 @@ backups/
 .simplebeacon/*.bak
 .simplebeacon/*.simplebeacon-backup.*
 .simplebeacon/archive/
+.simplebeacon/benchmark/
 !ai-platform/.simplebeacon/config.json
 !ai-platform/.simplebeacon/jest-result.json
 

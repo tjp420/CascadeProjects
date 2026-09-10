@@ -1,0 +1,52 @@
+{
+  "name": "open-webui-mini",
+  "role": "golden-negative-control",
+  "maintainerHeadline": {
+    "signalsAnalyzed": 120,
+    "automaticallyDismissed": 110,
+    "requireReview": 10,
+    "verifiedVulnerabilities": 0,
+    "summary": "120 code signals analyzed. 110 automatically dismissed. 10 require review. 0 verified vulnerabilities."
+  },
+  "verification": {
+    "dismissed": [
+      {
+        "filePath": "open-webui/backend/open_webui/socket/utils.py",
+        "type": "evalDanger",
+        "category": "evalDanger",
+        "severity": "critical",
+        "verification": "dismissed",
+        "verificationReason": "Sink is Redis EVAL of a hardcoded Lua snippet",
+        "answers": {
+          "attackerControlledInput": "no",
+          "reachesDangerousOperation": "no",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "redis-client",
+          "existingControl": "lua source is a hardcoded script constant",
+          "attackPath": "None. redis.eval() executes a fixed Lua lock script.",
+          "sourceLines": [42]
+        }
+      }
+    ],
+    "investigate": [
+      {
+        "filePath": "open-webui/backend/open_webui/utils/misc.py",
+        "type": "evalDanger",
+        "category": "evalDanger",
+        "severity": "high",
+        "verification": "investigate",
+        "verificationReason": "eval is present but attacker control is not established.",
+        "answers": {
+          "attackerControlledInput": "unknown",
+          "reachesDangerousOperation": "unknown",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unknown",
+          "existingControl": "unknown",
+          "attackPath": "Not established.",
+          "sourceLines": [10]
+        }
+      }
+    ],
+    "verified": []
+  }
+}

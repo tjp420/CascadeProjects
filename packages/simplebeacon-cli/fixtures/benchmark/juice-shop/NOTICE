@@ -1,0 +1,5 @@
+OWASP Juice Shop–style fixture extracts for SimpleBeacon verification benchmarks.
+Inspired by intentionally vulnerable patterns from OWASP Juice Shop
+(https://github.com/juice-shop/juice-shop). License of upstream: MIT.
+These files are minimal synthetic extracts for regression only — not a full
+application clone.

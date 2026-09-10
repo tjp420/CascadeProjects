@@ -1,0 +1,34 @@
+{
+  "name": "immich-mini",
+  "role": "golden-negative-control",
+  "maintainerHeadline": {
+    "signalsAnalyzed": 95,
+    "automaticallyDismissed": 88,
+    "requireReview": 7,
+    "verifiedVulnerabilities": 0,
+    "summary": "95 code signals analyzed. 88 automatically dismissed. 7 require review. 0 verified vulnerabilities."
+  },
+  "verification": {
+    "dismissed": [],
+    "investigate": [
+      {
+        "filePath": "immich/server/src/commands/reset-admin-password.command.ts",
+        "type": "secretLogging",
+        "category": "secretLogging",
+        "severity": "high",
+        "verification": "investigate",
+        "verificationReason": "CLI password print — operator context not a remote attacker path.",
+        "answers": {
+          "attackerControlledInput": "no",
+          "reachesDangerousOperation": "unknown",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "local-operator-cli",
+          "existingControl": "runs only when an operator invokes the CLI",
+          "attackPath": "Not established as a remote vulnerability.",
+          "sourceLines": [20]
+        }
+      }
+    ],
+    "verified": []
+  }
+}

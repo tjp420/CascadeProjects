@@ -1,0 +1,25 @@
+{
+  "id": "adversarial-severity-only",
+  "description": "Critical severity alone must not force Verified",
+  "finding": {
+    "filePath": "app/routes/handler.js",
+    "type": "evalDanger",
+    "category": "evalDanger",
+    "severity": "critical",
+    "answers": {
+      "attackerControlledInput": "unknown",
+      "reachesDangerousOperation": "unknown",
+      "dangerousOperationExecuted": "yes",
+      "privilegesRequired": "unknown",
+      "existingControl": "unknown",
+      "attackPath": "Not established.",
+      "sourceLines": [1]
+    }
+  },
+  "options": {
+    "links": [],
+    "impactClass": "rce",
+    "sourceText": "const x = eval(safeConstant);"
+  },
+  "expectVerified": false
+}
