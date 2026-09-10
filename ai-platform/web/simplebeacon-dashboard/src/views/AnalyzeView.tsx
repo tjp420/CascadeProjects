@@ -38,9 +38,11 @@ import {
   isTokenExpired,
   clearAuthAndRedirect,
   shouldUseHostedCloudApiForGithub,
+  githubCloneJobId,
 } from "@/config";
 import { setLargeItem, removeLargeItem, getLargeItem } from "@/utils/dbStorage";
 import { collectScanIssues } from "@/lib/collect-scan-issues";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import {
   checkLocalNetworkAccess,
   isLoopbackHost,
@@ -200,9 +202,13 @@ async function runBridgeExtensionScan(
     method: "POST",
     headers,
     body: JSON.stringify({ path: resolvedPath }),
-  });
-  if (!startResp.ok) {
-    throw new Error(`Bridge scan failed to start (${startResp.status})`);
+  }).catch(() => null);
+  if (!startResp || !startResp.ok) {
+    throw new Error(
+      startResp
+        ? `Bridge scan failed to start (${startResp.status})`
+        : "Could not reach the VS Code extension bridge (Firefox blocks localhost from https).",
+    );
   }
 
   for (let attempt = 0; attempt < 120; attempt += 1) {
@@ -268,6 +274,10 @@ interface ScanResult {
   };
 }
 
+function isTransientPollHttpStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
 function isBrowserNetworkError(err: unknown): boolean {
   const name = String((err as { name?: string })?.name || "");
   const msg = String((err as { message?: string })?.message || err || "");
@@ -275,8 +285,26 @@ function isBrowserNetworkError(err: unknown): boolean {
     /NetworkError/i.test(msg) ||
     /Failed to fetch/i.test(msg) ||
     /Load failed/i.test(msg) ||
+    name === "AbortError" ||
+    name === "TimeoutError" ||
     (name === "TypeError" && /fetch/i.test(msg))
   );
+}
+
+async function fetchJsonNoThrow(
+  url: string,
+  init?: RequestInit,
+): Promise<{ ok: boolean; status: number; data: any; networkError: boolean }> {
+  try {
+    const resp = await fetch(url, init);
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data, networkError: false };
+  } catch (err) {
+    if (isBrowserNetworkError(err)) {
+      return { ok: false, status: 0, data: {}, networkError: true };
+    }
+    throw err;
+  }
 }
 
 function scanApiUnreachableMessage(kind: "clone" | "scan"): string {
@@ -292,6 +320,95 @@ function firstFiniteCount(...values: unknown[]): number | null {
     if (Number.isFinite(n) && n >= 0) return n;
   }
   return null;
+}
+
+/** Accept https://github.com/owner/repo, github.com/owner/repo, and git@github.com:owner/repo.git */
+function normalizeGithubRepoInput(raw: string): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  let owner = "";
+  let repo = "";
+  const ssh = value.match(/^git@github\.com:([^/]+)\/(.+)$/i);
+  if (ssh) {
+    owner = ssh[1];
+    repo = ssh[2];
+  } else {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed) return null;
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    if (host !== "github.com") return null;
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    owner = parts[0] || "";
+    repo = parts[1] || "";
+  }
+  repo = String(repo).replace(/\.git$/i, "");
+  if (!/^[-.\w]+$/.test(owner) || !/^[-.\w]+$/.test(repo)) return null;
+  return `https://github.com/${owner}/${repo}`;
+}
+
+async function downloadGithubRepoAsVirtualFiles(repoUrl: string): Promise<{
+  files: File[];
+  projectName: string;
+}> {
+  const canonical = normalizeGithubRepoInput(repoUrl);
+  if (!canonical) throw new Error("Not a GitHub repository URL");
+  const parts = new URL(canonical).pathname.replace(/^\/+|\/+$/g, "").split("/");
+  const owner = parts[0];
+  const repo = parts[1];
+  const started = Date.now();
+  while (!(window as any).JSZip && Date.now() - started < 15000) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  const JSZip = (window as any).JSZip;
+  if (!JSZip) {
+    throw new Error("JSZip failed to load. Refresh the page and try again.");
+  }
+  const zipResp = await fetch(
+    `/api/analyze/github-zipball?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+  );
+  if (!zipResp.ok) {
+    let detail = "";
+    try {
+      detail = String((await zipResp.json()).error || "");
+    } catch {
+      detail = "";
+    }
+    throw new Error(detail || `GitHub download failed (${zipResp.status})`);
+  }
+  const zip = await JSZip.loadAsync(await zipResp.arrayBuffer());
+  const files: File[] = [];
+  const names = Object.keys(zip.files);
+  for (const name of names) {
+    const entry = zip.files[name];
+    if (!entry || entry.dir) continue;
+    const stripped = name.replace(/^[^/]+\//, "");
+    if (!stripped || /(^|\/)(node_modules|\.git)\//i.test(stripped)) continue;
+    if (
+      /\.(png|jpe?g|gif|webp|ico|mp4|zip|gz|woff2?|exe|dll|wasm|pdf)$/i.test(
+        stripped,
+      )
+    ) {
+      continue;
+    }
+    const blob = await entry.async("blob");
+    if (blob.size > 5 * 1024 * 1024) continue;
+    const file = new File([blob], stripped.split("/").pop() || stripped, {
+      type: "text/plain",
+    });
+    (file as any)._virtualPath = `${repo}/${stripped}`;
+    files.push(file);
+    if (files.length >= 8000) break;
+    if (files.length % 40 === 0) await new Promise((r) => setTimeout(r, 0));
+  }
+  if (!files.length) {
+    throw new Error("GitHub zip contained no scannable files");
+  }
+  return { files, projectName: repo };
 }
 
 function unwrapFlexibleAnalyzePayload(data: any): any {
@@ -1132,7 +1249,9 @@ export function AnalyzeView() {
       | undefined;
     const isBrowserLocal =
       mode === "local" || (dirHandle && dirHandle.name === path.trim());
-    if (isBrowserLocal) return true;
+    const isHostedGithubScan =
+      hosted && Boolean(normalizeGithubRepoInput(path.trim()));
+    if (isBrowserLocal || isHostedGithubScan) return true;
     if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
     setScanState("auth_required");
     setProgress(0);
@@ -1240,10 +1359,7 @@ export function AnalyzeView() {
     }
   };
 
-  const isGithubUrl = (url: string) =>
-    /^https:\/\/(?:www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(
-      url.trim(),
-    );
+  const isGithubUrl = (url: string) => Boolean(normalizeGithubRepoInput(url));
 
   const isWindowsPath = (p: string) => /^[A-Za-z]:[\\/]/.test(p.trim());
 
@@ -1309,6 +1425,12 @@ export function AnalyzeView() {
         scanInFlightRef.current = false;
         return;
       }
+    }
+
+    const githubCanonical = normalizeGithubRepoInput(scanInput);
+    if (githubCanonical) {
+      scanInput = githubCanonical;
+      setPath(scanInput);
     }
 
     if (
@@ -1952,6 +2074,89 @@ export function AnalyzeView() {
         }
       }
 
+      // Hosted dashboard: unpack the GitHub zip in the browser and scan locally.
+      // Render in-memory clone+scan jobs die when the free instance restarts.
+      if (isGithubUrl(scanPath) && hosted) {
+        setProgressLabel("Downloading GitHub repository...");
+        setProgress(8);
+        appendLog(
+          `[SimpleBeacon] Fetching ${scanPath} into the browser scan worker...`,
+        );
+        const unpacked = await downloadGithubRepoAsVirtualFiles(scanPath);
+        appendLog(
+          `[SimpleBeacon] Unpacked ${unpacked.files.length} files from GitHub (${unpacked.projectName})`,
+        );
+        setProgressLabel("Scanning in the browser...");
+        setProgress(15);
+        const report = await runLocalScan({
+          files: unpacked.files,
+          projectPath: unpacked.projectName,
+          deepScan: fullDirectoryScan,
+          onFilePrepProgress: (
+            processed: number,
+            total: number,
+            label: string,
+          ) => {
+            if (total > 0) {
+              setProgress(Math.min(20, Math.round((processed / total) * 20)));
+              setProgressLabel(
+                `${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`,
+              );
+            }
+          },
+          onProgress: (processed: number, total: number) => {
+            if (total > 0) {
+              setProgress(
+                Math.min(90, 20 + Math.round((processed / total) * 70)),
+              );
+              setProgressLabel(
+                `Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`,
+              );
+            }
+          },
+        });
+        setFileErrorsCount((report as any)?.telemetry?.fileErrors ?? null);
+        setFileErrorExamples(
+          (report as any)?.telemetry?.fileErrorExamples ?? null,
+        );
+        setProgressLabel("Processing results...");
+        setProgress(95);
+        const r = report as any;
+        const scanResult: ScanResult = {
+          totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+          issueCount: r.issueCount || r.summary?.totalFindings || 0,
+          severityCounts: r.severityCounts || {
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0,
+            info: 0,
+          },
+          gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+          qualityScore: r.qualityScore ?? null,
+          projectPath: r.projectPath || unpacked.projectName,
+          scanScope: {
+            profile: r.scanScope?.profile || "standard",
+            resultsViewScope: r.scanScope?.resultsViewScope || "browser-local",
+            codeFilesAnalyzed:
+              r.scanScope?.codeFilesAnalyzed ||
+              r.scanScope?.ruleScopedFilesAnalyzed ||
+              r.summary?.codeFilesAnalyzed ||
+              r.filesAnalyzed ||
+              0,
+          },
+        };
+        setResult(scanResult);
+        setFullReport(report);
+        setScanState("complete");
+        setProgress(100);
+        appendLog(
+          `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
+        );
+        persistScanResult(scanResult, report);
+        return;
+      }
+
       // GitHub URL: clone first, then scan the local clone path
       const githubCloudApi =
         isGithubUrl(scanPath) && shouldUseHostedCloudApiForGithub();
@@ -1965,77 +2170,97 @@ export function AnalyzeView() {
           );
         }
         let cloneData: any;
-        try {
-          const cloneResp = await fetch(
-            apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...authHeaders(),
-              },
-              body: JSON.stringify({ repoUrl: scanPath }),
-            },
-          );
-          if (!cloneResp.ok) {
-            const cloneErr = await cloneResp.json().catch(() => ({}));
-            if (
-              cloneResp.status === 401 ||
-              cloneErr.error === "UnauthorizedError"
-            ) {
-              throw new Error(
-                "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
-              );
-            }
-            const cloneMsg =
-              typeof cloneErr.error === "string"
-                ? cloneErr.error
-                : `GitHub clone failed (${cloneResp.status})`;
-            if (cloneResp.status === 400) {
-              throw new Error(
-                cloneMsg +
-                  " For a local folder, use Select Folder so the scan stays on this machine.",
-              );
-            }
-            throw new Error(cloneMsg);
-          }
-          cloneData = await cloneResp.json();
-        } catch (cloneFetchErr: any) {
-          if (isBrowserNetworkError(cloneFetchErr)) {
+        const cloneUrl = apiUrl("/analyze/github-clone", {
+          preferCloud: githubCloudApi,
+        });
+        const cloneHeaders = {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        };
+        const cloneBody = JSON.stringify({ repoUrl: scanPath });
+        const fallbackJobId = await githubCloneJobId(scanPath);
+        const clonePost = await fetchJsonNoThrow(cloneUrl, {
+          method: "POST",
+          headers: cloneHeaders,
+          body: cloneBody,
+        });
+        if (clonePost.networkError) {
+          fetch(cloneUrl, {
+            method: "POST",
+            headers: cloneHeaders,
+            body: cloneBody,
+          }).catch(() => {});
+          if (!fallbackJobId) {
             throw new Error(scanApiUnreachableMessage("clone"));
           }
-          throw cloneFetchErr;
+          appendLog(
+            "[SimpleBeacon] Clone POST did not finish in the browser; polling server job...",
+          );
+          cloneData = {
+            success: true,
+            pending: true,
+            jobId: fallbackJobId,
+          };
+        } else if (!clonePost.ok) {
+          const cloneErr = clonePost.data || {};
+          if (
+            clonePost.status === 401 ||
+            cloneErr.error === "UnauthorizedError"
+          ) {
+            throw new Error(
+              "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
+            );
+          }
+          const cloneMsg =
+            typeof cloneErr.error === "string"
+              ? cloneErr.error
+              : `GitHub clone failed (${clonePost.status})`;
+          if (clonePost.status === 400) {
+            throw new Error(
+              cloneMsg +
+                " For a local folder, use Select Folder so the scan stays on this machine.",
+            );
+          }
+          throw new Error(cloneMsg);
+        } else {
+          cloneData = clonePost.data;
+        }
+        if (
+          cloneData &&
+          !cloneData.projectPath &&
+          !cloneData.jobId &&
+          fallbackJobId
+        ) {
+          cloneData = {
+            success: true,
+            pending: true,
+            jobId: fallbackJobId,
+          };
         }
         if (cloneData.pending && cloneData.jobId) {
           appendLog("[SimpleBeacon] Clone started on server — polling status...");
           const deadline = Date.now() + 180000;
           while (Date.now() < deadline) {
             await new Promise((r) => setTimeout(r, 2000));
-            const stResp = await fetch(
+            const st = await fetchJsonNoThrow(
               apiUrl(
                 `/analyze/github-clone/status?jobId=${encodeURIComponent(cloneData.jobId)}`,
                 { preferCloud: githubCloudApi },
               ),
               { headers: authHeaders() },
             );
-            const st = await stResp.json().catch(() => ({}));
-            if (stResp.status === 404) {
-              throw new Error(
-                "Clone job expired on the server. Retry the scan.",
-              );
-            }
-            if (!stResp.ok && !st.pending) {
-              throw new Error(
-                typeof st.error === "string"
-                  ? st.error
-                  : "GitHub clone failed",
-              );
-            }
-            if (st.pending) {
+            if (st.networkError || st.status === 404 || st.data?.pending) {
               setProgressLabel("Cloning GitHub repository...");
               continue;
             }
-            cloneData = st;
+            if (!st.ok && !st.data?.pending) {
+              throw new Error(
+                typeof st.data?.error === "string"
+                  ? st.data.error
+                  : "GitHub clone failed",
+              );
+            }
+            cloneData = st.data;
             break;
           }
           if (cloneData.pending) {
@@ -2151,7 +2376,23 @@ export function AnalyzeView() {
                 },
               );
               if (!pollResp.ok) {
+                if (isTransientPollHttpStatus(pollResp.status)) {
+                  if (pollAttempts === 1 || pollAttempts % 15 === 0) {
+                    appendLog(
+                      `[SimpleBeacon] Progress poll returned ${pollResp.status}; retrying...`,
+                    );
+                  }
+                  continue;
+                }
                 if (pollResp.status === 404) {
+                  if (pollAttempts < 12) {
+                    if (pollAttempts === 1 || pollAttempts % 6 === 0) {
+                      appendLog(
+                        `[SimpleBeacon] Scan job not visible yet (${pollResp.status}); retrying...`,
+                      );
+                    }
+                    continue;
+                  }
                   throw new Error(
                     "Scan job not found on server. It may have expired.",
                   );
@@ -2175,6 +2416,9 @@ export function AnalyzeView() {
                 );
               }
             } catch (pollErr: any) {
+              if (isBrowserNetworkError(pollErr)) {
+                continue;
+              }
               throw pollErr;
             }
           }
@@ -2228,7 +2472,7 @@ export function AnalyzeView() {
       }
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
-      console.error("[SimpleBeacon] Scan error:", err);
+      console.error("[SimpleBeacon] Scan error:", errMsg);
       toast.error(errMsg || "Scan failed");
       postBrowserError({
         source: "dashboard",
@@ -2254,6 +2498,7 @@ export function AnalyzeView() {
     postBrowserError,
     debouncedAppendLog,
     isAllowedFileError,
+    fullDirectoryScan,
   ]);
 
   const handleDrop = useCallback(
@@ -3271,7 +3516,7 @@ export function AnalyzeView() {
 
             <TabsContent value="github" className="space-y-3">
               <Input
-                placeholder="https://github.com/user/repo"
+                placeholder="https://github.com/user/repo or github.com/user/repo"
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleScan()}
@@ -3510,6 +3755,7 @@ function ScanResults({
           </CardContent>
         </Card>
       )}
+      <EvidenceStatePanel report={fullReport || result} />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -3563,32 +3809,41 @@ function ScanResults({
 
           <Separator className="my-4" />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+              Detector severity (unverified signals)
+            </p>
+            <p className="text-xs text-foreground-muted">
+              Severity chips are detector labels only. They do not mean verified
+              vulnerabilities — see Evidence state above.
+            </p>
+            <div className="flex flex-wrap gap-2 opacity-70">
             <SeverityChip
               label="Critical"
               count={result.severityCounts.critical}
-              variant="danger"
+              variant="outline"
             />
             <SeverityChip
               label="High"
               count={result.severityCounts.high}
-              variant="warning"
+              variant="outline"
             />
             <SeverityChip
               label="Medium"
               count={result.severityCounts.medium}
-              variant="info"
+              variant="outline"
             />
             <SeverityChip
               label="Low"
               count={result.severityCounts.low}
-              variant="secondary"
+              variant="outline"
             />
             <SeverityChip
               label="Info"
               count={result.severityCounts.info}
               variant="outline"
             />
+            </div>
           </div>
 
           <Separator className="my-4" />
