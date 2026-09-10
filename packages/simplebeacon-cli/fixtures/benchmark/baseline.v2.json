@@ -1,7 +1,9 @@
 {
   "benchmark": "verification-funnel-v2",
-  "status": "measured-rc-candidate",
+  "status": "DEPLOYABLE_PENDING_AUTHORIZATION",
   "date": "2026-09-10",
+  "gitCommit": "39813cea8ab188116537a1c2b0975fa9f49d0d01",
+  "validationCommit": "39813cea8ab188116537a1c2b0975fa9f49d0d01",
   "v1Frozen": {
     "package": "simplebeacon@3.0.556",
     "releaseCommit": "e096b47c4",
@@ -27,8 +29,20 @@
     "unsupportedVerified": 0,
     "noiseRejection": "PASS"
   },
+  "regression": {
+    "cliTests": "1237/1237",
+    "v1Benchmark": "PASS",
+    "v2Benchmark": "PASS"
+  },
+  "build": {
+    "package": "simplebeacon@3.0.556",
+    "command": "npm run build",
+    "exitCode": 0,
+    "harnessSha256": "ffee5cd63f2b7c15cfd8043841f87dbb0c43edfbd2771d5de5834866c1190c02"
+  },
   "labelingNote": "First pass had 2 label wording defects (attackPath omitted chain sink). Corrected in labels.v2.json only — not in the verifier. Re-run reached 6/6.",
   "hardFail": "unsupportedVerified > 0 ⇒ V2 FAIL",
+  "deployment": "NOT PERFORMED — requires separate authorization",
   "artifacts": {
     "labels": "fixtures/benchmark/labels.v2.json",
     "corpus": "fixtures/benchmark/corpus/",

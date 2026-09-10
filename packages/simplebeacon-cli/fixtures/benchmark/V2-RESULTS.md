@@ -1,11 +1,12 @@
 # Verification Funnel V2 — Results Record
 
-**Status:** Measured against unchanged production funnel (RC candidate — not deployed).  
-**V1:** Frozen / shipped — **not overwritten**.
+**Status:** DEPLOYABLE pending authorization — **deployment NOT performed**.  
+**V1:** Frozen / shipped (`e096b47c4` / `simplebeacon@3.0.556`) — **not overwritten**.
 
 | Field | Value |
 |-------|--------|
 | Benchmark | `verification-funnel-v2` |
+| Git commit | `39813cea8` |
 | Date | 2026-09-10 |
 | Verifier | **UNCHANGED** |
 | Ground-truth vulnerabilities | **6** |
@@ -13,7 +14,10 @@
 | Missed | **0** |
 | Recall | **100%** |
 | Unsupported Verified | **0** (hard gate) |
-| Noise rejection | PASS |
+| Regression | **1237/1237 PASS** |
+| V1 benchmark | **PASS** |
+| Build | **PASS** (`simplebeacon@3.0.556`) |
+| Harness sha256 | `ffee5cd63f2b7c15cfd8043841f87dbb0c43edfbd2771d5de5834866c1190c02` |
 
 ## Ground-truth IDs
 
@@ -33,8 +37,8 @@ First measurement: 4/6 — two misses were **label wording defects** (`attackPat
 | | V1 | V2 |
 |--|----|----|
 | Role | Frozen shipped baseline | Experimental coverage expansion |
-| Package at V1 ship | `simplebeacon@3.0.556` | (not yet released) |
-| Commit at V1 ship | `e096b47c4` | (pending V2 RC commit) |
+| Package | `simplebeacon@3.0.556` | same package version (no bump yet) |
+| Commit | `e096b47c4` | `39813cea8` |
 | Labeled positives | 2 | 6 |
 
 ## Run
