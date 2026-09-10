@@ -178,7 +178,7 @@
     "nodemailer": "9.0.3",
     "pg": "^8.22.0",
     "playwright": "^1.62.1",
-    "redis": "^6.2.0",
+    "redis": "^6.2.1",
     "simple-git": "^3.20.0",
     "speakeasy": "^2.0.0",
     "stripe": "^22.3.2",
