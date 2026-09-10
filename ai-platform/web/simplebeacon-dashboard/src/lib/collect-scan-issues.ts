@@ -9,8 +9,32 @@ export type AuditIssue = {
   count: number;
 };
 
+const SEVERITY_ORDER = [
+  "critical",
+  "high",
+  "low",
+  "medium",
+  "info",
+] as const;
+
 function asArray(value: unknown): any[] {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeSeverity(value: unknown): string {
+  const sev = String(value || "medium").toLowerCase().trim();
+  if (
+    sev === "critical" ||
+    sev === "high" ||
+    sev === "medium" ||
+    sev === "low" ||
+    sev === "info"
+  ) {
+    return sev;
+  }
+  if (sev === "error" || sev === "fatal") return "critical";
+  if (sev === "warn" || sev === "warning") return "medium";
+  return "medium";
 }
 
 function normalizeIssue(issue: any): AuditIssue | null {
@@ -26,7 +50,7 @@ function normalizeIssue(issue: any): AuditIssue | null {
   );
   if (!description && !filePath) return null;
   return {
-    severity: String(issue.severity || issue.severityBand || "medium"),
+    severity: normalizeSeverity(issue.severity || issue.severityBand),
     type,
     description: description || type,
     filePath: filePath || "—",
@@ -45,6 +69,58 @@ function takeIssues(node: any, keys: string[]): any[] {
 }
 
 /**
+ * Cap findings for browser storage without drowning Critical/Low under Medium flood.
+ * Round-robins critical → high → low → medium → info so every band present in the
+ * scan keeps representation in the Results table filters.
+ */
+export function selectIssuesForBrowserStorage<T extends { severity?: string }>(
+  issues: T[],
+  max = 50,
+): T[] {
+  if (!Array.isArray(issues) || issues.length === 0) return [];
+  if (issues.length <= max) return issues.slice();
+
+  const buckets: Record<string, T[]> = {
+    critical: [],
+    high: [],
+    low: [],
+    medium: [],
+    info: [],
+  };
+  for (const issue of issues) {
+    const sev = normalizeSeverity(issue?.severity);
+    (buckets[sev] || buckets.medium).push(issue);
+  }
+
+  const queues = SEVERITY_ORDER.map((sev) => buckets[sev].slice());
+  const picked: T[] = [];
+  while (picked.length < max) {
+    let progressed = false;
+    for (const queue of queues) {
+      if (picked.length >= max) break;
+      if (queue.length) {
+        picked.push(queue.shift() as T);
+        progressed = true;
+      }
+    }
+    if (!progressed) break;
+  }
+  return picked;
+}
+
+export function countIssuesBySeverity(
+  issues: Array<{ severity?: string; count?: number }>,
+): Record<"critical" | "high" | "medium" | "low" | "info", number> {
+  const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const issue of issues || []) {
+    const sev = normalizeSeverity(issue?.severity) as keyof typeof counts;
+    const n = Number(issue?.count) || 1;
+    if (counts[sev] !== undefined) counts[sev] += n;
+  }
+  return counts;
+}
+
+/**
  * Walk complete-scan / simplebeacon wrappers until an issue list is found.
  */
 export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
@@ -60,7 +136,7 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
     if (seen.has(key)) return false;
     seen.add(key);
     out.push(issue);
-    return out.length >= max;
+    return false;
   };
 
   const walk = (node: any, depth: number) => {
@@ -73,7 +149,7 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
       "issues",
       "findings",
     ])) {
-      if (push(item)) return;
+      push(item);
     }
     const nested = [
       node.simplebeacon,
@@ -86,15 +162,16 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
     ];
     for (const child of nested) {
       walk(child, depth + 1);
-      if (out.length >= max) return;
     }
   };
 
   walk(root, 0);
   if (out.length === 0) {
     for (const item of takeIssues(root, ["qualityIssues"])) {
-      if (push(item)) break;
+      push(item);
     }
   }
-  return out;
+
+  // Prefer high-signal severities before applying the hard cap.
+  return selectIssuesForBrowserStorage(out, max);
 }

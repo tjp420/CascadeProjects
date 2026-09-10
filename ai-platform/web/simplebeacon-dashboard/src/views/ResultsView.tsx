@@ -36,6 +36,7 @@ import {
   splitIssuesByLane,
   type IssueLane,
 } from "@/lib/issue-lanes";
+import { countIssuesBySeverity } from "@/lib/collect-scan-issues";
 import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import { resolveReportIssues } from "@services/analyzeService.js";
 import { getLargeItem } from "@/utils/dbStorage";
@@ -281,6 +282,11 @@ export function ResultsView() {
   const laneIssues =
     issueLane === "production" ? productionIssues : testSuiteIssues;
 
+  const laneSeverityCounts = useMemo(
+    () => countIssuesBySeverity(laneIssues),
+    [laneIssues],
+  );
+
   const findingsDetailLimited = Boolean(
     result &&
     result.issueCount > 0 &&
@@ -290,7 +296,8 @@ export function ResultsView() {
         fullReport.rawIssues?.length ||
         fullReport.detectedIssues?.length ||
         fullReport.findings?.length
-      )),
+      ) ||
+      (Number(result.issueCount) || 0) > allIssues.length),
   );
 
   const heatmapGrid = useMemo(() => {
@@ -318,7 +325,10 @@ export function ResultsView() {
   const filteredIssues = useMemo(() => {
     let issues = laneIssues;
     if (filter !== "all") {
-      issues = issues.filter((i) => i.severity === filter);
+      const want = filter.toLowerCase();
+      issues = issues.filter(
+        (i) => String(i.severity || "").toLowerCase() === want,
+      );
     }
     if (selectedCell) {
       issues = issues.filter((i) => {
@@ -412,8 +422,10 @@ export function ResultsView() {
   }
 
   const severities = ["critical", "high", "medium", "low", "info"] as const;
+  // Chip visibility: show if the loaded list OR the full scan summary has that band
   const activeSeverities = severities.filter(
-    (s) => result.severityCounts[s] > 0,
+    (s) =>
+      (laneSeverityCounts[s] || 0) > 0 || (result.severityCounts[s] || 0) > 0,
   );
   const currentScanGrade = resolveScanLetterGrade(
     result.qualityScore,
@@ -756,10 +768,26 @@ export function ResultsView() {
                       {sev !== "all" && (
                         <span className="ml-1.5 text-xs opacity-70">
                           {
-                            result.severityCounts[
-                              sev as keyof typeof result.severityCounts
+                            laneSeverityCounts[
+                              sev as keyof typeof laneSeverityCounts
                             ]
                           }
+                          {findingsDetailLimited &&
+                            (result.severityCounts[
+                              sev as keyof typeof result.severityCounts
+                            ] || 0) >
+                              (laneSeverityCounts[
+                                sev as keyof typeof laneSeverityCounts
+                              ] || 0) && (
+                              <span className="opacity-60">
+                                /
+                                {
+                                  result.severityCounts[
+                                    sev as keyof typeof result.severityCounts
+                                  ]
+                                }
+                              </span>
+                            )}
                         </span>
                       )}
                     </Button>
@@ -813,10 +841,20 @@ export function ResultsView() {
                     <Search className="h-8 w-8 text-foreground-muted" />
                     <div>
                       <p className="text-sm font-medium">
-                        No issues match current filters
+                        {filter !== "all" &&
+                        (result.severityCounts[
+                          filter as keyof typeof result.severityCounts
+                        ] || 0) > 0 &&
+                        (laneSeverityCounts[
+                          filter as keyof typeof laneSeverityCounts
+                        ] || 0) === 0
+                          ? `${filter} findings exist in the scan total but are not in the loaded detail rows`
+                          : "No issues match current filters"}
                       </p>
                       <p className="text-xs text-foreground-muted">
-                        Try adjusting severity filter or search query
+                        {findingsDetailLimited
+                          ? "Browser storage keeps a severity-balanced sample. Export JSON or re-scan after this fix, or use the CLI for the full list."
+                          : "Try adjusting severity filter or search query"}
                       </p>
                     </div>
                   </div>

@@ -41,7 +41,10 @@ import {
   githubCloneJobId,
 } from "@/config";
 import { setLargeItem, removeLargeItem, getLargeItem } from "@/utils/dbStorage";
-import { collectScanIssues } from "@/lib/collect-scan-issues";
+import {
+  collectScanIssues,
+  selectIssuesForBrowserStorage,
+} from "@/lib/collect-scan-issues";
 import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import {
   checkLocalNetworkAccess,
@@ -877,8 +880,14 @@ export function AnalyzeView() {
   const persistScanResult = useCallback(
     (scanResult: ScanResult, fullReportData?: any) => {
       const buildCompactReport = (report: any) => {
-        const collected = collectScanIssues(report, 500);
-        const rawIssues = collected.slice(0, 50);
+        // Collect broadly, then stratify — a flat slice(0,50) buried Critical/Low under Medium.
+        const collected = collectScanIssues(report, 2000);
+        const totalFindings = Number(
+          report?.issueCount ??
+            report?.summary?.totalFindings ??
+            collected.length,
+        );
+        const rawIssues = selectIssuesForBrowserStorage(collected, 50);
         const fullSummary = report?.summary || {};
         return {
           type: report?.type || "simplebeacon-report",
@@ -924,20 +933,20 @@ export function AnalyzeView() {
               report?.scanScope?.codeFilesAnalyzed ??
               scanResult.scanScope?.codeFilesAnalyzed,
           },
-          rawIssues: rawIssues.slice(0, 50),
-          detectedIssues: rawIssues.slice(0, 50),
-          qualityIssues: (Array.isArray(report?.qualityIssues)
-            ? report.qualityIssues
-            : []
-          ).slice(0, 50),
+          rawIssues,
+          detectedIssues: rawIssues,
+          qualityIssues: selectIssuesForBrowserStorage(
+            Array.isArray(report?.qualityIssues) ? report.qualityIssues : [],
+            50,
+          ),
           contextLanes: report?.contextLanes,
           issuesTruncated: Boolean(
-            report?.issuesTruncated || rawIssues.length > 50,
+            report?.issuesTruncated || totalFindings > rawIssues.length,
           ),
           scanLimitNote:
             report?.scanLimitNote ||
-            (rawIssues.length > 50
-              ? `Detailed findings capped at 50 rows for browser storage (${rawIssues.length.toLocaleString()} total). Export JSON or use the CLI for the full list.`
+            (totalFindings > rawIssues.length
+              ? `Detailed findings capped at ${rawIssues.length} rows for browser storage (${totalFindings.toLocaleString()} total). Critical/High/Low are prioritized over Medium. Export JSON or use the CLI for the full list.`
               : null),
         };
       };
