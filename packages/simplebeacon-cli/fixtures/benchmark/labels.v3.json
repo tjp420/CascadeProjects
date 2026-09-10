@@ -1,0 +1,394 @@
+{
+  "benchmark": "verification-funnel-v3",
+  "objective": "Diversity + hard negatives: measure recall and unsupported Verified on the unchanged funnel. Success = better coverage without sacrificing trust — not artificial 100% recall.",
+  "inheritsGroundTruthFrom": "labels.v2.json",
+  "inheritsNegativesFromV1": true,
+  "groundTruth": [
+    {
+      "id": "v3-cmdi-query-exec",
+      "app": "simplebeacon-corpus",
+      "class": "command-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v3",
+      "sourceFile": "cmdi-query-exec.js",
+      "filePath": "cmdi-query-exec.js",
+      "type": "commandInjection",
+      "category": "commandInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "commandInjection",
+          "severity": "critical",
+          "filePath": "cmdi-query-exec.js",
+          "line": 14,
+          "description": "req.query.cmd passed to child_process.exec"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — query string executed as shell command",
+          "attackPath": "HTTP query cmd → child_process.exec(cmd) executes attacker-controlled shell",
+          "sourceLines": [12, 13, 14]
+        },
+        "links": [
+          {
+            "from": "req.query.cmd",
+            "to": "child_process.exec",
+            "mechanism": "query parameter passed directly as shell command string"
+          },
+          {
+            "from": "child_process.exec",
+            "to": "operating system shell",
+            "mechanism": "execSync-equivalent shell spawn runs attacker command"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "v3-function-ctor-rce",
+      "app": "simplebeacon-corpus",
+      "class": "ssjs-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v3",
+      "sourceFile": "function-ctor-rce.js",
+      "filePath": "function-ctor-rce.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "evalDanger",
+          "severity": "critical",
+          "filePath": "function-ctor-rce.js",
+          "line": 12,
+          "description": "new Function(req.body.code) then invoke"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — Function body built from request body",
+          "attackPath": "HTTP request body code → new Function(code) → immediate invoke executes attacker JavaScript",
+          "sourceLines": [10, 11, 12, 13]
+        },
+        "links": [
+          {
+            "from": "req.body.code",
+            "to": "new Function",
+            "mechanism": "request body string used as Function constructor body"
+          },
+          {
+            "from": "new Function",
+            "to": "fn()",
+            "mechanism": "constructed function invoked immediately in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "v3-outerhtml-dom-xss",
+      "app": "simplebeacon-corpus",
+      "class": "dom-xss",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v3",
+      "sourceFile": "outerhtml-dom-xss.js",
+      "filePath": "outerhtml-dom-xss.js",
+      "type": "outerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "rawIssues": [
+        {
+          "type": "outerHTMLXss",
+          "severity": "high",
+          "filePath": "outerhtml-dom-xss.js",
+          "line": 12,
+          "description": "element.outerHTML with unsanitized query html"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP query html → string concat → element.outerHTML assignment",
+          "sourceLines": [10, 11, 12]
+        },
+        "links": [
+          {
+            "from": "req.query.html",
+            "to": "string concat",
+            "mechanism": "unsanitized query embedded in HTML markup"
+          },
+          {
+            "from": "string concat",
+            "to": "element.outerHTML",
+            "mechanism": "DOM outerHTML sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "v3-sqli-order-by",
+      "app": "simplebeacon-corpus",
+      "class": "sql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v3",
+      "sourceFile": "sqli-order-by.js",
+      "filePath": "sqli-order-by.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "sqlInjection",
+          "severity": "critical",
+          "filePath": "sqli-order-by.js",
+          "line": 13,
+          "description": "sort concatenated into ORDER BY"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — sort key concatenated into ORDER BY without allowlist",
+          "attackPath": "HTTP query sort → string-built SELECT * FROM Products … ORDER BY → database",
+          "sourceLines": [11, 12, 13, 14, 15, 16]
+        },
+        "links": [
+          {
+            "from": "req.query.sort",
+            "to": "SELECT * FROM Products",
+            "mechanism": "sort key concatenated into SQL SELECT string"
+          },
+          {
+            "from": "SELECT * FROM Products",
+            "to": "ORDER BY",
+            "mechanism": "interpolated identifier in ORDER BY clause enables injection"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    }
+  ],
+  "hardNegatives": [
+    {
+      "id": "hn-adversarial-severity-only",
+      "kind": "hard-negative",
+      "class": "severity-bait",
+      "expectVerified": false,
+      "description": "Critical severity alone must not force Verified",
+      "fixture": "fixtures/benchmark/adversarial/severity-only.json"
+    },
+    {
+      "id": "hn-adversarial-fabricated-evidence",
+      "kind": "hard-negative",
+      "class": "fabricated-chain",
+      "expectVerified": false,
+      "description": "Fabricated chain that does not corroborate source must not Verified",
+      "fixture": "fixtures/benchmark/adversarial/fabricated-evidence.json"
+    },
+    {
+      "id": "hn-adversarial-plausible-wording",
+      "kind": "hard-negative",
+      "class": "plausible-wording",
+      "expectVerified": false,
+      "description": "Plausible wording without source corroboration must not Verified",
+      "fixture": "fixtures/benchmark/adversarial/plausible-wording.json"
+    },
+    {
+      "id": "hn-sanitized-xss",
+      "kind": "hard-negative",
+      "class": "sanitizer-present",
+      "expectVerified": false,
+      "description": "DOMPurify on path without evidenced bypass must not Verified",
+      "root": "fixtures/benchmark/corpus/v3/hard-negatives",
+      "sourceFile": "sanitized-xss.js",
+      "filePath": "sanitized-xss.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "DOMPurify.sanitize applied before innerHTML",
+          "attackPath": "HTTP body comment → DOMPurify.sanitize → element.innerHTML",
+          "sourceLines": [9, 10, 11]
+        },
+        "links": [
+          {
+            "from": "req.body.comment",
+            "to": "DOMPurify.sanitize",
+            "mechanism": "comment passed through sanitizer before DOM write"
+          },
+          {
+            "from": "DOMPurify.sanitize",
+            "to": "element.innerHTML",
+            "mechanism": "sanitized string assigned to innerHTML"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "hn-parameterized-login",
+      "kind": "hard-negative",
+      "class": "scare-wording-parameterized",
+      "expectVerified": false,
+      "description": "Login SQL + credentials wording with ? placeholders must not Verified",
+      "root": "fixtures/benchmark/corpus/v3/hard-negatives",
+      "sourceFile": "parameterized-login.js",
+      "filePath": "parameterized-login.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — email concatenated into SQL login query",
+          "attackPath": "HTTP body email → string-built queryRunner.unsafe() → database",
+          "sourceLines": [8, 9, 10, 11, 12]
+        },
+        "links": [
+          {
+            "from": "req.body.email",
+            "to": "queryRunner.unsafe()",
+            "mechanism": "email concatenated into unsafe SQL runner call"
+          },
+          {
+            "from": "queryRunner.unsafe()",
+            "to": "database",
+            "mechanism": "unsafe runner executes attacker-influenced SQL against Users"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "hn-example-eval-constant",
+      "kind": "hard-negative",
+      "class": "tutorial-noise",
+      "expectVerified": false,
+      "description": "Tutorial eval of a constant must not Verified as attacker RCE",
+      "root": "fixtures/benchmark/mature-noise/examples",
+      "sourceFile": "eval-demo.js",
+      "filePath": "eval-demo.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none",
+          "attackPath": "HTTP request body payload → eval() executes attacker JavaScript",
+          "sourceLines": [7, 8]
+        },
+        "links": [
+          {
+            "from": "req.body.payload",
+            "to": "eval()",
+            "mechanism": "request body string passed directly to eval"
+          },
+          {
+            "from": "eval()",
+            "to": "server JavaScript runtime",
+            "mechanism": "eval executes attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn-hedged-narrative",
+      "kind": "hard-negative",
+      "class": "hedged-prose",
+      "expectVerified": false,
+      "description": "Hedged attackPath with definitive yes answers must not Verified",
+      "root": "fixtures/benchmark/corpus/v3/hard-negatives",
+      "sourceFile": "safe-math.js",
+      "filePath": "safe-math.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP body payload likely reaches eval() and could execute attacker JavaScript",
+          "sourceLines": [1]
+        },
+        "links": [
+          {
+            "from": "req.body.payload",
+            "to": "eval()",
+            "mechanism": "payload probably passed through to eval without parsing"
+          },
+          {
+            "from": "eval()",
+            "to": "server JavaScript runtime",
+            "mechanism": "eval might execute the attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn-tautological-chain",
+      "kind": "hard-negative",
+      "class": "tautological-link",
+      "expectVerified": false,
+      "description": "from===to link is not an auditable chain",
+      "root": "fixtures/benchmark/corpus/v3/hard-negatives",
+      "sourceFile": "safe-math.js",
+      "filePath": "safe-math.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "req.body.comment → req.body.comment via echo enabling XSS via innerHTML",
+          "sourceLines": [1]
+        },
+        "links": [
+          {
+            "from": "req.body.comment",
+            "to": "req.body.comment",
+            "mechanism": "identity echo without transformation to innerHTML"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    }
+  ]
+}

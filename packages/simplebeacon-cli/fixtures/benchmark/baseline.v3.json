@@ -1,0 +1,58 @@
+{
+  "benchmark": "verification-funnel-v3",
+  "status": "CODE_COMPLETE_PENDING_PUSH_AUTHORIZATION",
+  "date": "2026-09-10",
+  "v1Frozen": {
+    "package": "simplebeacon@3.0.556",
+    "releaseCommit": "e096b47c4",
+    "note": "V1 baseline immutable — not overwritten by V3"
+  },
+  "v2Frozen": {
+    "note": "V2 coverage experiment locked PASS — labels.v2.json not overwritten",
+    "benchmark": "verification-funnel-v2"
+  },
+  "objective": "Does the verification standard remain reliable when ground truth is more diverse and negatives are deliberately adversarial?",
+  "verifierUnchanged": true,
+  "groundTruth": {
+    "total": 10,
+    "inheritedFromV2": 6,
+    "newDiversity": 4,
+    "classes": [
+      "ssjs-injection",
+      "nosql-injection",
+      "sql-injection",
+      "dom-xss",
+      "command-injection"
+    ]
+  },
+  "results": {
+    "verified": 10,
+    "missed": 0,
+    "recall": 1,
+    "unsupportedVerified": 0,
+    "hardNegatives": {
+      "total": 8,
+      "rejected": 8,
+      "wronglyVerified": 0
+    },
+    "noiseRejection": "PASS"
+  },
+  "passCriterion": "unsupportedVerified === 0 && hardNegatives.wronglyVerified === 0 (perfect recall NOT required)",
+  "regression": {
+    "funnelTests": "9/9",
+    "v1Benchmark": "PASS",
+    "v2Benchmark": "PASS",
+    "v3Benchmark": "PASS"
+  },
+  "build": {
+    "package": "simplebeacon@3.0.556",
+    "harnessSha256": "99e91f25c45e75890fdcebed8476482e16e7f3ebc659244ffd5c1fae97d54094"
+  },
+  "deployment": "NOT PERFORMED — requires separate authorization",
+  "npmPublish": "NOT PERFORMED",
+  "artifacts": {
+    "labels": "fixtures/benchmark/labels.v3.json",
+    "corpus": "fixtures/benchmark/corpus/v3/",
+    "humanResults": "fixtures/benchmark/V3-RESULTS.md"
+  }
+}
