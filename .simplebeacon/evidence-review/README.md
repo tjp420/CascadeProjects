@@ -45,6 +45,15 @@ Invariant: **Critical/High detector severity never increases Verified count.**
 
 **Production redeploy: 🔒 NOT AUTHORIZED** · **Further Track 2: 🔒 NOT AUTHORIZED** · **Outreach: 🔒 OFF**
 
+## PCS-B (2026-09-10) — git provenance only
+
+Authorized and completed. Commits on `main` (local, not pushed by this step):
+
+- `75ae22170` — Track 2 engine + NodeGoat/XSS fixtures + goldens + tests
+- `303ee5154` — eval-danger FP hardening in verifier/engine sources
+
+**Not included:** dashboard, worker-deploy, coming-soon/public, scan.js wiring, outreach. **No redeploy.**
+
 ## Manual Gate 1
 
 1. `npm run dev` in `ai-platform/web/simplebeacon-dashboard`
