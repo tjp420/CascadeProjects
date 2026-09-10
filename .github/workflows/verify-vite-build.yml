@@ -1,3 +1,46 @@
+name: Verify Dashboard Vite Build
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  verify-vite-build:
+    name: Verify Vite Dashboard Build (fast)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install dashboard dependencies
+      run: |
+        cd ai-platform/web/simplebeacon-dashboard
+        npm ci
+
+    - name: Build dashboard (Vite)
+      run: |
+        npm --prefix ai-platform/web/simplebeacon-dashboard run build
+
+    - name: 🛡️ Audit Dashboard Build Assets (postbuild)
+      run: |
+        npm --prefix ai-platform run dashboard:postbuild
+
+    - name: Upload build artifacts (for debug)
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dashboard-build-artifacts
+        path: |
+          ai-platform/web/simplebeacon-dashboard/dist/**
+          ai-platform/web/simplebeacon-dashboard/node_modules/**
 name: Vite Build & Export Verification Check
 
 on:
