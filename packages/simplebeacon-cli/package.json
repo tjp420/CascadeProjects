@@ -58,7 +58,8 @@
     "benchmark:funnel": "node scripts/verification-funnel-benchmark.cjs",
     "benchmark:funnel:v2": "node scripts/verification-funnel-benchmark.cjs --v2",
     "benchmark:funnel:v3": "node scripts/verification-funnel-benchmark.cjs --v3",
-    "benchmark:funnel:v4": "node scripts/verification-funnel-benchmark.cjs --v4"
+    "benchmark:funnel:v4": "node scripts/verification-funnel-benchmark.cjs --v4",
+    "benchmark:funnel:v5": "node scripts/verification-funnel-benchmark.cjs --v5"
   },
   "keywords": [
     "simplebeacon",

@@ -1016,6 +1016,154 @@ function runVerificationFunnelBenchmarkV4() {
   };
 }
 
+const V4_DIAGNOSTIC_COMMIT = "91dae7200e2ac1ed101c99103067b16f3dcd5e59";
+const LABELS_V5_PATH = path.join(FIXTURE_ROOT, "labels.v5.json");
+
+/**
+ * V5: fresh OOS after reachability + vm SSJS vocabulary.
+ * Re-runs frozen V3 control and V4 diagnostic suites as regressions.
+ */
+function runVerificationFunnelBenchmarkV5() {
+  const labels = readJson(LABELS_V5_PATH);
+  const groundTruth = loadGroundTruthEntries(labels, LABELS_V5_PATH);
+  const assessments = [];
+  const hardNegativeAssessments = [];
+  const positiveTargets = [];
+  const hardNegativeTargets = [];
+
+  for (const gt of groundTruth) {
+    const { assessment, target } = assessPositiveControl(gt);
+    assessments.push(assessment);
+    positiveTargets.push(target);
+  }
+
+  for (const hn of labels.hardNegatives || []) {
+    const { assessment, target } = assessHardNegative(hn);
+    assessment.borderline = Boolean(hn.borderline);
+    hardNegativeAssessments.push(assessment);
+    hardNegativeTargets.push(target);
+  }
+
+  const openWebui = runNegativeGolden("open-webui");
+  const gitea = runNegativeGolden("gitea");
+  const immich = runNegativeGolden("immich");
+  const k8s = runKubernetesNoise(readJson(LABELS_PATH));
+
+  const targets = [
+    ...positiveTargets,
+    ...hardNegativeTargets,
+    openWebui,
+    gitea,
+    immich,
+    k8s,
+  ];
+  const scored = scoreResult(targets);
+
+  const known = assessments.filter((a) => a.expectVerified);
+  const verified = known.filter((a) => a.evidenceVerified);
+  const missed = known.filter((a) => !a.evidenceVerified);
+  const hardNegFailures = hardNegativeAssessments.filter(
+    (a) => a.evidenceVerified,
+  );
+  const hardNegRejected = hardNegativeAssessments.filter(
+    (a) => !a.evidenceVerified,
+  );
+
+  const truePositives = verified.length;
+  const unsupported = Number(scored.unsupportedVerified || 0);
+  const verifiedPrecisionDenom = truePositives + unsupported;
+  const verifiedPrecision =
+    verifiedPrecisionDenom > 0 ? truePositives / verifiedPrecisionDenom : null;
+
+  const classes = [...new Set(known.map((a) => a.class).filter(Boolean))];
+  const failureAnalysis = [
+    ...missed.map((m) => categorizeFailure(m, "positive-miss")),
+    ...hardNegFailures.map((f) => categorizeFailure(f, "hard-negative-fp")),
+  ];
+
+  const v3Control = runVerificationFunnelBenchmarkV3();
+  const v4Control = runVerificationFunnelBenchmarkV4();
+  const v3Regression = {
+    controlCommit: labels.v3ControlCommit || V3_CONTROL_COMMIT,
+    pass: v3Control.pass === true,
+    knownVulnerabilities: v3Control.groundTruth.knownVulnerabilities,
+    verifiedBySimpleBeacon: v3Control.groundTruth.verifiedBySimpleBeacon,
+    unsupportedVerified: v3Control.groundTruth.unsupportedVerified,
+  };
+  const v4Regression = {
+    diagnosticCommit: labels.v4DiagnosticCommit || V4_DIAGNOSTIC_COMMIT,
+    pass: v4Control.pass === true,
+    knownVulnerabilities: v4Control.groundTruth.knownVulnerabilities,
+    verifiedBySimpleBeacon: v4Control.groundTruth.verifiedBySimpleBeacon,
+    unsupportedVerified: v4Control.groundTruth.unsupportedVerified,
+    hardNegativesRejected: v4Control.groundTruth.hardNegatives?.rejected,
+    hardNegativesTotal: v4Control.groundTruth.hardNegatives?.total,
+  };
+
+  return {
+    benchmark: "verification-funnel-v5",
+    generatedAt: new Date().toISOString(),
+    objective:
+      "V5 candidate release validation: fresh OOS after Slice 6 reachability + vm SSJS vocabulary. V3/V4 frozen controls must still PASS.",
+    productionPath: [
+      "rawIssues",
+      "compileGateStatus",
+      "attachVerifiedFindings",
+      "attachSignalTriage",
+      "attachSemanticVerification",
+      "applyVerifiedEngine",
+      "maintainerHeadline",
+    ],
+    verifierChanges: [
+      "slice6-reachability-dead-branch",
+      "rce-sink-vocabulary-vm",
+    ],
+    outOfSample: true,
+    labelsPath: "fixtures/benchmark/labels.v5.json",
+    v3ControlCommit: v3Regression.controlCommit,
+    v4DiagnosticCommit: v4Regression.diagnosticCommit,
+    assessments,
+    hardNegativeAssessments,
+    targets: targets.map(summarizeTarget),
+    groundTruth: {
+      ...scored,
+      knownVulnerabilities: known.length,
+      verifiedBySimpleBeacon: verified.length,
+      vulnerabilityClasses: classes.length,
+      classes,
+      perClass: perClassBreakdown(assessments),
+      missed: missed.map((m) => ({
+        id: m.id,
+        app: m.app,
+        class: m.class,
+        reason: m.verificationReason,
+      })),
+      verifiedRecall: known.length ? verified.length / known.length : null,
+      verifiedPrecision,
+      hardNegatives: {
+        total: hardNegativeAssessments.length,
+        rejected: hardNegRejected.length,
+        wronglyVerified: hardNegFailures.map((f) => ({
+          id: f.id,
+          class: f.class,
+          borderline: Boolean(f.borderline),
+          reason: f.verificationReason,
+        })),
+      },
+      failureAnalysis,
+    },
+    v3Regression,
+    v4Regression,
+    pass:
+      scored.result.noiseRejection === "PASS" &&
+      scored.unsupportedVerified === 0 &&
+      hardNegFailures.length === 0 &&
+      v3Regression.pass === true &&
+      v4Regression.pass === true,
+    recallComplete: missed.length === 0,
+  };
+}
+
 function formatHumanReportV2(report) {
   const lines = [];
   lines.push("SIMPLEBEACON VERIFICATION FUNNEL BENCHMARK V2");
@@ -1252,25 +1400,136 @@ function formatHumanReportV4(report) {
   return lines.join("\n");
 }
 
+function formatHumanReportV5(report) {
+  const lines = [];
+  lines.push("SIMPLEBEACON VERIFICATION FUNNEL BENCHMARK V5");
+  lines.push("=============================================");
+  lines.push(`benchmark: ${report.benchmark}`);
+  lines.push(`generated: ${report.generatedAt}`);
+  lines.push(
+    `verifier changes: ${(report.verifierChanges || []).join(", ") || "none"}`,
+  );
+  lines.push(`v3 control: ${report.v3ControlCommit}`);
+  lines.push(`v4 diagnostic: ${report.v4DiagnosticCommit}`);
+  lines.push("");
+  lines.push("OUT-OF-SAMPLE GROUND TRUTH → VERIFIED → MISSED");
+  lines.push("-".repeat(60));
+  const g = report.groundTruth;
+  lines.push(`Known vulnerabilities:        ${g.knownVulnerabilities}`);
+  lines.push(`Verified by SimpleBeacon:     ${g.verifiedBySimpleBeacon}`);
+  lines.push(`Missed:                       ${g.missed?.length || 0}`);
+  lines.push(
+    `Verified recall:              ${
+      g.verifiedRecall == null
+        ? "n/a"
+        : `${(g.verifiedRecall * 100).toFixed(0)}%`
+    }`,
+  );
+  lines.push(
+    `Verified precision:           ${
+      g.verifiedPrecision == null
+        ? "n/a"
+        : `${(g.verifiedPrecision * 100).toFixed(0)}%`
+    }`,
+  );
+  lines.push(`Unsupported Verified:         ${g.unsupportedVerified}`);
+  lines.push("");
+  lines.push("PER-CLASS");
+  lines.push("-".repeat(60));
+  for (const [cls, row] of Object.entries(g.perClass || {})) {
+    lines.push(
+      `${cls}: ${row.verified}/${row.known} verified` +
+        (row.missed ? ` (${row.missed} missed)` : ""),
+    );
+  }
+  lines.push("");
+  const hn = g.hardNegatives || { total: 0, rejected: 0, wronglyVerified: [] };
+  lines.push("HARD / BORDERLINE NEGATIVES");
+  lines.push("-".repeat(60));
+  lines.push(`Total:                        ${hn.total}`);
+  lines.push(`Correctly rejected:           ${hn.rejected}`);
+  lines.push(`Wrongly Verified:             ${hn.wronglyVerified?.length || 0}`);
+  if (hn.wronglyVerified && hn.wronglyVerified.length) {
+    for (const w of hn.wronglyVerified) {
+      lines.push(`- ${w.id} (${w.class})`);
+    }
+  }
+  lines.push("");
+  if (g.missed && g.missed.length) {
+    lines.push("MISSES");
+    lines.push("-".repeat(60));
+    for (const m of g.missed) {
+      lines.push(`- ${m.id} (${m.class})`);
+      if (m.reason) lines.push(`    ${m.reason}`);
+    }
+    lines.push("");
+  }
+  if (g.failureAnalysis && g.failureAnalysis.length) {
+    lines.push("FAILURE CATEGORIES");
+    lines.push("-".repeat(60));
+    for (const f of g.failureAnalysis) {
+      lines.push(`- [${f.category}] ${f.id} (${f.kind})`);
+    }
+    lines.push("");
+  }
+  const r3 = report.v3Regression || {};
+  const r4 = report.v4Regression || {};
+  lines.push("REGRESSIONS (frozen controls)");
+  lines.push("-".repeat(60));
+  lines.push(`V3 ${r3.controlCommit}: ${r3.pass ? "PASS" : "FAIL"}`);
+  lines.push(`V4 ${r4.diagnosticCommit}: ${r4.pass ? "PASS" : "FAIL"}`);
+  lines.push("");
+  lines.push("RESULT");
+  lines.push("-".repeat(60));
+  lines.push(
+    `Unsupported Verified = 0: ${
+      g.unsupportedVerified === 0 ? "PASS" : "FAIL"
+    }`,
+  );
+  lines.push(
+    `Hard-negative rejection:  ${
+      (hn.wronglyVerified?.length || 0) === 0 ? "PASS" : "FAIL"
+    }`,
+  );
+  lines.push(`V3 regression:            ${r3.pass ? "PASS" : "FAIL"}`);
+  lines.push(`V4 regression:            ${r4.pass ? "PASS" : "FAIL"}`);
+  lines.push(
+    `OOS recall complete:      ${
+      report.recallComplete ? "YES" : "NO — misses recorded"
+    }`,
+  );
+  lines.push(`Noise rejection:         ${g.result.noiseRejection}`);
+  lines.push("");
+  lines.push(
+    "Hard gate: unsupported=0 + hard negatives rejected + V3 PASS + V4 PASS.",
+  );
+  return lines.join("\n");
+}
+
 module.exports = {
   BENCHMARK_ID,
   BENCHMARK_ID_V2: "verification-funnel-v2",
   BENCHMARK_ID_V3: "verification-funnel-v3",
   BENCHMARK_ID_V4: "verification-funnel-v4",
+  BENCHMARK_ID_V5: "verification-funnel-v5",
   V3_CONTROL_COMMIT,
+  V4_DIAGNOSTIC_COMMIT,
   FIXTURE_ROOT,
   LABELS_PATH,
   LABELS_V2_PATH,
   LABELS_V3_PATH,
   LABELS_V4_PATH,
+  LABELS_V5_PATH,
   runVerificationFunnelBenchmark,
   runVerificationFunnelBenchmarkV2,
   runVerificationFunnelBenchmarkV3,
   runVerificationFunnelBenchmarkV4,
+  runVerificationFunnelBenchmarkV5,
   formatHumanReport,
   formatHumanReportV2,
   formatHumanReportV3,
   formatHumanReportV4,
+  formatHumanReportV5,
   measureProductionFunnel,
   scoreResult,
 };

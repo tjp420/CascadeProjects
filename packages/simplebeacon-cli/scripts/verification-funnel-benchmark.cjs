@@ -1,17 +1,9 @@
 #!/usr/bin/env node
 /**
- * Verification funnel benchmark CLI (v1–v4).
+ * Verification funnel benchmark CLI (v1–v5).
  *
  * Usage:
- *   node scripts/verification-funnel-benchmark.cjs
- *   node scripts/verification-funnel-benchmark.cjs --v2
- *   node scripts/verification-funnel-benchmark.cjs --v3
- *   node scripts/verification-funnel-benchmark.cjs --v4
- *   node scripts/verification-funnel-benchmark.cjs --v4 --json
- *
- * Labels/corpus only; verifier unchanged.
- * Exit 1 if unsupported Verified > 0 (or hard-negative promotions / V3 regression on V4).
- * Recall misses are reported but do not fail the experiment.
+ *   node scripts/verification-funnel-benchmark.cjs [--v2|--v3|--v4|--v5] [--json] [--allow-fail]
  */
 
 "use strict";
@@ -24,15 +16,18 @@ const {
   runVerificationFunnelBenchmarkV2,
   runVerificationFunnelBenchmarkV3,
   runVerificationFunnelBenchmarkV4,
+  runVerificationFunnelBenchmarkV5,
   formatHumanReport,
   formatHumanReportV2,
   formatHumanReportV3,
   formatHumanReportV4,
+  formatHumanReportV5,
 } = require("../src/lib/verification-funnel-benchmark");
 
 const args = new Set(process.argv.slice(2));
 const asJson = args.has("--json");
 const allowFail = args.has("--allow-fail");
+const v5 = args.has("--v5");
 const v4 = args.has("--v4");
 const v3 = args.has("--v3");
 const v2 = args.has("--v2");
@@ -40,7 +35,11 @@ const v2 = args.has("--v2");
 let report;
 let human;
 let outName;
-if (v4) {
+if (v5) {
+  report = runVerificationFunnelBenchmarkV5();
+  human = formatHumanReportV5(report);
+  outName = "verification-funnel-v5-report.json";
+} else if (v4) {
   report = runVerificationFunnelBenchmarkV4();
   human = formatHumanReportV4(report);
   outName = "verification-funnel-v4-report.json";
@@ -72,7 +71,7 @@ if (asJson) {
 
 if (!allowFail && !report.pass) {
   process.stderr.write(
-    `\nFAIL — unsupported Verified / hard-negative / V3 regression / noise rejection (hard gate)\n`,
+    `\nFAIL — unsupported Verified / hard-negative / regression / noise rejection (hard gate)\n`,
   );
   process.exit(1);
 }

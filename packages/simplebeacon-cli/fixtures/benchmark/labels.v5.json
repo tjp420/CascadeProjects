@@ -1,0 +1,427 @@
+{
+  "benchmark": "verification-funnel-v5",
+  "objective": "Candidate release validation: fresh OOS after reachability + vm SSJS vocabulary. V3/V4 remain frozen controls. Perfect recall NOT required; unsupported Verified must be 0.",
+  "v3ControlCommit": "d4a11503bf0f31a915d42154f09a857544a5f170",
+  "v4DiagnosticCommit": "91dae7200e2ac1ed101c99103067b16f3dcd5e59",
+  "outOfSample": true,
+  "inheritsGroundTruthFrom": null,
+  "inheritsNegativesFromV1": true,
+  "groundTruth": [
+    {
+      "id": "v5-ssjs-vm-thiscontext",
+      "app": "simplebeacon-corpus",
+      "class": "ssjs-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v5",
+      "sourceFile": "ssjs-vm-thiscontext.js",
+      "filePath": "ssjs-vm-thiscontext.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "evalDanger",
+          "severity": "critical",
+          "filePath": "ssjs-vm-thiscontext.js",
+          "line": 10,
+          "description": "vm.runInThisContext(req.body.expr)"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — request body evaluated via vm.runInThisContext",
+          "attackPath": "HTTP request body expr → vm.runInThisContext(expr) executes attacker JavaScript",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.body.expr",
+            "to": "vm.runInThisContext",
+            "mechanism": "request body string passed as VM script source"
+          },
+          {
+            "from": "vm.runInThisContext",
+            "to": "server JavaScript runtime",
+            "mechanism": "VM evaluates attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "v5-nosql-params-where",
+      "app": "simplebeacon-corpus",
+      "class": "nosql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v5",
+      "sourceFile": "nosql-params-where.js",
+      "filePath": "nosql-params-where.js",
+      "type": "nosqlInjection",
+      "category": "nosqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "nosqlInjection",
+          "severity": "critical",
+          "filePath": "nosql-params-where.js",
+          "line": 9,
+          "description": "params.id interpolated into $where"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — route param concatenated into $where",
+          "attackPath": "HTTP params id → string-built MongoDB $where comparing this._id → server-side JavaScript evaluation",
+          "sourceLines": [7, 8, 9]
+        },
+        "links": [
+          {
+            "from": "req.params.id",
+            "to": "$where",
+            "mechanism": "route parameter interpolated into MongoDB $where JavaScript string"
+          },
+          {
+            "from": "$where",
+            "to": "this._id",
+            "mechanism": "database evaluates attacker-influenced $where against document ids"
+          }
+        ],
+        "impactClass": "nosqli"
+      }
+    },
+    {
+      "id": "v5-sqli-limit",
+      "app": "simplebeacon-corpus",
+      "class": "sql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v5",
+      "sourceFile": "sqli-limit.js",
+      "filePath": "sqli-limit.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "sqlInjection",
+          "severity": "critical",
+          "filePath": "sqli-limit.js",
+          "line": 9,
+          "description": "limit concatenated into LIMIT clause"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — limit concatenated into SQL LIMIT",
+          "attackPath": "HTTP query limit → string-built SELECT * FROM Products … LIMIT → database",
+          "sourceLines": [7, 8, 9]
+        },
+        "links": [
+          {
+            "from": "req.query.limit",
+            "to": "SELECT * FROM Products",
+            "mechanism": "limit concatenated into Products SELECT string"
+          },
+          {
+            "from": "SELECT * FROM Products",
+            "to": "LIMIT",
+            "mechanism": "interpolated LIMIT clause enables SQL injection"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "v5-xss-afterend",
+      "app": "simplebeacon-corpus",
+      "class": "dom-xss",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v5",
+      "sourceFile": "xss-afterend.js",
+      "filePath": "xss-afterend.js",
+      "type": "insertAdjacentHtmlXss",
+      "category": "xss",
+      "severity": "high",
+      "rawIssues": [
+        {
+          "type": "insertAdjacentHtmlXss",
+          "severity": "high",
+          "filePath": "xss-afterend.js",
+          "line": 9,
+          "description": "insertAdjacentHTML afterend with unsanitized body html"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP body html → el.insertAdjacentHTML afterend",
+          "sourceLines": [7, 8, 9]
+        },
+        "links": [
+          {
+            "from": "req.body.html",
+            "to": "el.insertAdjacentHTML",
+            "mechanism": "unsanitized HTML string passed to insertAdjacentHTML"
+          },
+          {
+            "from": "el.insertAdjacentHTML",
+            "to": "DOM sink",
+            "mechanism": "afterend insertion writes attacker HTML into the document"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "v5-cmdi-execsync",
+      "app": "simplebeacon-corpus",
+      "class": "command-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v5",
+      "sourceFile": "cmdi-execsync.js",
+      "filePath": "cmdi-execsync.js",
+      "type": "commandInjection",
+      "category": "commandInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "commandInjection",
+          "severity": "critical",
+          "filePath": "cmdi-execsync.js",
+          "line": 10,
+          "description": "execSync with interpolated dir"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — dir interpolated into execSync shell string",
+          "attackPath": "HTTP query dir → execSync(\"ls \" + dir) executes attacker-controlled shell",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.query.dir",
+            "to": "execSync",
+            "mechanism": "query dir concatenated into shell command string"
+          },
+          {
+            "from": "execSync",
+            "to": "operating system shell",
+            "mechanism": "execSync runs attacker-influenced ls command"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    }
+  ],
+  "hardNegatives": [
+    {
+      "id": "hn5-while-zero-spawn",
+      "kind": "hard-negative",
+      "class": "unreachable-spawn",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "while(0) spawn must not Verified",
+      "root": "fixtures/benchmark/corpus/v5/hard-negatives",
+      "sourceFile": "while-zero-spawn.js",
+      "filePath": "while-zero-spawn.js",
+      "type": "commandInjection",
+      "category": "commandInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — host interpolated into shell:true spawn",
+          "attackPath": "HTTP query host → spawn(\"ping -c 1 \" + host, { shell: true }) executes attacker-controlled shell",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.query.host",
+            "to": "spawn(",
+            "mechanism": "host concatenated into shell command string"
+          },
+          {
+            "from": "spawn(",
+            "to": "operating system shell",
+            "mechanism": "shell:true spawn runs attacker-influenced ping command"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn5-if-false-innerhtml",
+      "kind": "hard-negative",
+      "class": "unreachable-xss",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "if(false) innerHTML must not Verified",
+      "root": "fixtures/benchmark/corpus/v5/hard-negatives",
+      "sourceFile": "if-false-innerhtml.js",
+      "filePath": "if-false-innerhtml.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP body html → el.innerHTML assignment",
+          "sourceLines": [6, 7, 8]
+        },
+        "links": [
+          {
+            "from": "req.body.html",
+            "to": "el.innerHTML",
+            "mechanism": "unsanitized HTML assigned to innerHTML"
+          },
+          {
+            "from": "el.innerHTML",
+            "to": "DOM sink",
+            "mechanism": "DOM sink write enables XSS"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "hn5-if-zero-function",
+      "kind": "hard-negative",
+      "class": "unreachable-function-ctor",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "if(0) new Function must not Verified",
+      "root": "fixtures/benchmark/corpus/v5/hard-negatives",
+      "sourceFile": "if-zero-function.js",
+      "filePath": "if-zero-function.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — Function body from request body",
+          "attackPath": "HTTP request body code → new Function(code) → immediate invoke executes attacker JavaScript",
+          "sourceLines": [6, 7]
+        },
+        "links": [
+          {
+            "from": "req.body.code",
+            "to": "new Function",
+            "mechanism": "request body string used as Function constructor body"
+          },
+          {
+            "from": "new Function",
+            "to": "fn()",
+            "mechanism": "constructed function invoked immediately in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn5-dead-vm-live-number",
+      "kind": "hard-negative",
+      "class": "dead-vm-live-safe",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "Dead vm.runInNewContext with live Number path must not Verified as RCE",
+      "root": "fixtures/benchmark/corpus/v5/hard-negatives",
+      "sourceFile": "dead-vm-live-number.js",
+      "filePath": "dead-vm-live-number.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — request body evaluated inside vm.runInNewContext",
+          "attackPath": "HTTP request body expr → vm.runInNewContext(expr) executes attacker JavaScript in a new context",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.body.expr",
+            "to": "vm.runInNewContext",
+            "mechanism": "request body string passed as VM script source"
+          },
+          {
+            "from": "vm.runInNewContext",
+            "to": "server JavaScript runtime",
+            "mechanism": "VM evaluates attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn5-escape-only",
+      "kind": "hard-negative",
+      "class": "no-dom-sink",
+      "expectVerified": false,
+      "description": "Entity escaping without DOM sink must not Verified as XSS",
+      "root": "fixtures/benchmark/corpus/v5/hard-negatives",
+      "sourceFile": "escape-only.js",
+      "filePath": "escape-only.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP query title → string concat → element.innerHTML",
+          "sourceLines": [6, 7]
+        },
+        "links": [
+          {
+            "from": "req.query.title",
+            "to": "string concat",
+            "mechanism": "unsanitized query embedded in HTML"
+          },
+          {
+            "from": "string concat",
+            "to": "element.innerHTML",
+            "mechanism": "DOM sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    }
+  ]
+}

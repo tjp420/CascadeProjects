@@ -1,0 +1,35 @@
+{
+  "benchmark": "verification-funnel-v5",
+  "status": "HARD_GATE_PASS_PENDING_COMMIT_AUTHORIZATION",
+  "date": "2026-09-10",
+  "branch": "benchmark/v5-reachability",
+  "v3Control": {
+    "commit": "d4a11503bf0f31a915d42154f09a857544a5f170",
+    "result": "PASS"
+  },
+  "v4Diagnostic": {
+    "commit": "91dae7200e2ac1ed101c99103067b16f3dcd5e59",
+    "result": "PASS_AFTER_FIXES",
+    "note": "Frozen diagnostic record remains; suite now passes under V5 verifier"
+  },
+  "verifierChanges": [
+    "slice6-reachability-dead-branch",
+    "rce-sink-vocabulary-vm",
+    "rce-sink-child-process-call-sites-only"
+  ],
+  "results": {
+    "known": 5,
+    "verified": 5,
+    "missed": 0,
+    "recall": 1,
+    "verifiedPrecision": 1,
+    "unsupportedVerified": 0,
+    "hardNegatives": { "total": 5, "rejected": 5, "wronglyVerified": 0 },
+    "v3Regression": "PASS",
+    "v4Regression": "PASS",
+    "hardGate": "PASS"
+  },
+  "releaseDecision": "PENDING — explicit push/deploy/publish still required",
+  "deployment": "NOT PERFORMED",
+  "npmPublish": "NOT PERFORMED"
+}
