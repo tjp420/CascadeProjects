@@ -1,0 +1,7 @@
+OWASP NodeGoat
+Copyright the OWASP NodeGoat contributors
+Licensed under the Apache License, Version 2.0
+https://github.com/OWASP/NodeGoat
+
+This fixture redistributes a minimal extract of intentionally vulnerable
+training code for SimpleBeacon verification-gate testing.
