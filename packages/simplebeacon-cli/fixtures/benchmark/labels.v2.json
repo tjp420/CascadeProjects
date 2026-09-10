@@ -1,0 +1,277 @@
+{
+  "benchmark": "verification-funnel-v2",
+  "objective": "Expand ground truth; run unchanged production funnel; measure recall; unsupported Verified must stay 0.",
+  "inheritsNegativesFromV1": true,
+  "groundTruth": [
+    {
+      "id": "nodegoat-ssjs-eval-rce",
+      "app": "nodegoat",
+      "class": "ssjs-injection",
+      "expectVerified": true,
+      "root": "fixtures/known-vulnerable-nodegoat",
+      "sourceFile": "app/routes/contributions.js",
+      "filePath": "app/routes/contributions.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "evalDanger",
+          "severity": "critical",
+          "filePath": "app/routes/contributions.js",
+          "line": 23,
+          "description": "eval(req.body.preTax) — SSJS injection"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — upstream parseInt fix is present only as commented-out code",
+          "attackPath": "HTTP request body preTax → eval(req.body.preTax) executes attacker-controlled JavaScript on the server",
+          "sourceLines": [22, 23, 24]
+        },
+        "links": [
+          {
+            "from": "req.body.preTax",
+            "to": "eval()",
+            "mechanism": "request body string passed directly to eval without parsing"
+          },
+          {
+            "from": "eval()",
+            "to": "server JavaScript runtime",
+            "mechanism": "eval executes the attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "nodegoat-nosql-where-threshold",
+      "app": "nodegoat",
+      "class": "nosql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/nodegoat",
+      "sourceFile": "allocations-dao.js",
+      "filePath": "allocations-dao.js",
+      "type": "nosqlInjection",
+      "category": "nosqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "nosqlInjection",
+          "severity": "critical",
+          "filePath": "allocations-dao.js",
+          "line": 32,
+          "description": "threshold interpolated into MongoDB $where"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — upstream parseInt+$gt fix is present only as commented-out code",
+          "attackPath": "HTTP query threshold → string-built MongoDB $where clause comparing this.stocks → server-side JavaScript evaluation",
+          "sourceLines": [30, 31, 32, 33]
+        },
+        "links": [
+          {
+            "from": "threshold",
+            "to": "$where",
+            "mechanism": "query parameter interpolated into MongoDB $where JavaScript string"
+          },
+          {
+            "from": "$where",
+            "to": "this.stocks",
+            "mechanism": "database evaluates attacker-influenced $where expression against stocks"
+          }
+        ],
+        "impactClass": "nosqli"
+      }
+    },
+    {
+      "id": "juice-sqli-login",
+      "app": "juice-shop",
+      "class": "sql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/juice-shop",
+      "sourceFile": "login-sqli.js",
+      "filePath": "login-sqli.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "sqlInjection",
+          "severity": "critical",
+          "filePath": "login-sqli.js",
+          "line": 14,
+          "description": "email concatenated into Users SELECT"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — email concatenated into SQL without parameterization",
+          "attackPath": "HTTP body email → string-built SELECT * FROM Users WHERE email → database",
+          "sourceLines": [12, 13, 14, 15, 16, 17, 18, 19, 20]
+        },
+        "links": [
+          {
+            "from": "req.body.email",
+            "to": "SELECT * FROM Users",
+            "mechanism": "direct concatenation into SQL SELECT string"
+          },
+          {
+            "from": "SELECT * FROM Users",
+            "to": "WHERE email",
+            "mechanism": "interpolated email inside WHERE clause enables auth bypass"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "juice-sqli-search",
+      "app": "juice-shop",
+      "class": "sql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/juice-shop",
+      "sourceFile": "search-sqli.js",
+      "filePath": "search-sqli.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "sqlInjection",
+          "severity": "critical",
+          "filePath": "search-sqli.js",
+          "line": 14,
+          "description": "search criteria concatenated into Products LIKE query"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — criteria concatenated into SQL LIKE clauses",
+          "attackPath": "HTTP query q → string-built SELECT * FROM Products WHERE name LIKE … AND deletedAt IS NULL → database",
+          "sourceLines": [12, 13, 14, 15, 16, 17, 18, 19, 20]
+        },
+        "links": [
+          {
+            "from": "req.query.q",
+            "to": "SELECT * FROM Products",
+            "mechanism": "search criteria concatenated into SQL SELECT string"
+          },
+          {
+            "from": "SELECT * FROM Products",
+            "to": "deletedAt IS NULL",
+            "mechanism": "interpolated LIKE pattern in Products WHERE clause"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "juice-dom-xss-search",
+      "app": "juice-shop",
+      "class": "dom-xss",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/juice-shop",
+      "sourceFile": "xss/dom-xss.js",
+      "filePath": "xss/dom-xss.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "rawIssues": [
+        {
+          "type": "innerHTMLXss",
+          "severity": "high",
+          "filePath": "xss/dom-xss.js",
+          "line": 12,
+          "description": "searchResults.innerHTML with unsanitized query"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP query q → string concat → searchResults.innerHTML",
+          "sourceLines": [10, 11, 12]
+        },
+        "links": [
+          {
+            "from": "req.query.q",
+            "to": "string concat",
+            "mechanism": "unsanitized query embedded in HTML"
+          },
+          {
+            "from": "string concat",
+            "to": "searchResults.innerHTML",
+            "mechanism": "DOM sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "slice6-dom-xss",
+      "app": "simplebeacon-fixture",
+      "class": "dom-xss",
+      "expectVerified": true,
+      "root": "fixtures/deliberately-vulnerable-xss",
+      "sourceFile": "app/comment-renderer.js",
+      "filePath": "app/comment-renderer.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "rawIssues": [
+        {
+          "type": "innerHTMLXss",
+          "severity": "high",
+          "filePath": "app/comment-renderer.js",
+          "line": 21,
+          "description": "element.innerHTML = renderMarkdown(req.body.comment)"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP request body comment → renderMarkdown() → element.innerHTML assignment",
+          "sourceLines": [18, 19, 20]
+        },
+        "links": [
+          {
+            "from": "req.body.comment",
+            "to": "renderMarkdown()",
+            "mechanism": "unsanitized string passthrough"
+          },
+          {
+            "from": "renderMarkdown()",
+            "to": "element.innerHTML",
+            "mechanism": "DOM sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    }
+  ]
+}

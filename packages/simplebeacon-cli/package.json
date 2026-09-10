@@ -55,7 +55,8 @@
     "release:minor:publish": "node scripts/release.cjs minor --publish",
     "release:major:publish": "node scripts/release.cjs major --publish",
     "release:dry-run": "node scripts/release.cjs patch --dry-run --skip-tests",
-    "benchmark:funnel": "node scripts/verification-funnel-benchmark.cjs"
+    "benchmark:funnel": "node scripts/verification-funnel-benchmark.cjs",
+    "benchmark:funnel:v2": "node scripts/verification-funnel-benchmark.cjs --v2"
   },
   "keywords": [
     "simplebeacon",

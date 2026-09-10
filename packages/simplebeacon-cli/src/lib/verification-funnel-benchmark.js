@@ -490,12 +490,207 @@ function formatHumanReport(report) {
   return lines.join("\n");
 }
 
+const LABELS_V2_PATH = path.join(FIXTURE_ROOT, "labels.v2.json");
+const PACKAGE_ROOT = path.resolve(__dirname, "../..");
+
+function resolveV2Root(relRoot) {
+  return path.resolve(PACKAGE_ROOT, relRoot);
+}
+
+/**
+ * V2: labeled corpus expansion. Same production funnel + promotion API.
+ * Does not change the verifier. Misses are recorded, not fixed here.
+ */
+function runVerificationFunnelBenchmarkV2() {
+  const labels = readJson(LABELS_V2_PATH);
+  const assessments = [];
+  const positiveTargets = [];
+
+  for (const gt of labels.groundTruth || []) {
+    const root = resolveV2Root(gt.root);
+    const sourceText = readUtf8(path.join(root, gt.sourceFile));
+    const measured = measureProductionFunnel(gt.rawIssues || []);
+    const attempt = promoteLabeled(
+      {
+        filePath: gt.filePath,
+        type: gt.type,
+        category: gt.category || gt.type,
+        severity: gt.severity || "critical",
+        evidence: gt.evidence,
+      },
+      sourceText,
+    );
+    const evidenceVerified =
+      attempt.verification === "verified" && attempt.promoted === true;
+    assessments.push({
+      id: gt.id,
+      app: gt.app,
+      class: gt.class,
+      expectVerified: gt.expectVerified !== false,
+      evidenceVerified,
+      hit:
+        gt.expectVerified !== false ? evidenceVerified : !evidenceVerified,
+      verificationReason: attempt.verificationReason || null,
+      explainable: Boolean(
+        attempt.auditRecord &&
+          attempt.evidenceChain?.complete &&
+          attempt.evidenceChain?.independentlyReproducible,
+      ),
+    });
+    positiveTargets.push({
+      name: gt.id,
+      kind: "positive-control",
+      expectedVerified: gt.expectVerified !== false ? [gt.id] : [],
+      signalsAnalyzed: measured.signalsAnalyzed,
+      dismissed: measured.dismissed,
+      requireReview: measured.requireReview,
+      verifiedPipeline: measured.verified,
+      verified: evidenceVerified ? 1 : 0,
+      verifiedRecall: evidenceVerified ? 1 : 0,
+      falsePositivePromotions: 0,
+      missed: evidenceVerified
+        ? []
+        : [{ id: gt.id, reason: attempt.verificationReason || "not verified" }],
+      verifiedRows: evidenceVerified
+        ? [
+            {
+              id: gt.id,
+              filePath: gt.filePath,
+              impactClass: attempt.evidenceChain?.impactClass || null,
+              explainable: Boolean(
+                attempt.auditRecord && attempt.evidenceChain?.complete,
+              ),
+            },
+          ]
+        : [],
+      note: `${gt.app} / ${gt.class}`,
+    });
+  }
+
+  const openWebui = runNegativeGolden("open-webui");
+  const gitea = runNegativeGolden("gitea");
+  const immich = runNegativeGolden("immich");
+  const kubernetes = runKubernetesNoise(readJson(LABELS_PATH));
+
+  const targets = [...positiveTargets, openWebui, gitea, immich, kubernetes];
+  const scored = scoreResult(targets);
+
+  const known = assessments.filter((a) => a.expectVerified);
+  const verified = known.filter((a) => a.evidenceVerified);
+  const missed = known.filter((a) => !a.evidenceVerified);
+
+  return {
+    benchmark: "verification-funnel-v2",
+    generatedAt: new Date().toISOString(),
+    objective:
+      "V2 ground-truth expansion: measure recall of the unchanged funnel. Unsupported Verified must stay 0. Do not tune the verifier in this pass.",
+    productionPath: [
+      "rawIssues",
+      "compileGateStatus",
+      "attachVerifiedFindings",
+      "attachSignalTriage",
+      "attachSemanticVerification",
+      "applyVerifiedEngine",
+      "maintainerHeadline",
+    ],
+    verifierUnchanged: true,
+    labelsPath: "fixtures/benchmark/labels.v2.json",
+    assessments,
+    targets: targets.map((t) => ({
+      name: t.name,
+      kind: t.kind,
+      expectedVerified: t.expectedVerified || [],
+      signalsAnalyzed: t.signalsAnalyzed,
+      dismissed: t.dismissed,
+      requireReview: t.requireReview,
+      verified: t.verified,
+      verifiedPipeline: t.verifiedPipeline,
+      verifiedRecall: t.verifiedRecall,
+      falsePositivePromotions: t.falsePositivePromotions,
+      ...(t.skipped ? { skipped: true, skipReason: t.skipReason } : {}),
+      ...(t.mode ? { mode: t.mode } : {}),
+      ...(t.missed && t.missed.length ? { missed: t.missed } : {}),
+      ...(t.note ? { note: t.note } : {}),
+    })),
+    groundTruth: {
+      ...scored,
+      knownVulnerabilities: known.length,
+      verifiedBySimpleBeacon: verified.length,
+      missed: missed.map((m) => ({
+        id: m.id,
+        app: m.app,
+        class: m.class,
+        reason: m.verificationReason,
+      })),
+      verifiedRecall: known.length ? verified.length / known.length : null,
+    },
+    pass:
+      scored.result.noiseRejection === "PASS" &&
+      scored.unsupportedVerified === 0,
+    recallComplete: missed.length === 0,
+  };
+}
+
+function formatHumanReportV2(report) {
+  const lines = [];
+  lines.push("SIMPLEBEACON VERIFICATION FUNNEL BENCHMARK V2");
+  lines.push("=============================================");
+  lines.push(`benchmark: ${report.benchmark}`);
+  lines.push(`generated: ${report.generatedAt}`);
+  lines.push("verifier: UNCHANGED (measurement only)");
+  lines.push("");
+  lines.push("GROUND TRUTH → VERIFIED → MISSED");
+  lines.push("-".repeat(60));
+  const g = report.groundTruth;
+  lines.push(`Known vulnerabilities:        ${g.knownVulnerabilities}`);
+  lines.push(`Verified by SimpleBeacon:     ${g.verifiedBySimpleBeacon}`);
+  lines.push(`Missed:                       ${g.missed?.length || 0}`);
+  lines.push(
+    `Verified recall:              ${
+      g.verifiedRecall == null
+        ? "n/a"
+        : `${(g.verifiedRecall * 100).toFixed(0)}%`
+    }`,
+  );
+  lines.push(`Unsupported Verified:         ${g.unsupportedVerified}`);
+  lines.push("");
+  if (g.missed && g.missed.length) {
+    lines.push(
+      "MISSES (product limitations — do not fix verifier in this pass)",
+    );
+    lines.push("-".repeat(60));
+    for (const m of g.missed) {
+      lines.push(`- ${m.id} (${m.app}/${m.class})`);
+      if (m.reason) lines.push(`    ${m.reason}`);
+    }
+    lines.push("");
+  }
+  lines.push("RESULT");
+  lines.push("-".repeat(60));
+  lines.push(
+    `Unsupported Verified = 0: ${
+      g.unsupportedVerified === 0 ? "PASS" : "FAIL"
+    }`,
+  );
+  lines.push(
+    `Recall complete:          ${
+      report.recallComplete ? "YES" : "NO — misses recorded"
+    }`,
+  );
+  lines.push(`Noise rejection:         ${g.result.noiseRejection}`);
+  return lines.join("\n");
+}
+
 module.exports = {
   BENCHMARK_ID,
+  BENCHMARK_ID_V2: "verification-funnel-v2",
   FIXTURE_ROOT,
   LABELS_PATH,
+  LABELS_V2_PATH,
   runVerificationFunnelBenchmark,
+  runVerificationFunnelBenchmarkV2,
   formatHumanReport,
+  formatHumanReportV2,
   measureProductionFunnel,
   scoreResult,
 };

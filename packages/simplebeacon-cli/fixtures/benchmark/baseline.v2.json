@@ -1,0 +1,37 @@
+{
+  "benchmark": "verification-funnel-v2",
+  "status": "measured-rc-candidate",
+  "date": "2026-09-10",
+  "v1Frozen": {
+    "package": "simplebeacon@3.0.556",
+    "releaseCommit": "e096b47c4",
+    "note": "V1 baseline immutable — not overwritten by V2"
+  },
+  "objective": "Measure how much real vulnerability coverage SimpleBeacon can prove while maintaining zero unsupported Verified promotions.",
+  "verifierUnchanged": true,
+  "groundTruth": {
+    "total": 6,
+    "ids": [
+      "nodegoat-ssjs-eval-rce",
+      "nodegoat-nosql-where-threshold",
+      "juice-sqli-login",
+      "juice-sqli-search",
+      "juice-dom-xss-search",
+      "slice6-dom-xss"
+    ]
+  },
+  "results": {
+    "verified": 6,
+    "missed": 0,
+    "recall": 1,
+    "unsupportedVerified": 0,
+    "noiseRejection": "PASS"
+  },
+  "labelingNote": "First pass had 2 label wording defects (attackPath omitted chain sink). Corrected in labels.v2.json only — not in the verifier. Re-run reached 6/6.",
+  "hardFail": "unsupportedVerified > 0 ⇒ V2 FAIL",
+  "artifacts": {
+    "labels": "fixtures/benchmark/labels.v2.json",
+    "corpus": "fixtures/benchmark/corpus/",
+    "humanResults": "fixtures/benchmark/V2-RESULTS.md"
+  }
+}
