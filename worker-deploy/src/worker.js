@@ -169,6 +169,66 @@ function json(data, status, corsOrigin) {
   return new Response(JSON.stringify(data), { status, headers });
 }
 
+/** Browser-local scan zip cap (Worker-friendly). */
+const GITHUB_ZIPBALL_MAX_BYTES = 45 * 1024 * 1024;
+
+/**
+ * Prefer github.com archive/HEAD.zip (codeload) so shared edge IPs do not burn
+ * api.github.com's 60/hr unauthenticated quota — that path flakes as opaque 502s.
+ * Fall back to REST zipball (optional GITHUB_TOKEN) for private/odd refs.
+ */
+async function fetchGithubRepoZip(owner, repo, env) {
+  const ua = { "User-Agent": "SimpleBeacon-Dashboard" };
+  let gh = await fetch(
+    `https://github.com/${owner}/${repo}/archive/HEAD.zip`,
+    { headers: ua, redirect: "follow" },
+  );
+  if (!gh.ok) {
+    const ghHeaders = {
+      ...ua,
+      Accept: "application/vnd.github+json",
+    };
+    const token = String(env.GITHUB_TOKEN || "").trim();
+    if (token) ghHeaders.Authorization = "Bearer " + token;
+    gh = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/zipball`,
+      { headers: ghHeaders, redirect: "follow" },
+    );
+    if (
+      !gh.ok &&
+      (gh.status === 403 ||
+        gh.status === 429 ||
+        gh.status === 502 ||
+        gh.status === 503 ||
+        gh.status === 504)
+    ) {
+      await new Promise((r) => setTimeout(r, 350));
+      gh = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/zipball`,
+        { headers: ghHeaders, redirect: "follow" },
+      );
+    }
+  }
+  return gh;
+}
+
+function capZipBody(body, maxBytes) {
+  if (!body) return body;
+  let seen = 0;
+  return body.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        seen += chunk.byteLength;
+        if (seen > maxBytes) {
+          controller.error(new Error(`zip_exceeds_${maxBytes}`));
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+}
+
 function textResponse(body, status, corsOrigin) {
   const headers = { "Cache-Control": "no-store" };
   if (corsOrigin) {
@@ -1092,33 +1152,42 @@ export default {
       if (!/^[-.\w]{1,100}$/.test(owner) || !/^[-.\w]{1,100}$/.test(repo)) {
         return json({ error: "owner and repo are required" }, 400, corsOrigin);
       }
-      const ghHeaders = {
-        "User-Agent": "SimpleBeacon-Dashboard",
-        Accept: "application/vnd.github+json",
-      };
-      const token = String(env.GITHUB_TOKEN || "").trim();
-      if (token) ghHeaders.Authorization = "Bearer " + token;
-      const gh = await fetch(
-        "https://api.github.com/repos/" + owner + "/" + repo + "/zipball",
-        { headers: ghHeaders, redirect: "follow" },
-      );
-      if (!gh.ok) {
-        const message =
-          gh.status === 404
-            ? "GitHub repository not found or private"
-            : "Could not download GitHub zipball";
+      let gh;
+      try {
+        gh = await fetchGithubRepoZip(owner, repo, env);
+      } catch (err) {
         return json(
-          { error: message },
-          gh.status === 404 ? 404 : 502,
+          {
+            error: "Could not download GitHub zipball",
+            upstreamStatus: 0,
+            detail: String(err && err.message ? err.message : err).slice(0, 120),
+          },
+          502,
+          corsOrigin,
+        );
+      }
+      if (!gh.ok) {
+        const upstreamStatus = gh.status;
+        const message =
+          upstreamStatus === 404
+            ? "GitHub repository not found or private"
+            : upstreamStatus === 403 || upstreamStatus === 429
+              ? "GitHub rate limit or access denied. Retry shortly, or clone locally and run: npx simplebeacon scan --gate --offline"
+              : "Could not download GitHub zipball";
+        return json(
+          { error: message, upstreamStatus },
+          upstreamStatus === 404 ? 404 : 502,
           corsOrigin,
         );
       }
       const len = Number(gh.headers.get("content-length") || 0);
-      if (len > 45 * 1024 * 1024) {
+      if (len > GITHUB_ZIPBALL_MAX_BYTES) {
         return json(
           {
             error:
               "Repository zip is larger than 45 MB. Clone locally and run: npx simplebeacon scan --gate --offline",
+            upstreamStatus: 200,
+            contentLength: len,
           },
           413,
           corsOrigin,
@@ -1131,7 +1200,9 @@ export default {
         outHeaders.set("Access-Control-Allow-Origin", corsOrigin);
         outHeaders.set("Vary", "Origin");
       }
-      return new Response(gh.body, { status: 200, headers: outHeaders });
+      const body =
+        len > 0 ? gh.body : capZipBody(gh.body, GITHUB_ZIPBALL_MAX_BYTES);
+      return new Response(body, { status: 200, headers: outHeaders });
     }
 
     // Scan Attestation Endpoint — issues short-lived, device-bound attestation
