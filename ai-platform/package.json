@@ -170,7 +170,7 @@
     "helmet": "^7.2.0",
     "http-errors": "^2.0.1",
     "ioredis": "^6.0.0",
-    "joi": "^18.2.1",
+    "joi": "^18.2.8",
     "js-yaml": "^5.2.3",
     "jsonwebtoken": "^9.0.3",
     "mlkem": "^2.7.0",
