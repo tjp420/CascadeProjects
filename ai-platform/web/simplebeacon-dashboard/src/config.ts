@@ -343,6 +343,30 @@ export function getHostedCloudApiBase(): string {
   return "";
 }
 
+/** Same 16-char id as Render `flexible-analyze-api.cjs` github-clone cacheKey. */
+export async function githubCloneJobId(repoUrl: string): Promise<string | null> {
+  try {
+    const parsed = new URL(String(repoUrl || "").trim());
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    if (parsed.protocol !== "https:" || host !== "github.com") return null;
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    const owner = parts[0] || "";
+    const repo = String(parts[1] || "").replace(/\.git$/i, "");
+    if (!/^[-.\w]+$/.test(owner) || !/^[-.\w]+$/.test(repo)) return null;
+    const cloneUrl = `https://github.com/${owner}/${repo}.git`;
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(cloneUrl),
+    );
+    return [...new Uint8Array(digest)]
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 16);
+  } catch {
+    return null;
+  }
+}
+
 function isLoopbackHttpBase(value: string): boolean {
   if (!value) return false;
   try {
