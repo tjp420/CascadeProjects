@@ -57,7 +57,8 @@
     "release:dry-run": "node scripts/release.cjs patch --dry-run --skip-tests",
     "benchmark:funnel": "node scripts/verification-funnel-benchmark.cjs",
     "benchmark:funnel:v2": "node scripts/verification-funnel-benchmark.cjs --v2",
-    "benchmark:funnel:v3": "node scripts/verification-funnel-benchmark.cjs --v3"
+    "benchmark:funnel:v3": "node scripts/verification-funnel-benchmark.cjs --v3",
+    "benchmark:funnel:v4": "node scripts/verification-funnel-benchmark.cjs --v4"
   },
   "keywords": [
     "simplebeacon",

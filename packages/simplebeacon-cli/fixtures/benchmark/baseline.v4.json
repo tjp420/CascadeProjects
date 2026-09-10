@@ -1,0 +1,65 @@
+{
+  "benchmark": "verification-funnel-v4",
+  "status": "MEASUREMENT_COMPLETE_HARD_GATE_FAIL",
+  "date": "2026-09-10",
+  "branch": "benchmark/v4-out-of-sample",
+  "v3Control": {
+    "commit": "d4a11503bf0f31a915d42154f09a857544a5f170",
+    "result": "PASS",
+    "verified": "10/10",
+    "hardNegativesRejected": "8/8",
+    "unsupportedVerified": 0,
+    "note": "Frozen control — not overwritten by V4"
+  },
+  "objective": "Does the 10/10 survive genuinely new and adversarial data?",
+  "verifierUnchanged": true,
+  "outOfSample": true,
+  "results": {
+    "known": 5,
+    "verified": 4,
+    "missed": 1,
+    "recall": 0.8,
+    "verifiedPrecision": 0.8,
+    "unsupportedVerified": 1,
+    "hardNegatives": {
+      "total": 8,
+      "rejected": 7,
+      "wronglyVerified": ["hn4-dead-branch-eval"]
+    },
+    "perClass": {
+      "ssjs-injection": "0/1",
+      "nosql-injection": "1/1",
+      "sql-injection": "1/1",
+      "dom-xss": "1/1",
+      "command-injection": "1/1"
+    },
+    "noiseRejection": "FAIL",
+    "v3Regression": "PASS",
+    "hardGate": "FAIL"
+  },
+  "failureAnalysis": [
+    {
+      "id": "v4-ssjs-vm-run",
+      "kind": "positive-miss",
+      "category": "evidence-threshold",
+      "summary": "vm.runInNewContext not recognized as RCE sink vocabulary"
+    },
+    {
+      "id": "hn4-dead-branch-eval",
+      "kind": "hard-negative-fp",
+      "category": "false-positive-promotion",
+      "summary": "eval behind if(false) promoted — no reachability gate"
+    }
+  ],
+  "labelCorrections": [
+    "v4-nosql-where-filter attackPath cited this.active sink (label-only)"
+  ],
+  "releaseDecision": "NOT YET — V4 hard gate failed; investigate before push/deploy/publish",
+  "deployment": "NOT PERFORMED",
+  "npmPublish": "NOT PERFORMED",
+  "artifacts": {
+    "labels": "fixtures/benchmark/labels.v4.json",
+    "corpus": "fixtures/benchmark/corpus/v4/",
+    "humanResults": "fixtures/benchmark/V4-RESULTS.md"
+  }
+}

@@ -839,6 +839,183 @@ function runVerificationFunnelBenchmarkV3() {
   };
 }
 
+const V3_CONTROL_COMMIT = "d4a11503bf0f31a915d42154f09a857544a5f170";
+const LABELS_V4_PATH = path.join(FIXTURE_ROOT, "labels.v4.json");
+
+function perClassBreakdown(assessments) {
+  const byClass = {};
+  for (const a of assessments.filter((x) => x.expectVerified)) {
+    const key = a.class || "unknown";
+    if (!byClass[key]) {
+      byClass[key] = { known: 0, verified: 0, missed: 0 };
+    }
+    byClass[key].known += 1;
+    if (a.evidenceVerified) byClass[key].verified += 1;
+    else byClass[key].missed += 1;
+  }
+  for (const key of Object.keys(byClass)) {
+    const row = byClass[key];
+    row.recall = row.known ? row.verified / row.known : null;
+  }
+  return byClass;
+}
+
+function categorizeFailure(item, kind) {
+  const reason = String(item.verificationReason || item.reason || "");
+  let category = "other";
+  if (/corroborat|source context|claimed sink not found/i.test(reason)) {
+    category = "source-corroboration";
+  } else if (/evidential|defect|hedge|sanitizer|tautolog/i.test(reason)) {
+    category = "evidence-threshold";
+  } else if (/syntactic|missing required|incomplete/i.test(reason)) {
+    category = "evidence-completeness";
+  } else if (kind === "hard-negative-fp") {
+    category = "false-positive-promotion";
+  } else if (/not verified/i.test(reason)) {
+    category = "classifier-or-coverage";
+  }
+  return {
+    id: item.id,
+    class: item.class || null,
+    kind,
+    category,
+    reason: reason || null,
+  };
+}
+
+/**
+ * V4: out-of-sample positives + hard/borderline negatives.
+ * V3 baseline commit remains the frozen control (re-run, do not retune).
+ * Perfect OOS recall is NOT required for pass.
+ */
+function runVerificationFunnelBenchmarkV4() {
+  const labels = readJson(LABELS_V4_PATH);
+  const groundTruth = loadGroundTruthEntries(labels, LABELS_V4_PATH);
+  const assessments = [];
+  const hardNegativeAssessments = [];
+  const positiveTargets = [];
+  const hardNegativeTargets = [];
+
+  for (const gt of groundTruth) {
+    const { assessment, target } = assessPositiveControl(gt);
+    assessments.push(assessment);
+    positiveTargets.push(target);
+  }
+
+  for (const hn of labels.hardNegatives || []) {
+    const { assessment, target } = assessHardNegative(hn);
+    assessment.borderline = Boolean(hn.borderline);
+    hardNegativeAssessments.push(assessment);
+    hardNegativeTargets.push(target);
+  }
+
+  const openWebui = runNegativeGolden("open-webui");
+  const gitea = runNegativeGolden("gitea");
+  const immich = runNegativeGolden("immich");
+  const k8s = runKubernetesNoise(readJson(LABELS_PATH));
+
+  const targets = [
+    ...positiveTargets,
+    ...hardNegativeTargets,
+    openWebui,
+    gitea,
+    immich,
+    k8s,
+  ];
+  const scored = scoreResult(targets);
+
+  const known = assessments.filter((a) => a.expectVerified);
+  const verified = known.filter((a) => a.evidenceVerified);
+  const missed = known.filter((a) => !a.evidenceVerified);
+  const hardNegFailures = hardNegativeAssessments.filter(
+    (a) => a.evidenceVerified,
+  );
+  const hardNegRejected = hardNegativeAssessments.filter(
+    (a) => !a.evidenceVerified,
+  );
+
+  const truePositives = verified.length;
+  const unsupported = Number(scored.unsupportedVerified || 0);
+  const verifiedPrecisionDenom = truePositives + unsupported;
+  const verifiedPrecision =
+    verifiedPrecisionDenom > 0 ? truePositives / verifiedPrecisionDenom : null;
+
+  const classes = [...new Set(known.map((a) => a.class).filter(Boolean))];
+  const failureAnalysis = [
+    ...missed.map((m) => categorizeFailure(m, "positive-miss")),
+    ...hardNegFailures.map((f) => categorizeFailure(f, "hard-negative-fp")),
+  ];
+
+  const v3Control = runVerificationFunnelBenchmarkV3();
+  const v3Regression = {
+    controlCommit: labels.v3ControlCommit || V3_CONTROL_COMMIT,
+    pass: v3Control.pass === true,
+    knownVulnerabilities: v3Control.groundTruth.knownVulnerabilities,
+    verifiedBySimpleBeacon: v3Control.groundTruth.verifiedBySimpleBeacon,
+    unsupportedVerified: v3Control.groundTruth.unsupportedVerified,
+    hardNegativesRejected: v3Control.groundTruth.hardNegatives?.rejected,
+    hardNegativesTotal: v3Control.groundTruth.hardNegatives?.total,
+    recallComplete: v3Control.recallComplete === true,
+  };
+
+  return {
+    benchmark: "verification-funnel-v4",
+    generatedAt: new Date().toISOString(),
+    objective:
+      "V4 out-of-sample: does the unchanged funnel generalize to new sink shapes and adversarial hard negatives? V3 d4a11503b is the frozen control.",
+    productionPath: [
+      "rawIssues",
+      "compileGateStatus",
+      "attachVerifiedFindings",
+      "attachSignalTriage",
+      "attachSemanticVerification",
+      "applyVerifiedEngine",
+      "maintainerHeadline",
+    ],
+    verifierUnchanged: true,
+    outOfSample: true,
+    labelsPath: "fixtures/benchmark/labels.v4.json",
+    v3ControlCommit: v3Regression.controlCommit,
+    assessments,
+    hardNegativeAssessments,
+    targets: targets.map(summarizeTarget),
+    groundTruth: {
+      ...scored,
+      knownVulnerabilities: known.length,
+      verifiedBySimpleBeacon: verified.length,
+      vulnerabilityClasses: classes.length,
+      classes,
+      perClass: perClassBreakdown(assessments),
+      missed: missed.map((m) => ({
+        id: m.id,
+        app: m.app,
+        class: m.class,
+        reason: m.verificationReason,
+      })),
+      verifiedRecall: known.length ? verified.length / known.length : null,
+      verifiedPrecision,
+      hardNegatives: {
+        total: hardNegativeAssessments.length,
+        rejected: hardNegRejected.length,
+        wronglyVerified: hardNegFailures.map((f) => ({
+          id: f.id,
+          class: f.class,
+          borderline: Boolean(f.borderline),
+          reason: f.verificationReason,
+        })),
+      },
+      failureAnalysis,
+    },
+    v3Regression,
+    pass:
+      scored.result.noiseRejection === "PASS" &&
+      scored.unsupportedVerified === 0 &&
+      hardNegFailures.length === 0 &&
+      v3Regression.pass === true,
+    recallComplete: missed.length === 0,
+  };
+}
+
 function formatHumanReportV2(report) {
   const lines = [];
   lines.push("SIMPLEBEACON VERIFICATION FUNNEL BENCHMARK V2");
@@ -964,20 +1141,136 @@ function formatHumanReportV3(report) {
   return lines.join("\n");
 }
 
+function formatHumanReportV4(report) {
+  const lines = [];
+  lines.push("SIMPLEBEACON VERIFICATION FUNNEL BENCHMARK V4");
+  lines.push("=============================================");
+  lines.push(`benchmark: ${report.benchmark}`);
+  lines.push(`generated: ${report.generatedAt}`);
+  lines.push("verifier: UNCHANGED (out-of-sample measurement)");
+  lines.push(`v3 control: ${report.v3ControlCommit}`);
+  lines.push("");
+  lines.push("OUT-OF-SAMPLE GROUND TRUTH → VERIFIED → MISSED");
+  lines.push("-".repeat(60));
+  const g = report.groundTruth;
+  lines.push(`Known vulnerabilities:        ${g.knownVulnerabilities}`);
+  lines.push(`Verified by SimpleBeacon:     ${g.verifiedBySimpleBeacon}`);
+  lines.push(`Missed:                       ${g.missed?.length || 0}`);
+  lines.push(
+    `Verified recall:              ${
+      g.verifiedRecall == null
+        ? "n/a"
+        : `${(g.verifiedRecall * 100).toFixed(0)}%`
+    }`,
+  );
+  lines.push(
+    `Verified precision:           ${
+      g.verifiedPrecision == null
+        ? "n/a"
+        : `${(g.verifiedPrecision * 100).toFixed(0)}%`
+    }`,
+  );
+  lines.push(
+    `Vulnerability classes:        ${g.vulnerabilityClasses || 0} (${(g.classes || []).join(", ")})`,
+  );
+  lines.push(`Unsupported Verified:         ${g.unsupportedVerified}`);
+  lines.push("");
+  lines.push("PER-CLASS");
+  lines.push("-".repeat(60));
+  for (const [cls, row] of Object.entries(g.perClass || {})) {
+    lines.push(
+      `${cls}: ${row.verified}/${row.known} verified` +
+        (row.missed ? ` (${row.missed} missed)` : ""),
+    );
+  }
+  lines.push("");
+  const hn = g.hardNegatives || { total: 0, rejected: 0, wronglyVerified: [] };
+  lines.push("HARD / BORDERLINE NEGATIVES");
+  lines.push("-".repeat(60));
+  lines.push(`Total:                        ${hn.total}`);
+  lines.push(`Correctly rejected:           ${hn.rejected}`);
+  lines.push(`Wrongly Verified:             ${hn.wronglyVerified?.length || 0}`);
+  if (hn.wronglyVerified && hn.wronglyVerified.length) {
+    for (const w of hn.wronglyVerified) {
+      lines.push(
+        `- ${w.id} (${w.class}${w.borderline ? ", borderline" : ""})`,
+      );
+    }
+  }
+  lines.push("");
+  if (g.missed && g.missed.length) {
+    lines.push("MISSES (do not retune verifier against V3 control)");
+    lines.push("-".repeat(60));
+    for (const m of g.missed) {
+      lines.push(`- ${m.id} (${m.app}/${m.class})`);
+      if (m.reason) lines.push(`    ${m.reason}`);
+    }
+    lines.push("");
+  }
+  if (g.failureAnalysis && g.failureAnalysis.length) {
+    lines.push("FAILURE CATEGORIES");
+    lines.push("-".repeat(60));
+    for (const f of g.failureAnalysis) {
+      lines.push(`- [${f.category}] ${f.id} (${f.kind})`);
+    }
+    lines.push("");
+  }
+  const reg = report.v3Regression || {};
+  lines.push("V3 REGRESSION (frozen control)");
+  lines.push("-".repeat(60));
+  lines.push(`Control commit:               ${reg.controlCommit}`);
+  lines.push(`V3 pass:                      ${reg.pass ? "PASS" : "FAIL"}`);
+  lines.push(
+    `V3 verified:                   ${reg.verifiedBySimpleBeacon}/${reg.knownVulnerabilities}`,
+  );
+  lines.push(`V3 unsupported Verified:      ${reg.unsupportedVerified}`);
+  lines.push("");
+  lines.push("RESULT");
+  lines.push("-".repeat(60));
+  lines.push(
+    `Unsupported Verified = 0: ${
+      g.unsupportedVerified === 0 ? "PASS" : "FAIL"
+    }`,
+  );
+  lines.push(
+    `Hard-negative rejection:  ${
+      (hn.wronglyVerified?.length || 0) === 0 ? "PASS" : "FAIL"
+    }`,
+  );
+  lines.push(`V3 regression:            ${reg.pass ? "PASS" : "FAIL"}`);
+  lines.push(
+    `OOS recall complete:      ${
+      report.recallComplete ? "YES" : "NO — misses recorded"
+    }`,
+  );
+  lines.push(`Noise rejection:         ${g.result.noiseRejection}`);
+  lines.push("");
+  lines.push(
+    "Pass criterion: unsupported=0 + hard negatives rejected + V3 control still PASS.",
+  );
+  lines.push("Perfect out-of-sample recall is NOT required for V4 pass.");
+  return lines.join("\n");
+}
+
 module.exports = {
   BENCHMARK_ID,
   BENCHMARK_ID_V2: "verification-funnel-v2",
   BENCHMARK_ID_V3: "verification-funnel-v3",
+  BENCHMARK_ID_V4: "verification-funnel-v4",
+  V3_CONTROL_COMMIT,
   FIXTURE_ROOT,
   LABELS_PATH,
   LABELS_V2_PATH,
   LABELS_V3_PATH,
+  LABELS_V4_PATH,
   runVerificationFunnelBenchmark,
   runVerificationFunnelBenchmarkV2,
   runVerificationFunnelBenchmarkV3,
+  runVerificationFunnelBenchmarkV4,
   formatHumanReport,
   formatHumanReportV2,
   formatHumanReportV3,
+  formatHumanReportV4,
   measureProductionFunnel,
   scoreResult,
 };

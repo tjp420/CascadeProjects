@@ -1,0 +1,535 @@
+{
+  "benchmark": "verification-funnel-v4",
+  "objective": "Out-of-sample generalization: new positives + adversarial hard/borderline negatives. V3 baseline d4a11503b remains the frozen control. Verifier unchanged. Perfect OOS recall is NOT required.",
+  "v3ControlCommit": "d4a11503bf0f31a915d42154f09a857544a5f170",
+  "inheritsGroundTruthFrom": null,
+  "inheritsNegativesFromV1": true,
+  "outOfSample": true,
+  "groundTruth": [
+    {
+      "id": "v4-ssjs-vm-run",
+      "app": "simplebeacon-corpus",
+      "class": "ssjs-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v4",
+      "sourceFile": "ssjs-vm-run.js",
+      "filePath": "ssjs-vm-run.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "evalDanger",
+          "severity": "critical",
+          "filePath": "ssjs-vm-run.js",
+          "line": 11,
+          "description": "vm.runInNewContext(req.body.expr)"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — request body evaluated inside vm.runInNewContext",
+          "attackPath": "HTTP request body expr → vm.runInNewContext(expr) executes attacker JavaScript in a new context",
+          "sourceLines": [9, 10, 11]
+        },
+        "links": [
+          {
+            "from": "req.body.expr",
+            "to": "vm.runInNewContext",
+            "mechanism": "request body string passed as VM script source"
+          },
+          {
+            "from": "vm.runInNewContext",
+            "to": "server JavaScript runtime",
+            "mechanism": "VM evaluates attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "v4-nosql-where-filter",
+      "app": "simplebeacon-corpus",
+      "class": "nosql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v4",
+      "sourceFile": "nosql-where-filter.js",
+      "filePath": "nosql-where-filter.js",
+      "type": "nosqlInjection",
+      "category": "nosqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "nosqlInjection",
+          "severity": "critical",
+          "filePath": "nosql-where-filter.js",
+          "line": 10,
+          "description": "filter interpolated into MongoDB $where"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — filter concatenated into $where JavaScript string",
+          "attackPath": "HTTP query filter → string-built MongoDB $where clause comparing this.active → server-side JavaScript evaluation",
+          "sourceLines": [8, 9, 10, 11]
+        },
+        "links": [
+          {
+            "from": "req.query.filter",
+            "to": "$where",
+            "mechanism": "query parameter interpolated into MongoDB $where JavaScript string"
+          },
+          {
+            "from": "$where",
+            "to": "this.active",
+            "mechanism": "database evaluates attacker-influenced $where against active documents"
+          }
+        ],
+        "impactClass": "nosqli"
+      }
+    },
+    {
+      "id": "v4-sqli-union",
+      "app": "simplebeacon-corpus",
+      "class": "sql-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v4",
+      "sourceFile": "sqli-union.js",
+      "filePath": "sqli-union.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "sqlInjection",
+          "severity": "critical",
+          "filePath": "sqli-union.js",
+          "line": 10,
+          "description": "id concatenated enabling UNION SELECT"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — id concatenated into SQL before UNION SELECT Users",
+          "attackPath": "HTTP query id → string-built SELECT name, price FROM Products WHERE id → UNION SELECT username, password FROM Users → database",
+          "sourceLines": [8, 9, 10, 11, 12, 13]
+        },
+        "links": [
+          {
+            "from": "req.query.id",
+            "to": "SELECT name, price FROM Products",
+            "mechanism": "id concatenated into Products SELECT string"
+          },
+          {
+            "from": "SELECT name, price FROM Products",
+            "to": "UNION SELECT username, password FROM Users",
+            "mechanism": "UNION branch exposes Users credentials via injectable id"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "v4-xss-insertadjacent",
+      "app": "simplebeacon-corpus",
+      "class": "dom-xss",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v4",
+      "sourceFile": "xss-insertadjacent.js",
+      "filePath": "xss-insertadjacent.js",
+      "type": "insertAdjacentHtmlXss",
+      "category": "xss",
+      "severity": "high",
+      "rawIssues": [
+        {
+          "type": "insertAdjacentHtmlXss",
+          "severity": "high",
+          "filePath": "xss-insertadjacent.js",
+          "line": 10,
+          "description": "insertAdjacentHTML with unsanitized query msg"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP query msg → string concat → element.insertAdjacentHTML",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.query.msg",
+            "to": "string concat",
+            "mechanism": "unsanitized query embedded in HTML markup"
+          },
+          {
+            "from": "string concat",
+            "to": "element.insertAdjacentHTML",
+            "mechanism": "DOM insertAdjacentHTML sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "v4-cmdi-spawn-shell",
+      "app": "simplebeacon-corpus",
+      "class": "command-injection",
+      "expectVerified": true,
+      "root": "fixtures/benchmark/corpus/v4",
+      "sourceFile": "cmdi-spawn-shell.js",
+      "filePath": "cmdi-spawn-shell.js",
+      "type": "commandInjection",
+      "category": "commandInjection",
+      "severity": "critical",
+      "rawIssues": [
+        {
+          "type": "commandInjection",
+          "severity": "critical",
+          "filePath": "cmdi-spawn-shell.js",
+          "line": 12,
+          "description": "spawn with shell:true and interpolated host"
+        }
+      ],
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — host interpolated into shell:true spawn command",
+          "attackPath": "HTTP query host → spawn(\"ping -c 1 \" + host, { shell: true }) executes attacker-controlled shell",
+          "sourceLines": [10, 11, 12]
+        },
+        "links": [
+          {
+            "from": "req.query.host",
+            "to": "spawn(",
+            "mechanism": "host concatenated into shell command string"
+          },
+          {
+            "from": "spawn(",
+            "to": "operating system shell",
+            "mechanism": "shell:true spawn runs attacker-influenced ping command"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    }
+  ],
+  "hardNegatives": [
+    {
+      "id": "hn4-execfile-argv",
+      "kind": "hard-negative",
+      "class": "safe-execfile",
+      "expectVerified": false,
+      "description": "execFile with argv array must not Verified as shell injection",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "execfile-argv.js",
+      "filePath": "execfile-argv.js",
+      "type": "commandInjection",
+      "category": "commandInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — host reaches child_process",
+          "attackPath": "HTTP query host → child_process.exec(host) executes attacker-controlled shell",
+          "sourceLines": [9, 10]
+        },
+        "links": [
+          {
+            "from": "req.query.host",
+            "to": "child_process.exec",
+            "mechanism": "query host passed directly as shell command string"
+          },
+          {
+            "from": "child_process.exec",
+            "to": "operating system shell",
+            "mechanism": "exec runs attacker command in a shell"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn4-mongo-object-find",
+      "kind": "hard-negative",
+      "class": "safe-mongo-object",
+      "expectVerified": false,
+      "description": "Object equality find must not Verified as $where injection",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "mongo-object-find.js",
+      "filePath": "mongo-object-find.js",
+      "type": "nosqlInjection",
+      "category": "nosqlInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — email reaches Mongo $where",
+          "attackPath": "HTTP body email → string-built MongoDB $where clause → server-side JavaScript evaluation",
+          "sourceLines": [7, 8]
+        },
+        "links": [
+          {
+            "from": "req.body.email",
+            "to": "$where",
+            "mechanism": "email interpolated into MongoDB $where JavaScript string"
+          },
+          {
+            "from": "$where",
+            "to": "this.active",
+            "mechanism": "database evaluates attacker-influenced $where expression"
+          }
+        ],
+        "impactClass": "nosqli"
+      }
+    },
+    {
+      "id": "hn4-sequelize-param",
+      "kind": "hard-negative",
+      "class": "parameterized-orm",
+      "expectVerified": false,
+      "description": "Sequelize :email replacements must not Verified as SQLi",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "sequelize-param.js",
+      "filePath": "sequelize-param.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — email concatenated into SQL login query",
+          "attackPath": "HTTP body email → string-built queryRunner.unsafe() → database",
+          "sourceLines": [7, 8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.body.email",
+            "to": "queryRunner.unsafe()",
+            "mechanism": "email concatenated into unsafe SQL runner call"
+          },
+          {
+            "from": "queryRunner.unsafe()",
+            "to": "database",
+            "mechanism": "unsafe runner executes attacker-influenced SQL against Users"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "hn4-textcontent-status",
+      "kind": "hard-negative",
+      "class": "text-sink",
+      "expectVerified": false,
+      "description": "textContent assignment must not Verified as DOM XSS",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "textcontent-status.js",
+      "filePath": "textcontent-status.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "none — sanitizer not applied on this path",
+          "attackPath": "HTTP query msg → string concat → element.innerHTML assignment",
+          "sourceLines": [7, 8]
+        },
+        "links": [
+          {
+            "from": "req.query.msg",
+            "to": "string concat",
+            "mechanism": "unsanitized query embedded in HTML"
+          },
+          {
+            "from": "string concat",
+            "to": "element.innerHTML",
+            "mechanism": "DOM sink write"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "hn4-orderby-allowlist",
+      "kind": "hard-negative",
+      "class": "allowlisted-orderby",
+      "expectVerified": false,
+      "description": "Allowlisted ORDER BY map must not Verified as SQLi",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "orderby-allowlist.js",
+      "filePath": "orderby-allowlist.js",
+      "type": "sqlInjection",
+      "category": "sqlInjection",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "unauthenticated-user",
+          "existingControl": "none — sort concatenated into ORDER BY",
+          "attackPath": "HTTP query sort → string-built queryRunner.unsafe() ORDER BY → database",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.query.sort",
+            "to": "queryRunner.unsafe()",
+            "mechanism": "sort key concatenated into unsafe SQL runner"
+          },
+          {
+            "from": "queryRunner.unsafe()",
+            "to": "database",
+            "mechanism": "unsafe runner executes attacker ORDER BY injection"
+          }
+        ],
+        "impactClass": "sqli"
+      }
+    },
+    {
+      "id": "hn4-dead-branch-eval",
+      "kind": "hard-negative",
+      "class": "unreachable-eval",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "eval behind if(false) must not Verified as reachable RCE",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "dead-branch-eval.js",
+      "filePath": "dead-branch-eval.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none — payload passed to eval",
+          "attackPath": "HTTP request body payload → eval(req.body.payload) executes attacker JavaScript on the server",
+          "sourceLines": [9, 10]
+        },
+        "links": [
+          {
+            "from": "req.body.payload",
+            "to": "eval()",
+            "mechanism": "request body string passed directly to eval without parsing"
+          },
+          {
+            "from": "eval()",
+            "to": "server JavaScript runtime",
+            "mechanism": "eval executes the attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    },
+    {
+      "id": "hn4-escapehtml-inner",
+      "kind": "hard-negative",
+      "class": "escaped-html",
+      "expectVerified": false,
+      "description": "escapeHtml before innerHTML without bypass must not Verified",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "escapehtml-inner.js",
+      "filePath": "escapehtml-inner.js",
+      "type": "innerHTMLXss",
+      "category": "xss",
+      "severity": "high",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "browser-user",
+          "existingControl": "escapeHtml sanitizer applied before innerHTML",
+          "attackPath": "HTTP body notice → escapeHtml → element.innerHTML",
+          "sourceLines": [14, 15, 16]
+        },
+        "links": [
+          {
+            "from": "req.body.notice",
+            "to": "escapeHtml",
+            "mechanism": "notice passed through escapeHtml before DOM write"
+          },
+          {
+            "from": "escapeHtml",
+            "to": "element.innerHTML",
+            "mechanism": "escaped string assigned to innerHTML"
+          }
+        ],
+        "impactClass": "xss"
+      }
+    },
+    {
+      "id": "hn4-json-number-only",
+      "kind": "hard-negative",
+      "class": "fabricated-rce-on-number",
+      "expectVerified": false,
+      "borderline": true,
+      "description": "Number/JSON path must not Verified as eval RCE",
+      "root": "fixtures/benchmark/corpus/v4/hard-negatives",
+      "sourceFile": "json-number-only.js",
+      "filePath": "json-number-only.js",
+      "type": "evalDanger",
+      "category": "evalDanger",
+      "severity": "critical",
+      "evidence": {
+        "answers": {
+          "attackerControlledInput": "yes",
+          "reachesDangerousOperation": "yes",
+          "dangerousOperationExecuted": "yes",
+          "privilegesRequired": "authenticated-user",
+          "existingControl": "none",
+          "attackPath": "HTTP request body score → eval() executes attacker JavaScript",
+          "sourceLines": [8, 9, 10]
+        },
+        "links": [
+          {
+            "from": "req.body.score",
+            "to": "eval()",
+            "mechanism": "score passed directly to eval without parsing"
+          },
+          {
+            "from": "eval()",
+            "to": "server JavaScript runtime",
+            "mechanism": "eval executes attacker-controlled expression in-process"
+          }
+        ],
+        "impactClass": "rce"
+      }
+    }
+  ]
+}
