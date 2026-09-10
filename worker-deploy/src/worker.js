@@ -1078,6 +1078,62 @@ export default {
       return await handlePublicKeyRequest(env, corsOrigin);
     }
 
+    // Public GitHub zipball for browser-local scans — never proxy this through Render.
+    if (
+      request.method === "GET" &&
+      (url.pathname === "/api/analyze/github-zipball" ||
+        url.pathname === "/api/analyze/github-zipball/")
+    ) {
+      const owner = String(url.searchParams.get("owner") || "");
+      const repo = String(url.searchParams.get("repo") || "").replace(
+        /\.git$/i,
+        "",
+      );
+      if (!/^[-.\w]{1,100}$/.test(owner) || !/^[-.\w]{1,100}$/.test(repo)) {
+        return json({ error: "owner and repo are required" }, 400, corsOrigin);
+      }
+      const ghHeaders = {
+        "User-Agent": "SimpleBeacon-Dashboard",
+        Accept: "application/vnd.github+json",
+      };
+      const token = String(env.GITHUB_TOKEN || "").trim();
+      if (token) ghHeaders.Authorization = "Bearer " + token;
+      const gh = await fetch(
+        "https://api.github.com/repos/" + owner + "/" + repo + "/zipball",
+        { headers: ghHeaders, redirect: "follow" },
+      );
+      if (!gh.ok) {
+        const message =
+          gh.status === 404
+            ? "GitHub repository not found or private"
+            : "Could not download GitHub zipball";
+        return json(
+          { error: message },
+          gh.status === 404 ? 404 : 502,
+          corsOrigin,
+        );
+      }
+      const len = Number(gh.headers.get("content-length") || 0);
+      if (len > 45 * 1024 * 1024) {
+        return json(
+          {
+            error:
+              "Repository zip is larger than 45 MB. Clone locally and run: npx simplebeacon scan --gate --offline",
+          },
+          413,
+          corsOrigin,
+        );
+      }
+      const outHeaders = new Headers();
+      outHeaders.set("Content-Type", "application/zip");
+      outHeaders.set("Cache-Control", "no-store");
+      if (corsOrigin) {
+        outHeaders.set("Access-Control-Allow-Origin", corsOrigin);
+        outHeaders.set("Vary", "Origin");
+      }
+      return new Response(gh.body, { status: 200, headers: outHeaders });
+    }
+
     // Scan Attestation Endpoint — issues short-lived, device-bound attestation
     // tokens that the local scan worker must present before running.
     //
