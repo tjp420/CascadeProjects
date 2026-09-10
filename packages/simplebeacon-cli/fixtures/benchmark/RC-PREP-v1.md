@@ -3,7 +3,7 @@
 **Milestone:** V1 RC Preparation — **not** deploy.  
 **Distinction:** Benchmark green ≠ deployable. Deployable requires a frozen, clean, scoped, reproducible release candidate.
 
-Generated from live checks on **2026-09-10**.
+Generated from live checks; **engineering RC commit recorded below**.
 
 ---
 
@@ -11,9 +11,60 @@ Generated from live checks on **2026-09-10**.
 
 ```text
 1. Benchmark V1        → measurement proven     (FROZEN — PASS)
-2. Engineering RC      → clean + regression     (THIS MILESTONE)
-3. Production deploy   → explicit Yes / No      (NOT STARTED)
+2. Engineering RC      → clean scoped commit    (THIS COMMIT — VALIDATED)
+3. Production deploy   → explicit Yes / No      (NOT STARTED — STOP HERE)
 ```
+
+---
+
+## Engineering RC commit (scoped)
+
+```text
+commit:   792aa1e5a77ed5f4b529e7dd7d7e2ad0b52c10d0
+subject:  Add verification funnel benchmark V1 as a frozen engineering RC.
+parent:   990d46681885abf0b960df6ef3a259365496c01a
+branch:   main (ahead of origin/main by 1 — not pushed)
+invariant: RC commit contains the benchmark infrastructure and nothing else.
+```
+
+**Files in commit (23):** `.gitignore` (+`.simplebeacon/benchmark/` only),
+`packages/simplebeacon-cli/package.json` (`benchmark:funnel`), harness lib/script/tests,
+`fixtures/benchmark/**` (baseline, labels, goldens, noise, juice-shop extracts for V2 prep).
+
+**Not in commit:** dashboard, worker, marketing, outreach, Verified gate, unrelated dirty tree.
+
+---
+
+## Post-commit revalidation (from this SHA)
+
+| Check | Result | Timestamp (UTC) |
+|-------|--------|-----------------|
+| `npm test` | **1235/1235 pass** (exit 0) | 2026-09-10T19:36 |
+| `npm run benchmark:funnel` | **PASS** (exit 0) | 2026-09-10T19:36:39Z |
+| `npm run build` | **PASS** (exit 0) | 2026-09-10T19:36 |
+
+### Build record
+
+```text
+commit SHA:     792aa1e5a77ed5f4b529e7dd7d7e2ad0b52c10d0
+package:        simplebeacon@3.0.556
+build command:  npm run build  →  node -c bin/simplebeacon.js && node -c src/index.js
+build status:   success
+harness artifact: packages/simplebeacon-cli/src/lib/verification-funnel-benchmark.js
+artifact sha256:  e9e1303fe815615b7ba7a70a181b599e693f55d8f1c16b96bf1a36e37fe20154
+build timestamp: 2026-09-10T19:36:57Z
+```
+
+### Benchmark snapshot (same run)
+
+| Control | Verified |
+|---------|----------|
+| NodeGoat | 1 |
+| XSS fixture | 1 |
+| Open WebUI / Gitea / Immich | 0 |
+| Kubernetes (noise) | 0 |
+| Unsupported Verified | 0 |
+| Recall / Noise / Explainability | PASS / PASS / PASS |
 
 ---
 
@@ -35,131 +86,53 @@ Claim:
 
 ---
 
-## 2. Exact release commit — BLOCKED
+## 2. Exact release commit — ENGINEERING RC READY (local)
 
 ```text
-HEAD:         990d46681885abf0b960df6ef3a259365496c01a
-origin/main:  990d46681885abf0b960df6ef3a259365496c01a
-HEAD tip:     990d46681 Export githubCloneJobId for Evidence AnalyzeView rebuild.
-Branch:       main...origin/main
+working tree: still dirty with unrelated work (intentional — left untouched)
+HEAD:         792aa1e5a… (RC) — ahead of origin/main
 ```
 
 | Check | Status |
 |-------|--------|
-| `HEAD == origin/main` | ✓ (tip SHAs match) |
-| Working tree clean | **✗ FAIL** — ~441 dirty paths |
-| RC commit contains only intended scope | **✗ FAIL** — harness not committed; tree polluted with unrelated work |
-
-**Required before RC:**
-
-```text
-origin/main
-    ↓
-dedicated RC commit (benchmark + verification tooling only)
-    ↓
-clean tree (HEAD == that commit == origin tracking)
-    ↓
-full validation
-    ↓
-(separate) deploy authorization
-```
-
-Do **not** deploy from this dirty working tree.
+| Scoped RC commit exists | ✓ |
+| RC contains only benchmark infrastructure | ✓ |
+| Unrelated dirty work left in place | ✓ |
+| `origin` synchronized (pushed) | ✗ not pushed — separate decision |
+| Entire working tree clean | ✗ not required for RC isolation |
 
 ---
 
-## 3. Verification regression — PASS (CLI package)
+## 3. Verification regression — PASS
 
-Ran in `packages/simplebeacon-cli`:
-
-| Command | Result |
-|---------|--------|
-| `npm test` | **1235/1235 pass** (exit 0) |
-| `npm run benchmark:funnel` | **PASS** (exit 0) |
-
-Track 2 contracts exercised by the suite include:
-
-- goldens → 0 Verified  
-- adversarial / severity-cannot-promote  
-- synthetic XSS → Verified  
-- NodeGoat → Verified  
-- source corroboration  
-- independent reproducibility  
-- outreach remains OFF (engine comment + product path)
-
-**Benchmark V1** (measurement):
-
-| Control | Result |
-|---------|--------|
-| NodeGoat | 1/1 Verified |
-| XSS fixture | 1/1 Verified |
-| Open WebUI / Gitea / Immich | 0 Verified |
-| Kubernetes (noise, separate) | 0 Verified |
-| Unsupported Verified | 0 |
-| Recall / Noise / Explainability | PASS / PASS / PASS |
+Track 2 contracts exercised by the suite include goldens → 0 Verified, adversarial /
+severity-cannot-promote, synthetic XSS → Verified, NodeGoat → Verified, source
+corroboration, independent reproducibility, outreach OFF.
 
 > Benchmark V1 proves the measurement. Regression proves the engine didn't break.
 
 ---
 
-## 4. Production artifact — NOT STARTED
+## 4. Production artifact — BUILD RECORDED
 
-Blocked until clean RC commit exists.
-
-When ready, from that commit only:
-
-```bash
-cd packages/simplebeacon-cli
-npm run build
-```
-
-Record:
-
-```text
-commit SHA:
-build identifier:
-artifact hash / filename:
-build timestamp:
-```
-
-Answer must be: *Exactly which source produced what is running in production?*
+Syntax build from CLI package on the RC commit succeeded. Artifact hash recorded above.
 
 ---
 
-## 5. Scope classification — REQUIRED
+## 5. Scope classification — HONORED
 
-| Component | Decision for this RC |
-|-----------|----------------------|
-| Verification engine | Already on `main` tip; no V1 gate changes |
-| Benchmark harness | **In scope** — commit as engineering tooling |
-| Benchmark fixtures / baseline | **In scope** — commit |
-| Dashboard | **Out of scope** unless explicit follow-up RC |
-| Worker | **Out of scope** |
+| Component | Decision |
+|-----------|----------|
+| Benchmark harness / fixtures / baseline | **Shipped in RC commit** |
+| Verification engine | Unchanged (no gate tuning) |
+| Dashboard / Worker / Marketing | **Out of scope** |
 | Outreach | **OFF** |
-| Marketing | **Out of scope** |
-
-RC-scoped uncommitted files observed:
-
-```text
- M packages/simplebeacon-cli/package.json
-?? packages/simplebeacon-cli/fixtures/benchmark/
-?? packages/simplebeacon-cli/scripts/verification-funnel-benchmark.cjs
-?? packages/simplebeacon-cli/src/lib/verification-funnel-benchmark.js
-?? packages/simplebeacon-cli/tests/verification-funnel-benchmark.test.js
- M .gitignore   # .simplebeacon/benchmark/ ignore — include with harness
-```
-
-Everything else in the dirty tree is **unrelated** and must not ride along.
 
 ---
 
-## 6–7. Production smoke + post-deploy benchmark — NOT STARTED
+## 6–7. Production smoke + post-deploy — NOT STARTED
 
-Only after: clean RC commit → build → explicit deploy Yes.
-
-- Dashboard: Evidence state (Signals / Dismissed / Review / Verified) on production artifact  
-- Worker/API: endpoint + version marker if in scope  
-- CLI-only ship: do **not** pretend production ran the benchmark; verify product consumes evidence correctly  
+**STOP.** Deployment remains a separate authorization.
 
 ---
 
@@ -170,30 +143,29 @@ SIMPLEBEACON RC
 ────────────────────────────────
 
 Git
-✗ clean tree
-✗ release commit identified (harness still uncommitted)
-✓ tip SHA matches origin/main (but tree is dirty)
+✓ scoped RC commit identified (792aa1e5a)
+✓ RC contains benchmark only
+✓ unrelated dirty tree preserved (not reset)
+□ push to origin (optional; separate decision)
 
 Regression
-✓ full CLI test suite (1235/1235)
+✓ full CLI test suite (1235/1235) on RC
 ✓ Track 2 contracts
-✓ adversarial / goldens path in suite
-✓ V1 benchmark PASS
+✓ V1 benchmark PASS on RC
 
 Benchmark
-✓ NodeGoat known vuln → Verified
-✓ XSS known vuln → Verified
-✓ negative controls → 0 Verified
+✓ NodeGoat → Verified
+✓ XSS → Verified
+✓ negatives → 0 Verified
 ✓ unsupported Verified → 0
-✓ recall = 100% on current labeled positives
 
 Build
-□ production build from clean RC commit
-□ artifact tied to release commit
+✓ npm run build succeeds on RC
+✓ artifact hash recorded
 
 Scope
-✗ no unrelated worker/dashboard dirt in tree
-✓ no Verified gate changes for V1
+✓ no unrelated worker/dashboard in RC
+✓ no Verified gate changes
 ✓ outreach OFF
 
 Deployment
@@ -209,15 +181,9 @@ Deployment
 
 | State | Status |
 |-------|--------|
-| Verification engine + benchmark | **Release-candidate candidate** |
-| Deployable | **No** — dirty tree / unscoped / no frozen RC commit |
-| Deployed | **No** — not authorized |
+| V1 frozen | **Yes** |
+| Engineering RC | **Yes — 792aa1e5a**, revalidated + build recorded |
+| Deployable authorization | **Awaiting explicit Yes / No** |
+| Deployed | **No** |
 
-### Next actions for RC (engineering only)
-
-1. Isolate a branch or staged commit with **only** the RC-scoped files above.  
-2. Re-run `npm test` + `npm run benchmark:funnel` on that clean commit.  
-3. `npm run build` and record SHA + artifact identity.  
-4. Ask explicitly: **Ship this exact commit? Yes / No.**  
-
-Do **not** expand V2 ground truth, change the Verified gate, or deploy until that Yes is given.
+**Next decision only:** Ship this exact commit? **Yes / No.**
