@@ -37,6 +37,11 @@ import {
   type IssueLane,
 } from "@/lib/issue-lanes";
 import { countIssuesBySeverity } from "@/lib/collect-scan-issues";
+import {
+  buildExecutiveBriefModel,
+  downloadBrowserFile,
+  renderExecutiveBriefMarkdown,
+} from "@/lib/executive-brief";
 import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import { resolveReportIssues } from "@services/analyzeService.js";
 import { getLargeItem } from "@/utils/dbStorage";
@@ -1458,52 +1463,55 @@ export function ResultsView() {
                   const exportData = fullReport || result;
                   syncReportToVscodeSidebar(exportData, result.projectPath);
                   const json = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([json], { type: "application/json" });
                   const filename = `simplebeacon-report-${Date.now()}.json`;
-                  const params = new URLSearchParams(window.location.search);
-                  const inIde =
-                    typeof window !== "undefined" &&
-                    (typeof (window as any).acquireVsCodeApi === "function" ||
-                      params.get("sb_parent_urlbar") ||
-                      params.get("sb_notify_base") ||
-                      params.get("sb_api_base"));
-                  if (inIde) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const base64 = String(reader.result || "").split(",")[1];
-                      const vscode = (window as any).acquireVsCodeApi?.();
-                      const msg = {
-                        command: "downloadFile",
-                        filename,
-                        mimeType: blob.type,
-                        base64,
-                      };
-                      if (vscode) {
-                        try {
-                          vscode.postMessage(msg);
-                        } catch {
-                          /* ignore */
-                        }
-                      } else if (window.parent && window.parent !== window) {
-                        try {
-                          window.parent.postMessage(msg, "*");
-                        } catch {
-                          /* ignore */
-                        }
-                      }
-                    };
-                    reader.readAsDataURL(blob);
-                    return;
-                  }
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  downloadBrowserFile(filename, json, "application/json");
                 }}
               >
                 <Download className="h-4 w-4" /> JSON Report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const model = buildExecutiveBriefModel(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.json`,
+                    `${JSON.stringify(model, null, 2)}\n`,
+                    "application/json",
+                  );
+                  toast.success(
+                    `Executive brief JSON (${model.findings.length} findings)`,
+                  );
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const md = renderExecutiveBriefMarkdown(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.md`,
+                    md,
+                    "text/markdown;charset=utf-8",
+                  );
+                  toast.success("Executive brief markdown downloaded");
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive MD
               </Button>
               <Button
                 variant="outline"

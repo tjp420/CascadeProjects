@@ -96,6 +96,7 @@ const VALID_COMMANDS = new Set([
   "assess",
   "compliance",
   "report",
+  "deliverable",
   "hook-install",
   "reduce",
   "gate-status",
@@ -661,6 +662,7 @@ Usage:
   simplebeacon assess [options]   Build customer assessment JSON from scan report
   simplebeacon compliance [opts]  Evaluate corporate safety checklist from report
   simplebeacon report [options]   Build client-facing markdown audit from scan JSON
+  simplebeacon deliverable [opts] Write EXECUTIVE-REPORT.md + triage packet into a client review folder
   simplebeacon baseline sync      Run Jest and update .simplebeacon/baseline.json
   simplebeacon hook install         Install pre-commit or pre-push git hook
   simplebeacon secrets-gate [opts]  Block commits when staged files contain secrets
@@ -767,6 +769,14 @@ Report options:
   --enhance           Rewrite executive summary via OpenAI (requires assessment.json + OPENAI_API_KEY)
   --enhance-model <m> OpenAI model for --enhance (default: gpt-4o-mini or OPENAI_MODEL)
 
+Deliverable options:
+  --report <file>     Scan report JSON (default: .simplebeacon/report.json)
+  --output <dir>      Client review folder (default: simplebeacon-client-review)
+  --path <dir>        Project root used for client label (default: cwd)
+  --company <name>    Prepared-for name on README
+  --client <name>     Target project name (default: repo folder name)
+  --assessor <name>   Assessor name
+
 Hook install options:
   --path <dir>        Project root (default: cwd)
   --type pre-commit|pre-push   Hook to install (default: pre-commit)
@@ -841,6 +851,7 @@ Examples:
   npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --enhance
+  npx simplebeacon deliverable --report .simplebeacon/report.json --output ./simplebeacon-client-review
   npx simplebeacon compliance --checklist eu-ai-act --format json --output .simplebeacon/compliance.json
   npx simplebeacon init --profile eu-ai-act
   npx simplebeacon baseline sync
@@ -1796,6 +1807,36 @@ async function runReportCommand(options) {
 }
 
 /**
+ * Write a client review folder from an existing scan JSON (executive brief + triage).
+ * @param {Object} options
+ * @returns {void}
+ */
+function runDeliverableCommand(options) {
+  if (!options || typeof options !== "object")
+    throw new TypeError("runDeliverableCommand requires an options object");
+  const reportPath = path.resolve(
+    options.report || ".simplebeacon/report.json",
+  );
+  if (!fs.existsSync(reportPath)) {
+    throw new Error(
+      `Report not found: ${reportPath}. Run: npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json`,
+    );
+  }
+  const report = readJsonFile(reportPath, "report");
+  const {
+    writeClientDeliverableFolder,
+  } = require("../src/reporters/client-deliverable");
+  const outDir = path.resolve(options.output || "simplebeacon-client-review");
+  const written = writeClientDeliverableFolder(outDir, report, {
+    company: options.company,
+    client: options.client || path.basename(sanitizePath(options.path)),
+    assessor: options.assessor,
+  });
+  writeStdoutLine(`Client review folder written to ${written.outDir}`);
+  writeStdoutLine(`Artifacts: ${written.files.join(", ")}`);
+}
+
+/**
  * Evaluate corporate safety checklist from report.
  * @param {Object} options
  * @returns {Promise<number>}
@@ -2469,6 +2510,15 @@ function validateCommandOptions(options) {
       command: cmd,
     });
   }
+  if (
+    cmd === "deliverable" &&
+    options.report &&
+    !fs.existsSync(path.resolve(options.report))
+  ) {
+    throw new ConfigError(`Report not found: ${options.report}`, {
+      command: cmd,
+    });
+  }
   if (cmd === "comment" && !options.printOnly && !options.issueNumber) {
     throw new ConfigError("--issue-number is required (or use --print-only)", {
       command: cmd,
@@ -2861,6 +2911,7 @@ const COMMAND_REGISTRY = {
   assess: runAssessCommand,
   compliance: runComplianceCommand,
   report: runReportCommand,
+  deliverable: runDeliverableCommand,
   "hook-install": runHookInstallCommand,
   "secrets-gate": runSecretsGateCommand,
   reduce: runReduceCommand,
