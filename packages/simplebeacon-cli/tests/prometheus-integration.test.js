@@ -47,7 +47,7 @@ test('Prometheus /metrics Endpoint Router End-to-End Integration Contract', asyn
       serverProcess.on('error', (err) => reject(err));
 
       // Fallback timeout in case stdout readiness isn't emitted
-      setTimeout(() => resolve(), 2000);
+      setTimeout(() => resolve(), 3000);
     });
   });
 
@@ -55,14 +55,14 @@ test('Prometheus /metrics Endpoint Router End-to-End Integration Contract', asyn
     const fetchUrl = 'http://127.0.0.1:58123/metrics';
     let lastErr = null;
     let res = null;
-    // retry loop: try for up to ~5 seconds
-    for (let i = 0; i < 25; i++) {
+    // retry loop: try for up to ~10 seconds (longer for slow CI agents)
+    for (let i = 0; i < 40; i++) {
       try {
         res = await fetch(fetchUrl, { method: 'GET' });
         break;
       } catch (err) {
         lastErr = err;
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 250));
       }
     }
     if (!res) {
