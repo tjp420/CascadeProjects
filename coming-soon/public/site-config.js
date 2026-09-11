@@ -3,7 +3,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     env: 'production',
     githubUrl: 'https://github.com/tjp420/simplebeacon',
     // Direct VSIX download (3.0.579 is 7.45 MiB, under the Cloudflare Pages 25 MiB static-asset limit).
-    vsixDownloadUrl: '/downloads/simplebeacon.vsix',
+    vsixDownloadUrl: '/downloads/simplebeacon.vsix?v=3.0.584',
     // Intentional demo content URLs — these are sample pages for the marketing site,
     // not mock/fixture data embedded in production application code. simplebeacon-ignore
     sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture
