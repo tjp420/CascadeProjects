@@ -33,7 +33,9 @@ try {
   }
 } catch (e) {
   // .env missing or unreadable — proceed with process.env but log for diagnostics
-  try { logger.info('[Env] .env file not found or unreadable, using process.env'); } catch (__) {}
+  try {
+    logger.info("[Env] .env file not found or unreadable, using process.env");
+  } catch (__) {}
 }
 
 // Ensure critical env vars have fallbacks for local dev
@@ -273,6 +275,40 @@ app.get("/api/simplebeacon", (_req, res) => {
   res.json({ status: "ok", service: "simplebeacon-api", version: "1.3.0" });
 });
 
+// Prometheus metrics endpoint — exposes scan history in Prometheus text format
+try {
+  const { generatePrometheusMetrics } = require(
+    "../packages/simplebeacon-cli/src/reporters/prometheus-exporter.js",
+  );
+
+  app.get("/metrics", async (_req, res) => {
+    try {
+      let scanHistory = [];
+      const historyPath = path.join(__dirname, "../secure_bounty_vault/scan_history_store.json");
+      if (fsSync.existsSync(historyPath)) {
+        try {
+          const raw = fsSync.readFileSync(historyPath, "utf8");
+          scanHistory = JSON.parse(raw || "[]");
+        } catch (err) {
+          logger.warn(`[Metrics] Failed to read/parse history file: ${err.message}`);
+        }
+      }
+
+      const prometheusString = generatePrometheusMetrics(scanHistory || []);
+      res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+      return res.status(200).send(prometheusString);
+    } catch (err) {
+      logger.error(`[-] Observability channel execution failure: ${err && err.message ? err.message : err}`);
+      return res
+        .status(500)
+        .send("# HELP simplebeacon_error Observability collection error.\nsimplebeacon_error 1\n");
+    }
+  });
+  logger.info("[Metrics] /metrics endpoint mounted");
+} catch (err) {
+  logger.warn('[Metrics] Prometheus exporter not available:', err.message || err);
+}
+
 // Mount simplebeacon scan API
 try {
   const {
@@ -284,7 +320,7 @@ try {
     async (req, res) => {
       try {
         const projectPath = req.body?.projectPath || path.join(__dirname, "..");
-        const tier = String(req.body?.tier || req.user?.tier || 'starter');
+        const tier = String(req.body?.tier || req.user?.tier || "starter");
         const result = await runSimplebeaconScan(projectPath, {
           fullDirectoryScan: req.body?.fullDirectoryScan !== false,
           format: "json",
@@ -834,12 +870,10 @@ app.post(
     try {
       const { projectPath, report } = req.body || {};
       if (!projectPath || !report) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: "projectPath and report are required",
-          });
+        return res.status(400).json({
+          success: false,
+          error: "projectPath and report are required",
+        });
       }
       const targetDir = path.resolve(projectPath);
       const sbDir = path.join(targetDir, ".simplebeacon");

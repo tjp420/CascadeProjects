@@ -32,8 +32,14 @@ import { ResultsReferralBanner } from "@/components/ResultsReferralBanner";
 import { PostScanCliNudge } from "@/components/PostScanCliNudge";
 import { PostScanShareBanner } from "@/components/PostScanShareBanner";
 import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
+import {
+  splitIssuesByLane,
+  type IssueLane,
+} from "@/lib/issue-lanes";
 import { resolveReportIssues } from "@services/analyzeService.js";
 import { getLargeItem } from "@/utils/dbStorage";
+import SiemTelemetryDashboard from "@/components/SiemTelemetryDashboard";
+import { seedTelemetryHistoryMock } from "@/utils/seedTelemetry";
 
 // ── Regulatory Framework Catalog (22 international frameworks) ──────────────
 const REGULATORY_FRAMEWORKS = [
@@ -83,6 +89,7 @@ interface ScanResultData {
   gate: { pass: boolean; blockingCount: number; warningCount: number };
   qualityScore: number | null;
   projectPath: string;
+import { seedTelemetryHistoryMock } from "@/utils/seedTelemetry";
   scanScope: {
     profile: string;
     resultsViewScope: string;
@@ -97,31 +104,40 @@ function syncReportToVscodeSidebar(
   if (!reportData || typeof window === "undefined") return;
   const issues = resolveReportIssues(reportData);
   const sev = reportData?.severityCounts || {};
+      // Seed demo telemetry history for fresh installs (non-destructive)
+      try {
+        seedTelemetryHistoryMock();
+      } catch {}
   const qualityScore = reportData?.qualityScore ?? reportData?.gate?.score ?? 0;
   const payload = {
     totalFiles:
       reportData?.repositoryFilesTotal ||
-      reportData?.totalFiles ||
-      reportData?.summary?.totalFiles ||
-      0,
-    ruleScopedFilesAnalyzed:
-      reportData?.ruleScopedFilesAnalyzed ||
-      reportData?.filesAnalyzed ||
-      reportData?.summary?.codeFilesAnalyzed ||
-      0,
-    issueCount:
-      reportData?.issueCount ??
-      issues.reduce((sum, i) => sum + (Number(i.count) || 1), 0),
-    qualityScore,
-    gate: reportData?.gate || { pass: false },
-    issues: issues.slice(0, 200),
-    projectPath:
-      reportData?.projectRoot ||
-      reportData?.projectPath ||
-      fallbackProjectPath ||
-      "",
-    severityCounts: {
-      critical: sev.critical || 0,
+  const telemetryReports = useMemo(() => {
+    // prefer seeded telemetry key, then legacy key, then fallback to current report
+    try {
+      const seeded = localStorage.getItem("sb_scan_history_telemetry");
+      if (seeded) return JSON.parse(seeded);
+    } catch (_e) {}
+    try {
+      const raw = localStorage.getItem("sb_scan_history");
+      if (raw) return JSON.parse(raw);
+    } catch (_e) {}
+    if (fullReport || result) {
+      const rpt = fullReport || result || {};
+      const ts = rpt?.scanTime || rpt?.createdAt || new Date().toISOString();
+      return [
+        {
+          id: rpt?.id || rpt?.projectPath || "current",
+          timestamp: ts,
+          gate_pass: !!(rpt?.gate?.pass || result?.gate?.pass),
+          high_entropy_count: rpt?.highEntropyCount || rpt?.summary?.high_entropy_count || 0,
+          unsuppressed_high_severity: rpt?.unsuppressedHighSeverity || 0,
+          total_findings: rpt?.issueCount || rpt?.totalFindings || 0,
+        },
+      ];
+    }
+    return [];
+  }, [fullReport, result]);
       high: sev.high || 0,
       medium: sev.medium || 0,
       low: sev.low || 0,
@@ -155,6 +171,7 @@ function syncReportToVscodeSidebar(
 }
 
 export function ResultsView() {
+  const [issueLane, setIssueLane] = useState<IssueLane>("production");
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
@@ -266,6 +283,15 @@ export function ResultsView() {
     return resolveReportIssues(reportForIssues);
   }, [reportForIssues]);
 
+  const { production: productionIssues, testSuite: testSuiteIssues } =
+    useMemo(
+      () => splitIssuesByLane(reportForIssues, allIssues),
+      [reportForIssues, allIssues],
+    );
+
+  const laneIssues =
+    issueLane === "production" ? productionIssues : testSuiteIssues;
+
   const findingsDetailLimited = Boolean(
     result &&
     result.issueCount > 0 &&
@@ -285,7 +311,7 @@ export function ResultsView() {
       medium: { high: 0, medium: 0, low: 0 },
       low: { high: 0, medium: 0, low: 0 },
     };
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const sev = (i.severity || "low").toLowerCase();
       const impact =
         sev === "critical" || sev === "high"
@@ -298,10 +324,10 @@ export function ResultsView() {
       grid[impact][likelihood] += count;
     });
     return grid;
-  }, [allIssues]);
+  }, [productionIssues]);
 
   const filteredIssues = useMemo(() => {
-    let issues = allIssues;
+    let issues = laneIssues;
     if (filter !== "all") {
       issues = issues.filter((i) => i.severity === filter);
     }
@@ -338,17 +364,17 @@ export function ResultsView() {
       (i) => !String(i.filePath || "").includes("node_modules"),
     );
     return issues;
-  }, [allIssues, filter, searchQuery, selectedCell, selectedFramework]);
+  }, [laneIssues, filter, searchQuery, selectedCell, selectedFramework]);
 
   // Count issues per regulatory framework (for chip badges)
   const frameworkCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const fw = getIssueFramework(i);
       if (fw) counts[fw] = (counts[fw] || 0) + (Number(i.count) || 1);
     });
     return counts;
-  }, [allIssues]);
+  }, [productionIssues]);
 
   // Frameworks that have at least one matching issue, sorted by count desc
   const activeFrameworks = useMemo(() => {
@@ -359,14 +385,50 @@ export function ResultsView() {
 
   const issueCategories = useMemo(() => {
     const catMap: Record<string, number> = {};
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const cat = i.type || "other";
       catMap[cat] = (catMap[cat] || 0) + (Number(i.count) || 1);
     });
     return Object.entries(catMap)
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) => ({ type, count }));
-  }, [allIssues]);
+  }, [productionIssues]);
+
+  const telemetryReports = useMemo(() => {
+    // prefer seeded telemetry key, then legacy key, then fallback to current report
+    try {
+      const seeded = localStorage.getItem("sb_scan_history_telemetry");
+      if (seeded) return JSON.parse(seeded);
+    } catch (_e) {}
+    try {
+      const raw = localStorage.getItem("sb_scan_history");
+      if (raw) return JSON.parse(raw);
+    } catch (_e) {}
+    if (fullReport || result) {
+      const rpt = fullReport || result || {};
+      const ts = rpt?.scanTime || rpt?.createdAt || new Date().toISOString();
+      return [
+        {
+          id: rpt?.id || rpt?.projectPath || "current",
+          timestamp: ts,
+          gate_pass: !!(rpt?.gate?.pass || result?.gate?.pass),
+          high_entropy_count: rpt?.highEntropyCount || rpt?.summary?.high_entropy_count || 0,
+          unsuppressed_high_severity: rpt?.unsuppressedHighSeverity || 0,
+          total_findings: rpt?.issueCount || rpt?.totalFindings || 0,
+        },
+      ];
+    }
+    return [];
+  }, [fullReport, result]);
+
+  // Seed demo telemetry on first load (non-destructive)
+  useEffect(() => {
+    try {
+      seedTelemetryHistoryMock();
+    } catch (_e) {
+      // ignore
+    }
+  }, []);
 
   if (!result) {
     return (
@@ -374,7 +436,8 @@ export function ResultsView() {
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Results</h1>
           <p className="text-foreground-muted">
-            Detailed scan findings and issue breakdown
+            Production-path code quality for engineering review — test fixtures
+            stay on Test Suite Health
           </p>
         </div>
         <Card>
@@ -409,7 +472,8 @@ export function ResultsView() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Results</h1>
         <p className="text-foreground-muted">
-          Detailed scan findings and issue breakdown
+          Production-path code quality for engineering review — test fixtures
+          stay on Test Suite Health
         </p>
       </div>
 
@@ -441,8 +505,11 @@ export function ResultsView() {
             />
             <MetricCard
               icon={AlertTriangle}
-              label="Issues Found"
-              value={result.issueCount}
+              label="Production issues"
+              value={productionIssues.reduce(
+                (sum, i) => sum + (Number(i.count) || 1),
+                0,
+              )}
             />
             <MetricCard
               icon={Shield}
@@ -671,29 +738,38 @@ export function ResultsView() {
         <TabsList>
           <TabsTrigger value="findings">Findings</TabsTrigger>
           <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
           <TabsTrigger value="scope">Scope</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="telemetry">
+          <Card>
+            <CardHeader>
+              <CardTitle>Telemetry</CardTitle>
+              <CardDescription>Trend view: gate pass/fail, crypto drift, noise ratio</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SiemTelemetryDashboard reports={telemetryReports as any} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="findings">
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
             <Card>
               <CardHeader>
-                <CardTitle>Findings Breakdown</CardTitle>
+                <CardTitle>
+                  {issueLane === "production"
+                    ? "Production Risk"
+                    : "Test Suite Health"}
+                </CardTitle>
                 <CardDescription>
-                  {Math.max(
-                    result?.issueCount ?? 0,
-                    allIssues.reduce(
-                      (sum, i) => sum + (Number(i.count) || 1),
-                      0,
-                    ),
-                  ).toLocaleString()}{" "}
-                  total issue
-                  {Math.max(result?.issueCount ?? 0, allIssues.length) !== 1
-                    ? "s"
-                    : ""}
+                  {issueLane === "production"
+                    ? `${productionIssues.length.toLocaleString()} alerts in src/app/server (not tests)`
+                    : `${testSuiteIssues.length.toLocaleString()} alerts in test/mock/fixture paths`}{" "}
                   {findingsDetailLimited &&
                     " · detailed list limited — export JSON or use CLI for full paths"}
                   {filter !== "all" && ` · filtered by ${filter}`}
@@ -704,6 +780,28 @@ export function ResultsView() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <Button
+                    variant={issueLane === "production" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIssueLane("production")}
+                  >
+                    Production Risk
+                    <span className="ml-1.5 text-xs opacity-70">
+                      {productionIssues.length}
+                    </span>
+                  </Button>
+                  <Button
+                    variant={issueLane === "test" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIssueLane("test")}
+                  >
+                    Test Suite Health
+                    <span className="ml-1.5 text-xs opacity-70">
+                      {testSuiteIssues.length}
+                    </span>
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {["all", ...activeSeverities].map((sev) => (
                     <Button
@@ -739,7 +837,9 @@ export function ResultsView() {
 
                 <Separator />
 
-                {(result?.issueCount ?? 0) === 0 && allIssues.length === 0 ? (
+                {productionIssues.length === 0 &&
+                testSuiteIssues.length === 0 &&
+                (result?.issueCount ?? 0) === 0 ? (
                   <div className="flex items-center gap-3 py-8">
                     <CheckCircle2 className="h-8 w-8 text-success" />
                     <div>
