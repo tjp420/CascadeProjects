@@ -404,7 +404,8 @@ function sendDemoReport(res) {
 if (
   internalDashboard &&
   !process.env.DASHBOARD_VAULT_PASSWORD &&
-  process.env.NODE_ENV !== "development"
+  process.env.NODE_ENV !== "development" &&
+  process.env.NODE_ENV !== "test"
 ) {
   throw new Error(
     "DASHBOARD_VAULT_PASSWORD is required when SIMPLEBEACON_INTERNAL_DASHBOARD=true in non-development environments",

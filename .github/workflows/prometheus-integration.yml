@@ -1,0 +1,41 @@
+name: '🧪 Prometheus Integration Test'
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'api-server/**'
+      - 'packages/simplebeacon-cli/**'
+      - '.github/workflows/**'
+
+jobs:
+  prometheus-integration:
+    name: Run Prometheus /metrics integration test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prometheus integration test
+        env:
+          NODE_ENV: test
+        run: |
+          # Run the single integration test which starts the api-server transiently
+          node --test packages/simplebeacon-cli/tests/prometheus-integration.test.js
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prometheus-integration-logs
+          path: |
+            packages/simplebeacon-cli/tests/**/prometheus-integration.test.js

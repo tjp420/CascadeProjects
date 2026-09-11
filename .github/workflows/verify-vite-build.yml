@@ -44,6 +44,11 @@ jobs:
       - name: Compile Application Production Bundle
         run: npm run build
 
+      - name: 🛡️ Audit Dashboard Worker Assets (postbuild strict)
+        run: |
+          # Fail fast if worker artifacts are missing
+          node ../../scripts/verify-dashboard-assets.js
+
       - name: Execute Export Smoke Test Assertion
         env:
           CI: true
