@@ -46,11 +46,21 @@ export async function onRequest(context) {
     const url = new URL(request.url);
 
     if (isCustomDomain(url.hostname)) {
-        const originUrl = `${PAGES_ORIGIN}${url.pathname}${url.search}`;
-        const upstream = await fetch(originUrl, {
+        // Bust CF subrequest cache so apex always mirrors current Pages assets.
+        const bust = url.searchParams.get('v') || String(Date.now());
+        const originUrl = new URL(`${PAGES_ORIGIN}${url.pathname}`);
+        for (const [key, value] of url.searchParams.entries()) {
+            originUrl.searchParams.set(key, value);
+        }
+        if (!originUrl.searchParams.has('v')) {
+            originUrl.searchParams.set('v', bust);
+        }
+
+        const upstream = await fetch(originUrl.toString(), {
             method: request.method,
             headers: buildUpstreamHeaders(request),
-            redirect: 'follow'
+            redirect: 'follow',
+            cf: { cacheTtl: 0, cacheEverything: false },
         });
 
         const headers = new Headers(upstream.headers);
