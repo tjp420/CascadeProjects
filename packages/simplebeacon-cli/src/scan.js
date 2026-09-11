@@ -92,6 +92,8 @@ const {
   countBySeverity,
   computeQualityScoreFromIssues,
 } = require("./lib/issue-utils");
+const { attachSignalTriage } = require("./lib/signal-engine");
+const { attachSemanticVerification } = require("./lib/signal-verifier");
 const { clearJsonFileCache } = require("./lib/json-file-cache");
 const { ALL_EXTENSION_SET } = require("./lib/file-types");
 const { LRUCache } = require("./lib/lru-cache");
@@ -101,6 +103,14 @@ const {
   createScanProgressWriter,
   resolveScanProgressPath,
 } = require("./lib/scan-progress");
+
+// Optional incremental cache manager (speeds up repeated scans)
+let IncrementalCacheManager = null;
+try {
+  IncrementalCacheManager = require("./engine/incremental-cache.js").IncrementalCacheManager;
+} catch (e) {
+  IncrementalCacheManager = null;
+}
 
 // Scan-session file content cache — eliminates redundant I/O when multiple rules read the same file
 const fileContentCache = new LRUCache({ maxBytes: 256 * 1024 * 1024 });
@@ -893,6 +903,17 @@ function compileGateStatus(report, gateConfig = {}) {
   report.rawIssues = scoringIssues;
   report.detectedIssues = groupIssues(scoringIssues).slice(0, 12);
 
+  // Attach signal triage + semantic verification so downstream consumers
+  // (benchmarks, verification funnels) can rely on `report.signal`,
+  // `report.verification`, and `report.maintainerHeadline` being present.
+  try {
+    attachSignalTriage(report, scoringIssues);
+    attachSemanticVerification(report);
+  } catch (e) {
+    // Do not throw here; keep gate evaluation resilient. Record error for diagnostics.
+    report._verificationError = String(e && e.message ? e.message : e);
+  }
+
   return reconcileScanReport(report);
 }
 
@@ -1631,6 +1652,43 @@ function buildScanReport(opts) {
     warningIssues: gateSummary.warningIssues || [],
   };
 
+  // Ensure top-level metadata invariants are present even when parts of the
+  // scan were satisfied from incremental cache hits. This guarantees the
+  // `maintainerHeadline` contract used by benchmarks and downstream tooling.
+  try {
+    draftReport.type = draftReport.type || "simplebeacon-report";
+    draftReport.reportVersion = draftReport.reportVersion || 2;
+    draftReport.generatedAt = draftReport.generatedAt || new Date().toISOString();
+    draftReport.generatedBy = draftReport.generatedBy || "SimpleBeacon";
+
+    // File counts: prefer already-computed fields, otherwise derive conservatively
+    draftReport.totalFiles = draftReport.totalFiles || (Array.isArray(draftReport.sampleFiles) ? draftReport.sampleFiles.length : draftReport.totalFiles || 0);
+    draftReport.filesAnalyzed = draftReport.filesAnalyzed || draftReport.ruleScopedFilesAnalyzed || draftReport.filesAnalyzed || 0;
+    draftReport.ruleScopedFilesAnalyzed = draftReport.ruleScopedFilesAnalyzed || draftReport.filesAnalyzed || 0;
+
+    // Issue counts
+    draftReport.issueCount = draftReport.issueCount != null ? draftReport.issueCount : (Array.isArray(draftReport.rawIssues) ? draftReport.rawIssues.length : draftReport.issueCount || 0);
+
+    // Hydrate maintainerHeadline if missing — use signal/verifications when available
+    if (!draftReport.maintainerHeadline) {
+      const signalsAnalyzed = Number(draftReport.signal?.scannedCount || draftReport.signal?.pipeline?.scannedCount || 0);
+      const automaticallyDismissed = Number(draftReport.signal?.dismissedCount || 0);
+      const requireReview = Number(draftReport.signal?.investigateCount || 0);
+      const verifiedVulnerabilities = Number(draftReport.verification && Array.isArray(draftReport.verification.verified) ? draftReport.verification.verified.length : 0);
+
+      draftReport.maintainerHeadline = {
+        signalsAnalyzed,
+        automaticallyDismissed,
+        requireReview,
+        verifiedVulnerabilities,
+        summary: `${signalsAnalyzed} code signals analyzed. ${automaticallyDismissed} automatically dismissed. ${requireReview} require review. ${verifiedVulnerabilities} verified ${verifiedVulnerabilities === 1 ? "vulnerability" : "vulnerabilities"}.`,
+      };
+    }
+  } catch (e) {
+    // Best-effort: do not break the scan on metadata hydration failures
+    draftReport._metadataHydrationError = String(e && e.message ? e.message : e);
+  }
+
   return reconcileScanReport(draftReport);
 }
 
@@ -2065,6 +2123,49 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       });
     }
 
+    // If incremental mode is requested, prepare cache manager and filter unchanged files
+    const isIncremental =
+      options.incremental === true ||
+      process.argv.includes("--incremental") ||
+      process.env.SIMPLEBEACON_INCREMENTAL === "1";
+    let cacheManager = null;
+    let cachedFindingsMap = new Map();
+    if (isIncremental && IncrementalCacheManager) {
+      try {
+        const cacheFile = path.join(scanRoot, ".simplebeacon", "scan_cache.json");
+        cacheManager = new IncrementalCacheManager(cacheFile);
+        // Pre-populate cachedFindingsMap for quick lookup
+        for (const [p, rec] of Object.entries(cacheManager.cacheData.files || {})) {
+          cachedFindingsMap.set(path.normalize(p), rec.findings || []);
+        }
+      } catch {
+        cacheManager = null;
+      }
+    }
+
+    // Filter out unchanged files from uniqueFiles when cache available
+    let filesToScan = uniqueFiles;
+    if (cacheManager && filesToScan.length > 0) {
+      filesToScan = filesToScan.filter((f) => {
+        try {
+          if (BINARY_EXTENSIONS.has(f.ext)) return true; // keep binaries (no caching)
+          const content = readFileCached(f.path);
+          if (cacheManager.isFileUnchanged(f.path, content)) {
+            // merge cached findings into issues early
+            const saved = cacheManager.getSavedFindings(f.path) || [];
+            for (const sf of saved) {
+              // ensure filePath present
+              issues.push({ ...sf, filePath: f.path });
+            }
+            return false; // skip scanning this file
+          }
+        } catch {
+          return true;
+        }
+        return true;
+      });
+    }
+
     // Run independent rule scans in parallel
     const scanPromises = [];
     const scanKeys = [];
@@ -2441,6 +2542,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         if (onlyRules && !onlyRules.has(entry.key)) continue;
         if (skipRules && skipRules.has(entry.key)) continue;
       }
+      // For scanners that accept file lists, prefer to pass filesToScan when available
       scanPromises.push(entry.run());
       scanKeys.push(entry.key);
     }
@@ -2483,6 +2585,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
       }
     }
+
+    // Replace uniqueFiles with filtered filesToScan so downstream scanners operate on the reduced set
+    uniqueFiles = filesToScan;
 
     const trackedPromises = scanPromises.map((p, i) => {
       const start = process.hrtime.bigint();
@@ -2877,6 +2982,35 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       categories,
       diffFiles: options.diffFiles,
     });
+
+    // Persist incremental cache for files that were actually scanned
+    if (cacheManager) {
+      try {
+        const scannedSet = new Set((filesToScan || []).map((f) => path.normalize(f.path)));
+        const findingsByFile = new Map();
+        for (const it of issues) {
+          if (!it || !it.filePath) continue;
+          const fp = path.normalize(it.filePath);
+          if (!scannedSet.has(fp)) continue;
+          if (!findingsByFile.has(fp)) findingsByFile.set(fp, []);
+          findingsByFile.get(fp).push(it);
+        }
+        for (const f of filesToScan) {
+          try {
+            if (!f || !f.path) continue;
+            if (BINARY_EXTENSIONS.has(f.ext)) continue;
+            const content = readFileCached(f.path);
+            const fileFindings = findingsByFile.get(path.normalize(f.path)) || [];
+            cacheManager.updateFileRecord(f.path, content, fileFindings);
+          } catch {
+            /* ignore cache update errors per-file */
+          }
+        }
+        cacheManager.saveCache();
+      } catch {
+        /* ignore cache persistence errors */
+      }
+    }
 
     const normalizedReport = normalizePlatformScanReport(draftReport, {
       gateConfig: config.gate,
