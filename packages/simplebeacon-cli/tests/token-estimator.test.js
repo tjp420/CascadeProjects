@@ -28,11 +28,15 @@ test("estimateTokens returns positive count for prose", () => {
 
 test("estimateTokens treats code as denser than prose", () => {
   // Use comparable non-whitespace lengths so the density multiplier is what's tested.
-  const prose = "the quick brown fox jumps over the lazy dog and runs away fast";
+  const prose =
+    "the quick brown fox jumps over the lazy dog and runs away fast";
   const code = "function add(a,b){return a+b;} const sub=(x,y)=>x-y;";
   const proseTokens = estimateTokens(prose, { isCode: false });
   const codeTokens = estimateTokens(code, { isCode: true });
-  assert.ok(codeTokens >= proseTokens, `code (${codeTokens}) should be >= prose (${proseTokens}) for similar length`);
+  assert.ok(
+    codeTokens >= proseTokens,
+    `code (${codeTokens}) should be >= prose (${proseTokens}) for similar length`,
+  );
 });
 
 test("estimateTokens uses filePath to detect code", () => {
@@ -44,7 +48,10 @@ test("estimateTokens uses filePath to detect code", () => {
 
 test("looksLikeCode detects code vs prose", () => {
   assert.equal(looksLikeCode("function foo() { return 1; }"), true);
-  assert.equal(looksLikeCode("The quick brown fox jumps over the lazy dog."), false);
+  assert.equal(
+    looksLikeCode("The quick brown fox jumps over the lazy dog."),
+    false,
+  );
 });
 
 test("estimatePromptTokens sums parts and adds message boundary overhead", () => {
@@ -76,12 +83,19 @@ test("trimContext returns original when within budget", () => {
 test("trimContext drops low-signal lines to meet budget", () => {
   const lines = [];
   for (let i = 0; i < 100; i++) lines.push(`// comment line ${i}`);
-  for (let i = 0; i < 20; i++) lines.push(`function fn${i}(a, b) { return a + b; }`);
+  for (let i = 0; i < 20; i++)
+    lines.push(`function fn${i}(a, b) { return a + b; }`);
   const ctx = lines.join("\n");
   const result = trimContext(ctx, 50);
-  assert.ok(result.trimmedTokens <= 75, `trimmed (${result.trimmedTokens}) should be near budget (within 1.5x)`);
+  assert.ok(
+    result.trimmedTokens <= 75,
+    `trimmed (${result.trimmedTokens}) should be near budget (within 1.5x)`,
+  );
   assert.ok(result.droppedLines > 0, "should have dropped some lines");
-  assert.ok(result.originalTokens > result.trimmedTokens, "should have reduced tokens");
+  assert.ok(
+    result.originalTokens > result.trimmedTokens,
+    "should have reduced tokens",
+  );
 });
 
 test("trimContext preserves high-signal signatures over comments", () => {

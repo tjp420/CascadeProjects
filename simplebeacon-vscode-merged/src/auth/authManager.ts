@@ -190,9 +190,7 @@ export class AuthManager {
     }
 
     await this.setToken(token);
-    vscode.window.showInformationMessage(
-      'SimpleBeacon token saved. Pro features will activate if the token is valid.'
-    );
+    vscode.window.showInformationMessage('SimpleBeacon token saved. Pro features will activate if the token is valid.');
     return token;
   }
 

@@ -775,34 +775,28 @@ function downloadSelectedModule(btn) {
                 blockingCount: bc,
                 warningCount: wc,
                 status: pass === true ? 'PASS' : 'BLOCKED',
-                blockingFindings: gateIssues
-                    .slice(0, 15)
-                    .map(i => ({
-                        severity: i.severity,
-                        type: i.type,
-                        count: i.count || 0,
-                        filePath: i.filePath,
-                        rule: i.rule,
-                        impact: i.impact,
-                        fix: i.fix,
-                        findings: (i.findings || [])
-                            .slice(0, 3)
-                            .map(f => ({
-                                file: f.file,
-                                matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
-                            }))
-                    })),
-                allIssues: _allIssues
-                    .slice(0, 20)
-                    .map(i => ({
-                        severity: i.severity,
-                        type: i.type,
-                        count: i.count || 0,
-                        filePath: i.filePath,
-                        rule: i.rule,
-                        impact: i.impact,
-                        fix: i.fix
-                    })),
+                blockingFindings: gateIssues.slice(0, 15).map(i => ({
+                    severity: i.severity,
+                    type: i.type,
+                    count: i.count || 0,
+                    filePath: i.filePath,
+                    rule: i.rule,
+                    impact: i.impact,
+                    fix: i.fix,
+                    findings: (i.findings || []).slice(0, 3).map(f => ({
+                        file: f.file,
+                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                    }))
+                })),
+                allIssues: _allIssues.slice(0, 20).map(i => ({
+                    severity: i.severity,
+                    type: i.type,
+                    count: i.count || 0,
+                    filePath: i.filePath,
+                    rule: i.rule,
+                    impact: i.impact,
+                    fix: i.fix
+                })),
                 severityCounts: data.severityCounts || {},
                 qualityScore: (_e = data.qualityScore) !== null && _e !== void 0 ? _e : null
             };

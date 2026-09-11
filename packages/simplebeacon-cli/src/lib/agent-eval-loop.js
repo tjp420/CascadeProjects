@@ -74,7 +74,10 @@ function saveOutputToWorkspace(workspace, output) {
    */
   function safeResolvePath(relativePath) {
     const resolved = path.resolve(workspaceRoot, relativePath);
-    if (resolved.startsWith(workspaceRoot + path.sep) || resolved === workspaceRoot) {
+    if (
+      resolved.startsWith(workspaceRoot + path.sep) ||
+      resolved === workspaceRoot
+    ) {
       return resolved;
     }
     // Traversal attempt — flatten to basename inside workspace root
@@ -154,10 +157,13 @@ async function scanWorkspace(workspace, options = {}) {
   const issues = report.issues || report.findings || [];
   const gate = report.gate || {};
   const blockingCount = gate.blockingCount || 0;
-  const highSeverity = issues.filter((i) => i.severity === "high" || i.severity === "critical");
+  const highSeverity = issues.filter(
+    (i) => i.severity === "high" || i.severity === "critical",
+  );
 
   return {
-    passed: gate.pass === true && blockingCount === 0 && highSeverity.length === 0,
+    passed:
+      gate.pass === true && blockingCount === 0 && highSeverity.length === 0,
     blockingCount,
     highSeverityCount: highSeverity.length,
     issues,

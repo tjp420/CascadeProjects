@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Optional JavaScript/TypeScript AST analysis — local @babel/parser, no network.
@@ -23,7 +24,7 @@ function getTraverse() {
   }
   return _traverse;
 }
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 const JS_AST_EXTENSIONS = new Set([
   ".js",
   ".mjs",
@@ -483,6 +484,8 @@ async function walkProductionSourceFiles(dir, results = [], depth = 0) {
 }
 
 async function scanJavascriptAstPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const parser = loadBabelParser();
   if (!parser) {
     return {

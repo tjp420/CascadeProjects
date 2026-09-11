@@ -2,7 +2,7 @@
 
 ## 📡 Value Proposition: The Transparent Boundary
 
-SimpleBeacon is a **static architectural governance engine**—we focus on what happens *before* code ships, not what happens *after* it's live. This positions us as complementary to pentesting, VDP/BBP platforms, and dynamic security tools.
+SimpleBeacon is a **static architectural governance engine**—we focus on what happens _before_ code ships, not what happens _after_ it's live. This positions us as complementary to pentesting, VDP/BBP platforms, and dynamic security tools.
 
 ---
 
@@ -11,30 +11,24 @@ SimpleBeacon is a **static architectural governance engine**—we focus on what 
 ### Hero Section
 
 ```
-THE ARCHITECTURAL GUARDIAN YOUR TEAM NEEDS
-─────────────────────────────────────────
+Mute test-suite noise. Catch production architecture gaps.
 
-Stop AI-generated code defects before they land.
-Prevent circular dependencies before they compound.
-Gate compliance before review fatigue sets in.
-
-SimpleBeacon: Static architectural governance for engineering teams.
+No GitHub connect. No repo upload. Run it on your laptop first.
 ```
 
 ### Subheading
 
 ```
-Shift security left. Lock architecture down. Prevent regulatory surprise.
-
-SimpleBeacon analyzes source code deterministically—at commit time, in your IDE, 
-in your CI/CD pipeline. Not post-deployment. Not at runtime. 
-Right where developers make decisions.
+Engineering teams will not connect GitHub to a site they do not trust.
+npx simplebeacon scan --gate --offline runs locally. Test-suite findings
+are parked off the production board. Paid team plans add the same gate
+to every pull request.
 ```
 
 ### Primary CTA
 
 ```
-[Get Started Free] [Read Documentation] [See Demo]
+[Install locally] [VS Code] [Team CI pricing]
 ```
 
 ---
@@ -48,10 +42,10 @@ Right where developers make decisions.
   <thead>
     <tr>
       <th>Capability</th>
-      <th>SimpleBeacon<br/>(Static Code Analysis)</th>
-      <th>DAST / Pentesting<br/>(Dynamic Testing)</th>
-      <th>VDP / BBP Platforms<br/>(Bug Programs)</th>
-      <th>CTF / Security Games<br/>(Training)</th>
+      <th>SimpleBeacon<br />(Static Code Analysis)</th>
+      <th>DAST / Pentesting<br />(Dynamic Testing)</th>
+      <th>VDP / BBP Platforms<br />(Bug Programs)</th>
+      <th>CTF / Security Games<br />(Training)</th>
     </tr>
   </thead>
   <tbody>
@@ -372,7 +366,7 @@ Call to action: [Start Free Trial] [Read Docs] [Book a Demo]
 ```html
 <section class="tool-finder">
   <h2>Find Your Right Tool</h2>
-  
+
   <div class="question-card">
     <h3>What's your primary goal?</h3>
     <button data-tool="static">Catch issues before code ships</button>
@@ -395,9 +389,9 @@ Call to action: [Start Free Trial] [Read Docs] [Book a Demo]
           "Analyzes source code patterns",
           "Gates code at pre-commit / pre-merge",
           "Detects AI slop & circular deps",
-          "Runs in seconds per commit"
+          "Runs in seconds per commit",
         ],
-        cta: "Start Free"
+        cta: "Start Free",
       },
       dynamic: {
         tool: "Burp Suite / OWASP ZAP",
@@ -406,9 +400,9 @@ Call to action: [Start Free Trial] [Read Docs] [Book a Demo]
           "Tests live running applications",
           "Finds runtime vulnerabilities",
           "Explores attack surface",
-          "Provides exploitation evidence"
+          "Provides exploitation evidence",
         ],
-        cta: "Learn More"
+        cta: "Learn More",
       },
       bounty: {
         tool: "HackerOne / Bugcrowd",
@@ -417,9 +411,9 @@ Call to action: [Start Free Trial] [Read Docs] [Book a Demo]
           "Crowdsources security testing",
           "Manages submissions & rewards",
           "Provides legal framework",
-          "Finds real-world edge cases"
+          "Finds real-world edge cases",
         ],
-        cta: "Join Platform"
+        cta: "Join Platform",
       },
       training: {
         tool: "Hack The Box / TryHackMe",
@@ -428,24 +422,24 @@ Call to action: [Start Free Trial] [Read Docs] [Book a Demo]
           "Hands-on CTF challenges",
           "Learn by doing",
           "Build practical skills",
-          "Community-driven content"
+          "Community-driven content",
         ],
-        cta: "Explore"
-      }
+        cta: "Explore",
+      },
     };
 
-    document.querySelectorAll('[data-tool]').forEach(button => {
-      button.addEventListener('click', (e) => {
+    document.querySelectorAll("[data-tool]").forEach((button) => {
+      button.addEventListener("click", (e) => {
         const toolKey = e.target.dataset.tool;
         const rec = recommendations[toolKey];
-        const resultDiv = document.getElementById('tool-result');
-        const bodyDiv = document.getElementById('recommendation-body');
-        
+        const resultDiv = document.getElementById("tool-result");
+        const bodyDiv = document.getElementById("recommendation-body");
+
         bodyDiv.innerHTML = `
           <h4>${rec.tool}</h4>
           <p>${rec.description}</p>
           <ul>
-            ${rec.reasons.map(r => `<li>${r}</li>`).join('')}
+            ${rec.reasons.map((r) => `<li>${r}</li>`).join("")}
           </ul>
           <button class="cta-button">${rec.cta}</button>
         `;

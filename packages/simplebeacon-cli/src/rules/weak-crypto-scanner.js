@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Weak crypto / insecure random scanner (SB-SEC-006).
  * Detects deprecated hash algorithms, weak PRNG usage, and
@@ -21,7 +22,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".php",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -166,6 +167,8 @@ async function scanFile(filePath) {
 }
 
 async function scanWeakCrypto(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

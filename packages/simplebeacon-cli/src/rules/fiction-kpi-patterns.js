@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Line-based fiction KPI detection in source files (.js, .ts, .jsx, .tsx, .py).
@@ -33,7 +34,7 @@ const SKIP_DIRS = new Set([
   "fixtures",
   "docs",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const EXCLUSION_SUBSTRINGS = [
   "_example_only_placeholder",
@@ -233,6 +234,8 @@ function scanFileContent(relativePath, content, patterns, ext) {
 }
 
 async function scanSourceFictionPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
   const pathExclusions = options.pathExclusions || [];

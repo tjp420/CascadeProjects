@@ -71,9 +71,10 @@ function record(toolName, rawTokens, compressedTokens) {
 function summary() {
   const log = loadLog();
   const saved = log.totalRawTokens - log.totalCompressedTokens;
-  const pct = log.totalRawTokens > 0
-    ? ((saved / log.totalRawTokens) * 100).toFixed(1)
-    : "0";
+  const pct =
+    log.totalRawTokens > 0
+      ? ((saved / log.totalRawTokens) * 100).toFixed(1)
+      : "0";
 
   return {
     totalCalls: log.totalCalls,
@@ -103,40 +104,72 @@ function report() {
     bold: "\x1b[1m",
   };
 
-  console.log(`${colors.cyan}====================================================${colors.reset}`);
-  console.log(`${colors.magenta}       SIMPLEBEACON TOKEN SAVINGS REPORT             ${colors.reset}`);
-  console.log(`${colors.cyan}====================================================${colors.reset}\n`);
+  console.log(
+    `${colors.cyan}====================================================${colors.reset}`,
+  );
+  console.log(
+    `${colors.magenta}       SIMPLEBEACON TOKEN SAVINGS REPORT             ${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}====================================================${colors.reset}\n`,
+  );
 
   if (s.totalCalls === 0) {
-    console.log(`${colors.yellow}No token savings data yet. Run some MCP tool calls first.${colors.reset}`);
-    console.log(`${colors.dim}Data is logged to .simplebeacon/token-savings.json${colors.reset}\n`);
+    console.log(
+      `${colors.yellow}No token savings data yet. Run some MCP tool calls first.${colors.reset}`,
+    );
+    console.log(
+      `${colors.dim}Data is logged to .simplebeacon/token-savings.json${colors.reset}\n`,
+    );
     return;
   }
 
   console.log(`${colors.bold}Overview:${colors.reset}`);
   console.log(`  Total tool calls:     ${s.totalCalls.toLocaleString()}`);
-  console.log(`  Raw tokens:           ${colors.red}${s.totalRawTokens.toLocaleString()}${colors.reset}`);
-  console.log(`  Compressed tokens:    ${colors.green}${s.totalCompressedTokens.toLocaleString()}${colors.reset}`);
-  console.log(`  Tokens saved:         ${colors.green}${s.totalSaved.toLocaleString()}${colors.reset}`);
-  console.log(`  Savings percentage:   ${colors.green}${s.savingsPct}%${colors.reset}`);
-  console.log(`  Tracking since:       ${colors.dim}${s.startedAt}${colors.reset}`);
-  console.log(`  Last updated:         ${colors.dim}${s.lastUpdated}${colors.reset}\n`);
+  console.log(
+    `  Raw tokens:           ${colors.red}${s.totalRawTokens.toLocaleString()}${colors.reset}`,
+  );
+  console.log(
+    `  Compressed tokens:    ${colors.green}${s.totalCompressedTokens.toLocaleString()}${colors.reset}`,
+  );
+  console.log(
+    `  Tokens saved:         ${colors.green}${s.totalSaved.toLocaleString()}${colors.reset}`,
+  );
+  console.log(
+    `  Savings percentage:   ${colors.green}${s.savingsPct}%${colors.reset}`,
+  );
+  console.log(
+    `  Tracking since:       ${colors.dim}${s.startedAt}${colors.reset}`,
+  );
+  console.log(
+    `  Last updated:         ${colors.dim}${s.lastUpdated}${colors.reset}\n`,
+  );
 
   // Per-tool breakdown
-  const tools = Object.entries(s.byTool).sort((a, b) =>
-    (b[1].rawTokens - b[1].compressedTokens) - (a[1].rawTokens - a[1].compressedTokens)
+  const tools = Object.entries(s.byTool).sort(
+    (a, b) =>
+      b[1].rawTokens -
+      b[1].compressedTokens -
+      (a[1].rawTokens - a[1].compressedTokens),
   );
 
   if (tools.length > 0) {
     console.log(`${colors.bold}Per-Tool Breakdown:${colors.reset}\n`);
-    console.log(`  ${'Tool'.padEnd(30)} ${'Calls'.padStart(6)} ${'Raw'.padStart(10)} ${'Compressed'.padStart(10)} ${'Saved'.padStart(10)} ${'Pct'.padStart(6)}`);
-    console.log(`  ${'─'.repeat(30)} ${'─'.repeat(6)} ${'─'.repeat(10)} ${'─'.repeat(10)} ${'─'.repeat(10)} ${'─'.repeat(6)}`);
+    console.log(
+      `  ${"Tool".padEnd(30)} ${"Calls".padStart(6)} ${"Raw".padStart(10)} ${"Compressed".padStart(10)} ${"Saved".padStart(10)} ${"Pct".padStart(6)}`,
+    );
+    console.log(
+      `  ${"─".repeat(30)} ${"─".repeat(6)} ${"─".repeat(10)} ${"─".repeat(10)} ${"─".repeat(10)} ${"─".repeat(6)}`,
+    );
 
     for (const [name, stats] of tools) {
       const saved = stats.rawTokens - stats.compressedTokens;
-      const pct = stats.rawTokens > 0 ? ((saved / stats.rawTokens) * 100).toFixed(1) : "0";
+      const pct =
+        stats.rawTokens > 0
+          ? ((saved / stats.rawTokens) * 100).toFixed(1)
+          : "0";
       console.log(
-        `  ${name.padEnd(30)} ${String(stats.calls).padStart(6)} ${String(stats.rawTokens).padStart(10)} ${String(stats.compressedTokens).padStart(10)} ${colors.green}${String(saved).padStart(10)}${colors.reset} ${colors.green}${String(pct).padStart(5)}%${colors.reset}`
+        `  ${name.padEnd(30)} ${String(stats.calls).padStart(6)} ${String(stats.rawTokens).padStart(10)} ${String(stats.compressedTokens).padStart(10)} ${colors.green}${String(saved).padStart(10)}${colors.reset} ${colors.green}${String(pct).padStart(5)}%${colors.reset}`,
       );
     }
   }
@@ -144,17 +177,32 @@ function report() {
   // Cost estimate
   const PRICING = { inputPerM: 3, outputPerM: 15 };
   const rawCost = (s.totalRawTokens / 1_000_000) * PRICING.inputPerM;
-  const compressedCost = (s.totalCompressedTokens / 1_000_000) * PRICING.inputPerM;
+  const compressedCost =
+    (s.totalCompressedTokens / 1_000_000) * PRICING.inputPerM;
   const costSaved = rawCost - compressedCost;
 
-  console.log(`\n${colors.bold}Cost Estimate (Claude Sonnet 4 pricing):${colors.reset}`);
-  console.log(`  Raw cost:         ${colors.red}$${rawCost.toFixed(4)}${colors.reset}`);
-  console.log(`  Compressed cost:  ${colors.green}$${compressedCost.toFixed(4)}${colors.reset}`);
-  console.log(`  Cost saved:       ${colors.green}$${costSaved.toFixed(4)}${colors.reset}`);
+  console.log(
+    `\n${colors.bold}Cost Estimate (Claude Sonnet 4 pricing):${colors.reset}`,
+  );
+  console.log(
+    `  Raw cost:         ${colors.red}$${rawCost.toFixed(4)}${colors.reset}`,
+  );
+  console.log(
+    `  Compressed cost:  ${colors.green}$${compressedCost.toFixed(4)}${colors.reset}`,
+  );
+  console.log(
+    `  Cost saved:       ${colors.green}$${costSaved.toFixed(4)}${colors.reset}`,
+  );
 
-  console.log(`\n${colors.cyan}====================================================${colors.reset}`);
-  console.log(`${colors.green}[REPORT COMPLETE] ${s.savingsPct}% token savings across ${s.totalCalls} calls${colors.reset}`);
-  console.log(`${colors.cyan}====================================================${colors.reset}\n`);
+  console.log(
+    `\n${colors.cyan}====================================================${colors.reset}`,
+  );
+  console.log(
+    `${colors.green}[REPORT COMPLETE] ${s.savingsPct}% token savings across ${s.totalCalls} calls${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}====================================================${colors.reset}\n`,
+  );
 }
 
 /**
@@ -182,7 +230,9 @@ function analyzeReport() {
     return;
   }
   const { compressScanReport, tokenSavingsSummary } = require(
-    path.resolve("packages/simplebeacon-cli/src/reporters/agent-compressor.cjs")
+    path.resolve(
+      "packages/simplebeacon-cli/src/reporters/agent-compressor.cjs",
+    ),
   );
   const rawReport = JSON.parse(fs.readFileSync(REPORT_FILE, "utf8"));
   const savings = tokenSavingsSummary(rawReport);
@@ -196,35 +246,61 @@ function analyzeReport() {
     dim: "\x1b[2m",
   };
 
-  console.log(`${colors.cyan}====================================================${colors.reset}`);
-  console.log(`${colors.bold}  SCAN REPORT COMPRESSION ANALYSIS                  ${colors.reset}`);
-  console.log(`${colors.cyan}====================================================${colors.reset}\n`);
+  console.log(
+    `${colors.cyan}====================================================${colors.reset}`,
+  );
+  console.log(
+    `${colors.bold}  SCAN REPORT COMPRESSION ANALYSIS                  ${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}====================================================${colors.reset}\n`,
+  );
 
-  console.log(`  Report file:       ${colors.dim}${REPORT_FILE}${colors.reset}`);
-  console.log(`  Raw size:          ${colors.red}${(savings.rawBytes / 1024).toFixed(1)} KB${colors.reset} (${savings.rawTokens.toLocaleString()} tokens)`);
-  console.log(`  Compressed size:   ${colors.green}${(savings.compressedBytes / 1024).toFixed(1)} KB${colors.reset} (${savings.compressedTokens.toLocaleString()} tokens)`);
-  console.log(`  Tokens saved:      ${colors.green}${savings.saved.toLocaleString()}${colors.reset} (${savings.savingsPct}%)`);
+  console.log(
+    `  Report file:       ${colors.dim}${REPORT_FILE}${colors.reset}`,
+  );
+  console.log(
+    `  Raw size:          ${colors.red}${(savings.rawBytes / 1024).toFixed(1)} KB${colors.reset} (${savings.rawTokens.toLocaleString()} tokens)`,
+  );
+  console.log(
+    `  Compressed size:   ${colors.green}${(savings.compressedBytes / 1024).toFixed(1)} KB${colors.reset} (${savings.compressedTokens.toLocaleString()} tokens)`,
+  );
+  console.log(
+    `  Tokens saved:      ${colors.green}${savings.saved.toLocaleString()}${colors.reset} (${savings.savingsPct}%)`,
+  );
 
   // Show compressed preview
   const compressed = compressScanReport(rawReport);
   const compressedStr = JSON.stringify(compressed);
-  const preview = compressedStr.length > 500
-    ? compressedStr.substring(0, 497) + "..."
-    : compressedStr;
+  const preview =
+    compressedStr.length > 500
+      ? compressedStr.substring(0, 497) + "..."
+      : compressedStr;
 
   console.log(`\n${colors.bold}Compressed preview:${colors.reset}`);
   console.log(`  ${colors.dim}${preview}${colors.reset}`);
 
   // Cost projection
   const turns = 10;
-  const rawSessionCost = (savings.rawTokens * turns / 1_000_000) * 3;
-  const compressedSessionCost = (savings.compressedTokens * turns / 1_000_000) * 3;
-  console.log(`\n${colors.bold}10-turn session cost projection (Sonnet $3/M):${colors.reset}`);
-  console.log(`  Raw:          ${colors.red}$${rawSessionCost.toFixed(4)}${colors.reset}`);
-  console.log(`  Compressed:   ${colors.green}$${compressedSessionCost.toFixed(4)}${colors.reset}`);
-  console.log(`  Session save: ${colors.green}$${(rawSessionCost - compressedSessionCost).toFixed(4)}${colors.reset}`);
+  const rawSessionCost = ((savings.rawTokens * turns) / 1_000_000) * 3;
+  const compressedSessionCost =
+    ((savings.compressedTokens * turns) / 1_000_000) * 3;
+  console.log(
+    `\n${colors.bold}10-turn session cost projection (Sonnet $3/M):${colors.reset}`,
+  );
+  console.log(
+    `  Raw:          ${colors.red}$${rawSessionCost.toFixed(4)}${colors.reset}`,
+  );
+  console.log(
+    `  Compressed:   ${colors.green}$${compressedSessionCost.toFixed(4)}${colors.reset}`,
+  );
+  console.log(
+    `  Session save: ${colors.green}$${(rawSessionCost - compressedSessionCost).toFixed(4)}${colors.reset}`,
+  );
 
-  console.log(`\n${colors.cyan}====================================================${colors.reset}\n`);
+  console.log(
+    `\n${colors.cyan}====================================================${colors.reset}\n`,
+  );
 }
 
 // ── CLI entry point ─────────────────────────────────────────────────────────
@@ -242,4 +318,12 @@ if (require.main === module) {
   }
 }
 
-module.exports = { record, summary, report, reset, analyzeReport, loadLog, saveLog };
+module.exports = {
+  record,
+  summary,
+  report,
+  reset,
+  analyzeReport,
+  loadLog,
+  saveLog,
+};

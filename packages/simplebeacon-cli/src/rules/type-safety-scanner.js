@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Type-safety scanner — detects `any` type annotations, @ts-ignore, and @ts-nocheck.
  * Ported from VS Code extension workspaceAnalyzer.ts for CLI parity.
@@ -15,7 +16,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".jsx",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -130,6 +131,8 @@ async function scanFile(filePath, rootDir) {
 }
 
 async function scanTypeSafety(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || ["src", "lib", "server", "web"];
   const productionPaths = options.productionPaths || sourcePaths;
   const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];

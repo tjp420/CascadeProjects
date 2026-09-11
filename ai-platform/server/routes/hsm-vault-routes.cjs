@@ -3929,41 +3929,63 @@ for (const prefix of GOVERNANCE_PREFIXES) {
         },
       });
     } catch (err) {
-      sendError(res, 500, `${prefix}_policy_fetch_failed`, { message: err.message });
+      sendError(res, 500, `${prefix}_policy_fetch_failed`, {
+        message: err.message,
+      });
     }
   });
 
   // POST /api/vault/<prefix>/policy/validate
-  router.post(`/${prefix}/policy/validate`, authorize("admin:all"), function (req, res) {
-    try {
-      const config = req.body || {};
-      if (!config || typeof config !== 'object' || Object.keys(config).length === 0) {
-        return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: 'Empty or malformed policy payload' });
+  router.post(
+    `/${prefix}/policy/validate`,
+    authorize("admin:all"),
+    function (req, res) {
+      try {
+        const config = req.body || {};
+        if (
+          !config ||
+          typeof config !== "object" ||
+          Object.keys(config).length === 0
+        ) {
+          return sendError(res, 400, "POLICY_VIOLATION_BLOCKED", {
+            message: "Empty or malformed policy payload",
+          });
+        }
+        // Minimal validation pass for contract tests: accept common fields
+        return res.json({ success: true, valid: true });
+      } catch (err) {
+        if (err && err.code === "POLICY_VIOLATION_BLOCKED") {
+          return sendError(res, 400, "POLICY_VIOLATION_BLOCKED", {
+            message: err.message,
+          });
+        }
+        sendError(res, 500, `${prefix}_policy_validate_failed`, {
+          message: err.message,
+        });
       }
-      // Minimal validation pass for contract tests: accept common fields
-      return res.json({ success: true, valid: true });
-    } catch (err) {
-      if (err && err.code === 'POLICY_VIOLATION_BLOCKED') {
-        return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
-      }
-      sendError(res, 500, `${prefix}_policy_validate_failed`, { message: err.message });
-    }
-  });
+    },
+  );
 
   // GET /api/vault/<prefix>/telemetry
-  router.get(`/${prefix}/telemetry`, authorize("admin:all"), function (req, res) {
-    try {
-      const orgId = resolveOrgId(req);
-      const telemetry = {
-        status: 'healthy',
-        uptime: Math.floor(process.uptime()),
-        lastCheck: new Date().toISOString(),
-      };
-      res.json({ success: true, orgId, telemetry });
-    } catch (err) {
-      sendError(res, 500, `${prefix}_telemetry_fetch_failed`, { message: err.message });
-    }
-  });
+  router.get(
+    `/${prefix}/telemetry`,
+    authorize("admin:all"),
+    function (req, res) {
+      try {
+        const orgId = resolveOrgId(req);
+        const telemetry = {
+          status: "healthy",
+          uptime: Math.floor(process.uptime()),
+          lastCheck: new Date().toISOString(),
+        };
+        res.json({ success: true, orgId, telemetry });
+      } catch (err) {
+        sendError(res, 500, `${prefix}_telemetry_fetch_failed`, {
+          message: err.message,
+        });
+      }
+    },
+  );
 }
 
 module.exports = router;

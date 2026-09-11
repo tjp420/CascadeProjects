@@ -39,74 +39,269 @@ const DEFAULT_INDEX_NAME = "beacon-index.json";
  */
 const BEACON_PATTERNS = {
   javascript: [
-    { entity: "class", re: /(?:export\s+)?(?:default\s+)?class\s+([A-Za-z_$][\w$]*)/g, type: "structural_anchor" },
-    { entity: "function", re: /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "arrow_function", re: /(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g, type: "functional_target" },
-    { entity: "method", re: /^\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*{/gm, type: "functional_target" },
-    { entity: "TODO", re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
-    { entity: "export", re: /export\s+(?:const|let|var|function|class|default)\s+([A-Za-z_$][\w$]*)/g, type: "export_beacon" },
+    {
+      entity: "class",
+      re: /(?:export\s+)?(?:default\s+)?class\s+([A-Za-z_$][\w$]*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "function",
+      re: /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "arrow_function",
+      re: /(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g,
+      type: "functional_target",
+    },
+    {
+      entity: "method",
+      re: /^\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*{/gm,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
+    {
+      entity: "export",
+      re: /export\s+(?:const|let|var|function|class|default)\s+([A-Za-z_$][\w$]*)/g,
+      type: "export_beacon",
+    },
   ],
   python: [
-    { entity: "class", re: /^(\s*)class\s+([A-Za-z_][\w]*)\s*(?:\(([^)]*)\))?\s*:/gm, type: "structural_anchor", nameGroup: 2 },
-    { entity: "function", re: /^(\s*)(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(([^)]*)\)/gm, type: "functional_target", nameGroup: 2 },
-    { entity: "TODO", re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
-    { entity: "decorator", re: /^(\s*)@([A-Za-z_][\w.]*)/gm, type: "decorator_beacon", nameGroup: 2 },
+    {
+      entity: "class",
+      re: /^(\s*)class\s+([A-Za-z_][\w]*)\s*(?:\(([^)]*)\))?\s*:/gm,
+      type: "structural_anchor",
+      nameGroup: 2,
+    },
+    {
+      entity: "function",
+      re: /^(\s*)(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(([^)]*)\)/gm,
+      type: "functional_target",
+      nameGroup: 2,
+    },
+    {
+      entity: "TODO",
+      re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
+    {
+      entity: "decorator",
+      re: /^(\s*)@([A-Za-z_][\w.]*)/gm,
+      type: "decorator_beacon",
+      nameGroup: 2,
+    },
   ],
   typescript: [
-    { entity: "class", re: /(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)/g, type: "structural_anchor" },
-    { entity: "interface", re: /(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\s*(?:extends\s+[^{]+)?\s*\{/g, type: "type_anchor" },
-    { entity: "type", re: /(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\s*=/g, type: "type_anchor" },
-    { entity: "function", re: /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*<[^>]*>?\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "arrow_function", re: /(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g, type: "functional_target" },
-    { entity: "method", re: /^\s*(?:async\s+|static\s+|public\s+|private\s+|protected\s+)*([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*:/gm, type: "functional_target" },
-    { entity: "TODO", re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
-    { entity: "export", re: /export\s+(?:const|let|var|function|class|default|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g, type: "export_beacon" },
-    { entity: "enum", re: /(?:export\s+)?(?:const\s+)?enum\s+([A-Za-z_$][\w$]*)/g, type: "type_anchor" },
+    {
+      entity: "class",
+      re: /(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "interface",
+      re: /(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\s*(?:extends\s+[^{]+)?\s*\{/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "type",
+      re: /(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\s*=/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "function",
+      re: /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*<[^>]*>?\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "arrow_function",
+      re: /(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g,
+      type: "functional_target",
+    },
+    {
+      entity: "method",
+      re: /^\s*(?:async\s+|static\s+|public\s+|private\s+|protected\s+)*([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*:/gm,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
+    {
+      entity: "export",
+      re: /export\s+(?:const|let|var|function|class|default|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g,
+      type: "export_beacon",
+    },
+    {
+      entity: "enum",
+      re: /(?:export\s+)?(?:const\s+)?enum\s+([A-Za-z_$][\w$]*)/g,
+      type: "type_anchor",
+    },
   ],
   go: [
-    { entity: "struct", re: /type\s+([A-Za-z_]\w*)\s+struct\s*\{/g, type: "structural_anchor" },
-    { entity: "interface", re: /type\s+([A-Za-z_]\w*)\s+interface\s*\{/g, type: "type_anchor" },
-    { entity: "function", re: /func\s+(?:\([^)]*\)\s+)?([A-Za-z_]\w*)\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "TODO", re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "struct",
+      re: /type\s+([A-Za-z_]\w*)\s+struct\s*\{/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "interface",
+      re: /type\s+([A-Za-z_]\w*)\s+interface\s*\{/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "function",
+      re: /func\s+(?:\([^)]*\)\s+)?([A-Za-z_]\w*)\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   rust: [
-    { entity: "struct", re: /(?:pub\s+)?struct\s+([A-Za-z_]\w*)/g, type: "structural_anchor" },
-    { entity: "trait", re: /(?:pub\s+)?trait\s+([A-Za-z_]\w*)/g, type: "type_anchor" },
-    { entity: "function", re: /(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "impl", re: /impl(?:<[^>]*>)?\s+([A-Za-z_]\w]*)/g, type: "structural_anchor" },
-    { entity: "TODO", re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "struct",
+      re: /(?:pub\s+)?struct\s+([A-Za-z_]\w*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "trait",
+      re: /(?:pub\s+)?trait\s+([A-Za-z_]\w*)/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "function",
+      re: /(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "impl",
+      re: /impl(?:<[^>]*>)?\s+([A-Za-z_]\w]*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "TODO",
+      re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   java: [
-    { entity: "class", re: /(?:public|private|protected)?\s*(?:abstract\s+)?class\s+([A-Za-z_]\w*)/g, type: "structural_anchor" },
-    { entity: "interface", re: /(?:public|private)?\s*interface\s+([A-Za-z_]\w*)/g, type: "type_anchor" },
-    { entity: "method", re: /(?:public|private|protected|static)\s+[\w<>\[\]]+\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*\{/g, type: "functional_target" },
-    { entity: "TODO", re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "class",
+      re: /(?:public|private|protected)?\s*(?:abstract\s+)?class\s+([A-Za-z_]\w*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "interface",
+      re: /(?:public|private)?\s*interface\s+([A-Za-z_]\w*)/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "method",
+      re: /(?:public|private|protected|static)\s+[\w<>\[\]]+\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*\{/g,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   ruby: [
-    { entity: "class", re: /class\s+([A-Za-z_]\w*)(?:\s*<\s*([A-Za-z_]\w*))?/g, type: "structural_anchor" },
-    { entity: "method", re: /def\s+([A-Za-z_]\w*)\s*(?:\(([^)]*)\))?/g, type: "functional_target" },
-    { entity: "module", re: /module\s+([A-Za-z_]\w*)/g, type: "structural_anchor" },
-    { entity: "TODO", re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "class",
+      re: /class\s+([A-Za-z_]\w*)(?:\s*<\s*([A-Za-z_]\w*))?/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "method",
+      re: /def\s+([A-Za-z_]\w*)\s*(?:\(([^)]*)\))?/g,
+      type: "functional_target",
+    },
+    {
+      entity: "module",
+      re: /module\s+([A-Za-z_]\w*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "TODO",
+      re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   csharp: [
-    { entity: "class", re: /(?:public|private|internal|protected)?\s*(?:abstract\s+|sealed\s+|static\s+)*class\s+([A-Za-z_]\w*)/g, type: "structural_anchor" },
-    { entity: "interface", re: /(?:public|private|internal)?\s*interface\s+([A-Za-z_]\w*)/g, type: "type_anchor" },
-    { entity: "method", re: /(?:public|private|protected|static|virtual|override)\s+[\w<>\[\]]+\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "TODO", re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "class",
+      re: /(?:public|private|internal|protected)?\s*(?:abstract\s+|sealed\s+|static\s+)*class\s+([A-Za-z_]\w*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "interface",
+      re: /(?:public|private|internal)?\s*interface\s+([A-Za-z_]\w*)/g,
+      type: "type_anchor",
+    },
+    {
+      entity: "method",
+      re: /(?:public|private|protected|static|virtual|override)\s+[\w<>\[\]]+\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /\/\/\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   php: [
-    { entity: "class", re: /(?:final\s+|abstract\s+)?class\s+([A-Za-z_]\w*)/g, type: "structural_anchor" },
-    { entity: "function", re: /function\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g, type: "functional_target" },
-    { entity: "TODO", re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "class",
+      re: /(?:final\s+|abstract\s+)?class\s+([A-Za-z_]\w*)/g,
+      type: "structural_anchor",
+    },
+    {
+      entity: "function",
+      re: /function\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/g,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /(?:\/\/|#)\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   shell: [
-    { entity: "function", re: /(?:function\s+)?([A-Za-z_]\w*)\s*\(\)\s*\{/g, type: "functional_target" },
-    { entity: "TODO", re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi, type: "intent_beacon" },
+    {
+      entity: "function",
+      re: /(?:function\s+)?([A-Za-z_]\w*)\s*\(\)\s*\{/g,
+      type: "functional_target",
+    },
+    {
+      entity: "TODO",
+      re: /#\s*(TODO|FIXME|BUG|HACK|XXX)[:\s]*(.*)/gi,
+      type: "intent_beacon",
+    },
   ],
   sql: [
-    { entity: "table", re: /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([A-Za-z_]\w*)/gi, type: "structural_anchor" },
-    { entity: "function", re: /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([A-Za-z_]\w*)/gi, type: "functional_target" },
-    { entity: "procedure", re: /CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+([A-Za-z_]\w*)/gi, type: "functional_target" },
+    {
+      entity: "table",
+      re: /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([A-Za-z_]\w*)/gi,
+      type: "structural_anchor",
+    },
+    {
+      entity: "function",
+      re: /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([A-Za-z_]\w*)/gi,
+      type: "functional_target",
+    },
+    {
+      entity: "procedure",
+      re: /CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+([A-Za-z_]\w*)/gi,
+      type: "functional_target",
+    },
   ],
 };
 
@@ -155,7 +350,11 @@ function generateBeacons(filepath, content, languageOverride) {
   const ext = path.extname(filepath);
   const lang = languageOverride || getLanguageForExt(ext);
   if (!lang || !BEACON_PATTERNS[lang]) {
-    return { beacons: [], fileTokens: estimateTokens(content), beaconTokens: 0 };
+    return {
+      beacons: [],
+      fileTokens: estimateTokens(content),
+      beaconTokens: 0,
+    };
   }
 
   const patterns = BEACON_PATTERNS[lang];
@@ -171,9 +370,10 @@ function generateBeacons(filepath, content, languageOverride) {
       const nameGroup = pattern.nameGroup || 1;
       const name = match[nameGroup] || fullMatch.trim().slice(0, 60);
       // For intent beacons (TODO/FIXME/BUG), use the captured keyword as entity
-      const entity = pattern.type === "intent_beacon" && match[1]
-        ? match[1].toUpperCase()
-        : pattern.entity;
+      const entity =
+        pattern.type === "intent_beacon" && match[1]
+          ? match[1].toUpperCase()
+          : pattern.entity;
       const dedupKey = `${entity}:${name}:${line}`;
 
       if (seen.has(dedupKey)) continue;
@@ -228,7 +428,9 @@ function computeLineNumber(content, charIndex) {
 async function generateBeaconIndex(rootDir, options = {}) {
   const root = path.resolve(rootDir);
   const outputDir = path.join(root, DEFAULT_BEACONS_DIR);
-  const files = await walkProject(root, { maxFiles: options.maxFiles || 20000 });
+  const files = await walkProject(root, {
+    maxFiles: options.maxFiles || 20000,
+  });
 
   const fileEntries = [];
   let totalFileTokens = 0;
@@ -278,7 +480,9 @@ async function generateBeaconIndex(rootDir, options = {}) {
       totalBeaconTokens,
       tokenReductionPct:
         totalFileTokens > 0
-          ? Math.round(((totalFileTokens - totalBeaconTokens) / totalFileTokens) * 10000) / 100
+          ? Math.round(
+              ((totalFileTokens - totalBeaconTokens) / totalFileTokens) * 10000,
+            ) / 100
           : 0,
     },
     files: fileEntries,
@@ -326,7 +530,8 @@ function scanBeacons(index, query, options = {}) {
       if (entityFilter && !entityFilter.has(beacon.entity)) continue;
 
       // Build searchable text from beacon metadata
-      const searchableText = `${beacon.name} ${beacon.signature} ${beacon.entity} ${beacon.type}`.toLowerCase();
+      const searchableText =
+        `${beacon.name} ${beacon.signature} ${beacon.entity} ${beacon.type}`.toLowerCase();
 
       // Score: count how many query terms match
       let score = 0;

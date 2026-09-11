@@ -156,6 +156,75 @@ describe('/api/auth/me contract', () => {
     expect(json.user.trustLevel).toBe('gold');
   });
 
+  it('refreshes a local JWT instead of 404', async () => {
+    const login = await request('POST', '/api/auth/login', {
+      email: 'admin@simplebeacon.ai',
+      password: 'admin123',
+    });
+    const loginJson = JSON.parse(login.body);
+    const refresh = await request(
+      'POST',
+      '/api/auth/refresh',
+      { longLived: true },
+      { Authorization: `Bearer ${loginJson.token}` }
+    );
+    expect(refresh.status).toBe(200);
+    const json = JSON.parse(refresh.body);
+    expect(json.success).toBe(true);
+    expect(json.token).toBeTruthy();
+  });
+
+  it('returns found:false for SSO and whitelabel on the local data server', async () => {
+    const sso = await request('GET', '/api/sso/resolve?email=admin%40simplebeacon.ai');
+    expect(sso.status).toBe(200);
+    expect(JSON.parse(sso.body).found).toBe(false);
+    const brand = await request('GET', '/api/whitelabel/resolve?domain=127.0.0.1');
+    expect(brand.status).toBe(200);
+    expect(JSON.parse(brand.body).found).toBe(false);
+  });
+
+  it('returns local empty payloads for cloud-only dashboard APIs', async () => {
+    const interdiction = await request('GET', '/api/audit/interdiction/stream/status');
+    expect(interdiction.status).toBe(200);
+    const interdictionJson = JSON.parse(interdiction.body);
+    expect(interdictionJson.success).toBe(true);
+    expect(interdictionJson.enabled).toBe(false);
+
+    const quarantine = await request('GET', '/api/audit/quarantine');
+    expect(quarantine.status).toBe(200);
+    expect(JSON.parse(quarantine.body).entries).toEqual([]);
+
+    const failover = await request('GET', '/api/provider-failover/stats');
+    expect(failover.status).toBe(200);
+    expect(JSON.parse(failover.body).success).toBe(true);
+
+    const subscription = await request('GET', '/api/user/subscription');
+    expect(subscription.status).toBe(200);
+    expect(JSON.parse(subscription.body).success).toBe(true);
+  });
+
+  it('keeps the default dashboard theme dark and does not toggle on empty POST', async () => {
+    const first = await request('GET', '/api/theme');
+    expect(first.status).toBe(200);
+    expect(JSON.parse(first.body).theme).toBe('dark');
+
+    const emptyPost = await request('POST', '/api/theme', {});
+    expect(emptyPost.status).toBe(200);
+    expect(JSON.parse(emptyPost.body).theme).toBe('dark');
+
+    const setLight = await request('POST', '/api/theme', { theme: 'light' });
+    expect(JSON.parse(setLight.body).theme).toBe('light');
+    const setDark = await request('POST', '/api/theme', { theme: 'dark' });
+    expect(JSON.parse(setDark.body).theme).toBe('dark');
+  });
+
+  it('serves hashed dashboard chunks from assets/ instead of HTML', async () => {
+    const chunk = await request('GET', '/dashboard/v2-TeamMetricsView-B3qlOqlW.js');
+    expect(chunk.status).toBe(200);
+    expect(chunk.body.startsWith('<!doctype html>')).toBe(false);
+    expect(chunk.body).toMatch(/TeamMetricsView|function|export/i);
+  });
+
   it('proxies unknown credentials to the hosted login API', async () => {
     const origFetch = global.fetch;
     const cloudToken = 'eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InJlYWxAZXhhbXBsZS5jb20ifQ.sig';

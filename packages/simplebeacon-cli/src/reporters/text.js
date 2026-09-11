@@ -265,15 +265,25 @@ function formatFindingsTable(issues) {
     const type = String(issue.type || issue.pattern || "unknown");
     const file =
       issue.filePath || issue.file || issue.affectedFiles?.[0] || "—";
-    const shortFile = String(file).replace(/\\/g, "/").split("/").slice(-2).join("/");
+    const shortFile = String(file)
+      .replace(/\\/g, "/")
+      .split("/")
+      .slice(-2)
+      .join("/");
     const line = issue.line || issue.metadata?.line || "—";
     const desc = String(issue.description || "").slice(0, 60);
     return { sev, type, shortFile, line, desc, severity: issue.severity };
   });
 
   const sevWidth = Math.max(8, ...rows.map((r) => r.sev.length));
-  const typeWidth = Math.min(30, Math.max(4, ...rows.map((r) => r.type.length)));
-  const fileWidth = Math.min(35, Math.max(4, ...rows.map((r) => r.shortFile.length)));
+  const typeWidth = Math.min(
+    30,
+    Math.max(4, ...rows.map((r) => r.type.length)),
+  );
+  const fileWidth = Math.min(
+    35,
+    Math.max(4, ...rows.map((r) => r.shortFile.length)),
+  );
   const lineWidth = Math.max(4, ...rows.map((r) => String(r.line).length));
   const descWidth = 60;
 
@@ -282,13 +292,22 @@ function formatFindingsTable(issues) {
   const lines = [];
   // Header
   const header =
-    pad("SEVERITY", sevWidth) + "  " +
-    pad("TYPE", typeWidth) + "  " +
-    pad("FILE", fileWidth) + "  " +
-    pad("LINE", lineWidth) + "  " +
+    pad("SEVERITY", sevWidth) +
+    "  " +
+    pad("TYPE", typeWidth) +
+    "  " +
+    pad("FILE", fileWidth) +
+    "  " +
+    pad("LINE", lineWidth) +
+    "  " +
     "DESCRIPTION";
   lines.push(paint(header, "dim"));
-  lines.push(paint("─".repeat(sevWidth + typeWidth + fileWidth + lineWidth + descWidth + 8), "dim"));
+  lines.push(
+    paint(
+      "─".repeat(sevWidth + typeWidth + fileWidth + lineWidth + descWidth + 8),
+      "dim",
+    ),
+  );
 
   for (const row of rows) {
     const sevStr = paint(pad(row.sev, sevWidth), severityColor(row.severity));

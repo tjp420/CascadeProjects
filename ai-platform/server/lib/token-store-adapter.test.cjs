@@ -17,12 +17,15 @@ describe("JsonFileTokenStore nextSequence", () => {
   beforeEach(() => {
     if (fs.existsSync(SEQ_PATH)) fs.unlinkSync(SEQ_PATH);
     delete require.cache[require.resolve("../lib/token-store-adapter.cjs")];
-    JsonFileTokenStore = require("../lib/token-store-adapter.cjs").JsonFileTokenStore;
+    JsonFileTokenStore =
+      require("../lib/token-store-adapter.cjs").JsonFileTokenStore;
   });
 
   afterEach(() => {
     if (fs.existsSync(STORE_DIR)) {
-      try { fs.rmSync(STORE_DIR, { recursive: true }); } catch (_) {}
+      try {
+        fs.rmSync(STORE_DIR, { recursive: true });
+      } catch (_) {}
     }
   });
 
@@ -63,7 +66,9 @@ describe("JsonFileTokenStore nextSequence", () => {
 
     // Create a new store instance — should read from the same file
     delete require.cache[require.resolve("../lib/token-store-adapter.cjs")];
-    const { JsonFileTokenStore: FreshStore } = require("../lib/token-store-adapter.cjs");
+    const {
+      JsonFileTokenStore: FreshStore,
+    } = require("../lib/token-store-adapter.cjs");
     const store2 = new FreshStore();
     const s = store2.nextSequence("tenant-x");
     assert.strictEqual(s, 3);

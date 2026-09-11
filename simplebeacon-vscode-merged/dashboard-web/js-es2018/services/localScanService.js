@@ -17,10 +17,14 @@ import {
   loadIgnorePatternsFromDirHandle,
 } from "../utils-lib/simplebeaconignore.browser.js";
 import { getAttestation, isAttestationValid } from "./scanAttestation.js";
+import {
+  partitionScanFindings,
+  selectVerifiedFindings,
+} from "../utils-lib/finding-noise.browser.js";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260828workerfix1";
+const WORKER_ASSET_VERSION = "20260910noisefix1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -71,7 +75,7 @@ function resolveScanWorkerUrl() {
 // Offline persistence: After a successful prefetch, the inlined script is stored in
 // the Cache API. When the user is offline (or DNS fails), we read from cache so the
 // scan worker can still be created without any network request.
-const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v1";
+const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v20260910";
 let _cachedWorkerScript = null; // fully inlined, self-contained script
 let _prefetchPromise = null;
 
@@ -459,8 +463,12 @@ function buildReport(
   const categories = {};
   const findingsList = [];
   const rawIssues = [];
+  const qualityIssues = [];
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
   const totalFolders = meta.folderCount || 0;
+  const { production: productionFindings, noise: noiseFindings } =
+    partitionScanFindings(findings || []);
+  const verifiedFindings = selectVerifiedFindings(productionFindings);
   if (totalFiles === 0) {
     findingsList.push({
       category: "scan-empty",
@@ -476,7 +484,18 @@ function buildReport(
       findings: [findingsList[0]],
     };
   }
-  for (const f of findings || []) {
+  for (const f of noiseFindings) {
+    qualityIssues.push({
+      type: f.rule || f.analyzer || "finding",
+      filePath: f.filePath || "",
+      line: f.line || 1,
+      severity: String(f.severity || "medium").toLowerCase(),
+      description: f.impact || "Filtered non-production path",
+      count: Number(f.count) || 1,
+      lane: "quality",
+    });
+  }
+  for (const f of productionFindings) {
     const rule = f.rule || f.analyzer || "finding";
     const severity = String(f.severity || "medium").toLowerCase();
     const count = Number(f.count) || 1;
@@ -591,22 +610,13 @@ function buildReport(
         (meta.telemetry?.textErrors || 0),
     ),
   };
-  // === Quality scorecard (6 dimensions, ported from legacy scanner-engine.js) ===
-  const qualityScorecard = {
-    accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+  // Penalty math (accuracy: 0 after 10 highs) is internal only — do not publish it.
+  const internalScorecard = {
     completeness:
       totalFiles >= MIN_FILES_FOR_PASS
         ? 100
         : Math.round((totalFiles / MIN_FILES_FOR_PASS) * 100),
-    consistency:
-      rawIssues.filter((i) => i.severity === "medium").length === 0
-        ? 100
-        : Math.max(
-            0,
-            100 - rawIssues.filter((i) => i.severity === "medium").length * 5,
-          ),
-    timeliness: 100, // No staleness check in browser scan
-    validity: gateScore,
+    timeliness: 100,
     integrity:
       mockSampleFiles === 0 ? 100 : Math.max(0, 100 - mockSampleFiles * 10),
   };
@@ -620,7 +630,8 @@ function buildReport(
     : null;
   const limitations = [
     `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
-    "Pattern matching on file contents — not LLM semantic review.",
+    `Headline counts exclude docs, lockfiles, translations, and vendor bundles (${noiseFindings.length} noise findings held in qualityIssues).`,
+    "Pattern matching on file contents — not LLM semantic review. Reachability is not proven.",
     "Jest not executed during scan — use npm test separately.",
   ];
   if (scanLimitNote) limitations.unshift(scanLimitNote);
@@ -638,12 +649,23 @@ function buildReport(
       codeFilesAnalyzed: analyzedFiles,
       codeFilesDiscovered: totalFiles,
       totalFindings,
+      rawFindingCount: (findings || []).length,
+      noiseFindingCount: noiseFindings.length,
       severityCounts,
     },
     categories,
     findings: findingsList,
     rawIssues,
     detectedIssues: rawIssues,
+    qualityIssues,
+    verifiedFindings,
+    contactGrade: {
+      pipeline: ["scan", "filter", "understand", "verify", "rank", "contact"],
+      scannedCount: (findings || []).length,
+      filteredOutCount: noiseFindings.length,
+      verifiedCount: verifiedFindings.length,
+      emailReady: verifiedFindings.length > 0,
+    },
     issueCount,
     severityCounts,
     repositoryFilesTotal: totalFiles,
@@ -701,8 +723,12 @@ function buildReport(
     fileInventory,
     removableFiles: removableFiles.slice(0, 100), // Cap at 100 for UI
     removableFilesTotal: removableFiles.length,
-    diagnosticReport,
-    qualityScorecard,
+    diagnosticReport: {
+      ...diagnosticReport,
+      rawFindingCount: (findings || []).length,
+      noiseFindingCount: noiseFindings.length,
+      internalScorecard,
+    },
   };
 }
 /**

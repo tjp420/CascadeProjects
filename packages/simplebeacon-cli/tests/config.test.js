@@ -8,6 +8,9 @@ const {
   getInitTemplates,
   mergeBaseline,
   resolveScanPaths,
+  resolveMaxScanBytes,
+  DEFAULT_MAX_SCAN_BYTES,
+  MAX_SCAN_BYTES_CEILING,
 } = require("../src/config");
 const { validateConfig } = require("../src/config-schema");
 const {
@@ -127,4 +130,41 @@ test("resolvePlatformRoot finds ai-platform when scanning parent workspace", () 
     path.resolve(resolved.scanRoot).toLowerCase(),
     path.resolve(parent).toLowerCase(),
   );
+});
+
+test("resolveMaxScanBytes defaults, clamps, and ignores non-positive values", () => {
+  const prev = process.env.SIMPLEBEACON_MAX_SCAN_BYTES;
+  delete process.env.SIMPLEBEACON_MAX_SCAN_BYTES;
+  try {
+    assert.equal(resolveMaxScanBytes({}), DEFAULT_MAX_SCAN_BYTES);
+    assert.equal(resolveMaxScanBytes({ maxScanBytes: 2097152 }), 2097152);
+    assert.equal(
+      resolveMaxScanBytes({ maxScanBytes: 50 * 1024 * 1024 }),
+      MAX_SCAN_BYTES_CEILING,
+    );
+    assert.equal(resolveMaxScanBytes({ maxScanBytes: 0 }), DEFAULT_MAX_SCAN_BYTES);
+    process.env.SIMPLEBEACON_MAX_SCAN_BYTES = "1024000";
+    assert.equal(resolveMaxScanBytes({}), 1024000);
+    assert.equal(resolveMaxScanBytes({ maxScanBytes: 512000 }), 512000);
+  } finally {
+    if (prev === undefined) delete process.env.SIMPLEBEACON_MAX_SCAN_BYTES;
+    else process.env.SIMPLEBEACON_MAX_SCAN_BYTES = prev;
+  }
+});
+
+test("validateConfig rejects non-numeric maxScanBytes", () => {
+  const result = validateConfig({ maxScanBytes: "two-mb" });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("maxScanBytes")));
+});
+
+test("loadSimplebeaconConfig applies maxScanBytes from config.json", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sb-max-scan-"));
+  fs.mkdirSync(path.join(tmp, ".simplebeacon"), { recursive: true });
+  fs.writeFileSync(
+    path.join(tmp, ".simplebeacon", "config.json"),
+    JSON.stringify({ profile: "minimal", maxScanBytes: 2097152 }),
+  );
+  const config = loadSimplebeaconConfig(tmp);
+  assert.equal(config.maxScanBytes, 2097152);
 });

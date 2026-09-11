@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Architecture drift — hybrid/SSM model identifiers without schema validators (gate when enabled).
@@ -19,7 +20,7 @@ const {
   makeFinding,
 } = require("./ai-runtime-scan-common");
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const HYBRID_MODEL_REGEX = new RegExp(
   [
@@ -167,6 +168,8 @@ async function walkProductionSourceFiles(dir, results = [], depth = 0) {
 }
 
 async function scanArchitectureDriftPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
   const severityDefault = options.severity || "high";

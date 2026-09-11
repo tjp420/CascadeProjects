@@ -248,16 +248,14 @@ function getRunStats(orgId) {
     passRate,
     byProvider,
     byCategory,
-    recentRuns: runs
-      .slice(0, 10)
-      .map((r) => ({
-        id: r.id,
-        provider: r.provider,
-        model: r.model,
-        passRate:
-          r.totalTests > 0 ? Math.round((r.passed / r.totalTests) * 100) : 0,
-        timestamp: r.timestamp,
-      })),
+    recentRuns: runs.slice(0, 10).map((r) => ({
+      id: r.id,
+      provider: r.provider,
+      model: r.model,
+      passRate:
+        r.totalTests > 0 ? Math.round((r.passed / r.totalTests) * 100) : 0,
+      timestamp: r.timestamp,
+    })),
   };
 }
 

@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * ReDoS (Regular Expression Denial of Service) scanner (SB-SEC-009).
  * Detects regex patterns with catastrophic backtracking potential:
@@ -21,7 +22,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".php",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -184,6 +185,8 @@ async function scanFile(filePath) {
 }
 
 async function scanReDoS(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

@@ -231,7 +231,7 @@ async function promptUpgrade(featureName: string): Promise<void> {
 async function authorizePremiumExport(
   reportType: ExportType,
   report: unknown,
-  metadata?: Record<string, unknown>,
+  metadata?: Record<string, unknown>
 ): Promise<{ authorized: boolean; signature?: ServerSignature; error?: string }> {
   if (!PREMIUM_EXPORT_TYPES.has(reportType)) {
     // Basic export — no gate.
@@ -277,9 +277,7 @@ async function authorizePremiumExport(
   const auth = await getExportAuthorization(token, reportType, reportHash, metadata);
   if (!auth.ok || !auth.signature) {
     const msg = auth.error || 'Server signature request failed';
-    vscode.window.showErrorMessage(
-      `${prettyExportName(reportType)} could not be authorized: ${msg}`,
-    );
+    vscode.window.showErrorMessage(`${prettyExportName(reportType)} could not be authorized: ${msg}`);
     return { authorized: false, error: msg };
   }
 
@@ -349,11 +347,12 @@ async function getCurrentUserTier(): Promise<string> {
 
 /** Prompt the user to upgrade to a specific minimum tier. */
 async function promptUpgradeForTier(featureName: string, minTier: string): Promise<void> {
-  const tierLabel = minTier === 'developer' ? 'Developer ($49/mo)' : minTier === 'team' ? 'Team Pro ($149/mo)' : minTier;
+  const tierLabel =
+    minTier === 'developer' ? 'Developer ($49/mo)' : minTier === 'team' ? 'Team Pro ($149/mo)' : minTier;
   const choice = await vscode.window.showInformationMessage(
     `${featureName} requires the ${tierLabel} tier or higher. Upgrade to unlock this export.`,
     'View Pricing',
-    'Maybe Later',
+    'Maybe Later'
   );
   if (choice === 'View Pricing') {
     vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
@@ -1044,15 +1043,20 @@ export function activate(context: vscode.ExtensionContext) {
             if (signedIn && token) {
               setBrowserSessionToken(token);
               await authManager.setToken(token);
-            } else if (!signedIn) {
+            } else if (!signedIn && entry.payload?.explicitSignOut) {
               if (token) {
                 recordBrowserSignOut(token);
               }
               clearBrowserSessionToken();
               await authManager.clearToken();
+            } else if (!signedIn) {
+              return;
             }
           } catch {
             /* auth manager may not be initialized */
+          }
+          if (!signedIn && !entry.payload?.explicitSignOut) {
+            return;
           }
           ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
           // Ensure the auth manager and sidebar UI refresh with the browser-provided token
@@ -2180,9 +2184,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
         try {
           const html = renderEmailTemplate(report, context.extensionPath);
-          const signedHtml = gate.signature
-            ? appendSignatureToHtml(html, gate.signature)
-            : html;
+          const signedHtml = gate.signature ? appendSignatureToHtml(html, gate.signature) : html;
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file('simplebeacon-report.html'),
             filters: { HTML: ['html'] },
@@ -2333,7 +2335,10 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           const { createSession } = await import('./auth/pkce');
           const port = getDataServerPort();
-          const session = createSession(selected, `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/auth-callback`);
+          const session = createSession(
+            selected,
+            `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/auth-callback`
+          );
           const authorizeUrl = `http://127.0.0.1:${port}/api/auth/oauth/authorize?provider=${selected}&redirect_uri=${encodeURIComponent(session.redirectUri || '')}&code_challenge=${session.codeChallenge}&state=${session.state}`;
           await vscode.env.openExternal(vscode.Uri.parse(authorizeUrl));
         } catch (e) {
@@ -3266,10 +3271,17 @@ export function activate(context: vscode.ExtensionContext) {
         // Extension state
         lines.push('--- Extension State ---');
         lines.push(`ModernSidebarProvider registered: ${!!modernSidebarProvider}`);
-        lines.push(`Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`);
-        lines.push(`Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`);
-        lines.push(`Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`);
-        const view = (modernSidebarProvider as unknown as { _view?: vscode.WebviewView & { _isDisposed?: boolean } })._view;
+        lines.push(
+          `Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`
+        );
+        lines.push(
+          `Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`
+        );
+        lines.push(
+          `Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`
+        );
+        const view = (modernSidebarProvider as unknown as { _view?: vscode.WebviewView & { _isDisposed?: boolean } })
+          ._view;
         lines.push(`Webview view set: ${!!view}`);
         if (view) {
           lines.push(`Webview view visible: ${view.visible ?? 'unknown'}`);
@@ -3281,12 +3293,25 @@ export function activate(context: vscode.ExtensionContext) {
         // Configuration
         lines.push('--- Configuration ---');
         const cfg = getSbConfig();
-        const cfgKeys = ['autoScanOnOpen', 'offlineMode', 'showWelcomeOnLoad', 'displayMode', 'analysisProfile', 'maxFiles', 'confidenceThreshold', 'preferredAIProvider', 'enableRealtime', 'preset'];
+        const cfgKeys = [
+          'autoScanOnOpen',
+          'offlineMode',
+          'showWelcomeOnLoad',
+          'displayMode',
+          'analysisProfile',
+          'maxFiles',
+          'confidenceThreshold',
+          'preferredAIProvider',
+          'enableRealtime',
+          'preset',
+        ];
         for (const key of cfgKeys) {
           try {
             const val = cfg.get(key);
             lines.push(`${key}: ${JSON.stringify(val)}`);
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
         const excludePatterns = cfg.get<string[]>('excludePatterns');
         lines.push(`excludePatterns: ${JSON.stringify(excludePatterns)}`);
@@ -3294,7 +3319,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         // API connectivity
         lines.push('--- API Connectivity ---');
-        const apiUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
+        const apiUrl =
+          cfg.get<string>('apiServerUrl') ||
+          cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') ||
+          'http://127.0.0.1:3000';
         lines.push(`Configured API URL: ${apiUrl}`);
         const relayPort = (ModernSidebarProvider as any)._relayPort;
         lines.push(`Relay port: ${relayPort || 'NOT STARTED'}`);
@@ -3315,8 +3343,11 @@ export function activate(context: vscode.ExtensionContext) {
           const globalCli = await new Promise<string>((resolve) => {
             const cp = require('child_process');
             cp.exec('simplebeacon --version', { timeout: 5000 }, (err: any, stdout: string) => {
-              if (err) { resolve('NOT AVAILABLE (' + (err.message || 'error') + ')'); }
-              else { resolve(stdout.trim() || 'empty'); }
+              if (err) {
+                resolve('NOT AVAILABLE (' + (err.message || 'error') + ')');
+              } else {
+                resolve(stdout.trim() || 'empty');
+              }
             });
           });
           lines.push(`Global CLI version: ${globalCli}`);
@@ -3347,7 +3378,9 @@ export function activate(context: vscode.ExtensionContext) {
             if (blocking.length > 0) {
               lines.push(`Blocking findings (first 10):`);
               for (const f of blocking.slice(0, 10)) {
-                lines.push(`  [${f.severity}] ${f.patternId || f.type || 'unknown'}: ${f.file || 'unknown'}:${f.line || '?'} — ${f.message || ''}`);
+                lines.push(
+                  `  [${f.severity}] ${f.patternId || f.type || 'unknown'}: ${f.file || 'unknown'}:${f.line || '?'} — ${f.message || ''}`
+                );
               }
             }
           }
@@ -3386,7 +3419,9 @@ export function activate(context: vscode.ExtensionContext) {
               showQuietMessage('Path copied to clipboard');
             }
           } catch (e) {
-            vscode.window.showErrorMessage(`Failed to save diagnostic log: ${e instanceof Error ? e.message : String(e)}`);
+            vscode.window.showErrorMessage(
+              `Failed to save diagnostic log: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
         }
       }),
@@ -5154,7 +5189,15 @@ async function runScan(
       }, 800);
 
       try {
-        const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory, tier: ModernSidebarProvider.getCachedTier() || '', maxFiles }, agentPort);
+        const report = await scanViaLocalAgent(
+          {
+            projectPath,
+            fullDirectory: options?.fullDirectory,
+            tier: ModernSidebarProvider.getCachedTier() || '',
+            maxFiles,
+          },
+          agentPort
+        );
         clearInterval(agentProgressInterval);
         if (report) {
           const localInv = countLocalDirectoryInventory(projectPath);
@@ -6530,7 +6573,10 @@ async function generateCertificate(report?: unknown) {
       return;
     }
     const signedCertificate = gate.signature
-      ? embedServerSignature(certificate as unknown as Record<string, unknown>, gate.signature) as unknown as CertificateData
+      ? (embedServerSignature(
+          certificate as unknown as Record<string, unknown>,
+          gate.signature
+        ) as unknown as CertificateData)
       : certificate;
 
     const html = buildCertificateHtml(signedCertificate as CertificateData);
@@ -7027,7 +7073,16 @@ async function exportReport(format?: string) {
       });
     } else {
       // Paid tier — full markdown with file paths
-      const score = summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2));
+      const score =
+        summary.qualityScore ??
+        Math.max(
+          0,
+          100 -
+            ((sevCounts.critical || 0) * 25 +
+              (sevCounts.high || 0) * 15 +
+              (sevCounts.medium || 0) * 5 +
+              (sevCounts.low || 0) * 2)
+        );
       const gatePass = r.gate?.pass ?? ((sevCounts.critical || 0) === 0 && (sevCounts.high || 0) === 0 && score >= 80);
       const lines = [
         `# SimpleBeacon Scan Report`,
@@ -7381,9 +7436,7 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
   const reportText = exportAIReport(currentReport, projectRoot, opts);
 
   // Append the server signature block so consumers can verify authenticity.
-  const signatureFooter = gate.signature
-    ? formatSignatureFooter(gate.signature, opts.format)
-    : '';
+  const signatureFooter = gate.signature ? formatSignatureFooter(gate.signature, opts.format) : '';
   const signedReportText = signatureFooter ? reportText + '\n\n' + signatureFooter : reportText;
 
   const action = await vscode.window.showInformationMessage(
@@ -11512,6 +11565,9 @@ async function openPreviewPanel(url: string, title: string) {
         }
       } else if (msg.command === 'setAuthState') {
         // Forward auth state from dashboard iframe to sidebar
+        if (msg.signedIn !== true && !msg.explicitSignOut) {
+          return;
+        }
         const tier = msg.tier || '';
         ModernSidebarProvider.setSidebarAuthState(
           msg.signedIn === true,

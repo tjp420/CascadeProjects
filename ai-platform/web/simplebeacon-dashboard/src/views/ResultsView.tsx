@@ -1,3 +1,4 @@
+import ResultsExportPanel from "@/components/ResultsExportPanel";
 import { useState, useEffect, useMemo } from "react";
 import {
   Card,
@@ -1469,50 +1470,7 @@ export function ResultsView() {
               >
                 <Download className="h-4 w-4" /> JSON Report
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!result && !fullReport) return;
-                  const exportData = fullReport || result;
-                  const model = buildExecutiveBriefModel(exportData, {
-                    client:
-                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
-                      "project",
-                  });
-                  downloadBrowserFile(
-                    `simplebeacon-executive-${Date.now()}.json`,
-                    `${JSON.stringify(model, null, 2)}\n`,
-                    "application/json",
-                  );
-                  toast.success(
-                    `Executive brief JSON (${model.findings.length} findings)`,
-                  );
-                }}
-              >
-                <Download className="h-4 w-4" /> Executive JSON
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!result && !fullReport) return;
-                  const exportData = fullReport || result;
-                  const md = renderExecutiveBriefMarkdown(exportData, {
-                    client:
-                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
-                      "project",
-                  });
-                  downloadBrowserFile(
-                    `simplebeacon-executive-${Date.now()}.md`,
-                    md,
-                    "text/markdown;charset=utf-8",
-                  );
-                  toast.success("Executive brief markdown downloaded");
-                }}
-              >
-                <Download className="h-4 w-4" /> Executive MD
-              </Button>
+              <ResultsExportPanel fullReport={fullReport} result={result} />
               <Button
                 variant="outline"
                 size="sm"

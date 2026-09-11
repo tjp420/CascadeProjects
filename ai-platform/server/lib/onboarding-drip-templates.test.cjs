@@ -12,7 +12,9 @@ describe("onboarding drip templates", () => {
   describe("renderOnboardingDay1", () => {
     it("returns subject, text, and html", () => {
       const result = renderOnboardingDay1({ tier: "developer" });
-      assert.ok(typeof result.subject === "string" && result.subject.length > 0);
+      assert.ok(
+        typeof result.subject === "string" && result.subject.length > 0,
+      );
       assert.ok(typeof result.text === "string" && result.text.length > 0);
       assert.ok(typeof result.html === "string" && result.html.length > 0);
     });
@@ -61,7 +63,9 @@ describe("onboarding drip templates", () => {
   describe("renderOnboardingDay3", () => {
     it("returns subject, text, and html", () => {
       const result = renderOnboardingDay3({ tier: "developer" });
-      assert.ok(typeof result.subject === "string" && result.subject.length > 0);
+      assert.ok(
+        typeof result.subject === "string" && result.subject.length > 0,
+      );
       assert.ok(typeof result.text === "string" && result.text.length > 0);
       assert.ok(typeof result.html === "string" && result.html.length > 0);
     });
@@ -97,7 +101,9 @@ describe("onboarding drip templates", () => {
   describe("renderOnboardingDay7", () => {
     it("returns subject, text, and html", () => {
       const result = renderOnboardingDay7({ tier: "developer" });
-      assert.ok(typeof result.subject === "string" && result.subject.length > 0);
+      assert.ok(
+        typeof result.subject === "string" && result.subject.length > 0,
+      );
       assert.ok(typeof result.text === "string" && result.text.length > 0);
       assert.ok(typeof result.html === "string" && result.html.length > 0);
     });

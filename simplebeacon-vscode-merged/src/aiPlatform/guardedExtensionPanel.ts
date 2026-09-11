@@ -7,7 +7,9 @@ export class GuardedExtensionPanel implements vscode.Disposable {
 
   register(disposable: vscode.Disposable): boolean {
     if (this._isDisposed) {
-      try { disposable.dispose(); } catch (e) {}
+      try {
+        disposable.dispose();
+      } catch (e) {}
       console.warn('GuardedExtensionPanel: rejected registration to already-disposed container');
       return false;
     }
@@ -21,7 +23,11 @@ export class GuardedExtensionPanel implements vscode.Disposable {
     while (this._disposables.length) {
       const d = this._disposables.pop();
       if (d) {
-        try { d.dispose(); } catch (err) { console.error('Error disposing listener', err); }
+        try {
+          d.dispose();
+        } catch (err) {
+          console.error('Error disposing listener', err);
+        }
       }
     }
   }

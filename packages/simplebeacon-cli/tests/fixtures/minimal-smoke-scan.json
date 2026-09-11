@@ -1,0 +1,24 @@
+{
+  "projectPath": "/workspace/target-app",
+  "results": {
+    "simplebeacon": {
+      "scan_summary": {
+        "scan_id": "smoke_test_123"
+      },
+      "gate": {
+        "blockingIssues": [
+          {
+            "id": "mock-eval-danger",
+            "type": "web-security",
+            "severity": "high",
+            "filePath": "src/index.js",
+            "line": 42,
+            "description": "src/index.js:42 — Dynamic code execution sink pattern detected",
+            "metadata": { "patternId": "SB-SEC-001", "match": "eval(" }
+          }
+        ],
+        "warningIssues": []
+      }
+    }
+  }
+}

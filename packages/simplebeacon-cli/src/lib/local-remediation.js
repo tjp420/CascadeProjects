@@ -19,8 +19,7 @@ const { execFileSync } = require("child_process");
 // self-contained.
 // ---------------------------------------------------------------------------
 function resolveSafePath(relativeFilePath, options) {
-  const projectRoot =
-    (options && options.projectRoot) || process.cwd();
+  const projectRoot = (options && options.projectRoot) || process.cwd();
   const fullPath = path.resolve(projectRoot, relativeFilePath);
   const realPath = fs.existsSync(fullPath)
     ? fs.realpathSync(fullPath)
@@ -67,7 +66,12 @@ function verifyFileSyntax(relativeFilePath, options) {
   }
 }
 
-function proposeInlineFix(relativeFilePath, targetText, replacementText, options) {
+function proposeInlineFix(
+  relativeFilePath,
+  targetText,
+  replacementText,
+  options,
+) {
   const fullPath = resolveSafePath(relativeFilePath, options);
   if (!fs.existsSync(fullPath)) {
     throw new Error(

@@ -1264,7 +1264,11 @@ function setupChatbotAPI(app) {
 
       // Build context (same as non-streaming endpoint)
       let contextSuffix = "";
-      if (provider === "ollama" && projectPath && typeof projectPath === "string") {
+      if (
+        provider === "ollama" &&
+        projectPath &&
+        typeof projectPath === "string"
+      ) {
         const cleanPath = path.normalize(projectPath).replace(/["'\r\n]/g, "");
         const scanCtx = await buildScanContext(cleanPath);
         contextSuffix = `\n\n[Project Context]\nPath: ${cleanPath}${scanCtx}`;
@@ -1309,7 +1313,8 @@ function setupChatbotAPI(app) {
         const ollamaModel =
           requestedModel || userCredentials?.ollamaModel || "llama3.2";
         try {
-          const fetch = globalThis.fetch || (await import("node-fetch")).default;
+          const fetch =
+            globalThis.fetch || (await import("node-fetch")).default;
           const response = await fetch(`${ollamaBaseUrl}/api/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1373,7 +1378,10 @@ function setupChatbotAPI(app) {
           });
           return res.end();
         } catch (streamErr) {
-          logger.warn("[Chatbot Stream] Ollama streaming failed, falling back:", streamErr.message);
+          logger.warn(
+            "[Chatbot Stream] Ollama streaming failed, falling back:",
+            streamErr.message,
+          );
           // Fall through to non-streaming fallback
         }
       }
@@ -1431,7 +1439,9 @@ function setupChatbotAPI(app) {
       }
       // If already streaming, send error event
       try {
-        res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
+        res.write(
+          `event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`,
+        );
         res.end();
       } catch {
         // connection already closed

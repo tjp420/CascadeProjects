@@ -216,9 +216,13 @@ async function runLocalInventory(targetPath, scanOptions = {}) {
       "SimpleBeacon inventory is not available; install dependencies and run from the monorepo root",
     );
   }
-  const invOptions = Object.assign({}, buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)));
+  const invOptions = Object.assign(
+    {},
+    buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)),
+  );
   if (scanOptions.tier) invOptions.tier = scanOptions.tier;
-  if (typeof scanOptions.maxFiles === 'number') invOptions.maxFiles = scanOptions.maxFiles;
+  if (typeof scanOptions.maxFiles === "number")
+    invOptions.maxFiles = scanOptions.maxFiles;
   return scannerApi.countRepositoryInventory(targetPath, invOptions);
 }
 
@@ -237,7 +241,8 @@ async function runLocalScan(targetPath, scanOptions = {}) {
     offline: true,
   };
   if (scanOptions.tier) options.tier = scanOptions.tier;
-  if (typeof scanOptions.maxFiles === 'number') options.maxFiles = scanOptions.maxFiles;
+  if (typeof scanOptions.maxFiles === "number")
+    options.maxFiles = scanOptions.maxFiles;
 
   try {
     const report = await scannerApi.runScan(targetPath, options);
@@ -346,12 +351,10 @@ function requireLoopback(req, res, next) {
   const isLoopback =
     remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1";
   if (!isLoopback) {
-    res
-      .status(403)
-      .json({
-        success: false,
-        error: "Forbidden: only localhost connections are allowed",
-      });
+    res.status(403).json({
+      success: false,
+      error: "Forbidden: only localhost connections are allowed",
+    });
     return;
   }
   next();
@@ -395,8 +398,13 @@ app.post("/scan", async (req, res) => {
       req.body?.fullDirectoryScan === true ||
       req.body?.fullDirectoryScan === "true";
     const tier = req.body?.tier || undefined;
-    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
-    const report = await runLocalScan(targetPath, { fullDirectoryScan, tier, maxFiles });
+    const maxFiles =
+      typeof req.body?.maxFiles === "number" ? req.body.maxFiles : undefined;
+    const report = await runLocalScan(targetPath, {
+      fullDirectoryScan,
+      tier,
+      maxFiles,
+    });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
     process.stderr.write(
@@ -425,13 +433,11 @@ app.get("/progress", (req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({ success: true, progress });
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        error: err.message,
-        progress: { active: false },
-      });
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      progress: { active: false },
+    });
   }
 });
 
@@ -447,7 +453,8 @@ app.post("/inventory", async (req, res) => {
       req.body?.fullDirectoryScan === true ||
       req.body?.fullDirectoryScan === "true";
     const tier = req.body?.tier || undefined;
-    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
+    const maxFiles =
+      typeof req.body?.maxFiles === "number" ? req.body.maxFiles : undefined;
     const inventory = await runLocalInventory(targetPath, {
       fullDirectoryScan,
       tier,
@@ -475,7 +482,8 @@ app.post("/summary", async (req, res) => {
     const rawPath = req.body?.projectPath;
     const targetPath = validateTargetPath(rawPath);
     const tier = req.body?.tier || undefined;
-    const maxFiles = typeof req.body?.maxFiles === 'number' ? req.body.maxFiles : undefined;
+    const maxFiles =
+      typeof req.body?.maxFiles === "number" ? req.body.maxFiles : undefined;
     const report = await runLocalScan(targetPath, { tier, maxFiles });
     const summary = toPrivacySummaryReport(report);
     res.json({ success: true, projectPath: targetPath, summary });
@@ -737,7 +745,9 @@ app.post("/chat", async (req, res) => {
         });
       }
     } catch (ollamaErr) {
-      process.stderr.write(`[agent] Ollama chat failed: ${ollamaErr.message}\n`);
+      process.stderr.write(
+        `[agent] Ollama chat failed: ${ollamaErr.message}\n`,
+      );
     }
 
     // Fallback: deterministic response based on scan data
@@ -750,12 +760,15 @@ app.post("/chat", async (req, res) => {
         const gate = report.gate || {};
         fallbackResponse = `Gate status: ${gate.pass === true ? "PASS" : "FAIL"}\nBlocking issues: ${gate.blockingCount ?? 0}\nTotal issues: ${report.issueCount ?? 0}\nQuality score: ${report.qualityScore ?? "N/A"}/100`;
       } else {
-        fallbackResponse = "No scan report found. Run a scan first to check gate status.";
+        fallbackResponse =
+          "No scan report found. Run a scan first to check gate status.";
       }
     } else if (lowerMsg.includes("fix") || lowerMsg.includes("resolve")) {
-      fallbackResponse = "I can help with fixes. Use the /fix endpoint with a findingIndex to get a deterministic patch. Run a scan first to identify findings.";
+      fallbackResponse =
+        "I can help with fixes. Use the /fix endpoint with a findingIndex to get a deterministic patch. Run a scan first to identify findings.";
     } else if (lowerMsg.includes("explain") || lowerMsg.includes("what is")) {
-      fallbackResponse = "I can explain any finding from your scan report. Use the /explain endpoint with a findingIndex to get a detailed explanation.";
+      fallbackResponse =
+        "I can explain any finding from your scan report. Use the /explain endpoint with a findingIndex to get a detailed explanation.";
     } else if (lowerMsg.includes("scan") || lowerMsg.includes("analyze")) {
       fallbackResponse = `Ready to scan ${path.basename(targetPath)}. Use the /scan endpoint to run a full SimpleBeacon scan.`;
     } else {
@@ -795,13 +808,11 @@ app.use((err, req, res, _next) => {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
     }
-    res
-      .status(400)
-      .json({
-        success: false,
-        error: "Invalid JSON body",
-        details: err.message,
-      });
+    res.status(400).json({
+      success: false,
+      error: "Invalid JSON body",
+      details: err.message,
+    });
     return;
   }
   const origin = req.headers.origin;

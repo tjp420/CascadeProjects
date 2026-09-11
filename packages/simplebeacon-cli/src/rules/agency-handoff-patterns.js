@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Agency pre-launch handoff patterns — deploy leaks, auth misconfig, AI telemetry, webhooks, repo integrity.
@@ -106,7 +107,7 @@ function isScannerImplementationPath(relativePath) {
     return true;
   return false;
 }
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const ENV_COMMIT_NAMES = new Set([
   ".env",
@@ -586,6 +587,8 @@ function scanHandoffIntegrity(baseDir) {
 }
 
 async function scanAgencyHandoffPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
@@ -598,7 +601,7 @@ async function scanAgencyHandoffPatterns(baseDir, options = {}) {
   for (const rel of productionPaths) {
     const abs = path.join(baseDir, ...rel.replace(/\/$/, "").split("/"));
     if (fs.existsSync(abs)) {
-      await walkProductionFiles(abs, files);
+      await walkProductionFiles(abs, files, 0, undefined, MAX_SCAN_BYTES);
     }
   }
 

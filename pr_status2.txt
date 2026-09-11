@@ -1,0 +1,3 @@
+ab34ae4690a97567b53f6744607f16a0b28fab31
+ab34ae469 ci(dashboard): add lightweight Vite build verifier and postbuild asset audit
+DONE

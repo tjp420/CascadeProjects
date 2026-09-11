@@ -521,9 +521,7 @@ function getScanPerformanceStats(filters = {}) {
 
   function avg(sortedArr) {
     if (sortedArr.length === 0) return 0;
-    return Math.round(
-      sortedArr.reduce((a, b) => a + b, 0) / sortedArr.length,
-    );
+    return Math.round(sortedArr.reduce((a, b) => a + b, 0) / sortedArr.length);
   }
 
   const totalFilesAnalyzed = scans.reduce(
@@ -532,8 +530,7 @@ function getScanPerformanceStats(filters = {}) {
   );
 
   // Throughput: files per second across all scans with duration
-  const totalDurationSec =
-    durations.reduce((a, b) => a + b, 0) / 1000;
+  const totalDurationSec = durations.reduce((a, b) => a + b, 0) / 1000;
   const throughputFilesPerSecond =
     totalDurationSec > 0
       ? Math.round(totalFilesAnalyzed / totalDurationSec)
@@ -566,9 +563,7 @@ function getScanPerformanceStats(filters = {}) {
     gatePassCount: gatePasses,
     gateFailCount: gateFails,
     gatePassRate:
-      gateTotal > 0
-        ? Math.round((gatePasses / gateTotal) * 1000) / 10
-        : 0,
+      gateTotal > 0 ? Math.round((gatePasses / gateTotal) * 1000) / 10 : 0,
     timeRange: {
       firstScanAt: timestamps[0] || null,
       lastScanAt: timestamps[timestamps.length - 1] || null,

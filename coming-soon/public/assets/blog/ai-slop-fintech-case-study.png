@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lightweight SVG placeholder saved with .png extension to act as a committable stand-in -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">SimpleBeacon case study social image</title>
+  <desc id="desc">Split-screen graphic: left side shows a dimmed code editor with a TODO placeholder boxed in orange; right side shows a terminal alert with the text '🚨 CRITICAL: AI Slop Detected | EU AI Act Article 14 Non-Compliance'. Footer bar contains SimpleBeacon.ai brand and the caption '🔒 100% Local Compliance Scanning | Zero Data Custody'.</desc>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" x2="1">
+      <stop offset="0" stop-color="#0f1724"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <style>
+      .mono { font-family: 'Courier New', Courier, monospace; font-size: 20px; fill: #e6eef8 }
+      .ui { font-family: Inter, 'Segoe UI', Roboto, sans-serif; fill: #ffffff }
+      .muted { fill: #9aa7b9 }
+      .accent { fill: #10B981 }
+      .warn { fill: #F59E0B }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" rx="8" ry="8" fill="url(#bgGrad)" />
+
+  <!-- Left pane (code) -->
+  <g transform="translate(40,40)">
+    <rect width="560" height="470" rx="8" fill="#07101a" opacity="0.95" stroke="#122232"/>
+    <!-- editor header -->
+    <rect x="0" y="0" width="560" height="36" rx="8" fill="#0b2230" />
+    <circle cx="16" cy="18" r="6" fill="#ff5f56" />
+    <circle cx="38" cy="18" r="6" fill="#ffbd2e" />
+    <circle cx="60" cy="18" r="6" fill="#27c93f" />
+
+    <!-- code lines -->
+    <text x="20" y="70" class="mono">// src/lib/protect.js</text>
+    <text x="20" y="110" class="mono">function protectPayload(payload) {'{'} </text>
+    <text x="40" y="150" class="mono muted">// TODO: encrypt payload later</text>
+    <rect x="32" y="136" width="496" height="28" rx="4" fill="none" stroke="#F59E0B" stroke-opacity="0.25"/>
+    <text x="40" y="190" class="mono">  // AI-generated placeholder</text>
+    <text x="40" y="230" class="mono">  return payload;</text>
+    <rect x="32" y="216" width="496" height="28" rx="4" fill="none" stroke="#F59E0B" stroke-opacity="0.25"/>
+    <text x="20" y="280" class="mono muted">}</text>
+
+    <!-- subtle footer note -->
+    <text x="20" y="410" class="muted" font-size="14">Detected: placeholder diagnostics · potential leak</text>
+  </g>
+
+  <!-- Right pane (terminal) -->
+  <g transform="translate(600,40)">
+    <rect width="560" height="470" rx="8" fill="#071018" opacity="0.98" stroke="#122232"/>
+    <rect x="0" y="0" width="560" height="36" rx="8" fill="#08131a" />
+    <text x="20" y="70" class="ui" font-size="20">$ npx simplebeacon triage</text>
+
+    <rect x="20" y="100" width="520" height="120" rx="8" fill="#071018" stroke="#13303a"/>
+    <text x="40" y="140" class="mono" font-size="22">🚨 <tspan class="warn">CRITICAL:</tspan> AI Slop Detected</text>
+    <text x="40" y="170" class="mono">| EU AI Act Article 14 Non-Compliance</text>
+    <text x="40" y="200" class="mono" style="fill:#10B981">↳ 100% Local Scan — Auditor-ready artifacts</text>
+    <text x="40" y="230" class="mono muted">↳ Executive Risk Certificate generated</text>
+
+    <!-- small stats -->
+    <text x="20" y="360" class="muted" font-size="14">Findings: 30 · Critical: 1 · High: 5</text>
+  </g>
+
+  <!-- Footer bar -->
+  <g transform="translate(0,540)">
+    <rect width="1200" height="90" fill="#06121a" />
+    <text x="40" y="595" class="ui" font-size="22">🛡️ SimpleBeacon.ai</text>
+    <text x="380" y="595" class="muted" font-size="18">🔒 100% Local Compliance Scanning | Zero Data Custody</text>
+  </g>
+
+</svg>

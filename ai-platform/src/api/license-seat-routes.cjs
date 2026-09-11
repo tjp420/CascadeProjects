@@ -172,12 +172,10 @@ router.get("/seats", authorize("admin:all"), async (req, res) => {
   try {
     const admin = await resolveAdminLicense(req);
     if (!admin) {
-      return res
-        .status(403)
-        .json({
-          error: "no_license",
-          message: "No active license found for this account",
-        });
+      return res.status(403).json({
+        error: "no_license",
+        message: "No active license found for this account",
+      });
     }
 
     // In Express backend, env.LICENSE_STORE is not available — use process-level mock
@@ -222,22 +220,18 @@ router.post("/seats/invite", authorize("admin:all"), async (req, res) => {
   try {
     const { email } = req.body || {};
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res
-        .status(400)
-        .json({
-          error: "valid_email_required",
-          message: "A valid email is required",
-        });
+      return res.status(400).json({
+        error: "valid_email_required",
+        message: "A valid email is required",
+      });
     }
 
     const admin = await resolveAdminLicense(req);
     if (!admin) {
-      return res
-        .status(403)
-        .json({
-          error: "no_license",
-          message: "No active license found for this account",
-        });
+      return res.status(403).json({
+        error: "no_license",
+        message: "No active license found for this account",
+      });
     }
 
     const env = req.app.locals.licenseEnv || null;
@@ -319,53 +313,43 @@ router.delete(
     try {
       const { seatId } = req.params;
       if (!seatId || !/^seat_[a-f0-9]{12}$/.test(seatId)) {
-        return res
-          .status(400)
-          .json({
-            error: "invalid_seat_id",
-            message: "Invalid seat ID format",
-          });
+        return res.status(400).json({
+          error: "invalid_seat_id",
+          message: "Invalid seat ID format",
+        });
       }
 
       const admin = await resolveAdminLicense(req);
       if (!admin) {
-        return res
-          .status(403)
-          .json({
-            error: "no_license",
-            message: "No active license found for this account",
-          });
+        return res.status(403).json({
+          error: "no_license",
+          message: "No active license found for this account",
+        });
       }
 
       const env = req.app.locals.licenseEnv || null;
       const seatData = await readSeatStore(env, admin.licenseKey);
       if (!seatData) {
-        return res
-          .status(404)
-          .json({
-            error: "seat_not_found",
-            message: "No seat data found for this license",
-          });
+        return res.status(404).json({
+          error: "seat_not_found",
+          message: "No seat data found for this license",
+        });
       }
 
       const seatIdx = seatData.seats.findIndex((s) => s.seatId === seatId);
       if (seatIdx === -1) {
-        return res
-          .status(404)
-          .json({
-            error: "seat_not_found",
-            message: `Seat ${seatId} not found in this license`,
-          });
+        return res.status(404).json({
+          error: "seat_not_found",
+          message: `Seat ${seatId} not found in this license`,
+        });
       }
 
       // Prevent revoking your own admin seat
       if (seatData.seats[seatIdx].email === admin.email) {
-        return res
-          .status(400)
-          .json({
-            error: "cannot_revoke_self",
-            message: "You cannot revoke your own admin seat",
-          });
+        return res.status(400).json({
+          error: "cannot_revoke_self",
+          message: "You cannot revoke your own admin seat",
+        });
       }
 
       const revokedSeat = seatData.seats[seatIdx];

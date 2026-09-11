@@ -337,7 +337,11 @@ export function clearAuthAndRedirect(): void {
 export function getHostedCloudApiBase(): string {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname || "";
-  if (host === "simplebeacon.ai" || host.endsWith(".simplebeacon.pages.dev")) {
+  if (
+    host === "simplebeacon.ai" ||
+    host === "www.simplebeacon.ai" ||
+    host.endsWith(".simplebeacon.pages.dev")
+  ) {
     return window.location.origin;
   }
   return "";
@@ -390,12 +394,15 @@ export function apiUrl(
   path: string,
   options?: { preferCloud?: boolean },
 ): string {
+  const segment = String(path || "").replace(/^\/+/, "");
+  if (typeof window !== "undefined" && isHostedMarketingDashboard()) {
+    return segment ? `/api/${segment}` : "/api";
+  }
   const cloud = options?.preferCloud ? getHostedCloudApiBase() : "";
   const base = cloud || getApiBase() || "";
   const normalized = String(base)
     .replace(/\/+$/, "")
     .replace(/\/api$/i, "");
-  const segment = String(path || "").replace(/^\/+/, "");
   if (!segment) return normalized || "/";
   if (normalized) return `${normalized}/api/${segment}`;
   return `/api/${segment}`;

@@ -333,6 +333,10 @@ export async function fetchAnalyzeProviders(options = {}) {
  */
 export async function analyzePath(projectPath, options = {}) {
   const timeoutMs = options.timeoutMs ?? 0;
+  // Client-side validation: avoid calling server with an empty/invalid projectPath
+  if (!projectPath || typeof projectPath !== 'string' || projectPath.trim() === '') {
+    throw new Error('Invalid projectPath: select a folder, enter a repo URL, or use Select Folder to run a local scan.');
+  }
   const data = await fetchJsonWithGuidance(
     "/api/analyze/flexible",
     {

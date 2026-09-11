@@ -130,8 +130,8 @@ simplebeacon-airgap-v1.tar.gz
 
 ### Required models
 
-| Model Name                | Base Model                | Purpose                                    |
-| ------------------------- | ------------------------- | ------------------------------------------ |
+| Model Name                | Base Model                         | Purpose                                    |
+| ------------------------- | ---------------------------------- | ------------------------------------------ |
 | `unbreakable-oracle`      | `llama3.2:3b-instruct-q4_K_M`      | Primary inference (smoke test + benchmark) |
 | `simplebeacon-llama32`    | `llama3.2:3b-instruct-q4_K_M`      | General-purpose LLM                        |
 | `simplebeacon-mistral`    | `mistral:7b-instruct-q4_K_M`       | Advanced reasoning                         |

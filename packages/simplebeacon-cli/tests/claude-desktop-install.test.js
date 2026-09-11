@@ -25,7 +25,13 @@ function createFakeHome() {
  */
 function getExpectedConfigPath(fakeHome) {
   if (process.platform === "darwin") {
-    return path.join(fakeHome, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+    return path.join(
+      fakeHome,
+      "Library",
+      "Application Support",
+      "Claude",
+      "claude_desktop_config.json",
+    );
   }
   if (process.platform === "win32") {
     return path.join(fakeHome, "Claude", "claude_desktop_config.json");
@@ -94,8 +100,7 @@ describe("buildClaudeDesktopMcpJson", () => {
   test("includes SIMPLEBEACON_PROJECT_ROOT env var", () => {
     const json = buildClaudeDesktopMcpJson();
     assert.ok(
-      json.mcpServers.simplebeacon.env.SIMPLEBEACON_PROJECT_ROOT !==
-        undefined,
+      json.mcpServers.simplebeacon.env.SIMPLEBEACON_PROJECT_ROOT !== undefined,
     );
   });
 });
@@ -182,7 +187,11 @@ describe("installClaudeDesktopMcpConfig", () => {
         },
       },
     };
-    fs.writeFileSync(configPath, JSON.stringify(existingConfig, null, 2), "utf8");
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(existingConfig, null, 2),
+      "utf8",
+    );
 
     const result = installClaudeDesktopMcpConfig("/fake/project", {
       mode: "npx-local",
@@ -195,10 +204,7 @@ describe("installClaudeDesktopMcpConfig", () => {
     // Third-party servers must be preserved
     assert.ok(config.mcpServers["third-party-tool"]);
     assert.equal(config.mcpServers["third-party-tool"].command, "node");
-    assert.equal(
-      config.mcpServers["third-party-tool"].env.API_KEY,
-      "existing",
-    );
+    assert.equal(config.mcpServers["third-party-tool"].env.API_KEY, "existing");
 
     assert.ok(config.mcpServers["another-server"]);
     assert.equal(config.mcpServers["another-server"].command, "python");
@@ -242,7 +248,10 @@ describe("installClaudeDesktopMcpConfig", () => {
     assert.ok(result.wouldWrite);
 
     const configPath = getExpectedConfigPath(fakeHome);
-    assert.ok(!fs.existsSync(configPath), "No file should be written in dry-run");
+    assert.ok(
+      !fs.existsSync(configPath),
+      "No file should be written in dry-run",
+    );
   });
 
   test("dry-run merge shows wouldWrite content", () => {
@@ -269,7 +278,10 @@ describe("installClaudeDesktopMcpConfig", () => {
     // Verify the existing file was NOT modified
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     assert.ok(config.mcpServers["existing-tool"]);
-    assert.ok(!config.mcpServers.simplebeacon, "simplebeacon should not be added in dry-run");
+    assert.ok(
+      !config.mcpServers.simplebeacon,
+      "simplebeacon should not be added in dry-run",
+    );
   });
 
   test("creates config directory if it does not exist", () => {

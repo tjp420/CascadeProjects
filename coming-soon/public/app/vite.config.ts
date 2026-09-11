@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: "assets",
-      sourcemap: true,
+      sourcemap: false,
       rollupOptions: {
         input: "src/main.tsx",
         output: {

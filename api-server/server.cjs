@@ -33,7 +33,9 @@ try {
   }
 } catch (e) {
   // .env missing or unreadable — proceed with process.env but log for diagnostics
-  try { logger.info('[Env] .env file not found or unreadable, using process.env'); } catch (__) {}
+  try {
+    logger.info("[Env] .env file not found or unreadable, using process.env");
+  } catch (__) {}
 }
 
 // Ensure critical env vars have fallbacks for local dev
@@ -284,7 +286,7 @@ try {
     async (req, res) => {
       try {
         const projectPath = req.body?.projectPath || path.join(__dirname, "..");
-        const tier = String(req.body?.tier || req.user?.tier || 'starter');
+        const tier = String(req.body?.tier || req.user?.tier || "starter");
         const result = await runSimplebeaconScan(projectPath, {
           fullDirectoryScan: req.body?.fullDirectoryScan !== false,
           format: "json",
@@ -834,12 +836,10 @@ app.post(
     try {
       const { projectPath, report } = req.body || {};
       if (!projectPath || !report) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: "projectPath and report are required",
-          });
+        return res.status(400).json({
+          success: false,
+          error: "projectPath and report are required",
+        });
       }
       const targetDir = path.resolve(projectPath);
       const sbDir = path.join(targetDir, ".simplebeacon");

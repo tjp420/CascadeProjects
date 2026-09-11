@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Fast comprehensive scanner — string-based checks, no expensive regexes.
@@ -9,7 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const MAX_SCAN_BYTES = 256000; // smaller limit = faster
+let MAX_SCAN_BYTES = 512000;
 
 // Simple string-includes checks (extremely fast)
 const STRING_CHECKS = [
@@ -413,6 +414,8 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
 }
 
 async function scanComprehensive(uniqueFiles, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   let scannedCount = 0;
   const ruleCounters = {};

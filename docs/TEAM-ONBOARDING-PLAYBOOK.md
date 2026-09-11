@@ -8,12 +8,12 @@ This guide walks a new engineering team through installing SimpleBeacon's local 
 
 ## Prerequisites
 
-| Requirement | Minimum | Recommended |
-|-------------|---------|-------------|
-| Node.js | 18.0.0 | 22.x LTS |
-| npm | 9.0.0 | 10.x |
-| Git | 2.20+ | 2.40+ |
-| Operating System | macOS, Linux, or Windows | Any |
+| Requirement      | Minimum                  | Recommended |
+| ---------------- | ------------------------ | ----------- |
+| Node.js          | 18.0.0                   | 22.x LTS    |
+| npm              | 9.0.0                    | 10.x        |
+| Git              | 2.20+                    | 2.40+       |
+| Operating System | macOS, Linux, or Windows | Any         |
 
 No API keys, no cloud credentials, no external network access needed.
 
@@ -41,11 +41,11 @@ git commit -m "chore: add SimpleBeacon gate config"
 
 ### Available Profiles
 
-| Profile | Use Case |
-|---------|----------|
-| `minimal` | Small repos, no sample JSON, minimal rules |
-| `standard` | General-purpose projects (default) |
-| `cascade` | Large monorepos with multiple workspaces |
+| Profile     | Use Case                                                |
+| ----------- | ------------------------------------------------------- |
+| `minimal`   | Small repos, no sample JSON, minimal rules              |
+| `standard`  | General-purpose projects (default)                      |
+| `cascade`   | Large monorepos with multiple workspaces                |
 | `eu-ai-act` | Projects needing EU AI Act Annex III compliance mapping |
 
 For enterprise compliance teams:
@@ -82,13 +82,13 @@ Output should show the planned hook path and `kind: git` or `kind: husky`.
 
 ### Hook options
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--type pre-commit\|pre-push` | Which hook to install | `pre-commit` |
-| `--fail-on high` | Gate severity that blocks the commit | `high` |
-| `--with-jest` | Include Jest baseline check in the hook | Off |
-| `--husky` | Force `.husky/` directory even if not yet created | Auto-detect |
-| `--dry-run` | Preview without writing files | Off |
+| Flag                          | Description                                       | Default      |
+| ----------------------------- | ------------------------------------------------- | ------------ |
+| `--type pre-commit\|pre-push` | Which hook to install                             | `pre-commit` |
+| `--fail-on high`              | Gate severity that blocks the commit              | `high`       |
+| `--with-jest`                 | Include Jest baseline check in the hook           | Off          |
+| `--husky`                     | Force `.husky/` directory even if not yet created | Auto-detect  |
+| `--dry-run`                   | Preview without writing files                     | Off          |
 
 ### Pre-push hook (optional, stricter)
 
@@ -200,14 +200,14 @@ rm test-secret.js
 
 ## What the Gate Scans For
 
-| Category | Examples | Severity |
-|----------|----------|----------|
-| **Credential leaks** | Hardcoded API keys, AWS secrets, Stripe keys | High (blocks) |
-| **Production leaks** | Mock/sample JSON imported in production routes | High (blocks) |
-| **AI fiction KPIs** | Fabricated metrics, placeholder completion rates | High (blocks) |
-| **LLM slop** | Markdown fences in source, "TODO: implement" placeholders | Medium |
-| **Security patterns** | `REQUIRE_AUTH=false`, wildcard CORS, privileged Docker | Medium |
-| **EU AI Act** | Missing human oversight, missing FRIA for high-risk AI | Medium |
+| Category              | Examples                                                  | Severity      |
+| --------------------- | --------------------------------------------------------- | ------------- |
+| **Credential leaks**  | Hardcoded API keys, AWS secrets, Stripe keys              | High (blocks) |
+| **Production leaks**  | Mock/sample JSON imported in production routes            | High (blocks) |
+| **AI fiction KPIs**   | Fabricated metrics, placeholder completion rates          | High (blocks) |
+| **LLM slop**          | Markdown fences in source, "TODO: implement" placeholders | Medium        |
+| **Security patterns** | `REQUIRE_AUTH=false`, wildcard CORS, privileged Docker    | Medium        |
+| **EU AI Act**         | Missing human oversight, missing FRIA for high-risk AI    | Medium        |
 
 ---
 

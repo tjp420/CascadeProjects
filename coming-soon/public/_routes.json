@@ -19,6 +19,7 @@
         "/dashboard/images/*",
         "/dashboard/fonts/*",
         "/dashboard/assets/main-v30min.js",
+        "/dashboard/assets/v2-*",
         "/dashboard/dist/assets/*",
         "/dashboard/dist/*.css",
         "/dashboard/dist/*.js",

@@ -794,15 +794,10 @@ function formatJsonReport(report, gateResult = null) {
   };
 
   // === Quality scorecard — 6 dimensions (ported from browser localScanService.js) ===
-  const blockingCount = enrichedGate.blockingCount || 0;
   const mockCount = report.mockSampleFiles || 0;
-  const mediumCount = report.severityCounts?.medium || 0;
-  const qualityScorecard = report.qualityScorecard || {
-    accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+  const qualityScorecard = {
     completeness: totalFiles >= 3 ? 100 : Math.round((totalFiles / 3) * 100),
-    consistency: mediumCount === 0 ? 100 : Math.max(0, 100 - mediumCount * 5),
     timeliness: 100,
-    validity: report.qualityScore || 0,
     integrity: mockCount === 0 ? 100 : Math.max(0, 100 - mockCount * 10),
   };
 
@@ -819,11 +814,19 @@ function formatJsonReport(report, gateResult = null) {
   const enrichedDetectedIssues = enrichFindingsWithAlerts(
     report.detectedIssues || [],
   );
+  const enrichedQualityIssues = enrichFindingsWithAlerts(
+    report.qualityIssues || [],
+  );
 
   const payload = reconcileScanReport({
     ...report,
     rawIssues: enrichedRawIssues,
     detectedIssues: enrichedDetectedIssues,
+    qualityIssues: enrichedQualityIssues,
+    contextLanes: report.contextLanes || {
+      production: enrichedRawIssues.length,
+      quality: enrichedQualityIssues.length,
+    },
     gate: enrichedGate,
     consolidation,
     codebase,

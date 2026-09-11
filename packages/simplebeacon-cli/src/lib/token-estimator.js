@@ -23,11 +23,33 @@ const BASE_CHARS_PER_TOKEN = 4.0;
 const CODE_DENSITY_MULTIPLIER = 0.85; // i.e. ~3.4 chars/token for code
 
 const CODE_EXTENSIONS = new Set([
-  ".js", ".ts", ".jsx", ".tsx", ".cjs", ".mjs",
-  ".py", ".java", ".go", ".rs", ".rb", ".php",
-  ".c", ".cpp", ".h", ".hpp", ".cs", ".swift",
-  ".kt", ".scala", ".clj", ".sh", ".bash", ".ps1",
-  ".sql", ".vue", ".svelte",
+  ".js",
+  ".ts",
+  ".jsx",
+  ".tsx",
+  ".cjs",
+  ".mjs",
+  ".py",
+  ".java",
+  ".go",
+  ".rs",
+  ".rb",
+  ".php",
+  ".c",
+  ".cpp",
+  ".h",
+  ".hpp",
+  ".cs",
+  ".swift",
+  ".kt",
+  ".scala",
+  ".clj",
+  ".sh",
+  ".bash",
+  ".ps1",
+  ".sql",
+  ".vue",
+  ".svelte",
 ]);
 
 /**
@@ -64,7 +86,8 @@ function estimateTokens(text, options = {}) {
 function looksLikeCode(text) {
   if (!text) return false;
   const sample = text.slice(0, 2000);
-  const codeSignals = /[{};=>]|function |const |let |var |import |class |def |return /;
+  const codeSignals =
+    /[{};=>]|function |const |let |var |import |class |def |return /;
   const proseSignals = /\b(the|and|with|that|this|from|for)\b\s+[a-z]/i;
   let score = 0;
   if (codeSignals.test(sample)) score += 2;
@@ -114,7 +137,12 @@ function estimatePromptTokens(prompt, options = {}) {
  */
 function trimContext(context, budgetTokens, options = {}) {
   if (!context) {
-    return { trimmed: "", originalTokens: 0, trimmedTokens: 0, droppedLines: 0 };
+    return {
+      trimmed: "",
+      originalTokens: 0,
+      trimmedTokens: 0,
+      droppedLines: 0,
+    };
   }
   const originalTokens = estimateTokens(context, options);
   if (originalTokens <= budgetTokens) {
@@ -197,7 +225,8 @@ function lineSignalScore(line) {
   // Type annotations / generics.
   if (/[:<>\[\]{},]/.test(trimmed)) score += 1;
   // Long string literals are low-signal.
-  const strLitRatio = (trimmed.match(/["'`]/g) || []).length / Math.max(1, trimmed.length);
+  const strLitRatio =
+    (trimmed.match(/["'`]/g) || []).length / Math.max(1, trimmed.length);
   if (strLitRatio > 0.08 && trimmed.length > 60) score -= 2;
   // Very long lines are slightly penalized.
   if (trimmed.length > 200) score -= 1;

@@ -156,8 +156,91 @@ const { getLimits } = require("../../../coming-soon/lib/plans.cjs");
 // note: coming-soon is a sibling package, kept as-is since it is not part of simplebeacon-cli
 const { buildRoadmapFromPath } = require("./lib/flexible-analyze-roadmap.cjs");
 
-// In-memory async scan jobs for /api/analyze/upload-directory polling
+// In-memory async scan jobs for /api/analyze/upload-directory polling.
+// Also snapshotted to tmp so a Render restart can return a clear error
+// instead of a bare 404 on the next progress poll.
 const scanJobs = new Map();
+const SCAN_JOBS_DIR = path.join(os.tmpdir(), "simplebeacon-scan-jobs");
+const SCAN_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function persistScanJob(id, job) {
+  const safeId = String(id || "");
+  if (!SCAN_ID_RE.test(safeId) || !job || typeof job !== "object") return;
+  try {
+    fs.mkdirSync(SCAN_JOBS_DIR, { recursive: true });
+    const snapshot = { ...job, pid: process.pid };
+    delete snapshot.reportJson;
+    if (job.status === "complete" && job.reportJson) snapshot.hasReport = true;
+    fs.writeFileSync(
+      path.join(SCAN_JOBS_DIR, `${safeId}.json`),
+      JSON.stringify(snapshot),
+    );
+    if (job.status === "complete" && job.reportJson) {
+      fs.writeFileSync(
+        path.join(SCAN_JOBS_DIR, `${safeId}.report.json`),
+        JSON.stringify(job.reportJson),
+      );
+    }
+  } catch (err) {
+    logger.warn("[scanJobs] persist failed:", err && err.message);
+  }
+}
+
+function readPersistedScanJob(id) {
+  const safeId = String(id || "");
+  if (!SCAN_ID_RE.test(safeId)) return null;
+  try {
+    const snapshot = JSON.parse(
+      fs.readFileSync(path.join(SCAN_JOBS_DIR, `${safeId}.json`), "utf8"),
+    );
+    if (
+      snapshot.status === "scanning" &&
+      snapshot.pid &&
+      snapshot.pid !== process.pid
+    ) {
+      return {
+        ...snapshot,
+        status: "error",
+        error:
+          "Scan interrupted because the server restarted. Retry the scan, or run: npx simplebeacon scan --gate --offline",
+      };
+    }
+    if (snapshot.hasReport && !snapshot.reportJson) {
+      try {
+        snapshot.reportJson = JSON.parse(
+          fs.readFileSync(
+            path.join(SCAN_JOBS_DIR, `${safeId}.report.json`),
+            "utf8",
+          ),
+        );
+      } catch {
+        /* report missing */
+      }
+    }
+    return snapshot;
+  } catch {
+    return null;
+  }
+}
+
+function getScanJob(id) {
+  return scanJobs.get(id) || readPersistedScanJob(id);
+}
+
+function resolveClientScanId(body) {
+  const requested = String((body && body.scanId) || "").trim();
+  return SCAN_ID_RE.test(requested) ? requested : crypto.randomUUID();
+}
+
+const _scanJobsSet = scanJobs.set.bind(scanJobs);
+scanJobs.set = (id, job) => {
+  const withPid =
+    job && typeof job === "object" ? { ...job, pid: process.pid } : job;
+  const result = _scanJobsSet(id, withPid);
+  persistScanJob(id, withPid);
+  return result;
+};
 const SCAN_JOB_TTL_MS = 35 * constants.ONE_MINUTE_MS; // 35 minutes (covers large repo scans up to 30min + post-processing)
 const _scanJobCleanupInterval = setInterval(() => {
   // simplebeacon-ignore memory-leak — server-side job cleanup timer, process lifetime
@@ -766,14 +849,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
 
         // Use async job pattern to avoid Render/Cloudflare proxy timeout (60s)
-        const asyncScanId = crypto.randomUUID();
-        const fileCount = await countFiles(projectPath);
+        const asyncScanId = resolveClientScanId(body);
         scanJobs.set(asyncScanId, {
           status: "scanning",
           current: 0,
-          total: fileCount,
+          total: 0,
           percent: 0,
           createdAt: Date.now(),
+          filename: "Starting scan…",
+        });
+        const fileCount = await countFiles(projectPath);
+        scanJobs.set(asyncScanId, {
+          ...scanJobs.get(asyncScanId),
+          total: fileCount,
           filename: safeBasename(projectPath),
         });
 
@@ -923,27 +1011,32 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         );
         // Return 202 immediately. Render and Cloudflare both cut hanging
         // POSTs at ~30s, which is why hosted dashboard scans were 502.
-        const asyncScanId = crypto.randomUUID();
-        const fileCount = await countFiles(projectPath);
+        const asyncScanId = resolveClientScanId(req.body);
         scanJobs.set(asyncScanId, {
           status: "scanning",
           current: 0,
-          total: fileCount,
+          total: 0,
           percent: 0,
           createdAt: Date.now(),
-          filename: safeBasename(projectPath),
+          filename: "Starting scan…",
         });
 
         const userTier = req.user?.tier || req.body?.tier || "starter";
 
         (async () => {
           const startedAt = Date.now();
+          let fileCount = 0;
           const updateJob = (patch) => {
             const job = scanJobs.get(asyncScanId);
             if (!job || job.status !== "scanning") return;
             scanJobs.set(asyncScanId, { ...job, ...patch });
           };
           try {
+            fileCount = await countFiles(projectPath);
+            updateJob({
+              total: fileCount,
+              filename: safeBasename(projectPath),
+            });
         const results = {};
         const enginesRun = [];
 
@@ -1219,7 +1312,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
           asyncScan: true,
           scanId: asyncScanId,
           status: "scanning",
-          total: fileCount,
+          total: 0,
           message:
             "Complete scan started. Poll /api/analyze/progress?scanId=... for results.",
         });
@@ -2681,7 +2774,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     res.setHeader("Expires", "0");
     res.set("etag", false);
     const scanId = String(req.query.scanId || "");
-    const job = scanJobs.get(scanId);
+    const job = getScanJob(scanId);
     if (!job) {
       return sendError(res, 404, "Scan not found");
     }
@@ -3849,6 +3942,43 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
   const githubCloneJobs = new Map();
 
+  function cloneJobFile(jobId) {
+    const id = String(jobId || "")
+      .replace(/[^a-f0-9]/gi, "")
+      .slice(0, 16);
+    if (id.length !== 16) return null;
+    return path.join(os.tmpdir(), "sb-github-cache", `${id}.job.json`);
+  }
+
+  function saveCloneJob(jobId, job) {
+    githubCloneJobs.set(jobId, job);
+    const file = cloneJobFile(jobId);
+    if (!file) return;
+    try {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ ...job, updatedAt: Date.now() }),
+      );
+    } catch {
+      /* tmpfs write is best-effort */
+    }
+  }
+
+  function loadCloneJob(jobId) {
+    const mem = githubCloneJobs.get(jobId);
+    if (mem) return mem;
+    const file = cloneJobFile(jobId);
+    if (!file) return null;
+    try {
+      const job = JSON.parse(fs.readFileSync(file, "utf8"));
+      githubCloneJobs.set(jobId, job);
+      return job;
+    } catch {
+      return null;
+    }
+  }
+
   async function performGithubClone(parsedRepo, projectPath, cacheDir) {
     await fs.promises.mkdir(cacheDir, { recursive: true });
     const cacheExists = await fs.promises
@@ -3879,7 +4009,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
   app.get("/api/analyze/github-clone/status", (req, res) => {
     const jobId = String(req.query.jobId || "").trim();
     if (!jobId) return sendError(res, 400, "jobId is required");
-    const job = githubCloneJobs.get(jobId);
+    const job = loadCloneJob(jobId);
     if (!job) return sendError(res, 404, "Clone job not found");
     if (job.status === "running") {
       return res.json({ success: true, pending: true, jobId });
@@ -3923,13 +4053,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         .then(() => true)
         .catch(() => false);
       if (!refresh && cacheExists) {
+        saveCloneJob(cacheKey, {
+          status: "done",
+          projectPath,
+          cached: true,
+          method: "cache",
+        });
         return res.json({ success: true, projectPath, cached: true });
       }
-      const existing = githubCloneJobs.get(cacheKey);
+      const existing = loadCloneJob(cacheKey);
       if (existing && existing.status === "running") {
         return res.json({ success: true, pending: true, jobId: cacheKey });
       }
-      githubCloneJobs.set(cacheKey, { status: "running", projectPath });
+      saveCloneJob(cacheKey, { status: "running", projectPath });
 
       const runJob = async () => {
         try {
@@ -3938,14 +4074,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             projectPath,
             cacheDir,
           );
-          githubCloneJobs.set(cacheKey, {
+          saveCloneJob(cacheKey, {
             status: "done",
             projectPath,
             method,
             cached: false,
           });
         } catch (err) {
-          githubCloneJobs.set(cacheKey, {
+          saveCloneJob(cacheKey, {
             status: "error",
             error: safeErrorMessage(err) || "GitHub clone failed",
           });
@@ -3954,7 +4090,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
       if (waitForClone) {
         await runJob();
-        const job = githubCloneJobs.get(cacheKey);
+        const job = loadCloneJob(cacheKey);
         if (job.status === "error") {
           return sendError(res, 500, job.error);
         }

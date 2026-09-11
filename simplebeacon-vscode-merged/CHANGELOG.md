@@ -1,5 +1,17 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.581] - 2026-09-05
+
+### Fixed
+
+- **Local dashboard 404s** — Cloud-only `/api/*` routes now return local empty payloads from the extension data server instead of breaking the React dashboard.
+- **Theme flip on load** — The local dashboard defaults to dark. An empty `POST /api/theme` no longer toggles light/dark.
+- **Asset MIME types** — Dashboard JS and CSS are served with the correct Content-Type so the browser no longer blocks module scripts.
+
+### Changed
+
+- Marketplace listing and download fallbacks now point at 3.0.581.
+
 ## [3.0.580] - 2026-09-04
 
 ### Fixed

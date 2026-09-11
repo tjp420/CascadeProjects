@@ -580,13 +580,11 @@ app.post("/api/ai-context", express.json({ limit: "10mb" }), (req, res) => {
 });
 
 app.get("/health", (_req, res) => {
-  res
-    .status(200)
-    .json({
-      status: "ok",
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-    });
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.get("/api/health", (_req, res) => {
@@ -1126,7 +1124,21 @@ if (landingRootExists) {
     const page = req.params.page;
     if (!page || page.includes("/") || page.includes(".")) return next();
     // Skip paths already handled by explicit routes
-    const alreadyHandled = ["pricing", "roadmap", "audit", "terms", "privacy", "refund", "community", "landing", "demo", "dashboard", "app", "signin", "admin"].includes(page);
+    const alreadyHandled = [
+      "pricing",
+      "roadmap",
+      "audit",
+      "terms",
+      "privacy",
+      "refund",
+      "community",
+      "landing",
+      "demo",
+      "dashboard",
+      "app",
+      "signin",
+      "admin",
+    ].includes(page);
     if (alreadyHandled) return next();
     if (sendLandingFile(res, `${page}.html`, "text/html")) return;
     next();
@@ -1267,13 +1279,22 @@ if (landingRootExists) {
           .json({ error: "A valid email address is required." });
       }
 
-      const company = String(data.company || "").trim().slice(0, 200);
-      const teamSize = String(data.teamSize || "").trim().slice(0, 50);
-      const useCase = String(data.useCase || "").trim().slice(0, 500);
+      const company = String(data.company || "")
+        .trim()
+        .slice(0, 200);
+      const teamSize = String(data.teamSize || "")
+        .trim()
+        .slice(0, 50);
+      const useCase = String(data.useCase || "")
+        .trim()
+        .slice(0, 500);
 
       // File-based store (same pattern as /api/waitlist above)
       const earlyAccessDir = path.join(__dirname, "data");
-      const earlyAccessFile = path.join(earlyAccessDir, "early-access-signups.json");
+      const earlyAccessFile = path.join(
+        earlyAccessDir,
+        "early-access-signups.json",
+      );
       try {
         await fs.promises.mkdir(earlyAccessDir, { recursive: true });
         let rows = [];
@@ -1285,9 +1306,7 @@ if (landingRootExists) {
           /* file does not exist yet */
         }
         if (
-          !rows.some(
-            (r) => r && typeof r === "object" && r.email === email,
-          )
+          !rows.some((r) => r && typeof r === "object" && r.email === email)
         ) {
           rows.push({
             email,
@@ -1350,10 +1369,7 @@ if (landingRootExists) {
         message: "You're on the list! Check your email for confirmation.",
       });
     } catch (err) {
-      logger.error(
-        "[early-access] Unexpected error:",
-        safeErrorMessage(err),
-      );
+      logger.error("[early-access] Unexpected error:", safeErrorMessage(err));
       res.status(500).json({ error: "Failed to join waitlist" });
     }
   });
@@ -1981,9 +1997,14 @@ async function startServer() {
   try {
     const authInlineRoutes = require("./server/routes/auth-inline-routes.cjs");
     app.use("/api", authInlineRoutes);
-    logger.info("[Routes] Auth inline routes loaded at /api (sign-report, verify-signature)");
+    logger.info(
+      "[Routes] Auth inline routes loaded at /api (sign-report, verify-signature)",
+    );
   } catch (err) {
-    logger.error("[Routes] Auth inline routes not loaded:", err?.message || err);
+    logger.error(
+      "[Routes] Auth inline routes not loaded:",
+      err?.message || err,
+    );
   }
 
   // SSO auth handler — OIDC + SAML 2.0 protocol flows
@@ -2219,12 +2240,10 @@ async function startServer() {
         "[AdminRoute] Improvement report failed: " +
           (error && error.message ? error.message : error),
       );
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Could not generate improvement report",
-        });
+      return res.status(500).json({
+        success: false,
+        error: "Could not generate improvement report",
+      });
     }
   });
 
@@ -2271,14 +2290,13 @@ async function startServer() {
           });
         }
 
-        const { generateLicenseToken } = require("./server/lib/simplebeacon-proxy.cjs");
+        const {
+          generateLicenseToken,
+        } = require("./server/lib/simplebeacon-proxy.cjs");
         const { insertLicenseToken } = require("./server/lib/token-db.cjs");
 
         const tier = String(targetTier).toLowerCase();
-        const ttlMinutes = Math.min(
-          525600,
-          Math.max(1, Number(days) * 1440),
-        );
+        const ttlMinutes = Math.min(525600, Math.max(1, Number(days) * 1440));
 
         const features =
           tier === "enterprise" ||
@@ -2368,13 +2386,12 @@ async function startServer() {
 
           emailSent = !!(emailResult.sent || emailResult.queued);
           if (!emailSent) {
-            emailError = emailResult.error || "Email could not be sent or queued";
+            emailError =
+              emailResult.error || "Email could not be sent or queued";
           }
         } catch (sendErr) {
           emailError = sendErr.message;
-          logger.error(
-            "[AdminLicense] Email send failed: " + sendErr.message,
-          );
+          logger.error("[AdminLicense] Email send failed: " + sendErr.message);
         }
 
         logger.info(
@@ -2511,13 +2528,10 @@ async function startServer() {
           body.projectPath || report.platformRoot || report.projectRoot || "",
         ).trim();
         if (!rawTarget) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              error:
-                "projectPath or report projectRoot/platformRoot is required",
-            });
+          return res.status(400).json({
+            success: false,
+            error: "projectPath or report projectRoot/platformRoot is required",
+          });
         }
         const {
           resolveProjectPath,
@@ -2538,12 +2552,10 @@ async function startServer() {
           "projectPath",
         );
         if (!fs.existsSync(safePath)) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              error: `Target path does not exist: ${safePath.replace(/\\/g, "/")}`,
-            });
+          return res.status(400).json({
+            success: false,
+            error: `Target path does not exist: ${safePath.replace(/\\/g, "/")}`,
+          });
         }
         const safePathForward = safePath.replace(/\\/g, "/");
         const safePlatformRoot = path.dirname(safePath).replace(/\\/g, "/");
@@ -2870,11 +2882,17 @@ async function startServer() {
           error: "Token required",
         });
       }
-      const { verifyLicenseToken } = require("./server/lib/simplebeacon-proxy.cjs");
-      const { getLicenseToken, isLicenseTokenRevoked } = require("./server/lib/token-db.cjs");
+      const {
+        verifyLicenseToken,
+      } = require("./server/lib/simplebeacon-proxy.cjs");
+      const {
+        getLicenseToken,
+        isLicenseTokenRevoked,
+      } = require("./server/lib/token-db.cjs");
       let secret = null;
       try {
-        secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim() || null;
+        secret =
+          String(process.env.SIMPLEBEACON_LICENSE_SECRET || "").trim() || null;
       } catch {
         secret = null;
       }
@@ -2884,7 +2902,8 @@ async function startServer() {
           sandbox: true,
           registered: false,
           valid: false,
-          error: "License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured",
+          error:
+            "License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured",
         });
       }
       const claims = verifyLicenseToken(token, secret);
@@ -2893,7 +2912,9 @@ async function startServer() {
       const registered = !!claims || !!entry;
       const active = registered && claims !== null && !revoked;
       const tier = entry?.tier || claims?.tier || "developer";
-      const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || "https://simplebeacon.ai/pricing";
+      const upgradeUrl =
+        process.env.SIMPLEBEACON_UPGRADE_URL ||
+        "https://simplebeacon.ai/pricing";
       return res.json({
         active,
         sandbox: !active,
@@ -2933,7 +2954,9 @@ async function startServer() {
         return res.status(400).json({ error: "Missing sessionId" });
       }
       if (!sessionTokenStore) {
-        return res.status(503).json({ error: "Session token store unavailable" });
+        return res
+          .status(503)
+          .json({ error: "Session token store unavailable" });
       }
       const entry = sessionTokenStore.get(sessionId);
       if (!entry) {

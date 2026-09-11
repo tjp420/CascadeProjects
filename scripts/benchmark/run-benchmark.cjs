@@ -31,10 +31,9 @@ const REPORT_PATH = path.join(BENCH_DIR, "report.json");
 
 // ── SimpleBeacon scanner import ──────────────────────────────────────────
 const CLI_ROOT = path.resolve(__dirname, "../../packages/simplebeacon-cli");
-const { scanCredentialPatterns } = require(path.join(
-  CLI_ROOT,
-  "src/lib/credential-pattern-scanner",
-));
+const { scanCredentialPatterns } = require(
+  path.join(CLI_ROOT, "src/lib/credential-pattern-scanner"),
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -121,7 +120,19 @@ function runGitleaks(filePath) {
     try {
       output = execFileSync(
         "gitleaks",
-        ["detect", "--source", tmpDir, "--no-git", "--report-format", "json", "--report-path", "-", "--no-banner", "--exit-code", "0"],
+        [
+          "detect",
+          "--source",
+          tmpDir,
+          "--no-git",
+          "--report-format",
+          "json",
+          "--report-path",
+          "-",
+          "--no-banner",
+          "--exit-code",
+          "0",
+        ],
         { encoding: "utf8", timeout: 30000, cwd: tmpDir },
       );
     } catch (err) {
@@ -159,7 +170,11 @@ function runGitleaks(filePath) {
  */
 function isGitleaksAvailable() {
   try {
-    execFileSync("gitleaks", ["version"], { encoding: "utf8", timeout: 5000, stdio: "pipe" });
+    execFileSync("gitleaks", ["version"], {
+      encoding: "utf8",
+      timeout: 5000,
+      stdio: "pipe",
+    });
     return true;
   } catch {
     return false;
@@ -174,7 +189,10 @@ function isGitleaksAvailable() {
 function computeMetrics(tp, fn, fp) {
   const precision = tp + fp > 0 ? tp / (tp + fp) : 1;
   const recall = tp + fn > 0 ? tp / (tp + fn) : 1;
-  const f1 = precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
+  const f1 =
+    precision + recall > 0
+      ? (2 * (precision * recall)) / (precision + recall)
+      : 0;
   return {
     truePositives: tp,
     falseNegatives: fn,
@@ -222,15 +240,27 @@ async function main() {
   for (const tp of tpFiles) {
     const filePath = path.join(TP_DIR, tp.file);
     if (!fs.existsSync(filePath)) {
-      sbResults.falseNegatives.push({ file: tp.file, reason: "file missing", category: tp.category });
+      sbResults.falseNegatives.push({
+        file: tp.file,
+        reason: "file missing",
+        category: tp.category,
+      });
       continue;
     }
 
     const findings = await runSimplebeacon(filePath);
     if (findings.length > 0) {
-      sbResults.truePositives.push({ file: tp.file, category: tp.category, findings });
+      sbResults.truePositives.push({
+        file: tp.file,
+        category: tp.category,
+        findings,
+      });
     } else {
-      sbResults.falseNegatives.push({ file: tp.file, category: tp.category, reason: "no findings" });
+      sbResults.falseNegatives.push({
+        file: tp.file,
+        category: tp.category,
+        reason: "no findings",
+      });
     }
 
     // Track per-category
@@ -248,7 +278,11 @@ async function main() {
 
     const findings = await runSimplebeacon(filePath);
     if (findings.length > 0) {
-      sbResults.falsePositives.push({ file: tn.file, reason: tn.reason, findings });
+      sbResults.falsePositives.push({
+        file: tn.file,
+        reason: tn.reason,
+        findings,
+      });
     }
   }
 
@@ -273,23 +307,40 @@ async function main() {
     for (const tp of tpFiles) {
       const filePath = path.join(TP_DIR, tp.file);
       if (!fs.existsSync(filePath)) {
-        glResults.falseNegatives.push({ file: tp.file, reason: "file missing", category: tp.category });
+        glResults.falseNegatives.push({
+          file: tp.file,
+          reason: "file missing",
+          category: tp.category,
+        });
         continue;
       }
 
       const findings = runGitleaks(filePath);
       if (findings === null) {
-        glResults.falseNegatives.push({ file: tp.file, category: tp.category, reason: "gitleaks error" });
+        glResults.falseNegatives.push({
+          file: tp.file,
+          category: tp.category,
+          reason: "gitleaks error",
+        });
       } else if (findings.length > 0) {
-        glResults.truePositives.push({ file: tp.file, category: tp.category, findings });
+        glResults.truePositives.push({
+          file: tp.file,
+          category: tp.category,
+          findings,
+        });
       } else {
-        glResults.falseNegatives.push({ file: tp.file, category: tp.category, reason: "no findings" });
+        glResults.falseNegatives.push({
+          file: tp.file,
+          category: tp.category,
+          reason: "no findings",
+        });
       }
 
       if (!glResults.perCategory[tp.category]) {
         glResults.perCategory[tp.category] = { tp: 0, fn: 0, fp: 0 };
       }
-      if (findings && findings.length > 0) glResults.perCategory[tp.category].tp++;
+      if (findings && findings.length > 0)
+        glResults.perCategory[tp.category].tp++;
       else glResults.perCategory[tp.category].fn++;
     }
 
@@ -299,7 +350,11 @@ async function main() {
 
       const findings = runGitleaks(filePath);
       if (findings && findings.length > 0) {
-        glResults.falsePositives.push({ file: tn.file, reason: tn.reason, findings });
+        glResults.falsePositives.push({
+          file: tn.file,
+          reason: tn.reason,
+          findings,
+        });
       }
     }
 
@@ -344,12 +399,28 @@ async function main() {
   // ── Console output ────────────────────────────────────────────────────
   if (!jsonOnly) {
     console.log("  SimpleBeacon:");
-    console.log("    TP: " + sbMetrics.truePositives + "  FN: " + sbMetrics.falseNegatives + "  FP: " + sbMetrics.falsePositives);
-    console.log("    Precision: " + sbMetrics.precision + "  Recall: " + sbMetrics.recall + "  F1: " + sbMetrics.f1);
+    console.log(
+      "    TP: " +
+        sbMetrics.truePositives +
+        "  FN: " +
+        sbMetrics.falseNegatives +
+        "  FP: " +
+        sbMetrics.falsePositives,
+    );
+    console.log(
+      "    Precision: " +
+        sbMetrics.precision +
+        "  Recall: " +
+        sbMetrics.recall +
+        "  F1: " +
+        sbMetrics.f1,
+    );
     if (sbResults.falseNegatives.length > 0) {
       console.log("    False Negatives (missed secrets):");
       for (const fn of sbResults.falseNegatives) {
-        console.log("      " + fn.file + " [" + fn.category + "] — " + fn.reason);
+        console.log(
+          "      " + fn.file + " [" + fn.category + "] — " + fn.reason,
+        );
       }
     }
     if (sbResults.falsePositives.length > 0) {
@@ -362,12 +433,28 @@ async function main() {
 
     if (glMetrics) {
       console.log("  Gitleaks:");
-      console.log("    TP: " + glMetrics.truePositives + "  FN: " + glMetrics.falseNegatives + "  FP: " + glMetrics.falsePositives);
-      console.log("    Precision: " + glMetrics.precision + "  Recall: " + glMetrics.recall + "  F1: " + glMetrics.f1);
+      console.log(
+        "    TP: " +
+          glMetrics.truePositives +
+          "  FN: " +
+          glMetrics.falseNegatives +
+          "  FP: " +
+          glMetrics.falsePositives,
+      );
+      console.log(
+        "    Precision: " +
+          glMetrics.precision +
+          "  Recall: " +
+          glMetrics.recall +
+          "  F1: " +
+          glMetrics.f1,
+      );
       if (glResults.falseNegatives.length > 0) {
         console.log("    False Negatives (missed secrets):");
         for (const fn of glResults.falseNegatives) {
-          console.log("      " + fn.file + " [" + fn.category + "] — " + fn.reason);
+          console.log(
+            "      " + fn.file + " [" + fn.category + "] — " + fn.reason,
+          );
         }
       }
       if (glResults.falsePositives.length > 0) {

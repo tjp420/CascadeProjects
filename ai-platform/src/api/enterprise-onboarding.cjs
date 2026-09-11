@@ -259,12 +259,10 @@ function setupEnterpriseOnboardingRoutes(app) {
         Number(process.env.ONBOARD_RATE_WINDOW_MS || 60000) / 1000,
       );
       res.set("Retry-After", String(retrySecs));
-      return res
-        .status(429)
-        .json({
-          error: "too_many_requests",
-          message: "Too many requests, please try again later.",
-        });
+      return res.status(429).json({
+        error: "too_many_requests",
+        message: "Too many requests, please try again later.",
+      });
     },
   });
 
@@ -446,20 +444,16 @@ function setupEnterpriseOnboardingRoutes(app) {
           return res.status(404).json({ error: "organization_not_found" });
         }
         if (org.seatsUsed >= org.seatCount) {
-          return res
-            .status(409)
-            .json({
-              error: "no_available_seats",
-              message: `All ${org.seatCount} seats are in use`,
-            });
+          return res.status(409).json({
+            error: "no_available_seats",
+            message: `All ${org.seatCount} seats are in use`,
+          });
         }
         if (org.provisionedEmails.includes(normalizeEmail(email))) {
-          return res
-            .status(409)
-            .json({
-              error: "seat_already_provisioned",
-              message: `${email} already has a seat`,
-            });
+          return res.status(409).json({
+            error: "seat_already_provisioned",
+            message: `${email} already has a seat`,
+          });
         }
 
         const licenseSecret = resolveLicenseSecret();
@@ -514,12 +508,10 @@ function setupEnterpriseOnboardingRoutes(app) {
 
         const idx = org.provisionedEmails.indexOf(seatEmail);
         if (idx === -1) {
-          return res
-            .status(404)
-            .json({
-              error: "seat_not_found",
-              message: `${seatEmail} is not provisioned in this organization`,
-            });
+          return res.status(404).json({
+            error: "seat_not_found",
+            message: `${seatEmail} is not provisioned in this organization`,
+          });
         }
 
         // Deactivate subscription for removed seat
@@ -731,12 +723,10 @@ function setupEnterpriseOnboardingRoutes(app) {
           "[Enterprise] Azure DevOps config generation failed:",
           err.message,
         );
-        res
-          .status(500)
-          .json({
-            error: "azure_devos_generation_failed",
-            message: err.message,
-          });
+        res.status(500).json({
+          error: "azure_devos_generation_failed",
+          message: err.message,
+        });
       }
     },
   );

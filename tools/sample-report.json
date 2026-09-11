@@ -1,0 +1,41 @@
+{
+  "findings": [
+    {
+      "engine_module": "Environment_Boundary_Checker",
+      "severity": "CRITICAL",
+      "file_path": "config/environments.py",
+      "line_range": "10-14",
+      "violation": "Static string fallback to mock-payments-stage.example found outside test suite boundaries.",
+      "remediation_hint": "Remove hardcoded endpoint; require env var."
+    },
+    {
+      "engine_module": "Semantic_SAST_PlaceholderDetector",
+      "severity": "HIGH",
+      "file_path": "src/services/crypto.js",
+      "line_range": "12-16",
+      "message": "function protectPayload(payload) { return payload; }",
+      "remediation_hint": "Replace with vetted crypto library and add tests"
+    },
+    {
+      "type": "library",
+      "name": "stable-payments-client",
+      "severity": "HIGH",
+      "version": "1.2.0",
+      "properties": [
+        {
+          "name": "simplebeacon:registry-status",
+          "value": "FAILED_HALLUCINATION_RISK"
+        }
+      ],
+      "message": "Hallucinated dependency detected"
+    },
+    {
+      "engine_module": "MinorStyleChecker",
+      "severity": "LOW",
+      "file_path": "src/ui/help.js",
+      "line_range": "2-3",
+      "message": "Trailing console.log present",
+      "remediation_hint": "Remove debug logs"
+    }
+  ]
+}

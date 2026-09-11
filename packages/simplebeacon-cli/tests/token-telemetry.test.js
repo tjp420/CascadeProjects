@@ -19,7 +19,9 @@ function tmpLedgerPath() {
 }
 
 test("loadLedger returns empty structure for missing file", () => {
-  const ledger = loadLedger(path.join(os.tmpdir(), "does-not-exist-" + Date.now() + ".json"));
+  const ledger = loadLedger(
+    path.join(os.tmpdir(), "does-not-exist-" + Date.now() + ".json"),
+  );
   assert.deepEqual(ledger, { entries: [], version: 1 });
 });
 
@@ -59,9 +61,26 @@ test("recordEvent floors and clamps token counts", () => {
 
 test("summarizeLedger aggregates by capability", () => {
   const ledgerPath = tmpLedgerPath();
-  recordEvent({ ledgerPath, action: "a", capability: "summary", inputTokens: 100, savedTokens: 50 });
-  recordEvent({ ledgerPath, action: "b", capability: "summary", inputTokens: 200, savedTokens: 100 });
-  recordEvent({ ledgerPath, action: "c", capability: "embeddings", inputTokens: 50 });
+  recordEvent({
+    ledgerPath,
+    action: "a",
+    capability: "summary",
+    inputTokens: 100,
+    savedTokens: 50,
+  });
+  recordEvent({
+    ledgerPath,
+    action: "b",
+    capability: "summary",
+    inputTokens: 200,
+    savedTokens: 100,
+  });
+  recordEvent({
+    ledgerPath,
+    action: "c",
+    capability: "embeddings",
+    inputTokens: 50,
+  });
   const report = summarizeLedger(ledgerPath);
   assert.equal(report.totalCalls, 3);
   assert.equal(report.totalInputTokens, 350);
@@ -73,7 +92,12 @@ test("summarizeLedger aggregates by capability", () => {
 
 test("summarizeLedger respects since filter", () => {
   const ledgerPath = tmpLedgerPath();
-  recordEvent({ ledgerPath, action: "a", capability: "summary", inputTokens: 100 });
+  recordEvent({
+    ledgerPath,
+    action: "a",
+    capability: "summary",
+    inputTokens: 100,
+  });
   const future = new Date(Date.now() + 100000).toISOString();
   const report = summarizeLedger(ledgerPath, { since: future });
   assert.equal(report.totalCalls, 0, "future since filter should exclude all");
@@ -81,7 +105,14 @@ test("summarizeLedger respects since filter", () => {
 
 test("summarizeLedger computes netTokenCost", () => {
   const ledgerPath = tmpLedgerPath();
-  recordEvent({ ledgerPath, action: "a", capability: "x", inputTokens: 100, outputTokens: 20, savedTokens: 30 });
+  recordEvent({
+    ledgerPath,
+    action: "a",
+    capability: "x",
+    inputTokens: 100,
+    outputTokens: 20,
+    savedTokens: 30,
+  });
   const report = summarizeLedger(ledgerPath);
   assert.equal(report.netTokenCost, 100 + 20 - 30);
 });
@@ -89,7 +120,10 @@ test("summarizeLedger computes netTokenCost", () => {
 test("defaultLedgerPath ends with telemetry dir + ledger name", () => {
   const p = defaultLedgerPath("/tmp/proj");
   const normalized = p.replace(/\\/g, "/");
-  assert.ok(normalized.includes(DEFAULT_TELEMETRY_DIR), `${normalized} should include ${DEFAULT_TELEMETRY_DIR}`);
+  assert.ok(
+    normalized.includes(DEFAULT_TELEMETRY_DIR),
+    `${normalized} should include ${DEFAULT_TELEMETRY_DIR}`,
+  );
   assert.ok(p.endsWith("token-ledger.json"));
 });
 
@@ -98,7 +132,15 @@ test("saveLedger trims to MAX_LEDGER_ENTRIES", () => {
   const { MAX_LEDGER_ENTRIES } = require("../src/lib/token-telemetry");
   const ledger = { entries: [], version: 1 };
   for (let i = 0; i < MAX_LEDGER_ENTRIES + 100; i++) {
-    ledger.entries.push({ timestamp: new Date().toISOString(), action: "x", capability: "x", inputTokens: 1, outputTokens: 0, savedTokens: 0, detail: null });
+    ledger.entries.push({
+      timestamp: new Date().toISOString(),
+      action: "x",
+      capability: "x",
+      inputTokens: 1,
+      outputTokens: 0,
+      savedTokens: 0,
+      detail: null,
+    });
   }
   saveLedger(ledgerPath, ledger);
   const reloaded = loadLedger(ledgerPath);

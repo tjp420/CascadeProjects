@@ -538,6 +538,9 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
       const token = typeof message.token === 'string' ? message.token : '';
       const tier = message.tier || '';
       const isAdmin = !!message.isAdmin;
+      if (!signedIn && !message.explicitSignOut) {
+        return;
+      }
       try {
         const authManager = getAuthManager();
         if (signedIn && token) {

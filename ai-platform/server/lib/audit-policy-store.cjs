@@ -43,7 +43,12 @@ function readStore() {
       _cache = {};
     }
   } catch (e) {
-    try { console.warn('[Audit Policy Store] readStore failed:', e && e.message ? e.message : e); } catch (_) {}
+    try {
+      console.warn(
+        "[Audit Policy Store] readStore failed:",
+        e && e.message ? e.message : e,
+      );
+    } catch (_) {}
     _cache = {};
   }
   _cacheDirty = false;

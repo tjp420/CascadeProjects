@@ -125,9 +125,21 @@ describe("feedback-store", () => {
     });
 
     it("returns stats breakdown", () => {
-      feedbackStore.addFeedback({ message: "a", category: "bug", source: "reddit" });
-      feedbackStore.addFeedback({ message: "b", category: "feature", source: "hackernews" });
-      feedbackStore.addFeedback({ message: "c", category: "bug", source: "email" });
+      feedbackStore.addFeedback({
+        message: "a",
+        category: "bug",
+        source: "reddit",
+      });
+      feedbackStore.addFeedback({
+        message: "b",
+        category: "feature",
+        source: "hackernews",
+      });
+      feedbackStore.addFeedback({
+        message: "c",
+        category: "bug",
+        source: "email",
+      });
       const result = feedbackStore.listFeedback();
       assert.strictEqual(result.stats.total, 3);
       assert.strictEqual(result.stats.byCategory.bug, 2);
@@ -152,8 +164,13 @@ describe("feedback-store", () => {
 
   describe("updateFeedback", () => {
     it("updates status", () => {
-      const add = feedbackStore.addFeedback({ message: "test", category: "bug" });
-      const result = feedbackStore.updateFeedback(add.id, { status: "triaged" });
+      const add = feedbackStore.addFeedback({
+        message: "test",
+        category: "bug",
+      });
+      const result = feedbackStore.updateFeedback(add.id, {
+        status: "triaged",
+      });
       assert.ok(result.success);
       const list = feedbackStore.listFeedback();
       assert.strictEqual(list.entries[0].status, "triaged");
@@ -161,13 +178,18 @@ describe("feedback-store", () => {
 
     it("updates admin notes", () => {
       const add = feedbackStore.addFeedback({ message: "test" });
-      feedbackStore.updateFeedback(add.id, { adminNotes: "Need to investigate" });
+      feedbackStore.updateFeedback(add.id, {
+        adminNotes: "Need to investigate",
+      });
       const list = feedbackStore.listFeedback();
       assert.strictEqual(list.entries[0].adminNotes, "Need to investigate");
     });
 
     it("recategorizes", () => {
-      const add = feedbackStore.addFeedback({ message: "test", category: "bug" });
+      const add = feedbackStore.addFeedback({
+        message: "test",
+        category: "bug",
+      });
       feedbackStore.updateFeedback(add.id, { category: "feature" });
       const list = feedbackStore.listFeedback();
       assert.strictEqual(list.entries[0].category, "feature");
@@ -181,7 +203,9 @@ describe("feedback-store", () => {
     });
 
     it("returns error for non-existent ID", () => {
-      const result = feedbackStore.updateFeedback(99999, { status: "resolved" });
+      const result = feedbackStore.updateFeedback(99999, {
+        status: "resolved",
+      });
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.error, "not_found");
     });

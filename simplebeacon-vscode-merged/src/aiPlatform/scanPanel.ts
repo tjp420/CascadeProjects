@@ -97,48 +97,46 @@ export class ScanPanel {
     const d1 = this._panel.onDidDispose(() => this.dispose());
     this._guard.register(d1);
 
-    const d2 = this._panel.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case 'scan':
-            await this._runScan(message.path || this._targetPath, message.options || {});
-            return;
-          case 'browse':
-            const uri = await vscode.window.showOpenDialog({
-              canSelectFolders: true,
-              canSelectFiles: false,
-              canSelectMany: false,
-              openLabel: 'Select Folder to Scan',
-            });
-            if (uri && uri[0]) {
-              this._targetPath = uri[0].fsPath;
-              this._panel.webview.postMessage({ command: 'setPath', path: this._targetPath });
-            }
-            return;
-          case 'openSettings':
-            vscode.commands.executeCommand('workbench.action.openSettings', 'simplebeacon');
-            return;
-          case 'openIssue':
-            if (message.issue && message.issue.filePath && message.issue.line) {
-              const docUri = vscode.Uri.file(message.issue.filePath);
-              vscode.workspace.openTextDocument(docUri).then(
-                (doc) => {
-                  vscode.window.showTextDocument(doc).then(
-                    (editor) => {
-                      const position = new vscode.Position(message.issue.line - 1, message.issue.column || 0);
-                      editor.selection = new vscode.Selection(position, position);
-                      editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
-                    },
-                    () => {}
-                  );
-                },
-                () => {}
-              );
-            }
-            return;
-        }
+    const d2 = this._panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.command) {
+        case 'scan':
+          await this._runScan(message.path || this._targetPath, message.options || {});
+          return;
+        case 'browse':
+          const uri = await vscode.window.showOpenDialog({
+            canSelectFolders: true,
+            canSelectFiles: false,
+            canSelectMany: false,
+            openLabel: 'Select Folder to Scan',
+          });
+          if (uri && uri[0]) {
+            this._targetPath = uri[0].fsPath;
+            this._panel.webview.postMessage({ command: 'setPath', path: this._targetPath });
+          }
+          return;
+        case 'openSettings':
+          vscode.commands.executeCommand('workbench.action.openSettings', 'simplebeacon');
+          return;
+        case 'openIssue':
+          if (message.issue && message.issue.filePath && message.issue.line) {
+            const docUri = vscode.Uri.file(message.issue.filePath);
+            vscode.workspace.openTextDocument(docUri).then(
+              (doc) => {
+                vscode.window.showTextDocument(doc).then(
+                  (editor) => {
+                    const position = new vscode.Position(message.issue.line - 1, message.issue.column || 0);
+                    editor.selection = new vscode.Selection(position, position);
+                    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                  },
+                  () => {}
+                );
+              },
+              () => {}
+            );
+          }
+          return;
       }
-    );
+    });
     this._guard.register(d2);
   }
 
@@ -734,8 +732,16 @@ export class ScanPanel {
   public dispose() {
     ScanPanel.currentPanel = undefined;
     // Dispose registered listeners first, then the panel
-    try { this._guard.dispose(); } catch (err) { console.error('Error disposing guard', err); }
-    try { this._panel.dispose(); } catch (err) { console.error('Error disposing panel', err); }
+    try {
+      this._guard.dispose();
+    } catch (err) {
+      console.error('Error disposing guard', err);
+    }
+    try {
+      this._panel.dispose();
+    } catch (err) {
+      console.error('Error disposing panel', err);
+    }
   }
 }
 

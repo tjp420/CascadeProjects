@@ -143,13 +143,12 @@ describe("password reset flow", () => {
       const parts = token.split(".");
       const tampered = parts[0] + "." + parts[1] + "x." + parts[2];
 
-      assert.throws(
-        () =>
-          jwt.verify(tampered, jwtConfig.secret, {
-            algorithms: [jwtConfig.algorithm],
-            issuer: jwtConfig.issuer,
-            audience: "simplebeacon-password-reset",
-          }),
+      assert.throws(() =>
+        jwt.verify(tampered, jwtConfig.secret, {
+          algorithms: [jwtConfig.algorithm],
+          issuer: jwtConfig.issuer,
+          audience: "simplebeacon-password-reset",
+        }),
       );
     });
   });

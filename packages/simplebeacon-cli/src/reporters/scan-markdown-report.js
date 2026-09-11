@@ -83,12 +83,16 @@ function generateHeader(report) {
   const generatedAt = report.generatedAt || new Date().toISOString();
   const projectRoot = report.projectRoot || report.scanTargetRoot || "—";
   const tier = report.tier || "community";
+  const maxScanBytes =
+    summary.maxScanBytes ||
+    report.scanScope?.maxScanBytes ||
+    report.maxScanBytes;
+  const skippedOversized =
+    report.scanScope?.securityPatternFilesSkippedOversized || 0;
 
-  return [
-    "# SimpleBeacon Scan Audit Report",
-    "",
-    `| Field | Value |`,
-    `| --- | --- |`,
+  const headerRows = [
+    "| Field | Value |",
+    "| --- | --- |",
     `| **Project** | \`${projectRoot}\` |`,
     `| **Generated** | ${generatedAt} |`,
     `| **Tier** | ${tier} |`,
@@ -96,6 +100,22 @@ function generateHeader(report) {
     `| **Quality Score** | ${formatScore(summary.qualityScore)} |`,
     `| **Files Scanned** | ${(summary.totalFiles || 0).toLocaleString()} |`,
     `| **Lines of Code** | ${(summary.totalLines || 0).toLocaleString()} |`,
+  ];
+  if (Number.isFinite(Number(maxScanBytes)) && Number(maxScanBytes) > 0) {
+    headerRows.push(
+      `| **Per-file scan limit** | ${Number(maxScanBytes).toLocaleString()} bytes (config \`maxScanBytes\`, ceiling 10 MiB) |`,
+    );
+  }
+  if (skippedOversized > 0) {
+    headerRows.push(
+      `| **Skipped oversized (security rules)** | ${skippedOversized.toLocaleString()} files above the per-file limit |`,
+    );
+  }
+
+  return [
+    "# SimpleBeacon Scan Audit Report",
+    "",
+    ...headerRows,
     "",
   ].join("\n");
 }
@@ -380,6 +400,20 @@ function generateScanStats(report) {
     `| JSON valid / invalid | ${stats.jsonValid || 0} / ${stats.jsonInvalid || 0} |`,
     `| Parallel workers | ${stats.parallelTextRuleWorkers || 0} |`,
   ];
+  const maxScanBytes =
+    report.scanScope?.maxScanBytes || report.summary?.maxScanBytes;
+  if (Number.isFinite(Number(maxScanBytes)) && Number(maxScanBytes) > 0) {
+    lines.push(
+      `| Per-file scan limit | ${Number(maxScanBytes).toLocaleString()} bytes |`,
+    );
+  }
+  const skipped =
+    report.scanScope?.securityPatternFilesSkippedOversized || 0;
+  if (skipped > 0) {
+    lines.push(
+      `| Security-rule oversized skips | ${skipped.toLocaleString()} |`,
+    );
+  }
 
   if (stats.truncated) {
     lines.push(`| ⚠️ Truncated | Yes (max ${stats.maxFiles || "—"} files) |`);

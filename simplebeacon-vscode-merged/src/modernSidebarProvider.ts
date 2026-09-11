@@ -1669,17 +1669,21 @@ $('cancelBtn').addEventListener('click', () => {
             });
             break;
           case 'exportDiagnosticLog':
-            Promise.resolve(vscode.commands.executeCommand('simplebeacon.exportDiagnosticLog')).catch((err: unknown) => {
-              const msg = err instanceof Error ? err.message : String(err);
-              vscode.window.showErrorMessage('Diagnostic log export failed: ' + msg);
-            });
+            Promise.resolve(vscode.commands.executeCommand('simplebeacon.exportDiagnosticLog')).catch(
+              (err: unknown) => {
+                const msg = err instanceof Error ? err.message : String(err);
+                vscode.window.showErrorMessage('Diagnostic log export failed: ' + msg);
+              }
+            );
             break;
           case 'openOutputChannel':
             try {
               const ch = vscode.window.createOutputChannel('SimpleBeacon');
               ch.show(true);
             } catch (e) {
-              ModernSidebarProvider.logRelay('openOutputChannel failed: ' + (e instanceof Error ? e.message : String(e)));
+              ModernSidebarProvider.logRelay(
+                'openOutputChannel failed: ' + (e instanceof Error ? e.message : String(e))
+              );
             }
             break;
           case 'diagnoseSidebar':
@@ -1853,6 +1857,8 @@ $('cancelBtn').addEventListener('click', () => {
                 if (typeof msg.userName === 'string') {
                   await authManager.setUserName(msg.userName);
                 }
+              } else if (!signedIn && !msg.explicitSignOut) {
+                break;
               }
             } catch {
               /* auth manager may not be initialized */

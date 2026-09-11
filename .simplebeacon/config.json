@@ -36,6 +36,9 @@
   "sampleDir": "data",
   "consistencyAnchorSamples": [],
   "ignore": [
+    "**/semantic/testdata/**",
+    "semantic/testdata/*.txt",
+    "semantic/testdata/debian-versions-generated.txt",
     "**/node_modules/**",
     "**/coverage/**",
     "**/dist/**",

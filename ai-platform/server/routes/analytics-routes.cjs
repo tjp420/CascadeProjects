@@ -1977,13 +1977,11 @@ router.post("/record", (req, res) => {
       triggeredBy,
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        scanId: entry.scanId,
-        postureScore: entry.postureScore,
-      });
+    res.status(201).json({
+      success: true,
+      scanId: entry.scanId,
+      postureScore: entry.postureScore,
+    });
   } catch (err) {
     logger.error("[Analytics] Record failed:", err.message);
     sendError(res, 500, "record_failed", { message: err.message });

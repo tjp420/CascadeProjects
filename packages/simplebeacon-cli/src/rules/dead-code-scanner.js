@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Dead code / unused imports scanner (SB-QUAL-001).
  * Detects imports that are never referenced and unreachable code blocks.
@@ -15,7 +16,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".jsx",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -241,6 +242,8 @@ async function scanFile(filePath) {
 }
 
 async function scanDeadCode(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

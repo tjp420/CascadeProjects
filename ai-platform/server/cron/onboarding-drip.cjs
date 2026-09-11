@@ -32,9 +32,24 @@ const {
 } = require("../lib/onboarding-drip-store.cjs");
 
 const DRIP_STEPS = [
-  { step: 1, hours: 24, render: renderOnboardingDay1, name: "Day 1 — Quick Tips" },
-  { step: 2, hours: 72, render: renderOnboardingDay3, name: "Day 3 — Features" },
-  { step: 3, hours: 168, render: renderOnboardingDay7, name: "Day 7 — Check-in" },
+  {
+    step: 1,
+    hours: 24,
+    render: renderOnboardingDay1,
+    name: "Day 1 — Quick Tips",
+  },
+  {
+    step: 2,
+    hours: 72,
+    render: renderOnboardingDay3,
+    name: "Day 3 — Features",
+  },
+  {
+    step: 3,
+    hours: 168,
+    render: renderOnboardingDay7,
+    name: "Day 7 — Check-in",
+  },
 ];
 
 /**

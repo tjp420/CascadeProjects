@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Lightweight secret/credential pattern scan for mock-data and production paths.
@@ -121,7 +122,7 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SUPPRESS_PATTERN =
   /(?:\/\/|#)\s*simplebeacon-ignore\s+(?:credentials|credential-pattern)/i;
-const MAX_SCAN_BYTES = 256000;
+let MAX_SCAN_BYTES = 512000;
 
 function lineNumberAt(content, index) {
   if (typeof content !== "string") return 1;
@@ -279,6 +280,8 @@ function isCredentialScanExcludedPath(file) {
 }
 
 async function scanCredentialPatterns(files, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const issues = [];
   let scanned = 0;
   const ignoreGlobs = Array.isArray(options.ignoreGlobs)
@@ -319,7 +322,7 @@ async function scanCredentialPatterns(files, options = {}) {
         ? rel
         : path.join(options.baseDir, ...rel.split("/"));
       if (fs.existsSync(abs)) {
-        await walkProductionFiles(abs, prodFiles);
+        await walkProductionFiles(abs, prodFiles, 0, undefined, MAX_SCAN_BYTES);
       }
     }
 

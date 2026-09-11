@@ -125,7 +125,12 @@ function readStore() {
     if (!fs.existsSync(STORE_PATH)) return { agents: {}, tools: {} };
     return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
   } catch (e) {
-    try { logger.warn('[AgenticOrchestrationStore] readStore failed, returning empty store:', e && e.message ? e.message : e); } catch (_) {}
+    try {
+      logger.warn(
+        "[AgenticOrchestrationStore] readStore failed, returning empty store:",
+        e && e.message ? e.message : e,
+      );
+    } catch (_) {}
     return { agents: {}, tools: {} };
   }
 }

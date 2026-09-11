@@ -120,13 +120,16 @@ router.post("/auth/logout", (req, res) => {
 const consumedResetTokens = new Set();
 
 // Periodically clean up expired entries (every 15 minutes)
-setInterval(() => {
-  // The set only grows during the TTL window; clear entries older than 30 min
-  // by simply capping the set size — JWT expiry handles the real enforcement.
-  if (consumedResetTokens.size > 1000) {
-    consumedResetTokens.clear();
-  }
-}, 15 * 60 * 1000).unref();
+setInterval(
+  () => {
+    // The set only grows during the TTL window; clear entries older than 30 min
+    // by simply capping the set size — JWT expiry handles the real enforcement.
+    if (consumedResetTokens.size > 1000) {
+      consumedResetTokens.clear();
+    }
+  },
+  15 * 60 * 1000,
+).unref();
 
 // Rate limiter for password reset requests — 5 per minute per IP
 const passwordResetRateLimit = rateLimit({
@@ -280,18 +283,15 @@ router.post(
       // Check if the token has already been used (single-use enforcement)
       if (payload.jti && consumedResetTokens.has(payload.jti)) {
         return res.status(401).json({
-          error: "This recovery link has already been used. Please request a new one.",
+          error:
+            "This recovery link has already been used. Please request a new one.",
         });
       }
 
       // Update the user's password
       const { updateUserPassword } = require("../services/user-service.cjs");
       const db = dbAdapter;
-      const updated = await updateUserPassword(
-        db,
-        payload.email,
-        newPassword,
-      );
+      const updated = await updateUserPassword(db, payload.email, newPassword);
 
       if (!updated) {
         return res.status(404).json({
@@ -315,7 +315,8 @@ router.post(
 
       return res.json({
         status: "success",
-        message: "Password updated successfully. You can now sign in with your new password.",
+        message:
+          "Password updated successfully. You can now sign in with your new password.",
       });
     } catch (err) {
       // Token is invalid, expired, or tampered with
@@ -336,9 +337,7 @@ router.post("/auth/verify", async (req, res) => {
     (req.body && req.body.token) ||
     (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token || typeof token !== "string") {
-    return res
-      .status(401)
-      .json({ valid: false, error: "Token required" });
+    return res.status(401).json({ valid: false, error: "Token required" });
   }
   try {
     const { verifyToken } = require("../lib/auth/token-service.cjs");
@@ -358,7 +357,9 @@ router.post("/auth/verify", async (req, res) => {
   } catch (_) {
     // verifyToken throws on invalid tokens
   }
-  return res.status(401).json({ valid: false, error: "Invalid or expired token" });
+  return res
+    .status(401)
+    .json({ valid: false, error: "Invalid or expired token" });
 });
 
 // Scan attestation endpoint — issues short-lived attestation JWTs for the browser scan worker.
@@ -426,7 +427,10 @@ router.post("/scan/attest", attestLimiter, async (req, res) => {
     if (err.status === 401) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
-    logger.error("[scan/attest] Error issuing attestation:", err?.message || err);
+    logger.error(
+      "[scan/attest] Error issuing attestation:",
+      err?.message || err,
+    );
     return res.status(500).json({ error: "Failed to issue attestation" });
   }
 });
@@ -486,15 +490,13 @@ router.post("/auth/token-status", (req, res) => {
 router.post("/license/validate", (req, res) => {
   const { token } = req.body || {};
   if (!token || typeof token !== "string") {
-    return res
-      .status(400)
-      .json({
-        active: false,
-        sandbox: true,
-        registered: false,
-        valid: false,
-        error: "Token required",
-      });
+    return res.status(400).json({
+      active: false,
+      sandbox: true,
+      registered: false,
+      valid: false,
+      error: "Token required",
+    });
   }
 
   const secret = resolveLicenseSecret();
@@ -597,40 +599,93 @@ router.post("/auth/register-token", (req, res) => {
 // Enterprise: Everything (multi-user audit logs)
 const TIER_EXPORT_PERMISSIONS = {
   free: new Set([
-    "report-markdown", "diagnostic-log", "code-map", "ai-context", "roadmap",
+    "report-markdown",
+    "diagnostic-log",
+    "code-map",
+    "ai-context",
+    "roadmap",
   ]),
   developer: new Set([
-    "report-markdown", "diagnostic-log", "code-map", "ai-context", "roadmap",
-    "report-json", "report-csv", "report-html", "certificate",
+    "report-markdown",
+    "diagnostic-log",
+    "code-map",
+    "ai-context",
+    "roadmap",
+    "report-json",
+    "report-csv",
+    "report-html",
+    "certificate",
   ]),
   team: new Set([
-    "report-markdown", "diagnostic-log", "code-map", "ai-context", "roadmap",
-    "report-json", "report-csv", "report-html", "certificate",
-    "report-pdf", "report-excel", "trust-report", "ai-report", "email-report",
+    "report-markdown",
+    "diagnostic-log",
+    "code-map",
+    "ai-context",
+    "roadmap",
+    "report-json",
+    "report-csv",
+    "report-html",
+    "certificate",
+    "report-pdf",
+    "report-excel",
+    "trust-report",
+    "ai-report",
+    "email-report",
   ]),
   enterprise: new Set([
-    "report-markdown", "diagnostic-log", "code-map", "ai-context", "roadmap",
-    "report-json", "report-csv", "report-html", "certificate",
-    "report-pdf", "report-excel", "trust-report", "ai-report", "email-report",
+    "report-markdown",
+    "diagnostic-log",
+    "code-map",
+    "ai-context",
+    "roadmap",
+    "report-json",
+    "report-csv",
+    "report-html",
+    "certificate",
+    "report-pdf",
+    "report-excel",
+    "trust-report",
+    "ai-report",
+    "email-report",
   ]),
 };
 
 // Tier aliases → canonical tier
 const TIER_ALIASES = {
-  free: "free", community: "free", sandbox: "free", instant: "free",
-  locked: "free", solo: "free", "": "free",
-  developer: "developer", pro: "developer", startup: "developer",
-  business: "developer", premium: "developer", license: "developer",
-  auditor: "developer", paid: "developer", silver: "developer", gold: "developer",
+  free: "free",
+  community: "free",
+  sandbox: "free",
+  instant: "free",
+  locked: "free",
+  solo: "free",
+  "": "free",
+  developer: "developer",
+  pro: "developer",
+  startup: "developer",
+  business: "developer",
+  premium: "developer",
+  license: "developer",
+  auditor: "developer",
+  paid: "developer",
+  silver: "developer",
+  gold: "developer",
   developer_tier: "developer",
-  team: "team", team_pro: "team", "team-pro": "team", eusprint: "team",
+  team: "team",
+  team_pro: "team",
+  "team-pro": "team",
+  eusprint: "team",
   growth: "team",
-  enterprise: "enterprise", compliance: "enterprise", universal: "enterprise",
-  custom: "enterprise", admin: "enterprise",
+  enterprise: "enterprise",
+  compliance: "enterprise",
+  universal: "enterprise",
+  custom: "enterprise",
+  admin: "enterprise",
 };
 
 function normalizeTierForExport(raw) {
-  const t = String(raw || "").toLowerCase().trim();
+  const t = String(raw || "")
+    .toLowerCase()
+    .trim();
   return TIER_ALIASES[t] || "free";
 }
 
@@ -711,187 +766,219 @@ function verifyRsaSignature(publicKeyPem, canonical, signatureHex) {
  */
 function signWithHmac(secret, canonical) {
   return {
-    signature: crypto.createHmac("sha256", secret).update(canonical).digest("hex"),
+    signature: crypto
+      .createHmac("sha256", secret)
+      .update(canonical)
+      .digest("hex"),
     algorithm: "HMAC-SHA256",
     keyId: "sb-hmac-v1",
   };
 }
 
-router.post("/simplebeacon/user/sign-report", optionalAuthenticate, async (req, res) => {
-  let user = req.user;
+router.post(
+  "/simplebeacon/user/sign-report",
+  optionalAuthenticate,
+  async (req, res) => {
+    let user = req.user;
 
-  // If JWT auth didn't set req.user, try license token from Bearer header.
-  // License tokens (2-part) are different from JWTs (3-part) and are used
-  // by the VS Code extension when the user pastes a license key instead of
-  // signing in with email/password.
-  if (!user) {
-    const rawToken =
-      typeof req.headers.authorization === "string" &&
-      req.headers.authorization.startsWith("Bearer ")
-        ? req.headers.authorization.substring(7)
-        : "";
-    if (rawToken) {
-      const secret = resolveLicenseSecret();
-      if (secret) {
-        try {
-          const claims = verifyLicenseToken(rawToken, secret);
-          if (claims) {
-            const entry = getLicenseToken(rawToken);
-            user = {
-              id: claims.sub || claims.email || "license-user",
-              email: entry?.email || claims.sub || claims.email || "",
-              name: claims.name || "",
-              tier: entry?.tier || claims.tier || "developer",
-              plan: entry?.tier || claims.tier || "developer",
-              features: Array.isArray(claims.features) ? claims.features : [],
-              role: claims.role || "",
-            };
+    // If JWT auth didn't set req.user, try license token from Bearer header.
+    // License tokens (2-part) are different from JWTs (3-part) and are used
+    // by the VS Code extension when the user pastes a license key instead of
+    // signing in with email/password.
+    if (!user) {
+      const rawToken =
+        typeof req.headers.authorization === "string" &&
+        req.headers.authorization.startsWith("Bearer ")
+          ? req.headers.authorization.substring(7)
+          : "";
+      if (rawToken) {
+        const secret = resolveLicenseSecret();
+        if (secret) {
+          try {
+            const claims = verifyLicenseToken(rawToken, secret);
+            if (claims) {
+              const entry = getLicenseToken(rawToken);
+              user = {
+                id: claims.sub || claims.email || "license-user",
+                email: entry?.email || claims.sub || claims.email || "",
+                name: claims.name || "",
+                tier: entry?.tier || claims.tier || "developer",
+                plan: entry?.tier || claims.tier || "developer",
+                features: Array.isArray(claims.features) ? claims.features : [],
+                role: claims.role || "",
+              };
+            }
+          } catch (_) {
+            // license token verification failed
           }
-        } catch (_) {
-          // license token verification failed
         }
       }
     }
-  }
 
-  if (!user) {
-    return res
-      .status(401)
-      .json({ signed: false, error: "Authentication required" });
-  }
+    if (!user) {
+      return res
+        .status(401)
+        .json({ signed: false, error: "Authentication required" });
+    }
 
-  const body = req.body || {};
-  const reportHash = typeof body.reportHash === "string" ? body.reportHash.trim() : "";
-  const reportType = typeof body.reportType === "string" ? body.reportType.trim() : "";
+    const body = req.body || {};
+    const reportHash =
+      typeof body.reportHash === "string" ? body.reportHash.trim() : "";
+    const reportType =
+      typeof body.reportType === "string" ? body.reportType.trim() : "";
 
-  if (!reportHash || !/^[a-f0-9]{8,128}$/i.test(reportHash)) {
-    return res
-      .status(400)
-      .json({ signed: false, error: "Valid reportHash (hex SHA-256) required" });
-  }
-  if (!reportType || reportType.length > 64) {
-    return res
-      .status(400)
-      .json({ signed: false, error: "Valid reportType required (max 64 chars)" });
-  }
+    if (!reportHash || !/^[a-f0-9]{8,128}$/i.test(reportHash)) {
+      return res
+        .status(400)
+        .json({
+          signed: false,
+          error: "Valid reportHash (hex SHA-256) required",
+        });
+    }
+    if (!reportType || reportType.length > 64) {
+      return res
+        .status(400)
+        .json({
+          signed: false,
+          error: "Valid reportType required (max 64 chars)",
+        });
+    }
 
-  // Tier enforcement — 3-tier model matching the VSIX exportGate.
-  // The server is the authoritative check; the client tier check is UX only.
-  const rawTier = String(user.tier || user.plan || "").toLowerCase();
-  const canonicalTier = normalizeTierForExport(rawTier);
-  const features = Array.isArray(user.features) ? user.features.map(String) : [];
-  const hasPaidFeature = features
-    .map((s) => s.toLowerCase())
-    .some((f) => f === "premium_exports" || f === "team_dashboard");
+    // Tier enforcement — 3-tier model matching the VSIX exportGate.
+    // The server is the authoritative check; the client tier check is UX only.
+    const rawTier = String(user.tier || user.plan || "").toLowerCase();
+    const canonicalTier = normalizeTierForExport(rawTier);
+    const features = Array.isArray(user.features)
+      ? user.features.map(String)
+      : [];
+    const hasPaidFeature = features
+      .map((s) => s.toLowerCase())
+      .some((f) => f === "premium_exports" || f === "team_dashboard");
 
-  // Check if this tier is allowed to export this report type
-  const allowedTypes = TIER_EXPORT_PERMISSIONS[canonicalTier] || TIER_EXPORT_PERMISSIONS.free;
-  if (!allowedTypes.has(reportType) && !hasPaidFeature) {
-    // Determine the minimum tier needed for this export type
-    let minTier = "team";
-    if (TIER_EXPORT_PERMISSIONS.developer.has(reportType)) minTier = "developer";
-    const minTierLabel = minTier === "developer" ? "Developer ($49/mo)" : "Team Pro ($149/mo)";
-    return res
-      .status(403)
-      .json({
+    // Check if this tier is allowed to export this report type
+    const allowedTypes =
+      TIER_EXPORT_PERMISSIONS[canonicalTier] || TIER_EXPORT_PERMISSIONS.free;
+    if (!allowedTypes.has(reportType) && !hasPaidFeature) {
+      // Determine the minimum tier needed for this export type
+      let minTier = "team";
+      if (TIER_EXPORT_PERMISSIONS.developer.has(reportType))
+        minTier = "developer";
+      const minTierLabel =
+        minTier === "developer" ? "Developer ($49/mo)" : "Team Pro ($149/mo)";
+      return res.status(403).json({
         signed: false,
         error: `${reportType} requires the ${minTierLabel} tier or higher`,
         tier: canonicalTier,
         minTier,
         upgradeUrl:
-          process.env.SIMPLEBEACON_UPGRADE_URL || "https://simplebeacon.ai/pricing",
+          process.env.SIMPLEBEACON_UPGRADE_URL ||
+          "https://simplebeacon.ai/pricing",
       });
-  }
+    }
 
-  // Build a canonical signing payload. Only the hash + small metadata are signed.
-  // The server never sees the full report or any source code.
-  const signedAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7-day validity
-  const userSub = String(user.id || user.sub || user.email || "unknown");
+    // Build a canonical signing payload. Only the hash + small metadata are signed.
+    // The server never sees the full report or any source code.
+    const signedAt = new Date().toISOString();
+    const expiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString(); // 7-day validity
+    const userSub = String(user.id || user.sub || user.email || "unknown");
 
-  // Rate limit: per-user, max 30 signed reports per minute.
-  const rateKey = "sign-report:" + userSub;
-  const now = Date.now();
-  const windowMs = 60_000;
-  signReportRateBucket.set(
-    rateKey,
-    (signReportRateBucket.get(rateKey) || []).filter((t) => now - t < windowMs),
-  );
-  const hits = signReportRateBucket.get(rateKey) || [];
-  if (hits.length >= 30) {
-    return res
-      .status(429)
-      .json({ signed: false, error: "Rate limit exceeded. Try again in a minute." });
-  }
-  hits.push(now);
-  signReportRateBucket.set(rateKey, hits);
+    // Rate limit: per-user, max 30 signed reports per minute.
+    const rateKey = "sign-report:" + userSub;
+    const now = Date.now();
+    const windowMs = 60_000;
+    signReportRateBucket.set(
+      rateKey,
+      (signReportRateBucket.get(rateKey) || []).filter(
+        (t) => now - t < windowMs,
+      ),
+    );
+    const hits = signReportRateBucket.get(rateKey) || [];
+    if (hits.length >= 30) {
+      return res
+        .status(429)
+        .json({
+          signed: false,
+          error: "Rate limit exceeded. Try again in a minute.",
+        });
+    }
+    hits.push(now);
+    signReportRateBucket.set(rateKey, hits);
 
-  const metadataBlock = {
-    reportHash,
-    reportType,
-    tier: canonicalTier,
-    userSub: userSub.length > 64 ? userSub.slice(0, 64) : userSub,
-    signedAt,
-  };
+    const metadataBlock = {
+      reportHash,
+      reportType,
+      tier: canonicalTier,
+      userSub: userSub.length > 64 ? userSub.slice(0, 64) : userSub,
+      signedAt,
+    };
 
-  const canonical = JSON.stringify(metadataBlock, Object.keys(metadataBlock).sort());
+    const canonical = JSON.stringify(
+      metadataBlock,
+      Object.keys(metadataBlock).sort(),
+    );
 
-  // Sign with RSA-SHA256 if an RSA private key is configured.
-  // Fall back to HMAC-SHA256 if only a shared secret is available.
-  const rsaPrivateKey = resolveReportSigningPrivateKey();
-  const hmacSecret = resolveReportSigningSecret();
-  let signResult = null;
-  let algorithm = "HMAC-SHA256";
-  let serverKeyId = "sb-hmac-v1";
+    // Sign with RSA-SHA256 if an RSA private key is configured.
+    // Fall back to HMAC-SHA256 if only a shared secret is available.
+    const rsaPrivateKey = resolveReportSigningPrivateKey();
+    const hmacSecret = resolveReportSigningSecret();
+    let signResult = null;
+    let algorithm = "HMAC-SHA256";
+    let serverKeyId = "sb-hmac-v1";
 
-  if (rsaPrivateKey) {
-    signResult = signWithRsa(rsaPrivateKey, canonical);
-    if (signResult) {
+    if (rsaPrivateKey) {
+      signResult = signWithRsa(rsaPrivateKey, canonical);
+      if (signResult) {
+        algorithm = signResult.algorithm;
+        serverKeyId = signResult.keyId;
+      }
+    }
+    if (!signResult && hmacSecret) {
+      signResult = signWithHmac(hmacSecret, canonical);
       algorithm = signResult.algorithm;
       serverKeyId = signResult.keyId;
     }
-  }
-  if (!signResult && hmacSecret) {
-    signResult = signWithHmac(hmacSecret, canonical);
-    algorithm = signResult.algorithm;
-    serverKeyId = signResult.keyId;
-  }
-  if (!signResult) {
-    return res
-      .status(503)
-      .json({ signed: false, error: "Report signing unavailable: no signing key configured" });
-  }
+    if (!signResult) {
+      return res
+        .status(503)
+        .json({
+          signed: false,
+          error: "Report signing unavailable: no signing key configured",
+        });
+    }
 
-  const signature = signResult.signature;
-  metadataBlock.serverKeyId = serverKeyId;
+    const signature = signResult.signature;
+    metadataBlock.serverKeyId = serverKeyId;
 
-  try {
-    logger.info("[sign-report] Issued signature", {
-      userSub: userSub.slice(0, 16),
-      reportType,
-      tier: canonicalTier,
+    try {
+      logger.info("[sign-report] Issued signature", {
+        userSub: userSub.slice(0, 16),
+        reportType,
+        tier: canonicalTier,
+        algorithm,
+      });
+    } catch {
+      // logger may be unavailable in some test contexts
+    }
+
+    return res.json({
+      signed: true,
+      signature,
       algorithm,
+      signedAt,
+      expiresAt,
+      tier: canonicalTier,
+      serverKeyId,
+      user: {
+        sub: userSub,
+        email: user.email || null,
+      },
+      // Echo back the metadata block so the client can embed it alongside the signature.
+      metadata: metadataBlock,
     });
-  } catch {
-    // logger may be unavailable in some test contexts
-  }
-
-  return res.json({
-    signed: true,
-    signature,
-    algorithm,
-    signedAt,
-    expiresAt,
-    tier: canonicalTier,
-    serverKeyId,
-    user: {
-      sub: userSub,
-      email: user.email || null,
-    },
-    // Echo back the metadata block so the client can embed it alongside the signature.
-    metadata: metadataBlock,
-  });
-});
+  },
+);
 
 // In-memory rate-limit bucket for /simplebeacon/user/sign-report.
 // Single-instance Render deployment — sufficient for current load.
@@ -914,13 +1001,12 @@ const signReportRateBucket = new Map();
 // ---------------------------------------------------------------------------
 router.post("/simplebeacon/user/verify-signature", async (req, res) => {
   const body = req.body || {};
-  const signature = typeof body.signature === "string" ? body.signature.trim() : "";
+  const signature =
+    typeof body.signature === "string" ? body.signature.trim() : "";
   const metadata = body.metadata || {};
 
   if (!signature) {
-    return res
-      .status(400)
-      .json({ valid: false, error: "Signature required" });
+    return res.status(400).json({ valid: false, error: "Signature required" });
   }
   if (!metadata || typeof metadata !== "object") {
     return res
@@ -942,7 +1028,10 @@ router.post("/simplebeacon/user/verify-signature", async (req, res) => {
   // (the original signing payload doesn't include serverKeyId in the canonical)
   const canonicalBlock = { ...metadataBlock };
   delete canonicalBlock.serverKeyId;
-  const canonical = JSON.stringify(canonicalBlock, Object.keys(canonicalBlock).sort());
+  const canonical = JSON.stringify(
+    canonicalBlock,
+    Object.keys(canonicalBlock).sort(),
+  );
 
   // Try RSA verification first
   const publicKey = resolveReportSigningPublicKey();

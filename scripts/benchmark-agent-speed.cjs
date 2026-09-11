@@ -20,7 +20,7 @@
 const fs = require("fs");
 const path = require("path");
 const { compressScanReport, stringifyMinified, estimateTokens } = require(
-  path.resolve("packages/simplebeacon-cli/src/reporters/agent-compressor.cjs")
+  path.resolve("packages/simplebeacon-cli/src/reporters/agent-compressor.cjs"),
 );
 
 const colors = {
@@ -38,9 +38,8 @@ const colors = {
 const args = process.argv.slice(2);
 const useRealReport = args.includes("--real");
 const iterArg = args.indexOf("--iterations");
-const ITERATIONS = iterArg >= 0 && args[iterArg + 1]
-  ? parseInt(args[iterArg + 1], 10)
-  : 10000;
+const ITERATIONS =
+  iterArg >= 0 && args[iterArg + 1] ? parseInt(args[iterArg + 1], 10) : 10000;
 
 // ── Mock data baseline (typical bloated scan payload) ───────────────────────
 const mockRawReport = {
@@ -49,7 +48,8 @@ const mockRawReport = {
   environment: {
     os: "linux",
     nodeVersion: process.version,
-    workingDirectory: "C:/Users/dev/CascadeProjects/ai-platform/server/submodules/hsm",
+    workingDirectory:
+      "C:/Users/dev/CascadeProjects/ai-platform/server/submodules/hsm",
   },
   summary: {
     compliancePassed: false,
@@ -83,13 +83,21 @@ if (useRealReport) {
     rawReport = JSON.parse(fs.readFileSync(reportPath, "utf8"));
     reportSource = `.simplebeacon/report.json (${(fs.statSync(reportPath).size / 1024).toFixed(1)} KB)`;
   } else {
-    console.log(`${colors.yellow}[WARN] No report.json found, falling back to mock data${colors.reset}\n`);
+    console.log(
+      `${colors.yellow}[WARN] No report.json found, falling back to mock data${colors.reset}\n`,
+    );
   }
 }
 
-console.log(`${colors.cyan}====================================================${colors.reset}`);
-console.log(`${colors.magenta}   SIMPLEBEACON.AI AGENT PERFORMANCE BENCHMARKER    ${colors.reset}`);
-console.log(`${colors.cyan}====================================================${colors.reset}\n`);
+console.log(
+  `${colors.cyan}====================================================${colors.reset}`,
+);
+console.log(
+  `${colors.magenta}   SIMPLEBEACON.AI AGENT PERFORMANCE BENCHMARKER    ${colors.reset}`,
+);
+console.log(
+  `${colors.cyan}====================================================${colors.reset}\n`,
+);
 
 console.log(`${colors.bold}Configuration:${colors.reset}`);
 console.log(`  Report source:    ${reportSource}`);
@@ -102,20 +110,29 @@ const compressedString = stringifyMinified(compressedPayload);
 
 const rawTokens = estimateTokens(rawString);
 const compressedTokens = estimateTokens(compressedString);
-const tokenSavingsPercent = rawTokens > 0
-  ? (((rawTokens - compressedTokens) / rawTokens) * 100).toFixed(1)
-  : "0";
+const tokenSavingsPercent =
+  rawTokens > 0
+    ? (((rawTokens - compressedTokens) / rawTokens) * 100).toFixed(1)
+    : "0";
 
 // ── Token metrics ───────────────────────────────────────────────────────────
 console.log(`${colors.bold}[*] Payload Size Metrics...${colors.reset}`);
-console.log(`    Raw scan report payload size:         ${colors.red}${rawTokens.toLocaleString()} tokens${colors.reset} (${(rawString.length / 1024).toFixed(1)} KB)`);
-console.log(`    Compressed agent payload size:        ${colors.green}${compressedTokens.toLocaleString()} tokens${colors.reset} (${(compressedString.length / 1024).toFixed(1)} KB)`);
-console.log(`    Total payload reduction:              ${colors.green}${colors.bold}${tokenSavingsPercent}% smaller${colors.reset}\n`);
+console.log(
+  `    Raw scan report payload size:         ${colors.red}${rawTokens.toLocaleString()} tokens${colors.reset} (${(rawString.length / 1024).toFixed(1)} KB)`,
+);
+console.log(
+  `    Compressed agent payload size:        ${colors.green}${compressedTokens.toLocaleString()} tokens${colors.reset} (${(compressedString.length / 1024).toFixed(1)} KB)`,
+);
+console.log(
+  `    Total payload reduction:              ${colors.green}${colors.bold}${tokenSavingsPercent}% smaller${colors.reset}\n`,
+);
 
 // ── Parser speed simulation ─────────────────────────────────────────────────
 // Simulates LLM tokenization overhead by parsing JSON N times.
 // More tokens = more serialization work = slower time-to-first-token (TTFT).
-console.log(`${colors.bold}[*] Simulating LLM parsing velocity (${ITERATIONS.toLocaleString()} iterations)...${colors.reset}`);
+console.log(
+  `${colors.bold}[*] Simulating LLM parsing velocity (${ITERATIONS.toLocaleString()} iterations)...${colors.reset}`,
+);
 
 // Warm up V8 JIT
 for (let i = 0; i < 1000; i++) {
@@ -137,35 +154,67 @@ for (let i = 0; i < ITERATIONS; i++) {
 const endCompTime = process.hrtime.bigint();
 const compTimeMs = Number(endCompTime - startCompTime) / 1000000;
 
-const speedMultiplier = compTimeMs > 0 ? (rawTimeMs / compTimeMs).toFixed(1) : "N/A";
+const speedMultiplier =
+  compTimeMs > 0 ? (rawTimeMs / compTimeMs).toFixed(1) : "N/A";
 
-console.log(`    Raw data processing load time:        ${colors.red}${rawTimeMs.toFixed(2)} ms${colors.reset} (${(rawTimeMs / ITERATIONS * 1000).toFixed(2)} us/iter)`);
-console.log(`    Compressed data processing time:      ${colors.green}${compTimeMs.toFixed(2)} ms${colors.reset} (${(compTimeMs / ITERATIONS * 1000).toFixed(2)} us/iter)`);
-console.log(`    Parser speed multiplier:              ${colors.green}${colors.bold}${speedMultiplier}x faster${colors.reset}\n`);
+console.log(
+  `    Raw data processing load time:        ${colors.red}${rawTimeMs.toFixed(2)} ms${colors.reset} (${((rawTimeMs / ITERATIONS) * 1000).toFixed(2)} us/iter)`,
+);
+console.log(
+  `    Compressed data processing time:      ${colors.green}${compTimeMs.toFixed(2)} ms${colors.reset} (${((compTimeMs / ITERATIONS) * 1000).toFixed(2)} us/iter)`,
+);
+console.log(
+  `    Parser speed multiplier:              ${colors.green}${colors.bold}${speedMultiplier}x faster${colors.reset}\n`,
+);
 
 // ── Cost projection ─────────────────────────────────────────────────────────
 const PRICING = { inputPerM: 3, outputPerM: 15 }; // Sonnet
 const turns = 10;
-const rawSessionCost = (rawTokens * turns / 1_000_000) * PRICING.inputPerM;
-const compressedSessionCost = (compressedTokens * turns / 1_000_000) * PRICING.inputPerM;
+const rawSessionCost = ((rawTokens * turns) / 1_000_000) * PRICING.inputPerM;
+const compressedSessionCost =
+  ((compressedTokens * turns) / 1_000_000) * PRICING.inputPerM;
 const sessionSavings = rawSessionCost - compressedSessionCost;
 
-console.log(`${colors.bold}[*] 10-Turn Session Cost Projection (Sonnet $3/M input):${colors.reset}`);
-console.log(`    Raw session cost:       ${colors.red}$${rawSessionCost.toFixed(4)}${colors.reset}`);
-console.log(`    Compressed session cost: ${colors.green}$${compressedSessionCost.toFixed(4)}${colors.reset}`);
-console.log(`    Session savings:        ${colors.green}$${sessionSavings.toFixed(4)}${colors.reset}\n`);
+console.log(
+  `${colors.bold}[*] 10-Turn Session Cost Projection (Sonnet $3/M input):${colors.reset}`,
+);
+console.log(
+  `    Raw session cost:       ${colors.red}$${rawSessionCost.toFixed(4)}${colors.reset}`,
+);
+console.log(
+  `    Compressed session cost: ${colors.green}$${compressedSessionCost.toFixed(4)}${colors.reset}`,
+);
+console.log(
+  `    Session savings:        ${colors.green}$${sessionSavings.toFixed(4)}${colors.reset}\n`,
+);
 
 // ── Accuracy projection (lost-in-the-middle effect) ─────────────────────────
 // Research shows LLMs miss ~40% of findings in payloads >50K tokens
 // vs <5% miss rate in payloads <5K tokens
-const rawMissRate = rawTokens > 50000 ? 40 : rawTokens > 10000 ? 20 : rawTokens > 5000 ? 10 : 5;
-const compressedMissRate = compressedTokens > 50000 ? 40 : compressedTokens > 10000 ? 20 : compressedTokens > 5000 ? 10 : 5;
+const rawMissRate =
+  rawTokens > 50000 ? 40 : rawTokens > 10000 ? 20 : rawTokens > 5000 ? 10 : 5;
+const compressedMissRate =
+  compressedTokens > 50000
+    ? 40
+    : compressedTokens > 10000
+      ? 20
+      : compressedTokens > 5000
+        ? 10
+        : 5;
 const accuracyGain = rawMissRate - compressedMissRate;
 
-console.log(`${colors.bold}[*] Agent Accuracy Projection (Lost-in-the-Middle effect):${colors.reset}`);
-console.log(`    Raw payload estimated miss rate:      ${colors.red}${rawMissRate}%${colors.reset} (${Math.ceil(rawMissRate / 100 * (rawReport.violations || rawReport.detectedIssues || []).length)} findings potentially missed)`);
-console.log(`    Compressed payload estimated miss rate: ${colors.green}${compressedMissRate}%${colors.reset}`);
-console.log(`    Accuracy improvement:                 ${colors.green}+${accuracyGain}%${colors.reset}\n`);
+console.log(
+  `${colors.bold}[*] Agent Accuracy Projection (Lost-in-the-Middle effect):${colors.reset}`,
+);
+console.log(
+  `    Raw payload estimated miss rate:      ${colors.red}${rawMissRate}%${colors.reset} (${Math.ceil((rawMissRate / 100) * (rawReport.violations || rawReport.detectedIssues || []).length)} findings potentially missed)`,
+);
+console.log(
+  `    Compressed payload estimated miss rate: ${colors.green}${compressedMissRate}%${colors.reset}`,
+);
+console.log(
+  `    Accuracy improvement:                 ${colors.green}+${accuracyGain}%${colors.reset}\n`,
+);
 
 // ── Write persistent log ────────────────────────────────────────────────────
 const logDir = path.resolve(".simplebeacon/qa/logs");
@@ -203,20 +252,32 @@ const logData = {
 fs.writeFileSync(logPath, JSON.stringify(logData, null, 2), "utf8");
 
 // ── Summary ─────────────────────────────────────────────────────────────────
-console.log(`${colors.cyan}====================================================${colors.reset}`);
-console.log(`${colors.green}[SUCCESS] ${tokenSavingsPercent}% token reduction, ${speedMultiplier}x parser speedup${colors.reset}`);
+console.log(
+  `${colors.cyan}====================================================${colors.reset}`,
+);
+console.log(
+  `${colors.green}[SUCCESS] ${tokenSavingsPercent}% token reduction, ${speedMultiplier}x parser speedup${colors.reset}`,
+);
 console.log(`${colors.dim}         Log written to ${logPath}${colors.reset}`);
-console.log(`${colors.cyan}====================================================${colors.reset}\n`);
+console.log(
+  `${colors.cyan}====================================================${colors.reset}\n`,
+);
 
 // ── Verdict ─────────────────────────────────────────────────────────────────
 const tokenPct = parseFloat(tokenSavingsPercent);
 if (tokenPct > 80) {
-  console.log(`${colors.green}[VERDICT] Enterprise-grade compression. Token reduction exceeds 80%.${colors.reset}`);
+  console.log(
+    `${colors.green}[VERDICT] Enterprise-grade compression. Token reduction exceeds 80%.${colors.reset}`,
+  );
   process.exit(0);
 } else if (tokenPct > 50) {
-  console.log(`${colors.yellow}[VERDICT] Good compression. Review report structure for further gains.${colors.reset}`);
+  console.log(
+    `${colors.yellow}[VERDICT] Good compression. Review report structure for further gains.${colors.reset}`,
+  );
   process.exit(0);
 } else {
-  console.log(`${colors.yellow}[VERDICT] Moderate compression. Consider additional field stripping.${colors.reset}`);
+  console.log(
+    `${colors.yellow}[VERDICT] Moderate compression. Consider additional field stripping.${colors.reset}`,
+  );
   process.exit(0);
 }

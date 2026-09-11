@@ -57,12 +57,10 @@ function formatReport(current, baseline) {
     ? current.testFileSummaries.slice()
     : [];
   files.sort((a, b) => (b.runTimeMs || 0) - (a.runTimeMs || 0));
-  const topFiles = files
-    .slice(0, TOP_N)
-    .map((f) => ({
-      name: path.basename(f.filePath || ""),
-      runMs: safeNumber(f.runTimeMs || 0),
-    }));
+  const topFiles = files.slice(0, TOP_N).map((f) => ({
+    name: path.basename(f.filePath || ""),
+    runMs: safeNumber(f.runTimeMs || 0),
+  }));
   const fileRows = topFiles.map((f) => {
     const base =
       baseline && baseline.fileAverages && baseline.fileAverages[f.name]

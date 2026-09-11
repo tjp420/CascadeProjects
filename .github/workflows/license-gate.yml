@@ -1,0 +1,41 @@
+name: SimpleBeacon License Compliance Gate
+
+on:
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  license-audit:
+    name: Sub-Dependency Legal Audit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository Source
+      uses: actions/checkout@v4
+
+    - name: Initialize Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Run Engine Unit Verification Tests
+      run: |
+        python -m unittest discover -s tests
+
+    - name: Run Deep Supply Chain Audit
+      run: |
+        python node_license_analyzer.py --package-json package.json --lockfile package-lock.json --output license-compliance-report.html
+
+    - name: Archive Interactive Compliance Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: enterprise-license-audit-ledger
+        path: license-compliance-report.html
+        retention-days: 14

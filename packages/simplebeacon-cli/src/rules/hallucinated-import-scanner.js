@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Hallucinated import scanner — detects `import`/`require` statements that reference
@@ -16,7 +17,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".jsx",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -222,6 +223,8 @@ function loadPackageDependencies(baseDir) {
 }
 
 async function scanHallucinatedImports(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || ["src", "lib", "server", "web"];
   const productionPaths = options.productionPaths || sourcePaths;
   const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];

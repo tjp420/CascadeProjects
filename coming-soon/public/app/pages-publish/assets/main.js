@@ -16150,12 +16150,19 @@ function ev() {
                   q(`/analyze/progress?scanId=${encodeURIComponent(Et)}`),
                   { headers: B() },
                 );
-                if (!Ms.ok)
-                  throw Ms.status === 404
-                    ? new Error(
-                        "Scan job not found on server. It may have expired.",
-                      )
-                    : new Error(`Poll returned ${Ms.status}`);
+                if (!Ms.ok) {
+                  if (Ms.status === 404)
+                    throw new Error(
+                      "Scan job not found on server. It may have expired.",
+                    );
+                  if (
+                    Ms.status === 502 ||
+                    Ms.status === 503 ||
+                    Ms.status === 504
+                  )
+                    continue;
+                  throw new Error(`Poll returned ${Ms.status}`);
+                }
                 if (((Ze = await Ms.json()), Ze.status === "complete")) {
                   je(`[SimpleBeacon] Scan complete (polled ${Ft} times)`);
                   break;

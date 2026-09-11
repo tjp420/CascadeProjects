@@ -31,7 +31,15 @@ const testKeyPair = crypto.generateKeyPairSync('rsa', {
 });
 
 const sampleFindings: RawFinding[] = [
-  { severity: 'critical', type: 'SQL Injection', file: 'src/db.ts', line: 42, description: 'Unsanitized input', id: 'SQL-001', matchedText: 'query(input)' },
+  {
+    severity: 'critical',
+    type: 'SQL Injection',
+    file: 'src/db.ts',
+    line: 42,
+    description: 'Unsanitized input',
+    id: 'SQL-001',
+    matchedText: 'query(input)',
+  },
   { severity: 'high', type: 'XSS', file: 'src/view.ts', line: 10, description: 'innerHTML assignment', id: 'XSS-002' },
   { severity: 'low', type: 'Style', file: 'src/css.ts', line: 5, description: 'Missing semicolon', id: 'STYLE-003' },
 ];
@@ -47,9 +55,7 @@ describe('exportGate', () => {
     });
 
     it('canonicalizes nested objects', () => {
-      expect(canonicalJsonString({ z: { y: 1, x: 2 }, a: 0 })).toBe(
-        '{"a":0,"z":{"x":2,"y":1}}',
-      );
+      expect(canonicalJsonString({ z: { y: 1, x: 2 }, a: 0 })).toBe('{"a":0,"z":{"x":2,"y":1}}');
     });
 
     it('handles primitives', () => {
@@ -80,10 +86,7 @@ describe('exportGate', () => {
 
     it('matches a manual crypto SHA-256 of the canonical string', () => {
       const report = { b: 2, a: 1, nested: { d: 4, c: 3 } };
-      const expected = crypto
-        .createHash('sha256')
-        .update('{"a":1,"b":2,"nested":{"c":3,"d":4}}', 'utf8')
-        .digest('hex');
+      const expected = crypto.createHash('sha256').update('{"a":1,"b":2,"nested":{"c":3,"d":4}}', 'utf8').digest('hex');
       expect(hashReport(report)).toBe(expected);
     });
   });
@@ -313,9 +316,13 @@ describe('exportGate', () => {
 
   describe('buildTeamTierJson', () => {
     it('produces JSON with compliance metadata', () => {
-      const json = buildTeamTierJson(sampleFindings, { projectRoot: 'my-project' }, {
-        euAiAct: { status: 'evaluating' },
-      });
+      const json = buildTeamTierJson(
+        sampleFindings,
+        { projectRoot: 'my-project' },
+        {
+          euAiAct: { status: 'evaluating' },
+        }
+      );
       const parsed = JSON.parse(json);
       expect(parsed.meta.tier).toBe('Team Pro');
       expect(parsed.meta.complianceReady).toBe(true);

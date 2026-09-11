@@ -197,7 +197,10 @@ describe("token-db license revocation", () => {
   });
 
   it("revokeLicenseToken returns null for non-existent token", async () => {
-    const result = await tokenDb.revokeLicenseToken("nonexistent-token", "test");
+    const result = await tokenDb.revokeLicenseToken(
+      "nonexistent-token",
+      "test",
+    );
     assert.strictEqual(result, null);
   });
 
@@ -221,8 +224,12 @@ describe("token-db license revocation", () => {
 
   it("revokeLicenseTokenByJti revokes by JWT token ID", async () => {
     // Create a fake 3-part token with a known jti
-    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-    const payload = Buffer.from(JSON.stringify({ jti: "test-jti-abc123", tier: "enterprise" })).toString("base64url");
+    const header = Buffer.from(
+      JSON.stringify({ alg: "HS256", typ: "JWT" }),
+    ).toString("base64url");
+    const payload = Buffer.from(
+      JSON.stringify({ jti: "test-jti-abc123", tier: "enterprise" }),
+    ).toString("base64url");
     const signature = "fakesig";
     const token = `${header}.${payload}.${signature}`;
 
@@ -233,14 +240,20 @@ describe("token-db license revocation", () => {
       registered_at: new Date().toISOString(),
     });
 
-    const result = await tokenDb.revokeLicenseTokenByJti("test-jti-abc123", "JTI test revocation");
+    const result = await tokenDb.revokeLicenseTokenByJti(
+      "test-jti-abc123",
+      "JTI test revocation",
+    );
     assert.ok(result);
     assert.ok(result.revoked_at);
     assert.strictEqual(result.revoked_reason, "JTI test revocation");
   });
 
   it("revokeLicenseTokenByJti returns null for unknown jti", async () => {
-    const result = await tokenDb.revokeLicenseTokenByJti("nonexistent-jti", "test");
+    const result = await tokenDb.revokeLicenseTokenByJti(
+      "nonexistent-jti",
+      "test",
+    );
     assert.strictEqual(result, null);
   });
 });

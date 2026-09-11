@@ -507,7 +507,9 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       // Resolve per-tier maxFiles and forward to programmatic analyzeCodebase
       let programmaticMaxFiles = undefined;
       try {
-        const { getTierLimits } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
+        const {
+          getTierLimits,
+        } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
         const limits = getTierLimits(opts.tier || "developer") || {};
         if (Number.isFinite(limits.maxFilesPerScan)) {
           programmaticMaxFiles = Number(limits.maxFilesPerScan);
@@ -618,45 +620,48 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
   let stdout = "";
   let stderr = "";
   let cliExitCode = 0;
+  try {
     try {
+      // Enforce per-tier max files for full-directory scans by passing
+      // SIMPLEBEACON_FULL_SCAN_MAX_FILES to the CLI environment. Use the
+      // CLI's tier detector to resolve canonical limits.
+      let maxFilesEnv = "";
       try {
-        // Enforce per-tier max files for full-directory scans by passing
-        // SIMPLEBEACON_FULL_SCAN_MAX_FILES to the CLI environment. Use the
-        // CLI's tier detector to resolve canonical limits.
-        let maxFilesEnv = "";
-        try {
-          const { getTierLimits } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
-          const limits = getTierLimits(opts.tier || "developer") || {};
-          const maxFiles = limits.maxFilesPerScan;
-          // Scanner interprets <=0 as unlimited; pass '0' for Infinity.
-          if (Number.isFinite(maxFiles)) {
-            maxFilesEnv = String(Math.max(0, Number(maxFiles)));
-          } else {
-            maxFilesEnv = "0";
-          }
-        } catch (e) {
-          // If tier detector isn't available, fall back to existing env behavior.
-          maxFilesEnv = process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES || "";
+        const {
+          getTierLimits,
+        } = require("../../../packages/simplebeacon-cli/src/lib/tier-detector");
+        const limits = getTierLimits(opts.tier || "developer") || {};
+        const maxFiles = limits.maxFilesPerScan;
+        // Scanner interprets <=0 as unlimited; pass '0' for Infinity.
+        if (Number.isFinite(maxFiles)) {
+          maxFilesEnv = String(Math.max(0, Number(maxFiles)));
+        } else {
+          maxFilesEnv = "0";
         }
+      } catch (e) {
+        // If tier detector isn't available, fall back to existing env behavior.
+        maxFilesEnv = process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES || "";
+      }
 
-        const execEnv = {
-          ...process.env,
-          FORCE_COLOR: "0",
-          SIMPLEBEACON_LICENSE_TOKEN: licenseToken,
-          SIMPLEBEACON_LICENSE_SECRET: licenseSecret,
-        };
-        if (maxFilesEnv !== "") execEnv.SIMPLEBEACON_FULL_SCAN_MAX_FILES = maxFilesEnv;
+      const execEnv = {
+        ...process.env,
+        FORCE_COLOR: "0",
+        SIMPLEBEACON_LICENSE_TOKEN: licenseToken,
+        SIMPLEBEACON_LICENSE_SECRET: licenseSecret,
+      };
+      if (maxFilesEnv !== "")
+        execEnv.SIMPLEBEACON_FULL_SCAN_MAX_FILES = maxFilesEnv;
 
-        const result = await execAsync(scanCmd, {
-          cwd: PROJECT_ROOT,
-          timeout:
-            Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) ||
-            constants.TIMEOUT_10M,
-          env: execEnv,
-        });
-        stdout = result.stdout || "";
-        stderr = result.stderr || "";
-      } catch (err) {
+      const result = await execAsync(scanCmd, {
+        cwd: PROJECT_ROOT,
+        timeout:
+          Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) ||
+          constants.TIMEOUT_10M,
+        env: execEnv,
+      });
+      stdout = result.stdout || "";
+      stderr = result.stderr || "";
+    } catch (err) {
       stdout = err.stdout || "";
       stderr = err.stderr || "";
       cliExitCode = typeof err.code === "number" ? err.code : 1;
@@ -882,13 +887,11 @@ function setupSimplebeaconAPI(app, options = {}) {
           ""
         ).toString();
         if (!remote.includes("127.0.0.1") && !remote.includes("::1")) {
-          return res
-            .status(403)
-            .json({
-              success: false,
-              error:
-                "Uploads restricted. Set SIMPLEBEACON_UPLOAD_SECRET to enable remote uploads.",
-            });
+          return res.status(403).json({
+            success: false,
+            error:
+              "Uploads restricted. Set SIMPLEBEACON_UPLOAD_SECRET to enable remote uploads.",
+          });
         }
       }
 
@@ -966,12 +969,10 @@ function setupSimplebeaconAPI(app, options = {}) {
           "[simplebeacon-api] browser-error save failed:",
           err && err.message ? err.message : String(err),
         );
-        return res
-          .status(500)
-          .json({
-            success: false,
-            error: err && err.message ? err.message : String(err),
-          });
+        return res.status(500).json({
+          success: false,
+          error: err && err.message ? err.message : String(err),
+        });
       }
     },
   );
@@ -1002,12 +1003,10 @@ function setupSimplebeaconAPI(app, options = {}) {
           "[simplebeacon-api] browser-errors read failed:",
           err && err.message ? err.message : String(err),
         );
-        return res
-          .status(500)
-          .json({
-            success: false,
-            error: err && err.message ? err.message : String(err),
-          });
+        return res.status(500).json({
+          success: false,
+          error: err && err.message ? err.message : String(err),
+        });
       }
     },
   );
@@ -1048,22 +1047,18 @@ function setupSimplebeaconAPI(app, options = {}) {
         try {
           await fs.promises.access(agentReportPath);
         } catch {
-          return res
-            .status(404)
-            .json({
-              error: "AI Agent report not found",
-              message: "Run scan in ai-agent directory first",
-            });
+          return res.status(404).json({
+            error: "AI Agent report not found",
+            message: "Run scan in ai-agent directory first",
+          });
         }
         const report = patchRemediationPhases(await readJson(agentReportPath));
         res.json(report);
       } catch (err) {
-        res
-          .status(500)
-          .json({
-            error: "Failed to load AI Agent report",
-            message: err.message,
-          });
+        res.status(500).json({
+          error: "Failed to load AI Agent report",
+          message: err.message,
+        });
       }
     },
   );
@@ -1177,12 +1172,10 @@ function setupSimplebeaconAPI(app, options = {}) {
   app.put("/api/simplebeacon/config", requirePaid, async (req, res) => {
     const incoming = req.body;
     if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid config",
-          message: "Request body must be a JSON object",
-        });
+      return res.status(400).json({
+        error: "Invalid config",
+        message: "Request body must be a JSON object",
+      });
     }
 
     let existing = {};
@@ -1373,13 +1366,11 @@ function setupSimplebeaconAPI(app, options = {}) {
         res.json(exportData);
       } catch (err) {
         logger.error("[GET /api/user/export] Export failed:", err.message);
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: "Export failed",
-            message: err.message,
-          });
+        res.status(500).json({
+          success: false,
+          error: "Export failed",
+          message: err.message,
+        });
       }
     },
   );
@@ -1510,12 +1501,10 @@ function setupSimplebeaconAPI(app, options = {}) {
           "hostname:",
           parsed.hostname,
         );
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})`,
-          });
+        return res.status(400).json({
+          success: false,
+          error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})`,
+        });
       }
       const targetUrl = `${baseUrl.replace(/\/$/, "")}/api/tags`;
       const controller = new AbortController();
@@ -1543,13 +1532,11 @@ function setupSimplebeaconAPI(app, options = {}) {
         "[GET /api/simplebeacon/ollama/models] Proxy failed:",
         err.message,
       );
-      res
-        .status(502)
-        .json({
-          success: false,
-          error: "Ollama unreachable",
-          message: err.message,
-        });
+      res.status(502).json({
+        success: false,
+        error: "Ollama unreachable",
+        message: err.message,
+      });
     }
   });
 
@@ -1586,12 +1573,10 @@ function setupSimplebeaconAPI(app, options = {}) {
           "hostname:",
           parsed.hostname,
         );
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})`,
-          });
+        return res.status(400).json({
+          success: false,
+          error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})`,
+        });
       }
       const targetUrl = `${baseUrl.replace(/\/$/, "")}/api/chat`;
       const controller = new AbortController();
@@ -1623,13 +1608,11 @@ function setupSimplebeaconAPI(app, options = {}) {
         "[POST /api/simplebeacon/ollama/chat] Proxy failed:",
         err.message,
       );
-      res
-        .status(502)
-        .json({
-          success: false,
-          error: "Ollama unreachable",
-          message: err.message,
-        });
+      res.status(502).json({
+        success: false,
+        error: "Ollama unreachable",
+        message: err.message,
+      });
     }
   });
 
@@ -2244,12 +2227,10 @@ function setupSimplebeaconAPI(app, options = {}) {
         res.json({ success: true, results: [safePath] });
       } catch (err) {
         logger.error("[POST /api/find-folder] Error:", err.message);
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: err.message || "Folder lookup failed",
-          });
+        res.status(500).json({
+          success: false,
+          error: err.message || "Folder lookup failed",
+        });
       }
     });
   });
@@ -2277,12 +2258,10 @@ function setupSimplebeaconAPI(app, options = {}) {
         }
       } catch (err) {
         logger.error("[POST /api/verify-path] Error:", err.message);
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: err.message || "Path verification failed",
-          });
+        res.status(500).json({
+          success: false,
+          error: err.message || "Path verification failed",
+        });
       }
     });
   });

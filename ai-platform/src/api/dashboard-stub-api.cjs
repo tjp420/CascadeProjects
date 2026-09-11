@@ -369,12 +369,10 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
     );
     // Fail-secure: If auth middleware is missing, block route execution entirely
     dashboardRouter.use((req, res) =>
-      res
-        .status(500)
-        .json({
-          success: false,
-          error: "Authentication layer misconfiguration.",
-        }),
+      res.status(500).json({
+        success: false,
+        error: "Authentication layer misconfiguration.",
+      }),
     );
   }
 

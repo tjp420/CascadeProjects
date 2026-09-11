@@ -157,6 +157,13 @@ function validateConfig(config) {
     }
   }
 
+  if (config.maxScanBytes != null) {
+    const n = Number(config.maxScanBytes);
+    if (!Number.isFinite(n) || n <= 0) {
+      errors.push("maxScanBytes must be a positive number of bytes");
+    }
+  }
+
   return { valid: errors.length === 0, errors, warnings };
 }
 

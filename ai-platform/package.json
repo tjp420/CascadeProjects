@@ -106,6 +106,7 @@
     "models:restore": "node tools/restore-local-models.js",
     "staging:paywall": "node tools/start-v1-internal-dashboard.cjs",
     "reports:weekly": "node bin/run-weekly-reports.cjs",
+    "dashboard:postbuild": "node ../scripts/verify-dashboard-assets.js",
     "auto:start": "node auto-processor.js",
     "auto:start:offline": "node auto-processor.js",
     "auto:start:pm2": "pm2 start auto-processor.js --name simplebeacon-automation",

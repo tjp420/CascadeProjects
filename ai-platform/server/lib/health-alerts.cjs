@@ -55,17 +55,32 @@ function detectPlatform(url) {
  * @param {string} [params.recovered] - Which check recovered (for recovery alerts)
  * @returns {Object} Platform-specific payload
  */
-function formatAlertPayload({ previousStatus, currentStatus, checks, timestamp }) {
+function formatAlertPayload({
+  previousStatus,
+  currentStatus,
+  checks,
+  timestamp,
+}) {
   const platform = detectPlatform(getWebhookUrl());
   const isRecovery = currentStatus === "UP" && previousStatus !== "UP";
-  const emoji = currentStatus === "DOWN" ? "🔴" : currentStatus === "DEGRADED" ? "🟡" : "🟢";
+  const emoji =
+    currentStatus === "DOWN"
+      ? "🔴"
+      : currentStatus === "DEGRADED"
+        ? "🟡"
+        : "🟢";
   const title = isRecovery
     ? "SimpleBeacon Health Recovered"
     : `SimpleBeacon Health: ${currentStatus}`;
 
   const checkLines = Object.entries(checks)
     .map(([name, result]) => {
-      const icon = result.status === "DOWN" ? "🔴" : result.status === "DEGRADED" ? "🟡" : "🟢";
+      const icon =
+        result.status === "DOWN"
+          ? "🔴"
+          : result.status === "DEGRADED"
+            ? "🟡"
+            : "🟢";
       return `${icon} ${name}: ${result.status}`;
     })
     .join("\n");
@@ -195,9 +210,14 @@ async function processHealthAlert(result) {
   const postResult = await postToWebhook(webhookUrl, payload);
 
   if (postResult.sent) {
-    logger.info(`[HealthAlert] Sent ${platform} alert: ${previous} → ${current}`);
+    logger.info(
+      `[HealthAlert] Sent ${platform} alert: ${previous} → ${current}`,
+    );
   } else {
-    logger.warn(`[HealthAlert] Failed to send ${platform} alert:`, postResult.error);
+    logger.warn(
+      `[HealthAlert] Failed to send ${platform} alert:`,
+      postResult.error,
+    );
   }
 
   return {

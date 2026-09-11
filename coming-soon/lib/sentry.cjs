@@ -27,7 +27,7 @@ function initSentry() {
             tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
             profilesSampleRate: parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
             release: process.env.SENTRY_RELEASE || undefined,
-            serverName: process.env.RENDER_SERVICE_NAME || 'simplebeacon-server',
+            serverName: process.env.RENDER_SERVICE_NAME || 'simplebeacon-server'
         });
         console.log('[Sentry] Initialized — DSN:', dsn.substring(0, 20) + '...');
     } catch (err) {
@@ -42,7 +42,7 @@ function captureException(error, context) {
     const s = initSentry();
     if (!s) return;
     if (context && typeof context === 'object') {
-        s.withScope((scope) => {
+        s.withScope(scope => {
             for (const [key, value] of Object.entries(context)) {
                 scope.setContext(key, { value });
             }
@@ -77,5 +77,5 @@ module.exports = {
     captureMessage,
     setTag,
     setUser,
-    getSentry: () => Sentry,
+    getSentry: () => Sentry
 };

@@ -143,6 +143,11 @@ async function scanIntelligenceLayerAsync(content, options = {}) {
   return scanIntelligenceLayer(content, options);
 }
 
+function judgeRealityCandidates(findings, options = {}) {
+  const { judgeFindings } = require("./reality-judge");
+  return judgeFindings(findings, options);
+}
+
 function runLocalSlmReview(content, options = {}) {
   const mod = loadIntelligenceModule();
   if (!mod?.runSlmReview) {
@@ -166,4 +171,5 @@ module.exports = {
   getIntelligenceOptions,
   scanIntelligenceLayerAsync,
   runLocalSlmReview,
+  judgeRealityCandidates,
 };

@@ -1,0 +1,569 @@
+{
+  "version": 1,
+  "note": "Held-out labeled cases. Not copies of seed memory. simplebeacon-ignore: labeled eval candidates, not production leaks.",
+  "truePositives": [
+    {
+      "id": "tp-01",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "src/billing/config.js",
+        "claim": "Production checkout falls back to a sandbox payment host when BILLING_URL is unset."
+      },
+      "evidence": {
+        "code": "const BILLING_URL = process.env.BILLING_URL || 'https://sandbox-payments.example'"
+      }
+    },
+    {
+      "id": "tp-02",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "src/payments/client.py",
+        "claim": "Unset PAYMENTS_URL routes live traffic to a staging processor."
+      },
+      "evidence": {
+        "code": "PAYMENTS_URL = os.getenv('PAYMENTS_URL', 'https://staging-psp.example')"
+      }
+    },
+    {
+      "id": "tp-03",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "config/production.yml",
+        "claim": "Production config hardcodes a mock payment endpoint."
+      },
+      "evidence": {
+        "code": "checkout_url: https://mock-payments-stage.example"
+      }
+    },
+    {
+      "id": "tp-04",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "src/app/settings.py",
+        "claim": "Production default processor is a test PSP."
+      },
+      "evidence": {
+        "code": "PSP_HOST = os.environ.get('PSP_HOST', 'https://test-psp.example')"
+      }
+    },
+    {
+      "id": "tp-05",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "server/lib/psp.cjs",
+        "claim": "Live charge client uses a staging hostname when env is missing."
+      },
+      "evidence": {
+        "code": "const host = process.env.PSP_URL || 'https://payments-stage.example'"
+      }
+    },
+    {
+      "id": "tp-06",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "src/checkout/provider.ts",
+        "claim": "Production provider falls back to stripe-test when STRIPE_API is absent."
+      },
+      "evidence": {
+        "code": "const stripeApi = process.env.STRIPE_API ?? 'https://stripe-test.example'"
+      }
+    },
+    {
+      "id": "tp-07",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "src/dashboard/metrics.js",
+        "claim": "Production dashboard reads fixture revenue data at runtime."
+      },
+      "evidence": {
+        "code": "const rows = JSON.parse(fs.readFileSync('fixtures/mrr.json', 'utf8'))"
+      }
+    },
+    {
+      "id": "tp-08",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "server/routes/revenue.cjs",
+        "claim": "Production revenue route requires sample JSON."
+      },
+      "evidence": {
+        "code": "const data = require('../data/sample-revenue.json')"
+      }
+    },
+    {
+      "id": "tp-09",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "src/api/kpi-board.js",
+        "claim": "KPI board serves ARR from a fixture file."
+      },
+      "evidence": {
+        "code": "fs.readFileSync('fixtures/arr.json')"
+      }
+    },
+    {
+      "id": "tp-10",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "web/dashboard/stats.js",
+        "claim": "Dashboard stats load mock revenue JSON in the production bundle."
+      },
+      "evidence": {
+        "code": "fetch('/mock_data_revenue.json')"
+      }
+    },
+    {
+      "id": "tp-11",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "src/reports/export.py",
+        "claim": "Quarterly export reads fixtures instead of the ledger."
+      },
+      "evidence": {
+        "code": "with open('fixtures/quarterly.json') as handle: return json.load(handle)"
+      }
+    },
+    {
+      "id": "tp-12",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "src/dashboard/overview.js",
+        "claim": "Overview cards are populated from fixtures/revenue.json."
+      },
+      "evidence": {
+        "code": "readFile('fixtures/revenue.json')"
+      }
+    },
+    {
+      "id": "tp-13",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "src/crypto/aes.py",
+        "claim": "encrypt returns the input unchanged."
+      },
+      "evidence": {
+        "code": "def encrypt(data):\n    return data"
+      }
+    },
+    {
+      "id": "tp-14",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "src/security/cipher.js",
+        "claim": "encrypt is a no-op and returns the buffer."
+      },
+      "evidence": {
+        "code": "function encrypt(buf) { return buf; }"
+      }
+    },
+    {
+      "id": "tp-15",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "lib/token.js",
+        "claim": "sign claims to protect a payload but returns it unchanged."
+      },
+      "evidence": {
+        "code": "function encrypt(payload) { return payload; }"
+      }
+    },
+    {
+      "id": "tp-16",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "src/privacy/hash.py",
+        "claim": "encrypt helper returns the argument with no transformation."
+      },
+      "evidence": {
+        "code": "def encrypt(value): return value"
+      }
+    },
+    {
+      "id": "tp-17",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "src/crypto/envelope.py",
+        "claim": "Production encrypt wrapper is a passthrough."
+      },
+      "evidence": {
+        "code": "def encrypt(plaintext, key=None):\n    return plaintext"
+      }
+    },
+    {
+      "id": "tp-18",
+      "candidate": {
+        "type": "fake_success",
+        "file": "src/payments/charge.js",
+        "claim": "charge returns success without calling a processor."
+      },
+      "evidence": {
+        "code": "function charge(card) { return { success: true }; }"
+      }
+    },
+    {
+      "id": "tp-19",
+      "candidate": {
+        "type": "fake_success",
+        "file": "src/billing/refund.py",
+        "claim": "refund reports success with no provider call."
+      },
+      "evidence": {
+        "code": "def refund(charge_id):\n    return {\"ok\": True, \"refunded\": True}"
+      }
+    },
+    {
+      "id": "tp-20",
+      "candidate": {
+        "type": "fake_success",
+        "file": "server/lib/processor.cjs",
+        "claim": "chargeCard returns a hardcoded charged flag."
+      },
+      "evidence": {
+        "code": "function charge(amount) { return { charged: true, success: true }; }"
+      }
+    },
+    {
+      "id": "tp-21",
+      "candidate": {
+        "type": "fake_success",
+        "file": "src/wallet/capture.ts",
+        "claim": "capture returns success without a payment provider."
+      },
+      "evidence": {
+        "code": "export function charge(order) { return { success: true, id: 'local' }; }"
+      }
+    },
+    {
+      "id": "tp-22",
+      "candidate": {
+        "type": "fake_success",
+        "file": "src/payments/settle.py",
+        "claim": "settle pretends the charge succeeded."
+      },
+      "evidence": {
+        "code": "def charge(card):\n    return {\"success\": True}"
+      }
+    },
+    {
+      "id": "tp-23",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "src/lib/psp.py",
+        "claim": "unknown dependency quantum_ledger_sdk is not in the lockfile."
+      },
+      "evidence": {
+        "code": "import quantum_ledger_sdk"
+      }
+    },
+    {
+      "id": "tp-24",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "src/payments/bridge.js",
+        "claim": "require('stable_payments_client') is not an approved package."
+      },
+      "evidence": {
+        "code": "const Client = require('stable_payments_client')"
+      }
+    },
+    {
+      "id": "tp-25",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "src/billing/adapter.ts",
+        "claim": "import of acme_settlement_core does not resolve."
+      },
+      "evidence": {
+        "code": "import { Settlement } from 'acme_settlement_core'"
+      }
+    },
+    {
+      "id": "tp-26",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "server/lib/vendor.cjs",
+        "claim": "unknown dependency hyper_clearing_house is not approved."
+      },
+      "evidence": {
+        "code": "require('hyper_clearing_house')"
+      }
+    }
+  ],
+  "falsePositives": [
+    {
+      "id": "fp-01",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "tests/integration/payments.test.js",
+        "claim": "Test client points at a mock payment endpoint."
+      },
+      "evidence": {
+        "code": "const host = 'https://mock-payments-stage.example'"
+      }
+    },
+    {
+      "id": "fp-02",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "tests/billing/checkout.spec.ts",
+        "claim": "Integration test uses a sandbox payment host."
+      },
+      "evidence": {
+        "code": "process.env.PAYMENTS_URL = 'https://sandbox-payments.example'"
+      }
+    },
+    {
+      "id": "fp-03",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "tests/psp.test.js",
+        "claim": "Unit test stubs the staging processor."
+      },
+      "evidence": {
+        "code": "nock('https://staging-psp.example')"
+      }
+    },
+    {
+      "id": "fp-04",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "tests/checkout.test.py",
+        "claim": "Test fixture sets PAYMENTS_URL to a mock host."
+      },
+      "evidence": {
+        "code": "os.environ['PAYMENTS_URL'] = 'https://mock-payments-stage.example'"
+      }
+    },
+    {
+      "id": "fp-05",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "src/payments/client.test.js",
+        "claim": "Co-located test uses a test PSP host."
+      },
+      "evidence": {
+        "code": "const host = 'https://test-psp.example'"
+      }
+    },
+    {
+      "id": "fp-06",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "tests/dashboard.test.js",
+        "claim": "Unit test loads fixture revenue data."
+      },
+      "evidence": {
+        "code": "readFile('fixtures/revenue.json')"
+      }
+    },
+    {
+      "id": "fp-07",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "tests/api/kpi-board.spec.js",
+        "claim": "Test reads fixtures/arr.json."
+      },
+      "evidence": {
+        "code": "fs.readFileSync('fixtures/arr.json')"
+      }
+    },
+    {
+      "id": "fp-08",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "tests/reports/export.test.py",
+        "claim": "Test opens quarterly fixture JSON."
+      },
+      "evidence": {
+        "code": "open('fixtures/quarterly.json')"
+      }
+    },
+    {
+      "id": "fp-09",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "src/dashboard/metrics.test.js",
+        "claim": "Test double loads fixtures/mrr.json."
+      },
+      "evidence": {
+        "code": "readFileSync('fixtures/mrr.json')"
+      }
+    },
+    {
+      "id": "fp-10",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "tests/routes/revenue.test.cjs",
+        "claim": "Route test requires sample-revenue.json."
+      },
+      "evidence": {
+        "code": "require('../data/sample-revenue.json')"
+      }
+    },
+    {
+      "id": "fp-11",
+      "candidate": {
+        "type": "placeholder",
+        "file": "tests/doubles/encrypt.py",
+        "claim": "placeholder implementation in a test double."
+      },
+      "evidence": {
+        "code": "return True  # placeholder"
+      }
+    },
+    {
+      "id": "fp-12",
+      "candidate": {
+        "type": "placeholder",
+        "file": "tests/helpers/stub.js",
+        "claim": "Test helper is a placeholder."
+      },
+      "evidence": {
+        "code": "function stub() { return true; /* placeholder */ }"
+      }
+    },
+    {
+      "id": "fp-13",
+      "candidate": {
+        "type": "placeholder",
+        "file": "src/lib/adapter.test.ts",
+        "claim": "Placeholder return inside a unit test."
+      },
+      "evidence": {
+        "code": "return null; // placeholder"
+      }
+    },
+    {
+      "id": "fp-14",
+      "candidate": {
+        "type": "placeholder",
+        "file": "tests/fixtures/dummy.py",
+        "claim": "Fixture module contains a placeholder body."
+      },
+      "evidence": {
+        "code": "def dummy():\n    return True  # placeholder"
+      }
+    },
+    {
+      "id": "fp-15",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "docs/runbooks/payments.md",
+        "claim": "Runbook mentions a staging payment endpoint."
+      },
+      "evidence": {
+        "code": "If PAYMENTS_URL is unset in staging, traffic goes to https://staging-psp.example"
+      }
+    },
+    {
+      "id": "fp-16",
+      "candidate": {
+        "type": "production_environment_boundary",
+        "file": "docs/architecture.md",
+        "claim": "Architecture note describes the mock payment host used in CI."
+      },
+      "evidence": {
+        "code": "CI uses https://mock-payments-stage.example"
+      }
+    },
+    {
+      "id": "fp-17",
+      "candidate": {
+        "type": "fixture_leak",
+        "file": "docs/dashboard.md",
+        "claim": "Documentation explains that fixtures/revenue.json is for local demos."
+      },
+      "evidence": {
+        "code": "Local demos may load fixtures/revenue.json"
+      }
+    },
+    {
+      "id": "fp-18",
+      "candidate": {
+        "type": "authorization_check",
+        "file": "src/users.py",
+        "claim": "Route returns a user without an ownership check."
+      },
+      "evidence": {
+        "code": "return User.objects.get(id=user_id)"
+      }
+    },
+    {
+      "id": "fp-19",
+      "candidate": {
+        "type": "sql_injection",
+        "file": "src/search.js",
+        "claim": "Query concatenates a search string."
+      },
+      "evidence": {
+        "code": "db.query('select * from items where name=' + name)"
+      }
+    },
+    {
+      "id": "fp-20",
+      "candidate": {
+        "type": "logging",
+        "file": "src/lib/logger.js",
+        "claim": "Logger prints a request id."
+      },
+      "evidence": {
+        "code": "console.log('request', requestId)"
+      }
+    },
+    {
+      "id": "fp-21",
+      "candidate": {
+        "type": "style",
+        "file": "src/utils/format.js",
+        "claim": "Helper formats a currency string."
+      },
+      "evidence": {
+        "code": "return `$${amount.toFixed(2)}`"
+      }
+    },
+    {
+      "id": "fp-22",
+      "candidate": {
+        "type": "noop_implementation",
+        "file": "tests/doubles/cipher.js",
+        "claim": "Test double encrypt returns the buffer unchanged."
+      },
+      "evidence": {
+        "code": "function encrypt(buf) { return buf; }"
+      }
+    },
+    {
+      "id": "fp-23",
+      "candidate": {
+        "type": "fake_success",
+        "file": "tests/payments/charge.test.js",
+        "claim": "Test asserts a fake success object."
+      },
+      "evidence": {
+        "code": "assert.deepEqual(result, { success: true })"
+      }
+    },
+    {
+      "id": "fp-24",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "tests/bridge.test.js",
+        "claim": "Test mocks require('stable_payments_client')."
+      },
+      "evidence": {
+        "code": "jest.mock('stable_payments_client')"
+      }
+    },
+    {
+      "id": "fp-25",
+      "candidate": {
+        "type": "hallucinated_dependency",
+        "file": "docs/dependencies.md",
+        "claim": "Docs list an example package name that is not installed."
+      },
+      "evidence": {
+        "code": "Example: import quantum_ledger_sdk"
+      }
+    }
+  ]
+}

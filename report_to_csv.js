@@ -19,7 +19,12 @@ const path = require("path");
 function csvEscape(value) {
   if (value === null || value === undefined) return "";
   const s = String(value);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+  if (
+    s.includes(",") ||
+    s.includes('"') ||
+    s.includes("\n") ||
+    s.includes("\r")
+  ) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
   return s;
@@ -172,9 +177,18 @@ function collectSummary(data, totalRaw, actionableCount) {
     { metric: "Medium Severity", value: severity.medium ?? 0 },
     { metric: "Low Severity", value: severity.low ?? 0 },
     { metric: "Credential Findings", value: data.credentialFindings ?? 0 },
-    { metric: "Custom Heuristic Findings", value: data.customHeuristicFindings ?? 0 },
-    { metric: "AST Structural Findings", value: data.astStructuralFindings ?? 0 },
-    { metric: "Deployment Readiness Findings", value: data.deploymentReadinessFindings ?? 0 },
+    {
+      metric: "Custom Heuristic Findings",
+      value: data.customHeuristicFindings ?? 0,
+    },
+    {
+      metric: "AST Structural Findings",
+      value: data.astStructuralFindings ?? 0,
+    },
+    {
+      metric: "Deployment Readiness Findings",
+      value: data.deploymentReadinessFindings ?? 0,
+    },
     { metric: "Scan Duration (ms)", value: data.totalScanTimeMs ?? 0 },
     { metric: "Generated At", value: data.generatedAt || "" },
     { metric: "Project Root", value: data.projectRoot || "" },
@@ -182,12 +196,15 @@ function collectSummary(data, totalRaw, actionableCount) {
 }
 
 function main() {
-  const jsonPath = process.argv[2] || path.join(process.cwd(), ".simplebeacon", "report.json");
+  const jsonPath =
+    process.argv[2] || path.join(process.cwd(), ".simplebeacon", "report.json");
   const outputDir = process.argv[3] || path.dirname(jsonPath);
 
   if (!fs.existsSync(jsonPath)) {
     console.error(`Error: JSON report not found at ${jsonPath}`);
-    console.error("Run this first:  npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json");
+    console.error(
+      "Run this first:  npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json",
+    );
     process.exit(1);
   }
 
@@ -197,11 +214,22 @@ function main() {
   const findings = collectFindings(data);
   const findingsPath = path.join(outputDir, "scan_findings.csv");
   const findingsHeaders = [
-    "id", "severity", "severityBand", "type",
-    "ruleId", "ruleName", "category", "engine",
-    "file", "filePath", "line",
-    "description", "count",
-    "affectedFiles", "match", "snippet",
+    "id",
+    "severity",
+    "severityBand",
+    "type",
+    "ruleId",
+    "ruleName",
+    "category",
+    "engine",
+    "file",
+    "filePath",
+    "line",
+    "description",
+    "count",
+    "affectedFiles",
+    "match",
+    "snippet",
   ];
   const findingsCount = writeCsv(findingsPath, findingsHeaders, findings);
   console.log(`Findings CSV:  ${findingsPath}  (${findingsCount} findings)`);
@@ -214,24 +242,42 @@ function main() {
   const actionable = findings.filter((f) => !NOISE_RULES.has(f.ruleId));
   const actionablePath = path.join(outputDir, "scan_findings_actionable.csv");
   const actionableCount = writeCsv(actionablePath, findingsHeaders, actionable);
-  console.log(`Actionable CSV: ${actionablePath}  (${actionableCount} findings, filtered ${findingsCount - actionableCount} noise)`);
+  console.log(
+    `Actionable CSV: ${actionablePath}  (${actionableCount} findings, filtered ${findingsCount - actionableCount} noise)`,
+  );
 
   // Export 2: Gate issues (blocking + warning)
   const gateIssues = collectGateIssues(data);
   const gatePath = path.join(outputDir, "scan_gate_issues.csv");
   const gateHeaders = [
-    "gateStatus", "id", "severity", "type",
-    "ruleId", "ruleName", "file", "line",
-    "description", "match",
+    "gateStatus",
+    "id",
+    "severity",
+    "type",
+    "ruleId",
+    "ruleName",
+    "file",
+    "line",
+    "description",
+    "match",
   ];
   const gateCount = writeCsv(gatePath, gateHeaders, gateIssues);
   console.log(`Gate CSV:      ${gatePath}  (${gateCount} gate issues)`);
 
   // Export 2b: Actionable gate issues (same noise filter)
   const actionableGate = gateIssues.filter((g) => !NOISE_RULES.has(g.ruleId));
-  const actionableGatePath = path.join(outputDir, "scan_gate_issues_actionable.csv");
-  const actionableGateCount = writeCsv(actionableGatePath, gateHeaders, actionableGate);
-  console.log(`Actionable Gate: ${actionableGatePath}  (${actionableGateCount} gate issues, filtered ${gateCount - actionableGateCount} noise)`);
+  const actionableGatePath = path.join(
+    outputDir,
+    "scan_gate_issues_actionable.csv",
+  );
+  const actionableGateCount = writeCsv(
+    actionableGatePath,
+    gateHeaders,
+    actionableGate,
+  );
+  console.log(
+    `Actionable Gate: ${actionableGatePath}  (${actionableGateCount} gate issues, filtered ${gateCount - actionableGateCount} noise)`,
+  );
 
   // Export 3: Summary metrics (includes signal-to-noise ratio)
   const summaryRows = collectSummary(data, gateCount, actionableGateCount);
@@ -243,9 +289,15 @@ function main() {
   const gate = data.gate || {};
   const severity = data.severityCounts || {};
   console.log(`\n${"=".repeat(60)}`);
-  console.log(`Gate: ${gate.status || "?"}  |  Blocking: ${gate.blockingCount ?? 0}  |  Warning: ${gate.warningCount ?? 0}`);
-  console.log(`Severity:  critical=${severity.critical ?? 0}  high=${severity.high ?? 0}  medium=${severity.medium ?? 0}  low=${severity.low ?? 0}`);
-  console.log(`Files: ${data.filesAnalyzed ?? 0} analyzed  |  Lines: ${(data.totalLines ?? 0).toLocaleString()}  |  Duration: ${((data.totalScanTimeMs ?? 0) / 1000).toFixed(1)}s`);
+  console.log(
+    `Gate: ${gate.status || "?"}  |  Blocking: ${gate.blockingCount ?? 0}  |  Warning: ${gate.warningCount ?? 0}`,
+  );
+  console.log(
+    `Severity:  critical=${severity.critical ?? 0}  high=${severity.high ?? 0}  medium=${severity.medium ?? 0}  low=${severity.low ?? 0}`,
+  );
+  console.log(
+    `Files: ${data.filesAnalyzed ?? 0} analyzed  |  Lines: ${(data.totalLines ?? 0).toLocaleString()}  |  Duration: ${((data.totalScanTimeMs ?? 0) / 1000).toFixed(1)}s`,
+  );
 }
 
 main();

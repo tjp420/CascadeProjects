@@ -663,12 +663,10 @@ router.post("/enroll-device", optionalAuthenticate, async (req, res) => {
     const existingDevices = await db.getDeviceKeys(accountId);
     const activeDevices = existingDevices.filter((d) => !d.revoked_at);
     if (activeDevices.length >= account.max_devices) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: `Device limit reached (${account.max_devices})`,
-        });
+      return res.status(403).json({
+        success: false,
+        error: `Device limit reached (${account.max_devices})`,
+      });
     }
 
     const deviceKeyId = crypto.randomUUID();

@@ -8,6 +8,7 @@ const { runTextRulePasses } = require("./full-tree-rule-pass");
 const { runTextRulePassesParallel } = require("./full-tree-scan-pool");
 const { scanPythonAstPatterns } = require("./python-ast-scanner");
 const { scanJavascriptAstPatterns } = require("./javascript-ast-scanner");
+const { resolveMaxScanBytes } = require("../config");
 
 const PHASES = [
   "discover",
@@ -45,6 +46,7 @@ async function runFullTreePipeline(rootDir, options = {}) {
       productionPaths: config.productionPaths,
       ignoreGlobs: config.ignore,
       severity: config.rules?.["javascript-ast-patterns"]?.severity,
+      maxScanBytes: resolveMaxScanBytes(config),
     });
     if (js.ok) sidecarIssues.push(...js.issues);
   }

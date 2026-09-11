@@ -76,7 +76,11 @@ async function walkProject(rootDir, options = {}) {
       continue;
     }
     for (const entry of entries) {
-      if (entry.name.startsWith(".") && entry.name !== "." && entry.name !== "..") {
+      if (
+        entry.name.startsWith(".") &&
+        entry.name !== "." &&
+        entry.name !== ".."
+      ) {
         // allow dotfiles but skip dotdirs in skipDirs
       }
       const full = path.join(dir, entry.name);
@@ -118,7 +122,8 @@ async function summarizeFile(fileRec) {
     content = "";
   }
   const tokenEstimate = estimateTokens(content, { filePath: fileRec.absPath });
-  const category = getExtensionCategory(fileRec.ext) || inferCategory(fileRec.ext);
+  const category =
+    getExtensionCategory(fileRec.ext) || inferCategory(fileRec.ext);
   const facts = extractFacts(content, fileRec.ext);
   const lines = content ? content.split("\n").length : 0;
   return {
@@ -146,9 +151,24 @@ async function summarizeFile(fileRec) {
  */
 function extractFacts(content, ext) {
   if (!content) {
-    return { exports: [], signatures: [], classes: [], topConstants: [], dependencies: [] };
+    return {
+      exports: [],
+      signatures: [],
+      classes: [],
+      topConstants: [],
+      dependencies: [],
+    };
   }
-  const isJsLike = [".js", ".ts", ".jsx", ".tsx", ".cjs", ".mjs", ".vue", ".svelte"].includes(ext);
+  const isJsLike = [
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".cjs",
+    ".mjs",
+    ".vue",
+    ".svelte",
+  ].includes(ext);
   if (isJsLike) return extractJsFacts(content);
   if (ext === ".py") return extractPyFacts(content);
   return extractGenericFacts(content);
@@ -161,15 +181,18 @@ function extractJsFacts(content) {
   const topConstants = [];
   const dependencies = [];
 
-  const exportRe = /export\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*?\s*|class\s+|const\s+|let\s+|var\s+)([A-Za-z0-9_$]+)/g;
+  const exportRe =
+    /export\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*?\s*|class\s+|const\s+|let\s+|var\s+)([A-Za-z0-9_$]+)/g;
   let m;
   while ((m = exportRe.exec(content)) !== null) exports.push(m[1]);
 
-  const fnRe = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*([A-Za-z0-9_$]+)\s*\(([^)]*)\)/g;
+  const fnRe =
+    /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*([A-Za-z0-9_$]+)\s*\(([^)]*)\)/g;
   while ((m = fnRe.exec(content)) !== null) {
     signatures.push(`${m[1]}(${m[2].trim()})`);
   }
-  const arrowRe = /(?:^|\n)\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g;
+  const arrowRe =
+    /(?:^|\n)\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>/g;
   while ((m = arrowRe.exec(content)) !== null) {
     signatures.push(`${m[1]}(${m[2].trim()})`);
   }
@@ -182,7 +205,8 @@ function extractJsFacts(content) {
     topConstants.push(m[1]);
   }
 
-  const importRe = /(?:import\s+.*?\s+from\s+|require\s*\(\s*)['"]([^'"]+)['"]/g;
+  const importRe =
+    /(?:import\s+.*?\s+from\s+|require\s*\(\s*)['"]([^'"]+)['"]/g;
   while ((m = importRe.exec(content)) !== null && dependencies.length < 40) {
     dependencies.push(m[1]);
   }
@@ -202,7 +226,8 @@ function extractPyFacts(content) {
   const topConstants = [];
   const fnRe = /(?:^|\n)\s*def\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/g;
   let m;
-  while ((m = fnRe.exec(content)) !== null) signatures.push(`${m[1]}(${m[2].trim()})`);
+  while ((m = fnRe.exec(content)) !== null)
+    signatures.push(`${m[1]}(${m[2].trim()})`);
   const classRe = /(?:^|\n)\s*class\s+([A-Za-z0-9_]+)/g;
   while ((m = classRe.exec(content)) !== null) classes.push(m[1]);
   const constRe = /(?:^|\n)\s*([A-Z_][A-Z0-9_]{2,})\s*=/g;
@@ -242,23 +267,30 @@ function extractGenericFacts(content) {
 
 function buildOneLineSummary(fileRec, facts, content) {
   const parts = [];
-  if (facts.classes.length) parts.push(`classes: ${facts.classes.slice(0, 3).join(", ")}`);
-  if (facts.signatures.length) parts.push(`fns: ${facts.signatures.slice(0, 3).join(", ")}`);
-  if (facts.exports.length) parts.push(`exports: ${facts.exports.slice(0, 4).join(", ")}`);
-  if (facts.dependencies.length) parts.push(`deps: ${facts.dependencies.slice(0, 4).join(", ")}`);
+  if (facts.classes.length)
+    parts.push(`classes: ${facts.classes.slice(0, 3).join(", ")}`);
+  if (facts.signatures.length)
+    parts.push(`fns: ${facts.signatures.slice(0, 3).join(", ")}`);
+  if (facts.exports.length)
+    parts.push(`exports: ${facts.exports.slice(0, 4).join(", ")}`);
+  if (facts.dependencies.length)
+    parts.push(`deps: ${facts.dependencies.slice(0, 4).join(", ")}`);
   if (parts.length) return parts.join(" | ");
   // Fallback: first non-trivial line.
   const firstLine = (content || "")
     .split("\n")
     .map((l) => l.trim())
     .find((l) => l && !/^\s*(\/\/|#|\/\*|\*|<!)/.test(l));
-  return firstLine ? firstLine.slice(0, 120) : `(empty or binary) ${fileRec.relPath}`;
+  return firstLine
+    ? firstLine.slice(0, 120)
+    : `(empty or binary) ${fileRec.relPath}`;
 }
 
 function inferCategory(ext) {
   if (!ext) return "unknown";
   if ([".md", ".markdown", ".txt", ".rst"].includes(ext)) return "docs";
-  if ([".json", ".yaml", ".yml", ".toml", ".ini", ".env"].includes(ext)) return "config";
+  if ([".json", ".yaml", ".yml", ".toml", ".ini", ".env"].includes(ext))
+    return "config";
   if ([".html", ".htm", ".css", ".scss"].includes(ext)) return "markup";
   return "other";
 }
@@ -341,13 +373,19 @@ async function summarizeProject(rootDir, options = {}) {
     for (const s of summaries) {
       const safeName = s.path.replace(/[^A-Za-z0-9._-]/g, "_") + ".json";
       try {
-        fs.writeFileSync(path.join(outputDir, safeName), JSON.stringify(s, null, 2));
+        fs.writeFileSync(
+          path.join(outputDir, safeName),
+          JSON.stringify(s, null, 2),
+        );
       } catch {
         /* skip unwritable */
       }
     }
     try {
-      fs.writeFileSync(path.join(outputDir, DEFAULT_INDEX_NAME), JSON.stringify(index, null, 2));
+      fs.writeFileSync(
+        path.join(outputDir, DEFAULT_INDEX_NAME),
+        JSON.stringify(index, null, 2),
+      );
     } catch {
       /* ignore */
     }

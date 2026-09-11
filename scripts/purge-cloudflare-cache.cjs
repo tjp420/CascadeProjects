@@ -66,7 +66,11 @@ async function main() {
     if (result.status === 200 && result.body?.success) {
       console.log("[cache-purge] ✓ Cache purged successfully.");
     } else {
-      console.error("[cache-purge] ✗ Purge failed:", result.status, result.body);
+      console.error(
+        "[cache-purge] ✗ Purge failed:",
+        result.status,
+        result.body,
+      );
       process.exit(1);
     }
   } catch (err) {

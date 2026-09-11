@@ -39,12 +39,14 @@ test("Classify AI slop finding", () => {
 
 test("Classify credential leak finding", () => {
   const cat = tel.classifyFinding("credential-hardcoded-api-key");
-  if (cat !== "credential_leaks") throw new Error(`Expected credential_leaks, got ${cat}`);
+  if (cat !== "credential_leaks")
+    throw new Error(`Expected credential_leaks, got ${cat}`);
 });
 
 test("Classify compliance finding", () => {
   const cat = tel.classifyFinding("eu-ai-act-high-risk");
-  if (cat !== "compliance_violations") throw new Error(`Expected compliance_violations, got ${cat}`);
+  if (cat !== "compliance_violations")
+    throw new Error(`Expected compliance_violations, got ${cat}`);
 });
 
 test("Classify custom AI finding", () => {
@@ -68,20 +70,23 @@ test("Record scan pass with findings", () => {
         { id: "custom-SB-AI-004" },
       ],
     },
-    detectedIssues: [
-      { id: "credential-hardcoded-key" },
-    ],
+    detectedIssues: [{ id: "credential-hardcoded-key" }],
   });
   if (!result.success) throw new Error("Should succeed");
-  if (result.squashedThisTurn !== 3) throw new Error(`Expected 3 squashed, got ${result.squashedThisTurn}`);
-  if (result.runningTotal !== 3) throw new Error(`Expected total 3, got ${result.runningTotal}`);
+  if (result.squashedThisTurn !== 3)
+    throw new Error(`Expected 3 squashed, got ${result.squashedThisTurn}`);
+  if (result.runningTotal !== 3)
+    throw new Error(`Expected total 3, got ${result.runningTotal}`);
 });
 
 test("Record empty scan pass", () => {
   tel.resetMetrics();
-  const result = tel.recordAgentScanPass({ gate: { blockingIssues: [], warningIssues: [] } });
+  const result = tel.recordAgentScanPass({
+    gate: { blockingIssues: [], warningIssues: [] },
+  });
   if (!result.success) throw new Error("Should succeed");
-  if (result.squashedThisTurn !== 0) throw new Error(`Expected 0 squashed, got ${result.squashedThisTurn}`);
+  if (result.squashedThisTurn !== 0)
+    throw new Error(`Expected 0 squashed, got ${result.squashedThisTurn}`);
 });
 
 test("Dashboard metrics shape", () => {
@@ -96,22 +101,33 @@ test("Dashboard metrics shape", () => {
   });
   const m = tel.getDashboardMetrics();
   if (m.totalScansProcessed !== 1) throw new Error("Should have 1 scan");
-  if (m.totalHallucinationsSquashed !== 2) throw new Error("Should have 2 squashed");
-  if (typeof m.estimatedDollarsSaved !== "number") throw new Error("Should have dollar savings");
+  if (m.totalHallucinationsSquashed !== 2)
+    throw new Error("Should have 2 squashed");
+  if (typeof m.estimatedDollarsSaved !== "number")
+    throw new Error("Should have dollar savings");
   if (!Array.isArray(m.timeline)) throw new Error("Should have timeline array");
   if (!m.deflectedByCategory) throw new Error("Should have category breakdown");
 });
 
 test("Reset clears all metrics", () => {
-  tel.recordAgentScanPass({ gate: { warningIssues: [{ id: "llm-slop-001" }] } });
+  tel.recordAgentScanPass({
+    gate: { warningIssues: [{ id: "llm-slop-001" }] },
+  });
   tel.resetMetrics();
   const m = tel.getDashboardMetrics();
   if (m.totalScansProcessed !== 0) throw new Error("Should be 0 after reset");
-  if (m.totalHallucinationsSquashed !== 0) throw new Error("Should be 0 after reset");
+  if (m.totalHallucinationsSquashed !== 0)
+    throw new Error("Should be 0 after reset");
 });
 
 // ── Summary ─────────────────────────────────────────────────────────────────
-console.log(`\n${colors.cyan}====================================================${colors.reset}`);
-console.log(`${passed === failed ? colors.red : colors.green}Telemetry tests: ${passed}/${passed + failed} passed${colors.reset}`);
-console.log(`${colors.cyan}====================================================${colors.reset}`);
+console.log(
+  `\n${colors.cyan}====================================================${colors.reset}`,
+);
+console.log(
+  `${passed === failed ? colors.red : colors.green}Telemetry tests: ${passed}/${passed + failed} passed${colors.reset}`,
+);
+console.log(
+  `${colors.cyan}====================================================${colors.reset}`,
+);
 process.exit(failed > 0 ? 1 : 0);

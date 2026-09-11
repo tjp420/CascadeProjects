@@ -101,13 +101,11 @@ router.post(
         eventType: event.type,
         status: "duplicate",
       });
-      return res
-        .status(200)
-        .json({
-          received: true,
-          status: "duplicate_ignored",
-          eventId: event.id,
-        });
+      return res.status(200).json({
+        received: true,
+        status: "duplicate_ignored",
+        eventId: event.id,
+      });
     }
 
     let logStatus = "processed";
@@ -356,7 +354,9 @@ async function handleCheckoutCompleted(event, headers = {}) {
   let licenseToken = headers.licenseToken || "";
   if (!licenseToken) {
     try {
-      const { generateLicenseToken } = require("../../../packages/simplebeacon-cli/src/lib/license-token.js");
+      const {
+        generateLicenseToken,
+      } = require("../../../packages/simplebeacon-cli/src/lib/license-token.js");
       const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET;
       if (licenseSecret) {
         // Determine TTL from tier config (expiryDays) or default to 30 days
@@ -373,7 +373,12 @@ async function handleCheckoutCompleted(event, headers = {}) {
                 "analyst_support",
                 "premium_exports",
               ]
-            : ["continuous_shield", "ci_integration", "export_reports", "premium_exports"];
+            : [
+                "continuous_shield",
+                "ci_integration",
+                "export_reports",
+                "premium_exports",
+              ];
         const tokenPayload = {
           email: customerEmail,
           tier,
@@ -381,7 +386,11 @@ async function handleCheckoutCompleted(event, headers = {}) {
           clientName: session.metadata?.clientName || customerEmail,
           features,
         };
-        licenseToken = generateLicenseToken(tokenPayload, licenseSecret, ttlMinutes);
+        licenseToken = generateLicenseToken(
+          tokenPayload,
+          licenseSecret,
+          ttlMinutes,
+        );
         logger.info(
           "[StripeWebhook] Minted license token on backend for",
           customerEmail,

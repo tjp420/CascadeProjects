@@ -146,7 +146,7 @@ function filterAdvancedAnalysis(analysis) {
 const SAMPLE_WALK_MAX_DEPTH = 6;
 const REPO_WALK_MAX_DEPTH = 24;
 const JSON_MAX_BYTES = 512000;
-const OVERSIZED_THRESHOLD_BYTES = 256000;
+const OVERSIZED_THRESHOLD_BYTES = 512000;
 const OVERSIZED_SKIP_PATH_SEGMENTS = [
   "/.venv/",
   "/site-packages/",
@@ -157,6 +157,7 @@ const OVERSIZED_SKIP_PATH_SEGMENTS = [
   "web/api/mock-backend.js",
   "web/scripts/dashboard-scripts.js",
   "web/simplebeacon-dashboard/js/views/",
+  "/semantic/testdata/",
 ];
 const OVERSIZED_SKIP_FILENAMES = new Set(["package-lock.json"]);
 const OVERSIZED_ELIGIBLE_EXTENSIONS = new Set([

@@ -44,7 +44,11 @@ describe("runSimplebeaconScan — programmatic fallback maxFiles forwarding", ()
         return async (cmd, opts) => {
           capturedExecEnv = opts && opts.env ? opts.env : {};
           return {
-            stdout: JSON.stringify({ type: "simplebeacon-report", generatedAt: new Date().toISOString(), summary: {} }),
+            stdout: JSON.stringify({
+              type: "simplebeacon-report",
+              generatedAt: new Date().toISOString(),
+              summary: {},
+            }),
             stderr: "",
           };
         };
@@ -52,8 +56,12 @@ describe("runSimplebeaconScan — programmatic fallback maxFiles forwarding", ()
     };
 
     const api = loadApiModuleWithMocks({
-      "util": mockUtil,
-      "../../server/lib/app-logger.cjs": { info: () => {}, warn: () => {}, error: () => {} },
+      util: mockUtil,
+      "../../server/lib/app-logger.cjs": {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+      },
       "../../server/lib/jwt-config.cjs": {},
     });
 
@@ -74,12 +82,16 @@ describe("runSimplebeaconScan — programmatic fallback maxFiles forwarding", ()
     const realFs = require("fs");
     const origExists = realFs.existsSync;
     realFs.existsSync = (p) => {
-      if (String(p).includes("packages/simplebeacon-cli/bin/simplebeacon.js")) return true;
+      if (String(p).includes("packages/simplebeacon-cli/bin/simplebeacon.js"))
+        return true;
       return origExists(p);
     };
 
     // Run the scan which will invoke our mocked execAsync and capture env
-    const res = await api.runSimplebeaconScan(null, { tier: "developer", fullDirectoryScan: true });
+    const res = await api.runSimplebeaconScan(null, {
+      tier: "developer",
+      fullDirectoryScan: true,
+    });
 
     // Restore fs and clear require cache stub
     realFs.existsSync = origExists;
@@ -109,7 +121,9 @@ describe("programmatic maxFiles computation", () => {
   });
 
   it("maps Infinity tier limit to zero (unlimited sentinel)", async () => {
-    const mockTierInf = { getTierLimits: () => ({ maxFilesPerScan: Infinity }) };
+    const mockTierInf = {
+      getTierLimits: () => ({ maxFilesPerScan: Infinity }),
+    };
     const limitsInf = mockTierInf.getTierLimits("developer") || {};
     let programmaticMaxFilesInf;
     if (Number.isFinite(limitsInf.maxFilesPerScan)) {
@@ -131,7 +145,10 @@ describe("runSimplebeaconScan — programmatic fallback path", () => {
       analyzeCodebase: async (scanRoot, options) => {
         capturedOptions = options;
         return {
-          summary: { codeFilesAnalyzed: options.maxFiles || 0, healthScore: 100 },
+          summary: {
+            codeFilesAnalyzed: options.maxFiles || 0,
+            healthScore: 100,
+          },
           categories: [],
           findings: [],
         };
@@ -140,7 +157,9 @@ describe("runSimplebeaconScan — programmatic fallback path", () => {
     // Instead of invoking the complex runtime path, directly simulate the
     // programmatic fallback computation used by runSimplebeaconScan and call
     // the analyzer to assert maxFiles is forwarded.
-    const mockTierDetector = { getTierLimits: (tier) => ({ maxFilesPerScan: 25 }) };
+    const mockTierDetector = {
+      getTierLimits: (tier) => ({ maxFilesPerScan: 25 }),
+    };
 
     // Compute programmaticMaxFiles the same way the server does
     let programmaticMaxFiles = undefined;

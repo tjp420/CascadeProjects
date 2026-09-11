@@ -1,21 +1,24 @@
 # 🚀 HACKER NEWS LAUNCH REMINDER TASK
 
 ## ⏰ Targeting Window 1: The Global Morning Shift
-*   **Target Posting Time:** 12:30 PM – 2:00 PM UTC
-*   **Local Conversion Check:** 7:30 AM – 9:00 AM EDT / 4:30 AM – 6:00 AM PDT
+
+- **Target Posting Time:** 12:30 PM – 2:00 PM UTC
+- **Local Conversion Check:** 7:30 AM – 9:00 AM EDT / 4:30 AM – 6:00 AM PDT
 
 ---
 
 ## 📋 Submission Parameters (Copy-Paste Fields)
 
 ### 1. Title Flag (79 Characters Enforced)
+
 ```text
 How I forced Node.js to scan 265k files for "AI Slop" without choking the event loop
 ```
 
 ### 2. Submission Interface Route
-*   Navigate straight to: **https://ycombinator.com**
-*   Select the **Text** submission block input framing container.
+
+- Navigate straight to: **https://ycombinator.com**
+- Select the **Text** submission block input framing container.
 
 ---
 

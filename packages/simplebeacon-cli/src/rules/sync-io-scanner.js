@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Sync I/O in async path scanner (SB-PERF-001).
@@ -20,7 +21,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".rb",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -163,6 +164,8 @@ async function scanFile(filePath) {
 }
 
 async function scanSyncIo(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

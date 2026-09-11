@@ -42,7 +42,12 @@ function createEventStore(options = {}) {
       _cacheDirty = false;
       return _processedEvents;
     } catch (e) {
-      try { logger.warn('[StripeEventStore] loadProcessedEvents failed, using empty set:', e && e.message ? e.message : e); } catch (_) {}
+      try {
+        logger.warn(
+          "[StripeEventStore] loadProcessedEvents failed, using empty set:",
+          e && e.message ? e.message : e,
+        );
+      } catch (_) {}
       _processedEvents = new Set();
       _cacheDirty = false;
       return _processedEvents;

@@ -115,9 +115,7 @@ function summarizeLedger(ledgerPath, options = {}) {
   if (options.since) {
     const sinceMs = Date.parse(options.since);
     if (Number.isFinite(sinceMs)) {
-      entries = entries.filter(
-        (e) => Date.parse(e.timestamp) >= sinceMs,
-      );
+      entries = entries.filter((e) => Date.parse(e.timestamp) >= sinceMs);
     }
   }
   const byCapability = {};
@@ -160,7 +158,11 @@ function summarizeLedger(ledgerPath, options = {}) {
  * @returns {string}
  */
 function defaultLedgerPath(projectRoot) {
-  return path.join(projectRoot || process.cwd(), DEFAULT_TELEMETRY_DIR, DEFAULT_LEDGER_NAME);
+  return path.join(
+    projectRoot || process.cwd(),
+    DEFAULT_TELEMETRY_DIR,
+    DEFAULT_LEDGER_NAME,
+  );
 }
 
 module.exports = {

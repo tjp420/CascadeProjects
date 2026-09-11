@@ -106,6 +106,12 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
+    <!-- Block Cloudflare Insights beacon from loading — prevents SRI mismatch
+         console errors when the edge injects the beacon with a stale integrity hash. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src 'self' 'unsafe-inline'; img-src * data: blob:; font-src * data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self';"
+    />
     <meta
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
@@ -690,8 +696,8 @@
       })();
     </script>
 
-    <!-- DOMPurify for sanitization -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
+    <!-- DOMPurify for sanitization (local — dashboard CSP does not allow jsDelivr) -->
+    <script src="/app/js/vendor/purify.min.js"></script>
 
     <!-- JSZip for export functionality -->
     <script>
@@ -709,7 +715,7 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="/app/assets/main.js?v=1788599479476"></script>
+    <script type="module" src="/app/assets/main-CKiYvYsS.js?v=evidence-rc-990d46681"></script>
     <script>
       (function () {
         try {

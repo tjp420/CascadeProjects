@@ -38,13 +38,11 @@ describe("Chatbot mock provider mode", () => {
   });
 
   test("POST /api/chatbot/message returns mock response without API keys", async () => {
-    const res = await request(serverApp)
-      .post("/api/chatbot/message")
-      .send({
-        message: "Hello world",
-        provider: "openai",
-        personality: "helpful",
-      });
+    const res = await request(serverApp).post("/api/chatbot/message").send({
+      message: "Hello world",
+      provider: "openai",
+      personality: "helpful",
+    });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.mock).toBe(true);

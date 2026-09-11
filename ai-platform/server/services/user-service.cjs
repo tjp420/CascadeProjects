@@ -520,7 +520,9 @@ async function registerUser(email, password, name, options = {}) {
  * @returns {Promise<object|null>}
  */
 async function findUserByEmailOnly(db, email) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedEmail) return null;
 
   // Try PostgreSQL
@@ -532,7 +534,10 @@ async function findUserByEmailOnly(db, email) {
       );
       if (result.rows[0]) return result.rows[0];
     } catch (err) {
-      logger.warn("[UserService] PostgreSQL findUserByEmailOnly failed:", err.message);
+      logger.warn(
+        "[UserService] PostgreSQL findUserByEmailOnly failed:",
+        err.message,
+      );
     }
   }
 
@@ -560,7 +565,9 @@ async function findUserByEmailOnly(db, email) {
  * @returns {Promise<boolean>} true if password was updated
  */
 async function updateUserPassword(db, email, newPassword) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedEmail || !newPassword) return false;
 
   // Try PostgreSQL
@@ -573,7 +580,10 @@ async function updateUserPassword(db, email, newPassword) {
       );
       if (result.rowCount > 0) return true;
     } catch (err) {
-      logger.warn("[UserService] PostgreSQL password update failed:", err.message);
+      logger.warn(
+        "[UserService] PostgreSQL password update failed:",
+        err.message,
+      );
     }
   }
 
@@ -606,7 +616,10 @@ async function updateUserPassword(db, email, newPassword) {
       fs.writeFileSync(DEMO_USERS_PATH, JSON.stringify(demoUsers, null, 2));
       return true;
     } catch (err) {
-      logger.warn("[UserService] Demo file password update failed:", err.message);
+      logger.warn(
+        "[UserService] Demo file password update failed:",
+        err.message,
+      );
     }
   }
 

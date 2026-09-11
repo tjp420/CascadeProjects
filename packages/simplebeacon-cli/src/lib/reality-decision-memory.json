@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "policyNote": "These are SimpleBeacon decisions, not generic security rules. The judge must not invent policy beyond this store. Only source=human and reviewed=true entries are learning material.",
+  "decisions": [
+    {
+      "id": "seed-payments-prod-staging",
+      "example": {
+        "candidate": "production fallback to mock endpoint",
+        "type": "production_environment_boundary",
+        "evidence": "PAYMENTS_URL unset falls back to staging host",
+        "context": "payments service production config"
+      },
+      "human_decision": "CONFIRMED",
+      "severity": "CRITICAL",
+      "reason": "Production must never use staging payments.",
+      "invariant": "Production payments must use an approved live provider.",
+      "evidence": [
+        "PAYMENTS_URL is optional",
+        "fallback contains a staging hostname",
+        "code is imported by the production application"
+      ],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-payments-test-mock",
+      "example": {
+        "candidate": "mock endpoint",
+        "type": "production_environment_boundary",
+        "evidence": "test client points at mock-payments",
+        "context": "integration test"
+      },
+      "human_decision": "DISMISSED",
+      "severity": "INFO",
+      "reason": "File is test-only.",
+      "invariant": "Mock payment hosts are acceptable inside tests.",
+      "evidence": [
+        "path is under tests/",
+        "no production import of the test helper"
+      ],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-fixture-dashboard",
+      "example": {
+        "candidate": "fixture data",
+        "type": "fixture_leak",
+        "evidence": "dashboard revenue route reads fixtures/revenue.json",
+        "context": "production dashboard"
+      },
+      "human_decision": "CONFIRMED",
+      "severity": "CRITICAL",
+      "reason": "Dashboard metrics must originate from authoritative data.",
+      "invariant": "Production business metrics must not be served from fixtures.",
+      "evidence": [
+        "runtime read of fixtures/",
+        "route is mounted in the production app"
+      ],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-fixture-test",
+      "example": {
+        "candidate": "fixture data",
+        "type": "fixture_leak",
+        "evidence": "unit test loads fixtures/revenue.json",
+        "context": "unit test"
+      },
+      "human_decision": "DISMISSED",
+      "severity": "INFO",
+      "reason": "Fixture files are expected inside tests.",
+      "invariant": "Tests may load fixtures.",
+      "evidence": ["path is a test file"],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-encrypt-noop",
+      "example": {
+        "candidate": "encrypt returns input unchanged",
+        "type": "noop_implementation",
+        "evidence": "def encrypt(data): return data",
+        "context": "production crypto helper"
+      },
+      "human_decision": "CONFIRMED",
+      "severity": "CRITICAL",
+      "reason": "Production crypto cannot be a no-op.",
+      "invariant": "A function named encrypt must transform its input.",
+      "evidence": ["function name claims encryption", "body returns the argument"],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-placeholder-test",
+      "example": {
+        "candidate": "placeholder implementation",
+        "type": "placeholder",
+        "evidence": "return True  # placeholder",
+        "context": "unit test double"
+      },
+      "human_decision": "DISMISSED",
+      "severity": "INFO",
+      "reason": "Placeholders are acceptable as test doubles.",
+      "invariant": "Test-only placeholders are not production reality violations.",
+      "evidence": ["path is a test file"],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-hallucinated-dep",
+      "example": {
+        "candidate": "unknown dependency",
+        "type": "hallucinated_dependency",
+        "evidence": "import stable_payments_client — package not in lockfile",
+        "context": "production application"
+      },
+      "human_decision": "CONFIRMED",
+      "severity": "HIGH",
+      "reason": "Unknown dependency is not approved.",
+      "invariant": "Production dependencies must resolve to real, approved packages.",
+      "evidence": ["import is not in package.json or lockfile"],
+      "source": "human",
+      "reviewed": true
+    },
+    {
+      "id": "seed-fake-success",
+      "example": {
+        "candidate": "charge returns success without a processor",
+        "type": "fake_success",
+        "evidence": "return {\"success\": True}",
+        "context": "production payments"
+      },
+      "human_decision": "CONFIRMED",
+      "severity": "CRITICAL",
+      "reason": "A success claim must be earned by a real processor.",
+      "invariant": "Production charge/refund paths must call an approved provider.",
+      "evidence": ["function name claims a charge", "body returns a hardcoded success object"],
+      "source": "human",
+      "reviewed": true
+    }
+  ]
+}

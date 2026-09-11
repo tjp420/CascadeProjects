@@ -483,9 +483,11 @@ function updateUserTier(email, tier) {
 
 function updateUserPassword(email, passwordHash, salt) {
     const db = getDb();
-    db.prepare(
-        "UPDATE users SET password_hash = ?, salt = ?, updated_at = datetime('now') WHERE email = ?"
-    ).run(passwordHash, salt, email.trim().toLowerCase());
+    db.prepare("UPDATE users SET password_hash = ?, salt = ?, updated_at = datetime('now') WHERE email = ?").run(
+        passwordHash,
+        salt,
+        email.trim().toLowerCase()
+    );
 }
 
 function getUserById(id) {

@@ -36,7 +36,9 @@ const SMTP_FROM = process.env.SMTP_FROM || "admin@simplebeacon.ai";
 const TO_EMAIL = process.argv[2] || "admin@simplebeacon.ai";
 
 if (!SECRET) {
-  console.error("ERROR: SIMPLEBEACON_LICENSE_SECRET not set in coming-soon/.env");
+  console.error(
+    "ERROR: SIMPLEBEACON_LICENSE_SECRET not set in coming-soon/.env",
+  );
   process.exit(1);
 }
 if (!RESEND_API_KEY) {
@@ -51,7 +53,9 @@ function base64UrlEncode(buf) {
 }
 
 function buildHeader() {
-  return base64UrlEncode(Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })));
+  return base64UrlEncode(
+    Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })),
+  );
 }
 
 function sign(data, secret) {
@@ -104,7 +108,8 @@ const TIERS = [
     ttlMinutes: 24 * 60, // 24 hours (free-token route default)
     features: ["scan", "browser-scan"],
     scanQuota: 3, // dashboard TIER_CAPABILITIES.community.maxScans = 3
-    description: "Free tier — 3 scans/mo, browser-local scans, 38 analyzer modules. No CI gate, no certs, no PDF exports.",
+    description:
+      "Free tier — 3 scans/mo, browser-local scans, 38 analyzer modules. No CI gate, no certs, no PDF exports.",
     color: "#6b7280",
     source: "website",
   },
@@ -113,9 +118,18 @@ const TIERS = [
     label: "Developer ($49/mo or $490/yr)",
     price: "$49/mo",
     ttlMinutes: 365 * 24 * 60, // 365 days
-    features: ["scan", "ci-gate", "pdf-report", "certificate", "advanced-analyzers", "cve-scanner", "secret-scanner"],
+    features: [
+      "scan",
+      "ci-gate",
+      "pdf-report",
+      "certificate",
+      "advanced-analyzers",
+      "cve-scanner",
+      "secret-scanner",
+    ],
     scanQuota: Infinity, // website: "Unlimited pipeline scans with unlimited files per scan"
-    description: "Developer tier — unlimited scans, CI/CD gate, 38 CLI analyzer modules, CVE dependency scanner, git history secret scanner, PDF reports, certificates. 14-day free trial.",
+    description:
+      "Developer tier — unlimited scans, CI/CD gate, 38 CLI analyzer modules, CVE dependency scanner, git history secret scanner, PDF reports, certificates. 14-day free trial.",
     color: "#10b981",
     source: "website",
   },
@@ -124,9 +138,22 @@ const TIERS = [
     label: "Team Pro ($149/mo or $1,490/yr)",
     price: "$149/mo",
     ttlMinutes: 365 * 24 * 60,
-    features: ["scan", "ci-gate", "pdf-report", "certificate", "advanced-analyzers", "eu-ai-act", "soc2", "board-cert", "sso", "5-seats", "cyclonedx-sbom"],
+    features: [
+      "scan",
+      "ci-gate",
+      "pdf-report",
+      "certificate",
+      "advanced-analyzers",
+      "eu-ai-act",
+      "soc2",
+      "board-cert",
+      "sso",
+      "5-seats",
+      "cyclonedx-sbom",
+    ],
     scanQuota: Infinity,
-    description: "Team Pro tier — everything in Developer + EU AI Act & SOC 2 mapping, board-ready PDF certificate ZIP, CycloneDX SBOM, 5 team seats, SSO, quarterly compliance reviews. 14-day free trial.",
+    description:
+      "Team Pro tier — everything in Developer + EU AI Act & SOC 2 mapping, board-ready PDF certificate ZIP, CycloneDX SBOM, 5 team seats, SSO, quarterly compliance reviews. 14-day free trial.",
     color: "#10b981",
     source: "website",
   },
@@ -135,9 +162,26 @@ const TIERS = [
     label: "Enterprise / Corporate Governance ($499/mo or Custom)",
     price: "$499/mo (Custom on website)",
     ttlMinutes: 365 * 24 * 60,
-    features: ["scan", "ci-gate", "pdf-report", "certificate", "advanced-analyzers", "eu-ai-act", "soc2", "board-cert", "sso", "saml", "air-gapped", "dedicated-analyst", "unlimited-seats", "custom-rules", "sla"],
+    features: [
+      "scan",
+      "ci-gate",
+      "pdf-report",
+      "certificate",
+      "advanced-analyzers",
+      "eu-ai-act",
+      "soc2",
+      "board-cert",
+      "sso",
+      "saml",
+      "air-gapped",
+      "dedicated-analyst",
+      "unlimited-seats",
+      "custom-rules",
+      "sla",
+    ],
     scanQuota: Infinity,
-    description: "Enterprise tier — everything in Team Pro + self-hosted/air-gapped, unlimited seats, SSO/SAML, dedicated compliance analyst, custom rule engines, EU AI Act Annex III + Art 14 + Art 50, 24/7 SLA. Contact sales.",
+    description:
+      "Enterprise tier — everything in Team Pro + self-hosted/air-gapped, unlimited seats, SSO/SAML, dedicated compliance analyst, custom rule engines, EU AI Act Annex III + Art 14 + Art 50, 24/7 SLA. Contact sales.",
     color: "#6366f1",
     source: "website",
   },
@@ -146,9 +190,16 @@ const TIERS = [
     label: "Audit Certificate ($149 one-time)",
     price: "$149 one-time",
     ttlMinutes: 365 * 24 * 60, // 365 days — website says "Valid for 12 months"
-    features: ["scan", "certificate", "pdf-report", "eu-ai-act-alignment", "soc2-alignment"],
+    features: [
+      "scan",
+      "certificate",
+      "pdf-report",
+      "eu-ai-act-alignment",
+      "soc2-alignment",
+    ],
     scanQuota: 1, // website: "1 cryptographic certificate"
-    description: "One-time pass — 1 board-ready certificate, PDF + JSON + remediation roadmap, EU AI Act + SOC 2 alignment. Valid for 12 months. No subscription.",
+    description:
+      "One-time pass — 1 board-ready certificate, PDF + JSON + remediation roadmap, EU AI Act + SOC 2 alignment. Valid for 12 months. No subscription.",
     color: "#6366f1",
     source: "website",
   },
@@ -157,9 +208,19 @@ const TIERS = [
     label: "Executive Risk Certificate ($499 one-time)",
     price: "$499 one-time",
     ttlMinutes: 90 * 24 * 60, // 90 days — website says "Valid for 90 days"
-    features: ["scan", "certificate", "pdf-report", "executive-clearance", "hygiene-grade", "liability-estimate", "remediation-checklist", "evidence-pack"],
+    features: [
+      "scan",
+      "certificate",
+      "pdf-report",
+      "executive-clearance",
+      "hygiene-grade",
+      "liability-estimate",
+      "remediation-checklist",
+      "evidence-pack",
+    ],
     scanQuota: 1, // one signed executive risk certificate
-    description: "One-time executive pass — signed Executive Risk Certificate, A–F hygiene grade + liability estimate, remediation checklist + evidence pack. Valid for 90 days.",
+    description:
+      "One-time executive pass — signed Executive Risk Certificate, A–F hygiene grade + liability estimate, remediation checklist + evidence pack. Valid for 90 days.",
     color: "#6366f1",
     source: "website",
   },
@@ -168,9 +229,21 @@ const TIERS = [
     label: "EU AI Act Sprint ($2,499 one-time)",
     price: "$2,499 one-time",
     ttlMinutes: 30 * 24 * 60, // 30 days — website says "30-day analyst support"
-    features: ["scan", "eu-ai-act", "compliance", "pdf-report", "certificate", "annex-iii", "article-14", "article-50", "evidence-pack", "analyst-support"],
+    features: [
+      "scan",
+      "eu-ai-act",
+      "compliance",
+      "pdf-report",
+      "certificate",
+      "annex-iii",
+      "article-14",
+      "article-50",
+      "evidence-pack",
+      "analyst-support",
+    ],
     scanQuota: 20,
-    description: "One-time EU AI Act sprint — readiness audit, Annex III + Article 14 + Article 50 checks, verified evidence pack (PDF + JSON), 30-day analyst support.",
+    description:
+      "One-time EU AI Act sprint — readiness audit, Annex III + Article 14 + Article 50 checks, verified evidence pack (PDF + JSON), 30-day analyst support.",
     color: "#6366f1",
     source: "website",
   },
@@ -184,7 +257,8 @@ const TIERS = [
     ttlMinutes: 14 * 24 * 60, // 14 days (sandbox token route default)
     features: ["scan", "browser-scan", "sandbox"],
     scanQuota: 50,
-    description: "Internal sandbox token — generated by the audit page for browser-local demo scans. Not a purchasable tier. 14-day token for testing the audit page only.",
+    description:
+      "Internal sandbox token — generated by the audit page for browser-local demo scans. Not a purchasable tier. 14-day token for testing the audit page only.",
     color: "#f59e0b",
     source: "internal",
   },
@@ -195,7 +269,8 @@ const TIERS = [
     ttlMinutes: 365 * 24 * 60,
     features: ["scan", "ci-gate", "pdf-report"],
     scanQuota: 500, // CLI TIER_QUOTAS.pro = 500
-    description: "Legacy Pro tier — 500 scans, CI gate, PDF reports. Kept in server tierConfig for existing customers only. Not offered to new customers on pricing page.",
+    description:
+      "Legacy Pro tier — 500 scans, CI gate, PDF reports. Kept in server tierConfig for existing customers only. Not offered to new customers on pricing page.",
     color: "#f59e0b",
     source: "internal",
   },

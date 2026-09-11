@@ -55,8 +55,10 @@ describe("health-alerts", () => {
     });
 
     it("prefers HEALTH_ALERT_WEBHOOK over PURCHASE_ALERT_WEBHOOK", () => {
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/health";
-      process.env.PURCHASE_ALERT_WEBHOOK = "https://hooks.slack.com/services/purchase";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/health";
+      process.env.PURCHASE_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/purchase";
       assert.strictEqual(
         getWebhookUrl(),
         "https://hooks.slack.com/services/health",
@@ -64,7 +66,8 @@ describe("health-alerts", () => {
     });
 
     it("falls back to PURCHASE_ALERT_WEBHOOK", () => {
-      process.env.PURCHASE_ALERT_WEBHOOK = "https://hooks.slack.com/services/purchase";
+      process.env.PURCHASE_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/purchase";
       assert.strictEqual(
         getWebhookUrl(),
         "https://hooks.slack.com/services/purchase",
@@ -118,7 +121,8 @@ describe("health-alerts", () => {
     };
 
     it("formats Slack payload with text field", () => {
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/T/B/X";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/T/B/X";
       const payload = formatAlertPayload({
         previousStatus: "UP",
         currentStatus: "DEGRADED",
@@ -158,7 +162,8 @@ describe("health-alerts", () => {
     });
 
     it("includes recovery emoji for UP transitions", () => {
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/T/B/X";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/T/B/X";
       const payload = formatAlertPayload({
         previousStatus: "DOWN",
         currentStatus: "UP",
@@ -185,7 +190,8 @@ describe("health-alerts", () => {
     });
 
     it("does not alert on first UP check (no transition)", async () => {
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/T/B/X";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/T/B/X";
       const result = await processHealthAlert({
         status: "UP",
         timestamp: new Date().toISOString(),
@@ -200,25 +206,35 @@ describe("health-alerts", () => {
     });
 
     it("does not alert on repeated same-status checks", async () => {
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/T/B/X";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/T/B/X";
       // First DOWN alert
       await processHealthAlert({
         status: "DOWN",
         timestamp: new Date().toISOString(),
-        checks: { encryption: { status: "DOWN" }, datastore: { status: "UP" }, memory: { status: "UP" } },
+        checks: {
+          encryption: { status: "DOWN" },
+          datastore: { status: "UP" },
+          memory: { status: "UP" },
+        },
       });
       // Second DOWN — should not re-alert
       const result = await processHealthAlert({
         status: "DOWN",
         timestamp: new Date().toISOString(),
-        checks: { encryption: { status: "DOWN" }, datastore: { status: "UP" }, memory: { status: "UP" } },
+        checks: {
+          encryption: { status: "DOWN" },
+          datastore: { status: "UP" },
+          memory: { status: "UP" },
+        },
       });
       assert.strictEqual(result.alerted, false);
     });
 
     it("attempts to send on UP → DOWN transition with webhook set", async () => {
       // Use an invalid port to trigger fast failure, but the function should still try
-      process.env.HEALTH_ALERT_WEBHOOK = "https://hooks.slack.com/services/T/B/invalid";
+      process.env.HEALTH_ALERT_WEBHOOK =
+        "https://hooks.slack.com/services/T/B/invalid";
       const result = await processHealthAlert({
         status: "DOWN",
         timestamp: new Date().toISOString(),

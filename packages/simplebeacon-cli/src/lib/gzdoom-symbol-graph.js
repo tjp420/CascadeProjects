@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Build a GZDoom mod symbol graph from DECORATE, ZScript, MODELDEF, KEYCONF, MAPINFO, and sprites.
  */
@@ -32,7 +33,7 @@ const GZDoom_EXTENSIONS = new Set([
   ".dec",
   ".def",
 ]);
-const MAX_SCAN_BYTES = 1024 * 1024;
+let MAX_SCAN_BYTES = 1048576;
 const DEFAULT_SKIP_DIRS = new Set([
   "node_modules",
   ".git",
@@ -579,6 +580,12 @@ async function expandIncludes(baseDir, files, ignoreGlobs = []) {
  * @param {{ignoreGlobs?:string[]}} [options]
  */
 async function buildGzdoomSymbolGraph(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(
+    Number(options.maxScanBytes) > 0
+      ? options
+      : { maxScanBytes: 1048576 },
+  );
+
   const graph = createEmptyGraph();
   const respectIncludes = options.respectIncludes !== false;
   if (Array.isArray(options.extraActors)) {

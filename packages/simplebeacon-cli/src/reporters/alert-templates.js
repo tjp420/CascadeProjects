@@ -21,6 +21,9 @@
  * - PDF Report: Includes alert details in compliance clearance document
  */
 
+const { getStandardsForFinding } = require("../lib/standards-map");
+const { enrichIssueContext } = require("../lib/finding-context");
+
 const ALERT_TEMPLATES = {
   // ═══════════════════════════════════════════════
   // Cloud IAM & Secret Detection (Critical)
@@ -649,17 +652,31 @@ function getAlertTemplate(ruleId) {
  */
 function enrichFindingWithAlert(finding) {
   if (!finding || typeof finding !== "object") return finding;
+  const withContext = enrichIssueContext(finding);
   const ruleId =
-    finding.pattern ||
-    finding.patternId ||
-    (finding.id ? finding.id.split("-").slice(0, 3).join("-") : null) ||
+    withContext.pattern ||
+    withContext.patternId ||
+    (withContext.id ? withContext.id.split("-").slice(0, 3).join("-") : null) ||
+    withContext.standards?.ruleId ||
     null;
   const template = ruleId ? getAlertTemplate(ruleId) : null;
+  const standards = getStandardsForFinding(withContext);
+  const cweLabel = `${standards.cwe}: ${standards.cweTitle}`;
 
-  if (!template) return finding;
+  if (!template) {
+    return {
+      ...withContext,
+      cwe: standards.cwe,
+      owasp: standards.owasp,
+      asvs: standards.asvs,
+    };
+  }
 
   return {
-    ...finding,
+    ...withContext,
+    cwe: standards.cwe,
+    owasp: standards.owasp,
+    asvs: standards.asvs,
     alertTemplate: {
       title: template.title,
       severity: template.severity,
@@ -670,7 +687,9 @@ function enrichFindingWithAlert(finding) {
       preventionGuidance: template.preventionGuidance,
       references: template.references,
       rotationRequired: template.rotationRequired,
-      cwe: template.cwe,
+      cwe: template.cwe || cweLabel,
+      owasp: standards.owasp,
+      asvs: standards.asvs,
     },
   };
 }

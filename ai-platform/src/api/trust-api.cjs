@@ -189,12 +189,10 @@ function setupTrustAPI(app, options = {}) {
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) =>
-      res
-        .status(429)
-        .json({
-          error: "too_many_requests",
-          message: "Too many requests, please try again later.",
-        }),
+      res.status(429).json({
+        error: "too_many_requests",
+        message: "Too many requests, please try again later.",
+      }),
   });
 
   app.get("/api/trust/verification", (req, res) => {
@@ -362,38 +360,41 @@ function setupTrustAPI(app, options = {}) {
     }
   });
 
-  app.post("/api/trust/publish", trustPublishRateLimit, authenticate, (req, res) => {
-    try {
-      const result = publishTrustVerification({
-        platformRoot,
-        monorepoRoot,
-        publicDir: path.dirname(PUBLIC_TRUST_PATH),
-        source: "api:publish",
-      });
-      res.set("Cache-Control", "no-store");
-      return res.json({
-        success: true,
-        type: "simplebeacon-trust-publish",
-        publishedAt: result.generatedAt,
-        publishPath: result.publishPath,
-        verificationId: result.payload.verificationId,
-        historyPath: result.history.historyPath,
-        historyCount: result.history.count,
-      });
-    } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
-    }
-  });
+  app.post(
+    "/api/trust/publish",
+    trustPublishRateLimit,
+    authenticate,
+    (req, res) => {
+      try {
+        const result = publishTrustVerification({
+          platformRoot,
+          monorepoRoot,
+          publicDir: path.dirname(PUBLIC_TRUST_PATH),
+          source: "api:publish",
+        });
+        res.set("Cache-Control", "no-store");
+        return res.json({
+          success: true,
+          type: "simplebeacon-trust-publish",
+          publishedAt: result.generatedAt,
+          publishPath: result.publishPath,
+          verificationId: result.payload.verificationId,
+          historyPath: result.history.historyPath,
+          historyCount: result.history.count,
+        });
+      } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+      }
+    },
+  );
 
   app.get("/trust-verification.json", (req, res) => {
     try {
       if (!fs.existsSync(PUBLIC_TRUST_PATH)) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            error: "No published trust verification found",
-          });
+        return res.status(404).json({
+          success: false,
+          error: "No published trust verification found",
+        });
       }
       res.set("Content-Type", "application/json; charset=utf-8");
       res.set("Cache-Control", "public, max-age=300");

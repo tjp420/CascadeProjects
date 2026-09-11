@@ -27,6 +27,7 @@ SimpleBeacon ships as an MCP server with 48 tools that any AI agent can call nat
 The feedback is structured JSON, not prose. The agent reads the verdict, auto-corrects in its next thought cycle, and tries again. No human intervention needed.
 
 **Agent-specific rules** catch the mistakes agents make most:
+
 - Hallucinated dependencies (packages that don't exist in npm/PyPI)
 - Fiction KPIs (fabricated metrics with no data source)
 - Mock paths in production code
@@ -40,6 +41,7 @@ The Semantic Lighthouse indexes your entire codebase into lightweight "beacons" 
 **Measured result from the SimpleBeacon CLI codebase: 94.88% token reduction** (836,681 tokens → 42,873 tokens).
 
 The full token-saving toolkit — all offline, all deterministic:
+
 - `summarize` — per-file summaries + repo index
 - `embed` — offline TF-IDF embeddings for semantic search
 - `search` — retrieve top-K matching passages without an LLM
@@ -60,11 +62,11 @@ One tool. Agent safety + token efficiency + compliance evidence.
 
 ## The results
 
-| Approach | Tool calls per session | Rework calls | Estimated token cost |
-|---|---|---|---|
-| No guardrails | 30 | 8-12 | $50-100 |
-| Verification only | 40 | 8-12 | $65-100 (worse) |
-| **SimpleBeacon prevention** | **10** | **0-2** | **$12-25** |
+| Approach                    | Tool calls per session | Rework calls | Estimated token cost |
+| --------------------------- | ---------------------- | ------------ | -------------------- |
+| No guardrails               | 30                     | 8-12         | $50-100              |
+| Verification only           | 40                     | 8-12         | $65-100 (worse)      |
+| **SimpleBeacon prevention** | **10**                 | **0-2**      | **$12-25**           |
 
 75% reduction in tool calls. 94.88% reduction in navigation tokens. Zero source upload.
 
@@ -77,6 +79,7 @@ npx simplebeacon beacon --path .
 ```
 
 For MCP integration with your AI agent:
+
 ```bash
 npx simplebeacon init --starter --with-mcp
 ```
@@ -87,4 +90,4 @@ npx simplebeacon init --starter --with-mcp
 
 ---
 
-*SimpleBeacon: 48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline, no source upload.*
+_SimpleBeacon: 48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline, no source upload._

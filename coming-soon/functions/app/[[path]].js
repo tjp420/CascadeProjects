@@ -11,6 +11,19 @@ export async function onRequest(context) {
     const pathname = url.pathname;
 
     if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+        if (/^\/app\/(?!assets\/)[^/]+\.(js|mjs|css|map)$/i.test(pathname)) {
+            const rewritten = new URL(url);
+            rewritten.pathname = pathname.replace(/^\/app\//, '/app/assets/');
+            const assetResp = await env.ASSETS.fetch(new Request(rewritten.toString(), request));
+            const type = (assetResp.headers.get('content-type') || '').toLowerCase();
+            if (assetResp.ok && !type.includes('text/html')) {
+                return assetResp;
+            }
+            return new Response('App asset not found', {
+                status: 404,
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
+        }
         return env.ASSETS.fetch(request);
     }
 

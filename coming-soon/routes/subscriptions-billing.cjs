@@ -35,17 +35,17 @@ const PRICE_ENTERPRISE_MONTHLY = 49900;
 const PRICE_ENTERPRISE_ANNUAL = 499000;
 const PRICE_DEVELOPER_MONTHLY = 4900;
 const PRICE_DEVELOPER_ANNUAL = 49000;
-const PRICE_EARLY_ACCESS_MONTHLY = 2900;   // $29/mo — Beta Price Lock (40% off Developer)
-const PRICE_EARLY_ACCESS_ANNUAL = 29000;   // $290/yr — Beta Price Lock annual
+const PRICE_EARLY_ACCESS_MONTHLY = 2900; // $29/mo — Beta Price Lock (40% off Developer)
+const PRICE_EARLY_ACCESS_ANNUAL = 29000; // $290/yr — Beta Price Lock annual
 const PRICE_TEAM_PRO_MONTHLY = 14900;
 const PRICE_TEAM_PRO_ANNUAL = 149000;
 const PRICE_EXTRA_SEAT_MONTHLY = 1500;
 const PRICE_EXTRA_SEAT_ANNUAL = 15000;
 
 // One-time purchase prices (no recurring billing)
-const PRICE_ONE_TIME_CERTIFICATE = 14900;   // $149 one-time
-const PRICE_EXECUTIVE_CLEARANCE = 49900;     // $499 one-time
-const PRICE_EU_AI_ACT_SPRINT = 249900;       // $2,499 one-time
+const PRICE_ONE_TIME_CERTIFICATE = 14900; // $149 one-time
+const PRICE_EXECUTIVE_CLEARANCE = 49900; // $499 one-time
+const PRICE_EU_AI_ACT_SPRINT = 249900; // $2,499 one-time
 
 const logger = {
     error: (...a) => {
@@ -189,41 +189,41 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const selectedTier = tierConfig[tier] || tierConfig.developer;
         const isOneTime = !!selectedTier.oneTime;
         const isAnnual = mode === 'annual';
-        const unitAmount = isOneTime ? selectedTier.oneTime : (isAnnual ? selectedTier.annual : selectedTier.monthly);
+        const unitAmount = isOneTime ? selectedTier.oneTime : isAnnual ? selectedTier.annual : selectedTier.monthly;
         const checkoutMode = isOneTime ? 'payment' : 'subscription';
         const displayPrice = isOneTime
             ? selectedTier.displayPrice
             : isAnnual
-                ? tier === 'enterprise'
-                    ? '$4,990/yr'
-                    : tier === 'compliance'
-                      ? '$3,990/yr'
-                      : tier === 'team_pro'
-                        ? '$1,490/yr'
-                        : tier === 'early_access'
-                          ? '$290/yr'
-                          : tier === 'team'
-                            ? '$990/yr'
-                            : tier === 'pro'
-                              ? '$90/yr'
-                              : tier === 'developer'
-                                ? '$490/yr'
-                                : '$490/yr'
-                : tier === 'enterprise'
-                  ? '$499/mo'
+              ? tier === 'enterprise'
+                  ? '$4,990/yr'
                   : tier === 'compliance'
-                    ? '$399/mo'
+                    ? '$3,990/yr'
                     : tier === 'team_pro'
-                      ? '$149/mo'
+                      ? '$1,490/yr'
                       : tier === 'early_access'
-                        ? '$29/mo'
+                        ? '$290/yr'
                         : tier === 'team'
-                          ? '$99/mo'
+                          ? '$990/yr'
                           : tier === 'pro'
-                            ? '$9/mo'
+                            ? '$90/yr'
                             : tier === 'developer'
-                              ? '$49/mo'
-                              : '$49/mo';
+                              ? '$490/yr'
+                              : '$490/yr'
+              : tier === 'enterprise'
+                ? '$499/mo'
+                : tier === 'compliance'
+                  ? '$399/mo'
+                  : tier === 'team_pro'
+                    ? '$149/mo'
+                    : tier === 'early_access'
+                      ? '$29/mo'
+                      : tier === 'team'
+                        ? '$99/mo'
+                        : tier === 'pro'
+                          ? '$9/mo'
+                          : tier === 'developer'
+                            ? '$49/mo'
+                            : '$49/mo';
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -290,7 +290,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
             cancel_url: cancelUrl,
             metadata: {
                 product: tier || 'continuous_shield',
-                billing: isOneTime ? 'one-time' : (isAnnual ? 'annual' : 'monthly'),
+                billing: isOneTime ? 'one-time' : isAnnual ? 'annual' : 'monthly',
                 email: cleanEmail,
                 projectName: cleanProjectName,
                 clientName: cleanClientName,
@@ -546,7 +546,10 @@ function setupSubscriptionWebhook(app) {
                               ? 'SimpleBeacon Developer'
                               : 'AI Slop Cop Pro';
             const features =
-                finalTier === 'enterprise' || finalTier === 'compliance' || finalTier === 'team_pro' || finalTier === 'early_access'
+                finalTier === 'enterprise' ||
+                finalTier === 'compliance' ||
+                finalTier === 'team_pro' ||
+                finalTier === 'early_access'
                     ? [
                           'continuous_shield',
                           'team_dashboard',
@@ -658,7 +661,7 @@ function setupSubscriptionWebhook(app) {
                             token,
                             email: customer.email,
                             projectName: customer.email,
-                            tier: finalTier,
+                            tier: finalTier
                         });
                     } catch (storeErr) {
                         logger.warn('[SubscriptionWebhook] Session token store failed:', storeErr.message);
