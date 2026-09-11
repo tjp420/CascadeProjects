@@ -1,0 +1,153 @@
+[
+  {
+    "id": "aws-access-key-id",
+    "name": "AWS Access Key ID",
+    "pattern": "\\bAKIA[0-9A-Z]{16}\\b",
+    "flags": "i",
+    "type": "aws_access_key_id",
+    "level": "high",
+    "description": "AWS Access Key ID (public identifier)."
+  },
+  {
+    "id": "aws-secret-access-key",
+    "name": "AWS Secret Access Key",
+    "pattern": "(?<secret>[A-Za-z0-9/+=]{40})",
+    "flags": "",
+    "type": "aws_secret_access_key",
+    "level": "high",
+    "description": "AWS secret access key; requires contextual validation alongside Access Key ID."
+  },
+  {
+    "id": "stripe-live-key",
+    "name": "Stripe Live Secret Key",
+    "pattern": "\\bsk_live_[0-9a-zA-Z_\\-]{24,}\\b",
+    "flags": "i",
+    "type": "stripe_secret",
+    "level": "high",
+    "description": "Stripe live secret keys (production)."
+  },
+  {
+    "id": "stripe-test-key",
+    "name": "Stripe Test Secret Key",
+    "pattern": "\\bsk_test_[0-9a-zA-Z_\\-]{24,}\\b",
+    "flags": "i",
+    "type": "stripe_test_secret",
+    "level": "medium",
+    "description": "Stripe test keys (lower confidence)."
+  },
+  {
+    "id": "slack-token",
+    "name": "Slack OAuth Token",
+    "pattern": "\\bxox[baprs]-[0-9A-Za-z-]{10,}\\b",
+    "flags": "i",
+    "type": "slack_token",
+    "level": "high",
+    "description": "Slack token variants."
+  },
+  {
+    "id": "jwt-like",
+    "name": "JWT-like token",
+    "pattern": "\\beyJ[0-9A-Za-z\\-_]{10,}\\.[0-9A-Za-z\\-_]{10,}\\.[0-9A-Za-z\\-_]{10,}\\b",
+    "flags": "",
+    "type": "jwt",
+    "level": "medium",
+    "description": "Likely JWTs; redact and fingerprint."
+  },
+  {
+    "id": "pem-private-key",
+    "name": "PEM Private Key",
+    "pattern": "-----BEGIN (?:RSA )?PRIVATE KEY-----[\\s\\S]{100,}?-----END (?:RSA )?PRIVATE KEY-----",
+    "flags": "",
+    "type": "pem_private_key",
+    "level": "high",
+    "description": "PEM private key block should be redacted."
+  },
+  {
+    "id": "openssh-private-key",
+    "name": "OpenSSH Private Key",
+    "pattern": "-----BEGIN OPENSSH PRIVATE KEY-----[\\s\\S]{100,}?-----END OPENSSH PRIVATE KEY-----",
+    "flags": "",
+    "type": "openssh_private_key",
+    "level": "high",
+    "description": "OpenSSH private key block."
+  },
+  {
+    "id": "generic-high-entropy",
+    "name": "Generic High-Entropy Secret",
+    "pattern": "(?<secret>(?:[A-Za-z0-9+/]{40,}={0,2}|[A-Fa-f0-9]{40,}))",
+    "flags": "",
+    "type": "generic_secret",
+    "level": "low",
+    "description": "Generic high-entropy string; requires contextual variable name or entropy threshold to raise confidence."
+  },
+  {
+    "id": "api-key-context",
+    "name": "API Key Variable Context",
+    "pattern": "\\b(?:api[_-]?key|apikey|secret|token|access[_-]?token|client[_-]?secret)[\\\"'`:=\\s]+(?<secret>[A-Za-z0-9\\-._~+/]{16,})\\b",
+    "flags": "i",
+    "type": "context_api_key",
+    "level": "medium",
+    "description": "Contextual variable assignment for API keys; capture named group 'secret'."
+  }
+  ,
+  {
+    "id": "gcp-service-account",
+    "name": "GCP Service Account Private Key",
+    "pattern": "\\\"private_key\\\"\\s*:\\s*\\\"-----BEGIN (?:RSA )?PRIVATE KEY-----[\\s\\S]{50,}?-----END (?:RSA )?PRIVATE KEY-----\\\"",
+    "flags": "",
+    "type": "gcp_service_account_key",
+    "level": "high",
+    "description": "GCP service account private key embedded in JSON service account files.",
+    "recommendedAction": "Rotate the service account key and remove from repository; use Secret Manager or Workload Identity Federation."
+  },
+  {
+    "id": "github-pat",
+    "name": "GitHub Personal Access Token (fine-grained)",
+    "pattern": "\\bgithub_pat_[A-Za-z0-9_\\-]{20,}\b",
+    "flags": "i",
+    "type": "github_personal_access_token",
+    "level": "high",
+    "description": "GitHub fine-grained Personal Access Token (contains 'github_pat_' prefix).",
+    "recommendedAction": "Revoke the token, remove from history, and use GitHub Apps or Secrets."
+  },
+  {
+    "id": "ec-private-key",
+    "name": "EC Private Key PEM",
+    "pattern": "-----BEGIN EC PRIVATE KEY-----[\\s\\S]{100,}?-----END EC PRIVATE KEY-----",
+    "flags": "",
+    "type": "pem_ec_private_key",
+    "level": "high",
+    "description": "Unarmoured EC private key PEM block found in source.",
+    "recommendedAction": "Remove private key material immediately, rotate keys, and use a managed KMS."
+  },
+  {
+    "id": "azure-client-secret",
+    "name": "Azure Client Secret",
+    "pattern": "\\bAZURE_CLIENT_SECRET\\b[\\s:=]+[\"']?[A-Za-z0-9\\-._]{16,}[\"']?",
+    "flags": "i",
+    "type": "azure_client_secret",
+    "level": "high",
+    "description": "Azure client secret or application secret assigned in code or config.",
+    "recommendedAction": "Rotate the credential and move it to Azure Key Vault; invalidate leaked values."
+  },
+  {
+    "id": "redis-connection-uri",
+    "name": "Redis Connection URI with Credentials",
+    "pattern": "\\bredis:\\/\\\/(?:[^\\s:@]+:)?[^\\s:@]+@[^\\s]+\\b",
+    "flags": "i",
+    "type": "redis_connection_uri",
+    "level": "high",
+    "description": "Redis connection URI that includes plaintext credentials (redis://:password@host:port).",
+    "recommendedAction": "Remove plaintext credentials, rotate secrets, and use environment-based secret injection."
+  },
+  {
+    "id": "mongodb-connection-uri",
+    "name": "MongoDB Connection String with Credentials",
+    "pattern": "\\bmongodb(?:\\+srv)?:\\\\/\\\\/[^\\s:@]+:[^\\s:@]+@[^\\s]+\\b",
+    "flags": "i",
+    "type": "mongodb_connection_uri",
+    "level": "high",
+    "description": "MongoDB connection string containing username/password in the URI.",
+    "recommendedAction": "Remove plaintext credentials from source and use a secrets manager or connection string template with injected secrets."
+  }
+]

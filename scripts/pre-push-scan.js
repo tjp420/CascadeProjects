@@ -24,6 +24,10 @@ const SKIP_GLOBS = [
   "packages/simplebeacon-cli/tests/git-history-secret-scanner.test.js",
   "packages/simplebeacon-cli/tests/cve-dependency-scanner.test.js",
   "packages/simplebeacon-cli/tests/sbom-generator.test.js",
+  "packages/simplebeacon-cli/tests/secret-scanner.test.js",
+  "packages/simplebeacon-cli/tests/fixtures/**",
+  "packages/simplebeacon-cli/config/regex.json",
+  "packages/simplebeacon-cli/scripts/secret-scanner.js",
   // VS Code extension test — contains AWS example key pattern for regex matching tests
   "simplebeacon-vscode-merged/src/rules/__tests__/expanded-catalogs.test.ts",
   // Test script — loads browser scanner service with example AWS keys and JWTs as test fixtures
