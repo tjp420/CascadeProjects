@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
         "@utils": path.resolve(__dirname, "./js-es2018"),
         "@sb/executive-brief-core": path.resolve(
           __dirname,
-          "../../../packages/simplebeacon-cli/src/reporters/executive-brief-core.js",
+          "../../../packages/simplebeacon-cli/src/reporters/client-deliverable.js",
         ),
       },
     },

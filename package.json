@@ -64,6 +64,7 @@
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\"",
     "install-gitleaks": "node .simplebeacon/qa/install-gitleaks.cjs",
     "dashboard:start": "node scripts/start-dashboard.js",
+    "dashboard:build": "npm --prefix ai-platform/web/simplebeacon-dashboard run build && npm --prefix ai-platform run dashboard:postbuild",
     "test:dashboard-health": "node scripts/verify-dashboard-health.js",
     "dashboard:mock": "node scripts/generate-mock-report.js",
     "build:ci": "node scripts/build-ci.js",
@@ -104,7 +105,6 @@
     "vite": "^8.0.16",
     "why-is-node-running": "^3.2.2"
   },
-
   "optionalDependencies": {
     "@rolldown/binding-linux-x64-gnu": "^1.1.5"
   },

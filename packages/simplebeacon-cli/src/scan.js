@@ -65,6 +65,7 @@ const {
   isRuleEnabled,
   getRuleOptions,
   sanitizeConfigForTier,
+  resolveMaxScanBytes,
 } = require("./config");
 const { detectTier } = require("./lib/tier-detector");
 const {
@@ -97,6 +98,10 @@ const { ALL_EXTENSION_SET } = require("./lib/file-types");
 const { LRUCache } = require("./lib/lru-cache");
 const { formatBytes } = require("./lib/format-utils");
 const { globToRegex, cachedGlobToRegex } = require("./lib/glob-utils");
+const { partitionByLane } = require("./lib/finding-context");
+const { attachVerifiedFindings } = require("./lib/finding-validation");
+const { attachSignalTriage } = require("./lib/signal-engine");
+const { attachSemanticVerification } = require("./lib/signal-verifier");
 const {
   createScanProgressWriter,
   resolveScanProgressPath,
@@ -818,12 +823,25 @@ function normalizeFinding(finding) {
 function compileGateStatus(report, gateConfig = {}) {
   if (!report || typeof report !== "object") return report;
 
-  const allFindings = getReportFindings(report);
+  const allFindings = [
+    ...getReportFindings(report),
+    ...(Array.isArray(report.qualityIssues) ? report.qualityIssues : []),
+  ];
   const allIssues = allFindings.map(normalizeFinding).filter(Boolean);
 
   // Filter out informational issues so rawIssues, totalFindings, and severityCounts
   // all reflect the same set of actionable issues.
-  const scoringIssues = allIssues.filter(isBlockingIssue);
+  const blockingCandidates = allIssues.filter(isBlockingIssue);
+  const { production, quality } = partitionByLane(blockingCandidates);
+  const scoringIssues = production;
+  attachVerifiedFindings(report, blockingCandidates);
+  attachSignalTriage(report, blockingCandidates);
+  attachSemanticVerification(report);
+  report.qualityIssues = quality;
+  report.contextLanes = {
+    production: production.length,
+    quality: quality.length,
+  };
 
   const failOn = Array.isArray(gateConfig.failOn)
     ? gateConfig.failOn
@@ -1268,6 +1286,7 @@ async function runSecurityPatternScan(files, secOpts, config) {
   const secIgnore = secOpts.ignoreGlobs || config.ignore || [];
   const secIssues = [];
   let secScanned = 0;
+  let skippedOversized = 0;
   const scannableExts = ALL_EXTENSION_SET;
   const BATCH = 256;
 
@@ -1286,8 +1305,15 @@ async function runSecurityPatternScan(files, secOpts, config) {
           if (secPaths[0] !== ".") return null;
         }
         try {
+          const maxScanBytes = resolveMaxScanBytes(config);
+          const stat = fs.statSync(file.path);
+          if (stat.size > maxScanBytes) {
+            return { findings: [], scanned: 0, skippedOversized: 1 };
+          }
           const content = readFileCached(file.path);
-          const findings = scanSecurityPatterns(rel, content, ext);
+          const findings = scanSecurityPatterns(rel, content, ext, {
+            maxScanBytes,
+          });
           return { findings, scanned: 1 };
         } catch {
           return null;
@@ -1297,10 +1323,16 @@ async function runSecurityPatternScan(files, secOpts, config) {
     for (const r of batchResults) {
       if (!r) continue;
       secScanned += r.scanned;
+      skippedOversized += r.skippedOversized || 0;
       if (r.findings.length > 0) secIssues.push(...r.findings);
     }
   }
-  return { scanned: secScanned, findings: secIssues.length, issues: secIssues };
+  return {
+    scanned: secScanned,
+    findings: secIssues.length,
+    issues: secIssues,
+    skippedOversized,
+  };
 }
 
 /**
@@ -1346,6 +1378,7 @@ function buildScanReport(opts) {
     quotaCheck,
     isPipeline,
     scoringIssues,
+    qualityIssues,
     benchmarkCacheIssues,
     pageSpecCatalogSize,
     pageSpecsFromAlias,
@@ -1459,6 +1492,9 @@ function buildScanReport(opts) {
         ? "Cascade profile scans server/ for production leaks — src/ stub API is excluded by design."
         : null,
     ].filter(Boolean),
+    maxScanBytes: resolveMaxScanBytes(config),
+    securityPatternFilesSkippedOversized:
+      securityPatternScan.skippedOversized || 0,
     ...(config.fullDirectoryScan ? { fullDirectoryScan: true } : {}),
     ...(!config.fullDirectoryScan &&
     repositoryFilesTotal != null &&
@@ -1601,6 +1637,11 @@ function buildScanReport(opts) {
     compliance: resolveComplianceCounts(platformRoot),
     detectedIssues: groupIssues(scoringIssues).slice(0, 12),
     rawIssues: scoringIssues,
+    qualityIssues: qualityIssues || [],
+    contextLanes: {
+      production: (scoringIssues || []).length,
+      quality: (qualityIssues || []).length,
+    },
     benchmarkCacheIssues,
     sampleFiles: uniqueFiles.map((f) => f.name),
     scanScope,
@@ -2094,9 +2135,16 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         run: buildOpts
           ? () => {
               const opts = getRuleOptions(config, key);
-              return scannerFn(root, buildOpts(opts));
+              return scannerFn(root, {
+                ...buildOpts(opts),
+                maxScanBytes: resolveMaxScanBytes(config),
+              });
             }
-          : () => scannerFn(root, _simpleScanOpts),
+          : () =>
+              scannerFn(root, {
+                ..._simpleScanOpts,
+                maxScanBytes: resolveMaxScanBytes(config),
+              }),
       };
     }
 
@@ -2144,6 +2192,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             baseDir: root,
             productionPaths: credOpts.productionPaths || config.productionPaths,
             ignoreGlobs: config.ignore,
+            maxScanBytes: resolveMaxScanBytes(config),
           });
         },
       },
@@ -2193,7 +2242,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
           return scanLlmSlopPatterns(root, {
             sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
             productionPaths: opts.productionPaths || config.productionPaths,
-            ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
+            ignoreGlobs: [
+              ...(config.ignore || []),
+              ...(opts.ignoreGlobs || []),
+            ],
             registryCheck:
               opts.registryCheck === true ||
               process.env.SIMPLEBEACON_REGISTRY_CHECK === "true",
@@ -2328,10 +2380,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         (opts) => ({
           sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
           productionPaths: opts.productionPaths || config.productionPaths,
-          ignoreGlobs: [
-            ...(config.ignore || []),
-            ...(opts.ignoreGlobs || []),
-          ],
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
         }),
       ),
       scannerEntry(
@@ -2348,7 +2397,11 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         key: "comprehensive",
         varName: "comprehensiveScan",
         alwaysRun: true,
-        run: () => scanComprehensive(uniqueFiles, { rootDir: root }),
+        run: () =>
+          scanComprehensive(uniqueFiles, {
+            rootDir: root,
+            maxScanBytes: resolveMaxScanBytes(config),
+          }),
       },
       scannerEntry(
         "cve-dependency",
@@ -2386,10 +2439,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         "customHeuristicScan",
         scanCustomHeuristicRules,
         (opts) => ({
-          ignoreGlobs: [
-            ...(config.ignore || []),
-            ...(opts.ignoreGlobs || []),
-          ],
+          ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
           universalRules: opts.universalRules !== false,
           extraSkipDirs: config.fullDirectoryScanSkipDirs || [],
         }),
@@ -2401,7 +2451,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         run: () => {
           const opts = getRuleOptions(config, "gzdoom-integrity-patterns");
           return scanGzdoomIntegrity(root, {
-            ignoreGlobs: [...(config.ignore || []), ...(opts.ignoreGlobs || [])],
+            ignoreGlobs: [
+              ...(config.ignore || []),
+              ...(opts.ignoreGlobs || []),
+            ],
             logPath:
               options.gzdoomLog || options.gameLog || opts.logPath || null,
             severity: opts.severity || "high",
@@ -2800,7 +2853,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     );
     const { platformIssues, benchmarkCacheIssues } =
       partitionBenchmarkIssues(filteredIssues);
-    const scoringIssues = platformIssues;
+    const { production: scoringIssues, quality: qualityIssues } =
+      partitionByLane(platformIssues);
 
     const totalSize = uniqueFiles.reduce((sum, file) => sum + file.size, 0);
     // Batch line-counting to avoid overwhelming the event loop with too many concurrent promises
@@ -2867,6 +2921,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
       quotaCheck,
       isPipeline,
       scoringIssues,
+      qualityIssues,
       benchmarkCacheIssues,
       pageSpecCatalogSize,
       pageSpecsFromAlias,
@@ -2886,6 +2941,13 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     );
     normalizedReport.totalScanDurationMs = totalElapsedMs;
     compileGateStatus(normalizedReport, config.gate || {});
+    if (options.realityJudge === true || config.realityJudge?.enabled === true) {
+      const { attachRealityJudgments } = require("./lib/reality-judge");
+      attachRealityJudgments(normalizedReport, {
+        askModel: options.realityJudgeAskModel,
+        memoryPath: options.realityJudgeMemoryPath,
+      });
+    }
     return applyTierLimits(normalizedReport, options);
   } finally {
     progressWriter.clear();

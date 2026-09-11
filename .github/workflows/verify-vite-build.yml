@@ -1,3 +1,44 @@
+name: "🛡️ Dashboard Vite Build & Asset Gate"
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-build:
+    name: "⚙️ Verify Compilation & Asset Integrity"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "⬇️ Checkout Repository Source Tree"
+        uses: actions/checkout@v4
+
+      - name: "🟢 Initialize Node.js Execution Runtime"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: "📦 Install Monorepo Package Dependencies"
+        run: npm ci
+
+      - name: "🛠️ Execute Chained Production Compilation Loop"
+        run: npm run dashboard:build
+
+      - name: "🔎 Optional: Run postbuild asset verification"
+        run: |
+          # The monorepo's postbuild task usually runs verify steps; run explicit verifier as safety.
+          if [ -f "ai-platform/scripts/verify-dashboard-assets.js" ]; then
+            node ai-platform/scripts/verify-dashboard-assets.js
+          elif [ -f "ai-platform/web/simplebeacon-dashboard/scripts/verify-dashboard-assets.js" ]; then
+            node ai-platform/web/simplebeacon-dashboard/scripts/verify-dashboard-assets.js
+          else
+            echo "[!] No explicit verifier found; relying on dashboard:build postbuild step."
+          fi
 name: Verify Dashboard Vite Build
 
 on:

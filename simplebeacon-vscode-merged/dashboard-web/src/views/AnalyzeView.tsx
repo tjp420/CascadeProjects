@@ -808,6 +808,11 @@ export function AnalyzeView() {
           },
           rawIssues: rawIssues.slice(0, 50),
           detectedIssues: rawIssues.slice(0, 50),
+          qualityIssues: (Array.isArray(report?.qualityIssues)
+            ? report.qualityIssues
+            : []
+          ).slice(0, 50),
+          contextLanes: report?.contextLanes,
           issuesTruncated: Boolean(
             report?.issuesTruncated || rawIssues.length > 50,
           ),
@@ -1218,7 +1223,9 @@ export function AnalyzeView() {
   };
 
   const isGithubUrl = (url: string) =>
-    /^https?:\/\/github\.com\//i.test(url.trim());
+    /^https:\/\/(?:www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(
+      url.trim(),
+    );
 
   const isWindowsPath = (p: string) => /^[A-Za-z]:[\\/]/.test(p.trim());
 
@@ -1949,9 +1956,22 @@ export function AnalyzeView() {
         );
         if (!cloneResp.ok) {
           const cloneErr = await cloneResp.json().catch(() => ({}));
-          throw new Error(
-            cloneErr.error || `GitHub clone failed (${cloneResp.status})`,
-          );
+          if (cloneResp.status === 401 || cloneErr.error === "UnauthorizedError") {
+            throw new Error(
+              "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
+            );
+          }
+          const cloneMsg =
+            typeof cloneErr.error === "string"
+              ? cloneErr.error
+              : `GitHub clone failed (${cloneResp.status})`;
+          if (cloneResp.status === 400) {
+            throw new Error(
+              cloneMsg +
+                " For a local folder, use Select Folder so the scan stays on this machine.",
+            );
+          }
+          throw new Error(cloneMsg);
         }
         const cloneData = await cloneResp.json();
         if (!cloneData.success)
@@ -2121,7 +2141,10 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState("error");
-      const errMsg = err?.message || String(err || "Unknown error");
+      let errMsg = err?.message || String(err || "Unknown error");
+      if (errMsg === "UnauthorizedError" || errMsg.includes("UnauthorizedError")) {
+        errMsg = "Sign in required for server-side scans. Use file upload or drag-drop for offline scanning without an account.";
+      }
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error("[SimpleBeacon] Scan error:", err);

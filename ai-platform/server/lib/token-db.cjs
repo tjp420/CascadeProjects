@@ -395,7 +395,9 @@ function revokeLicenseTokenByJti(jti, reason) {
       try {
         const parts = t.token.split(".");
         if (parts.length !== 3) return false;
-        const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+        const payload = JSON.parse(
+          Buffer.from(parts[1], "base64url").toString("utf8"),
+        );
         return payload.jti === jti;
       } catch {
         return false;

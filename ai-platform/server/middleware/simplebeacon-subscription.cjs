@@ -245,12 +245,10 @@ function createRequireSubscription(options = {}) {
     if (allowFree && token) {
       const secret = resolveLicenseSecret();
       if (!secret) {
-        return res
-          .status(503)
-          .json({
-            error: "license_secret_unconfigured",
-            message: "License validation is not configured.",
-          });
+        return res.status(503).json({
+          error: "license_secret_unconfigured",
+          message: "License validation is not configured.",
+        });
       }
       const payload = verifyLicenseToken(token, secret);
       if (payload) {

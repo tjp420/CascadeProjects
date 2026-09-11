@@ -223,7 +223,7 @@ const BINARY_EXTENSIONS = new Set([
 ]);
 const WALK_MAX_DEPTH = 128;
 const MAX_FILE_BYTES =
-  Number(process.env.CODEBASE_MAX_FILE_BYTES) || 262144; // 256KB default
+  Number(process.env.CODEBASE_MAX_FILE_BYTES) || 5 * 1024 * 1024; // 5MB default — 256KB skipped real source (protobuf .cc, bundles)
 
 function isLocaleCatalog(relativePath) {
   return /(?:^|\/)(?:locales|localizations|translations)\/[^/]+\/[^/]+\.json$/i.test(
@@ -763,7 +763,8 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
   async function processOne(file) {
     // Wrap each file analysis in a timeout so a single problematic file
     // (huge file, catastrophic regex backtracking, etc.) can't hang the scan.
-    const FILE_TIMEOUT_MS = Number(process.env.CODEBASE_FILE_TIMEOUT_MS) || 30000;
+    const FILE_TIMEOUT_MS =
+      Number(process.env.CODEBASE_FILE_TIMEOUT_MS) || 30000;
     let fileResult;
     try {
       fileResult = await Promise.race([
@@ -772,13 +773,21 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
           findingsCap: cap,
         }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`File analysis timed out: ${file.relativePath}`)), FILE_TIMEOUT_MS),
+          setTimeout(
+            () =>
+              reject(
+                new Error(`File analysis timed out: ${file.relativePath}`),
+              ),
+            FILE_TIMEOUT_MS,
+          ),
         ),
       ]);
     } catch (fileErr) {
       // Log and skip — don't let one file kill the entire scan
       if (process.env.SIMPLEBEACON_DEBUG)
-        logger.debug(`[CodebaseAnalyzer] Skipping file after timeout/error: ${file.relativePath} — ${fileErr?.message || fileErr}`);
+        logger.debug(
+          `[CodebaseAnalyzer] Skipping file after timeout/error: ${file.relativePath} — ${fileErr?.message || fileErr}`,
+        );
       fileResult = { findings: [], structure: null };
     }
     for (const finding of fileResult.findings) {
@@ -5067,7 +5076,12 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     return finalizeFileAnalysis(findings, rel, structure);
   }
 
-  if (file.size > MAX_FILE_BYTES) {
+  const maxFileBytes =
+    Number(options.maxFileBytes) > 0
+      ? Number(options.maxFileBytes)
+      : MAX_FILE_BYTES;
+
+  if (file.size > maxFileBytes) {
     pushFinding(findings, {
       category: "oversized",
       type: "oversized-source",
@@ -5085,7 +5099,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
   let raw = "";
   try {
     const { readTextFileWithLimit } = require("./recoverable-io.cjs");
-    raw = (await readTextFileWithLimit(file.path, 512 * 1024)) || "";
+    raw = (await readTextFileWithLimit(file.path, maxFileBytes)) || "";
     content = raw;
   } catch (error) {
     pushFinding(findings, {
@@ -5144,7 +5158,11 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     // Skip expensive regex pattern scanning for large files to prevent
     // catastrophic backtracking from blocking the event loop.
     const tooLargeForDeepScan = content.length > 65536; // 64KB
-    if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel) && !tooLargeForDeepScan) {
+    if (
+      !isNodeModulesFile &&
+      !shouldSkipSyntaxCheck(rel) &&
+      !tooLargeForDeepScan
+    ) {
       const syntaxError = checkJsSyntax(raw, rel);
       if (syntaxError) {
         pushFinding(findings, {
@@ -5191,112 +5209,112 @@ async function analyzeFileContent(file, rootDir, options = {}) {
       );
     }
     if (!tooLargeForDeepScan) {
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        BUILD_READINESS_PATTERNS,
-        "build-readiness",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        CONFIG_DRIFT_PATTERNS,
-        "config-drift",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        FRAMEWORK_PRACTICES_PATTERNS,
-        "framework-practices",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        GOVERNANCE_PATTERNS,
-        "governance",
-        "low",
-      ),
-    );
-    // dependency-vulns: skip proxy gateway files where HTTP URLs are constructed for forwarding
-    if (!/src\/proxy\/gateway\.js$/.test(rel)) {
       findings.push(
         ...scanContentPatterns(
           content,
           rel,
-          DEPENDENCY_VULN_PATTERNS,
-          "dependency-vulns",
+          BUILD_READINESS_PATTERNS,
+          "build-readiness",
           "low",
         ),
       );
-    }
-    if (!/(?:^|\/)simplebeacon-vscode\//.test(rel)) {
       findings.push(
         ...scanContentPatterns(
           content,
           rel,
-          SECURITY_PATTERNS.filter((p) => p.id === "inner-html-xss"),
-          "inner-html-xss",
+          CONFIG_DRIFT_PATTERNS,
+          "config-drift",
+          "low",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          FRAMEWORK_PRACTICES_PATTERNS,
+          "framework-practices",
+          "low",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          GOVERNANCE_PATTERNS,
+          "governance",
+          "low",
+        ),
+      );
+      // dependency-vulns: skip proxy gateway files where HTTP URLs are constructed for forwarding
+      if (!/src\/proxy\/gateway\.js$/.test(rel)) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            DEPENDENCY_VULN_PATTERNS,
+            "dependency-vulns",
+            "low",
+          ),
+        );
+      }
+      if (!/(?:^|\/)simplebeacon-vscode\//.test(rel)) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SECURITY_PATTERNS.filter((p) => p.id === "inner-html-xss"),
+            "inner-html-xss",
+            "medium",
+          ),
+        );
+      }
+      // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
+      const skipEvalPaths =
+        /(?:^|\/)coming-soon\//.test(rel) ||
+        /\.min\.(js|cjs)$/.test(rel) ||
+        /\/(?:vendor|dist|build)\//.test(rel) ||
+        /\/(?:test|tests|__tests__)\//.test(rel) ||
+        /\.(test|spec)\./.test(rel) ||
+        /simplebeacon-dashboard/.test(rel) ||
+        /server\/lib\//.test(rel) ||
+        /intelligence-bridge\.js$/.test(rel) ||
+        /(?:^|\/)simplebeacon-vscode\//.test(rel) ||
+        /(?:^|\/)packages\/simplebeacon-cli\/src\/rules\//.test(rel);
+      if (!skipEvalPaths) {
+        const evalHits = scanContentPatterns(
+          content,
+          rel,
+          SECURITY_PATTERNS.filter((p) => p.id === "eval-danger"),
+          "eval-danger",
+          "medium",
+        );
+        const lines = content.split("\n");
+        for (const hit of evalHits) {
+          // Skip require(path.join(...)) used for internal module resolution
+          const lineText = (lines[hit.line - 1] || "").trim();
+          if (/require\s*\(\s*path\.join/.test(lineText)) continue;
+          findings.push(hit);
+        }
+      }
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          SECURITY_PATTERNS.filter((p) => p.id === "missing-rate-limit"),
+          "missing-rate-limit",
           "medium",
         ),
       );
-    }
-    // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
-    const skipEvalPaths =
-      /(?:^|\/)coming-soon\//.test(rel) ||
-      /\.min\.(js|cjs)$/.test(rel) ||
-      /\/(?:vendor|dist|build)\//.test(rel) ||
-      /\/(?:test|tests|__tests__)\//.test(rel) ||
-      /\.(test|spec)\./.test(rel) ||
-      /simplebeacon-dashboard/.test(rel) ||
-      /server\/lib\//.test(rel) ||
-      /intelligence-bridge\.js$/.test(rel) ||
-      /(?:^|\/)simplebeacon-vscode\//.test(rel) ||
-      /(?:^|\/)packages\/simplebeacon-cli\/src\/rules\//.test(rel);
-    if (!skipEvalPaths) {
-      const evalHits = scanContentPatterns(
-        content,
-        rel,
-        SECURITY_PATTERNS.filter((p) => p.id === "eval-danger"),
-        "eval-danger",
-        "medium",
+      // insecure-random is handled by detectInsecureRandom below with proper path exclusions
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          SECURITY_PATTERNS.filter((p) => p.id === "logging-secrets"),
+          "logging-secrets",
+          "medium",
+        ),
       );
-      const lines = content.split("\n");
-      for (const hit of evalHits) {
-        // Skip require(path.join(...)) used for internal module resolution
-        const lineText = (lines[hit.line - 1] || "").trim();
-        if (/require\s*\(\s*path\.join/.test(lineText)) continue;
-        findings.push(hit);
-      }
-    }
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        SECURITY_PATTERNS.filter((p) => p.id === "missing-rate-limit"),
-        "missing-rate-limit",
-        "medium",
-      ),
-    );
-    // insecure-random is handled by detectInsecureRandom below with proper path exclusions
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        SECURITY_PATTERNS.filter((p) => p.id === "logging-secrets"),
-        "logging-secrets",
-        "medium",
-      ),
-    );
     } // end if (!tooLargeForDeepScan)
   }
 
@@ -5323,217 +5341,216 @@ async function analyzeFileContent(file, rootDir, options = {}) {
   if ([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"].includes(file.ext)) {
     // Skip expensive regex scanning for large files to prevent event loop blocking
     if (!tooLargeForDeepScan) {
-    // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
-    // secret-in-comment: skip scanner/test files
-    const skipSecretInComment =
-      /scanner-patterns|scanner-engine|pattern-documentation|\.test\./.test(
+      // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
+      // secret-in-comment: skip scanner/test files
+      const skipSecretInComment =
+        /scanner-patterns|scanner-engine|pattern-documentation|\.test\./.test(
+          rel,
+        );
+      if (!skipSecretInComment) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SECURITY_PATTERNS.filter((p) => p.id === "secret-in-comment"),
+            "secret-in-comment",
+            "high",
+          ),
+        );
+      }
+      // weak-cryptography: skip scanner files
+      const skipWeakCrypto =
+        /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
+      if (!skipWeakCrypto) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SECURITY_PATTERNS.filter((p) => p.id === "weak-cryptography"),
+            "weak-cryptography",
+            "high",
+          ),
+        );
+      }
+      // redos-risk: skip scanner files
+      const skipRedos =
+        /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
+      if (!skipRedos) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SECURITY_PATTERNS.filter((p) => p.id === "redos-risk"),
+            "redos-risk",
+            "medium",
+          ),
+        );
+      }
+      // cicd-secret-exposure: only on YAML/JSON workflow files
+      const isCicdFile = /\.(yml|yaml|json)$/.test(rel);
+      const skipCicd = /scanner-patterns|scanner-engine|codebase-analyzer/.test(
         rel,
       );
-    if (!skipSecretInComment) {
+      if (isCicdFile && !skipCicd) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SECURITY_PATTERNS.filter((p) => p.id === "cicd-secret-exposure"),
+            "cicd-secret-exposure",
+            "critical",
+          ),
+        );
+      }
+      // ai-residue: skip vendor, minified, test, coming-soon, tools, dashboard, server, src, packages, and scripts where defensive catches are standard
+      const isMinifiedOrVendor =
+        /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel);
+      const isTestFile =
+        /\/(?:test|tests|__tests__)\//.test(rel) ||
+        /\.(test|spec)\./.test(rel) ||
+        /test-all-patterns/.test(rel);
+      const isNonProduction =
+        /(?:^|\/)coming-soon\//.test(rel) ||
+        /(?:^|\/)tools\//.test(rel) ||
+        /simplebeacon-dashboard/.test(rel) ||
+        /(?:^|\/)tests\//.test(rel);
+      const isServerInfra =
+        /(?:^|\/)server\//.test(rel) ||
+        /(?:^|\/)src\//.test(rel) ||
+        /(?:^|\/)packages\//.test(rel) ||
+        /simplebeacon-server\.cjs$/.test(rel);
+      const isBatchScript = /(?:^|\/)scripts\//.test(rel);
+      if (
+        !isMinifiedOrVendor &&
+        !isTestFile &&
+        !isNonProduction &&
+        !isServerInfra &&
+        !isBatchScript
+      ) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            AI_RESIDUE_PATTERNS,
+            "ai-residue",
+            "low",
+          ),
+        );
+      }
       findings.push(
         ...scanContentPatterns(
           content,
           rel,
-          SECURITY_PATTERNS.filter((p) => p.id === "secret-in-comment"),
-          "secret-in-comment",
-          "high",
-        ),
-      );
-    }
-    // weak-cryptography: skip scanner files
-    const skipWeakCrypto =
-      /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
-    if (!skipWeakCrypto) {
-      findings.push(
-        ...scanContentPatterns(
-          content,
-          rel,
-          SECURITY_PATTERNS.filter((p) => p.id === "weak-cryptography"),
-          "weak-cryptography",
-          "high",
-        ),
-      );
-    }
-    // redos-risk: skip scanner files
-    const skipRedos = /scanner-patterns|scanner-engine|codebase-analyzer/.test(
-      rel,
-    );
-    if (!skipRedos) {
-      findings.push(
-        ...scanContentPatterns(
-          content,
-          rel,
-          SECURITY_PATTERNS.filter((p) => p.id === "redos-risk"),
-          "redos-risk",
-          "medium",
-        ),
-      );
-    }
-    // cicd-secret-exposure: only on YAML/JSON workflow files
-    const isCicdFile = /\.(yml|yaml|json)$/.test(rel);
-    const skipCicd = /scanner-patterns|scanner-engine|codebase-analyzer/.test(
-      rel,
-    );
-    if (isCicdFile && !skipCicd) {
-      findings.push(
-        ...scanContentPatterns(
-          content,
-          rel,
-          SECURITY_PATTERNS.filter((p) => p.id === "cicd-secret-exposure"),
-          "cicd-secret-exposure",
-          "critical",
-        ),
-      );
-    }
-    // ai-residue: skip vendor, minified, test, coming-soon, tools, dashboard, server, src, packages, and scripts where defensive catches are standard
-    const isMinifiedOrVendor =
-      /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel);
-    const isTestFile =
-      /\/(?:test|tests|__tests__)\//.test(rel) ||
-      /\.(test|spec)\./.test(rel) ||
-      /test-all-patterns/.test(rel);
-    const isNonProduction =
-      /(?:^|\/)coming-soon\//.test(rel) ||
-      /(?:^|\/)tools\//.test(rel) ||
-      /simplebeacon-dashboard/.test(rel) ||
-      /(?:^|\/)tests\//.test(rel);
-    const isServerInfra =
-      /(?:^|\/)server\//.test(rel) ||
-      /(?:^|\/)src\//.test(rel) ||
-      /(?:^|\/)packages\//.test(rel) ||
-      /simplebeacon-server\.cjs$/.test(rel);
-    const isBatchScript = /(?:^|\/)scripts\//.test(rel);
-    if (
-      !isMinifiedOrVendor &&
-      !isTestFile &&
-      !isNonProduction &&
-      !isServerInfra &&
-      !isBatchScript
-    ) {
-      findings.push(
-        ...scanContentPatterns(
-          content,
-          rel,
-          AI_RESIDUE_PATTERNS,
-          "ai-residue",
+          MAGIC_NUMBER_PATTERNS,
+          "magic-number",
           "low",
         ),
       );
-    }
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        MAGIC_NUMBER_PATTERNS,
-        "magic-number",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        MOCK_PATH_LEAK_PATTERNS,
-        "mock-path-leak",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        PRODUCTION_LEAK_PATTERNS,
-        "production-leak",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        ROADMAP_MARKER_PATTERNS,
-        "roadmap-marker",
-        "low",
-      ),
-    );
-    if (!isNonProductionAuditContentPath(rel)) {
       findings.push(
         ...scanContentPatterns(
           content,
           rel,
-          SENSITIVE_DATA_PATTERNS,
-          "sensitive-data",
-          "high",
-        ),
-      );
-    }
-    findings.push(...detectPrototypePollution(content, rel));
-    findings.push(...detectInsecureRandom(content, rel));
-    findings.push(...detectMarkdownFenceLeaks(content, rel));
-    findings.push(...detectLlmSlop(content, rel));
-    findings.push(...detectDocumentationGaps(content, rel));
-    findings.push(...detectDatabasePatterns(content, rel));
-    findings.push(...detectComplexityIssues(content, rel));
-    findings.push(...detectApiContractIssues(content, rel));
-    findings.push(...detectArrowStubs(content, rel));
-    findings.push(...detectFixPreviewIssues(content, rel));
-    findings.push(...detectMissingStrictMode(content, rel));
-    findings.push(...detectPerformanceIssues(content, rel));
-    findings.push(...detectSyncIoIssues(content, rel));
-    // type-safety: only run on actual TypeScript files; skip JS, coming-soon, tests, and non-production paths
-    const isTypeScript =
-      /\.(ts|tsx|mts|cts)$/.test(rel) ||
-      (/\.js$/.test(rel) && /\.(ts|tsx)/.test(content.slice(0, 500)));
-    const isNonProdForTypeSafety =
-      /(?:^|\/)coming-soon\//.test(rel) ||
-      /(?:^|\/)scripts\//.test(rel) ||
-      /(?:^|\/)tools\//.test(rel) ||
-      /(?:^|\/)simplebeacon-dashboard/.test(rel);
-    const isTestFileTypeSafety =
-      /\.(test|spec)\./.test(rel) ||
-      /(?:^|\/)tests?\//.test(rel) ||
-      /test-all-patterns/.test(rel);
-    // Skip VS Code extension files where any types and assertions are standard in mocks and API integration
-    const isVscodeExtension = /(?:^|\/)simplebeacon-vscode\/src\//.test(rel);
-    if (
-      isTypeScript &&
-      !isNonProdForTypeSafety &&
-      !isTestFileTypeSafety &&
-      !isVscodeExtension
-    ) {
-      findings.push(
-        ...scanContentPatterns(
-          content,
-          rel,
-          TYPE_SAFETY_PATTERNS,
-          "type-safety",
+          MOCK_PATH_LEAK_PATTERNS,
+          "mock-path-leak",
           "low",
         ),
       );
-    }
-    findings.push(...detectSampleJsonRef(content, rel));
-    findings.push(...detectSecurityHeaders(content, rel));
-    findings.push(...detectUnvalidatedRedirects(content, rel));
-    findings.push(...detectUninitializedRead(content, rel));
-    findings.push(...detectTokenBleed(content, rel));
-    findings.push(...detectUnhandledPromise(content, rel));
-    findings.push(...detectWorkspaceHealth(content, rel));
-    findings.push(...detectAiIndicators(content, rel));
-    findings.push(...detectUnusedDeps(content, rel));
-    findings.push(...detectI18nIssues(content, rel));
-    findings.push(...detectEmptyStubFunctions(content, rel));
-    findings.push(...detectDebugArtifacts(content, rel));
-    if (detectDynamicEval(content, rel)) {
-      pushFinding(findings, {
-        category: "eval-danger",
-        type: "dynamic-eval",
-        severity: "high",
-        filePath: rel,
-        line: 1,
-        description: `Dynamic eval/Function in production path: ${rel}`,
-        recommendedAction: "Replace eval/Function with safe alternatives",
-      });
-    }
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          PRODUCTION_LEAK_PATTERNS,
+          "production-leak",
+          "low",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          ROADMAP_MARKER_PATTERNS,
+          "roadmap-marker",
+          "low",
+        ),
+      );
+      if (!isNonProductionAuditContentPath(rel)) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            SENSITIVE_DATA_PATTERNS,
+            "sensitive-data",
+            "high",
+          ),
+        );
+      }
+      findings.push(...detectPrototypePollution(content, rel));
+      findings.push(...detectInsecureRandom(content, rel));
+      findings.push(...detectMarkdownFenceLeaks(content, rel));
+      findings.push(...detectLlmSlop(content, rel));
+      findings.push(...detectDocumentationGaps(content, rel));
+      findings.push(...detectDatabasePatterns(content, rel));
+      findings.push(...detectComplexityIssues(content, rel));
+      findings.push(...detectApiContractIssues(content, rel));
+      findings.push(...detectArrowStubs(content, rel));
+      findings.push(...detectFixPreviewIssues(content, rel));
+      findings.push(...detectMissingStrictMode(content, rel));
+      findings.push(...detectPerformanceIssues(content, rel));
+      findings.push(...detectSyncIoIssues(content, rel));
+      // type-safety: only run on actual TypeScript files; skip JS, coming-soon, tests, and non-production paths
+      const isTypeScript =
+        /\.(ts|tsx|mts|cts)$/.test(rel) ||
+        (/\.js$/.test(rel) && /\.(ts|tsx)/.test(content.slice(0, 500)));
+      const isNonProdForTypeSafety =
+        /(?:^|\/)coming-soon\//.test(rel) ||
+        /(?:^|\/)scripts\//.test(rel) ||
+        /(?:^|\/)tools\//.test(rel) ||
+        /(?:^|\/)simplebeacon-dashboard/.test(rel);
+      const isTestFileTypeSafety =
+        /\.(test|spec)\./.test(rel) ||
+        /(?:^|\/)tests?\//.test(rel) ||
+        /test-all-patterns/.test(rel);
+      // Skip VS Code extension files where any types and assertions are standard in mocks and API integration
+      const isVscodeExtension = /(?:^|\/)simplebeacon-vscode\/src\//.test(rel);
+      if (
+        isTypeScript &&
+        !isNonProdForTypeSafety &&
+        !isTestFileTypeSafety &&
+        !isVscodeExtension
+      ) {
+        findings.push(
+          ...scanContentPatterns(
+            content,
+            rel,
+            TYPE_SAFETY_PATTERNS,
+            "type-safety",
+            "low",
+          ),
+        );
+      }
+      findings.push(...detectSampleJsonRef(content, rel));
+      findings.push(...detectSecurityHeaders(content, rel));
+      findings.push(...detectUnvalidatedRedirects(content, rel));
+      findings.push(...detectUninitializedRead(content, rel));
+      findings.push(...detectTokenBleed(content, rel));
+      findings.push(...detectUnhandledPromise(content, rel));
+      findings.push(...detectWorkspaceHealth(content, rel));
+      findings.push(...detectAiIndicators(content, rel));
+      findings.push(...detectUnusedDeps(content, rel));
+      findings.push(...detectI18nIssues(content, rel));
+      findings.push(...detectEmptyStubFunctions(content, rel));
+      findings.push(...detectDebugArtifacts(content, rel));
+      if (detectDynamicEval(content, rel)) {
+        pushFinding(findings, {
+          category: "eval-danger",
+          type: "dynamic-eval",
+          severity: "high",
+          filePath: rel,
+          line: 1,
+          description: `Dynamic eval/Function in production path: ${rel}`,
+          recommendedAction: "Replace eval/Function with safe alternatives",
+        });
+      }
     } // end if (!tooLargeForDeepScan)
   }
 
@@ -5609,52 +5626,52 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     )
   ) {
     if (!tooLargeForDeepScan) {
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        C_TYPE_SAFETY_PATTERNS,
-        "type-safety",
-        "low",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        C_RATE_LIMIT_PATTERNS,
-        "missing-rate-limit",
-        "medium",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        C_LOGGING_SECRET_PATTERNS,
-        "logging-secrets",
-        "medium",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        C_SAMPLE_DATA_PATTERNS,
-        "sample-json-ref",
-        "medium",
-      ),
-    );
-    findings.push(
-      ...scanContentPatterns(
-        content,
-        rel,
-        C_ROADMAP_PATTERNS,
-        "roadmap-marker",
-        "low",
-      ),
-    );
-    findings.push(...detectDatabasePatterns(content, rel));
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          C_TYPE_SAFETY_PATTERNS,
+          "type-safety",
+          "low",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          C_RATE_LIMIT_PATTERNS,
+          "missing-rate-limit",
+          "medium",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          C_LOGGING_SECRET_PATTERNS,
+          "logging-secrets",
+          "medium",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          C_SAMPLE_DATA_PATTERNS,
+          "sample-json-ref",
+          "medium",
+        ),
+      );
+      findings.push(
+        ...scanContentPatterns(
+          content,
+          rel,
+          C_ROADMAP_PATTERNS,
+          "roadmap-marker",
+          "low",
+        ),
+      );
+      findings.push(...detectDatabasePatterns(content, rel));
     } // end if (!tooLargeForDeepScan)
   }
 

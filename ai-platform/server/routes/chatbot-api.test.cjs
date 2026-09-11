@@ -138,14 +138,12 @@ describe("chatbot-api contract", () => {
     global.fetch = async () => ({ ok: true });
 
     const { app, calls } = createTestApp();
-    const res = await request(app)
-      .post("/api/chatbot/message")
-      .send({
-        message: "hello",
-        provider: "openai",
-        model: "gpt-4o-mini",
-        conversationHistory: [],
-      });
+    const res = await request(app).post("/api/chatbot/message").send({
+      message: "hello",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      conversationHistory: [],
+    });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(calls.length, 1);
@@ -165,14 +163,12 @@ describe("chatbot-api contract", () => {
       },
     });
 
-    const res = await request(app)
-      .post("/api/chatbot/message")
-      .send({
-        message: "hello",
-        provider: "anthropic",
-        model: "bad model!!",
-        conversationHistory: [],
-      });
+    const res = await request(app).post("/api/chatbot/message").send({
+      message: "hello",
+      provider: "anthropic",
+      model: "bad model!!",
+      conversationHistory: [],
+    });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(calls.length, 1);
@@ -188,14 +184,12 @@ describe("chatbot-api contract", () => {
     global.fetch = async () => ({ ok: true });
 
     const { app } = createTestApp({ throwOnGenerate: "dial tcp timeout" });
-    const res = await request(app)
-      .post("/api/chatbot/message")
-      .send({
-        message: "hello",
-        provider: "ollama",
-        model: "llama3.2",
-        conversationHistory: [],
-      });
+    const res = await request(app).post("/api/chatbot/message").send({
+      message: "hello",
+      provider: "ollama",
+      model: "llama3.2",
+      conversationHistory: [],
+    });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.success, true);

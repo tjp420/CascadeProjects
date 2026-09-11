@@ -103,11 +103,9 @@ async function requireWorkspaceMembership(req, res, next) {
     return res.status(403).json({ error: "Workspace access denied" });
   }
   if (!membership.invitation_accepted) {
-    return res
-      .status(403)
-      .json({
-        error: "Invitation pending — accept invite to access workspace",
-      });
+    return res.status(403).json({
+      error: "Invitation pending — accept invite to access workspace",
+    });
   }
 
   req.membership = membership;

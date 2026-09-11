@@ -183,12 +183,32 @@ const DEFAULT_CONFIG = {
   ignore: IGNORE_DEFAULTS,
   pathExclusions: [], // User-configurable path exclusion tokens
   scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
+  maxScanBytes: 512000,
   rules: { ...PROFILE_RULES.standard },
   gate: {
     failOn: ["high"],
     warnOn: ["medium", "low"],
   },
 };
+
+/** Default per-file regex budget. Matches historical MAX_SCAN_BYTES in rule engines. */
+const DEFAULT_MAX_SCAN_BYTES = 512000;
+/** Hard cap so config cannot push readFileSync into multi-hundred-MB OOM. */
+const MAX_SCAN_BYTES_CEILING = 10 * 1024 * 1024;
+
+/**
+ * Resolve per-file scan size limit from config (or SIMPLEBEACON_MAX_SCAN_BYTES).
+ * Values <= 0 fall back to 512000. Anything above 10 MiB is clamped.
+ * @param {object} [config]
+ * @returns {number}
+ */
+function resolveMaxScanBytes(config) {
+  const fromConfig = Number(config && config.maxScanBytes);
+  const fromEnv = Number(process.env.SIMPLEBEACON_MAX_SCAN_BYTES);
+  const raw = Number.isFinite(fromConfig) && fromConfig > 0 ? fromConfig : fromEnv;
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_MAX_SCAN_BYTES;
+  return Math.min(Math.floor(raw), MAX_SCAN_BYTES_CEILING);
+}
 
 function readJsonFile(filePath) {
   try {
@@ -358,6 +378,7 @@ function buildInitConfig(baseDir, options = {}) {
     sampleDir: detected.sampleDir,
     consistencyAnchorSamples: detected.consistencyAnchorSamples,
     ignore: [...IGNORE_DEFAULTS],
+    maxScanBytes: DEFAULT_MAX_SCAN_BYTES,
     rules,
     gate: { failOn: ["high"], warnOn: ["medium", "low"] },
   };
@@ -477,6 +498,8 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
     configWarnings,
     configValid: validation.valid && configRead.ok !== false,
   };
+
+  config.maxScanBytes = resolveMaxScanBytes(config);
 
   if (!config.ignore) config.ignore = IGNORE_DEFAULTS;
   if (!config.productionPaths)
@@ -647,4 +670,7 @@ module.exports = {
   buildInitBaseline,
   mergeBaseline,
   readJsonFile,
+  resolveMaxScanBytes,
+  DEFAULT_MAX_SCAN_BYTES,
+  MAX_SCAN_BYTES_CEILING,
 };

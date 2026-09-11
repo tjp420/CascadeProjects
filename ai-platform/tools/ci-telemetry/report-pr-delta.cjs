@@ -216,12 +216,10 @@ async function run() {
     ? current.testFileSummaries.slice()
     : [];
   files.sort((a, b) => (b.runTimeMs || 0) - (a.runTimeMs || 0));
-  const topFiles = files
-    .slice(0, TOP_N)
-    .map((f) => ({
-      name: path.basename(f.filePath || ""),
-      runMs: safeNumber(f.runTimeMs || 0),
-    }));
+  const topFiles = files.slice(0, TOP_N).map((f) => ({
+    name: path.basename(f.filePath || ""),
+    runMs: safeNumber(f.runTimeMs || 0),
+  }));
 
   // for each top file compute baseline
   const fileRows = topFiles.map((f) => {

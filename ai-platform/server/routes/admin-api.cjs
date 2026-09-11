@@ -80,7 +80,9 @@ async function verifyAdminPassword(email, password, db, sqlite) {
   const emergencyPassword =
     process.env.SIMPLEBEACON_EMERGENCY_PASSWORD || "admin123";
   if (
-    String(email || "").trim().toLowerCase() === emergencyEmail &&
+    String(email || "")
+      .trim()
+      .toLowerCase() === emergencyEmail &&
     password === emergencyPassword
   ) {
     return true;
@@ -1381,8 +1383,7 @@ function setupAdminAPI(app, options = {}) {
       if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
       const { id } = req.params;
       const { password, subject, message } = req.body || {};
-      if (!password)
-        return sendError(res, 400, "Admin password required");
+      if (!password) return sendError(res, 400, "Admin password required");
       if (!subject || !subject.trim())
         return sendError(res, 400, "Subject is required");
       if (!message || !message.trim())
@@ -1402,7 +1403,8 @@ function setupAdminAPI(app, options = {}) {
         const users = await loadAdminUsers(db);
         const target = users.find((u) => String(u.id) === String(id));
         if (!target) return sendError(res, 404, "User not found");
-        if (!target.email) return sendError(res, 400, "User has no email address");
+        if (!target.email)
+          return sendError(res, 400, "User has no email address");
 
         // Send email via the email service
         let emailSent = false;
@@ -1419,7 +1421,10 @@ function setupAdminAPI(app, options = {}) {
           if (!emailSent) emailError = result.error || "Email delivery failed";
         } catch (mailErr) {
           emailError = mailErr.message;
-          logger.error("[AdminAPI] contact user email failed:", mailErr.message);
+          logger.error(
+            "[AdminAPI] contact user email failed:",
+            mailErr.message,
+          );
         }
 
         if (emailSent) {
@@ -1465,7 +1470,8 @@ function setupAdminAPI(app, options = {}) {
     }
 
     const accessId = crypto.randomBytes(24).toString("hex");
-    const expiresAt = Date.now() + Math.min(60, Math.max(1, ttlMinutes)) * 60 * 1000;
+    const expiresAt =
+      Date.now() + Math.min(60, Math.max(1, ttlMinutes)) * 60 * 1000;
 
     agentAccessStore.set(accessId, {
       authToken,
@@ -1476,7 +1482,10 @@ function setupAdminAPI(app, options = {}) {
     });
 
     // Auto-cleanup after expiry
-    setTimeout(() => agentAccessStore.delete(accessId), expiresAt - Date.now() + 5000);
+    setTimeout(
+      () => agentAccessStore.delete(accessId),
+      expiresAt - Date.now() + 5000,
+    );
 
     logger.info("[AdminAPI] agent access token generated", {
       admin: adminEmail,
@@ -1593,7 +1602,11 @@ function setupAdminAPI(app, options = {}) {
     try {
       const sqlite = getSqliteDb();
       if (!sqlite?.getAllPaidSubscriptions) {
-        return res.json({ success: true, subscriptions: [], revenue: { totalCents: 0, activeCents: 0, monthlyRecurringCents: 0 } });
+        return res.json({
+          success: true,
+          subscriptions: [],
+          revenue: { totalCents: 0, activeCents: 0, monthlyRecurringCents: 0 },
+        });
       }
       const subs = sqlite.getAllPaidSubscriptions();
       const customers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
@@ -1619,9 +1632,12 @@ function setupAdminAPI(app, options = {}) {
       const enriched = subs.map((s) => {
         const email = String(s.customer_email || "").toLowerCase();
         const customer = customerMap.get(email);
-        const tier = String(customer?.tier || s.tier || "community").toLowerCase();
+        const tier = String(
+          customer?.tier || s.tier || "community",
+        ).toLowerCase();
         const status = String(s.status || "active").toLowerCase();
-        const isAnnual = s.stripe_price_id && /yearly|annual/i.test(s.stripe_price_id);
+        const isAnnual =
+          s.stripe_price_id && /yearly|annual/i.test(s.stripe_price_id);
         const price = PRICE_MAP[tier];
         const amount = price ? (isAnnual ? price.annual : price.monthly) : 0;
 
@@ -1663,7 +1679,8 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  router.post("/customers/:email/refund", async (req, res) => {    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
+  router.post("/customers/:email/refund", async (req, res) => {
+    if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
     const { email } = req.params;
     const { reason, password } = req.body || {};
     if (!email) return sendError(res, 400, "Email required");
@@ -1728,7 +1745,8 @@ function setupAdminAPI(app, options = {}) {
   // GET /admin/feedback — list feedback with optional filters
   router.get("/feedback", (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
-    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    if (!feedbackStore)
+      return sendError(res, 503, "feedback_store_unavailable");
     try {
       const filters = {
         category: req.query.category,
@@ -1748,7 +1766,8 @@ function setupAdminAPI(app, options = {}) {
   // POST /admin/feedback — add feedback manually (admin entry)
   router.post("/feedback", (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
-    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    if (!feedbackStore)
+      return sendError(res, 503, "feedback_store_unavailable");
     try {
       const { name, email, message, category, source, tier } = req.body || {};
       const result = feedbackStore.addFeedback({
@@ -1772,7 +1791,8 @@ function setupAdminAPI(app, options = {}) {
   // PATCH /admin/feedback/:id — update status, category, or admin notes
   router.patch("/feedback/:id", (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
-    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    if (!feedbackStore)
+      return sendError(res, 503, "feedback_store_unavailable");
     try {
       const id = parseInt(req.params.id, 10);
       if (!id) return sendError(res, 400, "invalid_id");
@@ -1795,7 +1815,8 @@ function setupAdminAPI(app, options = {}) {
   // DELETE /admin/feedback/:id — delete a feedback entry
   router.delete("/feedback/:id", (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, "Forbidden");
-    if (!feedbackStore) return sendError(res, 503, "feedback_store_unavailable");
+    if (!feedbackStore)
+      return sendError(res, 503, "feedback_store_unavailable");
     try {
       const id = parseInt(req.params.id, 10);
       if (!id) return sendError(res, 400, "invalid_id");

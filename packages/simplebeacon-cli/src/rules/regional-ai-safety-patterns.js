@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Regional AI Safety Mandate Guardrails — static pattern detection for
@@ -100,7 +101,7 @@ const SKIP_DIRS = new Set([
   "simplebeacon-rule-tests",
   "simplebeacon-toxic-fixtures",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 // ── Rule Catalog ────────────────────────────────────────────────────────────
 
@@ -654,6 +655,8 @@ function detectDocumentationArtifacts(baseDir) {
 // ── Main Scan Function ──────────────────────────────────────────────────────
 
 async function scanRegionalAiSafetyPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const {
     sourcePaths = DEFAULT_SOURCE_PATHS,
     ignoreGlobs = [],

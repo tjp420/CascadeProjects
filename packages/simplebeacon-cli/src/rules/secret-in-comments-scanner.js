@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Secret-in-comments scanner (SB-SEC-007).
  * Detects hardcoded credentials, API keys, passwords, and tokens
@@ -30,7 +31,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".env.local",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -212,6 +213,8 @@ async function scanFile(filePath) {
 }
 
 async function scanSecretInComments(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

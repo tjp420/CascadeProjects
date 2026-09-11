@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Full-repo structural intent scan when intelligence.enabled.
  */
@@ -43,7 +44,7 @@ const SKIP_DIRS = new Set([
 ]);
 const SCANNER_IMPL_RE =
   /(?:^|\/)packages\/simplebeacon-(?:cli|intelligence)\//i;
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const RECOMMENDED_ACTIONS = {
   "SB-INTENT-001":
@@ -135,6 +136,8 @@ function toScanIssues(findings, relativePath) {
 }
 
 async function scanStructuralIntentPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const intelligence =
     options.intelligence ||
     getIntelligenceOptions({ intelligence: options.intelligenceConfig });

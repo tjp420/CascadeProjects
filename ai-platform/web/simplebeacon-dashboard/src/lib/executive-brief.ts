@@ -4,12 +4,14 @@
  * Markdown rendering stays lightweight here — no secret file contents.
  */
 
-import {
-  buildExecutiveBriefModel as buildModel,
-} from "@sb/executive-brief-core";
+import * as core from "@sb/executive-brief-core";
 
 export function buildExecutiveBriefModel(report: any, options: any = {}) {
-  return buildModel(report, options, {});
+  // `@sb/executive-brief-core` is implemented in CommonJS for the CLI.
+  // Use a namespace import to remain compatible with both CJS and ESM consumers.
+  const builder = (core as any).buildExecutiveBriefModel || (core as any).default?.buildExecutiveBriefModel;
+  if (!builder) throw new Error("buildExecutiveBriefModel not available from @sb/executive-brief-core");
+  return builder(report, options, {});
 }
 
 export function renderExecutiveBriefMarkdown(

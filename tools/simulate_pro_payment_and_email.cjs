@@ -22,7 +22,14 @@ const sendEmail = require(
 let renderLicenseConfirmation = null;
 try {
   renderLicenseConfirmation = require(
-    path.join(__dirname, "..", "coming-soon", "services", "email-templates", "license-confirmation-email.cjs"),
+    path.join(
+      __dirname,
+      "..",
+      "coming-soon",
+      "services",
+      "email-templates",
+      "license-confirmation-email.cjs",
+    ),
   ).renderLicenseConfirmation;
 } catch {
   // Template not available — fall back to basic template

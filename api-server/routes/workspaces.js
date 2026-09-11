@@ -83,12 +83,9 @@ router.post(
           [req.auth.userId],
         );
         if (!org) {
-          return res
-            .status(400)
-            .json({
-              error:
-                "No organization found — create one first or provide orgId",
-            });
+          return res.status(400).json({
+            error: "No organization found — create one first or provide orgId",
+          });
         }
         targetOrgId = org.id;
       }

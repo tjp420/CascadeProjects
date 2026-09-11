@@ -1,6 +1,6 @@
 # Why Your AI Coding Agent Is Burning Money — And How to Stop It
 
-*How SimpleBeacon's 48 MCP tools, token-sipping Semantic Lighthouse, and deterministic compliance gate cut agent tool calls by 75% while catching the mistakes agents make most.*
+_How SimpleBeacon's 48 MCP tools, token-sipping Semantic Lighthouse, and deterministic compliance gate cut agent tool calls by 75% while catching the mistakes agents make most._
 
 ---
 
@@ -12,11 +12,11 @@ A typical agent session involves 30-40 tool calls. Each one sends context to an 
 
 The math is brutal:
 
-| Approach | Tool calls | Rework calls | Total tokens burned |
-|---|---|---|---|
-| No guardrails | 30 | 8-12 | ~50K-80K |
-| Verification only (scan after) | 40 | 8-12 | ~65K-100K |
-| **Prevention + investigation (SimpleBeacon)** | **10** | **0-2** | **~15K-25K** |
+| Approach                                      | Tool calls | Rework calls | Total tokens burned |
+| --------------------------------------------- | ---------- | ------------ | ------------------- |
+| No guardrails                                 | 30         | 8-12         | ~50K-80K            |
+| Verification only (scan after)                | 40         | 8-12         | ~65K-100K           |
+| **Prevention + investigation (SimpleBeacon)** | **10**     | **0-2**      | **~15K-25K**        |
 
 Verification-only doesn't just fail to save tokens — it **increases** token consumption by 20-30% because you're adding scan calls on top of the same broken workflow.
 
@@ -48,14 +48,16 @@ The agent never writes secrets, fiction KPIs, mock paths, or LLM placeholder slo
 ```json
 {
   "verdict": "blocked",
-  "findings": [{
-    "pattern": "hallucinated_dependency",
-    "severity": "critical",
-    "line": 42,
-    "match": "npm-fake-kpi-tracker",
-    "actionCode": "REMOVE_IMPORT",
-    "fix": "Remove this import and use native fetch instead."
-  }]
+  "findings": [
+    {
+      "pattern": "hallucinated_dependency",
+      "severity": "critical",
+      "line": 42,
+      "match": "npm-fake-kpi-tracker",
+      "actionCode": "REMOVE_IMPORT",
+      "fix": "Remove this import and use native fetch instead."
+    }
+  ]
 }
 ```
 
@@ -116,33 +118,43 @@ The same gate that prevents your agent from committing a hallucinated package al
 ## How it works in practice
 
 ### Session start (1 call)
+
 ```
 supercharge_agent() → gate state, top issues, code suggestions, next mission
 ```
+
 Replaces 5-15 exploratory tool calls with one compressed payload.
 
 ### Before every edit (1 call per edit)
+
 ```
 scan_snippet(content) → verdict + findings + fix hints
 ```
+
 Prevents 3-5 rework calls per edit. The agent fixes issues before writing to disk.
 
 ### On crash (1 call)
+
 ```
 diagnose_error(stackTrace) → root cause + likely file + fix template
 ```
+
 Replaces 4-8 debugging calls with one deterministic diagnosis.
 
 ### Before commit (1 call)
+
 ```
 exoskeleton_guard_commit() → scans all staged files, returns safe/blocked/warning
 ```
+
 Prevents bad commits from shipping. Stores commit memory for the next session.
 
 ### Before claiming done (1 call)
+
 ```
 handoff_check() → ready=true/false + handoff brief for next session
 ```
+
 One false "done" claim costs more tokens than 10 handoff_check calls.
 
 **Total for a typical 30-tool-call session: 10-12 calls instead of 38-52.**
@@ -199,6 +211,6 @@ Sets up .cursor/mcp.json for Cursor. For other agents, see the docs.
 
 ---
 
-*SimpleBeacon: Stop your autonomous agents from burning tokens on hallucination loops. 48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline, no source upload.*
+_SimpleBeacon: Stop your autonomous agents from burning tokens on hallucination loops. 48 MCP tools, 94.88% token reduction, deterministic compliance evidence — all local, all offline, no source upload._
 
 [Get started free →](https://simplebeacon.ai)

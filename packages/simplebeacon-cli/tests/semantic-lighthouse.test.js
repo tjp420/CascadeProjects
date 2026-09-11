@@ -87,7 +87,10 @@ def standalone_function(x):
 `;
   const { beacons } = generateBeacons("billing.py", code);
   const names = beacons.map((b) => b.name);
-  assert.ok(names.includes("EnterpriseBillingEngine"), "should extract Python class");
+  assert.ok(
+    names.includes("EnterpriseBillingEngine"),
+    "should extract Python class",
+  );
   assert.ok(names.includes("__init__"), "should extract __init__ method");
   assert.ok(names.includes("process_invoice_v2"), "should extract method");
   assert.ok(names.includes("execute_refund"), "should extract async method");
@@ -139,7 +142,10 @@ func standaloneFunc(x int) int {
 });
 
 test("generateBeacons returns empty for unsupported file types", () => {
-  const { beacons, fileTokens, beaconTokens } = generateBeacons("readme.md", "# Hello\n\nSome text");
+  const { beacons, fileTokens, beaconTokens } = generateBeacons(
+    "readme.md",
+    "# Hello\n\nSome text",
+  );
   assert.equal(beacons.length, 0);
   assert.ok(fileTokens > 0, "should still count file tokens");
   assert.equal(beaconTokens, 0);
@@ -186,7 +192,10 @@ class EnterpriseBillingEngine {
 }
 `;
   const { fileTokens, beaconTokens } = generateBeacons("billing.js", code);
-  assert.ok(beaconTokens < fileTokens, "beacon tokens should be less than file tokens");
+  assert.ok(
+    beaconTokens < fileTokens,
+    "beacon tokens should be less than file tokens",
+  );
   assert.ok(beaconTokens > 0, "should have some beacon tokens");
 });
 
@@ -198,8 +207,22 @@ test("scanBeacons finds matching targets by name", () => {
       {
         file: "billing.js",
         beacons: [
-          { name: "processRefund", entity: "function", type: "functional_target", line: 10, signature: "function processRefund(chargeId)", tokenWeight: 10 },
-          { name: "generateReport", entity: "function", type: "functional_target", line: 20, signature: "function generateReport()", tokenWeight: 8 },
+          {
+            name: "processRefund",
+            entity: "function",
+            type: "functional_target",
+            line: 10,
+            signature: "function processRefund(chargeId)",
+            tokenWeight: 10,
+          },
+          {
+            name: "generateReport",
+            entity: "function",
+            type: "functional_target",
+            line: 20,
+            signature: "function generateReport()",
+            tokenWeight: 8,
+          },
         ],
         fileTokens: 500,
       },
@@ -218,8 +241,22 @@ test("scanBeacons boosts intent beacons (TODO/FIXME/BUG)", () => {
       {
         file: "billing.js",
         beacons: [
-          { name: "processRefund", entity: "function", type: "functional_target", line: 10, signature: "function processRefund()", tokenWeight: 10 },
-          { name: "race condition if webhook drops", entity: "BUG", type: "intent_beacon", line: 15, signature: "// BUG: race condition", tokenWeight: 8 },
+          {
+            name: "processRefund",
+            entity: "function",
+            type: "functional_target",
+            line: 10,
+            signature: "function processRefund()",
+            tokenWeight: 10,
+          },
+          {
+            name: "race condition if webhook drops",
+            entity: "BUG",
+            type: "intent_beacon",
+            line: 15,
+            signature: "// BUG: race condition",
+            tokenWeight: 8,
+          },
         ],
         fileTokens: 500,
       },
@@ -239,7 +276,14 @@ test("scanBeacons returns empty for no matches", () => {
       {
         file: "billing.js",
         beacons: [
-          { name: "processRefund", entity: "function", type: "functional_target", line: 10, signature: "function processRefund()", tokenWeight: 10 },
+          {
+            name: "processRefund",
+            entity: "function",
+            type: "functional_target",
+            line: 10,
+            signature: "function processRefund()",
+            tokenWeight: 10,
+          },
         ],
         fileTokens: 500,
       },
@@ -274,9 +318,30 @@ test("scanBeacons filters by entity type", () => {
       {
         file: "billing.js",
         beacons: [
-          { name: "Billing", entity: "class", type: "structural_anchor", line: 1, signature: "class Billing", tokenWeight: 5 },
-          { name: "refund", entity: "function", type: "functional_target", line: 10, signature: "function refund()", tokenWeight: 8 },
-          { name: "TODO refund", entity: "TODO", type: "intent_beacon", line: 15, signature: "// TODO: refund", tokenWeight: 6 },
+          {
+            name: "Billing",
+            entity: "class",
+            type: "structural_anchor",
+            line: 1,
+            signature: "class Billing",
+            tokenWeight: 5,
+          },
+          {
+            name: "refund",
+            entity: "function",
+            type: "functional_target",
+            line: 10,
+            signature: "function refund()",
+            tokenWeight: 8,
+          },
+          {
+            name: "TODO refund",
+            entity: "TODO",
+            type: "intent_beacon",
+            line: 15,
+            signature: "// TODO: refund",
+            tokenWeight: 6,
+          },
         ],
         fileTokens: 500,
       },
@@ -293,8 +358,22 @@ test("scanBeacons handles multi-term queries", () => {
       {
         file: "billing.js",
         beacons: [
-          { name: "processRefund", entity: "function", type: "functional_target", line: 10, signature: "function processRefund(chargeId)", tokenWeight: 10 },
-          { name: "refundHandler", entity: "class", type: "structural_anchor", line: 1, signature: "class refundHandler", tokenWeight: 8 },
+          {
+            name: "processRefund",
+            entity: "function",
+            type: "functional_target",
+            line: 10,
+            signature: "function processRefund(chargeId)",
+            tokenWeight: 10,
+          },
+          {
+            name: "refundHandler",
+            entity: "class",
+            type: "structural_anchor",
+            line: 1,
+            signature: "class refundHandler",
+            tokenWeight: 8,
+          },
         ],
         fileTokens: 500,
       },
@@ -320,21 +399,36 @@ test("generateBeaconIndex walks a project and writes index to disk", async () =>
       path.join(tmpDir, "types.ts"),
       "interface Config { apiKey: string; }",
     );
-    fs.writeFileSync(
-      path.join(tmpDir, "readme.md"),
-      "# Not a code file",
-    );
+    fs.writeFileSync(path.join(tmpDir, "readme.md"), "# Not a code file");
 
     const { index, outputDir } = await generateBeaconIndex(tmpDir);
-    assert.ok(index.summary.filesIndexed >= 2, "should index at least 2 code files");
+    assert.ok(
+      index.summary.filesIndexed >= 2,
+      "should index at least 2 code files",
+    );
     assert.ok(index.summary.totalBeacons > 0, "should have beacons");
-    assert.ok(index.summary.tokenReductionPct > 0, "should show token reduction");
-    assert.ok(fs.existsSync(path.join(outputDir, "beacon-index.json")), "should write index file");
+    assert.ok(
+      index.summary.tokenReductionPct > 0,
+      "should show token reduction",
+    );
+    assert.ok(
+      fs.existsSync(path.join(outputDir, "beacon-index.json")),
+      "should write index file",
+    );
 
     const fileNames = index.files.map((f) => f.file);
-    assert.ok(fileNames.some((f) => f.endsWith("billing.js")), "should include billing.js");
-    assert.ok(fileNames.some((f) => f.endsWith("types.ts")), "should include types.ts");
-    assert.ok(!fileNames.some((f) => f.endsWith("readme.md")), "should NOT include readme.md");
+    assert.ok(
+      fileNames.some((f) => f.endsWith("billing.js")),
+      "should include billing.js",
+    );
+    assert.ok(
+      fileNames.some((f) => f.endsWith("types.ts")),
+      "should include types.ts",
+    );
+    assert.ok(
+      !fileNames.some((f) => f.endsWith("readme.md")),
+      "should NOT include readme.md",
+    );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -347,7 +441,13 @@ test("loadIndex and saveIndex round-trip", () => {
   try {
     const indexPath = path.join(tmpDir, "beacon-index.json");
     const index = {
-      summary: { filesIndexed: 1, totalBeacons: 2, totalFileTokens: 100, totalBeaconTokens: 20, tokenReductionPct: 80 },
+      summary: {
+        filesIndexed: 1,
+        totalBeacons: 2,
+        totalFileTokens: 100,
+        totalBeaconTokens: 20,
+        tokenReductionPct: 80,
+      },
       files: [{ file: "test.js", beacons: [{ name: "foo", line: 1 }] }],
     };
     saveIndex(index, indexPath);

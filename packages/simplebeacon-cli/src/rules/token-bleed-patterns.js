@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Token bleed — unchunked file/context passed into LLM API calls (advisory).
  * Production paths only; opt-in via config.rules['token-bleed-patterns'].
@@ -20,7 +21,7 @@ const {
   makeFinding,
 } = require("./ai-runtime-scan-common");
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const PROXIMITY_LINES = 10;
 
@@ -375,6 +376,8 @@ async function walkProductionSourceFiles(dir, results = [], depth = 0) {
 }
 
 async function scanTokenBleedPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
   const severityDefault = options.severity || "medium";

@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOrganizations, type OrgMember } from "@/hooks/useOrganizations";
+import { collectScanIssues } from "@/lib/collect-scan-issues";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -782,8 +783,7 @@ export function OrganizationView() {
                       report.generatedAt || new Date().toISOString();
                     const gate = report.gate || {};
                     const sev = report.severityCounts || {};
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
+                    const issues = collectScanIssues(report, 200);
                     const qualityScore =
                       report.qualityScore != null ? report.qualityScore : "N/A";
                     const gatePass =
@@ -841,8 +841,7 @@ export function OrganizationView() {
                       return;
                     }
                     const report = JSON.parse(raw);
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
+                    const issues = collectScanIssues(report, 200);
                     if (!issues.length) {
                       toast.error("No issues in current scan report");
                       return;

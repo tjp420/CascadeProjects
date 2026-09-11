@@ -20,12 +20,10 @@ const billingRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) =>
-    res
-      .status(429)
-      .json({
-        error: "too_many_requests",
-        message: "Too many requests, please try again later.",
-      }),
+    res.status(429).json({
+      error: "too_many_requests",
+      message: "Too many requests, please try again later.",
+    }),
 });
 const {
   isMonetizationEnabled,
@@ -179,14 +177,12 @@ function setupSimplebeaconBillingWebhook(app) {
         }
       }
       if (!event) {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid webhook signature",
-            message: lastErr
-              ? lastErr.message
-              : "no valid webhook secret configured",
-          });
+        return res.status(400).json({
+          error: "Invalid webhook signature",
+          message: lastErr
+            ? lastErr.message
+            : "no valid webhook secret configured",
+        });
       }
 
       const db = req.app?.locals?.db || null;
@@ -438,11 +434,15 @@ function setupSimplebeaconBillingWebhook(app) {
                 sessionTokenStore.set(session.id, {
                   token: licenseToken,
                   email,
-                  projectName: session.metadata?.projectName || "default-project",
+                  projectName:
+                    session.metadata?.projectName || "default-project",
                   tier: subTier,
                 });
               } catch (storeErr) {
-                logger.warn("[Simplebeacon billing] Session token store failed:", storeErr.message);
+                logger.warn(
+                  "[Simplebeacon billing] Session token store failed:",
+                  storeErr.message,
+                );
               }
 
               // Register license token so /api/auth/token-status recognizes it as known
@@ -552,12 +552,10 @@ function setupSimplebeaconBillingWebhook(app) {
  * @returns {import('express').Response}
  */
 function billingDisabledResponse(res) {
-  return res
-    .status(503)
-    .json({
-      error: "billing_disabled",
-      message: "Monetization is not enabled on this server.",
-    });
+  return res.status(503).json({
+    error: "billing_disabled",
+    message: "Monetization is not enabled on this server.",
+  });
 }
 
 /**
@@ -989,12 +987,10 @@ function setupSimplebeaconBillingRoutes(app) {
     }
     const record = await getSubscriptionByEmail(email);
     if (!record) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error: "No subscription found for this email",
-        });
+      return res.status(404).json({
+        success: false,
+        error: "No subscription found for this email",
+      });
     }
     const patch = {};
     const fields = {
@@ -1009,13 +1005,11 @@ function setupSimplebeaconBillingRoutes(app) {
       }
     }
     if (Object.keys(patch).length === 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error:
-            "No valid fields to update. Provide certClientName, certProjectName, certMilestone, or certOrgId.",
-        });
+      return res.status(400).json({
+        success: false,
+        error:
+          "No valid fields to update. Provide certClientName, certProjectName, certMilestone, or certOrgId.",
+      });
     }
     const updated = await upsertSubscription(email, patch);
     res.json({
@@ -1085,13 +1079,11 @@ function setupSimplebeaconBillingRoutes(app) {
       const reportJson = req.body?.reportJson || req.body?.report || null;
 
       if (!licenseToken) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              "licenseToken is required (Authorization: Bearer <token> or body.licenseToken)",
-          });
+        return res.status(400).json({
+          success: false,
+          error:
+            "licenseToken is required (Authorization: Bearer <token> or body.licenseToken)",
+        });
       }
       if (!reportJson || typeof reportJson !== "object") {
         return res
@@ -1221,12 +1213,10 @@ function setupSimplebeaconBillingRoutes(app) {
     } catch (err) {
       logger.error("[Reports] Upload processing error:", err.message);
       const status = err.statusCode || 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: err.message || "Certificate generation failed",
-        });
+      res.status(status).json({
+        success: false,
+        error: err.message || "Certificate generation failed",
+      });
     }
   });
 
@@ -1246,13 +1236,11 @@ function setupSimplebeaconBillingRoutes(app) {
       const reportJson = req.body?.reportJson || req.body?.report || null;
 
       if (!licenseToken) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              "licenseToken is required (Authorization: Bearer <token> or body.licenseToken)",
-          });
+        return res.status(400).json({
+          success: false,
+          error:
+            "licenseToken is required (Authorization: Bearer <token> or body.licenseToken)",
+        });
       }
       if (!reportJson || typeof reportJson !== "object") {
         return res
@@ -1272,12 +1260,10 @@ function setupSimplebeaconBillingRoutes(app) {
     } catch (err) {
       logger.error("[Reports] Download processing error:", err.message);
       const status = err.statusCode || 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: err.message || "Certificate generation failed",
-        });
+      res.status(status).json({
+        success: false,
+        error: err.message || "Certificate generation failed",
+      });
     }
   });
 
@@ -1330,12 +1316,10 @@ function setupSimplebeaconBillingRoutes(app) {
       const signingKey = process.env.REPORT_SIGNING_KEY || null;
       if (!signingKey) {
         // If server isn't configured to sign, return not configured
-        return res
-          .status(503)
-          .json({
-            success: false,
-            error: "REPORT_SIGNING_KEY not configured on server",
-          });
+        return res.status(503).json({
+          success: false,
+          error: "REPORT_SIGNING_KEY not configured on server",
+        });
       }
       const valid = verifyReportSignature(reportJson, signingKey);
       res.json({ success: true, valid });
@@ -1505,21 +1489,17 @@ function setupSimplebeaconBillingRoutes(app) {
         ? authHeader.slice(7).trim()
         : String(req.body?.licenseToken || "").trim();
       if (!token) {
-        return res
-          .status(401)
-          .json({
-            error: "missing_token",
-            message: "Bearer license token required.",
-          });
+        return res.status(401).json({
+          error: "missing_token",
+          message: "Bearer license token required.",
+        });
       }
       const email = resolveTelemetryEmail(token);
       if (!email) {
-        return res
-          .status(403)
-          .json({
-            error: "invalid_token",
-            message: "License token is invalid or not registered.",
-          });
+        return res.status(403).json({
+          error: "invalid_token",
+          message: "License token is invalid or not registered.",
+        });
       }
       const subscription = await getSubscriptionByEmail(email);
       // D-02: mirror GET team routes — community/free cannot ingest team telemetry.
@@ -1572,12 +1552,10 @@ function setupSimplebeaconBillingRoutes(app) {
       }
     }
     if (!email) {
-      return res
-        .status(401)
-        .json({
-          error: "auth_required",
-          message: "Sign in or provide a valid license token.",
-        });
+      return res.status(401).json({
+        error: "auth_required",
+        message: "Sign in or provide a valid license token.",
+      });
     }
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
     const summary = summarizeCiTelemetry(email, { days });

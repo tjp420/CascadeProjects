@@ -39,7 +39,10 @@ function tokenize(text) {
   for (let r of raw) {
     if (!r) continue;
     // Split camelCase boundaries: fooBar -> foo, bar (before lowercasing)
-    const parts = r.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().split(/\s+/);
+    const parts = r
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .toLowerCase()
+      .split(/\s+/);
     for (const p of parts) {
       if (!p || p.length < 2) continue;
       if (/^\d+$/.test(p)) continue; // drop pure numbers
@@ -63,11 +66,13 @@ function projectTerm(term, dimensions) {
   let state = seed.readUInt32BE(0) >>> 0;
   for (let i = 0; i < dimensions; i++) {
     // xorshift32
-    state ^= state << 13; state >>>= 0;
+    state ^= state << 13;
+    state >>>= 0;
     state ^= state >>> 17;
-    state ^= state << 5; state >>>= 0;
+    state ^= state << 5;
+    state >>>= 0;
     // Map to {-1, +1}.
-    vec[i] = (state & 1) ? 1 : -1;
+    vec[i] = state & 1 ? 1 : -1;
   }
   return vec;
 }
@@ -239,12 +244,21 @@ function buildIndex(files, options = {}) {
     const passages = splitPassages(content, options);
     for (const p of passages) {
       allPassages.push(p.text);
-      passageMeta.push({ path: file.path, startLine: p.startLine, endLine: p.endLine });
+      passageMeta.push({
+        path: file.path,
+        startLine: p.startLine,
+        endLine: p.endLine,
+      });
     }
     // Also index the summary as a passage so summary terms are retrievable.
     if (file.summary) {
       allPassages.push(file.summary);
-      passageMeta.push({ path: file.path, startLine: -1, endLine: -1, isSummary: true });
+      passageMeta.push({
+        path: file.path,
+        startLine: -1,
+        endLine: -1,
+        isSummary: true,
+      });
     }
   }
   const idf = buildIdf(allPassages);
@@ -305,7 +319,11 @@ function search(index, query, options = {}) {
  */
 function saveIndex(index, indexPath) {
   const dir = path.dirname(indexPath);
-  try { fs.mkdirSync(dir, { recursive: true }); } catch { /* ignore */ }
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch {
+    /* ignore */
+  }
   fs.writeFileSync(indexPath, JSON.stringify(index));
 }
 
@@ -328,7 +346,11 @@ function loadIndex(indexPath) {
  * @returns {string}
  */
 function defaultIndexPath(projectRoot) {
-  return path.join(projectRoot || process.cwd(), DEFAULT_INDEX_DIR, DEFAULT_INDEX_NAME);
+  return path.join(
+    projectRoot || process.cwd(),
+    DEFAULT_INDEX_DIR,
+    DEFAULT_INDEX_NAME,
+  );
 }
 
 module.exports = {

@@ -86,9 +86,14 @@ module.exports = {
   ],
   options: {
     doNotFollow: {
-      path: 'node_modules',
+      // skip large vendor/build folders entirely so the analyzer doesn't waste memory
+      path: ['node_modules', 'dist', 'out', 'build', 'coverage', '.artifacts', '.git', '.turbo'],
       dependencyTypes: ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-bundled', 'npm-no-pkg'],
     },
+    // Additional top-level exclude to drop heavy binary/asset files early
+    // This reduces the file traversal set and avoids scanning images, fonts, maps, and large generated assets.
+    exclude:
+      '(^|/)(node_modules|dist|out|build|coverage|\\.artifacts|\\.git|\\.turbo)(/|$)|\\.(svg|png|jpg|jpeg|mp4|woff|woff2|eot|ttf|json|map)$',
     tsPreCompilationDeps: true,
     tsConfig: {
       fileName: './tsconfig.json',

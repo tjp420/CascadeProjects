@@ -190,6 +190,19 @@ test("generateHeader shows BLOCKED when gate fails", () => {
   assert.ok(header.includes("BLOCKED"));
 });
 
+test("generateHeader reports configured maxScanBytes and oversized skips", () => {
+  const header = generateHeader({
+    ...SAMPLE_REPORT,
+    scanScope: {
+      maxScanBytes: 2097152,
+      securityPatternFilesSkippedOversized: 12,
+    },
+  });
+  assert.ok(header.includes("2,097,152"));
+  assert.ok(header.includes("maxScanBytes"));
+  assert.ok(header.includes("12"));
+});
+
 test("generateSeverityBreakdown counts issues by severity", () => {
   const breakdown = generateSeverityBreakdown(SAMPLE_REPORT);
   assert.ok(breakdown.includes("Medium"));

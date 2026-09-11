@@ -2,18 +2,18 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-    <title>SimpleBeacon — Automated code review for AI-written TypeScript and Node</title>
-    <meta name="description" content="Stop letting junior developers and AI coding assistants ship any-typed TypeScript and blocking fs.sync calls. SimpleBeacon is an automated code reviewer for GitHub pull requests.">
+    <title>SimpleBeacon — Local scan. No repo upload. Production noise filter.</title>
+    <meta name="description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps, then add a CI gate when the team is ready.">
     <link rel="canonical" href="https://simplebeacon.ai/">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="SimpleBeacon — Finds plausible-but-wrong AI code before production">
-    <meta property="og:description" content="SimpleBeacon finds AI-generated code that looks finished when it isn't. Catch staging wired into production, fake metrics, placeholders, and hallucinated dependencies. Runs locally.">
+    <meta property="og:title" content="SimpleBeacon — Local scan. No repo upload. Production noise filter.">
+    <meta property="og:description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Finds plausible-but-wrong AI code before production">
-    <meta name="twitter:description" content="SimpleBeacon finds AI-generated code that looks finished when it isn't. Catch staging wired into production, fake metrics, placeholders, and hallucinated dependencies. Runs locally.">
+    <meta name="twitter:title" content="SimpleBeacon — Local scan. No repo upload. Production noise filter.">
+    <meta name="twitter:description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps.">
 
         
         
@@ -1337,9 +1337,69 @@
             .hero-lead {
                 font-size: 20px;
                 line-height: 1.5;
-                max-width: 680px;
+                max-width: 720px;
                 margin: 0 auto 28px;
                 color: #d1d5db;
+            }
+            .hero-cmd {
+                max-width: 640px;
+                margin: 0 auto 28px;
+                text-align: left;
+                position: relative;
+            }
+            .hero-cmd pre {
+                padding-right: 88px;
+            }
+            .hero-copy-btn {
+                position: absolute;
+                top: 40px;
+                right: 12px;
+                padding: 6px 12px;
+                font-size: 13px;
+                font-weight: 600;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+                background: var(--bg-elevated);
+                color: var(--text-main);
+                cursor: pointer;
+            }
+            .hero-trust {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                list-style: none;
+                text-align: left;
+                margin: 0 auto 8px;
+                max-width: 840px;
+            }
+            .hero-trust li {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px 18px;
+            }
+            .hero-trust strong {
+                display: block;
+                color: var(--text-main);
+                font-size: 14px;
+                margin-bottom: 6px;
+            }
+            .hero-trust span {
+                color: var(--text-muted);
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            @media (max-width: 720px) {
+                .hero-trust {
+                    grid-template-columns: 1fr;
+                }
+                .hero-cmd pre {
+                    padding-right: 18px;
+                }
+                .hero-copy-btn {
+                    position: static;
+                    margin: 10px 16px 14px;
+                }
             }
             .cta-row {
                 display: flex;
@@ -2179,13 +2239,38 @@
             }, 3000);
         </script>
 
-        <!-- HERO + PAYMENT EXAMPLE -->
+        <!-- HERO: CLI FIRST, NO UPLOAD -->
         <section class="hero hero-compact">
             <div class="hero-card">
-                <h1>Stop letting junior developers and AI assistants ruin production TypeScript.</h1>
+                <span class="badge">Local CLI first. Source never uploaded.</span>
+                <h1>Mute test-suite noise. Catch production architecture gaps.</h1>
                 <p class="hero-lead">
-                    SimpleBeacon is an automated code reviewer for GitHub pull requests. Production-path alerts stay on the main dashboard; test/mock/fixture findings move to Test Suite Health.
+                    Skeptical buyers will not connect GitHub to a site they do not know. Run the engine on your laptop, offline. Production-path issues stay on the main board. Test, mock, and fixture findings are parked so you are not drowning in another alert pile.
                 </p>
+                <div class="code-panel hero-cmd">
+                    <div class="code-panel-label">No account. Works offline.</div>
+                    <pre><code id="hero-scan-cmd">npx simplebeacon scan --gate --offline</code></pre>
+                    <button type="button" class="hero-copy-btn" id="copy-scan-cmd">Copy</button>
+                </div>
+                <ul class="hero-trust">
+                    <li>
+                        <strong>Source stays local</strong>
+                        <span>The scanner runs on your machine. We do not need your repository or a GitHub OAuth grant to prove value.</span>
+                    </li>
+                    <li>
+                        <strong>Noise is filtered</strong>
+                        <span>Test-suite findings move off the production board so managers see architecture gaps, not fixture clutter.</span>
+                    </li>
+                    <li>
+                        <strong>Lives in your workflow</strong>
+                        <span>Start in the terminal. Add the VS Code extension. Paid teams automate the same gate on every pull request.</span>
+                    </li>
+                </ul>
+                <div class="cta-row" style="margin-top: 28px">
+                    <a href="/community" class="btn btn-primary">Install locally</a>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-ghost">VS Code extension</a>
+                    <a href="/pricing" class="btn btn-ghost">Team CI gate</a>
+                </div>
             </div>
         </section>
 
@@ -2209,10 +2294,6 @@
                         Tests tell you whether code works. SimpleBeacon checks whether it works against the reality you
                         intended.
                     </p>
-                </div>
-                <div class="cta-row" style="margin-top: 32px">
-                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-primary">Install the VS Code extension</a>
-                    <a href="/dashboard/#/analyze" class="btn btn-ghost">Scan a repo</a>
                 </div>
             </div>
         </section>
@@ -2290,13 +2371,13 @@ const conversionRate = '75%';</code></pre>
             <div class="container narrow">
                 <h2>How it works</h2>
                 <ol class="works-flow">
-                    <li>AI writes code</li>
-                    <li>SimpleBeacon scans locally</li>
-                    <li>Reality gap detected</li>
-                    <li>Developer fixes it</li>
+                    <li>Run the CLI on your laptop</li>
+                    <li>See production gaps, not fixture noise</li>
+                    <li>Fix the issue in your editor</li>
                     <li>Commit</li>
+                    <li>Optional: paid CI gate on every PR</li>
                 </ol>
-                <p class="privacy-line">Runs locally. Your source stays in your environment.</p>
+                <p class="privacy-line">Local and offline first. Source stays in your environment. Accounts are for team automation, not for trying the product.</p>
             </div>
         </section>
 
@@ -2315,13 +2396,14 @@ const conversionRate = '75%';</code></pre>
         <!-- FINAL CTA -->
         <section class="section" id="cta" style="padding-bottom: 80px">
             <div class="container narrow" style="text-align: center">
-                <h2>See it on your repo</h2>
+                <h2>Try it before you create an account</h2>
                 <p class="section-subtitle">
-                    Scan locally. No upload required.
+                    <code>npx simplebeacon scan --gate --offline</code>
+                    No upload. Add the GitHub Action only after the local scan earns trust.
                 </p>
                 <div class="cta-row">
-                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-primary">Install the VS Code extension</a>
-                    <a href="/dashboard/#/analyze" class="btn btn-ghost">Scan a repo</a>
+                    <a href="/community" class="btn btn-primary">Install locally</a>
+                    <a href="/pricing" class="btn btn-ghost">Automate on pull requests</a>
                 </div>
             </div>
         </section>
@@ -2337,5 +2419,23 @@ const conversionRate = '75%';</code></pre>
         </footer>
 
         <script src="/js-es2018/referral-capture.js" defer></script>
+        <script>
+            (function () {
+                var btn = document.getElementById('copy-scan-cmd');
+                var el = document.getElementById('hero-scan-cmd');
+                if (!btn || !el) return;
+                btn.addEventListener('click', function () {
+                    var cmd = el.textContent || '';
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(cmd).then(function () {
+                            btn.textContent = 'Copied';
+                            setTimeout(function () {
+                                btn.textContent = 'Copy';
+                            }, 1600);
+                        });
+                    }
+                });
+            })();
+        </script>
     </body>
 </html>

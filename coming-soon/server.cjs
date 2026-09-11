@@ -23,11 +23,11 @@ const { initSentry, captureException: sentryCapture } = require('./lib/sentry.cj
 initSentry();
 
 // Catch unhandled errors and report to Sentry before crashing
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', reason => {
     console.error('[UnhandledRejection]', reason);
     sentryCapture(reason);
 });
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
     console.error('[UncaughtException]', err);
     sentryCapture(err);
     process.exit(1);
@@ -426,14 +426,14 @@ app.get('/api/simplebeacon', (_req, res) => {
 try {
     const { runSimplebeaconScan } = require('../ai-platform/src/api/simplebeacon-api.cjs');
     app.post('/api/simplebeacon/scan', express.json({ limit: '10mb' }), async (req, res) => {
-            try {
-                const projectPath = req.body?.projectPath || path.join(__dirname, '..');
-                const tier = String(req.body?.tier || req.user?.tier || 'community');
-                const result = await runSimplebeaconScan(projectPath, {
-                    fullDirectoryScan: req.body?.fullDirectoryScan !== false,
-                    format: 'json',
-                    tier,
-                });
+        try {
+            const projectPath = req.body?.projectPath || path.join(__dirname, '..');
+            const tier = String(req.body?.tier || req.user?.tier || 'community');
+            const result = await runSimplebeaconScan(projectPath, {
+                fullDirectoryScan: req.body?.fullDirectoryScan !== false,
+                format: 'json',
+                tier
+            });
             res.json({ success: true, ...result });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
@@ -1382,14 +1382,22 @@ app.post('/api/early-access', express.json({ limit: '1mb' }), async (req, res) =
             earlyAccessRateLog.set(clientIp, { count: 1, resetAt: now + EARLY_ACCESS_RATE_LIMIT_MS });
         }
 
-        const email = String(data.email || '').trim().toLowerCase();
+        const email = String(data.email || '')
+            .trim()
+            .toLowerCase();
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({ error: 'A valid email address is required.' });
         }
 
-        const company = String(data.company || '').trim().slice(0, 200);
-        const teamSize = String(data.teamSize || '').trim().slice(0, 50);
-        const useCase = String(data.useCase || '').trim().slice(0, 500);
+        const company = String(data.company || '')
+            .trim()
+            .slice(0, 200);
+        const teamSize = String(data.teamSize || '')
+            .trim()
+            .slice(0, 50);
+        const useCase = String(data.useCase || '')
+            .trim()
+            .slice(0, 500);
 
         try {
             db.prepare(
@@ -1408,7 +1416,7 @@ app.post('/api/early-access', express.json({ limit: '1mb' }), async (req, res) =
                     to: notifyEmail,
                     subject: '[Early Access] New waitlist signup',
                     text: `New early access signup:\nEmail: ${email}\nCompany: ${company || '(none)'}\nTeam size: ${teamSize || '(none)'}\nUse case: ${useCase || '(none)'}`,
-                    html: `<h3>New early access signup</h3><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || '(none)'}</p><p><strong>Team size:</strong> ${teamSize || '(none)'}</p><p><strong>Use case:</strong> ${useCase || '(none)'}</p>`,
+                    html: `<h3>New early access signup</h3><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || '(none)'}</p><p><strong>Team size:</strong> ${teamSize || '(none)'}</p><p><strong>Use case:</strong> ${useCase || '(none)'}</p>`
                 });
             } catch (emailErr) {
                 logger.warn('[Early Access] Notification email failed:', emailErr.message);
@@ -1419,16 +1427,16 @@ app.post('/api/early-access', express.json({ limit: '1mb' }), async (req, res) =
             const { sendEmail } = require('./services/email.cjs');
             await sendEmail({
                 to: email,
-                subject: 'You\'re on the SimpleBeacon Early Access list',
+                subject: "You're on the SimpleBeacon Early Access list",
                 text: `Thanks for joining the SimpleBeacon Early Access program.\n\nWe're onboarding a limited cohort of engineering teams ahead of our Fall 2026 public launch. As a Beta Price Lock member, you'll get:\n\n- Full Developer + Team Pro features (unlimited scans, CI gate, EU AI Act mapping, board-ready certificates)\n- Grandfathered pricing at $29/month (40% off the standard Developer tier)\n- Direct support from the SimpleBeacon engineering team\n\nWe'll send your invitation with a checkout link within 1-2 business days.\n\nIn the meantime, you can try the free offline scan right now:\nhttps://simplebeacon.ai/dashboard/#/analyze\n\n--\nThe SimpleBeacon Team\nhttps://simplebeacon.ai`,
-                html: `<h2>You're on the SimpleBeacon Early Access list</h2><p>Thanks for joining the SimpleBeacon Early Access program.</p><p>We're onboarding a limited cohort of engineering teams ahead of our Fall 2026 public launch. As a <strong>Beta Price Lock</strong> member, you'll get:</p><ul><li>Full Developer + Team Pro features (unlimited scans, CI gate, EU AI Act mapping, board-ready certificates)</li><li>Grandfathered pricing at <strong>$29/month</strong> (40% off the standard Developer tier)</li><li>Direct support from the SimpleBeacon engineering team</li></ul><p>We'll send your invitation with a checkout link within 1-2 business days.</p><p>In the meantime, you can try the free offline scan right now:<br><a href="https://simplebeacon.ai/dashboard/#/analyze">https://simplebeacon.ai/dashboard/#/analyze</a></p><hr><p style="color:#888;font-size:12px;">The SimpleBeacon Team — <a href="https://simplebeacon.ai">https://simplebeacon.ai</a></p>`,
+                html: `<h2>You're on the SimpleBeacon Early Access list</h2><p>Thanks for joining the SimpleBeacon Early Access program.</p><p>We're onboarding a limited cohort of engineering teams ahead of our Fall 2026 public launch. As a <strong>Beta Price Lock</strong> member, you'll get:</p><ul><li>Full Developer + Team Pro features (unlimited scans, CI gate, EU AI Act mapping, board-ready certificates)</li><li>Grandfathered pricing at <strong>$29/month</strong> (40% off the standard Developer tier)</li><li>Direct support from the SimpleBeacon engineering team</li></ul><p>We'll send your invitation with a checkout link within 1-2 business days.</p><p>In the meantime, you can try the free offline scan right now:<br><a href="https://simplebeacon.ai/dashboard/#/analyze">https://simplebeacon.ai/dashboard/#/analyze</a></p><hr><p style="color:#888;font-size:12px;">The SimpleBeacon Team — <a href="https://simplebeacon.ai">https://simplebeacon.ai</a></p>`
             });
         } catch (emailErr) {
             logger.warn('[Early Access] Confirmation email to user failed:', emailErr.message);
         }
 
         logger.info(`[Early Access] New signup: ${email} (${company || 'no company'})`);
-        res.json({ success: true, message: 'You\'re on the list! Check your email for confirmation.' });
+        res.json({ success: true, message: "You're on the list! Check your email for confirmation." });
     } catch (err) {
         logger.error('[Early Access] Unexpected error:', err.message);
         res.status(500).json({ error: 'Failed to join waitlist' });
@@ -1577,7 +1585,7 @@ app.post('/api/license/validate', express.json(), (req, res) => {
                 sandbox: true,
                 registered: false,
                 valid: false,
-                error: 'Token required',
+                error: 'Token required'
             });
         }
         const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
@@ -1587,7 +1595,7 @@ app.post('/api/license/validate', express.json(), (req, res) => {
                 sandbox: true,
                 registered: false,
                 valid: false,
-                error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured',
+                error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured'
             });
         }
         let payload = null;
@@ -1609,7 +1617,7 @@ app.post('/api/license/validate', express.json(), (req, res) => {
                 tier,
                 features: payload.features || [],
                 expiry: payload.exp || null,
-                upgradeUrl,
+                upgradeUrl
             });
         }
         return res.json({
@@ -1618,7 +1626,7 @@ app.post('/api/license/validate', express.json(), (req, res) => {
             registered: false,
             valid: false,
             error: 'Invalid or expired token',
-            upgradeUrl: process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing',
+            upgradeUrl: process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing'
         });
     } catch (err) {
         return res.status(500).json({
@@ -1626,7 +1634,7 @@ app.post('/api/license/validate', express.json(), (req, res) => {
             sandbox: true,
             registered: false,
             valid: false,
-            error: 'Internal error',
+            error: 'Internal error'
         });
     }
 });

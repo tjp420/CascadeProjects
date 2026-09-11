@@ -1,40 +1,37 @@
-# SimpleBeacon CI Gate — Fail builds on AI slop
+# SimpleBeacon PR quality gate — production paths only
+#
+# Copy to .github/workflows/simplebeacon.yml
+# Fails the PR when critical/high findings appear in production source
+# (src/, app/, lib/, server/). Test/mock/fixture alerts are reported
+# but do not fail the build.
 
-# Drop this into .github/workflows/simplebeacon-gate.yml
-# It runs the SimpleBeacon scanner in gate mode and fails the build
-# if any blocking findings (critical/high severity) are detected.
-
-name: SimpleBeacon Gate
+name: SimpleBeacon PR Quality
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, master, develop]
   push:
-    branches: [main, develop]
+    branches: [main, master]
 
 jobs:
-  simplebeacon-gate:
-    name: AI Slop Gate
+  quality:
+    name: Production code quality
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies (local)
-        run: npm ci --prefer-offline --no-audit || npm install --no-audit --no-fund
+      - name: Install SimpleBeacon CLI
+        run: npm install --no-save simplebeacon
 
-      - name: Run gate scan (local CLI)
-        run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline --format json --output .simplebeacon/report.json
-          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+      - name: Scan repository
+        run: npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json
 
       - name: Upload report
         if: always()
@@ -44,16 +41,32 @@ jobs:
           path: .simplebeacon/report.json
           retention-days: 30
 
-      - name: Fail on blocking findings
+      - name: Fail on production-path blocking findings
         if: always()
         run: |
-          BLOCKING=$(node -e "
-            const r = require('./.simplebeacon/report.json');
-            const blocking = (r.findings || []).filter(f => f.severity === 'critical' || f.severity === 'high');
-            console.log(blocking.length);
-          ")
-          if [ "$BLOCKING" -gt 0 ]; then
-            echo "::error::SimpleBeacon gate found $BLOCKING blocking finding(s). Fix critical/high issues before merging."
-            exit 1
-          fi
-          echo "::notice::SimpleBeacon gate passed — no blocking findings."
+          node <<'EOF'
+          const fs = require('fs');
+          const r = JSON.parse(fs.readFileSync('.simplebeacon/report.json', 'utf8'));
+          const QUALITY = /(^|\/)(__tests__|tests?|spec|specs|fixtures?|mocks?|testdata|test-data|molecule|testinfra|e2e|cypress|playwright)(\/|$)/i;
+          const QUALITY_FILE = /\.(test|spec)\.[a-z0-9]+$/i;
+          function isTest(p) {
+            const rel = String(p || '').replace(/\\/g, '/');
+            return QUALITY.test(rel) || QUALITY_FILE.test(rel);
+          }
+          const production = Array.isArray(r.rawIssues) ? r.rawIssues : [];
+          const testSuite = Array.isArray(r.qualityIssues) ? r.qualityIssues : [];
+          const blocking = production.filter((f) => {
+            const sev = String(f.severity || '').toLowerCase();
+            const path = f.filePath || f.file || '';
+            if (isTest(path) || f.lane === 'quality') return false;
+            return sev === 'critical' || sev === 'high';
+          });
+          console.log(`Production blocking: ${blocking.length}`);
+          console.log(`Test-suite alerts (non-blocking): ${testSuite.length}`);
+          if (blocking.length) {
+            for (const f of blocking.slice(0, 20)) {
+              console.error(`::error file=${f.filePath || ''}::${f.severity} ${f.type || ''} ${f.description || ''}`);
+            }
+            process.exit(1);
+          }
+          EOF

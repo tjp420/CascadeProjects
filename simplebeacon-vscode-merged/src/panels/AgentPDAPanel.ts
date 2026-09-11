@@ -508,7 +508,7 @@ function renderDashboard(data, el) {
   const agents = data.agents || [];
   el.innerHTML = \`
     <div class="card"><strong>Agents</strong> (\${agents.length})
-      \${agents.map(a => '<div>• ' + escapeHtml(a.name) + ' <span class="badge badge-low">' + a.type + '</span></div>').join('')}
+      \${      agents.map(a => '<div>• ' + escapeHtml(a.name) + ' <span class="badge badge-low">' + escapeHtml(String(a.type)) + '</span></div>').join('')}
     </div>
     <div class="card"><strong>Task Summary</strong>
       <div>Pending: \${s.pending||0} | In Progress: \${s.in_progress||0} | Blocked: \${s.blocked||0} | Completed: \${s.completed||0}</div>
@@ -548,10 +548,9 @@ function renderTasks(data, el) {
       \${cols.map(c => {
         const items = tasks.filter(t => t.status === c);
         return '<div class="kanban-col"><h4>' + c.replace('_',' ') + ' (' + items.length + ')</h4>' +
-          items.map(t => '<div class="kanban-item" onclick="completeTask(\\'' + t.id + '\\')">' +
-            escapeHtml(t.title) + ' <span class="badge badge-' + t.priority + '">' + t.priority + '</span></div>'
-          ).join('') + '</div>';
-      }).join('')}
+          items.map(t => '<div class="kanban-item" onclick="completeTask(' + safeJsString(t.id) + ')">' +
+            escapeHtml(t.title) + ' <span class="badge badge-' + escapeHtml(String(t.priority)) + '">' + escapeHtml(String(t.priority)) + '</span></div>'
+          ).join('') + '</div>';      }).join('')}
     </div>
   \`;
 }
@@ -578,7 +577,7 @@ function renderMemory(data, el) {
       <button onclick="addMemory()">Save</button>
     </div>
     \${mems.length === 0 ? '<div class="empty">No memories yet</div>' :
-      mems.map(m => '<div class="card"><strong>' + escapeHtml(m.key) + '</strong> <span class="badge badge-low">' + m.category + '</span><pre>' + escapeHtml(m.value) + '</pre><button onclick="delMemory(\\'' + escapeHtml(m.key) + '\\')">Delete</button></div>').join('')}
+      mems.map(m => '<div class="card"><strong>' + escapeHtml(m.key) + '</strong> <span class="badge badge-low">' + escapeHtml(String(m.category)) + '</span><pre>' + escapeHtml(m.value) + '</pre><button onclick="delMemory(' + safeJsString(m.key) + ')">Delete</button></div>').join('')}
   \`;
 }
 
@@ -626,13 +625,13 @@ function renderPolicies(data, el) {
       '<div class="policy-item">' +
         '<div>' +
           '<strong>' + escapeHtml(p.action) + '</strong> — ' + escapeHtml(p.description || '') +
-          '<br><span class="badge badge-' + (p.severity === 'block' ? 'high' : 'medium') + '">' + p.type + '</span> ' +
+          '<br><span class="badge badge-' + (p.severity === 'block' ? 'high' : 'medium') + '">' + escapeHtml(String(p.type)) + '</span> ' +
           '<span class="' + (p.enabled ? 'enabled-yes' : 'enabled-no') + '">' + (p.enabled ? 'enabled' : 'disabled') + '</span>' +
           '<br><span style="font-size:10px;opacity:0.6">ID: ' + escapeHtml(p.id) + '</span>' +
         '</div>' +
         '<div>' +
-          '<button onclick="togglePolicy(\\'' + p.id + '\\', ' + !p.enabled + ')">' + (p.enabled ? 'Disable' : 'Enable') + '</button> ' +
-          '<button onclick="removePolicy(\\'' + p.id + '\\')" style="background:var(--vscode-errorForeground)">Remove</button>' +
+          '<button onclick="togglePolicy(' + safeJsString(p.id) + ', ' + !p.enabled + ')">' + (p.enabled ? 'Disable' : 'Enable') + '</button> ' +
+          '<button onclick="removePolicy(' + safeJsString(p.id) + ')" style="background:var(--vscode-errorForeground)">Remove</button>' +
         '</div>' +
       '</div>'
     ).join('')}
@@ -680,6 +679,10 @@ function writeHandoff() {
   const summary = document.getElementById('ho-summary').value;
   const notes = document.getElementById('ho-notes').value;
   vscode.postMessage({ command: 'handoffWrite', summary, notes });
+}
+
+function safeJsString(value) {
+  return JSON.stringify(String(value ?? ''));
 }
 
 function escapeHtml(s) {

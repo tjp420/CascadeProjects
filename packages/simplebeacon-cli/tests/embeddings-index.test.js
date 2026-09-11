@@ -39,7 +39,10 @@ test("buildIdf produces positive weights", () => {
   assert.ok(idf.get("bar") > 0);
   assert.ok(idf.get("baz") > 0);
   // 'foo' appears in both docs -> lower idf than 'bar' (one doc)
-  assert.ok(idf.get("foo") < idf.get("bar"), "common term should have lower idf");
+  assert.ok(
+    idf.get("foo") < idf.get("bar"),
+    "common term should have lower idf",
+  );
 });
 
 test("embedPassage returns normalized vector", () => {
@@ -48,7 +51,10 @@ test("embedPassage returns normalized vector", () => {
   assert.equal(vector.length, 64);
   let norm = 0;
   for (let i = 0; i < vector.length; i++) norm += vector[i] * vector[i];
-  assert.ok(Math.abs(Math.sqrt(norm) - 1) < 1e-4, "vector should be L2-normalized");
+  assert.ok(
+    Math.abs(Math.sqrt(norm) - 1) < 1e-4,
+    "vector should be L2-normalized",
+  );
   assert.ok(terms.has("foo"));
 });
 
@@ -77,24 +83,45 @@ test("splitPassages respects maxChars", () => {
 });
 
 test("splitPassages handles short content", () => {
-  const passages = splitPassages("short content", { maxChars: 1000, overlap: 100 });
+  const passages = splitPassages("short content", {
+    maxChars: 1000,
+    overlap: 100,
+  });
   assert.equal(passages.length, 1);
 });
 
 test("buildIndex + search returns relevant file first", () => {
   const files = [
-    { path: "redis.js", content: "function createRateLimiter(redis) { return redisStore; }", summary: "rate limiter redis" },
-    { path: "auth.js", content: "function login(user, password) { return token; }", summary: "auth login" },
-    { path: "utils.js", content: "function debounce(fn, ms) { return throttled; }", summary: "debounce utils" },
+    {
+      path: "redis.js",
+      content: "function createRateLimiter(redis) { return redisStore; }",
+      summary: "rate limiter redis",
+    },
+    {
+      path: "auth.js",
+      content: "function login(user, password) { return token; }",
+      summary: "auth login",
+    },
+    {
+      path: "utils.js",
+      content: "function debounce(fn, ms) { return throttled; }",
+      summary: "debounce utils",
+    },
   ];
   const index = buildIndex(files, { dimensions: 128 });
   const results = search(index, "rate limiter redis", { k: 2 });
   assert.ok(results.length > 0);
-  assert.equal(results[0].path, "redis.js", "most relevant file should rank first");
+  assert.equal(
+    results[0].path,
+    "redis.js",
+    "most relevant file should rank first",
+  );
 });
 
 test("search returns empty for empty query", () => {
-  const index = buildIndex([{ path: "a.js", content: "foo bar" }], { dimensions: 32 });
+  const index = buildIndex([{ path: "a.js", content: "foo bar" }], {
+    dimensions: 32,
+  });
   assert.deepEqual(search(index, "", { k: 5 }), []);
 });
 
@@ -116,7 +143,9 @@ test("serializeVector + deserializeVector roundtrip", () => {
 test("saveIndex + loadIndex roundtrip", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sb-emb-"));
   const indexPath = path.join(dir, "emb.json");
-  const index = buildIndex([{ path: "a.js", content: "foo bar baz" }], { dimensions: 32 });
+  const index = buildIndex([{ path: "a.js", content: "foo bar baz" }], {
+    dimensions: 32,
+  });
   saveIndex(index, indexPath);
   const loaded = loadIndex(indexPath);
   assert.ok(loaded);
@@ -128,7 +157,9 @@ test("saveIndex + loadIndex roundtrip", () => {
 });
 
 test("loadIndex returns null for missing file", () => {
-  const loaded = loadIndex(path.join(os.tmpdir(), "nope-" + Date.now() + ".json"));
+  const loaded = loadIndex(
+    path.join(os.tmpdir(), "nope-" + Date.now() + ".json"),
+  );
   assert.equal(loaded, null);
 });
 

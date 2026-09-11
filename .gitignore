@@ -489,6 +489,12 @@ simplebeacon-vscode-merged/dashboard-web/assets/
 !coming-soon/public/dashboard/assets/main.js
 !coming-soon/public/dashboard/assets/main.css
 !coming-soon/public/dashboard/assets/_headers
+!coming-soon/public/dashboard/assets/scan-worker.js
+!coming-soon/public/dashboard/assets/scan-wasm-bridge.js
+!coming-soon/public/dashboard/assets/simplebeaconignore.browser.js
+!coming-soon/public/app/assets/scan-worker.js
+!coming-soon/public/app/assets/scan-wasm-bridge.js
+!coming-soon/public/app/assets/simplebeaconignore.browser.js
 
 # Playwright reports
 **/playwright-report/

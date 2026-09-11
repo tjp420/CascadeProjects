@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Enterprise AI technical risk guardrails — local pattern scan only.
@@ -46,7 +47,7 @@ const SKIP_DIRS = new Set([
   "simplebeacon-frameworkless",
   "marketing-content-test",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 const CALL_BLOCK_MAX_LINES = 48;
 
 const DEFAULT_LEAK_TOKENS = [
@@ -488,6 +489,8 @@ async function walkFiles(dir, results = [], options = {}, depth = 0) {
 }
 
 async function scanEnterpriseGuardrailPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const productionPaths = options.productionPaths || sourcePaths;
   const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];

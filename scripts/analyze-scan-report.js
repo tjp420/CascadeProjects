@@ -93,22 +93,18 @@ if (fs.existsSync(PREV_REPORT)) {
     resolved: resolved.length,
     added: added.length,
     persistent: persistent.length,
-    resolvedDetails: resolved
-      .slice(0, 20)
-      .map((f) => ({
-        id: f.id,
-        type: f.type,
-        file: f.filePath || f.file,
-        line: f.line,
-      })),
-    addedDetails: added
-      .slice(0, 20)
-      .map((f) => ({
-        id: f.id,
-        type: f.type,
-        file: f.filePath || f.file,
-        line: f.line,
-      })),
+    resolvedDetails: resolved.slice(0, 20).map((f) => ({
+      id: f.id,
+      type: f.type,
+      file: f.filePath || f.file,
+      line: f.line,
+    })),
+    addedDetails: added.slice(0, 20).map((f) => ({
+      id: f.id,
+      type: f.type,
+      file: f.filePath || f.file,
+      line: f.line,
+    })),
   };
 
   fs.writeFileSync(

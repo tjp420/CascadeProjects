@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * Memory leak pattern scanner (SB-PERF-002).
  * Detects common JavaScript/Node.js memory leak patterns:
@@ -19,7 +20,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".go",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -216,6 +217,8 @@ async function scanFile(filePath) {
 }
 
 async function scanMemoryLeaks(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

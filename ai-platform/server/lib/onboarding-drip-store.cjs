@@ -55,7 +55,10 @@ function writeDripStore() {
     fs.writeFileSync(STORE_PATH, JSON.stringify(_cache, null, 2));
     _cacheDirty = false;
   } catch (err) {
-    logger.error("[OnboardingDrip] Failed to write store:", err?.message || err);
+    logger.error(
+      "[OnboardingDrip] Failed to write store:",
+      err?.message || err,
+    );
   }
 }
 

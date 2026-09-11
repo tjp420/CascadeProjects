@@ -1,0 +1,2 @@
+Extract Final-Recipient and Diagnostic‑Code for exact wording, and
+Re-run DNS checks and draft a short remediation note tailored to the evidence. Which would you like?

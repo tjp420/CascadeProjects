@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Commit:** `refactor(architecture): break scanPanel-uploadPanel cycle and enable strict gating`  
-**Version:** simplebeacon-vscode 3.0.578+  
+**Version:** simplebeacon-vscode 3.0.578+
 
 ---
 
@@ -17,30 +17,33 @@ Resolved a critical circular dependency in the `aiPlatform` layer that blocked s
 ## 🔄 The Problem: Circular Dependency Loop
 
 ### Before Decoupling
+
 ```
-scanPanel.ts 
+scanPanel.ts
   ↓ imports
-extension.ts 
+extension.ts
   ↓ imports
-dashboardUpdater.ts 
+dashboardUpdater.ts
   ↓ imports
-providers/index.ts 
+providers/index.ts
   ↓ exports (barrel)
-uploadPanel.ts 
+uploadPanel.ts
   ↓ imports GuardedExtensionPanel from scanPanel
-  ↓ 
+  ↓
 scanPanel.ts ← CYCLE DETECTED ❌
 ```
 
 **Root Cause:**
+
 - `uploadPanel.ts` needed `GuardedExtensionPanel` (a disposable listener container)
 - `GuardedExtensionPanel` was defined in `scanPanel.ts`
 - `uploadPanel.ts` imported from `scanPanel.ts`
 - But the barrel export in `providers/index.ts` re-exported both modules, creating a cycle
 
 **Dependency-Cruiser Violation:**
+
 ```
-error no-circular: src/aiPlatform/scanPanel.ts → 
+error no-circular: src/aiPlatform/scanPanel.ts →
   src/extension.ts →
   src/dashboardUpdater.ts →
   src/providers/index.ts →
@@ -53,6 +56,7 @@ error no-circular: src/aiPlatform/scanPanel.ts →
 ## ✅ The Solution: Leaf Module Extraction
 
 ### Architecture After Decoupling
+
 ```
 scanPanel.ts                uploadPanel.ts
     ↓                            ↓
@@ -64,6 +68,7 @@ scanPanel.ts                uploadPanel.ts
 ### What Changed
 
 #### 1. **Created New Leaf Module**
+
 ```
 src/aiPlatform/guardedExtensionPanel.ts
   └─ Exports: GuardedExtensionPanel (utility class)
@@ -72,6 +77,7 @@ src/aiPlatform/guardedExtensionPanel.ts
 ```
 
 #### 2. **Updated scanPanel.ts**
+
 ```typescript
 // Before
 export class GuardedExtensionPanel implements vscode.Disposable { ... }
@@ -83,21 +89,23 @@ export class ScanPanel { ... }
 ```
 
 #### 3. **Updated uploadPanel.ts**
+
 ```typescript
 // Before
-import { GuardedExtensionPanel } from './scanPanel';
+import { GuardedExtensionPanel } from "./scanPanel";
 
 // After
-import { GuardedExtensionPanel } from './guardedExtensionPanel';
+import { GuardedExtensionPanel } from "./guardedExtensionPanel";
 ```
 
 #### 4. **Updated Architecture Tests**
+
 ```typescript
 // Before (test was lenient)
-expect(errorCount).toBeLessThanOrEqual(1);  // Allow 1 error
+expect(errorCount).toBeLessThanOrEqual(1); // Allow 1 error
 
 // After (strict gating)
-expect(errorCount).toBeLessThanOrEqual(0);  // Zero tolerance
+expect(errorCount).toBeLessThanOrEqual(0); // Zero tolerance
 ```
 
 ---
@@ -107,6 +115,7 @@ expect(errorCount).toBeLessThanOrEqual(0);  // Zero tolerance
 ### Dependency-Cruiser Output
 
 **Before Decoupling:**
+
 ```
 ✗ 1 error (no-circular in aiPlatform)
 ⚠ 4 warnings (known circular dependencies)
@@ -115,6 +124,7 @@ Violations: 5 total | Build Status: BLOCKED
 ```
 
 **After Decoupling:**
+
 ```
 ✓ 0 errors
 ⚠ 3 warnings (known circular dependencies, acceptable)
@@ -123,6 +133,7 @@ Violations: 3 total | Build Status: PASSING ✅
 ```
 
 ### Test Suite
+
 ```
 Test Suites: 1 passed, 1 total
 Tests:       2 passed, 2 total
@@ -136,17 +147,20 @@ Tests:       2 passed, 2 total
 ## 🏗️ Architecture Principles Applied
 
 ### 1. **Leaf Module Pattern**
+
 - `guardedExtensionPanel.ts` imports only from external packages (VS Code API)
 - No imports from `src/` orchestration layer
 - Pure utility class with zero side dependencies
 - Prevents circular dependency chains
 
 ### 2. **Separation of Concerns**
+
 - **Leaf (utility):** `GuardedExtensionPanel` handles disposable listener management
 - **Domain (UI):** `ScanPanel` and `UploadPanel` implement webview logic
 - **Orchestration:** `extension.ts` coordinates cross-module concerns
 
 ### 3. **Strict Gating**
+
 - Architecture tests now enforce zero-error policy
 - Any future circular dependencies detected immediately
 - CI/CD pipeline blocks merges on architecture violations
@@ -157,30 +171,33 @@ Tests:       2 passed, 2 total
 ## 🚀 Benefits
 
 ### For Developers
+
 ✅ **Cleaner imports** — Find utilities in dedicated modules, not coupled to UI  
 ✅ **Faster debugging** — Circular dependency bugs eliminated  
-✅ **Better IDE navigation** — Clear module boundaries understood by language servers  
+✅ **Better IDE navigation** — Clear module boundaries understood by language servers
 
 ### For Architecture
+
 ✅ **Scalability** — New panels can safely reuse `GuardedExtensionPanel` without cascading cycles  
 ✅ **Maintainability** — Test suite catches architectural regressions automatically  
-✅ **Governance** — Strict gating enforces modern coding standards in CI/CD  
+✅ **Governance** — Strict gating enforces modern coding standards in CI/CD
 
 ### For CI/CD
+
 ✅ **Faster builds** — No circular dependency re-analysis delays  
 ✅ **Reliable gates** — Architecture tests consistently green  
-✅ **Merge confidence** — PR #849 (strict gating PR) can now land safely  
+✅ **Merge confidence** — PR #849 (strict gating PR) can now land safely
 
 ---
 
 ## 📋 Files Modified
 
-| File | Change | Type |
-|------|--------|------|
-| `src/aiPlatform/guardedExtensionPanel.ts` | **Created** | New Leaf Module |
-| `src/aiPlatform/scanPanel.ts` | Removed class def, added import | Refactor |
-| `src/aiPlatform/uploadPanel.ts` | Updated import path | Refactor |
-| `src/__tests__/architecture.test.ts` | `<= 1` → `<= 0` errors | Test Strictness |
+| File                                      | Change                          | Type            |
+| ----------------------------------------- | ------------------------------- | --------------- |
+| `src/aiPlatform/guardedExtensionPanel.ts` | **Created**                     | New Leaf Module |
+| `src/aiPlatform/scanPanel.ts`             | Removed class def, added import | Refactor        |
+| `src/aiPlatform/uploadPanel.ts`           | Updated import path             | Refactor        |
+| `src/__tests__/architecture.test.ts`      | `<= 1` → `<= 0` errors          | Test Strictness |
 
 ---
 
@@ -195,6 +212,7 @@ Tests:       2 passed, 2 total
 ## 🎓 Architecture Lessons Learned
 
 ### Anti-Pattern Avoided
+
 ```
 ❌ WRONG: Import utility from domain module that imports from orchestration
   uploadPanel.ts ← scanPanel.ts ← extension.ts ← providers/index.ts ← uploadPanel.ts (CYCLE)
@@ -206,6 +224,7 @@ Tests:       2 passed, 2 total
 ```
 
 ### Key Principle
+
 > **Never export utilities from domain/UI modules if they may be needed elsewhere.**  
 > Create dedicated leaf modules for shared utility classes.
 
@@ -213,12 +232,12 @@ Tests:       2 passed, 2 total
 
 ## 📈 Metrics
 
-| Metric | Before | After | Delta |
-|--------|--------|-------|-------|
-| Circular Dependencies (errors) | 1 | 0 | **-100%** |
-| Total Violations | 5 | 3 | **-40%** |
-| Architecture Tests Passing | ❌ (lenient) | ✅ (strict) | **+∞** |
-| CI Build Confidence | Medium | High | **Improved** |
+| Metric                         | Before       | After       | Delta        |
+| ------------------------------ | ------------ | ----------- | ------------ |
+| Circular Dependencies (errors) | 1            | 0           | **-100%**    |
+| Total Violations               | 5            | 3           | **-40%**     |
+| Architecture Tests Passing     | ❌ (lenient) | ✅ (strict) | **+∞**       |
+| CI Build Confidence            | Medium       | High        | **Improved** |
 
 ---
 
@@ -247,8 +266,8 @@ Tests:       2 passed, 2 total
 ## 📞 Questions?
 
 **On architectural decisions:** See [TOOL_BOUNDARIES.md](../../TOOL_BOUNDARIES.md)  
-**On testing strategy:** See [src/__tests__/architecture.test.ts](../architecture.test.ts)  
-**On module design:** See [.dependency-cruiser.js](../../.dependency-cruiser.js)  
+**On testing strategy:** See [src/**tests**/architecture.test.ts](../architecture.test.ts)  
+**On module design:** See [.dependency-cruiser.js](../../.dependency-cruiser.js)
 
 ---
 

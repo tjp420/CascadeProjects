@@ -52,7 +52,7 @@ function statMtimeMsOrNull(filePath, contextLabel = filePath) {
  * Read a text file via stream with a maximum byte limit to avoid large in-memory reads.
  * Returns the joined string (may be truncated) or throws on stream error.
  */
-async function readTextFileWithLimit(filePath, maxBytes = 256 * 1024) {
+async function readTextFileWithLimit(filePath, maxBytes = 5 * 1024 * 1024) {
   let handle;
   try {
     handle = await fs.promises.open(filePath, "r");

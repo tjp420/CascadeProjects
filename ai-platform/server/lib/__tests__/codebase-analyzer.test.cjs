@@ -174,18 +174,29 @@ describe("codebase-analyzer utilities", () => {
   });
 
   it("skips large binary assets and locale catalogs but reports large source files", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "codebase-analyzer-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "codebase-analyzer-"),
+    );
     try {
       fs.mkdirSync(path.join(tempDir, "packages", "i18n", "locales", "en"), {
         recursive: true,
       });
-      fs.writeFileSync(path.join(tempDir, "preview.png"), Buffer.alloc(300 * 1024));
-      fs.writeFileSync(path.join(tempDir, "catalog.json"), "x".repeat(300 * 1024));
+      fs.writeFileSync(
+        path.join(tempDir, "preview.png"),
+        Buffer.alloc(300 * 1024),
+      );
+      fs.writeFileSync(
+        path.join(tempDir, "catalog.json"),
+        "x".repeat(300 * 1024),
+      );
       fs.writeFileSync(
         path.join(tempDir, "packages", "i18n", "locales", "en", "common.json"),
         "x".repeat(300 * 1024),
       );
-      fs.writeFileSync(path.join(tempDir, "globals.css"), "x".repeat(300 * 1024));
+      fs.writeFileSync(
+        path.join(tempDir, "globals.css"),
+        "x".repeat(300 * 1024),
+      );
 
       const report = await analyzeCodebase(tempDir, {
         context: "quick",
@@ -196,9 +207,11 @@ describe("codebase-analyzer utilities", () => {
         .map((finding) => finding.filePath);
 
       assert.ok(oversizedFiles.includes("catalog.json"));
-  assert.ok(oversizedFiles.includes("globals.css"));
+      assert.ok(oversizedFiles.includes("globals.css"));
       assert.ok(!oversizedFiles.includes("preview.png"));
-  assert.ok(!oversizedFiles.includes("packages/i18n/locales/en/common.json"));
+      assert.ok(
+        !oversizedFiles.includes("packages/i18n/locales/en/common.json"),
+      );
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

@@ -23,22 +23,18 @@ async function handleLogin(req, res, next) {
     );
     if (!userResult) {
       auditAuth("login_failed", { email }, req);
-      return res
-        .status(401)
-        .json({
-          error: "Authentication failed",
-          message: "Invalid email or password",
-        });
+      return res.status(401).json({
+        error: "Authentication failed",
+        message: "Invalid email or password",
+      });
     }
     if (
       String(userResult.user?.status || "active").toLowerCase() === "suspended"
     ) {
-      return res
-        .status(403)
-        .json({
-          error: "account_suspended",
-          message: "Account suspended. Contact support.",
-        });
+      return res.status(403).json({
+        error: "account_suspended",
+        message: "Account suspended. Contact support.",
+      });
     }
     if (
       String(userResult.user?.status || "active").toLowerCase() === "pending"

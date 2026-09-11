@@ -1,0 +1,740 @@
+feat/dashboard-asset-verify
+ M .github/hn-launch-reminder.md
+ M .github/workflows/simplebeacon-gate-example.yml
+ M .github/workflows/simplebeacon.yml
+ M .gitignore
+ M .simplebeacon/config.json
+ M .simplebeacon/proxy-violations.jsonl
+ M ARCHITECTURE_DECOUPLING_RELEASE_NOTES.md
+ M MARKETING_STRATEGY.md
+ M README.md
+ M SPRINT-NEXT-PLAN.md
+ M SimpleBeaconPoC.mjs
+ M TOOL_BOUNDARIES.md
+ M ai-platform/local-agent/agent.cjs
+ M ai-platform/package.json
+ M ai-platform/scripts/inspect-dashboard-dom.mjs
+ M ai-platform/scripts/inspect-dashboard-issues.mjs
+ M ai-platform/scripts/watch-restart-prism.js
+ M ai-platform/server/__tests__/admin-api-billing.test.cjs
+ M ai-platform/server/api/assessment/AssessmentController.cjs
+ M ai-platform/server/bootstrap/__tests__/dashboard-auth.test.cjs
+ M ai-platform/server/cron/onboarding-drip.cjs
+ M ai-platform/server/index.cjs
+ M ai-platform/server/lib/__tests__/codebase-analyzer.test.cjs
+ M ai-platform/server/lib/admin-throttle.cjs
+ M ai-platform/server/lib/agentic-orchestration-store.cjs
+ M ai-platform/server/lib/ai-analyst.cjs
+ M ai-platform/server/lib/alert-rule-store.cjs
+ M ai-platform/server/lib/analyze-export-bundle/split.cjs
+ M ai-platform/server/lib/app-logger.cjs
+ M ai-platform/server/lib/audit-logger.cjs
+ M ai-platform/server/lib/audit-policy-store.cjs
+ M ai-platform/server/lib/auth/login-service.cjs
+ M ai-platform/server/lib/backup-storage-filesystem.cjs
+ M ai-platform/server/lib/billing-email-templates.cjs
+ M ai-platform/server/lib/codebase-analyzer.cjs
+ M ai-platform/server/lib/data-cleanup-scan.cjs
+ M ai-platform/server/lib/feedback-store.cjs
+ M ai-platform/server/lib/feedback-store.test.cjs
+ M ai-platform/server/lib/file-merger-reduction-scanner.cjs
+ M ai-platform/server/lib/fix-orchestrator/patch-strategies.cjs
+ M ai-platform/server/lib/health-alerts.cjs
+ M ai-platform/server/lib/health-alerts.test.cjs
+ M ai-platform/server/lib/hsm-adapter/dkg-snark-engine.cjs
+ M ai-platform/server/lib/model-eval-store.cjs
+ M ai-platform/server/lib/onboarding-drip-store.cjs
+ M ai-platform/server/lib/onboarding-drip-store.test.cjs
+ M ai-platform/server/lib/onboarding-drip-templates.test.cjs
+ M ai-platform/server/lib/recoverable-io.cjs
+ M ai-platform/server/lib/scan-scheduler.cjs
+ M ai-platform/server/lib/security-monitor-settings-store.cjs
+ M ai-platform/server/lib/sentry.cjs
+ M ai-platform/server/lib/simplebeacon-subscription-store.cjs
+ M ai-platform/server/lib/stripe-event-store.cjs
+ M ai-platform/server/lib/token-db.cjs
+ M ai-platform/server/lib/token-store-adapter.test.cjs
+ M ai-platform/server/lib/usage-analytics-performance.test.cjs
+ M ai-platform/server/lib/usage-analytics-store.cjs
+ M ai-platform/server/middleware/simplebeacon-subscription.cjs
+ M ai-platform/server/routes/admin-api.cjs
+ M ai-platform/server/routes/analytics-routes.cjs
+ M ai-platform/server/routes/auth-inline-routes.cjs
+ M ai-platform/server/routes/chatbot-api.cjs
+ M ai-platform/server/routes/chatbot-api.test.cjs
+ M ai-platform/server/routes/flexible-analyze-api.cjs
+ M ai-platform/server/routes/hsm-vault-routes.cjs
+ M ai-platform/server/routes/ops-report-routes.cjs
+ M ai-platform/server/routes/password-reset.test.cjs
+ M ai-platform/server/routes/shard-admin-routes.cjs
+ M ai-platform/server/routes/stripe-webhook-routes.cjs
+ M ai-platform/server/routes/token-auth.cjs
+ M ai-platform/server/routes/tool-schema-validation-routes.cjs
+ M ai-platform/server/services/user-service.cjs
+ M ai-platform/simplebeacon-server.cjs
+ M ai-platform/src/api/__tests__/simplebeacon-api-maxfiles.test.cjs
+ M ai-platform/src/api/__tests__/simplebeacon-billing-api.test.cjs
+ M ai-platform/src/api/billing/validate-project-token.cjs
+ M ai-platform/src/api/dashboard-stub-api.cjs
+ M ai-platform/src/api/enterprise-onboarding.cjs
+ M ai-platform/src/api/license-seat-routes.cjs
+ M ai-platform/src/api/optimization-api.cjs
+ M ai-platform/src/api/simplebeacon-api.cjs
+ M ai-platform/src/api/simplebeacon-billing-api.cjs
+ M ai-platform/src/api/trust-api.cjs
+ M ai-platform/tests/chatbot-mock.test.js
+ M ai-platform/tests/server-health.test.js
+ M ai-platform/tests/setup.js
+ M ai-platform/tools/ci-telemetry/mock-report-run.cjs
+ M ai-platform/tools/ci-telemetry/report-pr-delta.cjs
+ M ai-platform/tools/send-all-test-tokens.cjs
+ M ai-platform/web/dashboard/index.html
+ M ai-platform/web/dashboard/js-es2018/__tests__/utils.test.mjs
+ M ai-platform/web/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs
+ M ai-platform/web/dashboard/js-es2018/services/extendedAnalyzers.mjs
+ M ai-platform/web/dashboard/js-es2018/utils.test.mjs
+ M ai-platform/web/dashboard/js/__tests__/utils.test.mjs
+ M ai-platform/web/dashboard/js/services/aiProblemAnalyzerSuite.mjs
+ M ai-platform/web/dashboard/js/services/extendedAnalyzers.mjs
+ M ai-platform/web/dashboard/js/workers/scan-worker.js
+ M ai-platform/web/simplebeacon-dashboard/assets/v2-vendor-charts-B5D8dQNA.js
+ M ai-platform/web/simplebeacon-dashboard/assets/v2-vendor-radix-CNRt243h.js
+ M ai-platform/web/simplebeacon-dashboard/assets/v2-vendor-react-l0sNRNKZ.js
+ M ai-platform/web/simplebeacon-dashboard/e2e/smoke.spec.ts
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/__tests__/utils.test.mjs
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/components/ScanStatus.js
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/analyzeService.js
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/authService.js
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/extendedAnalyzers.mjs
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/localScanService.js
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/services/scanAttestation.js
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/utils.test.mjs
+ M ai-platform/web/simplebeacon-dashboard/js-es2018/workers/scan-worker.js
+ M ai-platform/web/simplebeacon-dashboard/js/__tests__/utils.test.mjs
+ M ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs
+ M ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js
+ M ai-platform/web/simplebeacon-dashboard/js/services/extendedAnalyzers.mjs
+ M ai-platform/web/simplebeacon-dashboard/js/workers/scan-worker.js
+ M ai-platform/web/simplebeacon-dashboard/pages-publish/assets/main.js
+ M ai-platform/web/simplebeacon-dashboard/scripts/ci-mock-api.cjs
+ M ai-platform/web/simplebeacon-dashboard/scripts/ci-static-server.cjs
+ M ai-platform/web/simplebeacon-dashboard/src/config.ts
+ M ai-platform/web/simplebeacon-dashboard/src/hooks/useAuth.ts
+ M ai-platform/web/simplebeacon-dashboard/src/views/ResultsView.tsx
+ M ai-platform/web/simplebeacon-dashboard/tsconfig.tsbuildinfo
+ M ai-platform/web/simplebeacon-dashboard/vite.config.ts
+ M api-server/lib/rbac.js
+ M api-server/routes/workspaces.js
+ M api-server/server.cjs
+ M coming-soon/_headers
+ M coming-soon/audit.html
+ M coming-soon/blog/case-study-ai-slop-1-25m.html
+ M coming-soon/build-public.js
+ M coming-soon/community.html
+ M coming-soon/contact.html
+ M coming-soon/functions/app/[[path]].js
+ M coming-soon/functions/dashboard/[[path]].js
+ D coming-soon/functions/dashboard/[[path]].ts
+ M coming-soon/index.html
+ M coming-soon/js-es2018/dashboard/certificate-module.js
+ M coming-soon/js-es2018/dashboard/main.js
+ M coming-soon/js/dashboard/main.js
+ M coming-soon/js/dashboard/scanner-engine.js
+ M coming-soon/lib/db.cjs
+ M coming-soon/lib/sentry.cjs
+ M coming-soon/package.json
+ M coming-soon/page-metadata.json
+ M coming-soon/pricing.html
+ M coming-soon/public/.assetsignore
+ M coming-soon/public/_headers
+ M coming-soon/public/_routes.json
+ M coming-soon/public/admin.html
+ M coming-soon/public/app/__entry
+ M coming-soon/public/app/index.html
+ M coming-soon/public/app/js-es2018/services/localScanService.js
+ M coming-soon/public/app/js-es2018/workers/scan-worker.js
+ M coming-soon/public/app/pages-publish/assets/main.js
+ M coming-soon/public/app/src/App.tsx
+ M coming-soon/public/app/src/config.ts
+ M coming-soon/public/app/src/views/AnalyzeView.tsx
+ M coming-soon/public/app/src/views/AuditView.tsx
+ M coming-soon/public/app/src/views/OrganizationView.tsx
+ M coming-soon/public/app/tsconfig.tsbuildinfo
+ M coming-soon/public/app/vite.config.ts
+ M coming-soon/public/audit.html
+ M coming-soon/public/blog/case-study-ai-slop-1-25m.html
+ M coming-soon/public/certificate-upload.html
+ M coming-soon/public/cloud-scan.html
+ M coming-soon/public/cloud-teams.html
+ M coming-soon/public/community.html
+ M coming-soon/public/contact.html
+ M coming-soon/public/content/launch-announcement.md
+ M coming-soon/public/d2/assets/main-8qdoIdp8.js
+ M coming-soon/public/d2/assets/v2-TeamMetricsView-fUwE10zB.js
+ M coming-soon/public/d2/assets/v2-TelemetryView-BUiMiftv.js
+ M coming-soon/public/d2/assets/v2-localAgentService-Db5Kikgl.js
+ M coming-soon/public/dashboard-preview.html
+ M coming-soon/public/dashboard/__entry
+ M coming-soon/public/dashboard/assets/main.css
+ M coming-soon/public/dashboard/assets/main.js
+ M coming-soon/public/dashboard/assets/v2-vendor-charts-B5D8dQNA.js
+ M coming-soon/public/dashboard/assets/v2-vendor-radix-CNRt243h.js
+ M coming-soon/public/dashboard/assets/v2-vendor-react-l0sNRNKZ.js
+ M coming-soon/public/dashboard/index.html
+ M coming-soon/public/dashboard/js-es2018/services/localScanService.js
+ M coming-soon/public/dashboard/js-es2018/workers/scan-worker.js
+ M coming-soon/public/dashboard/pages-publish/assets/main.js
+ M coming-soon/public/dashboard/src/App.tsx
+ M coming-soon/public/dashboard/src/config.ts
+ M coming-soon/public/dashboard/src/views/AnalyzeView.tsx
+ M coming-soon/public/dashboard/src/views/AuditView.tsx
+ M coming-soon/public/dashboard/src/views/OrganizationView.tsx
+ M coming-soon/public/dashboard/tsconfig.tsbuildinfo
+ M coming-soon/public/dashboard/vite.config.ts
+ M coming-soon/public/downloads/simplebeacon.vsix
+ M coming-soon/public/email-template-preview.html
+ M coming-soon/public/email-template-redesign.html
+ M coming-soon/public/email-template-universal.html
+ M coming-soon/public/faq.html
+ M coming-soon/public/js-es2018/auth.js
+ M coming-soon/public/js-es2018/dashboard/main.js
+ M coming-soon/public/js-es2018/dashboard/scanner-engine.js
+ M coming-soon/public/js-es2018/referral-capture.js
+ M coming-soon/public/js-es2018/roadmap-app.js
+ M coming-soon/public/js-es2018/scan-utils.js
+ M coming-soon/public/js-es2018/scan-worker.js
+ M coming-soon/public/js-es2018/terminal-simulation.js
+ M coming-soon/public/js-es2018/token-entry-guard.js
+ M coming-soon/public/landing.html
+ M coming-soon/public/pricing.html
+ M coming-soon/public/privacy.html
+ M coming-soon/public/refund.html
+ M coming-soon/public/roadmap.html
+ M coming-soon/public/sample-certificate.html
+ M coming-soon/public/sample-report.html
+ M coming-soon/public/security.html
+ M coming-soon/public/site-config.js
+ M coming-soon/public/sitemap.xml
+ M coming-soon/public/terminal-walkthrough.html
+ M coming-soon/public/terms.html
+ M coming-soon/public/unlock.html
+ M coming-soon/public/walkthrough-embed.html
+ M coming-soon/refund.html
+ M coming-soon/roadmap.html
+ M coming-soon/routes/session-token-store.cjs
+ M coming-soon/routes/subscriptions-billing.cjs
+ M coming-soon/server.cjs
+ M docs/OPERATIONAL_READINESS_SUMMARY.md
+ M docs/POST-LAUNCH-MONITORING-CHECKLIST.md
+ M docs/TEAM-ONBOARDING-PLAYBOOK.md
+ M docs/executive-summary-2026-08-26.md
+ M docs/simplebeacon/agents.md
+ M docs/simplebeacon/hooks.md
+ M docs/simplebeacon/instructions.md
+ M docs/simplebeacon/mcp-server.md
+ M docs/simplebeacon/overview.md
+ M docs/simplebeacon/plugin.md
+ M docs/simplebeacon/tools.md
+ M local-agent/agent.js
+ M marketing-assets/blog-post.md
+ M marketing-assets/linkedin-post.md
+ M marketing-assets/newsletter.md
+ M marketing-assets/one-pager.md
+ M marketing/content/hacker-news-retrospective-hn.md
+ M marketing/content/launch-day-runbook.md
+ M marketing/content/launch-micro-copy.md
+ M marketing/content/product-hunt-launch.md
+ M package-lock.json
+ M package.json
+ M packages/simplebeacon-cli/package.json
+ M packages/simplebeacon-cli/scripts/verify-isolation.js
+ M packages/simplebeacon-cli/src/cli-token-commands.js
+ M packages/simplebeacon-cli/src/config-schema.js
+ M packages/simplebeacon-cli/src/config.js
+ M packages/simplebeacon-cli/src/index.js
+ M packages/simplebeacon-cli/src/index.mjs
+ M packages/simplebeacon-cli/src/lib/agent-eval-loop.js
+ M packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js
+ M packages/simplebeacon-cli/src/lib/embeddings-index.js
+ M packages/simplebeacon-cli/src/lib/full-directory-scanner.js
+ M packages/simplebeacon-cli/src/lib/gzdoom-symbol-graph.js
+ M packages/simplebeacon-cli/src/lib/intelligence-bridge.js
+ M packages/simplebeacon-cli/src/lib/javascript-ast-scanner.js
+ M packages/simplebeacon-cli/src/lib/local-remediation.js
+ M packages/simplebeacon-cli/src/lib/project-summarizer.js
+ M packages/simplebeacon-cli/src/lib/scan-orchestrator.js
+ M packages/simplebeacon-cli/src/lib/semantic-lighthouse.js
+ M packages/simplebeacon-cli/src/lib/token-estimator.js
+ M packages/simplebeacon-cli/src/lib/token-telemetry.js
+ M packages/simplebeacon-cli/src/reporters/alert-templates.js
+ M packages/simplebeacon-cli/src/reporters/client-deliverable.js
+ M packages/simplebeacon-cli/src/reporters/json.js
+ M packages/simplebeacon-cli/src/reporters/scan-markdown-report.js
+ M packages/simplebeacon-cli/src/reporters/text.js
+ M packages/simplebeacon-cli/src/rules/agency-handoff-patterns.js
+ M packages/simplebeacon-cli/src/rules/architecture-drift-patterns.js
+ M packages/simplebeacon-cli/src/rules/ast-structural-scanner.js
+ M packages/simplebeacon-cli/src/rules/comprehensive-scanner.js
+ M packages/simplebeacon-cli/src/rules/dead-code-scanner.js
+ M packages/simplebeacon-cli/src/rules/enterprise-guardrail-patterns.js
+ M packages/simplebeacon-cli/src/rules/eu-ai-act-patterns.js
+ M packages/simplebeacon-cli/src/rules/fiction-kpi-patterns.js
+ M packages/simplebeacon-cli/src/rules/hallucinated-import-scanner.js
+ M packages/simplebeacon-cli/src/rules/hardcoded-url-scanner.js
+ M packages/simplebeacon-cli/src/rules/llm-slop-patterns.js
+ M packages/simplebeacon-cli/src/rules/memory-leak-scanner.js
+ M packages/simplebeacon-cli/src/rules/owasp-llm-patterns.js
+ M packages/simplebeacon-cli/src/rules/pii-logging-scanner.js
+ M packages/simplebeacon-cli/src/rules/production-leak.js
+ M packages/simplebeacon-cli/src/rules/redos-scanner.js
+ M packages/simplebeacon-cli/src/rules/regional-ai-safety-patterns.js
+ M packages/simplebeacon-cli/src/rules/secret-in-comments-scanner.js
+ M packages/simplebeacon-cli/src/rules/security-pattern-scanner.js
+ M packages/simplebeacon-cli/src/rules/structural-intent-patterns.js
+ M packages/simplebeacon-cli/src/rules/sync-io-scanner.js
+ M packages/simplebeacon-cli/src/rules/token-bleed-patterns.js
+ M packages/simplebeacon-cli/src/rules/type-safety-scanner.js
+ M packages/simplebeacon-cli/src/rules/weak-crypto-scanner.js
+ M packages/simplebeacon-cli/src/scan.js
+ M packages/simplebeacon-cli/tests/advanced-security-rules.test.js
+ M packages/simplebeacon-cli/tests/agent-eval-loop.test.js
+ M packages/simplebeacon-cli/tests/claude-desktop-install.test.js
+ M packages/simplebeacon-cli/tests/config.test.js
+ M packages/simplebeacon-cli/tests/embeddings-index.test.js
+ M packages/simplebeacon-cli/tests/fixtures/true-positives/coverage-map.json
+ M packages/simplebeacon-cli/tests/pdf-generator.test.js
+ M packages/simplebeacon-cli/tests/project-summarizer.test.js
+ M packages/simplebeacon-cli/tests/scan-markdown-report.test.js
+ M packages/simplebeacon-cli/tests/semantic-lighthouse.test.js
+ M packages/simplebeacon-cli/tests/token-estimator.test.js
+ M packages/simplebeacon-cli/tests/token-telemetry.test.js
+ M packages/simplebeacon-cli/tests/unit/ast-structural-scanner.test.js
+ M report_to_csv.js
+ M scripts/analyze-scan-report.js
+ M scripts/audit-mcp-tools.cjs
+ M scripts/benchmark-agent-speed.cjs
+ M scripts/benchmark-tokens.cjs
+ M scripts/benchmark/corpus/labels.json
+ M scripts/benchmark/corpus/true-negatives/base64-config-01.js
+ M scripts/benchmark/corpus/true-negatives/file-hash-01.js
+ M scripts/benchmark/corpus/true-negatives/jwt-runtime-01.js
+ M scripts/benchmark/corpus/true-negatives/readme-01.md
+ M scripts/benchmark/corpus/true-negatives/web-crypto-01.js
+ M scripts/benchmark/corpus/true-positives/db-conn-01.js
+ M scripts/benchmark/corpus/true-positives/jwt-01.js
+ M scripts/benchmark/corpus/true-positives/openai-key-01.js
+ M scripts/benchmark/corpus/true-positives/openai-key-02.js
+ M scripts/benchmark/corpus/true-positives/stripe-key-01.js
+ M scripts/benchmark/run-benchmark.cjs
+ M scripts/check-db.cjs
+ M scripts/check-email-token.cjs
+ M scripts/check-events.cjs
+ M scripts/ci/playwright-license-gate-check.mjs
+ M scripts/create-test-checkout.cjs
+ M scripts/poke-holes-mcp.cjs
+ M scripts/poke-holes.js
+ M scripts/purge-cloudflare-cache.cjs
+ M scripts/test-customer.cjs
+ M scripts/test-progressive.cjs
+ M scripts/test-refund-webhook.cjs
+ M scripts/test-stripe-cli-events.cjs
+ M scripts/test-telemetry.cjs
+ M scripts/test-token-flow.cjs
+ M scripts/track-token-savings.cjs
+ M scripts/verify-token.cjs
+ M server/setup_public.js
+ M simplebeacon-vscode-merged/.dependency-cruiser.js
+ M simplebeacon-vscode-merged/CHANGELOG.md
+ M simplebeacon-vscode-merged/README.md
+ M simplebeacon-vscode-merged/dashboard-web/assets/main.js
+ M simplebeacon-vscode-merged/dashboard-web/index-react.html
+ M simplebeacon-vscode-merged/dashboard-web/index.html
+ M simplebeacon-vscode-merged/dashboard-web/index.vanilla.html
+ M simplebeacon-vscode-merged/dashboard-web/js-es2018/services/localScanService.js
+ M simplebeacon-vscode-merged/dashboard-web/js-es2018/workers/scan-worker.js
+ M simplebeacon-vscode-merged/dashboard-web/src/views/AnalyzeView.tsx
+ M simplebeacon-vscode-merged/dashboard-web/src/views/ResultsView.tsx
+ M simplebeacon-vscode-merged/dashboard-web/tsconfig.tsbuildinfo
+ M simplebeacon-vscode-merged/dashboard-web/vite.config.ts
+ M simplebeacon-vscode-merged/src/__tests__/dataServer.auth.test.ts
+ M simplebeacon-vscode-merged/src/__tests__/exportGate.test.ts
+ M simplebeacon-vscode-merged/src/aiPlatform/guardedExtensionPanel.ts
+ M simplebeacon-vscode-merged/src/aiPlatform/scanPanel.ts
+ M simplebeacon-vscode-merged/src/aiPlatform/uploadPanel.ts
+ M simplebeacon-vscode-merged/src/auth/authManager.ts
+ M simplebeacon-vscode-merged/src/extension.ts
+ M simplebeacon-vscode-merged/src/modernSidebarProvider.ts
+ M simplebeacon-vscode-merged/src/panels/AgentPDAPanel.ts
+ M simplebeacon-vscode-merged/src/panels/ComplianceSidebar.ts
+ M simplebeacon-vscode-merged/src/sidebarMessenger.ts
+ M tools/simulate_pro_payment_and_email.cjs
+ M worker-deploy/package-lock.json
+?? .cache/
+?? .github/pull_request_template/
+?? .github/workflows/executive-smoke.yml
+?? .github/workflows/license-gate.yml
+?? .pr-body-849.txt
+?? .simplebeacon/executive-export/
+?? AGENT_ONBOARDING.md
+?? DEVELOPER_RUNBOOK.md
+?? ai-platform/package-lock.json
+?? ai-platform/web/dashboard/js/vendor/purify.min.js
+?? ai-platform/web/simplebeacon-dashboard/js-es2018/utils-lib/finding-noise.browser.js
+?? ai-platform/web/simplebeacon-dashboard/js-es2018/utils-lib/finding-noise.browser.test.mjs
+?? ai-platform/web/simplebeacon-dashboard/js/vendor/purify.min.js
+?? ai-platform/web/simplebeacon-dashboard/src/components/ResultsExportPanel.tsx
+?? audit_repo.py
+?? bin/
+?? bounce.txt
+?? clean_repo.py
+?? clone-body.txt
+?? coming-soon/lib/site-html.cjs
+?? coming-soon/public/app/js-es2018/utils-lib/finding-noise.browser.js
+?? coming-soon/public/app/js/vendor/purify.min.js
+?? coming-soon/public/app/src/lib/collect-scan-issues.ts
+?? coming-soon/public/assets/
+?? coming-soon/public/dashboard/js-es2018/utils-lib/finding-noise.browser.js
+?? coming-soon/public/dashboard/src/lib/collect-scan-issues.ts
+?? coming-soon/public/dashboard/src/lib/issue-lanes.ts
+?? coming-soon/test/site-html-nav.test.cjs
+?? docs/OUTREACH_CADENCE.md
+?? docs/REMEDIATION-PLAYBOOK.md
+?? external-repos/
+?? launch/
+?? leads/
+?? license-compliance-report.html
+?? node_license_analyzer.py
+?? outreach/
+?? packages/simplebeacon-cli/fixtures/benchmark/SHIPPED-v1.md
+?? packages/simplebeacon-cli/scripts/enrich-evidence-reports.cjs
+?? packages/simplebeacon-cli/scripts/verify-three-reports.cjs
+?? packages/simplebeacon-cli/src/lib/finding-context.js
+?? packages/simplebeacon-cli/src/lib/finding-validation.js
+?? packages/simplebeacon-cli/src/lib/reality-decision-memory.json
+?? packages/simplebeacon-cli/src/lib/reality-judge.js
+?? packages/simplebeacon-cli/src/lib/standards-map.js
+?? packages/simplebeacon-cli/src/reporters/client-deliverable-packager.js
+?? packages/simplebeacon-cli/tests/client-deliverable-packager.test.js
+?? packages/simplebeacon-cli/tests/executive-smoke-test.js
+?? packages/simplebeacon-cli/tests/finding-context.test.js
+?? packages/simplebeacon-cli/tests/finding-validation.test.js
+?? packages/simplebeacon-cli/tests/fixtures/minimal-smoke-scan.json
+?? packages/simplebeacon-cli/tests/fixtures/reality-judge/
+?? packages/simplebeacon-cli/tests/full-directory-scanner.test.js
+?? packages/simplebeacon-cli/tests/reality-judge.test.js
+?? pr_status.txt
+?? run.ps1
+?? run_safe_cleanup.ps1
+?? scripts/generate-executive-from-report.js
+?? scripts/init-starter.js
+?? scripts/purge-simplebeacon-dashboard-cache.cjs
+?? scripts/start-mcp.ps1
+?? scripts/start-mcp.sh
+?? scripts/verify-dashboard-assets.js
+?? simplebeacon-vscode-merged/ANALYSIS.md
+?? simplebeacon-vscode-merged/FIXES-APPLIED.md
+?? simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/finding-noise.browser.js
+?? simplebeacon-vscode-merged/dashboard-web/js/vendor/purify.min.js
+?? simplebeacon-vscode-merged/dashboard-web/src/lib/issue-lanes.ts
+?? simplebeacon-vscode-merged/scripts/run-data-server-standalone.cjs
+?? simplebeacon-vscode-merged/src/__tests__/localDashboardStubs.test.ts
+?? simplebeacon-vscode-merged/src/routes/localDashboardStubs.ts
+?? tests/test_ast_scanner.py
+?? tools/ast_secret_scanner.py
+?? tools/generate_simplebeacon_dashboard.js
+?? tools/leads_manager.py
+?? tools/prove_simplebeacon.js
+?? tools/sample-report.json
+?? tools/scraper_helper.py
+?? tools/seed_leads.py
+?? workspace_audit.ps1
+ab34ae469 ci(dashboard): add lightweight Vite build verifier and postbuild asset audit  add-dns-monitor-workflow
+  agents/ai-slop-cop-validation-report
+  agents/analysis-and-improvement-suggestions
+  agents/beacon-analysis-mod-folders
+  agents/codebase-analysis-simplebeacon
+  agents/css-parsing-errors-and-api-issues
+  agents/data-analysis-release-planning
+  agents/deployment-readiness-scanner-integration
+  agents/executive-summary-mod-state-action-plan
+  agents/fix-weapon-offsets-and-rendering
+  agents/marketing-strategy-report-simplebeacon
+  agents/next-phase-analysis
+  agents/pasted-text-processing
+  agents/pasted-text-processing-63cbab77
+  agents/pre-commit-hook-configuration-docs
+  agents/pre-marketing-strategies-simple-beacon
+  agents/project-structure-analysis-and-tasks
+  agents/run-simplebeacon-in-directories
+  agents/sidebar-button-signin-screen-fix
+  agents/simplebeacon-scan-codebase
+  agents/simplebeacon-scan-issue-fix
+  agents/simplebeacon-scan-progress-update
+  agents/simplebeacon-scanner-analysis
+  agents/update-vsix
+  agents/update-vsix-and-website
+  audit/mark-missing-analyzers-stub
+  benchmark/v4-out-of-sample
+  benchmark/v5-reachability
+  bronze-archimedes
++ cascade/repository-path-c-users-user-windsurf-78d17c
++ cascade/repository-path-c-users-user-windsurf-c49f7b
+  chore/redact-hardcoded-credentials
+  chore/upgrade-puppeteer-25
+  ci-repro-a28386a3f
+  ci/add-asset-listing-20260826
+  ci/early-playwright-artifact-main
+  feat/ci-deployment-readiness-gate
+* feat/dashboard-asset-verify
+  feat/demo-page-funnel-analytics
+  feat/deployment-readiness-scanner
+  feat/edge-compliance-final
+  feat/edge-compliance-signing
+  feat/edge-compliance-v2
+  feat/infra-cors-billing-stabilization
+  feat/maxfiles-ci
+  feat/mcp-deployment-readiness-tool
+  feat/roi-landing
+  feat/staging-stripe-test-checkout
+  feat/stripe-price-env-migration
+  feat/v3.2.0-agent-supercharge
+  feat/v3.2.0-deployment-blockers
+  feature/build-audit-antialiased
+  feature/ci-diagnostics
+  feature/license-seat-management
+  fix/add-exec-summary-20260826
+  fix/add-html-report-20260826
+  fix/build-ci-dashboard-assets
+  fix/ci-add-prepare-assets-diagnostic-20260826
+  fix/ci-artifact-guards
+  fix/ci-create-artifact-dirs
+  fix/ci-eslint-config
+  fix/ci-include-fixtures
+  fix/ci-placeholder-artifacts
+  fix/ci-pr-comment-bot
+  fix/depcruise-extract-guard
+  fix/dev-ci-script-prepare-assets-20260826
+  fix/diagnose-token-schema
+  fix/e2e-run-prepare-assets
+  fix/e2e-run-prepare-assets-2
+  fix/e2e-run-prepare-assets-3
+  fix/empty-catch-sweep-20260825-2
+  fix/empty-catch-sweep-20260825-3
+  fix/empty-catch-sweep-20260826
+  fix/eol-and-prettier
+  fix/gate-scan-blockers
+  fix/invoke-prepare-assets-prebuild-20260826
+  fix/lighthouse-a11y-fixes
+  fix/lighthouse-a11y-threshold
+  fix/lighthouse-clean-rebase
+  fix/lighthouse-score-improvements
+  fix/lighthouse-spa-render
+  fix/playwright-e2e-add-prepare-assets-20260826
+  fix/pre-release-depcruise
+  fix/prepare-assets-dynamic-imports-20260826
+  fix/prepare-assets-fallback-search-20260826
+  fix/prepare-assets-fuzzy-copy-20260826
+  fix/prepare-assets-map
+  fix/remediate-report-watermarks
+  fix/remove-hardcoded-mock-tpm-secret
+  fix/remove-ignoreDeprecations-all
+  fix/repo-health-configurable
+  fix/roadmap-schema-empty-arrays
+  fix/schema-token-rotation-uuid-text-mismatch
+  fix/security-gate-node-24
+  fix/simplebeacon-scan-ci-20260826
+  fix/tsconfig-remove-ignoreDeprecations
+  fix/vscode-lint-fixes
+  launch/analytics-and-tracking
+  launch/brand-assets
+  launch/content-calendar
+  launch/demo-and-staging
+  launch/docs-quickstart
+  launch/landing-page
+  launch/launch-operations
+  launch/messaging-framework
+  launch/payment-and-billing
+  launch/press-kit-and-pr
+  launch/pricing-strategy
+  launch/privacy-deployment-fixes
+  launch/privacy-legal
+  launch/product-positioning
+  launch/sales-enablement
+  launch/security-and-compliance-review
+  launch/security-remediation
+  launch/seo-and-crawlability
+  launch/signup-and-onboarding
+  launch/staging-aggregate
+  launch/support-and-faq
+  main
+  marketing/release-2026-08-26
+  marketing/release-2026-08-26-1
+  patch/client-app-links-telemetry
+  publish-vsix-workflow
+  release/v3.0.498
+  staging-integration
+  update-vsix-website-73f0372
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/add-dns-monitor-workflow
+  remotes/origin/agents/sidebar-button-signin-screen-fix
+  remotes/origin/agents/simplebeacon-scan-progress-update
+  remotes/origin/audit/mark-missing-analyzers-stub
+  remotes/origin/bronze-archimedes
+  remotes/origin/chore/cleanup-static-asset-probe
+  remotes/origin/chore/container-hardening
+  remotes/origin/chore/redact-hardcoded-credentials
+  remotes/origin/chore/redis-onboard-rate-limit
+  remotes/origin/chore/upgrade-puppeteer-25
+  remotes/origin/ci/add-asset-listing-20260826
+  remotes/origin/ci/backend-bench-pr
+  remotes/origin/ci/early-playwright-artifact-main
+  remotes/origin/cleanup/revert-architecture-test
+  remotes/origin/debug/static-asset-probe
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/chokidar-5.0.0
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/helmet-8.3.0
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/nodemailer-9.0.5
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/nodemailer-9.1.1
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/selfsigned-5.5.0
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/web-tree-sitter-0.26.12
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/web-tree-sitter-0.27.0
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/webpack-cli-7.2.2
+  remotes/origin/dependabot/npm_and_yarn/ai-platform/webpack-cli-7.2.3
+  remotes/origin/dependabot/npm_and_yarn/chokidar-5.0.0
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/cloudflare/workers-types-5.20260812.1
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/cloudflare/workers-types-5.20260819.1
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/cloudflare/workers-types-5.20260902.1
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/pdfkit-0.20.2
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/types/node-26.2.0
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/types/node-26.4.1
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/typescript-7.0.2
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/vite-8.2.1
+  remotes/origin/dependabot/npm_and_yarn/coming-soon/vite-8.2.2
+  remotes/origin/dependabot/npm_and_yarn/dependency-cruiser-18.2.0
+  remotes/origin/dependabot/npm_and_yarn/eslint-10.9.1
+  remotes/origin/dependabot/npm_and_yarn/globals-17.11.0
+  remotes/origin/dependabot/npm_and_yarn/husky-9.1.7
+  remotes/origin/dependabot/npm_and_yarn/joi-18.2.8
+  remotes/origin/dependabot/npm_and_yarn/multer-2.2.0
+  remotes/origin/dependabot/npm_and_yarn/multer-2.3.0
+  remotes/origin/dependabot/npm_and_yarn/pg-8.23.0
+  remotes/origin/dependabot/npm_and_yarn/redis-6.2.1
+  remotes/origin/dependabot/npm_and_yarn/rolldown/binding-linux-x64-gnu-1.2.7
+  remotes/origin/dependabot/npm_and_yarn/stripe-22.5.0
+  remotes/origin/dependabot/npm_and_yarn/types/node-26.2.0
+  remotes/origin/dependabot/npm_and_yarn/types/vscode-1.136.0
+  remotes/origin/dependabot/npm_and_yarn/typescript-7.0.2
+  remotes/origin/dependabot/npm_and_yarn/typescript-eslint/parser-8.67.0
+  remotes/origin/dependabot/npm_and_yarn/vite-8.2.1
+  remotes/origin/dependabot/npm_and_yarn/web-tree-sitter-0.27.0
+  remotes/origin/dependabot/npm_and_yarn/webpack-cli-7.2.3
+  remotes/origin/dependabot/npm_and_yarn/wrangler-4.128.0
+  remotes/origin/devin/1787187813-gzdoom-config-wiring
+  remotes/origin/feat/ci-deployment-readiness-gate
+  remotes/origin/feat/demo-page-funnel-analytics
+  remotes/origin/feat/deployment-readiness-scanner
+  remotes/origin/feat/edge-compliance-final
+  remotes/origin/feat/edge-compliance-signing
+  remotes/origin/feat/infra-cors-billing-stabilization
+  remotes/origin/feat/maxfiles-ci
+  remotes/origin/feat/mcp-deployment-readiness-tool
+  remotes/origin/feat/phase3-semantic-hints
+  remotes/origin/feat/roi-landing
+  remotes/origin/feat/staging-stripe-test-checkout
+  remotes/origin/feat/stripe-price-env-migration
+  remotes/origin/feat/v3.2.0-agent-supercharge
+  remotes/origin/feat/v3.2.0-deployment-blockers
+  remotes/origin/feature/backend-perf-scaling
+  remotes/origin/feature/build-audit-antialiased
+  remotes/origin/feature/ci-diagnostics
+  remotes/origin/feature/compliance-policy-editor
+  remotes/origin/feature/dashboard-metrics-cards
+  remotes/origin/feature/env-production-guard
+  remotes/origin/feature/har-export
+  remotes/origin/feature/license-seat-management
+  remotes/origin/feature/lint-assets-interactive-fixer
+  remotes/origin/feature/regional-replication-router
+  remotes/origin/feature/scan-history-chart
+  remotes/origin/feature/zkp-identity-tests
+  remotes/origin/fix-orch/fix-empty-catch-20260825
+  remotes/origin/fix/add-exec-summary-20260826
+  remotes/origin/fix/add-html-report-20260826
+  remotes/origin/fix/analytics-routes-jest-module-isolation
+  remotes/origin/fix/analyze-flexible-timeout-logging
+  remotes/origin/fix/audit-token-flow
+  remotes/origin/fix/build-ci-dashboard-assets
+  remotes/origin/fix/ci-add-prepare-assets-diagnostic-20260826
+  remotes/origin/fix/ci-artifact-guards
+  remotes/origin/fix/ci-create-artifact-dirs
+  remotes/origin/fix/ci-eslint-config
+  remotes/origin/fix/ci-include-fixtures
+  remotes/origin/fix/ci-pr-comment-bot
+  remotes/origin/fix/ci-pre-existing-failures
+  remotes/origin/fix/ci-workflow-yaml-errors
+  remotes/origin/fix/dashboard-404s-and-sri
+  remotes/origin/fix/dashboard-circuit-breakers
+  remotes/origin/fix/dashboard-html-cache-bust
+  remotes/origin/fix/dashboard-network-issues
+  remotes/origin/fix/depcruise-extract-guard
+  remotes/origin/fix/dev-ci-script-prepare-assets-20260826
+  remotes/origin/fix/diagnose-token-schema
+  remotes/origin/fix/e2e-check-api-cjs
+  remotes/origin/fix/e2e-run-prepare-assets
+  remotes/origin/fix/e2e-run-prepare-assets-2
+  remotes/origin/fix/e2e-run-prepare-assets-3
+  remotes/origin/fix/empty-catch-sweep-20260825-2
+  remotes/origin/fix/empty-catch-sweep-20260825-3
+  remotes/origin/fix/empty-catch-sweep-20260826
+  remotes/origin/fix/expand-strip-beacon-sri
+  remotes/origin/fix/gate-scan-blockers
+  remotes/origin/fix/gitleaks-permissions
+  remotes/origin/fix/invoke-prepare-assets-prebuild-20260826
+  remotes/origin/fix/lighthouse-a11y-fixes
+  remotes/origin/fix/lighthouse-a11y-threshold
+  remotes/origin/fix/lighthouse-ci-clean
+  remotes/origin/fix/lighthouse-clean-rebase
+  remotes/origin/fix/lighthouse-score-improvements
+  remotes/origin/fix/lighthouse-spa-render
+  remotes/origin/fix/oom-guard-and-dashboard-fixes
+  remotes/origin/fix/playwright-e2e-add-prepare-assets-20260826
+  remotes/origin/fix/pre-release-depcruise
+  remotes/origin/fix/prepare-assets-dynamic-imports-20260826
+  remotes/origin/fix/prepare-assets-fallback-search-20260826
+  remotes/origin/fix/prepare-assets-fuzzy-copy-20260826
+  remotes/origin/fix/prepare-assets-map
+  remotes/origin/fix/prod-dashboard-issues
+  remotes/origin/fix/remove-hardcoded-mock-tpm-secret
+  remotes/origin/fix/remove-ignoreDeprecations-all
+  remotes/origin/fix/repo-health-configurable
+  remotes/origin/fix/roadmap-schema-empty-arrays
+  remotes/origin/fix/schema-token-rotation-uuid-text-mismatch
+  remotes/origin/fix/secret-gate-bundled-assets
+  remotes/origin/fix/security-gate-node-24
+  remotes/origin/fix/simplebeacon-scan-ci-20260826
+  remotes/origin/fix/site-config-cache-bust
+  remotes/origin/fix/sso-resolve-401
+  remotes/origin/fix/tsconfig-remove-ignoreDeprecations
+  remotes/origin/fix/vscode-lint-fixes
+  remotes/origin/launch/analytics-and-tracking
+  remotes/origin/launch/demo-and-staging
+  remotes/origin/launch/launch-operations
+  remotes/origin/launch/payment-and-billing
+  remotes/origin/launch/pricing-strategy
+  remotes/origin/launch/privacy-legal
+  remotes/origin/launch/security-and-compliance-review
+  remotes/origin/launch/staging-aggregate
+  remotes/origin/launch/support-and-faq
+  remotes/origin/main
+  remotes/origin/marketing/release-2026-08-26
+  remotes/origin/marketing/release-2026-08-26-1
+  remotes/origin/publish-vsix-workflow
+  remotes/origin/release/v3.0.498
+  remotes/origin/rule-updates/scan-rules-20260825
+  remotes/origin/staging-integration
+  remotes/origin/update-vsix-website-73f0372
+  remotes/origin/vendor/dompurify-map-20260826
+  remotes/origin/wip/sync-rescue
+origin	https://github.com/tjp420/CascadeProjects.git (fetch)
+origin	https://github.com/tjp420/CascadeProjects.git (push)
+gh version 2.97.0 (2026-07-31)
+https://github.com/cli/cli/releases/tag/v2.97.0

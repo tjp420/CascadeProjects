@@ -139,7 +139,9 @@ function addFeedback(opts = {}) {
   _cacheDirty = true;
   writeStore();
 
-  logger.info(`[FeedbackStore] Added feedback #${id} (${entry.category} from ${entry.source})`);
+  logger.info(
+    `[FeedbackStore] Added feedback #${id} (${entry.category} from ${entry.source})`,
+  );
   return { id, success: true };
 }
 
@@ -187,10 +189,14 @@ function listFeedback(filters = {}) {
     stats.byCategory[cat] = allEntries.filter((e) => e.category === cat).length;
   }
   for (const status of VALID_STATUSES) {
-    stats.byStatus[status] = allEntries.filter((e) => e.status === status).length;
+    stats.byStatus[status] = allEntries.filter(
+      (e) => e.status === status,
+    ).length;
   }
   for (const source of VALID_SOURCES) {
-    stats.bySource[source] = allEntries.filter((e) => e.source === source).length;
+    stats.bySource[source] = allEntries.filter(
+      (e) => e.source === source,
+    ).length;
   }
 
   return { entries: paginated, total, stats };
@@ -226,7 +232,9 @@ function updateFeedback(id, updates = {}) {
   _cacheDirty = true;
   writeStore();
 
-  logger.info(`[FeedbackStore] Updated feedback #${id} (status: ${entry.status})`);
+  logger.info(
+    `[FeedbackStore] Updated feedback #${id} (status: ${entry.status})`,
+  );
   return { success: true };
 }
 

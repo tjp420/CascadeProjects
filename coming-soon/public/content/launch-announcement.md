@@ -2,6 +2,7 @@
 
 > **Verified for accuracy against production pricing and CLI commands.**
 > Three claims from the original draft were corrected:
+>
 > - "$5/mo for individuals" → removed (no such tier exists; Free tier is $0, Developer is $49/mo)
 > - "WebGPU options" in HN tips → removed (WebGPU is used for attestation fingerprinting only, not scan compute)
 > - "sub-millisecond" → "milliseconds" (verifiable; sub-millisecond is not claimed anywhere in the codebase)
@@ -27,6 +28,7 @@ Don't take our word for it. We want you to test if we're lying — The Airplane 
 It will run instantly, trace cross-module dependencies, map your AI agent blast radius, and output code-slop summaries — all while completely disconnected from the internet.
 
 Why it matters:
+
 - Unmatched speed: local processing with zero network latency
 - Total privacy: compliant with enterprise standards because we are blind to your source code
 - Unbeatable pricing: Free tier costs nothing, Developer is $49/mo, Team Pro is $149/mo — because we have no server bills to pass on
@@ -57,6 +59,7 @@ The "Airplane Test" is our core trust proposition:
 The scan completes fully with zero network dependency. License tokens are validated locally via HMAC-SHA256, so even paid features work disconnected.
 
 Architecture decisions we'd like feedback on:
+
 - Browser sandbox uses the File System Access API + Web Workers for in-memory scanning. The tab's memory is wiped on close — no IndexedDB persistence of file contents.
 - CLI uses `--air-gapped` mode for enterprise deployments with a cache export/import pipeline for USB transfer to disconnected networks.
 - CSP headers restrict `connect-src` to only our domain, Stripe, and Cloudflare Insights. No wildcard origins.

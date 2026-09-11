@@ -24,12 +24,10 @@ router.post("/trigger", authorize("admin:all"), async (req, res) => {
     if (result.sent || result.queued) {
       res.json({ success: true, ...result });
     } else {
-      res
-        .status(500)
-        .json({
-          success: false,
-          error: result.error || "Failed to send report",
-        });
+      res.status(500).json({
+        success: false,
+        error: result.error || "Failed to send report",
+      });
     }
   } catch (err) {
     res

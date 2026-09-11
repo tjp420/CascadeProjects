@@ -59,6 +59,7 @@ watch -n 60 'curl -s https://simplebeacon.ai/api/v1/health/diagnostics | jq .sta
 ```
 
 Watch for:
+
 - `UP` — all systems normal
 - `DEGRADED` — memory above 400 MB or datastore issue
 - `DOWN` — memory above 800 MB or encryption key missing
@@ -66,6 +67,7 @@ Watch for:
 ### 5. Check Render logs for errors
 
 In the Render dashboard, filter logs for:
+
 - `ERROR` — application errors
 - `CRITICAL_SYS_ALERT` — health check failures
 - `[StripeWebhook]` — payment processing issues
@@ -74,6 +76,7 @@ In the Render dashboard, filter logs for:
 ### 6. Monitor Stripe dashboard
 
 Open the Stripe Dashboard → Events:
+
 - Watch for `checkout.session.completed` events
 - Verify `customer.subscription.created` events are arriving
 - Check for any `invoice.payment_failed` events
@@ -81,6 +84,7 @@ Open the Stripe Dashboard → Events:
 ### 7. Watch for signup spikes
 
 In the Render logs, grep for:
+
 - `register` — new user signups
 - `Subscription Activated` — paid conversions
 - `License token` — license token minting
@@ -96,6 +100,7 @@ curl -s https://simplebeacon.ai/api/v1/health/diagnostics | jq '.checks.memory.d
 ```
 
 Look at `heapUsedMB`:
+
 - Under 200 MB — healthy
 - 200-400 MB — normal for moderate traffic
 - 400-800 MB — DEGRADED, investigate memory leaks
@@ -109,6 +114,7 @@ curl -s https://simplebeacon.ai/api/analytics/performance \
 ```
 
 Check:
+
 - `successRate` should be > 95%
 - `durationMs.p99` should be under 30 seconds
 - `gatePassRate` should be > 80%
@@ -119,6 +125,7 @@ If `errorRate` is high, check the Render logs for scan failures.
 ### 10. Check feedback dashboard
 
 Open the admin dashboard → Feedback tab:
+
 - Are users submitting feedback?
 - Any `bug` category entries? Triage immediately.
 - Any `pricing` complaints? Note for pricing page iteration.
@@ -136,6 +143,7 @@ Should grow as new subscribers activate.
 ### 12. Check email delivery
 
 In the Render logs, grep for:
+
 - `Confirmation email result: sent` — welcome emails working
 - `Confirmation email result: queued` — fallback to disk queue (investigate)
 - `[OnboardingDrip] Sent` — drip emails being delivered
@@ -153,6 +161,7 @@ curl -s "https://simplebeacon.ai/api/analytics/performance?startDate=2026-01-01T
 ```
 
 If p99 is climbing, users may be scanning larger repos. Consider:
+
 - Adding a file-count warning for repos over 10k files
 - Documenting `--max-files` flag if it exists
 
@@ -164,6 +173,7 @@ curl -s https://simplebeacon.ai/admin/billing/subscriptions \
 ```
 
 Track:
+
 - `monthlyRecurringCents` — should grow with conversions
 - `activeCount` — active paid subscriptions
 - `totalCount` — total including canceled
@@ -171,6 +181,7 @@ Track:
 ### 15. Monitor for rate limiting
 
 In Render logs, grep for:
+
 - `rate_limit` — users hitting API limits
 - `429` — HTTP rate limit responses
 
@@ -179,6 +190,7 @@ If rate limiting is frequent, consider raising limits for paid tiers.
 ### 16. Check for webhook failures
 
 In Render logs, grep for:
+
 - `[StripeWebhook]` and `error`
 - `signature verification failed` — possible webhook secret mismatch
 - `duplicate` — idempotency guard working (expected for retries)
@@ -194,6 +206,7 @@ curl -s https://simplebeacon.ai/api/v1/health/diagnostics | jq .
 ```
 
 All three checks should be UP:
+
 - `encryption` — key present and valid
 - `datastore` — data files readable
 - `memory` — heap under 400 MB
@@ -201,6 +214,7 @@ All three checks should be UP:
 ### 18. Review feedback categories
 
 Admin dashboard → Feedback tab:
+
 - How many total entries?
 - Bug vs feature vs praise ratio
 - Any patterns in bug reports (same issue reported multiple times)?
@@ -214,6 +228,7 @@ curl -s https://simplebeacon.ai/admin/onboarding-drip \
 ```
 
 Verify:
+
 - Day 1 emails are being sent (sentSteps contains "step1")
 - No users are stuck with empty sentSteps after 24+ hours
 - Use `resetStep` if any user missed a step
@@ -226,6 +241,7 @@ curl -s https://simplebeacon.ai/admin/billing/subscriptions \
 ```
 
 Calculate:
+
 - Conversion rate = activeCount / total signups
 - MRR = monthlyRecurringCents / 100
 - Churn = (totalCount - activeCount) / totalCount
@@ -233,6 +249,7 @@ Calculate:
 ### 21. Document any incidents
 
 For any DEGRADED or DOWN events:
+
 - Note the timestamp and duration
 - Note which subsystem failed
 - Note the root cause (if identified)
@@ -276,14 +293,14 @@ For any DEGRADED or DOWN events:
 
 ## Key URLs
 
-| Resource | URL |
-|----------|-----|
-| Health diagnostics | `https://simplebeacon.ai/api/v1/health/diagnostics` |
-| Email health | `https://simplebeacon.ai/api/health/email` |
-| Stripe webhook | `https://simplebeacon.ai/api/stripe-webhook` |
-| Scan performance | `https://simplebeacon.ai/api/analytics/performance` |
-| Admin feedback | `https://simplebeacon.ai/admin/feedback` |
-| Admin billing | `https://simplebeacon.ai/admin/billing/subscriptions` |
-| Admin drip | `https://simplebeacon.ai/admin/onboarding-drip` |
-| Render dashboard | `https://dashboard.render.com` |
-| Stripe dashboard | `https://dashboard.stripe.com` |
+| Resource           | URL                                                   |
+| ------------------ | ----------------------------------------------------- |
+| Health diagnostics | `https://simplebeacon.ai/api/v1/health/diagnostics`   |
+| Email health       | `https://simplebeacon.ai/api/health/email`            |
+| Stripe webhook     | `https://simplebeacon.ai/api/stripe-webhook`          |
+| Scan performance   | `https://simplebeacon.ai/api/analytics/performance`   |
+| Admin feedback     | `https://simplebeacon.ai/admin/feedback`              |
+| Admin billing      | `https://simplebeacon.ai/admin/billing/subscriptions` |
+| Admin drip         | `https://simplebeacon.ai/admin/onboarding-drip`       |
+| Render dashboard   | `https://dashboard.render.com`                        |
+| Stripe dashboard   | `https://dashboard.stripe.com`                        |

@@ -69,12 +69,22 @@ function createFilesystemStorage(opts) {
       try {
         fs.unlinkSync(archivePath(archiveId));
       } catch (e) {
-        try { console.warn('backup-storage-filesystem: delete archive error:', e && e.message ? e.message : e); } catch (_) {}
+        try {
+          console.warn(
+            "backup-storage-filesystem: delete archive error:",
+            e && e.message ? e.message : e,
+          );
+        } catch (_) {}
       }
       try {
         fs.unlinkSync(metaPath(archiveId));
       } catch (e) {
-        try { console.warn('backup-storage-filesystem: delete meta error:', e && e.message ? e.message : e); } catch (_) {}
+        try {
+          console.warn(
+            "backup-storage-filesystem: delete meta error:",
+            e && e.message ? e.message : e,
+          );
+        } catch (_) {}
       }
     },
 
@@ -94,7 +104,13 @@ function createFilesystemStorage(opts) {
             checksum: meta.checksum || "",
           });
         } catch (e) {
-          try { console.warn('backup-storage-filesystem: skipping corrupt meta file', name, e && e.message ? e.message : e); } catch (_) {}
+          try {
+            console.warn(
+              "backup-storage-filesystem: skipping corrupt meta file",
+              name,
+              e && e.message ? e.message : e,
+            );
+          } catch (_) {}
         }
       }
       return archives.sort((a, b) => a.timestamp - b.timestamp);

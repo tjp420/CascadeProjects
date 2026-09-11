@@ -39,7 +39,11 @@ function evaluateTelemetryState() {
   const nested = result.issues.filter(
     (i) => i.metadata?.ruleId === "SB-QUAL-006",
   );
-  assert.equal(nested.length, 1, "should flag exactly one triple-nested try/catch");
+  assert.equal(
+    nested.length,
+    1,
+    "should flag exactly one triple-nested try/catch",
+  );
   assert.equal(nested[0].severity, "medium");
   assert.match(nested[0].description, /3 levels deep/);
 });
@@ -116,5 +120,9 @@ function deepNest() {
   const nested = result.issues.filter(
     (i) => i.metadata?.ruleId === "SB-QUAL-006",
   );
-  assert.equal(nested.length, 1, "should find the triple-nested block via fallback");
+  assert.equal(
+    nested.length,
+    1,
+    "should find the triple-nested block via fallback",
+  );
 });

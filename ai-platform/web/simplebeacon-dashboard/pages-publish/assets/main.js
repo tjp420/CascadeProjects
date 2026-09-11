@@ -5702,19 +5702,17 @@ function Zp() {
                 e.jsxs("div", {
                   className: "flex flex-wrap gap-1",
                   children: [
-                    t.models
-                      .slice(0, 6)
-                      .map((A) =>
-                        e.jsx(
-                          M,
-                          {
-                            variant: "outline",
-                            className: "text-xs font-mono",
-                            children: A,
-                          },
-                          A,
-                        ),
+                    t.models.slice(0, 6).map((A) =>
+                      e.jsx(
+                        M,
+                        {
+                          variant: "outline",
+                          className: "text-xs font-mono",
+                          children: A,
+                        },
+                        A,
                       ),
+                    ),
                     t.models.length > 6 &&
                       e.jsxs(M, {
                         variant: "outline",
@@ -16152,12 +16150,19 @@ function ev() {
                   q(`/analyze/progress?scanId=${encodeURIComponent(Et)}`),
                   { headers: B() },
                 );
-                if (!Ms.ok)
-                  throw Ms.status === 404
-                    ? new Error(
-                        "Scan job not found on server. It may have expired.",
-                      )
-                    : new Error(`Poll returned ${Ms.status}`);
+                if (!Ms.ok) {
+                  if (Ms.status === 404)
+                    throw new Error(
+                      "Scan job not found on server. It may have expired.",
+                    );
+                  if (
+                    Ms.status === 502 ||
+                    Ms.status === 503 ||
+                    Ms.status === 504
+                  )
+                    continue;
+                  throw new Error(`Poll returned ${Ms.status}`);
+                }
                 if (((Ze = await Ms.json()), Ze.status === "complete")) {
                   je(`[SimpleBeacon] Scan complete (polled ${Ft} times)`);
                   break;
@@ -17439,18 +17444,16 @@ function ev() {
                         className: "mt-2 text-xs text-foreground-muted",
                         children: [
                           "Examples: ",
-                          ie
-                            .slice(0, 3)
-                            .map((x, N) =>
-                              e.jsx(
-                                "span",
-                                {
-                                  className: "inline-block mr-2",
-                                  children: x.file,
-                                },
-                                N,
-                              ),
+                          ie.slice(0, 3).map((x, N) =>
+                            e.jsx(
+                              "span",
+                              {
+                                className: "inline-block mr-2",
+                                children: x.file,
+                              },
+                              N,
                             ),
+                          ),
                           ie.length > 3 ? ` (+${ie.length - 3} more)` : null,
                         ],
                       }),
@@ -17903,31 +17906,29 @@ function tv({
                           className:
                             "rounded-md bg-muted p-3 font-mono text-xs space-y-1 overflow-y-auto max-h-48",
                           children: [
-                            n.removableFiles
-                              .slice(0, 50)
-                              .map((i, o) =>
-                                e.jsxs(
-                                  "div",
-                                  {
-                                    className:
-                                      "text-foreground-secondary break-all whitespace-pre-wrap",
-                                    children: [
-                                      e.jsx("span", {
-                                        className: "text-yellow-600",
-                                        children: "[removable]",
-                                      }),
-                                      " ",
-                                      i.path,
-                                      " ",
-                                      e.jsxs("span", {
-                                        className: "text-foreground-muted",
-                                        children: ["— ", i.reason],
-                                      }),
-                                    ],
-                                  },
-                                  o,
-                                ),
+                            n.removableFiles.slice(0, 50).map((i, o) =>
+                              e.jsxs(
+                                "div",
+                                {
+                                  className:
+                                    "text-foreground-secondary break-all whitespace-pre-wrap",
+                                  children: [
+                                    e.jsx("span", {
+                                      className: "text-yellow-600",
+                                      children: "[removable]",
+                                    }),
+                                    " ",
+                                    i.path,
+                                    " ",
+                                    e.jsxs("span", {
+                                      className: "text-foreground-muted",
+                                      children: ["— ", i.reason],
+                                    }),
+                                  ],
+                                },
+                                o,
                               ),
+                            ),
                             n.removableFiles.length > 50 &&
                               e.jsxs("div", {
                                 className: "text-foreground-muted",
@@ -20574,31 +20575,29 @@ function mv() {
                             className:
                               "rounded-md bg-muted p-3 font-mono text-xs space-y-1 overflow-y-auto max-h-48",
                             children: [
-                              h.removableFiles
-                                .slice(0, 50)
-                                .map((O, G) =>
-                                  e.jsxs(
-                                    "div",
-                                    {
-                                      className:
-                                        "text-foreground-secondary break-all whitespace-pre-wrap",
-                                      children: [
-                                        e.jsx("span", {
-                                          className: "text-yellow-600",
-                                          children: "[removable]",
-                                        }),
-                                        " ",
-                                        O.path,
-                                        " ",
-                                        e.jsxs("span", {
-                                          className: "text-foreground-muted",
-                                          children: ["— ", O.reason],
-                                        }),
-                                      ],
-                                    },
-                                    G,
-                                  ),
+                              h.removableFiles.slice(0, 50).map((O, G) =>
+                                e.jsxs(
+                                  "div",
+                                  {
+                                    className:
+                                      "text-foreground-secondary break-all whitespace-pre-wrap",
+                                    children: [
+                                      e.jsx("span", {
+                                        className: "text-yellow-600",
+                                        children: "[removable]",
+                                      }),
+                                      " ",
+                                      O.path,
+                                      " ",
+                                      e.jsxs("span", {
+                                        className: "text-foreground-muted",
+                                        children: ["— ", O.reason],
+                                      }),
+                                    ],
+                                  },
+                                  G,
                                 ),
+                              ),
                               h.removableFiles.length > 50 &&
                                 e.jsxs("div", {
                                   className: "text-foreground-muted",
@@ -23724,48 +23723,46 @@ function Fv({ assessment: t }) {
                               }),
                             }),
                             e.jsx("tbody", {
-                              children: n
-                                .slice(0, 8)
-                                .map((o, l) =>
-                                  e.jsxs(
-                                    "tr",
-                                    {
-                                      className: "border-b last:border-0",
-                                      children: [
-                                        e.jsx("td", {
-                                          className: "px-3 py-1.5",
-                                          children: e.jsxs(M, {
-                                            variant:
-                                              o.status === "pass"
-                                                ? "success"
-                                                : o.status === "fail"
-                                                  ? "danger"
-                                                  : "secondary",
-                                            className: "text-xs",
-                                            children: [
-                                              o.status === "pass"
-                                                ? "✓"
-                                                : o.status === "fail"
-                                                  ? "✗"
-                                                  : "○",
-                                              " ",
-                                              o.id,
-                                            ],
-                                          }),
+                              children: n.slice(0, 8).map((o, l) =>
+                                e.jsxs(
+                                  "tr",
+                                  {
+                                    className: "border-b last:border-0",
+                                    children: [
+                                      e.jsx("td", {
+                                        className: "px-3 py-1.5",
+                                        children: e.jsxs(M, {
+                                          variant:
+                                            o.status === "pass"
+                                              ? "success"
+                                              : o.status === "fail"
+                                                ? "danger"
+                                                : "secondary",
+                                          className: "text-xs",
+                                          children: [
+                                            o.status === "pass"
+                                              ? "✓"
+                                              : o.status === "fail"
+                                                ? "✗"
+                                                : "○",
+                                            " ",
+                                            o.id,
+                                          ],
                                         }),
-                                        e.jsx("td", {
-                                          className: "px-3 py-1.5",
-                                          children: o.title,
-                                        }),
-                                        e.jsx("td", {
-                                          className: "px-3 py-1.5",
-                                          children: o.status || "—",
-                                        }),
-                                      ],
-                                    },
-                                    l,
-                                  ),
+                                      }),
+                                      e.jsx("td", {
+                                        className: "px-3 py-1.5",
+                                        children: o.title,
+                                      }),
+                                      e.jsx("td", {
+                                        className: "px-3 py-1.5",
+                                        children: o.status || "—",
+                                      }),
+                                    ],
+                                  },
+                                  l,
                                 ),
+                              ),
                             }),
                           ],
                         }),
@@ -24016,38 +24013,36 @@ function Mv({ catalog: t, activeFindings: s }) {
                     }),
                   }),
                   e.jsx("tbody", {
-                    children: t
-                      .slice(0, 12)
-                      .map((n, r) =>
-                        e.jsxs(
-                          "tr",
-                          {
-                            className: "border-b last:border-0",
-                            children: [
-                              e.jsx("td", {
-                                className: "px-3 py-1.5",
-                                children: e.jsx("code", {
-                                  className: "text-xs",
-                                  children: n.pattern,
-                                }),
+                    children: t.slice(0, 12).map((n, r) =>
+                      e.jsxs(
+                        "tr",
+                        {
+                          className: "border-b last:border-0",
+                          children: [
+                            e.jsx("td", {
+                              className: "px-3 py-1.5",
+                              children: e.jsx("code", {
+                                className: "text-xs",
+                                children: n.pattern,
                               }),
-                              e.jsx("td", {
-                                className: "px-3 py-1.5",
-                                children: n.patternType || "—",
+                            }),
+                            e.jsx("td", {
+                              className: "px-3 py-1.5",
+                              children: n.patternType || "—",
+                            }),
+                            e.jsx("td", {
+                              className: "px-3 py-1.5",
+                              children: e.jsx(M, {
+                                variant: n.severity || "secondary",
+                                className: "text-xs",
+                                children: n.severity,
                               }),
-                              e.jsx("td", {
-                                className: "px-3 py-1.5",
-                                children: e.jsx(M, {
-                                  variant: n.severity || "secondary",
-                                  className: "text-xs",
-                                  children: n.severity,
-                                }),
-                              }),
-                            ],
-                          },
-                          r,
-                        ),
+                            }),
+                          ],
+                        },
+                        r,
                       ),
+                    ),
                   }),
                 ],
               }),
@@ -29926,85 +29921,81 @@ function Wv() {
                             e.jsx("div", {
                               className:
                                 "space-y-1 max-h-[150px] overflow-y-auto",
-                              children: o
-                                .slice(0, 10)
-                                .map((R) =>
-                                  e.jsxs(
-                                    "div",
-                                    {
-                                      className:
-                                        "rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1",
-                                      children: [
-                                        e.jsxs("div", {
-                                          className:
-                                            "flex items-center gap-2 flex-wrap",
-                                          children: [
-                                            R.state === "completed"
-                                              ? e.jsx(Ve, {
+                              children: o.slice(0, 10).map((R) =>
+                                e.jsxs(
+                                  "div",
+                                  {
+                                    className:
+                                      "rounded-md border border-border bg-muted/10 p-2 text-xs space-y-1",
+                                    children: [
+                                      e.jsxs("div", {
+                                        className:
+                                          "flex items-center gap-2 flex-wrap",
+                                        children: [
+                                          R.state === "completed"
+                                            ? e.jsx(Ve, {
+                                                className:
+                                                  "h-3 w-3 text-green-600",
+                                              })
+                                            : R.state === "failed" ||
+                                                R.state === "guardrail_blocked"
+                                              ? e.jsx(rs, {
                                                   className:
-                                                    "h-3 w-3 text-green-600",
+                                                    "h-3 w-3 text-destructive",
                                                 })
-                                              : R.state === "failed" ||
-                                                  R.state ===
-                                                    "guardrail_blocked"
-                                                ? e.jsx(rs, {
+                                              : R.state === "aborted"
+                                                ? e.jsx(Xr, {
                                                     className:
-                                                      "h-3 w-3 text-destructive",
+                                                      "h-3 w-3 text-foreground-muted",
                                                   })
-                                                : R.state === "aborted"
-                                                  ? e.jsx(Xr, {
-                                                      className:
-                                                        "h-3 w-3 text-foreground-muted",
-                                                    })
-                                                  : e.jsx(St, {
-                                                      className:
-                                                        "h-3 w-3 text-foreground-muted",
-                                                    }),
-                                            e.jsx(M, {
-                                              variant:
-                                                Mi[R.state] || "secondary",
-                                              className: "text-[10px]",
-                                              children: R.state,
-                                            }),
-                                            e.jsx("span", {
-                                              className:
-                                                "font-mono text-[10px] text-foreground-muted",
-                                              children: R.id,
-                                            }),
-                                            e.jsxs("span", {
-                                              className: "text-[10px]",
-                                              children: [
-                                                "Steps: ",
-                                                R.steps.length,
-                                              ],
-                                            }),
-                                            e.jsxs("span", {
-                                              className: "text-[10px]",
-                                              children: [
-                                                "Tokens: ",
-                                                R.totalTokensUsed,
-                                              ],
-                                            }),
-                                            e.jsx(w, {
-                                              variant: "ghost",
-                                              size: "sm",
-                                              className: "h-5 px-1 ml-auto",
-                                              onClick: () => he(R.id),
-                                              children: "View",
-                                            }),
-                                          ],
-                                        }),
-                                        R.error &&
-                                          e.jsx("p", {
-                                            className:
-                                              "text-[10px] text-destructive",
-                                            children: R.error,
+                                                : e.jsx(St, {
+                                                    className:
+                                                      "h-3 w-3 text-foreground-muted",
+                                                  }),
+                                          e.jsx(M, {
+                                            variant: Mi[R.state] || "secondary",
+                                            className: "text-[10px]",
+                                            children: R.state,
                                           }),
-                                      ],
-                                    },
-                                    R.id,
-                                  ),
+                                          e.jsx("span", {
+                                            className:
+                                              "font-mono text-[10px] text-foreground-muted",
+                                            children: R.id,
+                                          }),
+                                          e.jsxs("span", {
+                                            className: "text-[10px]",
+                                            children: [
+                                              "Steps: ",
+                                              R.steps.length,
+                                            ],
+                                          }),
+                                          e.jsxs("span", {
+                                            className: "text-[10px]",
+                                            children: [
+                                              "Tokens: ",
+                                              R.totalTokensUsed,
+                                            ],
+                                          }),
+                                          e.jsx(w, {
+                                            variant: "ghost",
+                                            size: "sm",
+                                            className: "h-5 px-1 ml-auto",
+                                            onClick: () => he(R.id),
+                                            children: "View",
+                                          }),
+                                        ],
+                                      }),
+                                      R.error &&
+                                        e.jsx("p", {
+                                          className:
+                                            "text-[10px] text-destructive",
+                                          children: R.error,
+                                        }),
+                                    ],
+                                  },
+                                  R.id,
                                 ),
+                              ),
                             }),
                           ],
                         }),
@@ -31087,34 +31078,32 @@ function Gv() {
                                         }),
                                       ],
                                     }),
-                                    re.errors
-                                      .slice(0, 3)
-                                      .map((de, X) =>
-                                        e.jsxs(
-                                          "div",
-                                          {
-                                            className:
-                                              "text-[10px] text-destructive flex items-start gap-1",
-                                            children: [
-                                              e.jsx(rs, {
-                                                className:
-                                                  "h-3 w-3 mt-0.5 flex-shrink-0",
-                                              }),
-                                              e.jsxs("span", {
-                                                children: [
-                                                  e.jsx("span", {
-                                                    className: "font-mono",
-                                                    children: de.path,
-                                                  }),
-                                                  ": ",
-                                                  de.message,
-                                                ],
-                                              }),
-                                            ],
-                                          },
-                                          X,
-                                        ),
+                                    re.errors.slice(0, 3).map((de, X) =>
+                                      e.jsxs(
+                                        "div",
+                                        {
+                                          className:
+                                            "text-[10px] text-destructive flex items-start gap-1",
+                                          children: [
+                                            e.jsx(rs, {
+                                              className:
+                                                "h-3 w-3 mt-0.5 flex-shrink-0",
+                                            }),
+                                            e.jsxs("span", {
+                                              children: [
+                                                e.jsx("span", {
+                                                  className: "font-mono",
+                                                  children: de.path,
+                                                }),
+                                                ": ",
+                                                de.message,
+                                              ],
+                                            }),
+                                          ],
+                                        },
+                                        X,
                                       ),
+                                    ),
                                     re.errors.length > 3 &&
                                       e.jsxs("div", {
                                         className:
@@ -33875,80 +33864,78 @@ function nw() {
                       e.jsxs("div", {
                         className: "space-y-2",
                         children: [
-                          a.advisories
-                            .slice(0, 20)
-                            .map((I, H) =>
-                              e.jsxs(
-                                "div",
-                                {
-                                  className: "rounded-lg border p-3",
-                                  children: [
-                                    e.jsxs("div", {
-                                      className:
-                                        "flex items-center justify-between",
-                                      children: [
-                                        e.jsx("span", {
-                                          className: "text-sm font-medium",
-                                          children:
-                                            I.title || I.id || "Vulnerability",
-                                        }),
-                                        e.jsx(M, {
-                                          className: Tr(I.severity || "info"),
-                                          variant: "outline",
-                                          children: I.severity || "info",
-                                        }),
-                                      ],
-                                    }),
-                                    e.jsxs("div", {
-                                      className:
-                                        "mt-1 flex items-center gap-4 text-xs text-foreground-muted",
-                                      children: [
-                                        I.package &&
-                                          e.jsxs("span", {
-                                            children: [
-                                              "Package: ",
-                                              e.jsx("code", {
-                                                className: "font-mono",
-                                                children: I.package,
-                                              }),
-                                            ],
-                                          }),
-                                        I.vulnerableVersions &&
-                                          e.jsxs("span", {
-                                            children: [
-                                              "Affected: ",
-                                              e.jsx("code", {
-                                                className: "font-mono",
-                                                children: I.vulnerableVersions,
-                                              }),
-                                            ],
-                                          }),
-                                        I.patchedVersions &&
-                                          e.jsxs("span", {
-                                            children: [
-                                              "Patch: ",
-                                              e.jsx("code", {
-                                                className: "font-mono",
-                                                children: I.patchedVersions,
-                                              }),
-                                            ],
-                                          }),
-                                      ],
-                                    }),
-                                    I.url &&
-                                      e.jsx("a", {
-                                        href: I.url,
-                                        target: "_blank",
-                                        rel: "noopener noreferrer",
-                                        className:
-                                          "mt-1 text-xs text-blue-500 hover:underline",
-                                        children: "More info →",
+                          a.advisories.slice(0, 20).map((I, H) =>
+                            e.jsxs(
+                              "div",
+                              {
+                                className: "rounded-lg border p-3",
+                                children: [
+                                  e.jsxs("div", {
+                                    className:
+                                      "flex items-center justify-between",
+                                    children: [
+                                      e.jsx("span", {
+                                        className: "text-sm font-medium",
+                                        children:
+                                          I.title || I.id || "Vulnerability",
                                       }),
-                                  ],
-                                },
-                                I.id || H,
-                              ),
+                                      e.jsx(M, {
+                                        className: Tr(I.severity || "info"),
+                                        variant: "outline",
+                                        children: I.severity || "info",
+                                      }),
+                                    ],
+                                  }),
+                                  e.jsxs("div", {
+                                    className:
+                                      "mt-1 flex items-center gap-4 text-xs text-foreground-muted",
+                                    children: [
+                                      I.package &&
+                                        e.jsxs("span", {
+                                          children: [
+                                            "Package: ",
+                                            e.jsx("code", {
+                                              className: "font-mono",
+                                              children: I.package,
+                                            }),
+                                          ],
+                                        }),
+                                      I.vulnerableVersions &&
+                                        e.jsxs("span", {
+                                          children: [
+                                            "Affected: ",
+                                            e.jsx("code", {
+                                              className: "font-mono",
+                                              children: I.vulnerableVersions,
+                                            }),
+                                          ],
+                                        }),
+                                      I.patchedVersions &&
+                                        e.jsxs("span", {
+                                          children: [
+                                            "Patch: ",
+                                            e.jsx("code", {
+                                              className: "font-mono",
+                                              children: I.patchedVersions,
+                                            }),
+                                          ],
+                                        }),
+                                    ],
+                                  }),
+                                  I.url &&
+                                    e.jsx("a", {
+                                      href: I.url,
+                                      target: "_blank",
+                                      rel: "noopener noreferrer",
+                                      className:
+                                        "mt-1 text-xs text-blue-500 hover:underline",
+                                      children: "More info →",
+                                    }),
+                                ],
+                              },
+                              I.id || H,
                             ),
+                          ),
                           a.advisories.length > 20 &&
                             e.jsxs("p", {
                               className: "text-xs text-foreground-muted",
@@ -37231,52 +37218,49 @@ function jw() {
                         className: "text-xs text-foreground-muted",
                         children: "Recent Snapshots",
                       }),
-                      a.entries
-                        .slice(0, 5)
-                        .map((g) =>
-                          e.jsxs(
-                            "div",
-                            {
-                              className:
-                                "flex items-center justify-between rounded-md border px-3 py-2 text-sm",
-                              children: [
-                                e.jsxs("div", {
-                                  className: "flex items-center gap-2",
-                                  children: [
-                                    e.jsx(M, {
-                                      variant: g.gatePass
-                                        ? "default"
-                                        : "destructive",
-                                      className: "text-xs",
-                                      children: g.gatePass ? "PASS" : "FAIL",
-                                    }),
-                                    e.jsx("span", {
-                                      className:
-                                        "text-xs text-foreground-muted",
-                                      children: h(g.generatedAt),
-                                    }),
-                                  ],
-                                }),
-                                e.jsxs("div", {
-                                  className: "flex items-center gap-3 text-xs",
-                                  children: [
-                                    e.jsxs("span", {
-                                      children: ["Q: ", g.qualityScore],
-                                    }),
-                                    e.jsxs("span", {
-                                      children: ["Issues: ", g.issues],
-                                    }),
-                                    e.jsx("span", {
-                                      className: "text-foreground-muted",
-                                      children: g.source,
-                                    }),
-                                  ],
-                                }),
-                              ],
-                            },
-                            g.verificationId,
-                          ),
+                      a.entries.slice(0, 5).map((g) =>
+                        e.jsxs(
+                          "div",
+                          {
+                            className:
+                              "flex items-center justify-between rounded-md border px-3 py-2 text-sm",
+                            children: [
+                              e.jsxs("div", {
+                                className: "flex items-center gap-2",
+                                children: [
+                                  e.jsx(M, {
+                                    variant: g.gatePass
+                                      ? "default"
+                                      : "destructive",
+                                    className: "text-xs",
+                                    children: g.gatePass ? "PASS" : "FAIL",
+                                  }),
+                                  e.jsx("span", {
+                                    className: "text-xs text-foreground-muted",
+                                    children: h(g.generatedAt),
+                                  }),
+                                ],
+                              }),
+                              e.jsxs("div", {
+                                className: "flex items-center gap-3 text-xs",
+                                children: [
+                                  e.jsxs("span", {
+                                    children: ["Q: ", g.qualityScore],
+                                  }),
+                                  e.jsxs("span", {
+                                    children: ["Issues: ", g.issues],
+                                  }),
+                                  e.jsx("span", {
+                                    className: "text-foreground-muted",
+                                    children: g.source,
+                                  }),
+                                ],
+                              }),
+                            ],
+                          },
+                          g.verificationId,
                         ),
+                      ),
                     ],
                   }),
               ],
@@ -40824,67 +40808,64 @@ function rd() {
             e.jsxs(E, {
               className: "space-y-3",
               children: [
-                y
-                  .slice(0, 15)
-                  .map((k, T) =>
-                    e.jsxs(
-                      "div",
-                      {
-                        className:
-                          "flex items-start gap-3 rounded-lg border p-3",
-                        children: [
-                          e.jsx(qt, {
-                            className: "h-4 w-4 text-foreground-muted mt-0.5",
-                          }),
-                          e.jsxs("div", {
-                            className: "flex flex-col gap-1 flex-1",
-                            children: [
-                              e.jsxs("div", {
-                                className: "flex items-center gap-2 flex-wrap",
-                                children: [
-                                  k.priority &&
-                                    e.jsx(M, {
-                                      className: Gi(k.priority),
-                                      variant: "outline",
-                                      children: k.priority || "",
-                                    }),
-                                  k.action &&
-                                    e.jsx("span", {
-                                      className: "text-sm font-medium",
-                                      children: k.action,
-                                    }),
-                                ],
+                y.slice(0, 15).map((k, T) =>
+                  e.jsxs(
+                    "div",
+                    {
+                      className: "flex items-start gap-3 rounded-lg border p-3",
+                      children: [
+                        e.jsx(qt, {
+                          className: "h-4 w-4 text-foreground-muted mt-0.5",
+                        }),
+                        e.jsxs("div", {
+                          className: "flex flex-col gap-1 flex-1",
+                          children: [
+                            e.jsxs("div", {
+                              className: "flex items-center gap-2 flex-wrap",
+                              children: [
+                                k.priority &&
+                                  e.jsx(M, {
+                                    className: Gi(k.priority),
+                                    variant: "outline",
+                                    children: k.priority || "",
+                                  }),
+                                k.action &&
+                                  e.jsx("span", {
+                                    className: "text-sm font-medium",
+                                    children: k.action,
+                                  }),
+                              ],
+                            }),
+                            k.description &&
+                              e.jsx("span", {
+                                className: "text-xs text-foreground-muted",
+                                children: k.description,
                               }),
-                              k.description &&
-                                e.jsx("span", {
-                                  className: "text-xs text-foreground-muted",
-                                  children: k.description,
-                                }),
-                              e.jsxs("div", {
-                                className:
-                                  "flex items-center gap-4 text-xs text-foreground-muted",
-                                children: [
-                                  k.effort &&
-                                    e.jsxs("span", {
-                                      children: ["Effort: ", k.effort],
-                                    }),
-                                  k.risk &&
-                                    e.jsxs("span", {
-                                      children: ["Risk: ", k.risk],
-                                    }),
-                                  k.savings &&
-                                    e.jsxs("span", {
-                                      children: ["Savings: ", k.savings],
-                                    }),
-                                ],
-                              }),
-                            ],
-                          }),
-                        ],
-                      },
-                      T,
-                    ),
+                            e.jsxs("div", {
+                              className:
+                                "flex items-center gap-4 text-xs text-foreground-muted",
+                              children: [
+                                k.effort &&
+                                  e.jsxs("span", {
+                                    children: ["Effort: ", k.effort],
+                                  }),
+                                k.risk &&
+                                  e.jsxs("span", {
+                                    children: ["Risk: ", k.risk],
+                                  }),
+                                k.savings &&
+                                  e.jsxs("span", {
+                                    children: ["Savings: ", k.savings],
+                                  }),
+                              ],
+                            }),
+                          ],
+                        }),
+                      ],
+                    },
+                    T,
                   ),
+                ),
                 y.length > 15 &&
                   e.jsxs("p", {
                     className: "text-xs text-foreground-muted",
@@ -44123,19 +44104,17 @@ function F1() {
                         e.jsxs("div", {
                           className: "flex flex-wrap gap-1",
                           children: [
-                            b.events
-                              .slice(0, 4)
-                              .map((k) =>
-                                e.jsx(
-                                  M,
-                                  {
-                                    variant: "outline",
-                                    className: "text-xs",
-                                    children: r[k] || k,
-                                  },
-                                  k,
-                                ),
+                            b.events.slice(0, 4).map((k) =>
+                              e.jsx(
+                                M,
+                                {
+                                  variant: "outline",
+                                  className: "text-xs",
+                                  children: r[k] || k,
+                                },
+                                k,
                               ),
+                            ),
                             b.events.length > 4 &&
                               e.jsxs(M, {
                                 variant: "outline",
@@ -44988,14 +44967,12 @@ function M1() {
           .slice(0, 8)
           .map(([v, D]) => ({ name: v, value: D }))
       : [],
-    bl = r
-      .slice(0, 10)
-      .map((v) => ({
-        category:
-          v.category.length > 20 ? v.category.slice(0, 18) + "..." : v.category,
-        fullName: v.category,
-        findings: v.totalFindings,
-      })),
+    bl = r.slice(0, 10).map((v) => ({
+      category:
+        v.category.length > 20 ? v.category.slice(0, 18) + "..." : v.category,
+      fullName: v.category,
+      findings: v.totalFindings,
+    })),
     fi = (t == null ? void 0 : t.avgPostureScore) ?? 0,
     kh =
       fi >= 80
@@ -58284,28 +58261,26 @@ function cS({ budgets: t, isAdmin: s, onSave: a, onReset: n, loading: r }) {
                       p.alerts.length > 0 &&
                       e.jsx("div", {
                         className: "mb-4 flex flex-wrap gap-1",
-                        children: p.alerts
-                          .slice(-3)
-                          .map((T, F) =>
-                            e.jsxs(
-                              M,
-                              {
-                                variant:
-                                  T.type === "hard_stop"
-                                    ? "destructive"
-                                    : "secondary",
-                                className: "text-xs",
-                                children: [
-                                  T.type,
-                                  " ",
-                                  T.crossedValue,
-                                  "% — ",
-                                  new Date(T.timestamp).toLocaleString(),
-                                ],
-                              },
-                              F,
-                            ),
+                        children: p.alerts.slice(-3).map((T, F) =>
+                          e.jsxs(
+                            M,
+                            {
+                              variant:
+                                T.type === "hard_stop"
+                                  ? "destructive"
+                                  : "secondary",
+                              className: "text-xs",
+                              children: [
+                                T.type,
+                                " ",
+                                T.crossedValue,
+                                "% — ",
+                                new Date(T.timestamp).toLocaleString(),
+                              ],
+                            },
+                            F,
                           ),
+                        ),
                       }),
                     e.jsxs("div", {
                       className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-4",

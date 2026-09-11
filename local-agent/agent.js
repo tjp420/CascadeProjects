@@ -122,22 +122,18 @@ app.post("/api/analyze", analyzeLimiter, async (req, res) => {
   );
 
   if (!targetPath) {
-    return res
-      .status(404)
-      .json({
-        success: false,
-        error: "Directory path does not exist on this machine.",
-      });
+    return res.status(404).json({
+      success: false,
+      error: "Directory path does not exist on this machine.",
+    });
   }
   try {
     await fs.promises.access(targetPath, fs.constants.F_OK);
   } catch {
-    return res
-      .status(404)
-      .json({
-        success: false,
-        error: "Directory path does not exist on this machine.",
-      });
+    return res.status(404).json({
+      success: false,
+      error: "Directory path does not exist on this machine.",
+    });
   }
 
   try {

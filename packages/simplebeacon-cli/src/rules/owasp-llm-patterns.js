@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * OWASP Top 10 for LLM Applications (2025) — static pattern detection.
@@ -88,7 +89,7 @@ const SKIP_DIRS = new Set([
   "simplebeacon-rule-tests",
   "simplebeacon-toxic-fixtures",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 // --- OWASP LLM Top 10 Rule Catalog ---
 
@@ -399,6 +400,8 @@ function collapsePatternIssuesByFile(issues, _relativePath) {
 // --- Main scan function ---
 
 async function scanOwaspLlmPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
@@ -409,7 +412,7 @@ async function scanOwaspLlmPatterns(baseDir, options = {}) {
   for (const rel of productionPaths) {
     const abs = path.join(baseDir, ...rel.replace(/\/$/, "").split("/"));
     if (fs.existsSync(abs)) {
-      await walkProductionFiles(abs, files);
+      await walkProductionFiles(abs, files, 0, undefined, MAX_SCAN_BYTES);
     }
   }
 

@@ -1,0 +1,39 @@
+{
+  "reportSchemaVersion": "1.0",
+  "projectPath": "c:\\Users\\user\\CascadeProjects",
+  "projectLabel": "c:\\Users\\user\\CascadeProjects",
+  "qualityScore": 76,
+  "repositoryFilesTotal": 8236,
+  "gate": {
+    "pass": false,
+    "blockingCount": 4,
+    "warningCount": 6
+  },
+  "signal": null,
+  "summary": {
+    "totalFindings": 1,
+    "byDecision": {
+      "investigate": 1
+    },
+    "byLane": {
+      "production": 1
+    }
+  },
+  "findings": [
+    {
+      "filePath": "packages/simplebeacon-cli/src/lib/finding-validation.js",
+      "line": null,
+      "type": "eval-danger",
+      "severity": "high",
+      "description": "packages/simplebeacon-cli/src/lib/finding-validation.js: eval(), new Function(), or dynamic code execution — code injection risk",
+      "lane": "production",
+      "fileClass": "app",
+      "decision": "investigate",
+      "score": 96,
+      "category": "evalDanger",
+      "pathReason": "Production source path",
+      "nextAction": "Verify whether the evaluated value can be influenced by untrusted input and whether the code path is reachable.",
+      "verification": null
+    }
+  ]
+}

@@ -32,10 +32,10 @@
                 function neutralize(el) {
                     if (!isBeacon(el)) return;
                     try {
-                        el.removeAttribute('src');
-                        el.type = 'text/plain';
                         el.removeAttribute('integrity');
                         el.removeAttribute('crossorigin');
+                        el.type = 'text/plain';
+                        el.removeAttribute('src');
                     } catch (e) {}
                 }
                 var s = document.querySelectorAll('script');

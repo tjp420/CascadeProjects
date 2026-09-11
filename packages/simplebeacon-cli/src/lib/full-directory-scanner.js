@@ -16,8 +16,8 @@ const { preflightOrThrow, sampleAndThrow } = require("./resource-guard");
 const {
   detectDocumentationArtifacts,
   filterDocumentedAiInventoryIssues,
-  isExcludedPath,
 } = require("../rules/eu-ai-act-patterns");
+const { isExcludedPath } = require("../rules/ai-runtime-scan-common");
 const { globMatch } = require("../rules/production-leak");
 const constants = require("./constants");
 
@@ -197,6 +197,36 @@ async function hashFileStream(filePath) {
   });
 }
 
+/** Default in-flight hash/reads. Cap 64 to stay under typical EMFILE limits. */
+const DEFAULT_HASH_CONCURRENCY = 32;
+const HASH_CONCURRENCY_CAP = 64;
+
+function resolveHashConcurrency(fileCount) {
+  const env = Number(process.env.SIMPLEBEACON_HASH_CONCURRENCY);
+  const requested = Number.isFinite(env) && env > 0 ? env : DEFAULT_HASH_CONCURRENCY;
+  const n = Math.max(1, Math.min(HASH_CONCURRENCY_CAP, requested));
+  if (!fileCount) return 1;
+  return Math.min(n, fileCount);
+}
+
+/**
+ * I/O only: stream-hash oversized files, otherwise read into a buffer.
+ * Does not run regex (text jobs are queued after this returns).
+ */
+async function hashAndReadFile(file, maxContentBytes) {
+  if (file.size === 0) return { kind: "empty" };
+  try {
+    if (Number.isFinite(maxContentBytes) && file.size > maxContentBytes) {
+      const fileHash = await hashFileStream(file.path);
+      return { kind: "large", fileHash };
+    }
+    const buf = await fs.promises.readFile(file.path);
+    return { kind: "buffer", buf };
+  } catch {
+    return { kind: "unreadable" };
+  }
+}
+
 async function analyzeFullDirectory(rootDir, options = {}) {
   const isUniversal = options.universal === true;
   const maxContentBytes = resolveMaxContentBytes(options);
@@ -244,38 +274,43 @@ async function analyzeFullDirectory(rootDir, options = {}) {
   const fictionPatterns = buildFictionPatterns(config, rules.fiction !== false);
   const leakOpts = options.productionLeakOptions || {};
   const textRuleJobs = [];
+  const files = walkResult.files;
+  const textRuleJobOptions = {
+    productionLeak: rules.productionLeak !== false,
+    agencyHandoff: rules.agencyHandoff !== false,
+    euAiAct: rules.euAiAct !== false,
+    tokenBleed: rules.tokenBleed !== false,
+    architectureDrift: rules.architectureDrift !== false,
+    fileNaming: rules.fileNaming !== false,
+    security: rules.security !== false,
+    euAiActSeverity: options.euAiActSeverity || "medium",
+    productionPathsOnly: !isUniversal,
+    productionPaths: config.productionPaths || [
+      "server/",
+      "src/",
+      "app/",
+      "lib/",
+    ],
+    productionLeakOptions: {
+      ignoreGlobs:
+        leakOpts.ignoreGlobs ||
+        config.rules?.["production-leak"]?.ignoreGlobs ||
+        config.ignore ||
+        [],
+      allowlistFiles:
+        leakOpts.allowlistFiles ||
+        config.rules?.["production-leak"]?.allowlistFiles ||
+        [],
+      scannerMetaFiles: leakOpts.scannerMetaFiles || [],
+      severity: leakOpts.severity || "high",
+      intentClassification: leakOpts.intentClassification !== false,
+      plainSampleJson: leakOpts.plainSampleJson === true,
+    },
+    fictionPatterns,
+  };
+  const prodLeakIgnore = config.rules?.["production-leak"]?.ignoreGlobs || [];
 
-  for (let index = 0; index < walkResult.files.length; index += 1) {
-    const file = walkResult.files[index];
-    if (options.onProgress) {
-      options.onProgress({
-        processed: index + 1,
-        total: walkResult.files.length,
-        currentFile: file.relativePath,
-      });
-    }
-    if (process.env.SIMPLEBEACON_LIVE_FILE_LOG === "1") {
-      process.stderr.write(
-        `[${index + 1}/${walkResult.files.length}] ${file.relativePath}\n`,
-      );
-    } else if (
-      !options.onProgress &&
-      index > 0 &&
-      index % BATCH_LOG_EVERY === 0
-    ) {
-      /* legacy batch log hook */
-    }
-
-    // Periodic resource sampling to abort scan early on low-memory conditions
-    if (index > 0 && index % RESOURCE_SAMPLE_EVERY === 0) {
-      try {
-        sampleAndThrow({ filesFound: index + 1, phase: "walk" });
-      } catch (err) {
-        console.error(err.message);
-        throw err;
-      }
-    }
-
+  function applyFileInventory(file, io) {
     const bucket = categories.get(categoryForExt(file.ext)) || {
       category: categoryForExt(file.ext),
       fileCount: 0,
@@ -286,7 +321,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
     bucket.totalSize += file.size;
     categories.set(categoryForExt(file.ext), bucket);
 
-    if (file.size === 0) {
+    if (io.kind === "empty") {
       emptyFiles += 1;
       const baseName = path.basename(file.relativePath);
       const isIntentionallyEmpty =
@@ -307,31 +342,28 @@ async function analyzeFullDirectory(rootDir, options = {}) {
           affectedFiles: [file.relativePath],
         });
       }
-      continue;
+      return;
     }
 
-    let buf;
-    let fileHash = null;
-    try {
-      if (Number.isFinite(maxContentBytes) && file.size > maxContentBytes) {
-        fileHash = await hashFileStream(file.path);
-        filesLargeHashed += 1;
-        filesHashed += 1;
-        continue;
-      }
-      buf = await fs.promises.readFile(file.path);
-    } catch {
+    if (io.kind === "unreadable") {
       unreadableFiles += 1;
-      continue;
+      return;
     }
 
+    if (io.kind === "large") {
+      filesLargeHashed += 1;
+      filesHashed += 1;
+      return;
+    }
+
+    const buf = io.buf;
     filesHashed += 1;
-    fileHash = hashBuffer(buf);
+    const fileHash = hashBuffer(buf);
 
     if (isBinaryBuffer(buf)) {
       filesBinaryHashed += 1;
       file.hash = fileHash;
-      continue;
+      return;
     }
 
     const content = buf.toString("utf8");
@@ -339,59 +371,23 @@ async function analyzeFullDirectory(rootDir, options = {}) {
     file.hash = fileHash;
 
     if (isIgnoredRelativePath(file.relativePath, config.ignore || [])) {
-      continue;
+      return;
     }
-
-    // Also check rule-specific ignoreGlobs (e.g., production-leak)
-    const prodLeakIgnore = config.rules?.["production-leak"]?.ignoreGlobs || [];
     if (
       prodLeakIgnore.length &&
       isIgnoredRelativePath(file.relativePath, prodLeakIgnore)
     ) {
-      continue;
+      return;
     }
-
     if (isExcludedPath(file.relativePath, { universal: isUniversal })) {
-      continue;
+      return;
     }
 
     textRuleJobs.push({
       relativePath: file.relativePath,
       content,
       ext: file.ext,
-      options: {
-        productionLeak: rules.productionLeak !== false,
-        agencyHandoff: rules.agencyHandoff !== false,
-        euAiAct: rules.euAiAct !== false,
-        tokenBleed: rules.tokenBleed !== false,
-        architectureDrift: rules.architectureDrift !== false,
-        fileNaming: rules.fileNaming !== false,
-        security: rules.security !== false,
-        euAiActSeverity: options.euAiActSeverity || "medium",
-        productionPathsOnly: !isUniversal,
-        productionPaths: config.productionPaths || [
-          "server/",
-          "src/",
-          "app/",
-          "lib/",
-        ],
-        productionLeakOptions: {
-          ignoreGlobs:
-            leakOpts.ignoreGlobs ||
-            config.rules?.["production-leak"]?.ignoreGlobs ||
-            config.ignore ||
-            [],
-          allowlistFiles:
-            leakOpts.allowlistFiles ||
-            config.rules?.["production-leak"]?.allowlistFiles ||
-            [],
-          scannerMetaFiles: leakOpts.scannerMetaFiles || [],
-          severity: leakOpts.severity || "high",
-          intentClassification: leakOpts.intentClassification !== false,
-          plainSampleJson: leakOpts.plainSampleJson === true,
-        },
-        fictionPatterns,
-      },
+      options: textRuleJobOptions,
     });
 
     if (file.ext === ".json" || file.name.endsWith(".json")) {
@@ -420,6 +416,58 @@ async function analyzeFullDirectory(rootDir, options = {}) {
       }
     }
   }
+
+  let cursor = 0;
+  let processed = 0;
+  let stop = false;
+  let stopError = null;
+
+  async function hashWorker() {
+    while (!stop) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= files.length) return;
+      const file = files[index];
+      const io = await hashAndReadFile(file, maxContentBytes);
+      if (stop) return;
+      applyFileInventory(file, io);
+      processed += 1;
+      if (options.onProgress) {
+        options.onProgress({
+          processed,
+          total: files.length,
+          currentFile: file.relativePath,
+        });
+      }
+      if (process.env.SIMPLEBEACON_LIVE_FILE_LOG === "1") {
+        process.stderr.write(
+          `[${processed}/${files.length}] ${file.relativePath}\n`,
+        );
+      } else if (
+        !options.onProgress &&
+        processed > 0 &&
+        processed % BATCH_LOG_EVERY === 0
+      ) {
+        /* legacy batch log hook */
+      }
+      if (processed > 0 && processed % RESOURCE_SAMPLE_EVERY === 0) {
+        try {
+          sampleAndThrow({ filesFound: processed, phase: "walk" });
+        } catch (err) {
+          stop = true;
+          stopError = err;
+          console.error(err.message);
+          throw err;
+        }
+      }
+    }
+  }
+
+  const poolSize = resolveHashConcurrency(files.length);
+  await Promise.all(
+    Array.from({ length: poolSize }, () => hashWorker()),
+  );
+  if (stopError) throw stopError;
 
   const parallelWorkers = resolveWorkerCount(textRuleJobs.length, options);
   const passResults = await runTextRulePassesParallel(textRuleJobs, options);
@@ -488,6 +536,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
       maxContentBytes,
       ruleHitTotals,
       parallelTextRuleWorkers: parallelWorkers,
+      hashConcurrency: poolSize,
       textRuleJobs: textRuleJobs.length,
     },
     issues: finalIssues,
@@ -505,5 +554,6 @@ module.exports = {
   walkAllFiles,
   resolveMaxFiles,
   resolveMaxContentBytes,
+  resolveHashConcurrency,
   DEFAULT_SKIP_DIRS,
 };

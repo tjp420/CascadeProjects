@@ -354,12 +354,10 @@ function registerDataCleanupAnalyzeRoute(app, options = {}) {
           },
         );
       } catch (error) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: toClientError(error, "Invalid projectPath"),
-          });
+        return res.status(400).json({
+          success: false,
+          error: toClientError(error, "Invalid projectPath"),
+        });
       }
       if (!projectPath) {
         return res
@@ -406,12 +404,10 @@ function registerDataCleanupAnalyzeRoute(app, options = {}) {
         scanProfile: profile,
       });
     } catch (error) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: toClientError(error, "Data cleanup analysis failed"),
-        });
+      return res.status(400).json({
+        success: false,
+        error: toClientError(error, "Data cleanup analysis failed"),
+      });
     }
   }
 

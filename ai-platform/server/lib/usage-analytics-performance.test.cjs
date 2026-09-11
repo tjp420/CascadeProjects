@@ -16,9 +16,7 @@ describe("getScanPerformanceStats", () => {
 
   beforeEach(() => {
     if (fs.existsSync(STORE_PATH)) fs.unlinkSync(STORE_PATH);
-    delete require.cache[
-      require.resolve("../lib/usage-analytics-store.cjs")
-    ];
+    delete require.cache[require.resolve("../lib/usage-analytics-store.cjs")];
     analyticsStore = require("../lib/usage-analytics-store.cjs");
   });
 
@@ -68,7 +66,11 @@ describe("getScanPerformanceStats", () => {
       analyticsStore.recordScan({
         orgId: "org1",
         projectPath: "/test",
-        summary: { codeFilesAnalyzed: 10, totalFindings: 0, severityCounts: {} },
+        summary: {
+          codeFilesAnalyzed: 10,
+          totalFindings: 0,
+          severityCounts: {},
+        },
         scanDurationMs: i * 1000, // 1s, 2s, ..., 10s
         gateStatus: "pass",
       });
@@ -112,7 +114,11 @@ describe("getScanPerformanceStats", () => {
     analyticsStore.recordScan({
       orgId: "org1",
       projectPath: "/test",
-      summary: { codeFilesAnalyzed: 1000, totalFindings: 0, severityCounts: {} },
+      summary: {
+        codeFilesAnalyzed: 1000,
+        totalFindings: 0,
+        severityCounts: {},
+      },
       scanDurationMs: 10000, // 10 seconds
     });
 

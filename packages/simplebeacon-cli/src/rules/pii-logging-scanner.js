@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * PII (Personally Identifiable Information) logging scanner (SB-SEC-010).
  * Detects logging or console output of sensitive user data:
@@ -21,7 +22,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".php",
 ]);
 
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -188,6 +189,8 @@ async function scanFile(filePath) {
 }
 
 async function scanPiiLogging(rootDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const results = [];
   const skipDirs = new Set([...SKIP_DIRS, ...(options.skipDirs || [])]);
   const maxDepth = options.maxDepth ?? 30;

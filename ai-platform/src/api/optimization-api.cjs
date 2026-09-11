@@ -87,12 +87,10 @@ function setupOptimizationAPI(app, options = {}) {
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) =>
-      res
-        .status(429)
-        .json({
-          error: "too_many_requests",
-          message: "Too many requests, please try again later.",
-        }),
+      res.status(429).json({
+        error: "too_many_requests",
+        message: "Too many requests, please try again later.",
+      }),
   });
 
   app.get("/api/optimization/health", (req, res) => {
@@ -217,22 +215,17 @@ function setupOptimizationAPI(app, options = {}) {
         if (!candidate && req.body?.candidateId) {
           candidate = loadMergeCandidate(projectRoot, req.body.candidateId);
           if (!candidate) {
-            return res
-              .status(404)
-              .json({
-                success: false,
-                error:
-                  "Merge candidate not found — run consolidation scan first",
-              });
+            return res.status(404).json({
+              success: false,
+              error: "Merge candidate not found — run consolidation scan first",
+            });
           }
         }
         if (!candidate) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              error: "candidate or candidateId required",
-            });
+          return res.status(400).json({
+            success: false,
+            error: "candidate or candidateId required",
+          });
         }
 
         const preview = await buildMergePreview({

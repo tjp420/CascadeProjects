@@ -9,7 +9,7 @@
 // Optionally mock heavy config constants to avoid loading the full constants
 // facade in tests. Set MOCK_CONSTANTS=1 to enable the mock; otherwise the
 // real `constants.cjs` is used so most tests run against production-like values.
-process.env.MOCK_CONSTANTS = process.env.MOCK_CONSTANTS || '1';
+process.env.MOCK_CONSTANTS = process.env.MOCK_CONSTANTS || "1";
 if (process.env.MOCK_CONSTANTS === "1") {
   jest.mock("../server/config/constants.cjs", () => ({
     TIMEOUT_30S: 30000,
@@ -28,13 +28,13 @@ if (process.env.MOCK_CONSTANTS === "1") {
     // Minimal parseSize shim for tests: accepts strings like '5mb', '100kb' or numeric bytes
     parseSize: (v) => {
       try {
-        if (typeof v === 'number') return v;
-        if (!v || typeof v !== 'string') return 0;
+        if (typeof v === "number") return v;
+        if (!v || typeof v !== "string") return 0;
         const s = v.trim().toLowerCase();
-        const num = parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
-        if (s.endsWith('kb')) return Math.round(num * 1024);
-        if (s.endsWith('mb')) return Math.round(num * 1024 * 1024);
-        if (s.endsWith('gb')) return Math.round(num * 1024 * 1024 * 1024);
+        const num = parseFloat(s.replace(/[^0-9.]/g, "")) || 0;
+        if (s.endsWith("kb")) return Math.round(num * 1024);
+        if (s.endsWith("mb")) return Math.round(num * 1024 * 1024);
+        if (s.endsWith("gb")) return Math.round(num * 1024 * 1024 * 1024);
         return Math.round(num);
       } catch (e) {
         return 0;
@@ -49,8 +49,8 @@ const constants = require("../server/config/constants.cjs");
 try {
   jest.mock("minimatch", () => {
     // Defer to the real package and normalize exported shapes.
-    // eslint-disable-next-line global-require
-    const real = require("minimatch");
+    // Use jest.requireActual to avoid recursive mock resolution.
+    const real = jest.requireActual("minimatch");
 
     // Resolve a callable implementation from possible shapes:
     // - CommonJS function export: (path, pattern, opts)
@@ -59,7 +59,8 @@ try {
     let impl = null;
     if (typeof real === "function") impl = real;
     else if (real && typeof real.default === "function") impl = real.default;
-    else if (real && typeof real.minimatch === "function") impl = real.minimatch;
+    else if (real && typeof real.minimatch === "function")
+      impl = real.minimatch;
     else if (real && typeof real.match === "function") impl = real.match;
 
     if (!impl) {
@@ -81,10 +82,24 @@ try {
   // best-effort; don't fail tests if mocking fails
 }
 process.env.NODE_ENV = "test";
+
+// Provide a safe default vault password for internal-dashboard tests in CI/local
+// so tests that assert presence of DASHBOARD_VAULT_PASSWORD do not abort startup.
+process.env.DASHBOARD_VAULT_PASSWORD =
+  process.env.DASHBOARD_VAULT_PASSWORD || "test-dashboard-vault-password";
 // Disable Redis usage in admin-throttle during Jest tests to avoid background
 // connection attempts and noisy logging when Redis is not available in CI.
 process.env.ADMIN_THROTTLE_DISABLE_REDIS =
   process.env.ADMIN_THROTTLE_DISABLE_REDIS || "1";
+
+// Mock express-rate-limit to a no-op middleware in tests so global rate limiting
+// does not cause unrelated integration or unit tests to return 429s.
+try {
+  jest.mock("express-rate-limit", () => {
+    // return a factory that returns an express middleware (req,res,next)
+    return () => (_req, _res, next) => next();
+  });
+} catch (e) {}
 
 // Mock app-logger early so background services (SIEM exporter, telemetry, etc.)
 // do not attempt to write to console after Jest has torn down. This prevents
@@ -152,7 +167,8 @@ process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || "true";
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD =
   process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || "true";
 // Avoid startup audit logs during Jest runs which may schedule async I/O after teardown
-process.env.TEST_DISABLE_STARTUP_LOG = process.env.TEST_DISABLE_STARTUP_LOG || "1";
+process.env.TEST_DISABLE_STARTUP_LOG =
+  process.env.TEST_DISABLE_STARTUP_LOG || "1";
 
 // Isolate token-registry.json from test runs: point token-db.cjs at a temp file
 // so tests that indirectly write session tokens (e.g. session-token-replicator.test.cjs)

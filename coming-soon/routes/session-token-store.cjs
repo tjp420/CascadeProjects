@@ -13,7 +13,7 @@ const _store = new Map();
 function set(sessionId, entry) {
     _store.set(sessionId, {
         ...entry,
-        createdAt: Date.now(),
+        createdAt: Date.now()
     });
 }
 

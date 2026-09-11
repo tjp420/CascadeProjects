@@ -1,7 +1,7 @@
-import { createRequire } from 'module';
+import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const simplebeacon = require('./index.js');
+const simplebeacon = require("./index.js");
 
 export const version = simplebeacon.version;
 export const Simplebeacon = simplebeacon.Simplebeacon;
@@ -16,8 +16,10 @@ export const __barrel__ = simplebeacon.__barrel__;
 export const loadSimplebeaconConfig = simplebeacon.loadSimplebeaconConfig;
 export const loadSamplebeaconConfig = simplebeacon.loadSamplebeaconConfig;
 export const resolveMockDataScanPaths = simplebeacon.resolveMockDataScanPaths;
-export const getRepositoryAuditBaseline = simplebeacon.getRepositoryAuditBaseline;
-export const getConsistencyAnchorSamples = simplebeacon.getConsistencyAnchorSamples;
+export const getRepositoryAuditBaseline =
+  simplebeacon.getRepositoryAuditBaseline;
+export const getConsistencyAnchorSamples =
+  simplebeacon.getConsistencyAnchorSamples;
 export const validateConfig = simplebeacon.validateConfig;
 
 // Scan & Gate

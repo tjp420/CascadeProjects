@@ -1,11 +1,11 @@
 // server/setup_public.js
 // Creates public/ success & cancel pages for the Stripe test server
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const repoRoot = path.resolve(__dirname, '..');
-const publicDir = path.join(repoRoot, 'public');
+const repoRoot = path.resolve(__dirname, "..");
+const publicDir = path.join(repoRoot, "public");
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
 
 const successHtml = `<!doctype html>
@@ -33,6 +33,6 @@ const cancelHtml = `<!doctype html>
 </body>
 </html>`;
 
-fs.writeFileSync(path.join(publicDir, 'success.html'), successHtml, 'utf8');
-fs.writeFileSync(path.join(publicDir, 'cancel.html'), cancelHtml, 'utf8');
-console.log('Created public/success.html and public/cancel.html');
+fs.writeFileSync(path.join(publicDir, "success.html"), successHtml, "utf8");
+fs.writeFileSync(path.join(publicDir, "cancel.html"), cancelHtml, "utf8");
+console.log("Created public/success.html and public/cancel.html");

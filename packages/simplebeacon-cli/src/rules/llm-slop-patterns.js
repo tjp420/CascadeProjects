@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * LLM slop / placeholder detection (SB-FICTION-001–004).
@@ -63,7 +64,7 @@ const SKIP_DIRS = new Set([
 
 // Directory names containing __tests__ are already in SKIP_DIRS above, but the
 // isExcludedPath regex below also skips explicit test directories to be safe.
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const RULE_CATALOG_RAW = require("./llm-slop-catalog.json");
 const RULE_CATALOG = RULE_CATALOG_RAW.map((r) => ({
@@ -419,6 +420,8 @@ async function scanUnknownNpmDependencies(relativePath, content, options = {}) {
 }
 
 async function scanLlmSlopPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const productionPaths = options.productionPaths || sourcePaths;
   const pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];

@@ -19,7 +19,7 @@ SimpleBeacon is a **static architectural governance engine** designed for softwa
 ✅ Architecture review workflows (code audits, pre-merge gates)  
 ✅ Regulatory compliance programs (EU AI Act, SOC 2, board certifications)  
 ✅ AI/LLM governance (preventing AI-generated code defects before deployment)  
-✅ Monorepo dependency management (scaling codebases without decay)  
+✅ Monorepo dependency management (scaling codebases without decay)
 
 ---
 
@@ -29,16 +29,16 @@ SimpleBeacon is **not** a security operations platform, penetration testing tool
 
 ### Out of Scope
 
-| Service | Why Not SimpleBeacon | Better Alternatives |
-|---------|----------------------|---------------------|
-| **Penetration Testing / Pentest** | We don't execute code, invoke APIs, or test runtime behavior. Pentesting requires dynamic exploitation on live infrastructure. | Bug bounty platforms (HackerOne, Bugcrowd), dedicated pentest firms, OWASP ZAP, Burp Suite |
-| **Vulnerability Disclosure Programs (VDP)** | VDP platforms manage submissions, rewards, and remediation workflows. SimpleBeacon is a tool, not a program. | HackerOne, Intigriti, Bugcrowd, Synack |
-| **Bug Bounty Programs (BBP)** | BBP platforms handle bounty tiers, dispute resolution, and payments. SimpleBeacon is engineering-focused, not a marketplace. | HackerOne, Bugcrowd, Synack, YesWeHack |
-| **Capture the Flag (CTF)** | CTF competitions are tactical hacking exercises. SimpleBeacon is architectural governance, not a game. | CTFTime, Hack The Box, TryHackMe, CtfShow |
-| **Dynamic Penetration Tests (Pentesting)** | Pentests require runtime access, exploitation chains, and adversarial scenarios. We do static analysis only. | Pentera, Rapid7 Nexpose, Qualys, AWS GuardDuty |
-| **External Reconnaissance / Asset Discovery** | We don't scan the internet, DNS records, or external infrastructure. Recon is network-level; we analyze source code. | Shodan, Certificate Transparency logs, DNS enumeration tools, Nmap, SpiderFoot |
-| **Timed Security Challenges** | Security competitions require dynamic orchestration and live scoring. We're a code analyzer. | Hack The Box, TryHackMe, PentesterLab, CREST |
-| **Code Audit (Partial)** | We catch some code quality and security issues statically. True audits require dynamic testing, threat modeling, and expert review. | Professional code audit firms, OWASP guidelines, security consultants |
+| Service                                       | Why Not SimpleBeacon                                                                                                                | Better Alternatives                                                                        |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Penetration Testing / Pentest**             | We don't execute code, invoke APIs, or test runtime behavior. Pentesting requires dynamic exploitation on live infrastructure.      | Bug bounty platforms (HackerOne, Bugcrowd), dedicated pentest firms, OWASP ZAP, Burp Suite |
+| **Vulnerability Disclosure Programs (VDP)**   | VDP platforms manage submissions, rewards, and remediation workflows. SimpleBeacon is a tool, not a program.                        | HackerOne, Intigriti, Bugcrowd, Synack                                                     |
+| **Bug Bounty Programs (BBP)**                 | BBP platforms handle bounty tiers, dispute resolution, and payments. SimpleBeacon is engineering-focused, not a marketplace.        | HackerOne, Bugcrowd, Synack, YesWeHack                                                     |
+| **Capture the Flag (CTF)**                    | CTF competitions are tactical hacking exercises. SimpleBeacon is architectural governance, not a game.                              | CTFTime, Hack The Box, TryHackMe, CtfShow                                                  |
+| **Dynamic Penetration Tests (Pentesting)**    | Pentests require runtime access, exploitation chains, and adversarial scenarios. We do static analysis only.                        | Pentera, Rapid7 Nexpose, Qualys, AWS GuardDuty                                             |
+| **External Reconnaissance / Asset Discovery** | We don't scan the internet, DNS records, or external infrastructure. Recon is network-level; we analyze source code.                | Shodan, Certificate Transparency logs, DNS enumeration tools, Nmap, SpiderFoot             |
+| **Timed Security Challenges**                 | Security competitions require dynamic orchestration and live scoring. We're a code analyzer.                                        | Hack The Box, TryHackMe, PentesterLab, CREST                                               |
+| **Code Audit (Partial)**                      | We catch some code quality and security issues statically. True audits require dynamic testing, threat modeling, and expert review. | Professional code audit firms, OWASP guidelines, security consultants                      |
 
 ---
 
@@ -79,20 +79,21 @@ SimpleBeacon is **not** a security operations platform, penetration testing tool
 
 **For comprehensive security coverage, combine SimpleBeacon with:**
 
-| Goal | SimpleBeacon Role | Complementary Tools |
-|------|-------------------|----------------------|
-| Prevent architectural debt | Primary | SonarQube, ESLint, TSLint |
-| Catch security issues | Secondary | Snyk, OWASP ZAP, Burp Suite, Aqua Trivy |
-| Compliance tracking | Primary | Grype, Cyclonedx BOM, OWASP Dependency Check |
-| Runtime monitoring | Not applicable | Datadog, New Relic, Splunk, AWS CloudTrail |
-| Threat modeling | Secondary | Microsoft Threat Modeling Tool, TM4J |
-| Infrastructure as Code scanning | Secondary | Terraform Cloud, CloudFormation Guard, Checkov |
+| Goal                            | SimpleBeacon Role | Complementary Tools                            |
+| ------------------------------- | ----------------- | ---------------------------------------------- |
+| Prevent architectural debt      | Primary           | SonarQube, ESLint, TSLint                      |
+| Catch security issues           | Secondary         | Snyk, OWASP ZAP, Burp Suite, Aqua Trivy        |
+| Compliance tracking             | Primary           | Grype, Cyclonedx BOM, OWASP Dependency Check   |
+| Runtime monitoring              | Not applicable    | Datadog, New Relic, Splunk, AWS CloudTrail     |
+| Threat modeling                 | Secondary         | Microsoft Threat Modeling Tool, TM4J           |
+| Infrastructure as Code scanning | Secondary         | Terraform Cloud, CloudFormation Guard, Checkov |
 
 ---
 
 ## 📋 FAQ: Is SimpleBeacon Right for Me?
 
 ### ✅ Yes, if you need to:
+
 - Gate code merges on architectural compliance
 - Prevent circular dependencies in large monorepos
 - Flag AI-generated code defects before production
@@ -100,6 +101,7 @@ SimpleBeacon is **not** a security operations platform, penetration testing tool
 - Shift security left into the development loop
 
 ### ❌ No, if you need to:
+
 - Run penetration tests or red-team exercises
 - Discover vulnerabilities in live applications
 - Manage bug bounty submissions or security events
@@ -111,11 +113,13 @@ SimpleBeacon is **not** a security operations platform, penetration testing tool
 ## 📞 Getting Help
 
 **For SimpleBeacon issues:**
+
 - GitHub Issues: [simplebeacon-cli](https://github.com/cascadeprojects/simplebeacon)
 - Documentation: [docs.simplebeacon.ai](https://docs.simplebeacon.ai)
 - Contact: [support@simplebeacon.ai](mailto:support@simplebeacon.ai)
 
 **For security services outside our scope:**
+
 - Penetration testing: Contact a professional pentest firm (OWASP, NIST recommendations)
 - Bug bounties: Join platforms like HackerOne or Bugcrowd
 - Vulnerability disclosure: Use coordinated disclosure best practices

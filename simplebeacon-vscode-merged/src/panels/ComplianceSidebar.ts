@@ -230,7 +230,7 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
         const label = total >= 6 ? 'Red' : total >= 3 ? 'Amber' : 'Green';
         const sel = selectedCell && selectedCell.impact===imp && selectedCell.likelihood===lk ? 'selected' : '';
         const title = 'Filter issues by '+imp+' impact and '+lk+' likelihood ('+count+' found)';
-        html += '<td class="'+cls+' '+sel+'" role="button" tabindex="0" aria-pressed="'+(sel? 'true':'false')+'" title="'+title.replace(/"/g,'&quot;')+'" onclick="cellClick(\\''+imp+'\\',\\''+lk+'\\')" onkeydown="if(event.key===\\'Enter\\' || event.key===\\' \\') { event.preventDefault(); cellClick(\\''+imp+'\\',\\''+lk+'\\'); }"><div class="cell-num">'+count+'</div><div class="cell-label">'+label+'</div></td>';
+        html += '<td class="'+cls+' '+sel+'" role="button" tabindex="0" aria-pressed="'+(sel? 'true':'false')+'" title="'+escapeHtml(title)+'" onclick="cellClick(\\''+imp+'\\',\\''+lk+'\\')" onkeydown="if(event.key===\\'Enter\\' || event.key===\\' \\') { event.preventDefault(); cellClick(\\''+imp+'\\',\\''+lk+'\\'); }"><div class="cell-num">'+count+'</div><div class="cell-label">'+escapeHtml(label)+'</div></td>';
       });
       html += '</tr>';
     });
@@ -238,7 +238,7 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
 
     if (d.remediation && d.remediation.total > 0) {
       html += '<div class="remediation"><strong>Remediation:</strong> '+d.remediation.applied+'/'+d.remediation.total+' applied';
-      if (d.remediation.failed > 0) html += ' <span class="badge badge-red">'+d.remediation.failed+' failed</span>';
+      if (d.remediation.failed > 0) html += ' <span class="badge badge-red">'+escapeHtml(String(d.remediation.failed))+' failed</span>';
       html += '</div>';
     }
 
@@ -246,10 +246,11 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
       html += '<div class="findings">';
       d.topFindings.forEach(f => {
         const cls = 'finding-'+f.severity;
-        const file = f.filePath.split('/').pop().split('\\\\').pop();
-        html += '<div class="finding '+cls+'" onclick="openFile(\\''+f.filePath.replace(/\\\\/g,'\\\\\\\\')+'\\','+(f.line||0)+')">';
-        html += '<div class="finding-type">'+f.type+' <span class="badge badge-'+(f.severity==='critical'||f.severity==='high'?'red':f.severity==='medium'?'yellow':'green')+'">'+f.severity+'</span></div>';
-        html += '<div class="finding-file">'+file+(f.line?':'+f.line:'')+'</div>';
+        const file = (f.filePath || '').split('/').pop()?.split('\\\\').pop() || 'unknown';
+        const filePathSafe = JSON.stringify(f.filePath || '');
+        html += '<div class="finding '+cls+'" onclick="openFile('+filePathSafe+','+(f.line||0)+')">';
+        html += '<div class="finding-type">'+escapeHtml(String(f.type || 'unknown'))+' <span class="badge badge-'+(f.severity==='critical'||f.severity==='high'?'red':f.severity==='medium'?'yellow':'green')+'">'+escapeHtml(String(f.severity || 'low'))+'</span></div>';
+        html += '<div class="finding-file">'+escapeHtml(file)+(f.line?':'+escapeHtml(String(f.line)): '')+'</div>';
         html += '</div>';
       });
       html += '</div>';
@@ -259,7 +260,11 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   function stat(n, label) {
-    return '<div class="stat"><div class="stat-num">'+n+'</div><div class="stat-label">'+label+'</div></div>';
+    return '<div class="stat"><div class="stat-num">'+(Number.isFinite(n) ? n : 0)+'</div><div class="stat-label">'+escapeHtml(String(label))+'</div></div>';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function cellClick(imp, lk) {

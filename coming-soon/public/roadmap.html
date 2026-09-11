@@ -2,6 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+    <script data-sb-beacon-neutralize="1">(function(){function isBeacon(el){if(!el||el.tagName!=='SCRIPT')return false;var src=el.src||el.getAttribute('src')||'';var cf=el.getAttribute('data-cf-beacon');return src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1||(cf&&cf.length>0)}function neutralize(el){if(!isBeacon(el))return;try{el.removeAttribute('integrity')}catch(e){}try{el.removeAttribute('crossorigin')}catch(e){}try{el.type='text/plain'}catch(e){}try{el.removeAttribute('src')}catch(e){}}var origCreate=document.createElement.bind(document);document.createElement=function(tag){var el=origCreate(tag);if(typeof tag==='string'&&tag.toLowerCase()==='script'){var origSet=el.setAttribute.bind(el);el.setAttribute=function(name,value){var beacon=(typeof value==='string'&&value.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1)||(typeof el.src==='string'&&el.src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1);if(beacon&&(name==='integrity'||name==='crossorigin'))return;if(name==='src'&&typeof value==='string'&&value.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1){try{el.removeAttribute('integrity')}catch(e){}try{el.removeAttribute('crossorigin')}catch(e){}}return origSet(name,value)}}return el};if(window.MutationObserver){var mo=new MutationObserver(function(records){records.forEach(function(record){if(record.type==='attributes'&&record.target)neutralize(record.target);Array.prototype.forEach.call(record.addedNodes||[],function(node){if(node.nodeType===1){if(node.tagName==='SCRIPT')neutralize(node);if(node.querySelectorAll)Array.prototype.forEach.call(node.querySelectorAll('script'),neutralize)}})})});mo.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['src','integrity','crossorigin']})}function sweep(){Array.prototype.forEach.call(document.querySelectorAll('script'),neutralize)}sweep();document.addEventListener('DOMContentLoaded',sweep)})();</script>
     <title>SimpleBeacon Auto-Remediation Roadmap</title>
     <meta name="description" content="See how simplebeacon fix evolves from local CLI cleanup to IDE-native remediation and enterprise compliance.">
     <link rel="canonical" href="https://simplebeacon.ai/roadmap.html">
@@ -29,19 +30,20 @@
                 }
                 function neutralize(el) {
                     if (!isBeacon(el)) return;
-                    // Edge-injected beacon tags may carry an integrity hash that does not match
-                    // the actual script body, which causes SRI console errors. Stop them before
-                    // the browser fetches by stripping src and disabling execution.
-                    if (el.hasAttribute && el.hasAttribute('integrity')) {
-                        try {
-                            el.removeAttribute('src');
-                        } catch (_) {}
-                        try {
-                            el.type = 'text/plain';
-                        } catch (_) {}
-                    }
-                    el.removeAttribute('integrity');
-                    el.removeAttribute('crossorigin');
+                    // Strip integrity BEFORE src. Removing src while SRI remains
+                    // hashes empty content (sha512 of "") and logs a console error.
+                    try {
+                        el.removeAttribute('integrity');
+                    } catch (_) {}
+                    try {
+                        el.removeAttribute('crossorigin');
+                    } catch (_) {}
+                    try {
+                        el.type = 'text/plain';
+                    } catch (_) {}
+                    try {
+                        el.removeAttribute('src');
+                    } catch (_) {}
                     var isBrave = typeof navigator.brave !== 'undefined';
                     var ua = navigator.userAgent || '';
                     if (isBrave || /Brave/.test(ua)) {
@@ -1032,6 +1034,7 @@
                 var signoutBtn = document.getElementById('nav-signout-btn');
                 var signinBtn = document.getElementById('nav-signin-btn');
                 var TOKEN_KEYS = [
+                    'sb_auth_token',
                     'cascadeAuthToken',
                     'access_token',
                     'token',

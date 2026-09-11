@@ -16,14 +16,15 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
 } from "../utils-lib/simplebeaconignore.browser.js";
+import { getAttestation, isAttestationValid } from "./scanAttestation.js";
 import {
-  getAttestation,
-  isAttestationValid,
-} from "./scanAttestation.js";
+  partitionScanFindings,
+  selectVerifiedFindings,
+} from "../utils-lib/finding-noise.browser.js";
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260828workerfix1";
+const WORKER_ASSET_VERSION = "20260910noisefix1";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -74,7 +75,7 @@ function resolveScanWorkerUrl() {
 // Offline persistence: After a successful prefetch, the inlined script is stored in
 // the Cache API. When the user is offline (or DNS fails), we read from cache so the
 // scan worker can still be created without any network request.
-const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v1";
+const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v20260910";
 let _cachedWorkerScript = null; // fully inlined, self-contained script
 let _prefetchPromise = null;
 
@@ -86,7 +87,9 @@ async function persistWorkerToCache(scriptText) {
       headers: { "Content-Type": "application/javascript" },
     });
     await cache.put("simplebeacon-scan-worker-inlined", resp);
-    console.warn("[localScan] Worker script persisted to Cache API for offline use");
+    console.warn(
+      "[localScan] Worker script persisted to Cache API for offline use",
+    );
   } catch (e) {
     console.warn("[localScan] Cache API persist failed:", e?.message || e);
   }
@@ -100,7 +103,9 @@ async function loadWorkerFromCache() {
     if (resp && resp.ok) {
       const text = await resp.text();
       if (text && text.length > 100) {
-        console.warn(`[localScan] Loaded worker from Cache API (${text.length} bytes) — offline-ready`);
+        console.warn(
+          `[localScan] Loaded worker from Cache API (${text.length} bytes) — offline-ready`,
+        );
         return text;
       }
     }
@@ -133,7 +138,10 @@ function prefetchWorkerScript() {
 
       // Fetch the worker script and all its imports in parallel
       const bridgeUrl = new URL("./scan-wasm-bridge.js", workerBaseUrl);
-      const ignoreLibUrl = new URL("../utils-lib/simplebeaconignore.browser.js", workerBaseUrl);
+      const ignoreLibUrl = new URL(
+        "../utils-lib/simplebeaconignore.browser.js",
+        workerBaseUrl,
+      );
 
       console.warn("[localScan] Prefetching worker + imports...");
       const [workerText, bridgeText, ignoreLibText] = await Promise.all([
@@ -143,15 +151,25 @@ function prefetchWorkerScript() {
       ]);
 
       // Create blob URLs for the imported modules (these are in-memory, no DNS needed)
-      const bridgeBlob = new Blob([bridgeText], { type: "application/javascript" });
+      const bridgeBlob = new Blob([bridgeText], {
+        type: "application/javascript",
+      });
       const bridgeBlobUrl = URL.createObjectURL(bridgeBlob);
-      const ignoreLibBlob = new Blob([ignoreLibText], { type: "application/javascript" });
+      const ignoreLibBlob = new Blob([ignoreLibText], {
+        type: "application/javascript",
+      });
       const ignoreLibBlobUrl = URL.createObjectURL(ignoreLibBlob);
 
       // Rewrite the worker script's imports to use blob URLs
       let inlinedScript = workerText
-        .replace(/from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g, `from "${bridgeBlobUrl}"`)
-        .replace(/from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g, `from "${ignoreLibBlobUrl}"`);
+        .replace(
+          /from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g,
+          `from "${bridgeBlobUrl}"`,
+        )
+        .replace(
+          /from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g,
+          `from "${ignoreLibBlobUrl}"`,
+        );
 
       // Also rewrite any other relative imports to absolute URLs as a safety net
       inlinedScript = inlinedScript.replace(
@@ -170,14 +188,23 @@ function prefetchWorkerScript() {
       _cachedWorkerScript = inlinedScript;
       console.warn(
         "[localScan] Prefetched and inlined worker + imports:",
-        workerText.length, "+", bridgeText.length, "+", ignoreLibText.length,
-        "= ", inlinedScript.length, "bytes (self-contained)",
+        workerText.length,
+        "+",
+        bridgeText.length,
+        "+",
+        ignoreLibText.length,
+        "= ",
+        inlinedScript.length,
+        "bytes (self-contained)",
       );
       // Persist to Cache API for offline use across sessions
       await persistWorkerToCache(inlinedScript);
       return inlinedScript;
     } catch (e) {
-      console.warn("[localScan] Worker prefetch failed (will retry at scan time):", e?.message || e);
+      console.warn(
+        "[localScan] Worker prefetch failed (will retry at scan time):",
+        e?.message || e,
+      );
       // Try loading from Cache API as fallback (offline scenario)
       const cached = await loadWorkerFromCache();
       if (cached) {
@@ -436,8 +463,12 @@ function buildReport(
   const categories = {};
   const findingsList = [];
   const rawIssues = [];
+  const qualityIssues = [];
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
   const totalFolders = meta.folderCount || 0;
+  const { production: productionFindings, noise: noiseFindings } =
+    partitionScanFindings(findings || []);
+  const verifiedFindings = selectVerifiedFindings(productionFindings);
   if (totalFiles === 0) {
     findingsList.push({
       category: "scan-empty",
@@ -453,7 +484,18 @@ function buildReport(
       findings: [findingsList[0]],
     };
   }
-  for (const f of findings || []) {
+  for (const f of noiseFindings) {
+    qualityIssues.push({
+      type: f.rule || f.analyzer || "finding",
+      filePath: f.filePath || "",
+      line: f.line || 1,
+      severity: String(f.severity || "medium").toLowerCase(),
+      description: f.impact || "Filtered non-production path",
+      count: Number(f.count) || 1,
+      lane: "quality",
+    });
+  }
+  for (const f of productionFindings) {
     const rule = f.rule || f.analyzer || "finding";
     const severity = String(f.severity || "medium").toLowerCase();
     const count = Number(f.count) || 1;
@@ -568,22 +610,13 @@ function buildReport(
         (meta.telemetry?.textErrors || 0),
     ),
   };
-  // === Quality scorecard (6 dimensions, ported from legacy scanner-engine.js) ===
-  const qualityScorecard = {
-    accuracy: blockingCount === 0 ? 100 : Math.max(0, 100 - blockingCount * 10),
+  // Penalty math (accuracy: 0 after 10 highs) is internal only — do not publish it.
+  const internalScorecard = {
     completeness:
       totalFiles >= MIN_FILES_FOR_PASS
         ? 100
         : Math.round((totalFiles / MIN_FILES_FOR_PASS) * 100),
-    consistency:
-      rawIssues.filter((i) => i.severity === "medium").length === 0
-        ? 100
-        : Math.max(
-            0,
-            100 - rawIssues.filter((i) => i.severity === "medium").length * 5,
-          ),
-    timeliness: 100, // No staleness check in browser scan
-    validity: gateScore,
+    timeliness: 100,
     integrity:
       mockSampleFiles === 0 ? 100 : Math.max(0, 100 - mockSampleFiles * 10),
   };
@@ -597,11 +630,32 @@ function buildReport(
     : null;
   const limitations = [
     `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
-    "Pattern matching on file contents — not LLM semantic review.",
+    `Headline counts exclude docs, lockfiles, translations, and vendor bundles (${noiseFindings.length} noise findings held in qualityIssues).`,
+    "Pattern matching on file contents — not LLM semantic review. Reachability is not proven.",
+    "Signals are not vulnerabilities. Verified requires an evidence-backed attack/data-flow chain.",
     "Jest not executed during scan — use npm test separately.",
   ];
   if (scanLimitNote) limitations.unshift(scanLimitNote);
   if (incompleteDropNote) limitations.unshift(incompleteDropNote);
+  const signalsAnalyzed = (findings || []).length;
+  const requireReview = verifiedFindings.length;
+  const automaticallyDismissed = Math.max(
+    0,
+    signalsAnalyzed - requireReview,
+  );
+  // Browser path has no source-backed verifier yet — never invent Verified.
+  const verifiedVulnerabilities = 0;
+  const maintainerHeadline = {
+    signalsAnalyzed,
+    automaticallyDismissed,
+    requireReview,
+    verifiedVulnerabilities,
+    summary:
+      `${signalsAnalyzed} code signals analyzed. ` +
+      `${automaticallyDismissed} automatically dismissed. ` +
+      `${requireReview} require review. ` +
+      `${verifiedVulnerabilities} verified vulnerabilities.`,
+  };
   return {
     type: "simplebeacon-report",
     version: "1.0.0",
@@ -615,12 +669,59 @@ function buildReport(
       codeFilesAnalyzed: analyzedFiles,
       codeFilesDiscovered: totalFiles,
       totalFindings,
+      rawFindingCount: (findings || []).length,
+      noiseFindingCount: noiseFindings.length,
       severityCounts,
     },
     categories,
     findings: findingsList,
     rawIssues,
     detectedIssues: rawIssues,
+    qualityIssues,
+    verifiedFindings,
+    signal: {
+      pipeline: ["scan", "classify", "score", "triage", "investigate"],
+      scannedCount: signalsAnalyzed,
+      dismissedCount: automaticallyDismissed,
+      investigateCount: requireReview,
+      investigate: verifiedFindings,
+      candidates: verifiedFindings.slice(0, 10),
+      note: "investigate means worth human review — not a confirmed vulnerability.",
+    },
+    verification: {
+      pipeline: [
+        "pattern-detection",
+        "contextual-triage",
+        "semantic-verification",
+        "evidence",
+        "maintainer-outreach",
+      ],
+      dismissed: [],
+      investigate: verifiedFindings.map((f) => ({
+        ...f,
+        verification: "investigate",
+        verificationReason:
+          f.nextAction ||
+          "Pattern match retained after noise filter; attack/data-flow chain not established.",
+      })),
+      verified: [],
+      note: "verified is an evidence decision. actionable/outreach is a business decision and is not set here.",
+    },
+    maintainerHeadline,
+    contactGrade: {
+      pipeline: [
+        "pattern-detection",
+        "contextual-triage",
+        "semantic-verification",
+        "evidence",
+        "maintainer-outreach",
+      ],
+      scannedCount: signalsAnalyzed,
+      filteredOutCount: automaticallyDismissed,
+      verifiedCount: verifiedVulnerabilities,
+      // Never email from pattern matches alone.
+      emailReady: false,
+    },
     issueCount,
     severityCounts,
     repositoryFilesTotal: totalFiles,
@@ -678,8 +779,12 @@ function buildReport(
     fileInventory,
     removableFiles: removableFiles.slice(0, 100), // Cap at 100 for UI
     removableFilesTotal: removableFiles.length,
-    diagnosticReport,
-    qualityScorecard,
+    diagnosticReport: {
+      ...diagnosticReport,
+      rawFindingCount: (findings || []).length,
+      noiseFindingCount: noiseFindings.length,
+      internalScorecard,
+    },
   };
 }
 /**
@@ -1058,12 +1163,10 @@ export async function runLocalScan(options = {}) {
       ) {
         files.push({ path, handle: f });
         _debugKept++;
-        if (_debugKeptSamples.length < 5)
-          _debugKeptSamples.push(path);
+        if (_debugKeptSamples.length < 5) _debugKeptSamples.push(path);
       } else {
         _debugExcluded++;
-        if (_debugExcludedSamples.length < 5)
-          _debugExcludedSamples.push(path);
+        if (_debugExcludedSamples.length < 5) _debugExcludedSamples.push(path);
       }
       if (i % 5000 === 0 && i > 0) await new Promise((r) => setTimeout(r, 0));
     }
@@ -1120,9 +1223,7 @@ export async function runLocalScan(options = {}) {
     // If the user's .simplebeaconignore filtered out every file, fall back to built-in
     // exclusions so a misconfigured catch-all doesn't silently block the scan.
     if (files.length === 0 && fileArray.length > 0) {
-      console.warn(
-        "[localScan] Falling back to built-in ignore patterns.",
-      );
+      console.warn("[localScan] Falling back to built-in ignore patterns.");
       ignoreCtx = createIgnoreContext(
         getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo),
         projectName,
@@ -1300,12 +1401,16 @@ export async function runLocalScan(options = {}) {
         }
         // If prefetch failed (offline), try Cache API directly
         if (!scriptText) {
-          console.warn("[localScan] Prefetch returned nothing — trying Cache API fallback...");
+          console.warn(
+            "[localScan] Prefetch returned nothing — trying Cache API fallback...",
+          );
           scriptText = await loadWorkerFromCache();
         }
         if (scriptText) {
           // The cached script already has imports inlined as blob URLs — no rewriting needed
-          const blob = new Blob([scriptText], { type: "application/javascript" });
+          const blob = new Blob([scriptText], {
+            type: "application/javascript",
+          });
           blobUrlForWorker = URL.createObjectURL(blob);
           console.warn(
             "[localScan] Created blob worker from prefetched self-contained script (no network request needed)",
@@ -1314,13 +1419,18 @@ export async function runLocalScan(options = {}) {
           workerCreated = true;
         }
       } catch (cacheErr) {
-        console.error("[localScan] Cached script blob worker failed:", cacheErr);
+        console.error(
+          "[localScan] Cached script blob worker failed:",
+          cacheErr,
+        );
       }
     }
 
     // Approach 2: Inline shim blob worker (import via absolute URL)
     if (!workerCreated) {
-      const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+      const isFirefox =
+        typeof navigator !== "undefined" &&
+        /firefox/i.test(navigator.userAgent);
       try {
         const absWorkerUrl = new URL(workerUrlStr);
         absWorkerUrl.search = "";
@@ -1328,7 +1438,9 @@ export async function runLocalScan(options = {}) {
           absWorkerUrl.searchParams.set("_sbcb", `${Date.now()}`);
         }
         const shimCode = `// Inline shim — imports the real worker module\nimport "${absWorkerUrl.href}";\n`;
-        const shimBlob = new Blob([shimCode], { type: "application/javascript" });
+        const shimBlob = new Blob([shimCode], {
+          type: "application/javascript",
+        });
         blobUrlForWorker = URL.createObjectURL(shimBlob);
         console.warn(
           `[localScan] ${isFirefox ? "Firefox" : "Chrome/Edge"}: inline shim blob worker importing:`,
@@ -1346,7 +1458,10 @@ export async function runLocalScan(options = {}) {
       try {
         const fetchUrl = new URL(workerUrlStr);
         fetchUrl.searchParams.set("_sbcb", `${Date.now()}`);
-        console.warn("[localScan] Fetching worker script (cache-busted):", fetchUrl.href);
+        console.warn(
+          "[localScan] Fetching worker script (cache-busted):",
+          fetchUrl.href,
+        );
         const resp = await fetch(fetchUrl.href);
         if (!resp.ok)
           throw new Error(`Fetch failed with status ${resp.status}`);
@@ -1387,11 +1502,17 @@ export async function runLocalScan(options = {}) {
       try {
         const directUrl = new URL(workerUrlStr);
         directUrl.search = "";
-        console.warn("[localScan] Fallback: direct module worker:", directUrl.href);
+        console.warn(
+          "[localScan] Fallback: direct module worker:",
+          directUrl.href,
+        );
         worker = new Worker(directUrl, { type: "module" });
         workerCreated = true;
       } catch (ctorErr) {
-        console.error("[localScan] direct Worker construction also failed:", ctorErr);
+        console.error(
+          "[localScan] direct Worker construction also failed:",
+          ctorErr,
+        );
         throw new Error(
           `Failed to create module worker from ${workerUrlStr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`,
         );
@@ -1413,10 +1534,20 @@ export async function runLocalScan(options = {}) {
   // If we created a blob URL for the worker script, keep it alive until the worker posts its first message or errors.
   // Also add an early error listener to catch module loading failures before runBatchedWorkerScan sets up its own handler.
   let earlyWorkerError = null;
-  worker.addEventListener("error", (err) => {
-    console.error("[localScan] Early worker error:", err.message || err, err.filename, err.lineno, err.colno);
-    earlyWorkerError = err;
-  }, { once: true });
+  worker.addEventListener(
+    "error",
+    (err) => {
+      console.error(
+        "[localScan] Early worker error:",
+        err.message || err,
+        err.filename,
+        err.lineno,
+        err.colno,
+      );
+      earlyWorkerError = err;
+    },
+    { once: true },
+  );
 
   if (blobUrlForWorker) {
     const cleanupBlobUrl = () => {

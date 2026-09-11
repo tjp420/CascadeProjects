@@ -167,12 +167,10 @@ class AssessmentController {
       )
         ? 400
         : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: toClientError(error, "Assessment failed"),
-        });
+      res.status(status).json({
+        success: false,
+        error: toClientError(error, "Assessment failed"),
+      });
     }
   }
 
@@ -183,12 +181,10 @@ class AssessmentController {
       res.json({ success: true, assessmentId, assessment });
     } catch (error) {
       const status = error.code === "ENOENT" ? 404 : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: toClientError(error, "Failed to load assessment"),
-        });
+      res.status(status).json({
+        success: false,
+        error: toClientError(error, "Failed to load assessment"),
+      });
     }
   }
 
@@ -215,12 +211,10 @@ class AssessmentController {
       res.json(JSON.parse(assessmentData));
     } catch (error) {
       const status = error.code === "ENOENT" ? 404 : 500;
-      res
-        .status(status)
-        .json({
-          success: false,
-          error: toClientError(error, "Failed to download assessment"),
-        });
+      res.status(status).json({
+        success: false,
+        error: toClientError(error, "Failed to download assessment"),
+      });
     }
   }
 
@@ -281,12 +275,13 @@ class AssessmentController {
       const resolvedPath = path.resolve(projectPath);
       const { platformRoot } = resolvePlatformRoot(resolvedPath);
       const config = loadSimplebeaconConfig(platformRoot);
-      const safeOpts = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
+      const safeOpts =
+        opts && typeof opts === "object" && !Array.isArray(opts) ? opts : {};
       const runScanOpts = {
         config,
         configPath: config.configPath,
         // Forward tier if provided so higher-level dispatchers can enforce limits
-        tier: safeOpts.tier || safeOpts.userTier || 'starter',
+        tier: safeOpts.tier || safeOpts.userTier || "starter",
       };
       const report = await runScan(resolvedPath, runScanOpts);
       const gateResult = evaluateGate(report, config.gate);

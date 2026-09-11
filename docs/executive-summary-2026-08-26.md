@@ -78,6 +78,7 @@ Where to find artifacts
 - Marketing draft: docs/release-notes/marketing-draft.md
 
 If you want, I can:
+
 - Generate a human-friendly HTML report from .simplebeacon/report.json and commit it to docs/
 - Open small PRs with suggested edits to user-facing docs (README, release notes, and marketing draft)
 - Create the next batch of automated empty-catch fixes and open a PR with ~8 files

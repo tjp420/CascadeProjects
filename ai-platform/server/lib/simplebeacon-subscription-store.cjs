@@ -10,12 +10,15 @@ const path = require("path");
 const logger = require("../../src/lib/app-logger.cjs");
 
 const constants = require("../config/constants.cjs");
+// Import time constants directly to avoid circular-require issues under Jest
+const time = require("../config/time.cjs");
+/* eslint-enable no-console */
 const PROJECT_ROOT = path.join(__dirname, "../..");
 const STORE_PATH =
   process.env.SIMPLEBEACON_SUBSCRIPTION_STORE ||
   path.join(PROJECT_ROOT, ".simplebeacon", "subscriptions.json");
 const PAID_API_LIMIT = Number(process.env.SIMPLEBEACON_PAID_API_LIMIT || 100);
-const PAID_PERIOD_MS = 30 * 24 * 60 * constants.ONE_MINUTE_MS;
+const PAID_PERIOD_MS = 30 * 24 * 60 * time.ONE_MINUTE_MS;
 
 /** Basic email regex for validation (covers 99 % of valid addresses). */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -1,6 +1,6 @@
 # SimpleBeacon AI Slop Cop
 
-[![Version](https://img.shields.io/badge/version-3.0.580-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
+[![Version](https://img.shields.io/badge/version-3.0.581-blue.svg)](https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.84.0+-green.svg)](https://code.visualstudio.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Security: Zero Upload](https://img.shields.io/badge/security-zero%20upload-brightgreen.svg)](#-zero-upload-security)
@@ -119,39 +119,45 @@ npx simplebeacon scan --gate --fail-on-blocking
   "simplebeacon.maxFiles": 5000,
   "simplebeacon.confidenceThreshold": "medium",
   "simplebeacon.excludePatterns": [
-    "node_modules", ".git", "dist", "build",
-    ".vscode", ".simplebeacon", "ai-agent", "scripts"
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    ".vscode",
+    ".simplebeacon",
+    "ai-agent",
+    "scripts"
   ]
 }
 ```
 
 ### Analysis Profiles
 
-| Profile | Speed | Depth | Use Case |
-|---------|-------|-------|----------|
-| Quick | Fast | Light | Rapid feedback during development |
-| Balanced | Medium | Full | General purpose scanning |
-| Comprehensive | Slow | Deep | Code reviews and audits |
+| Profile       | Speed  | Depth | Use Case                          |
+| ------------- | ------ | ----- | --------------------------------- |
+| Quick         | Fast   | Light | Rapid feedback during development |
+| Balanced      | Medium | Full  | General purpose scanning          |
+| Comprehensive | Slow   | Deep  | Code reviews and audits           |
 
 ### Confidence Thresholds
 
-| Level | Description |
-|-------|-------------|
-| Low | All patterns (0.0+) |
-| Medium | Standard patterns (0.6+) |
-| High | Explicit signatures only (0.8+) |
+| Level  | Description                     |
+| ------ | ------------------------------- |
+| Low    | All patterns (0.0+)             |
+| Medium | Standard patterns (0.6+)        |
+| High   | Explicit signatures only (0.8+) |
 
 ## Pricing
 
-| Tier | Price | Scans | Features |
-|------|-------|-------|----------|
-| Free | $0 | 3/month | Core analyzers, basic reports |
-| Developer | $49/mo | Unlimited | All analyzers, CI gate, certificates |
-| Team Pro | $149/mo | Unlimited | EU AI Act mapping, SOC 2, board PDFs, 5 seats |
-| Enterprise | $499/mo | Unlimited | SSO/SAML, dedicated analyst, air-gapped |
-| Audit Certificate | $149 one-time | 1 | Board-ready audit certificate |
-| Executive Risk Certificate | $499 one-time | 1 | Executive risk report + board PDF |
-| EU AI Act Sprint | $2,499 one-time | 20 | EU AI Act gap analysis + remediation plan |
+| Tier                       | Price           | Scans     | Features                                      |
+| -------------------------- | --------------- | --------- | --------------------------------------------- |
+| Free                       | $0              | 3/month   | Core analyzers, basic reports                 |
+| Developer                  | $49/mo          | Unlimited | All analyzers, CI gate, certificates          |
+| Team Pro                   | $149/mo         | Unlimited | EU AI Act mapping, SOC 2, board PDFs, 5 seats |
+| Enterprise                 | $499/mo         | Unlimited | SSO/SAML, dedicated analyst, air-gapped       |
+| Audit Certificate          | $149 one-time   | 1         | Board-ready audit certificate                 |
+| Executive Risk Certificate | $499 one-time   | 1         | Executive risk report + board PDF             |
+| EU AI Act Sprint           | $2,499 one-time | 20        | EU AI Act gap analysis + remediation plan     |
 
 Visit [simplebeacon.ai/pricing](https://simplebeacon.ai/pricing) for details.
 

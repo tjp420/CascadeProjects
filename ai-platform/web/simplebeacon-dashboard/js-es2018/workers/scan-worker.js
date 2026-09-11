@@ -5,10 +5,7 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import {
-  analyzeFileChunks,
-  findingsToIssues,
-} from "./scan-wasm-bridge.js";
+import { analyzeFileChunks, findingsToIssues } from "./scan-wasm-bridge.js";
 import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js";
 
 /**
@@ -747,8 +744,33 @@ function extractMatches(text, pattern, max = 3, lineFilter = null) {
   }
   return matches;
 }
+function isNoisePath(filePath) {
+  const rel = String(filePath || "").replace(/\\/g, "/");
+  const name = rel.split("/").pop() || "";
+  if (
+    /^(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|composer\.lock|poetry\.lock|Gemfile\.lock|go\.sum)$/i.test(
+      name,
+    )
+  )
+    return true;
+  if (
+    /^(CODE_OF_CONDUCT|CHANGELOG|CONTRIBUTING|LICENSE|LICENCE|README|SECURITY|AUTHORS|NOTICE|COPYING|PATENTS|GOVERNANCE)(\.[a-z0-9]+)?$/i.test(
+      name,
+    ) ||
+    /\.(md|rst|adoc)$/i.test(name)
+  )
+    return true;
+  if (
+    /(^|\/)(i18n|locales?|translations?|lang)(\/|$)/i.test(rel) &&
+    /\.(json|po|mo|ya?ml|xliff)$/i.test(name)
+  )
+    return true;
+  if (/swagger-ui/i.test(name) || /\.min\.(js|css)$/i.test(name)) return true;
+  return false;
+}
 function shouldSkipFile(path, deepScan, ignoreCtx) {
   const normalized = path.replace(/\\/g, "/");
+  if (isNoisePath(normalized)) return true;
   if (
     ignoreCtx?.patterns?.length &&
     isIgnoredVirtualPath(normalized, ignoreCtx.scanRootName, ignoreCtx.patterns)

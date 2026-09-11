@@ -82,7 +82,12 @@ function makeMockLicenseClaims(overrides = {}) {
 test("buildRiskProfile classifies LLM Slop issues into slop pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "LLM Slop Pattern", severity: "medium", description: "test", count: 1 },
+      {
+        type: "LLM Slop Pattern",
+        severity: "medium",
+        description: "test",
+        count: 1,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -93,7 +98,12 @@ test("buildRiskProfile classifies LLM Slop issues into slop pillar", () => {
 test("buildRiskProfile classifies Credential issues into leak pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "Credential Pattern", severity: "critical", description: "Stripe key", count: 1 },
+      {
+        type: "Credential Pattern",
+        severity: "critical",
+        description: "Stripe key",
+        count: 1,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -104,7 +114,12 @@ test("buildRiskProfile classifies Credential issues into leak pillar", () => {
 test("buildRiskProfile classifies EU AI Act issues into shadowAi pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "EU AI Act — AI System Indicator", severity: "high", description: "test", count: 1 },
+      {
+        type: "EU AI Act — AI System Indicator",
+        severity: "high",
+        description: "test",
+        count: 1,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -114,7 +129,12 @@ test("buildRiskProfile classifies EU AI Act issues into shadowAi pillar", () => 
 test("buildRiskProfile classifies License Conflict issues into licensing pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "License Conflict", severity: "high", description: "GPL violation", count: 1 },
+      {
+        type: "License Conflict",
+        severity: "high",
+        description: "GPL violation",
+        count: 1,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -124,7 +144,12 @@ test("buildRiskProfile classifies License Conflict issues into licensing pillar"
 test("buildRiskProfile defaults unknown issues to slop pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "Unknown Weird Pattern", severity: "low", description: "mystery", count: 1 },
+      {
+        type: "Unknown Weird Pattern",
+        severity: "low",
+        description: "mystery",
+        count: 1,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -147,8 +172,18 @@ test("buildRiskProfile handles missing detectedIssues field", () => {
 test("buildRiskProfile aggregates severity counts per pillar", () => {
   const report = {
     detectedIssues: [
-      { type: "Credential Pattern", severity: "critical", description: "a", count: 2 },
-      { type: "Credential Pattern", severity: "high", description: "b", count: 3 },
+      {
+        type: "Credential Pattern",
+        severity: "critical",
+        description: "a",
+        count: 2,
+      },
+      {
+        type: "Credential Pattern",
+        severity: "high",
+        description: "b",
+        count: 3,
+      },
     ],
   };
   const profile = buildRiskProfile(report);
@@ -171,7 +206,14 @@ test("computeFinancialLiability applies severity multipliers", () => {
     slop: { count: 1, critical: 1, high: 0, medium: 0, low: 0, issues: [] },
     leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
     shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: {
+      count: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      issues: [],
+    },
   };
   const liability = computeFinancialLiability(profile);
   // slop avgFinePerIncident = 150000, critical multiplier = 4.0
@@ -183,7 +225,14 @@ test("computeFinancialLiability sums across pillars", () => {
     slop: { count: 1, critical: 0, high: 1, medium: 0, low: 0, issues: [] },
     leak: { count: 1, critical: 1, high: 0, medium: 0, low: 0, issues: [] },
     shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: {
+      count: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      issues: [],
+    },
   };
   const liability = computeFinancialLiability(profile);
   // slop high: 150000 * 2.5 = 375000
@@ -207,7 +256,14 @@ test("computeComplianceGrade returns F for heavily loaded profile", () => {
     slop: { count: 10, critical: 5, high: 5, medium: 0, low: 0, issues: [] },
     leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
     shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: {
+      count: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      issues: [],
+    },
   };
   const grade = computeComplianceGrade(profile);
   // score = 100 - (5*25 + 5*10) = 100 - 175 = -75 → clamped to 0
@@ -221,7 +277,14 @@ test("computeComplianceGrade returns B for moderate findings", () => {
     slop: { count: 3, critical: 0, high: 1, medium: 2, low: 0, issues: [] },
     leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
     shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: {
+      count: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      issues: [],
+    },
   };
   const grade = computeComplianceGrade(profile);
   // score = 100 - (1*10 + 2*3) = 100 - 16 = 84 → B
@@ -235,7 +298,14 @@ test("computeComplianceGrade returns C for high findings", () => {
     slop: { count: 5, critical: 0, high: 3, medium: 2, low: 0, issues: [] },
     leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
     shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: {
+      count: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      issues: [],
+    },
   };
   const grade = computeComplianceGrade(profile);
   // score = 100 - (3*10 + 2*3) = 100 - 36 = 64 → C
@@ -269,14 +339,18 @@ test("buildExecutiveHtml includes tier label", () => {
 });
 
 test("buildExecutiveHtml shows PASS when gate passes", () => {
-  const report = makeMockReport({ gate: { pass: true, blockingIssues: [], warningIssues: [] } });
+  const report = makeMockReport({
+    gate: { pass: true, blockingIssues: [], warningIssues: [] },
+  });
   const claims = makeMockLicenseClaims();
   const html = buildExecutiveHtml(report, claims);
   assert.ok(html.includes("PASS"));
 });
 
 test("buildExecutiveHtml shows FAIL when gate fails", () => {
-  const report = makeMockReport({ gate: { pass: false, blockingIssues: [{ type: "x" }], warningIssues: [] } });
+  const report = makeMockReport({
+    gate: { pass: false, blockingIssues: [{ type: "x" }], warningIssues: [] },
+  });
   const claims = makeMockLicenseClaims();
   const html = buildExecutiveHtml(report, claims);
   assert.ok(html.includes("FAIL"));
@@ -315,7 +389,11 @@ test("buildExecutiveHtml includes disclaimer", () => {
 });
 
 test("buildExecutiveHtml handles empty report with no issues", () => {
-  const report = { detectedIssues: [], gate: { pass: true }, repositoryFilesTotal: 0 };
+  const report = {
+    detectedIssues: [],
+    gate: { pass: true },
+    repositoryFilesTotal: 0,
+  };
   const claims = makeMockLicenseClaims();
   const html = buildExecutiveHtml(report, claims);
   assert.ok(html.includes("<!DOCTYPE html>"));
@@ -331,7 +409,10 @@ test("buildExecutiveHtml handles missing gate object", () => {
 
 test("buildExecutiveHtml includes license ID and expiry", () => {
   const report = makeMockReport();
-  const claims = makeMockLicenseClaims({ jti: "unique-id-abc", exp: 1700000000 });
+  const claims = makeMockLicenseClaims({
+    jti: "unique-id-abc",
+    exp: 1700000000,
+  });
   const html = buildExecutiveHtml(report, claims);
   assert.ok(html.includes("unique-id-abc"));
 });
@@ -402,7 +483,10 @@ test("generateExecutivePdf returns error for missing report file", async () => {
   process.env.SIMPLEBEACON_LICENSE_TOKEN = token;
 
   try {
-    const result = await generateExecutivePdf("/nonexistent/report.json", "/tmp/out.html");
+    const result = await generateExecutivePdf(
+      "/nonexistent/report.json",
+      "/tmp/out.html",
+    );
     assert.equal(result.ok, false);
     assert.ok(result.error.includes("Report not found"));
   } finally {
@@ -449,7 +533,10 @@ test("generateExecutivePdf returns error when no license token is set", async ()
   process.env.USERPROFILE = os.tmpdir();
 
   try {
-    const result = await generateExecutivePdf(reportPath, path.join(tmpDir, "out.html"));
+    const result = await generateExecutivePdf(
+      reportPath,
+      path.join(tmpDir, "out.html"),
+    );
     assert.equal(result.ok, false);
     assert.ok(result.error.includes("No license token"));
   } finally {

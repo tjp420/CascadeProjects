@@ -192,7 +192,12 @@ function tryParseJson(text) {
       .trim();
     return JSON.parse(cleaned);
   } catch (e) {
-    try { logger.warn('[AI Analyst] tryParseJson failed:', e && e.message ? e.message : e); } catch (_) {}
+    try {
+      logger.warn(
+        "[AI Analyst] tryParseJson failed:",
+        e && e.message ? e.message : e,
+      );
+    } catch (_) {}
     return null;
   }
 }

@@ -10,10 +10,10 @@ export class UploadPanel {
   public static currentPanel: UploadPanel | undefined;
   public static readonly viewType = 'simplebeaconUpload';
 
-    private readonly _panel: vscode.WebviewPanel;
-    private readonly _extensionUri: vscode.Uri;
-    // Guarded listener container to avoid registering listeners after disposal
-    private _guard = new GuardedExtensionPanel();
+  private readonly _panel: vscode.WebviewPanel;
+  private readonly _extensionUri: vscode.Uri;
+  // Guarded listener container to avoid registering listeners after disposal
+  private _guard = new GuardedExtensionPanel();
 
   public static createOrShow(extensionUri: vscode.Uri): UploadPanel {
     const column = vscode.ViewColumn.One;
@@ -38,24 +38,23 @@ export class UploadPanel {
 
     this._update();
 
-        const d1 = this._panel.onDidDispose(() => this.dispose());
-        this._guard.register(d1);
+    const d1 = this._panel.onDidDispose(() => this.dispose());
+    this._guard.register(d1);
 
-        const d2 = this._panel.webview.onDidReceiveMessage(
-            async (message) => {
-        switch (message.command) {
-          case 'showError':
-            vscode.window.showErrorMessage(message.text);
-            return;
-          case 'showInfo':
-            vscode.window.showInformationMessage(message.text);
-            return;
-          case 'uploadReport':
-            await this._uploadReport(message.data);
-            return;
-        }
-        });
-        this._guard.register(d2);
+    const d2 = this._panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.command) {
+        case 'showError':
+          vscode.window.showErrorMessage(message.text);
+          return;
+        case 'showInfo':
+          vscode.window.showInformationMessage(message.text);
+          return;
+        case 'uploadReport':
+          await this._uploadReport(message.data);
+          return;
+      }
+    });
+    this._guard.register(d2);
   }
 
   private _update() {
@@ -858,8 +857,16 @@ export class UploadPanel {
   }
 
   public dispose() {
-        UploadPanel.currentPanel = undefined;
-        try { this._guard.dispose(); } catch (err) { console.error('Error disposing upload panel guard', err); }
-        try { this._panel.dispose(); } catch (err) { console.error('Error disposing panel', err); }
+    UploadPanel.currentPanel = undefined;
+    try {
+      this._guard.dispose();
+    } catch (err) {
+      console.error('Error disposing upload panel guard', err);
+    }
+    try {
+      this._panel.dispose();
+    } catch (err) {
+      console.error('Error disposing panel', err);
+    }
   }
 }

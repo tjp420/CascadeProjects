@@ -6145,14 +6145,12 @@ async function processLocalCLIScan(files) {
                         : []),
                     ...(emptyJsonFiles.length > 0
                         ? (() => {
-                              const fileTasks = emptyJsonFiles
-                                  .slice(0, 5)
-                                  .map(f => ({
-                                      description: `Fix empty JSON: ${f}`,
-                                      type: 'fix',
-                                      location: f,
-                                      isStructured: true
-                                  }));
+                              const fileTasks = emptyJsonFiles.slice(0, 5).map(f => ({
+                                  description: `Fix empty JSON: ${f}`,
+                                  type: 'fix',
+                                  location: f,
+                                  isStructured: true
+                              }));
                               const tailTasks = [
                                   {
                                       description: 'Validate all JSON',
@@ -6376,14 +6374,12 @@ async function processLocalCLIScan(files) {
                         : []),
                     ...(todoFiles.length > 0
                         ? (() => {
-                              const fileTasks = todoFiles
-                                  .slice(0, 5)
-                                  .map(f => ({
-                                      description: `Address TODO in ${typeof f === 'string' ? f : f.path}`,
-                                      type: 'fix',
-                                      location: typeof f === 'string' ? f : f.path,
-                                      isStructured: true
-                                  }));
+                              const fileTasks = todoFiles.slice(0, 5).map(f => ({
+                                  description: `Address TODO in ${typeof f === 'string' ? f : f.path}`,
+                                  type: 'fix',
+                                  location: typeof f === 'string' ? f : f.path,
+                                  isStructured: true
+                              }));
                               const tailTasks = [
                                   {
                                       description: 'Add test coverage for uncovered modules',

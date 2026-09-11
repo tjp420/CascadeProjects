@@ -403,6 +403,13 @@ const _allModuleSpecs = [
   { name: "doctor", path: "./doctor" },
   { name: "fix-dry-run", path: "./fix-dry-run" },
   { name: "scan-orchestrator", path: "./scanOrchestrator" },
+  { name: "reality-judge", path: "./lib/reality-judge" },
+  { name: "signal-engine", path: "./lib/signal-engine" },
+  { name: "signal-verifier", path: "./lib/signal-verifier" },
+  {
+    name: "verified-vulnerability-engine",
+    path: "./lib/verified-vulnerability-engine",
+  },
 ];
 
 const _collisionWarnings = new Map();

@@ -124,9 +124,15 @@ function printList() {
   }
   console.log(`\nTotal: ${AVAILABLE_EVENTS.length} events`);
   console.log("\nUsage:");
-  console.log("  node scripts/test-stripe-cli-events.cjs                    # fire all");
-  console.log("  node scripts/test-stripe-cli-events.cjs --event <name>     # fire one");
-  console.log("  node scripts/test-stripe-cli-events.cjs --list             # list events");
+  console.log(
+    "  node scripts/test-stripe-cli-events.cjs                    # fire all",
+  );
+  console.log(
+    "  node scripts/test-stripe-cli-events.cjs --event <name>     # fire one",
+  );
+  console.log(
+    "  node scripts/test-stripe-cli-events.cjs --list             # list events",
+  );
 }
 
 function main() {
@@ -144,21 +150,31 @@ function main() {
 
   // Check for Stripe CLI
   if (!checkStripeCli()) {
-    console.error("Error: Stripe CLI not found. Install it from https://stripe.com/docs/stripe-cli");
+    console.error(
+      "Error: Stripe CLI not found. Install it from https://stripe.com/docs/stripe-cli",
+    );
     console.error("  Then run: stripe login");
-    console.error("  And in a separate terminal: stripe listen --forward-to localhost:3001/api/subscription/webhook");
+    console.error(
+      "  And in a separate terminal: stripe listen --forward-to localhost:3001/api/subscription/webhook",
+    );
     return 1;
   }
 
   // Check for test API key
   const secretKey = process.env.STRIPE_SECRET_KEY || "";
   if (!secretKey) {
-    console.error("Error: STRIPE_SECRET_KEY not set. Set it to your test key (sk_test_...).");
+    console.error(
+      "Error: STRIPE_SECRET_KEY not set. Set it to your test key (sk_test_...).",
+    );
     return 1;
   }
   if (secretKey.startsWith("sk_live_")) {
-    console.error("ERROR: STRIPE_SECRET_KEY starts with sk_live_ — refusing to run with live key.");
-    console.error("Switch to test mode in your Stripe Dashboard and use a sk_test_ key.");
+    console.error(
+      "ERROR: STRIPE_SECRET_KEY starts with sk_live_ — refusing to run with live key.",
+    );
+    console.error(
+      "Switch to test mode in your Stripe Dashboard and use a sk_test_ key.",
+    );
     return 1;
   }
   console.log(`[check] Using test key: ${secretKey.slice(0, 12)}...`);
@@ -170,7 +186,9 @@ function main() {
     const requested = args[eventIdx + 1];
     const found = AVAILABLE_EVENTS.find((e) => e.name === requested);
     if (!found) {
-      console.error(`Unknown event: ${requested}. Run with --list to see available events.`);
+      console.error(
+        `Unknown event: ${requested}. Run with --list to see available events.`,
+      );
       return 1;
     }
     eventsToFire = [found];
@@ -185,8 +203,12 @@ function main() {
   console.log(`\nPrerequisites:`);
   console.log(`  1. stripe login (done)`);
   console.log(`  2. In a separate terminal:`);
-  console.log(`     stripe listen --forward-to localhost:3001/api/subscription/webhook`);
-  console.log(`     (copy the whsec_... signing secret to STRIPE_WEBHOOK_SECRET)`);
+  console.log(
+    `     stripe listen --forward-to localhost:3001/api/subscription/webhook`,
+  );
+  console.log(
+    `     (copy the whsec_... signing secret to STRIPE_WEBHOOK_SECRET)`,
+  );
   console.log(`  3. Local server running on port 3001`);
   console.log(`\nFiring events...\n`);
 
@@ -217,7 +239,9 @@ function main() {
   console.log(`  - Check the local server logs for webhook event processing`);
   console.log(`  - Verify customer subscription status was updated in the DB`);
   console.log(`  - Check email logs/queue for notification emails`);
-  console.log(`  - Run 'node scripts/test-payment-sim.cjs' for the stub-based payment tests`);
+  console.log(
+    `  - Run 'node scripts/test-payment-sim.cjs' for the stub-based payment tests`,
+  );
 
   return failed > 0 ? 1 : 0;
 }

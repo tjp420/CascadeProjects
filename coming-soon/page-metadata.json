@@ -3,9 +3,9 @@
     "ogImage": "/favicon.svg",
     "pages": {
         "index.html": {
-            "title": "SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It",
-            "description": "SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.",
-            "h1": "Turn AI Code Debt Into Audit Evidence Before Regulators Find It.",
+            "title": "SimpleBeacon — Local scan. No repo upload. Production noise filter.",
+            "description": "Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps, then add a CI gate when the team is ready.",
+            "h1": "Mute test-suite noise. Catch production architecture gaps.",
             "sitemap": { "priority": "1.0", "changefreq": "weekly" },
             "includeNav": true,
             "includeFooter": true

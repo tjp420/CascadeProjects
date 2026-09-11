@@ -38,7 +38,10 @@ Module.prototype.require = function (id) {
         customers: { create: async () => ({ id: "cus_test_123" }) },
         checkout: {
           sessions: {
-            create: async () => ({ id: "cs_test_123", url: "https://test/abc" }),
+            create: async () => ({
+              id: "cs_test_123",
+              url: "https://test/abc",
+            }),
           },
         },
         webhooks: {
@@ -64,7 +67,12 @@ Module.prototype.require = function (id) {
         api_key: "sb_test_key",
       }),
       updateCustomerSubscription: (email, status, tier) => {
-        dbCallLog.push({ fn: "updateCustomerSubscription", email, status, tier });
+        dbCallLog.push({
+          fn: "updateCustomerSubscription",
+          email,
+          status,
+          tier,
+        });
       },
       updateCustomerStripeId: () => {},
       updatePaidSubscriptionStatus: () => {},
@@ -79,13 +87,15 @@ Module.prototype.require = function (id) {
             stripe_customer_id: "cus_test_123",
             api_key: "sb_test_key",
           }),
-          all: () => [{
-            email: "test@example.com",
-            tier: "developer",
-            subscription_status: "active",
-            stripe_customer_id: "cus_test_123",
-            api_key: "sb_test_key",
-          }],
+          all: () => [
+            {
+              email: "test@example.com",
+              tier: "developer",
+              subscription_status: "active",
+              stripe_customer_id: "cus_test_123",
+              api_key: "sb_test_key",
+            },
+          ],
         }),
       }),
     };
@@ -101,7 +111,11 @@ Module.prototype.require = function (id) {
   if (id.includes("license-utils")) {
     return {
       generateLicenseToken: () => "test-token-123",
-      escapeHtml: (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+      escapeHtml: (s) =>
+        String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;"),
     };
   }
   // Stub email service — log calls so we can assert
@@ -116,9 +130,21 @@ Module.prototype.require = function (id) {
   // Stub billing email templates — pass through but track
   if (id.includes("billing-email-templates")) {
     return {
-      renderSubscriptionActivated: () => ({ subject: "s", text: "t", html: "h" }),
-      renderSubscriptionCanceled: () => ({ subject: "s", text: "t", html: "h" }),
-      renderSubscriptionReactivated: () => ({ subject: "s", text: "t", html: "h" }),
+      renderSubscriptionActivated: () => ({
+        subject: "s",
+        text: "t",
+        html: "h",
+      }),
+      renderSubscriptionCanceled: () => ({
+        subject: "s",
+        text: "t",
+        html: "h",
+      }),
+      renderSubscriptionReactivated: () => ({
+        subject: "s",
+        text: "t",
+        html: "h",
+      }),
       renderPaymentFailed: () => ({ subject: "s", text: "t", html: "h" }),
       renderTrialEnding: () => ({ subject: "s", text: "t", html: "h" }),
       renderDisputeAlert: () => ({ subject: "s", text: "t", html: "h" }),
@@ -145,7 +171,13 @@ Module.prototype.require = function (id) {
 };
 
 // Require the router
-const routerPath = path.resolve(__dirname, "..", "coming-soon", "routes", "subscriptions-billing.cjs");
+const routerPath = path.resolve(
+  __dirname,
+  "..",
+  "coming-soon",
+  "routes",
+  "subscriptions-billing.cjs",
+);
 const routerModule = require(routerPath);
 
 // Build minimal express app with webhook endpoint
@@ -169,7 +201,10 @@ function signPayload(payload) {
   const timestamp = Math.floor(Date.now() / 1000);
   const secret = "whsec_test";
   const signedPayload = `${timestamp}.${payload}`;
-  const signature = crypto.createHmac("sha256", secret).update(signedPayload).digest("hex");
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(signedPayload)
+    .digest("hex");
   return `t=${timestamp},v1=${signature}`;
 }
 
@@ -233,7 +268,9 @@ const server = app.listen(0, async () => {
       refund_reason: "requested_by_customer",
     });
     const res1 = await sendWebhook(port, fullRefundEvent);
-    const refundEmail1 = emailCallLog.find((e) => e.subject && e.subject.includes("Refund"));
+    const refundEmail1 = emailCallLog.find(
+      (e) => e.subject && e.subject.includes("Refund"),
+    );
     const dbUpdate1 = dbCallLog.find((d) => d.status === "refunded");
     logResult(
       "Full refund marks subscription as 'refunded'",
@@ -258,7 +295,9 @@ const server = app.listen(0, async () => {
       billing_details: { email: "test@example.com" },
     });
     const res2 = await sendWebhook(port, partialRefundEvent);
-    const refundEmail2 = emailCallLog.find((e) => e.subject && e.subject.includes("Refund"));
+    const refundEmail2 = emailCallLog.find(
+      (e) => e.subject && e.subject.includes("Refund"),
+    );
     logResult(
       "Partial refund processes successfully",
       res2.status === 200,

@@ -41,7 +41,10 @@ const { validateEnvironment } = require("./config/validate-env.cjs");
 validateEnvironment();
 
 // Initialize Sentry (no-op if SENTRY_DSN not set)
-const { initSentry, captureException: sentryCapture } = require("./lib/sentry.cjs");
+const {
+  initSentry,
+  captureException: sentryCapture,
+} = require("./lib/sentry.cjs");
 initSentry();
 
 process.on("unhandledRejection", (reason) => {
@@ -1790,12 +1793,10 @@ app.post("/api/enterprise/onboard", async (req, res) => {
   try {
     const { companyName, adminEmail, plan = "trial" } = req.body || {};
     if (!companyName || !adminEmail) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "companyName and adminEmail are required",
-        });
+      return res.status(400).json({
+        success: false,
+        error: "companyName and adminEmail are required",
+      });
     }
     if (!enterpriseDb) {
       return res.json({
@@ -1822,12 +1823,10 @@ app.post("/api/enterprise/trial", async (req, res) => {
   try {
     const { companyName, adminEmail } = req.body || {};
     if (!companyName || !adminEmail) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "companyName and adminEmail are required",
-        });
+      return res.status(400).json({
+        success: false,
+        error: "companyName and adminEmail are required",
+      });
     }
     res.json({
       success: true,

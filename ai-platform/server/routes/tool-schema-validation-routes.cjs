@@ -36,6 +36,23 @@ router.get("/stats", function (req, res) {
   }
 });
 
+router.get("/config", function (req, res) {
+  try {
+    res.json({ success: true, config: schemaStore.getConfig() });
+  } catch (err) {
+    sendError(res, 500, "config_get_failed", { message: err.message });
+  }
+});
+
+router.get("/violations/list", function (req, res) {
+  try {
+    var limit = parseInt(req.query.limit, 10) || 50;
+    res.json({ success: true, violations: schemaStore.getViolations(limit) });
+  } catch (err) {
+    sendError(res, 500, "violations_list_failed", { message: err.message });
+  }
+});
+
 router.get("/", function (req, res) {
   try {
     var orgId = req.orgId || req.query.orgId || "default";
@@ -123,15 +140,6 @@ router.post("/infer", function (req, res) {
   }
 });
 
-router.get("/violations/list", function (req, res) {
-  try {
-    var limit = parseInt(req.query.limit, 10) || 50;
-    res.json({ success: true, violations: schemaStore.getViolations(limit) });
-  } catch (err) {
-    sendError(res, 500, "violations_list_failed", { message: err.message });
-  }
-});
-
 router.post("/violations/clear", authorize("admin:all"), function (req, res) {
   try {
     var result = schemaStore.clearViolations();
@@ -142,14 +150,6 @@ router.post("/violations/clear", authorize("admin:all"), function (req, res) {
     res.json(result);
   } catch (err) {
     sendError(res, 500, "violations_clear_failed", { message: err.message });
-  }
-});
-
-router.get("/config", function (req, res) {
-  try {
-    res.json({ success: true, config: schemaStore.getConfig() });
-  } catch (err) {
-    sendError(res, 500, "config_get_failed", { message: err.message });
   }
 });
 

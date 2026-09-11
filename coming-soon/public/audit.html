@@ -15,6 +15,49 @@
     <meta name="twitter:title" content="SimpleBeacon — Audit">
     <meta name="twitter:description" content="Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.">
 
+        <script data-sb-beacon-neutralize="1">
+            (function () {
+                function isBeacon(el) {
+                    if (!el || el.tagName !== 'SCRIPT') return false;
+                    var src = el.src || el.getAttribute('src') || '';
+                    var cf = el.getAttribute('data-cf-beacon');
+                    return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
+                }
+                function neutralize(el) {
+                    if (!isBeacon(el)) return;
+                    try { el.removeAttribute('integrity'); } catch (_) {}
+                    try { el.removeAttribute('crossorigin'); } catch (_) {}
+                    try { el.type = 'text/plain'; } catch (_) {}
+                    try { el.removeAttribute('src'); } catch (_) {}
+                }
+                if (window.MutationObserver) {
+                    var mo = new MutationObserver(function (records) {
+                        records.forEach(function (record) {
+                            if (record.type === 'attributes' && record.target) neutralize(record.target);
+                            Array.prototype.forEach.call(record.addedNodes || [], function (node) {
+                                if (node.nodeType === 1) {
+                                    if (node.tagName === 'SCRIPT') neutralize(node);
+                                    if (node.querySelectorAll) {
+                                        Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+                                    }
+                                }
+                            });
+                        });
+                    });
+                    mo.observe(document.documentElement, {
+                        childList: true,
+                        subtree: true,
+                        attributes: true,
+                        attributeFilter: ['src', 'integrity', 'crossorigin']
+                    });
+                }
+                function sweep() {
+                    Array.prototype.forEach.call(document.querySelectorAll('script'), neutralize);
+                }
+                sweep();
+                document.addEventListener('DOMContentLoaded', sweep);
+            })();
+        </script>
         
         
         
@@ -166,6 +209,7 @@
             (function () {
                 var TOKEN_KEYS = [
                     'sb_auth_token',
+                    'sb-token',
                     'cascadeAuthToken',
                     'cascadeAuthUser',
                     'access_token',
@@ -4740,12 +4784,12 @@
                 const signinBtn = document.getElementById('nav-signin-btn');
                 const TOKEN_KEYS = [
                     'sb_auth_token',
+                    'sb-token',
                     'cascadeAuthToken',
                     'access_token',
                     'token',
                     'authToken',
                     'simplebeacon_token',
-                    'sb-token',
                     'sb_token'
                 ];
                 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days

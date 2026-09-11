@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Detect mock/sample/fixture paths referenced from production code directories.
@@ -107,7 +108,7 @@ function getActiveLeakPatterns(options = {}) {
 const SCANNABLE_EXTENSIONS = Object.freeze(
   new Set([".js", ".mjs", ".cjs", ".ts", ".tsx"]),
 );
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 const NON_PRODUCTION_PATH_HINTS = Object.freeze([
   "/test/",
   "/tests/",
@@ -346,9 +347,12 @@ async function walkProductionFiles(
   results = [],
   depth = 0,
   skipDirs = DEFAULT_SKIP_DIRS,
+  maxScanBytes,
 ) {
   if (depth > 8) return results;
   if (typeof dir !== "string" || !dir) return results;
+  const dirs = skipDirs || DEFAULT_SKIP_DIRS;
+  const sizeLimit = Number(maxScanBytes) > 0 ? maxScanBytes : MAX_SCAN_BYTES;
   let entries;
   try {
     entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -359,8 +363,8 @@ async function walkProductionFiles(
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (skipDirs && skipDirs.includes(entry.name)) continue;
-      await walkProductionFiles(fullPath, results, depth + 1, skipDirs);
+      if (dirs && dirs.includes(entry.name)) continue;
+      await walkProductionFiles(fullPath, results, depth + 1, dirs, sizeLimit);
       continue;
     }
     if (!entry.isFile()) continue;
@@ -368,7 +372,7 @@ async function walkProductionFiles(
     if (!SCANNABLE_EXTENSIONS.has(ext)) continue;
     try {
       const stat = await fs.promises.stat(fullPath);
-      if (stat.size > MAX_SCAN_BYTES) continue;
+      if (stat.size > sizeLimit) continue;
       results.push({ path: fullPath, name: entry.name, ext, size: stat.size });
     } catch {
       /* skip */
@@ -492,6 +496,8 @@ function scanFileContent(relativePath, content, options = {}) {
  * @returns {Promise<{scanned:number,findings:number,issues:any[],suppressedIntent:any[],suppressedIntentCount:number}>}
  */
 async function scanProductionLeaks(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const opts = options && typeof options === "object" ? options : {};
   const productionPaths = Array.isArray(opts.productionPaths)
     ? opts.productionPaths
@@ -513,7 +519,7 @@ async function scanProductionLeaks(baseDir, options = {}) {
       ? rel
       : path.join(baseDir, ...rel.split("/"));
     if (fs.existsSync(abs)) {
-      await walkProductionFiles(abs, files);
+      await walkProductionFiles(abs, files, 0, undefined, MAX_SCAN_BYTES);
     }
   }
 

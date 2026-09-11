@@ -29,11 +29,20 @@ function makeTmpProject() {
   );
   fs.writeFileSync(
     path.join(dir, "src", "bar.py"),
-    ["def greet(name):", "    return f'hi {name}'", "class Bar:", "    pass", "import os"].join("\n"),
+    [
+      "def greet(name):",
+      "    return f'hi {name}'",
+      "class Bar:",
+      "    pass",
+      "import os",
+    ].join("\n"),
   );
   fs.writeFileSync(path.join(dir, "README.md"), "# Project\n\nDoes things.");
   // node_modules should be skipped
-  fs.writeFileSync(path.join(dir, "node_modules", "pkg", "index.js"), "module.exports = 1;");
+  fs.writeFileSync(
+    path.join(dir, "node_modules", "pkg", "index.js"),
+    "module.exports = 1;",
+  );
   return dir;
 }
 
@@ -41,7 +50,10 @@ test("walkProject skips node_modules and .git", async () => {
   const dir = makeTmpProject();
   const files = await walkProject(dir);
   const rels = files.map((f) => f.relPath);
-  assert.ok(!rels.some((r) => r.startsWith("node_modules/")), "should skip node_modules");
+  assert.ok(
+    !rels.some((r) => r.startsWith("node_modules/")),
+    "should skip node_modules",
+  );
   assert.ok(rels.includes("src/foo.js"));
   assert.ok(rels.includes("src/bar.py"));
   assert.ok(rels.includes("README.md"));
@@ -64,7 +76,10 @@ test("summarizeFile extracts JS facts", async () => {
     size: 200,
     mtimeMs: Date.now(),
   });
-  assert.ok(summary.exports.includes("add"), `exports: ${JSON.stringify(summary.exports)}`);
+  assert.ok(
+    summary.exports.includes("add"),
+    `exports: ${JSON.stringify(summary.exports)}`,
+  );
   assert.ok(summary.classes.includes("Calculator"));
   assert.ok(summary.topConstants.includes("MAX_SIZE"));
   assert.ok(summary.signatures.some((s) => s.startsWith("add(")));
@@ -89,7 +104,13 @@ test("summarizeFile extracts Python facts", async () => {
 
 test("extractFacts returns empty arrays for empty content", () => {
   const facts = extractFacts("", ".js");
-  assert.deepEqual(facts, { exports: [], signatures: [], classes: [], topConstants: [], dependencies: [] });
+  assert.deepEqual(facts, {
+    exports: [],
+    signatures: [],
+    classes: [],
+    topConstants: [],
+    dependencies: [],
+  });
 });
 
 test("summarizeProject writes index.json and per-file summaries", async () => {
@@ -105,8 +126,24 @@ test("summarizeProject writes index.json and per-file summaries", async () => {
 
 test("buildIndex aggregates categories and totals", () => {
   const summaries = [
-    { path: "a.js", ext: ".js", category: "code", tokenEstimate: 100, lines: 10, sizeBytes: 500, summary: "a" },
-    { path: "b.md", ext: ".md", category: "docs", tokenEstimate: 50, lines: 5, sizeBytes: 200, summary: "b" },
+    {
+      path: "a.js",
+      ext: ".js",
+      category: "code",
+      tokenEstimate: 100,
+      lines: 10,
+      sizeBytes: 500,
+      summary: "a",
+    },
+    {
+      path: "b.md",
+      ext: ".md",
+      category: "docs",
+      tokenEstimate: 50,
+      lines: 5,
+      sizeBytes: 200,
+      summary: "b",
+    },
   ];
   const index = buildIndex(summaries);
   assert.equal(index.fileCount, 2);
@@ -119,7 +156,10 @@ test("summarizeProject sorts summaries by token cost descending", async () => {
   const dir = makeTmpProject();
   const { summaries } = await summarizeProject(dir);
   for (let i = 1; i < summaries.length; i++) {
-    assert.ok(summaries[i - 1].tokenEstimate >= summaries[i].tokenEstimate, "should be sorted desc");
+    assert.ok(
+      summaries[i - 1].tokenEstimate >= summaries[i].tokenEstimate,
+      "should be sorted desc",
+    );
   }
 });
 

@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 /**
  * AST structural fingerprinting scanner — uses @babel/parser to detect LLM-generated
  * structural patterns: deadweight functions, redundant try/catch wrappers, and
@@ -27,7 +28,7 @@ const SCANNABLE_EXTENSIONS = new Set([
   ".tsx",
   ".jsx",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -398,6 +399,8 @@ async function walkFiles(dir, files, options = {}) {
 }
 
 async function scanAstStructural(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || ["src", "lib", "server", "web"];
   const productionPaths = options.productionPaths || sourcePaths;
   let pathsToWalk = [...new Set([...sourcePaths, ...productionPaths])];
@@ -405,7 +408,9 @@ async function scanAstStructural(baseDir, options = {}) {
   // If none of the configured source paths exist, fall back to scanning
   // the project root directly (handles monorepos, flat layouts, and test fixtures)
   const existingPaths = pathsToWalk.filter((rel) => {
-    const abs = path.isAbsolute(rel) ? rel : path.join(baseDir, ...rel.split("/"));
+    const abs = path.isAbsolute(rel)
+      ? rel
+      : path.join(baseDir, ...rel.split("/"));
     return fs.existsSync(abs);
   });
   if (existingPaths.length === 0) {

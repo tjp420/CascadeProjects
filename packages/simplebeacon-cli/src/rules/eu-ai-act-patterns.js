@@ -1,3 +1,4 @@
+const { resolveMaxScanBytes } = require("../config");
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * EU AI Act readiness patterns — high-risk indicators (Annex III), Article 50
@@ -80,7 +81,7 @@ const SKIP_DIRS = new Set([
   "simplebeacon-rule-tests",
   "simplebeacon-toxic-fixtures",
 ]);
-const MAX_SCAN_BYTES = 512000;
+let MAX_SCAN_BYTES = 512000;
 
 const DOCUMENTATION_MARKERS = [
   { id: "model-card", pattern: /model[-_\s]?card/i, label: "Model card" },
@@ -890,6 +891,8 @@ function filterDocumentedAiInventoryIssues(issues, documentation, summary) {
 }
 
 async function scanEuAiActPatterns(baseDir, options = {}) {
+  MAX_SCAN_BYTES = resolveMaxScanBytes(options);
+
   const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
   const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
   const ignoreGlobs = options.ignoreGlobs || [];
@@ -900,7 +903,7 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
   for (const rel of productionPaths) {
     const abs = path.join(baseDir, ...rel.replace(/\/$/, "").split("/"));
     if (fs.existsSync(abs)) {
-      await walkProductionFiles(abs, files);
+      await walkProductionFiles(abs, files, 0, undefined, MAX_SCAN_BYTES);
     }
   }
 

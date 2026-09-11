@@ -69,7 +69,10 @@ describe("onboarding-drip-store", () => {
       freshModule2.registerActivation("test@example.com", "team_pro");
       const store = freshModule2.readDripStore();
       // activatedAt should be preserved from the first registration
-      assert.strictEqual(store.users["test@example.com"].activatedAt, firstActivated);
+      assert.strictEqual(
+        store.users["test@example.com"].activatedAt,
+        firstActivated,
+      );
       // But tier should update
       assert.strictEqual(store.users["test@example.com"].tier, "team_pro");
     });

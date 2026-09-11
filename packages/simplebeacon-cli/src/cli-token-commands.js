@@ -54,7 +54,9 @@ function outputResult(payload, options) {
   const json = options.format === "json" || options.jsonOutput === true;
   const text = json ? JSON.stringify(payload, null, 2) : payload.text;
   if (options.output) {
-    fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });
+    fs.mkdirSync(path.dirname(path.resolve(options.output)), {
+      recursive: true,
+    });
     fs.writeFileSync(path.resolve(options.output), text);
     writeLine(`Wrote ${options.output}`);
   } else {
@@ -78,11 +80,18 @@ async function runSummarizeCommand(options) {
     capability: "summary",
     inputTokens: index.totalTokens,
     outputTokens: summaries.reduce((a, s) => a + estimateTokens(s.summary), 0),
-    savedTokens: Math.max(0, index.totalTokens - summaries.reduce((a, s) => a + estimateTokens(s.summary), 0)),
+    savedTokens: Math.max(
+      0,
+      index.totalTokens -
+        summaries.reduce((a, s) => a + estimateTokens(s.summary), 0),
+    ),
     detail: `${summaries.length} files`,
   });
   if (options.format === "json" || options.jsonOutput === true) {
-    outputResult({ text: JSON.stringify(index, null, 2), index, outputDir }, options);
+    outputResult(
+      { text: JSON.stringify(index, null, 2), index, outputDir },
+      options,
+    );
     return 0;
   }
   writeLine(`Files: ${index.fileCount}`);
@@ -124,11 +133,14 @@ async function runTokenEstimateCommand(options) {
       inputTokens: total,
       detail: "prompt",
     });
-    outputResult({
-      text: JSON.stringify({ total, parts }, null, 2),
-      total,
-      parts,
-    }, options);
+    outputResult(
+      {
+        text: JSON.stringify({ total, parts }, null, 2),
+        total,
+        parts,
+      },
+      options,
+    );
     return 0;
   }
   const target = options.path ? path.resolve(options.path) : null;
@@ -151,7 +163,11 @@ async function runTokenEstimateCommand(options) {
   }
   const originalTokens = estimateTokens(content, { filePath: target });
   if (options.budget && originalTokens > options.budget) {
-    const { trimmed, trimmedTokens, droppedLines } = trimContext(content, options.budget, { filePath: target });
+    const { trimmed, trimmedTokens, droppedLines } = trimContext(
+      content,
+      options.budget,
+      { filePath: target },
+    );
     recordEvent({
       ledgerPath,
       action: "token-estimate",
@@ -161,19 +177,26 @@ async function runTokenEstimateCommand(options) {
       savedTokens: originalTokens - trimmedTokens,
       detail: path.basename(target),
     });
-    outputResult({
-      text: JSON.stringify({
-        file: target,
+    outputResult(
+      {
+        text: JSON.stringify(
+          {
+            file: target,
+            originalTokens,
+            budget: options.budget,
+            trimmedTokens,
+            savedTokens: originalTokens - trimmedTokens,
+            droppedLines,
+            trimmed,
+          },
+          null,
+          2,
+        ),
         originalTokens,
-        budget: options.budget,
         trimmedTokens,
-        savedTokens: originalTokens - trimmedTokens,
-        droppedLines,
-        trimmed,
-      }, null, 2),
-      originalTokens,
-      trimmedTokens,
-    }, options);
+      },
+      options,
+    );
     return 0;
   }
   recordEvent({
@@ -183,10 +206,17 @@ async function runTokenEstimateCommand(options) {
     inputTokens: originalTokens,
     detail: path.basename(target),
   });
-  outputResult({
-    text: JSON.stringify({ file: target, tokens: originalTokens, withinBudget: true }, null, 2),
-    tokens: originalTokens,
-  }, options);
+  outputResult(
+    {
+      text: JSON.stringify(
+        { file: target, tokens: originalTokens, withinBudget: true },
+        null,
+        2,
+      ),
+      tokens: originalTokens,
+    },
+    options,
+  );
   return 0;
 }
 
@@ -195,7 +225,9 @@ async function runTokenEstimateCommand(options) {
  */
 async function runEmbedCommand(options) {
   const root = resolveProjectRoot(options);
-  const indexPath = options.indexFile ? path.resolve(options.indexFile) : defaultIndexPath(root);
+  const indexPath = options.indexFile
+    ? path.resolve(options.indexFile)
+    : defaultIndexPath(root);
   writeLine(`Building embeddings index for: ${root}`);
   const files = await walkProject(root, {});
   const fileInputs = [];
@@ -208,7 +240,9 @@ async function runEmbedCommand(options) {
     }
     fileInputs.push({ path: f.relPath, content });
   }
-  const index = buildIndex(fileInputs, { dimensions: options.dimensions || 256 });
+  const index = buildIndex(fileInputs, {
+    dimensions: options.dimensions || 256,
+  });
   saveIndex(index, indexPath);
   const ledgerPath = defaultLedgerPath(root);
   recordEvent({
@@ -220,7 +254,21 @@ async function runEmbedCommand(options) {
     detail: `${index.fileCount} files, ${index.passageCount} passages`,
   });
   if (options.format === "json" || options.jsonOutput === true) {
-    outputResult({ text: JSON.stringify({ indexPath, fileCount: index.fileCount, passageCount: index.passageCount, dimensions: index.dimensions }, null, 2) }, options);
+    outputResult(
+      {
+        text: JSON.stringify(
+          {
+            indexPath,
+            fileCount: index.fileCount,
+            passageCount: index.passageCount,
+            dimensions: index.dimensions,
+          },
+          null,
+          2,
+        ),
+      },
+      options,
+    );
     return 0;
   }
   writeLine(`Files indexed: ${index.fileCount}`);
@@ -239,10 +287,14 @@ async function runSearchCommand(options) {
     return 1;
   }
   const root = resolveProjectRoot(options);
-  const indexPath = options.indexFile ? path.resolve(options.indexFile) : defaultIndexPath(root);
+  const indexPath = options.indexFile
+    ? path.resolve(options.indexFile)
+    : defaultIndexPath(root);
   const index = loadIndex(indexPath);
   if (!index) {
-    writeLine(`No embeddings index found at ${indexPath}. Run 'simplebeacon embed' first.`);
+    writeLine(
+      `No embeddings index found at ${indexPath}. Run 'simplebeacon embed' first.`,
+    );
     return 1;
   }
   const results = search(index, options.query, { k: options.topK || 5 });
@@ -257,7 +309,13 @@ async function runSearchCommand(options) {
     detail: options.query.slice(0, 60),
   });
   if (options.format === "json" || options.jsonOutput === true) {
-    outputResult({ text: JSON.stringify({ query: options.query, results }, null, 2), results }, options);
+    outputResult(
+      {
+        text: JSON.stringify({ query: options.query, results }, null, 2),
+        results,
+      },
+      options,
+    );
     return 0;
   }
   writeLine(`Query: "${options.query}"`);
@@ -290,10 +348,14 @@ async function runTelemetryCommand(options) {
   writeLine(``);
   writeLine(`By capability:`);
   for (const [cap, info] of Object.entries(report.byCapability)) {
-    writeLine(`  ${cap}: ${info.calls} calls, ${info.inputTokens} in, ${info.outputTokens} out, ${info.savedTokens} saved`);
+    writeLine(
+      `  ${cap}: ${info.calls} calls, ${info.inputTokens} in, ${info.outputTokens} out, ${info.savedTokens} saved`,
+    );
   }
   if (report.totalCalls === 0) {
-    writeLine(`(no telemetry recorded yet — run summarize/token-estimate/embed/search to populate)`);
+    writeLine(
+      `(no telemetry recorded yet — run summarize/token-estimate/embed/search to populate)`,
+    );
   }
   return 0;
 }
@@ -338,7 +400,10 @@ async function runBeaconCommand(options) {
     });
     if (options.format === "json" || options.jsonOutput === true) {
       outputResult(
-        { text: JSON.stringify({ query: options.query, results }, null, 2), results },
+        {
+          text: JSON.stringify({ query: options.query, results }, null, 2),
+          results,
+        },
         options,
       );
       return 0;
@@ -350,7 +415,9 @@ async function runBeaconCommand(options) {
         `  [${r.score}]\t${r.targetFile}:${r.targetLine}\t${r.entityType} ${r.entityName}`,
       );
       writeLine(`        ${r.signature}`);
-      writeLine(`        saved ~${r.estimatedSavedTokens} tokens vs reading full file`);
+      writeLine(
+        `        saved ~${r.estimatedSavedTokens} tokens vs reading full file`,
+      );
     }
     return 0;
   }

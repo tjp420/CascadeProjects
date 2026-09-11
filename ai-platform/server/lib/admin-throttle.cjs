@@ -118,9 +118,12 @@ if (_disableRedis) {
     });
   } catch (e) {
     usingRedis = false;
-    logger.warn("admin-throttle: Redis initialization failed, using in-memory mode", {
-      error: e && e.message ? e.message : String(e),
-    });
+    logger.warn(
+      "admin-throttle: Redis initialization failed, using in-memory mode",
+      {
+        error: e && e.message ? e.message : String(e),
+      },
+    );
   }
 }
 

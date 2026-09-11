@@ -70,7 +70,12 @@ function safeStringify(value) {
     });
     return typeof result === "string" ? result : String(value);
   } catch (e) {
-    try { console.warn('app-logger safeStringify error:', e && e.message ? e.message : e); } catch (_) {}
+    try {
+      console.warn(
+        "app-logger safeStringify error:",
+        e && e.message ? e.message : e,
+      );
+    } catch (_) {}
     return "[Unserializable]";
   } finally {
     _seen.clear();

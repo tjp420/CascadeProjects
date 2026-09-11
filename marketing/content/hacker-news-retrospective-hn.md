@@ -11,28 +11,28 @@ When I set out to build a scanner (SimpleBeacon) to catch these dead infrastruct
 Here is how the standard tools broke down at that scale, and the engineering workarounds required to make local-first scanning viable.
 
 1. The getaddrinfo Bottleneck
-My initial implementation used Node's built-in dns.lookup() engine to sweep the codebase, extract every string matching a domain pattern, and verify if it resolved to active infrastructure.
+   My initial implementation used Node's built-in dns.lookup() engine to sweep the codebase, extract every string matching a domain pattern, and verify if it resolved to active infrastructure.
 
 It worked perfectly on small repos. But when dropped into the 265k-file directory, execution times completely stalled. On Windows environments, individual hostname checks were lagging by up to 10 seconds per query.
 
 The culprit? Node’s default dns.lookup() utilizes the underlying operating system’s synchronous getaddrinfo(3) architecture under the hood. To prevent blocking the primary event loop, Node delegates these calls to an internal thread pool (libuv). At an enterprise scale, this thread pool instantly starved. The scanner was spending all its time context-switching and waiting on OS network subroutines, destroying developer commit velocity.
 
 2. Shifting to Direct C-Ares Asynchronous Resolution
-To hit a target scanning budget of under 100ms, I completely decoupled the network tracking logic from the OS system layers. I replaced dns.lookup() with dns.resolve4().
+   To hit a target scanning budget of under 100ms, I completely decoupled the network tracking logic from the OS system layers. I replaced dns.lookup() with dns.resolve4().
 
 Unlike `dns.lookup`, `dns.resolve4` completely bypasses `getaddrinfo` and queries the configured name servers over UDP using the native c-ares bindings embedded in the Node runtime. This shifts the verification pass from a synchronous OS thread block into a fully non-blocking, asynchronous network request layout.
 
 The performance optimization was immediate: network evaluation lags plummeted from a 10-second thread bottleneck down to a deterministic ~65 milliseconds per batch lookup.
 
 3. Resolving the Monorepo Require-Cycle Nightmare
-The next barrier wasn't network configuration—it was memory management. The codebase's abstract adapter modules had accumulated over 200 server-side dependency files, creating complex circular require-cycles under the platform layer.
+   The next barrier wasn't network configuration—it was memory management. The codebase's abstract adapter modules had accumulated over 200 server-side dependency files, creating complex circular require-cycles under the platform layer.
 
 When walking a massive filesystem tree, these cyclic dependencies cause memory footprint leaks and throw erratic initialization faults when Node attempts to compile module exports mid-walk.
 
 I spent an intense sprint tracking down the internal reference nodes and extracted all shared exception architectures and static utility rules into an isolated, independent leaf module called hsm-common-utils.cjs. By stripping out the require loops and ensuring a strictly flat dependency tree under the scanner core, the engine stabilized its memory ceiling, allowing it to crawl all 265,000 files in a single, lightweight in-memory sandbox.
 
 4. The Result: Pure Local Sovereignty
-By marrying the c-ares asynchronous networking layer with a strictly decoupled module framework, the engine successfully processes massive directories entirely offline.
+   By marrying the c-ares asynchronous networking layer with a strictly decoupled module framework, the engine successfully processes massive directories entirely offline.
 
 Because we enforce a strict Zero-Upload Guarantee, enterprise engineering teams can crawl their codetrees behind private firewalls without ever exposing proprietary intellectual property to a third-party cloud SaaS.
 

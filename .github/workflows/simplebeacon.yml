@@ -69,6 +69,19 @@ jobs:
             console.log('PR comment generated (' + comment.length + ' chars)');
           "
 
+      - name: Append triage summary to PR comment
+        if: always()
+        run: |
+          if [ -f .simplebeacon/report.json ] && [ -f .simplebeacon/pr-comment.md ]; then
+            echo "\n<details><summary>🤖 View Top 5 Compliance Blockers</summary>\n" >> .simplebeacon/pr-comment.md
+            # Run the triage subcommand and indent output for markdown code block
+            node packages/simplebeacon-cli/bin/simplebeacon.js triage --report .simplebeacon/report.json --top 5 | sed 's/^/    /' >> .simplebeacon/pr-comment.md || true
+            echo "\n</details>\n" >> .simplebeacon/pr-comment.md
+            echo "Appended triage summary to .simplebeacon/pr-comment.md"
+          else
+            echo "No report or comment file to append triage to";
+          fi
+
       - name: Post PR comment
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -120,28 +133,13 @@ jobs:
             fi
           fi
 
-      - name: Print blocking issues on failure
+      - name: Print top blockers using SimpleBeacon triage
         if: failure()
         run: |
-          node -e "
-            const fs = require('fs');
-            try {
-              const r = JSON.parse(fs.readFileSync('.simplebeacon/report.json', 'utf8'));
-              const rep = r.report || r;
-              const gate = rep.gate || rep.summary?.gate || {};
-              console.log('Gate pass:', gate.pass);
-              console.log('Blocking count:', gate.blockingCount);
-              const issues = gate.blockingIssues || [];
-              issues.forEach(i => {
-                console.log('---');
-                console.log('  Severity:', i.severity);
-                console.log('  Type:', i.type || i.rule);
-                console.log('  File:', (i.file || i.filePath || i.path || '').replace(process.cwd() + '/', ''));
-                console.log('  Line:', i.line);
-                console.log('  Description:', i.description || i.message || '');
-              });
-            } catch(e) { console.log('Could not read report:', e.message); }
-          "
+          echo "=== SimpleBeacon: Top 5 Triage Findings ==="
+          # Invoke the local CLI triage subcommand against the generated report.
+          # Use the local node binary to ensure we run the workspace CLI implementation.
+          node packages/simplebeacon-cli/bin/simplebeacon.js triage --report .simplebeacon/report.json --top 5 || true
 
       - name: Redact absolute paths and hash metadata
         run: |

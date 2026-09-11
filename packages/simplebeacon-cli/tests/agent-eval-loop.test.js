@@ -144,7 +144,7 @@ describe("extractCodeBlocks", () => {
   test("handles code blocks containing backtick-like content inside", () => {
     // Nested backticks inside a fenced block — the regex is non-greedy so
     // it matches up to the first closing ```
-    const text = "```js\nconst s = \"hello\";\n```";
+    const text = '```js\nconst s = "hello";\n```';
     const blocks = mod.extractCodeBlocks(text);
     assert.equal(blocks.length, 1);
     assert.equal(blocks[0].code, 'const s = "hello";');
@@ -212,9 +212,7 @@ describe("saveOutputToWorkspace", () => {
     const files = mod.saveOutputToWorkspace(workspace, output);
     assert.equal(files.length, 1);
     assert.ok(
-      fs.existsSync(
-        path.join(workspace, "deep", "nested", "dir", "file.js"),
-      ),
+      fs.existsSync(path.join(workspace, "deep", "nested", "dir", "file.js")),
     );
   });
 
@@ -241,11 +239,11 @@ describe("saveOutputToWorkspace", () => {
 
     // The file should be contained inside the workspace as escape.txt
     const safePath = path.join(workspace, "escape.txt");
-    assert.ok(fs.existsSync(safePath), "File should be flattened to workspace root");
-    assert.equal(
-      fs.readFileSync(safePath, "utf8"),
-      "traversal attempt",
+    assert.ok(
+      fs.existsSync(safePath),
+      "File should be flattened to workspace root",
     );
+    assert.equal(fs.readFileSync(safePath, "utf8"), "traversal attempt");
 
     // The file should NOT exist at the traversed path outside workspace
     const escapedPath = path.resolve(
@@ -255,22 +253,26 @@ describe("saveOutputToWorkspace", () => {
       !escapedPath.startsWith(path.resolve(workspace) + path.sep),
       "Traversed path should resolve outside workspace",
     );
-    assert.ok(!fs.existsSync(escapedPath), "File must not escape workspace boundary");
+    assert.ok(
+      !fs.existsSync(escapedPath),
+      "File must not escape workspace boundary",
+    );
   });
 
   test("absolute path in model output is contained within workspace", () => {
     // An absolute path like /etc/passwd should not write outside workspace.
     // path.resolve(workspaceRoot, "/etc/passwd") returns "/etc/passwd" on Unix
     // which does not start with workspaceRoot — so it gets flattened.
-    const output = [
-      { path: "/etc/passwd", content: "should not write here" },
-    ];
+    const output = [{ path: "/etc/passwd", content: "should not write here" }];
     const files = mod.saveOutputToWorkspace(workspace, output);
     assert.equal(files.length, 1);
 
     // Should be flattened to basename inside workspace
     const safePath = path.join(workspace, "passwd");
-    assert.ok(fs.existsSync(safePath), "Absolute path should be flattened to workspace root");
+    assert.ok(
+      fs.existsSync(safePath),
+      "Absolute path should be flattened to workspace root",
+    );
     assert.equal(fs.readFileSync(safePath, "utf8"), "should not write here");
   });
 
@@ -554,9 +556,7 @@ describe("runAgentEvalLoop", () => {
       json: async () => {
         modelCallCount++;
         return {
-          choices: [
-            { message: { content: "```js\nconst x = 1;\n```" } },
-          ],
+          choices: [{ message: { content: "```js\nconst x = 1;\n```" } }],
         };
       },
       text: async () => "",
@@ -586,9 +586,7 @@ describe("runAgentEvalLoop", () => {
       json: async () => {
         modelCallCount++;
         return {
-          choices: [
-            { message: { content: `Attempt ${modelCallCount} code` } },
-          ],
+          choices: [{ message: { content: `Attempt ${modelCallCount} code` } }],
         };
       },
       text: async () => "",
