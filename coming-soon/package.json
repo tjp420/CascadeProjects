@@ -28,7 +28,7 @@
         "@sentry/node": "^10.72.0",
         "express": "^5.2.1",
         "jsonwebtoken": "^9.0.3",
-        "nodemailer": "^9.0.3",
+        "nodemailer": "^10.0.2",
         "pdfkit": "^0.19.1"
     },
     "engines": {
