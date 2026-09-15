@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { navigate } from "@/router/HashRouter";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 interface ScanResultData {
   totalFiles: number;
@@ -80,17 +81,13 @@ export function QualityView() {
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json",
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
     const root = ((result && result.projectPath) || "quality")
       .replace(/[\/:\\\s]+/g, "-")
       .slice(0, 60);
-    a.href = url;
-    a.download = `quality-${root || "quality"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      `quality-${root || "quality"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+      blob,
+    );
   };
 
   if (!result) {

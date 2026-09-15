@@ -1476,6 +1476,32 @@ export default {
       );
     }
 
+    // /downloads/* — always pull from live Pages production, not the ASSETS
+    // binding (which can lag behind wrangler pages deploy by hours/days).
+    if (url.pathname.startsWith("/downloads/")) {
+      const pagesUrl = new URL(
+        `https://simplebeacon.pages.dev${url.pathname}`,
+      );
+      pagesUrl.searchParams.set("_cb", Date.now().toString());
+      const upstream = await fetch(pagesUrl.toString(), {
+        method: request.method === "HEAD" ? "HEAD" : "GET",
+        redirect: "follow",
+        cf: { cacheTtl: 0, cacheEverything: false },
+      });
+      const headers = new Headers(upstream.headers);
+      if (url.pathname.toLowerCase().endsWith(".vsix")) {
+        headers.set("Content-Type", "application/octet-stream");
+      }
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      headers.set("CDN-Cache-Control", "no-store");
+      headers.set("X-SB-Worker", "downloads-pages-bridge");
+      return new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers,
+      });
+    }
+
     // HTML route handling — with html_handling: "none", the ASSETS binding won't
     // auto-serve index.html for directory paths. We handle HTML serving here.
     // Root landing page

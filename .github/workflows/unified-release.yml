@@ -199,10 +199,6 @@ jobs:
         working-directory: simplebeacon-vscode-merged
         run: npm run compile
 
-      - name: Sync Dashboard Web Assets
-        working-directory: simplebeacon-vscode-merged
-        run: npm run sync:dashboard-web
-
       - name: Run Extension Tests
         working-directory: simplebeacon-vscode-merged
         run: npm test -- --silent

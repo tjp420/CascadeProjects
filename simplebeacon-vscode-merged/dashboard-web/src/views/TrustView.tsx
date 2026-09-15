@@ -13,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import { apiUrl, authHeaders } from "@/config";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 type SeverityCounts = Record<string, number>;
 
@@ -144,15 +145,11 @@ export function TrustView() {
 
   const handleDownload = () => {
     if (!verification) return;
-    const blob = new Blob([JSON.stringify(verification, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "trust-verification.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      "trust-verification.json",
+      JSON.stringify(verification, null, 2),
+      "application/json",
+    );
   };
 
   const fmtDate = (s: string | null | undefined) => {

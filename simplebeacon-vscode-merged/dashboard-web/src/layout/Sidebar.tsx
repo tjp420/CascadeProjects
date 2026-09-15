@@ -34,6 +34,7 @@ import {
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 interface SidebarProps {
   currentView: string;
@@ -201,12 +202,7 @@ export function Sidebar({
                 const blob = new Blob([JSON.stringify(data, null, 2)], {
                   type: "application/json",
                 });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "simplebeacon-report.json";
-                a.click();
-                URL.revokeObjectURL(url);
+                downloadBrowserFile("simplebeacon-report.json", blob);
               } catch {
                 /* ignore download errors */
               }

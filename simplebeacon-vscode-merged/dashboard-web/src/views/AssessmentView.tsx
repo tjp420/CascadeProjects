@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { navigate } from "@/router/HashRouter";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { Button } from "@/components/ui/button";
 
 interface ScanResultData {
@@ -239,15 +240,11 @@ export function AssessmentView() {
       exportedAt: new Date().toISOString(),
       ...result,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `assessment-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      `assessment-${Date.now()}.json`,
+      JSON.stringify(payload, null, 2),
+      "application/json",
+    );
   };
 
   const overallPass =

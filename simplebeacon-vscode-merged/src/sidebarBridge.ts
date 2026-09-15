@@ -77,6 +77,12 @@ export function addDownloadedFile(filename: string, filePath: string) {
   _addDownloadedFile?.(filename, filePath);
 }
 
+/** Real saved paths only — ignore browser:// placeholders from mixed-content notify. */
+export function isSidebarTrackedDownloadPath(filePath: string): boolean {
+  const p = String(filePath || '').trim();
+  return p.length > 0 && !p.startsWith('browser://');
+}
+
 export function updateSidebarReport(report: any) {
   _updateSidebarReport?.(report);
 }

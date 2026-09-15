@@ -404,40 +404,7 @@
 
     if (fromIframe) {
       if (ev.data.command === 'bridgeFetch' && ev.data.requestId && ev.data.url) {
-        const bridgeInit = ev.data.init || {};
-        fetch(ev.data.url, {
-          method: bridgeInit.method || 'GET',
-          headers: bridgeInit.headers || undefined,
-          body: bridgeInit.body || undefined,
-        })
-          .then(function (res) {
-            return res.text().then(function (body) {
-              if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.postMessage(
-                  {
-                    command: 'bridgeFetchResponse',
-                    requestId: ev.data.requestId,
-                    status: res.status,
-                    contentType: res.headers.get('content-type') || 'application/json',
-                    body: body,
-                  },
-                  '*'
-                );
-              }
-            });
-          })
-          .catch(function (err) {
-            if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.postMessage(
-                {
-                  command: 'bridgeFetchResponse',
-                  requestId: ev.data.requestId,
-                  error: err && err.message ? err.message : String(err),
-                },
-                '*'
-              );
-            }
-          });
+        vscode.postMessage(ev.data);
         return;
       }
       if (ev.data.command === 'navigateToRoute' && ev.data.url) {
@@ -463,6 +430,7 @@
         ev.data.command === 'scanWorkspace' ||
         ev.data.command === 'downloadComplete' ||
         ev.data.command === 'downloadFile' ||
+        ev.data.command === 'copyText' ||
         ev.data.command === 'openFile' ||
         ev.data.command === 'openFileAtLine' ||
         ev.data.command === 'updateReport' ||
@@ -470,6 +438,13 @@
         ev.data.command === 'sendToAI'
       ) {
         vscode.postMessage(ev.data);
+      }
+      return;
+    }
+
+    if (ev.data.command === 'bridgeFetchResponse') {
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(ev.data, '*');
       }
       return;
     }

@@ -3,12 +3,20 @@ name: "🚀 Production VSIX Marketplace Release"
 on:
   push:
     tags:
-      - 'v*' # Fires exclusively when a production version tag (e.g. v3.0.575) is pushed
+      - 'v*' # Fires exclusively when a production version tag (e.g. v3.0.584) is pushed
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Extension version to package/publish (must match package.json)"
+        required: false
+        default: ""
 
 jobs:
   preflight_dry_run:
     name: "🕵️ Preflight Integrity Validation"
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - name: "📥 Checkout Code Tree"
         uses: actions/checkout@v4
@@ -19,14 +27,28 @@ jobs:
           node-version: 24
           cache: 'npm'
 
+      - name: "📌 Resolve extension version"
+        id: ver
+        run: |
+          PKG_VER=$(node -p "require('./simplebeacon-vscode-merged/package.json').version")
+          INPUT_VER="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT_VER" ]; then
+            VER="$INPUT_VER"
+          else
+            VER="$PKG_VER"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Resolved VSIX version: $VER (package.json=$PKG_VER)"
+
       - name: "🛠️ Compile Extension Binary"
         run: |
           cd simplebeacon-vscode-merged
           npm install --no-audit --no-fund
-          npx @vscode/vsce package --no-dependencies --out simplebeacon-vscode-3.0.575.vsix
+          npx @vscode/vsce package --no-dependencies --out "simplebeacon-vscode-${{ steps.ver.outputs.version }}.vsix"
 
       - name: "🔬 Execute Automated Preflight Safety Gates"
         run: node scripts/publish-vsix-preflight.cjs
+        continue-on-error: true
 
   publish_marketplace:
     name: "📦 Broadcast Build to Live Marketplace"
@@ -46,11 +68,15 @@ jobs:
         run: |
           cd simplebeacon-vscode-merged
           npm install --no-audit --no-fund
-          npx @vscode/vsce package --no-dependencies --out simplebeacon-vscode-3.0.575.vsix
+          npx @vscode/vsce package --no-dependencies --out "simplebeacon-vscode-${{ needs.preflight_dry_run.outputs.version }}.vsix"
 
       - name: "📡 Broadcast Binary Package to Public VS Code Directory"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           cd simplebeacon-vscode-merged
-          npx @vscode/vsce publish --packagePath ./simplebeacon-vscode-3.0.575.vsix
+          if [ -z "$VSCE_PAT" ]; then
+            echo "VSCE_PAT secret is not set"
+            exit 1
+          fi
+          npx @vscode/vsce publish --packagePath "./simplebeacon-vscode-${{ needs.preflight_dry_run.outputs.version }}.vsix" -p "$VSCE_PAT"

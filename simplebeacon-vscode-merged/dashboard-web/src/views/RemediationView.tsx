@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,20 +216,14 @@ export function RemediationView() {
   const exportRoadmap = () => {
     if (!data) return;
     const payload = { exportedAt: new Date().toISOString(), roadmap: data };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
     const root = (data.sourceProjectPath || data.projectName || "roadmap")
       .replace(/[\/:\\\s]+/g, "-")
       .slice(0, 60);
-    a.href = url;
-    a.download = `remediation-${root || "roadmap"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      `remediation-${root || "roadmap"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+      JSON.stringify(payload, null, 2),
+      "application/json",
+    );
   };
 
   if (loading) {

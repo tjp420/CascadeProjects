@@ -1370,11 +1370,11 @@ function resolveRealPath(inputPath: string): string {
   }
 }
 
-function getDirectoryMetrics(scanPath: string): {
+async function getDirectoryMetrics(scanPath: string): Promise<{
   totalFiles: number;
   totalSize: number;
   breakdown: Record<string, number>;
-} {
+}> {
   const breakdown: Record<string, number> = {};
   let totalFiles = 0;
   let totalSize = 0;
@@ -1391,13 +1391,14 @@ function getDirectoryMetrics(scanPath: string): {
     'coverage',
     '.nyc_output',
   ]);
-  function walk(dir: string) {
+  async function walk(dir: string): Promise<void> {
     let entries: fs.Dirent[];
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
+      entries = await fs.promises.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
+    await new Promise<void>((resolve) => setImmediate(resolve));
     const filePaths: string[] = [];
     for (const entry of entries) {
       if (skipDirs.has(entry.name)) {
@@ -1405,7 +1406,7 @@ function getDirectoryMetrics(scanPath: string): {
       }
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        walk(fullPath);
+        await walk(fullPath);
       } else if (entry.isFile()) {
         totalFiles++;
         const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
@@ -1413,20 +1414,20 @@ function getDirectoryMetrics(scanPath: string): {
         filePaths.push(fullPath);
       }
     }
-    // Batch stat calls — collect sizes in a tight loop to reduce I/O overhead
     for (const fp of filePaths) {
       try {
-        totalSize += fs.statSync(fp).size;
+        const st = await fs.promises.stat(fp);
+        totalSize += st.size;
       } catch {
         console.error('Failed to stat file during size calculation:');
       }
     }
   }
-  walk(scanPath);
+  await walk(scanPath);
   return { totalFiles, totalSize, breakdown };
 }
 
-function resolveFolderNameToPath(folderName: string, hintPath?: string): string | null {
+async function resolveFolderNameToPath(folderName: string, hintPath?: string): Promise<string | null> {
   if (!folderName) {
     return null;
   }
@@ -1462,15 +1463,21 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
     return true;
   });
 
-  function searchRecursive(dir: string, depth: number): string | null {
+  async function searchRecursive(dir: string, depth: number): Promise<string | null> {
     if (depth <= 0) {
       return null;
     }
-    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    let dirStat: fs.Stats;
+    try {
+      dirStat = await fs.promises.stat(dir);
+    } catch {
+      return null;
+    }
+    if (!dirStat.isDirectory()) {
       return null;
     }
     try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
         if (!entry.isDirectory()) {
           continue;
@@ -1479,7 +1486,7 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
         if (entry.name.toLowerCase() === folderName.toLowerCase()) {
           return resolveRealPath(candidate);
         }
-        const deeper = searchRecursive(candidate, depth - 1);
+        const deeper = await searchRecursive(candidate, depth - 1);
         if (deeper) {
           return deeper;
         }
@@ -1492,10 +1499,15 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
 
   for (const root of uniqueRoots) {
     const exact = path.join(root, folderName);
-    if (fs.existsSync(exact) && fs.statSync(exact).isDirectory()) {
-      return resolveRealPath(exact);
+    try {
+      const exactStat = await fs.promises.stat(exact);
+      if (exactStat.isDirectory()) {
+        return resolveRealPath(exact);
+      }
+    } catch {
+      /* not an exact match */
     }
-    const found = searchRecursive(root, 3);
+    const found = await searchRecursive(root, 3);
     if (found) {
       return found;
     }
@@ -1999,7 +2011,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Scan, report, status, config, workspace, data, and analyze stub routes
-    if (handleScanReportRoutes(req, res, parsed, serverState)) {
+    if (await handleScanReportRoutes(req, res, parsed, serverState)) {
       return;
     }
 
@@ -2042,6 +2054,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }
       let progress: Record<string, unknown> = {
         active: scanning,
+        scanStatus: serverState.scanStatus || (scanning ? 'scanning' : 'idle'),
         label: serverState.scanMessage || (scanning ? 'Scanning…' : 'Idle'),
         processed: serverState.scanProgressProcessed ?? (scanning ? 0 : 100),
         total: serverState.scanProgressTotal ?? 100,
@@ -2096,7 +2109,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/analyze/resolve-folder-name') {
       const folderName = parsed.searchParams.get('folderName') || '';
       const hintPath = parsed.searchParams.get('hintPath') || '';
-      const resolved = resolveFolderNameToPath(folderName, hintPath || undefined);
+      const resolved = await resolveFolderNameToPath(folderName, hintPath || undefined);
       if (resolved) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, path: resolved }));
@@ -3502,10 +3515,18 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           const args = {
             projectPath: resolveRealPath(targetPath),
-            fullDirectory: true,
+            fullDirectory: payload.fullDirectory === true,
+            mode: typeof payload.mode === 'string' ? payload.mode : undefined,
           };
+          updateServerState({
+            scanStatus: 'scanning',
+            scanMessage: 'Starting scan…',
+            scanProgressProcessed: 0,
+            scanProgressTotal: 100,
+            lastScanTime: Date.now(),
+          });
           // Fire-and-forget: start the scan without awaiting so the HTTP response
-          // returns immediately. The dashboard polls /api/scan/progress and fetches
+          // returns immediately. The dashboard polls /api/analyze/progress and fetches
           // /api/report when the scan completes.
           Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', args))
             .then((report: unknown) => {
@@ -3661,7 +3682,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           const args = {
             projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
-            fullDirectory: payload.fullDirectoryScan !== false,
+            fullDirectory: payload.fullDirectoryScan === true || payload.fullDirectory === true,
           };
           // Await the scan so the response includes the full report (matches remote server behavior)
           try {
@@ -3799,7 +3820,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const wsPath = ws.uri?.fsPath || '';
           const searchPaths = wsPath ? [wsPath] : [];
           try {
-            const entries = fs.readdirSync(wsPath, { withFileTypes: true });
+            const entries = await fs.promises.readdir(wsPath, { withFileTypes: true });
             for (const entry of entries) {
               if (entry.isDirectory() && !entry.name.startsWith('.')) {
                 searchPaths.push(path.join(wsPath, entry.name));
@@ -3810,13 +3831,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           }
           for (const basePath of searchPaths) {
             const configJsonPath = path.join(basePath, '.simplebeacon', 'config.json');
-            if (fs.existsSync(configJsonPath)) {
-              const configJson = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
+            try {
+              const raw = await fs.promises.readFile(configJsonPath, 'utf8');
+              const configJson = JSON.parse(raw);
               if (Array.isArray(configJson.allowedAnalysisRoots) && configJson.allowedAnalysisRoots.length > 0) {
                 allowedRoots = configJson.allowedAnalysisRoots;
                 rootsSummary = allowedRoots.slice(0, 4).join('; ');
                 break;
               }
+            } catch {
+              /* config missing or unreadable */
             }
           }
           if (!defaultPath) {

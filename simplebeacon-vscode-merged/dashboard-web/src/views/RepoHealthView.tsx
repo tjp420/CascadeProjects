@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getApiBase, apiUrl, authHeaders, waitForApiBase } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 function isHostedDashboard(): boolean {
   if (typeof window === "undefined") return false;
@@ -180,22 +181,12 @@ export function RepoHealthView() {
   const handleExport = () => {
     if (!data) return;
     const payload = { exportedAt: new Date().toISOString(), data };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
     const root = (data.projectRoot || "repository")
       .replace(/[\/:\\\s]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 60);
     const name = `repository-health-${root || "repo"}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(name, JSON.stringify(payload, null, 2), "application/json");
   };
 
   if (loading) {

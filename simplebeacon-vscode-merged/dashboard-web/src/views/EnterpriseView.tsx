@@ -34,6 +34,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { getApiBase } from "@/config";
 
 interface EnterpriseOrg {
@@ -793,16 +794,11 @@ export function EnterpriseView() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const blob = new Blob(
-                                [azureConfig.pipelineYaml],
-                                { type: "text/yaml" },
+                              downloadBrowserFile(
+                                `${selectedOrg.orgId}-azure-pipelines.yml`,
+                                azureConfig.pipelineYaml,
+                                "text/yaml",
                               );
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.download = `${selectedOrg.orgId}-azure-pipelines.yml`;
-                              a.click();
-                              URL.revokeObjectURL(url);
                               toast.success("Pipeline YAML downloaded");
                             }}
                           >

@@ -46,7 +46,7 @@ import {
   DebugReporter,
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
-import { registerContextInterceptor } from './agentIntegration/agentValidation';
+import { registerContextInterceptor, readLocalGateSnapshot } from './agentIntegration/agentValidation';
 import {
   startDataServer,
   stopDataServer,
@@ -86,6 +86,7 @@ import {
   probeLocalAgent,
   scanViaLocalAgent,
   startLocalAgent,
+  type AgentScanOptions,
 } from './localAgent';
 import { AuthManager } from './auth/authManager';
 import { initAuthManager, getAuthManager } from './auth/authContext';
@@ -656,18 +657,37 @@ async function withServerRetry<T>(action: () => Promise<T>, actionName = 'Open d
   return undefined;
 }
 
+function applyDiskGateToStatusBar(): boolean {
+  const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!root) return false;
+  const snap = readLocalGateSnapshot(root);
+  if (snap.source === 'missing') return false;
+  statusBarItem.text = snap.pass
+    ? '$(shield) SimpleBeacon: PASS'
+    : `$(shield) SimpleBeacon: FAIL (${snap.blockingCount} block)`;
+  statusBarItem.backgroundColor = snap.pass
+    ? new vscode.ThemeColor('statusBarItem.prominentBackground')
+    : new vscode.ThemeColor('statusBarItem.errorBackground');
+  statusBarItem.tooltip = snap.pass
+    ? 'Last scan gate PASS — click to open dashboard'
+    : `Last scan gate FAIL (${snap.blockingCount} blocking) from .simplebeacon/report.json — click dashboard`;
+  return true;
+}
+
 function updateStatusBar(report?: unknown) {
   if (!statusBarItem) return;
   statusBarItem.show();
   if (!report) {
-    statusBarItem.text = '$(shield) SimpleBeacon';
-    statusBarItem.backgroundColor = undefined;
-    statusBarItem.tooltip = 'No scan results — Click to scan workspace';
+    if (!applyDiskGateToStatusBar()) {
+      statusBarItem.text = '$(shield) SimpleBeacon';
+      statusBarItem.backgroundColor = undefined;
+      statusBarItem.tooltip = 'No scan results — Click to scan workspace';
+    }
     return;
   }
   const r = report as Record<string, unknown>;
   const gate = r.gate as { pass?: boolean; blockingCount?: number } | undefined;
-  if (gate) {
+  if (gate && typeof gate.pass === 'boolean') {
     const pass = gate.pass;
     const blockingCount = gate.blockingCount ?? 0;
     statusBarItem.text = pass
@@ -700,7 +720,7 @@ function updateStatusBar(report?: unknown) {
       tooltip += ' — Click to open dashboard';
     }
     statusBarItem.tooltip = tooltip;
-  } else {
+  } else if (!applyDiskGateToStatusBar()) {
     statusBarItem.text = '$(shield) SimpleBeacon';
     statusBarItem.backgroundColor = undefined;
     statusBarItem.tooltip = 'No scan results — Click to scan workspace';
@@ -988,7 +1008,7 @@ function pushAllPanesToDashboard(report: unknown) {
  * Activate the SimpleBeacon extension.
  * @param context - VS Code extension context.
  */
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   const pkg = context.extension.packageJSON;
   const version = pkg?.version || 'unknown';
   try {
@@ -1654,6 +1674,18 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.tooltip = 'Click to open SimpleBeacon dashboard';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+    updateStatusBar(currentReport);
+    const wf = vscode.workspace.workspaceFolders?.[0];
+    if (wf) {
+      const reportWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(wf, '.simplebeacon/report.json'),
+      );
+      const refreshBar = () => updateStatusBar(currentReport);
+      reportWatcher.onDidChange(refreshBar);
+      reportWatcher.onDidCreate(refreshBar);
+      reportWatcher.onDidDelete(() => updateStatusBar());
+      context.subscriptions.push(reportWatcher);
+    }
 
     // Ping server so website knows extension is active
     const apiUrl = getConfiguredApiUrl();
@@ -2533,7 +2565,7 @@ export function activate(context: vscode.ExtensionContext) {
       }),
       registerCmd('simplebeacon.refreshResults', async () => {
         provider.refresh();
-        loadExistingReport(context);
+        await loadExistingReport(context);
         if (currentReport) {
           safeUpdateUIs(currentReport, 'Results refreshed');
         }
@@ -4704,7 +4736,7 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
       runScan(context, folders[0].uri.fsPath);
     }
 
-    loadExistingReport(context);
+    await loadExistingReport(context);
     if (currentReport) {
       safeUpdateUIs(currentReport, 'Loaded previous scan');
     }
@@ -4982,9 +5014,6 @@ async function runScan(
   }
   const maxFiles = config.get<number>('maxFiles', 10000);
   const userExcludePatterns = config.get<string[]>('excludePatterns', []);
-  const deepScan = config.get<boolean>('deepScan', false);
-  const includeDeps = config.get<boolean>('includeDeps', false);
-  // Combine default build artifact exclusions with user patterns
   const defaultExclusions = [
     'node_modules',
     '.git',
@@ -4999,20 +5028,15 @@ async function runScan(
     '.simplebeacon',
     'archive',
   ];
-  // If includeDeps is enabled, remove node_modules and .git from exclusions
-  const effectiveDefaultExclusions = includeDeps
-    ? defaultExclusions.filter((p) => p !== 'node_modules' && p !== '.git')
-    : defaultExclusions;
-  const excludePatterns = [...new Set([...effectiveDefaultExclusions, ...userExcludePatterns])];
+  const excludePatterns = [...new Set([...defaultExclusions, ...userExcludePatterns])];
 
   outputChannel.show();
   outputChannel.appendLine(`[SimpleBeacon] Starting scan: ${path.basename(projectPath)}`);
   outputChannel.appendLine(`[SimpleBeacon] Exclusions: ${excludePatterns.join(', ')}`);
-  if (deepScan) {
-    outputChannel.appendLine('[SimpleBeacon] Deep scan enabled: bypassing docs/vendor/cache filters');
-  }
-  if (includeDeps) {
-    outputChannel.appendLine('[SimpleBeacon] Include deps enabled: node_modules/.git will be scanned');
+  if (config.get<boolean>('deepScan', false) || config.get<boolean>('includeDeps', false)) {
+    outputChannel.appendLine(
+      '[SimpleBeacon] Ignoring simplebeacon.deepScan / includeDeps (CLI --deep-scan forces a full-tree walk). Use an explicit fullDirectory request instead.'
+    );
   }
 
   // Update enhanced sidebar with scanning status
@@ -5027,17 +5051,23 @@ async function runScan(
   }
   // Do not pass --path; the CLI defaults to process.cwd() which we set to projectPath.
   // Passing --path (even '.') triggers [CONFIG_ERROR] Path must stay within the project root on Windows.
-  const args = ['scan', '--format', 'json', '--output', '.simplebeacon/report.json'];
+  const args = [
+    'scan',
+    '--format',
+    'json',
+    '--output',
+    '.simplebeacon/report.json',
+    '--offline',
+  ];
 
-  if (scanMode === 'full' || scanMode === 'security' || scanMode === 'quality') {
-    args.push('--complete');
-  } else if (scanMode === 'gate') {
+  if (scanMode === 'gate') {
     args.push('--gate');
-  }
-  if (options?.fullDirectory) {
+  } else if (scanMode === 'complete' || scanMode === 'security' || scanMode === 'quality') {
     args.push('--complete');
   }
-  // quick mode: no --complete flag, uses productionPaths only (fastest)
+  if (options?.fullDirectory === true) {
+    args.push('--full');
+  }
 
   const configPath = path.join(projectPath, '.simplebeacon', 'config.json');
   try {
@@ -5056,39 +5086,18 @@ async function runScan(
     });
     if (rootsToAdd.length > 0) {
       cfg.allowedAnalysisRoots = [...allowedRoots, ...rootsToAdd];
-    }
-    // Ensure scan covers all files in the target directory (not just productionPaths)
-    if (!cfg.scanPaths) {
-      cfg.scanPaths = ['.'];
-    }
-    if (!cfg.productionPaths) {
-      cfg.productionPaths = ['.'];
-    }
-    if (cfg.fullDirectoryScan !== true) {
-      cfg.fullDirectoryScan = true;
-    }
-    if (!cfg.fullDirectoryScanMaxFiles || cfg.fullDirectoryScanMaxFiles < 50000) {
-      cfg.fullDirectoryScanMaxFiles = 100000;
-    }
-    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
-    if (rootsToAdd.length > 0) {
+      fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
       outputChannel.appendLine(`[SimpleBeacon] Updated allowedAnalysisRoots: ${rootsToAdd.join(', ')}`);
     }
-    outputChannel.appendLine('[SimpleBeacon] Ensured scanPaths=["."], productionPaths=["."], fullDirectoryScan=true');
-    args.push('--config', '.simplebeacon/config.json');
+    if (fs.existsSync(configPath)) {
+      args.push('--config', '.simplebeacon/config.json');
+    }
   } catch (cfgErr) {
     outputChannel.appendLine(`[SimpleBeacon] Warning: could not update config: ${cfgErr}`);
   }
 
   for (const pattern of excludePatterns) {
     args.push('--exclude', pattern);
-  }
-
-  if (deepScan) {
-    args.push('--deep-scan');
-  }
-  if (includeDeps) {
-    args.push('--include-deps');
   }
 
   // Prefer the local agent if enabled. It avoids requiring Node.js / CLI globally.
@@ -5137,7 +5146,9 @@ async function runScan(
     }
 
     if (agentStatus.available && agentStatus.scannerAvailable) {
-      outputChannel.appendLine('[SimpleBeacon] Scanning via local agent...');
+      outputChannel.appendLine(
+        `[SimpleBeacon] Scanning via local agent (${options?.fullDirectory === true ? 'full tree' : 'scoped'})...`
+      );
 
       let agentProgressVal = 5;
       modernSidebarProvider.updateScanProgress(agentProgressVal);
@@ -5154,22 +5165,41 @@ async function runScan(
       }, 800);
 
       try {
-        const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory, tier: ModernSidebarProvider.getCachedTier() || '', maxFiles }, agentPort);
+        const agentScan: AgentScanOptions = { projectPath };
+        if (options?.fullDirectory === true) {
+          agentScan.fullDirectory = true;
+        }
+        const cachedTier = ModernSidebarProvider.getCachedTier() || '';
+        if (cachedTier) {
+          agentScan.tier = cachedTier;
+        }
+        if (typeof maxFiles === 'number') {
+          agentScan.maxFiles = maxFiles;
+        }
+        const report = await scanViaLocalAgent(agentScan, agentPort);
         clearInterval(agentProgressInterval);
         if (report) {
-          const localInv = countLocalDirectoryInventory(projectPath);
-          if (localInv) {
-            report.repositoryFoldersTotal = localInv.totalFolders;
-            if (report.repositoryInventory) {
-              report.repositoryInventory.totalFolders = localInv.totalFolders;
-            } else {
-              report.repositoryInventory = { totalFiles: localInv.totalFiles, totalFolders: localInv.totalFolders };
+          if (options?.fullDirectory === true) {
+            const localInv = await countLocalDirectoryInventory(projectPath);
+            if (localInv) {
+              report.repositoryFoldersTotal = localInv.totalFolders;
+              if (report.repositoryInventory) {
+                report.repositoryInventory.totalFolders = localInv.totalFolders;
+              } else {
+                report.repositoryInventory = { totalFiles: localInv.totalFiles, totalFolders: localInv.totalFolders };
+              }
             }
           }
           modernSidebarProvider.updateScanProgress(100);
           const sbDir = path.join(projectPath, '.simplebeacon');
           await fs.promises.mkdir(sbDir, { recursive: true });
-          await fs.promises.writeFile(path.join(sbDir, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
+          const reportString = JSON.stringify(report, null, 2);
+          await fs.promises.writeFile(path.join(sbDir, 'report.json'), reportString, 'utf8');
+          try {
+            await fs.promises.unlink(path.join(sbDir, 'vscode-report.json'));
+          } catch {
+            /* leftover duplicate from older builds */
+          }
           currentReport = report;
           updateServerState({
             currentReport: currentReport as ScanReport | null,
@@ -5179,7 +5209,6 @@ async function runScan(
           });
           hasEnhancedAnalysis = false;
           enhancedAIProvider.setScanResult(currentReport);
-          await fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8');
           scanProvider.updateReport(currentReport as ScanReport);
           enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
           visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);
@@ -5194,7 +5223,6 @@ async function runScan(
           complianceSidebarProviderRef?.updateScanResults(_scanIssues, (report as any).remediation);
           vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
           updateStatusBar(currentReport);
-          safeUpdateUIsRef?.(currentReport, 'Local agent scan complete');
           const scanScore = report.qualityScore ?? '[HIDDEN]';
           const scanGate = report.gate?.pass ? 'PASS' : 'FAIL';
           const issueCount =
@@ -5214,9 +5242,7 @@ async function runScan(
           handleScanCompleteTeamTelemetry(context, report as any, projectPath, outputChannel);
           scanInProgress = false;
           setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
-          generateCodeMap(false, projectPath)
-            .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
-            .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
+          scheduleBackgroundCodeMap(projectPath);
           return report;
         }
       } catch (err) {
@@ -5539,16 +5565,6 @@ async function runScan(
               hasEnhancedAnalysis = false;
               enhancedAIProvider.setScanResult(currentReport);
 
-              // Save CLI report to disk so it persists across reloads
-              const sbDir = path.join(projectPath, '.simplebeacon');
-              fs.promises
-                .mkdir(sbDir, { recursive: true })
-                .then(() =>
-                  fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8')
-                )
-                .catch((saveErr) => {
-                  outputChannel.appendLine(`[SimpleBeacon] Warning: could not save report: ${saveErr}`);
-                });
               scanProvider.updateReport(currentReport as ScanReport);
               enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
               visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);
@@ -5562,7 +5578,6 @@ async function runScan(
               modernSidebarProvider.updateStatus('completed', 'Scan complete — awaiting analysis');
               vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
               updateStatusBar(currentReport);
-              safeUpdateUIsRef?.(currentReport, 'Scan complete');
 
               // Check if this is a headless scan (triggered from browser relay)
               const isHeadless = (modernSidebarProvider as any)._headlessScan === true;
@@ -5608,10 +5623,7 @@ async function runScan(
               scanInProgress = false;
               _stopSimulatedProgress();
               _reportProgress(100);
-              // Generate code map in the background after scan, but do not auto-open it
-              generateCodeMap(false, projectPath)
-                .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
-                .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
+              scheduleBackgroundCodeMap(projectPath);
               resolve(report);
             } catch (err: unknown) {
               scanInProgress = false;
@@ -5714,6 +5726,14 @@ function loadGitignorePatterns(...roots: string[]): string[] {
   return patterns;
 }
 
+function scheduleBackgroundCodeMap(projectPath: string) {
+  setTimeout(() => {
+    generateCodeMap(false, projectPath)
+      .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
+      .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
+  }, 0);
+}
+
 async function generateCodeMap(openPanel = true, scanRootOverride?: string | null) {
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -5743,6 +5763,17 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       '.vscode',
       'coverage',
       '.husky',
+      'vendor',
+      'archive',
+      'github-cache',
+      '.github-cache',
+      'meshes',
+      'models',
+      'textures',
+      'sprites',
+      'sounds',
+      'music',
+      'pk3',
     ]);
     const binaryExts = new Set([
       '.png',
@@ -5753,6 +5784,7 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       '.woff',
       '.woff2',
       '.ttf',
+      '.otf',
       '.eot',
       '.pdf',
       '.zip',
@@ -5776,7 +5808,72 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       '.webp',
       '.wav',
       '.ogg',
+      '.flac',
+      '.wad',
+      '.pk3',
+      '.pk7',
+      '.wasm',
+      '.map',
+      '.lock',
+      '.zs',
+      '.zsc',
+      '.zc',
+      '.md2',
+      '.md3',
+      '.iqm',
+      '.obj',
+      '.fbx',
+      '.tga',
+      '.bmp',
+      '.dds',
     ]);
+    const skipBasenames = new Set([
+      'modeldef',
+      'decorate',
+      'textures',
+      'animdefs',
+      'gldefs',
+      'keyconf',
+      'cvarinfo',
+      'mapinfo',
+      'sndinfo',
+      'zscript',
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+    ]);
+    const catalogExts = new Set([
+      '.js',
+      '.jsx',
+      '.ts',
+      '.tsx',
+      '.mjs',
+      '.cjs',
+      '.mts',
+      '.cts',
+      '.py',
+      '.pyw',
+      '.yml',
+      '.yaml',
+      '.json',
+    ]);
+    const contentExts = new Set(['.js', '.ts', '.tsx', '.jsx', '.cjs', '.mjs', '.mts', '.cts']);
+    const maxMapFiles = 4000;
+    const maxFileBytes = 400 * 1024;
+
+    function isHygieneCatalogFile(fileName: string): boolean {
+      const base = fileName.toLowerCase();
+      if (base === '.env' || base.startsWith('.env.')) {
+        return true;
+      }
+      if (skipBasenames.has(base)) {
+        return false;
+      }
+      if (base.endsWith('.min.js') || base.endsWith('.min.cjs') || base.endsWith('.min.mjs')) {
+        return false;
+      }
+      return catalogExts.has(path.extname(base));
+    }
 
     // Parse .gitignore patterns from scan root and workspace (monorepo subfolder scans)
     const gitignorePatterns = loadGitignorePatterns(scanRoot, workspaceRoot);
@@ -5807,34 +5904,38 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     const counts: Record<string, number> = {};
 
     async function walk(dir: string, rel: string) {
+      if (files.length >= maxMapFiles) {
+        return;
+      }
       let entries: fs.Dirent[] = [];
       try {
-        entries = fs.readdirSync(dir, { withFileTypes: true });
+        entries = await fs.promises.readdir(dir, { withFileTypes: true });
       } catch {
         /* simplebeacon-ignore error-swallowing — skip unreadable directories */ return;
       }
+      await new Promise<void>((resolve) => setImmediate(resolve));
       const subdirPromises: Promise<void>[] = [];
       const fileEntries = entries.filter((e) => e.isFile());
       for (const entry of entries) {
         if (entry.name.startsWith('.') && entry.name !== '.github') continue;
         if (exclude.has(entry.name)) continue;
-        const full = path.join(dir, entry.name);
         const r = path.join(rel, entry.name).replace(/\\/g, '/');
         if (matchesGitignore(r)) continue;
         if (entry.isDirectory()) {
-          subdirPromises.push(walk(full, r));
+          subdirPromises.push(walk(path.join(dir, entry.name), r));
         }
       }
-      // Batch file reads + stats with Promise.all
       const fileInfos = await Promise.all(
         fileEntries
           .filter((entry) => {
+            if (files.length >= maxMapFiles) return false;
             if (entry.name.startsWith('.') && entry.name !== '.github') return false;
             if (exclude.has(entry.name)) return false;
+            const base = entry.name.toLowerCase();
+            if (skipBasenames.has(base)) return false;
+            if (!isHygieneCatalogFile(entry.name)) return false;
             const r = path.join(rel, entry.name).replace(/\\/g, '/');
             if (matchesGitignore(r)) return false;
-            const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
-            if (binaryExts.has(ext)) return false;
             return true;
           })
           .map(async (entry) => {
@@ -5842,7 +5943,14 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
             const r = path.join(rel, entry.name).replace(/\\/g, '/');
             const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
             try {
-              const [content, stat] = await Promise.all([fs.promises.readFile(full, 'utf8'), fs.promises.stat(full)]);
+              const stat = await fs.promises.stat(full);
+              if (stat.size > maxFileBytes) {
+                return { name: entry.name, ext, size: stat.size, lines: 0, path: r, full };
+              }
+              if (!contentExts.has(ext)) {
+                return { name: entry.name, ext, size: stat.size, lines: 0, path: r, full };
+              }
+              const content = await fs.promises.readFile(full, 'utf8');
               const lines = content.split(/\r?\n/).length;
               return { name: entry.name, ext, size: stat.size, lines, path: r, full, content };
             } catch {
@@ -5851,6 +5959,9 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
           })
       );
       for (const info of fileInfos) {
+        if (files.length >= maxMapFiles) {
+          break;
+        }
         if (info) {
           counts[info.ext] = (counts[info.ext] || 0) + 1;
           files.push(info);
@@ -5929,9 +6040,9 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     }
 
     if (Object.keys(depNodes).length === 0) {
-      const fallback = buildFolderStructureGraph(files);
-      for (const n of fallback.nodes) depNodes[n.id] = n;
-      depEdges.push(...fallback.edges);
+      for (const f of files.slice(0, 40)) {
+        depNodes[f.path] = { id: f.path, label: f.name, group: f.ext, size: f.lines };
+      }
     }
 
     // Detect circular dependencies
@@ -5981,124 +6092,21 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     const codeMap = {
       generatedAt: new Date().toISOString(),
       projectPath: scanRoot,
-      workspaceRoot,
+      files: files.map((f) => f.path),
+      entryPoints: entryPoints.slice(0, 20),
       totalFiles: files.length,
-      totalLines,
       languages: topExts.map(([ext, count]) => ({ extension: ext, count })),
-      architecture: archParts.join(' + '),
-      dependencyGraph: graphData,
-      cycles: uniqueCycles,
-      entryPoints,
-      leafModules,
-      mostConnected,
+      dependencyGraph: {
+        nodes: Object.values(depNodes)
+          .slice(0, 200)
+          .map((n) => ({ id: n.id, label: n.label })),
+        edges: depEdges.slice(0, 400),
+      },
     };
 
-    // Write files
-    fs.mkdirSync(sbDir, { recursive: true });
-    fs.writeFileSync(mapPath, JSON.stringify(codeMap, null, 2));
+    await fs.promises.mkdir(sbDir, { recursive: true });
+    await fs.promises.writeFile(mapPath, JSON.stringify(codeMap), 'utf8');
 
-    const extColors: Record<string, string> = {
-      '.js': '#f7df1e',
-      '.ts': '#3178c6',
-      '.tsx': '#61dafb',
-      '.jsx': '#61dafb',
-      '.cjs': '#f0db4f',
-      '.mjs': '#f0db4f',
-      '.py': '#3776ab',
-      '.java': '#b07219',
-      '.go': '#00add8',
-      '.rs': '#dea584',
-      '.cpp': '#f34b7d',
-      '.c': '#555555',
-      '.cs': '#178600',
-      '.php': '#4f5d95',
-      '.rb': '#701516',
-      '.swift': '#ffac45',
-      '.kt': '#a97bff',
-      '.scala': '#c22d40',
-      '.html': '#e34c26',
-      '.css': '#563d7c',
-      '.json': '#292929',
-      '.md': '#083fa1',
-    };
-    const extIcons: Record<string, string> = {
-      '.js': '📜',
-      '.ts': '📘',
-      '.tsx': '⚛️',
-      '.jsx': '⚛️',
-      '.cjs': '📜',
-      '.mjs': '📜',
-      '.py': '🐍',
-      '.java': '☕',
-      '.go': '🐹',
-      '.rs': '⚙️',
-      '.cpp': '🔧',
-      '.c': '🔧',
-      '.cs': '🔷',
-      '.php': '🐘',
-      '.rb': '💎',
-      '.swift': '🦉',
-      '.kt': '🟣',
-      '.html': '🌐',
-      '.css': '🎨',
-      '.json': '📋',
-      '.md': '📝',
-      '.yml': '⚙️',
-      '.yaml': '⚙️',
-      '.sh': '🔲',
-      '.bat': '🔲',
-      '.ps1': '🔲',
-      '.sql': '🗄️',
-      '.xml': '📄',
-      '.svg': '🖼️',
-      '.png': '🖼️',
-      '.jpg': '🖼️',
-      '.gif': '🖼️',
-    };
-
-    function formatBytes(b: number): string {
-      if (b < 1024) return b + ' B';
-      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
-      return (b / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    // Build tree structure for sidebar
-    interface TreeNode {
-      name: string;
-      path: string;
-      type: 'dir' | 'file';
-      children: TreeNode[];
-      size?: number;
-      lines?: number;
-      ext?: string;
-      viewable?: boolean;
-      inGraph?: boolean;
-    }
-    const tree: TreeNode = { name: path.basename(scanRoot), path: '', type: 'dir', children: [] };
-    const graphNodeIds = new Set(Object.keys(depNodes));
-    for (const f of files) {
-      const parts = f.path.split('/').filter(Boolean);
-      let current = tree;
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        const isLast = i === parts.length - 1;
-        let child = current.children.find((c) => c.name === part);
-        if (!child) {
-          child = { name: part, path: parts.slice(0, i + 1).join('/'), type: isLast ? 'file' : 'dir', children: [] };
-          if (isLast) {
-            child.size = f.size;
-            child.lines = f.lines;
-            child.ext = f.ext;
-            child.viewable = !binaryExts.has(f.ext) && f.lines > 0;
-            child.inGraph = graphNodeIds.has(f.path);
-          }
-          current.children.push(child);
-        }
-        current = child;
-      }
-    }
-
-    // Update welcome dashboard pane with full data
     WelcomeDashboard.updateCodeMapPaneIfOpen({
       status: 'Generated',
       files: String(files.length),
@@ -6106,21 +6114,21 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       modules: String(Object.keys(depNodes).length),
       arch: archParts.join(' + '),
       graph: graphData,
-      tree: serializeTreeNode(tree.children),
-      list: files.slice(0, 50).map((f: any) => ({
+      tree: [],
+      list: files.slice(0, 40).map((f) => ({
         name: f.name,
         path: f.path,
         ext: f.ext,
         lines: f.lines,
         size: f.size,
-        deps: depEdges.filter((e: any) => e.source === f.path || e.target === f.path).length,
+        deps: 0,
       })),
       severity: { critical: 0, high: 0, medium: 0, low: 0 },
       repoFiles: String(files.length),
       totalLines: String(totalLines),
       lastScan: new Date().toLocaleString(),
-      cycles: uniqueCycles,
-      entryPoints: entryPoints.slice(0, 10),
+      cycles: [],
+      entryPoints: entryPoints.slice(0, 20),
       leafModules: leafModules.slice(0, 10),
       mostConnected: mostConnected,
     });
@@ -6147,6 +6155,75 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       languages: topExts.map(([ext, count]) => ({ name: ext, count })),
       isPaidTier,
     });
+
+    if (!openPanel) {
+      CodeMapTreeProvider.refreshInstance();
+      return;
+    }
+
+    const extColors: Record<string, string> = {
+      '.js': '#f7df1e',
+      '.ts': '#3178c6',
+      '.tsx': '#61dafb',
+      '.jsx': '#61dafb',
+      '.cjs': '#f0db4f',
+      '.mjs': '#f0db4f',
+      '.py': '#3776ab',
+      '.json': '#292929',
+      '.yml': '#6b7280',
+      '.yaml': '#6b7280',
+    };
+    const extIcons: Record<string, string> = {
+      '.js': '📜',
+      '.ts': '📘',
+      '.tsx': '⚛️',
+      '.jsx': '⚛️',
+      '.cjs': '📜',
+      '.mjs': '📜',
+      '.py': '🐍',
+      '.json': '📋',
+      '.yml': '⚙️',
+      '.yaml': '⚙️',
+    };
+    function formatBytes(b: number): string {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    interface TreeNode {
+      name: string;
+      path: string;
+      type: 'dir' | 'file';
+      children: TreeNode[];
+      size?: number;
+      lines?: number;
+      ext?: string;
+      viewable?: boolean;
+      inGraph?: boolean;
+    }
+    const tree: TreeNode = { name: path.basename(scanRoot), path: '', type: 'dir', children: [] };
+    const graphNodeIds = new Set(Object.keys(depNodes));
+    for (const f of files) {
+      const parts = f.path.split('/').filter(Boolean);
+      let current = tree;
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        const isLast = i === parts.length - 1;
+        let child = current.children.find((c) => c.name === part);
+        if (!child) {
+          child = { name: part, path: parts.slice(0, i + 1).join('/'), type: isLast ? 'file' : 'dir', children: [] };
+          if (isLast) {
+            child.size = f.size;
+            child.lines = f.lines;
+            child.ext = f.ext;
+            child.viewable = true;
+            child.inGraph = graphNodeIds.has(f.path);
+          }
+          current.children.push(child);
+        }
+        current = child;
+      }
+    }
 
     function treeToHtml(node: TreeNode, level = 0): string {
       const indent = level * 20;
@@ -7424,11 +7501,12 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
 }
 
 function refreshTree() {
-  loadExistingReport();
-  if (currentReport) {
-    safeUpdateUIsRef?.(currentReport, 'Results refreshed');
-  }
-  showQuietMessage('Results refreshed');
+  void loadExistingReport().then(() => {
+    if (currentReport) {
+      safeUpdateUIsRef?.(currentReport, 'Results refreshed');
+    }
+    showQuietMessage('Results refreshed');
+  });
 }
 
 function openFileAtLine(file: string, line: number) {
@@ -11147,13 +11225,19 @@ if (statsEl) {
 </html>`;
 }
 
-function loadExistingReport(context?: vscode.ExtensionContext) {
+async function loadExistingReport(context?: vscode.ExtensionContext): Promise<void> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) return;
 
-  // CLI reports have rawIssues/detectedIssues; workspace analyzer reports only have findings
-  const cliCandidates = ['vscode-report.json', 'cli-report.json', 'report-fresh.json'];
-  const fallbackCandidates = ['simplebeacon-report.json', 'report.json', 'ai-agent-report.json'];
+  // Canonical on-disk report is .simplebeacon/report.json. vscode-report.json is a leftover duplicate.
+  const cliCandidates = ['report.json', 'cli-report.json', 'report-fresh.json'];
+  const fallbackCandidates = ['simplebeacon-report.json', 'ai-agent-report.json'];
+
+  for (const folder of workspaceFolders) {
+    void fs.promises
+      .unlink(path.join(folder.uri.fsPath, '.simplebeacon', 'vscode-report.json'))
+      .catch(() => {});
+  }
 
   function tryLoadReport(folder: vscode.WorkspaceFolder, filename: string, subfolder: string): boolean {
     const rp = path.join(folder.uri.fsPath, subfolder, filename);
@@ -11281,14 +11365,16 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
   for (const folder of workspaceFolders) {
     const sbDir = path.join(folder.uri.fsPath, '.simplebeacon');
     try {
-      const files = fs.readdirSync(sbDir);
+      const leftover = path.join(sbDir, 'vscode-report.json');
+      void fs.promises.unlink(leftover).catch(() => {});
+      const files = await fs.promises.readdir(sbDir);
       const backups = files
         .filter((f) => f.startsWith('report.json.simplebeacon-backup.'))
         .sort()
         .reverse();
       if (backups.length > 0) {
         const rp = path.join(sbDir, backups[0]);
-        const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+        const report = JSON.parse(await fs.promises.readFile(rp, 'utf8'));
         currentReport = report;
         updateServerState({
           currentReport: report,

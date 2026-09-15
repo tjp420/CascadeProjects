@@ -9,8 +9,8 @@ import { getDataServerPort, getServerState } from './dataServer';
 import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
-import { showDashboardInSidebar, isSidebarReady, openSidebarPreview, setSidebarAuthState } from './sidebarBridge';
-import { postSidebarMessage, openTeamDashboardPanel } from './sidebarMessenger';
+import { showDashboardInSidebar, isSidebarReady, openSidebarPreview, setSidebarAuthState, addDownloadedFile, isSidebarTrackedDownloadPath } from './sidebarBridge';
+import { postSidebarMessage, openTeamDashboardPanel, saveIdeDownloadFile, copyIdeText } from './sidebarMessenger';
 import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai/';
@@ -1772,6 +1772,20 @@ export class WelcomeDashboard {
         case 'openClear':
           vscode.commands.executeCommand('simplebeacon.clearResults');
           break;
+        case 'downloadFile':
+          await saveIdeDownloadFile(msg, this.panel.webview);
+          break;
+        case 'copyText':
+          await copyIdeText(msg.text);
+          break;
+        case 'downloadComplete': {
+          const filename = typeof msg.filename === 'string' ? msg.filename : '';
+          const filePath = typeof msg.filePath === 'string' ? msg.filePath : '';
+          if (filename && isSidebarTrackedDownloadPath(filePath)) {
+            addDownloadedFile(filename, filePath);
+          }
+          break;
+        }
         case 'scan': {
           const scanPath = msg.path;
           vscode.commands.executeCommand('simplebeacon.scanWorkspace', {

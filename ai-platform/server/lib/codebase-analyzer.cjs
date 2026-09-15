@@ -5083,10 +5083,13 @@ async function analyzeFileContent(file, rootDir, options = {}) {
 
   let content = "";
   let raw = "";
+  let tooLargeForDeepScan = false;
   try {
     const { readTextFileWithLimit } = require("./recoverable-io.cjs");
     raw = (await readTextFileWithLimit(file.path, 512 * 1024)) || "";
     content = raw;
+    // Skip expensive regex/scans for very large files to avoid event-loop blocking
+    tooLargeForDeepScan = content.length > 65536; // 64KB
   } catch (error) {
     pushFinding(findings, {
       category: "broken",
@@ -5143,7 +5146,6 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     const isNodeModulesFile = /(^|\/)node_modules\//.test(rel);
     // Skip expensive regex pattern scanning for large files to prevent
     // catastrophic backtracking from blocking the event loop.
-    const tooLargeForDeepScan = content.length > 65536; // 64KB
     if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel) && !tooLargeForDeepScan) {
       const syntaxError = checkJsSyntax(raw, rel);
       if (syntaxError) {

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { apiUrl, authHeaders } from "@/config";
 import { useAuth } from "@/hooks/useAuth";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { ProviderFailoverDashboard } from "@/components/ProviderFailoverDashboard";
 import { IdentityFederationDashboard } from "@/components/IdentityFederationDashboard";
@@ -259,18 +260,8 @@ export function SecurityView() {
       securitySeverityCounts,
     };
     try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
       const name = `security-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(name, JSON.stringify(payload, null, 2), "application/json");
     } catch (err) {
       console.error("SecurityView.tsx error:", err);
       // ignore

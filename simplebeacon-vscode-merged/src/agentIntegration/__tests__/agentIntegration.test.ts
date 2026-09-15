@@ -77,6 +77,9 @@ import {
   buildCouplingSummary,
   registerContextInterceptor,
   ContextInterceptorDeps,
+  readLocalGateSnapshot,
+  interceptorSkipReason,
+  MAX_INTERCEPTOR_BYTES,
 } from '../agentValidation';
 import { RealtimeIssue } from '../../realtimeIssue';
 
@@ -617,6 +620,50 @@ describe('AgentValidation', () => {
       expect(mockDiagnosticCollection.delete).not.toHaveBeenCalled();
     });
 
+    it('skips lockfiles even when the extension is .json', () => {
+      mockConfig.agentDetectionMode = 'always';
+      const mockOutput = { appendLine: jest.fn() };
+      mockDeps.outputChannel = mockOutput;
+      registerContextInterceptor(mockDeps, mockContext);
+
+      fireSaveEvent('package-lock.json', '{"lockfileVersion": 3}\n');
+
+      expect(mockDiagnosticCollection.set).not.toHaveBeenCalled();
+      expect(mockOutput.appendLine).toHaveBeenCalledWith(
+        expect.stringContaining('lockfile'),
+      );
+    });
+
+    it('skips paths listed in .simplebeaconignore', () => {
+      mockConfig.agentDetectionMode = 'always';
+      fs.writeFileSync(path.join(tmpDir, '.simplebeaconignore'), 'generated.js\n');
+      const mockOutput = { appendLine: jest.fn() };
+      mockDeps.outputChannel = mockOutput;
+      registerContextInterceptor(mockDeps, mockContext);
+
+      fireSaveEvent('generated.js', 'const x = 1;\n');
+
+      expect(mockDiagnosticCollection.set).not.toHaveBeenCalled();
+      expect(mockOutput.appendLine).toHaveBeenCalledWith(
+        expect.stringContaining('simplebeaconignore'),
+      );
+    });
+
+    it('skips oversized files without running validateDiff', () => {
+      mockConfig.agentDetectionMode = 'always';
+      const mockOutput = { appendLine: jest.fn() };
+      mockDeps.outputChannel = mockOutput;
+      registerContextInterceptor(mockDeps, mockContext);
+
+      const huge = `${'x'.repeat(MAX_INTERCEPTOR_BYTES + 1)};\n`;
+      fireSaveEvent('huge.js', huge);
+
+      expect(mockDiagnosticCollection.set).not.toHaveBeenCalled();
+      expect(mockOutput.appendLine).toHaveBeenCalledWith(
+        expect.stringContaining('oversized'),
+      );
+    });
+
     it('skips files outside the workspace root', () => {
       mockConfig.agentDetectionMode = 'always';
       registerContextInterceptor(mockDeps, mockContext);
@@ -710,5 +757,89 @@ describe('AgentValidation', () => {
 
       expect(mockClipboardWriteText).not.toHaveBeenCalled();
     });
+
+    it('logs last scan gate from report.json on session end without blocking', () => {
+      const sbDir = path.join(tmpDir, '.simplebeacon');
+      fs.mkdirSync(sbDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(sbDir, 'report.json'),
+        JSON.stringify({ gate: { pass: false, blockingCount: 2 } }),
+      );
+      const mockOutput = { appendLine: jest.fn() };
+      mockDeps.outputChannel = mockOutput;
+      registerContextInterceptor(mockDeps, mockContext);
+      capturedSessionEndCallback!(['src/edited.cjs']);
+
+      expect(mockOutput.appendLine).toHaveBeenCalledWith(
+        expect.stringContaining('FAIL'),
+      );
+      expect(mockClipboardWriteText).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('readLocalGateSnapshot', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-snap-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('treats a missing report as pass', () => {
+    expect(readLocalGateSnapshot(tmpDir)).toEqual({
+      pass: true,
+      blockingCount: 0,
+      source: 'missing',
+    });
+  });
+
+  it('reads gate.pass from report.json', () => {
+    fs.mkdirSync(path.join(tmpDir, '.simplebeacon'));
+    fs.writeFileSync(
+      path.join(tmpDir, '.simplebeacon', 'report.json'),
+      JSON.stringify({ gate: { pass: true, blockingCount: 0 } }),
+    );
+    expect(readLocalGateSnapshot(tmpDir)).toEqual({
+      pass: true,
+      blockingCount: 0,
+      source: 'gate',
+    });
+  });
+
+  it('maps scan_summary FAILED to fail', () => {
+    fs.mkdirSync(path.join(tmpDir, '.simplebeacon'));
+    fs.writeFileSync(
+      path.join(tmpDir, '.simplebeacon', 'report.json'),
+      JSON.stringify({ scan_summary: { status: 'FAILED', block_merge: true, high_severity_count: 3 } }),
+    );
+    expect(readLocalGateSnapshot(tmpDir)).toEqual({
+      pass: false,
+      blockingCount: 3,
+      source: 'scan_summary',
+    });
+  });
+});
+
+describe('interceptorSkipReason', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skip-reason-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('skips lockfiles and oversized buffers', () => {
+    expect(interceptorSkipReason(path.join(tmpDir, 'package-lock.json'), 10, tmpDir)).toBe('lockfile');
+    expect(interceptorSkipReason(path.join(tmpDir, 'app.js'), MAX_INTERCEPTOR_BYTES + 1, tmpDir)).toBe(
+      'oversized',
+    );
+    expect(interceptorSkipReason(path.join(tmpDir, 'app.js'), 12, tmpDir)).toBeNull();
   });
 });

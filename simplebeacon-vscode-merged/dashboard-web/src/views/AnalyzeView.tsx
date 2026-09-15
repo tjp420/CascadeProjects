@@ -38,11 +38,20 @@ import {
   isTokenExpired,
   clearAuthAndRedirect,
   shouldUseHostedCloudApiForGithub,
+  githubCloneJobId,
 } from "@/config";
-import { setLargeItem, removeLargeItem } from "@/utils/dbStorage";
+import { setLargeItem, removeLargeItem, getLargeItem } from "@/utils/dbStorage";
+import {
+  collectScanIssues,
+  selectIssuesForBrowserStorage,
+} from "@/lib/collect-scan-issues";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import {
   checkLocalNetworkAccess,
+  ideBridgeFetch,
   isLoopbackHost,
+  normalizeBridgeOrigin,
 } from "@/utils/checkLocalNetwork";
 import { runLocalScan } from "@services/localScanService.js";
 import {
@@ -117,7 +126,7 @@ async function findFolderViaBridge(
   bridgeToken?: string | null,
 ): Promise<string | null> {
   try {
-    const res = await fetch(`${bridgeBase}/api/find-folder`, {
+    const res = await ideBridgeFetch(`${bridgeBase}/api/find-folder`, {
       method: "POST",
       headers: bridgeFetchHeaders(bridgeToken),
       body: JSON.stringify({ folderName }),
@@ -148,7 +157,7 @@ async function pickFolderViaExtensionBridge(
   const headers = bridgeFetchHeaders(bridgeToken);
   for (const route of ["/api/analyze/pick-folder", "/api/pick-folder"]) {
     try {
-      const res = await fetch(`${bridgeBase}${route}`, {
+      const res = await ideBridgeFetch(`${bridgeBase}${route}`, {
         method: "POST",
         headers,
       });
@@ -176,6 +185,7 @@ async function runBridgeExtensionScan(
     setProgress: (n: number) => void;
     setProgressLabel: (label: string) => void;
   },
+  options?: { fullDirectory?: boolean },
 ): Promise<any> {
   const headers = bridgeFetchHeaders(bridgeToken);
   let resolvedPath = scanPath;
@@ -195,25 +205,41 @@ async function runBridgeExtensionScan(
 
   callbacks.setProgressLabel("Starting scan via VS Code extension...");
   callbacks.setProgress(10);
-  const startResp = await fetch(`${bridgeBase}/api/scan`, {
+  const startResp = await ideBridgeFetch(`${bridgeBase}/api/scan`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ path: resolvedPath }),
-  });
-  if (!startResp.ok) {
-    throw new Error(`Bridge scan failed to start (${startResp.status})`);
+    body: JSON.stringify({
+      path: resolvedPath,
+      ...(options?.fullDirectory ? { fullDirectory: true } : {}),
+    }),
+  }).catch(() => null);
+  if (!startResp || !startResp.ok) {
+    throw new Error(
+      startResp
+        ? `Bridge scan failed to start (${startResp.status})`
+        : "Could not reach the VS Code extension on this machine. Reload the SimpleBeacon window and try again.",
+    );
   }
 
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  let sawActive = false;
+  for (let attempt = 0; attempt < 180; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const progResp = await fetch(
+    const progResp = await ideBridgeFetch(
       `${bridgeBase}/api/analyze/progress?projectPath=${encodeURIComponent(resolvedPath)}`,
       { headers },
     );
     if (!progResp.ok) continue;
     const progData = await progResp.json().catch(() => ({}));
     const progress = progData?.progress || {};
-    if (progress.active) {
+    const scanStatus = String(
+      progress.scanStatus || progData.scanStatus || "",
+    ).toLowerCase();
+    const active =
+      progress.active === true ||
+      scanStatus === "scanning" ||
+      scanStatus === "running";
+    if (active) {
+      sawActive = true;
       const processed = Number(progress.processed) || 0;
       const total = Number(progress.total) || 0;
       if (total > 0) {
@@ -230,12 +256,21 @@ async function runBridgeExtensionScan(
       }
       continue;
     }
+    if (scanStatus === "error") {
+      throw new Error(String(progress.label || "Extension scan failed"));
+    }
+    if (sawActive || scanStatus === "completed" || scanStatus === "complete") {
+      break;
+    }
+    if (attempt < 8) continue;
     break;
   }
 
   callbacks.setProgressLabel("Fetching scan report from extension...");
   callbacks.setProgress(95);
-  const reportResp = await fetch(`${bridgeBase}/api/report`, { headers });
+  const reportResp = await ideBridgeFetch(`${bridgeBase}/api/report`, {
+    headers,
+  });
   if (!reportResp.ok) {
     throw new Error(`Bridge report fetch failed (${reportResp.status})`);
   }
@@ -267,12 +302,141 @@ interface ScanResult {
   };
 }
 
+function isTransientPollHttpStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function isBrowserNetworkError(err: unknown): boolean {
+  const name = String((err as { name?: string })?.name || "");
+  const msg = String((err as { message?: string })?.message || err || "");
+  return (
+    /NetworkError/i.test(msg) ||
+    /Failed to fetch/i.test(msg) ||
+    /Load failed/i.test(msg) ||
+    name === "AbortError" ||
+    name === "TimeoutError" ||
+    (name === "TypeError" && /fetch/i.test(msg))
+  );
+}
+
+async function fetchJsonNoThrow(
+  url: string,
+  init?: RequestInit,
+): Promise<{ ok: boolean; status: number; data: any; networkError: boolean }> {
+  try {
+    const resp = await fetch(url, init);
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data, networkError: false };
+  } catch (err) {
+    if (isBrowserNetworkError(err)) {
+      return { ok: false, status: 0, data: {}, networkError: true };
+    }
+    throw err;
+  }
+}
+
+function scanApiUnreachableMessage(kind: "clone" | "scan"): string {
+  if (kind === "clone") {
+    return "Could not reach the GitHub clone API (cloud backend timed out, sleeping, or blocked). Large repos often fail in the browser. Clone on your machine and run: npx simplebeacon scan --gate --offline. Or use Select Folder.";
+  }
+  return "Could not reach the scan API. Retry once (the cloud host may be waking up), or scan offline: npx simplebeacon scan --gate --offline";
+}
+
 function firstFiniteCount(...values: unknown[]): number | null {
   for (const value of values) {
     const n = Number(value);
     if (Number.isFinite(n) && n >= 0) return n;
   }
   return null;
+}
+
+/** Accept https://github.com/owner/repo, github.com/owner/repo, and git@github.com:owner/repo.git */
+function normalizeGithubRepoInput(raw: string): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  let owner = "";
+  let repo = "";
+  const ssh = value.match(/^git@github\.com:([^/]+)\/(.+)$/i);
+  if (ssh) {
+    owner = ssh[1];
+    repo = ssh[2];
+  } else {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed) return null;
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    if (host !== "github.com") return null;
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    owner = parts[0] || "";
+    repo = parts[1] || "";
+  }
+  repo = String(repo).replace(/\.git$/i, "");
+  if (!/^[-.\w]+$/.test(owner) || !/^[-.\w]+$/.test(repo)) return null;
+  return `https://github.com/${owner}/${repo}`;
+}
+
+async function downloadGithubRepoAsVirtualFiles(repoUrl: string): Promise<{
+  files: File[];
+  projectName: string;
+}> {
+  const canonical = normalizeGithubRepoInput(repoUrl);
+  if (!canonical) throw new Error("Not a GitHub repository URL");
+  const parts = new URL(canonical).pathname.replace(/^\/+|\/+$/g, "").split("/");
+  const owner = parts[0];
+  const repo = parts[1];
+  const started = Date.now();
+  while (!(window as any).JSZip && Date.now() - started < 15000) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  const JSZip = (window as any).JSZip;
+  if (!JSZip) {
+    throw new Error("JSZip failed to load. Refresh the page and try again.");
+  }
+  const zipResp = await fetch(
+    `/api/analyze/github-zipball?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+  );
+  if (!zipResp.ok) {
+    let detail = "";
+    try {
+      detail = String((await zipResp.json()).error || "");
+    } catch {
+      detail = "";
+    }
+    throw new Error(detail || `GitHub download failed (${zipResp.status})`);
+  }
+  const zip = await JSZip.loadAsync(await zipResp.arrayBuffer());
+  const files: File[] = [];
+  const names = Object.keys(zip.files);
+  for (const name of names) {
+    const entry = zip.files[name];
+    if (!entry || entry.dir) continue;
+    const stripped = name.replace(/^[^/]+\//, "");
+    if (!stripped || /(^|\/)(node_modules|\.git)\//i.test(stripped)) continue;
+    if (
+      /\.(png|jpe?g|gif|webp|ico|mp4|zip|gz|woff2?|exe|dll|wasm|pdf)$/i.test(
+        stripped,
+      )
+    ) {
+      continue;
+    }
+    const blob = await entry.async("blob");
+    if (blob.size > 5 * 1024 * 1024) continue;
+    const file = new File([blob], stripped.split("/").pop() || stripped, {
+      type: "text/plain",
+    });
+    (file as any)._virtualPath = `${repo}/${stripped}`;
+    files.push(file);
+    if (files.length >= 8000) break;
+    if (files.length % 40 === 0) await new Promise((r) => setTimeout(r, 0));
+  }
+  if (!files.length) {
+    throw new Error("GitHub zip contained no scannable files");
+  }
+  return { files, projectName: repo };
 }
 
 function unwrapFlexibleAnalyzePayload(data: any): any {
@@ -383,22 +547,7 @@ function extractFlexibleScanPresentation(
 }
 
 function extractIssueListForSidebar(report: any): any[] {
-  if (Array.isArray(report?.rawIssues) && report.rawIssues.length)
-    return report.rawIssues;
-  if (Array.isArray(report?.detectedIssues) && report.detectedIssues.length)
-    return report.detectedIssues;
-  if (Array.isArray(report?.findings) && report.findings.length) {
-    return report.findings.map((f: any) => ({
-      filePath: f.filePath || f.file || "",
-      line: f.line || 1,
-      severity: f.severity || "medium",
-      severityBand: f.severityBand || f.severity || "medium",
-      type: f.category || f.type || "finding",
-      description: f.message || f.description || "Finding detected",
-      count: Number(f.count) || 1,
-    }));
-  }
-  return [];
+  return collectScanIssues(report, 200);
 }
 
 function syncReportToVscodeSidebar(
@@ -465,7 +614,7 @@ function syncReportToVscodeSidebar(
 
 export function AnalyzeView() {
   const [mode, setMode] = useState<ScanMode>(
-    isWebsiteMode() ? "website" : "local",
+    isWebsiteMode() && !isIdeEmbedSurface() ? "website" : "local",
   );
   const [path, setPath] = useState(
     localStorage.getItem("sb_default_path") || "",
@@ -756,11 +905,14 @@ export function AnalyzeView() {
   const persistScanResult = useCallback(
     (scanResult: ScanResult, fullReportData?: any) => {
       const buildCompactReport = (report: any) => {
-        const rawIssues = Array.isArray(report?.rawIssues)
-          ? report.rawIssues
-          : Array.isArray(report?.detectedIssues)
-            ? report.detectedIssues
-            : [];
+        // Collect broadly, then stratify — a flat slice(0,50) buried Critical/Low under Medium.
+        const collected = collectScanIssues(report, 2000);
+        const totalFindings = Number(
+          report?.issueCount ??
+            report?.summary?.totalFindings ??
+            collected.length,
+        );
+        const rawIssues = selectIssuesForBrowserStorage(collected, 50);
         const fullSummary = report?.summary || {};
         return {
           type: report?.type || "simplebeacon-report",
@@ -806,15 +958,20 @@ export function AnalyzeView() {
               report?.scanScope?.codeFilesAnalyzed ??
               scanResult.scanScope?.codeFilesAnalyzed,
           },
-          rawIssues: rawIssues.slice(0, 50),
-          detectedIssues: rawIssues.slice(0, 50),
+          rawIssues,
+          detectedIssues: rawIssues,
+          qualityIssues: selectIssuesForBrowserStorage(
+            Array.isArray(report?.qualityIssues) ? report.qualityIssues : [],
+            50,
+          ),
+          contextLanes: report?.contextLanes,
           issuesTruncated: Boolean(
-            report?.issuesTruncated || rawIssues.length > 50,
+            report?.issuesTruncated || totalFindings > rawIssues.length,
           ),
           scanLimitNote:
             report?.scanLimitNote ||
-            (rawIssues.length > 50
-              ? `Detailed findings capped at 50 rows for browser storage (${rawIssues.length.toLocaleString()} total). Export JSON or use the CLI for the full list.`
+            (totalFindings > rawIssues.length
+              ? `Detailed findings capped at ${rawIssues.length} rows for browser storage (${totalFindings.toLocaleString()} total). Critical/High/Low are prioritized over Medium. Export JSON or use the CLI for the full list.`
               : null),
         };
       };
@@ -849,8 +1006,19 @@ export function AnalyzeView() {
       } catch (e) {
         console.warn("[SimpleBeacon] Failed to store sb_last_scan:", e);
       }
+      const auditIssues = collectScanIssues(fullReportData || scanResult, 200);
+      const auditSnapshot = {
+        ...scanResult,
+        generatedAt: fullReportData?.generatedAt || new Date().toISOString(),
+        projectRoot:
+          fullReportData?.projectRoot ||
+          fullReportData?.projectPath ||
+          scanResult.projectPath,
+        rawIssues: auditIssues,
+        detectedIssues: auditIssues,
+      };
       try {
-        localStorage.setItem("sb_last_scan_full", JSON.stringify(scanResult));
+        localStorage.setItem("sb_last_scan_full", JSON.stringify(auditSnapshot));
       } catch (e) {
         console.warn(
           "[SimpleBeacon] Failed to store sb_last_scan_full (may exceed quota):",
@@ -858,19 +1026,25 @@ export function AnalyzeView() {
         );
         clearBulkyScanKeys();
         try {
-          localStorage.setItem("sb_last_scan_full", JSON.stringify(scanResult));
-        } catch {
-          toast.warning(
-            "Results summary may be limited — localStorage quota exceeded.",
+          localStorage.setItem(
+            "sb_last_scan_full",
+            JSON.stringify(auditSnapshot),
           );
+        } catch {
+          try {
+            localStorage.setItem(
+              "sb_last_scan_full",
+              JSON.stringify(scanResult),
+            );
+          } catch {
+            toast.warning(
+              "Results summary may be limited — localStorage quota exceeded.",
+            );
+          }
         }
       }
       if (fullReportData) {
-        const rawIssues = Array.isArray(fullReportData?.rawIssues)
-          ? fullReportData.rawIssues
-          : Array.isArray(fullReportData?.detectedIssues)
-            ? fullReportData.detectedIssues
-            : [];
+        const rawIssues = collectScanIssues(fullReportData, 500);
         const useCompactFirst =
           rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
         const payload = useCompactFirst
@@ -1109,7 +1283,9 @@ export function AnalyzeView() {
       | undefined;
     const isBrowserLocal =
       mode === "local" || (dirHandle && dirHandle.name === path.trim());
-    if (isBrowserLocal) return true;
+    const isHostedGithubScan =
+      hosted && Boolean(normalizeGithubRepoInput(path.trim()));
+    if (isBrowserLocal || isHostedGithubScan) return true;
     if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
     setScanState("auth_required");
     setProgress(0);
@@ -1217,8 +1393,7 @@ export function AnalyzeView() {
     }
   };
 
-  const isGithubUrl = (url: string) =>
-    /^https?:\/\/github\.com\//i.test(url.trim());
+  const isGithubUrl = (url: string) => Boolean(normalizeGithubRepoInput(url));
 
   const isWindowsPath = (p: string) => /^[A-Za-z]:[\\/]/.test(p.trim());
 
@@ -1284,6 +1459,12 @@ export function AnalyzeView() {
         scanInFlightRef.current = false;
         return;
       }
+    }
+
+    const githubCanonical = normalizeGithubRepoInput(scanInput);
+    if (githubCanonical) {
+      scanInput = githubCanonical;
+      setPath(scanInput);
     }
 
     if (
@@ -1445,7 +1626,15 @@ export function AnalyzeView() {
       // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
       // trigger the browser-local scan via File System Access API.
       const isUrl = /^https?:\/\//i.test(scanPath);
-      if (!isUrl && !isGithubUrl(scanPath) && hosted) {
+      const ideDiskBridge =
+        isIdeEmbedSurface() ||
+        Boolean(bridgeBase) ||
+        isLoopbackHost(apiBase);
+      if (
+        !isUrl &&
+        !isGithubUrl(scanPath) &&
+        (hosted || ideDiskBridge)
+      ) {
         const hasFsaEarly =
           typeof (window as any).showDirectoryPicker === "function";
         // Relative names like "Games" cannot be resolved on hosted without bridge or FSA.
@@ -1470,6 +1659,9 @@ export function AnalyzeView() {
         // Bridge-first: scan via VS Code extension data server when available
         let activeBridge = bridgeBase;
         let activeToken = bridgeToken;
+        if (!activeBridge && isLoopbackHost(apiBase)) {
+          activeBridge = normalizeBridgeOrigin(apiBase);
+        }
         if (!activeBridge) {
           appendLog(
             "[SimpleBeacon] No bridge yet — probing local extension ports (user gesture)...",
@@ -1487,7 +1679,7 @@ export function AnalyzeView() {
         // Fallback: if we have a bridge base but no token, fetch it from /api/health
         if (activeBridge && !activeToken) {
           try {
-            const healthRes = await fetch(`${activeBridge}/api/health`, {
+            const healthRes = await ideBridgeFetch(`${activeBridge}/api/health`, {
               method: "GET",
               signal: AbortSignal.timeout(3000),
             });
@@ -1504,7 +1696,9 @@ export function AnalyzeView() {
         }
         let bridgeReachable = false;
         if (activeBridge) {
-          bridgeReachable = await checkLocalNetworkAccess(activeBridge, 2000);
+          bridgeReachable =
+            isIdeEmbedSurface() ||
+            (await checkLocalNetworkAccess(activeBridge, 2000));
           if (bridgeReachable) {
             try {
               appendLog(
@@ -1521,6 +1715,7 @@ export function AnalyzeView() {
                   setProgress,
                   setProgressLabel,
                 },
+                { fullDirectory: fullDirectoryScan === true },
               );
               setProgressLabel("Processing results...");
               setProgress(95);
@@ -1574,20 +1769,53 @@ export function AnalyzeView() {
               return;
             } catch (bridgeErr: any) {
               appendLog(
-                `[SimpleBeacon] Extension bridge scan failed: ${bridgeErr?.message || bridgeErr}. Falling back to browser-local scan...`,
+                `[SimpleBeacon] Extension bridge scan failed: ${bridgeErr?.message || bridgeErr}.`,
+              );
+              if (isIdeEmbedSurface()) {
+                setScanState("error");
+                setLastErrorMsg(
+                  String(bridgeErr?.message || "Could not scan this folder via the IDE."),
+                );
+                toast.error(
+                  "Could not scan that folder from the IDE. Use Local Path or Select Folder.",
+                );
+                return;
+              }
+              appendLog(
+                "[SimpleBeacon] Falling back to browser-local scan...",
               );
             }
           } else {
             appendLog(
               `[SimpleBeacon] Extension bridge ${activeBridge} not reachable, falling back to browser-local scan...`,
             );
+            if (isIdeEmbedSurface()) {
+              setScanState("error");
+              setLastErrorMsg(
+                "The SimpleBeacon extension data server is not reachable from this dashboard tab.",
+              );
+              toast.error(
+                "Reload the SimpleBeacon window, then scan again from Local Path.",
+              );
+              return;
+            }
           }
         } else {
           appendLog(
             "[SimpleBeacon] VS Code extension bridge not found. Install the extension or use Browse Folder.",
           );
         }
-        // Browser-local fallback when bridge is unavailable or bridge scan failed
+        // Browser-local fallback when bridge is unavailable (not inside the IDE iframe).
+        if (isIdeEmbedSurface()) {
+          setScanState("error");
+          appendLog(
+            "[SimpleBeacon] IDE dashboard cannot use the browser folder picker. Select Folder uses the extension dialog instead.",
+          );
+          toast.error(
+            "Use Local Path or Select Folder so the extension can read the disk.",
+          );
+          return;
+        }
         let dirHandlePick: any = null;
         const hasFsa =
           typeof (window as any).showDirectoryPicker === "function";
@@ -1927,6 +2155,89 @@ export function AnalyzeView() {
         }
       }
 
+      // Hosted dashboard: unpack the GitHub zip in the browser and scan locally.
+      // Render in-memory clone+scan jobs die when the free instance restarts.
+      if (isGithubUrl(scanPath) && hosted) {
+        setProgressLabel("Downloading GitHub repository...");
+        setProgress(8);
+        appendLog(
+          `[SimpleBeacon] Fetching ${scanPath} into the browser scan worker...`,
+        );
+        const unpacked = await downloadGithubRepoAsVirtualFiles(scanPath);
+        appendLog(
+          `[SimpleBeacon] Unpacked ${unpacked.files.length} files from GitHub (${unpacked.projectName})`,
+        );
+        setProgressLabel("Scanning in the browser...");
+        setProgress(15);
+        const report = await runLocalScan({
+          files: unpacked.files,
+          projectPath: unpacked.projectName,
+          deepScan: fullDirectoryScan,
+          onFilePrepProgress: (
+            processed: number,
+            total: number,
+            label: string,
+          ) => {
+            if (total > 0) {
+              setProgress(Math.min(20, Math.round((processed / total) * 20)));
+              setProgressLabel(
+                `${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`,
+              );
+            }
+          },
+          onProgress: (processed: number, total: number) => {
+            if (total > 0) {
+              setProgress(
+                Math.min(90, 20 + Math.round((processed / total) * 70)),
+              );
+              setProgressLabel(
+                `Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`,
+              );
+            }
+          },
+        });
+        setFileErrorsCount((report as any)?.telemetry?.fileErrors ?? null);
+        setFileErrorExamples(
+          (report as any)?.telemetry?.fileErrorExamples ?? null,
+        );
+        setProgressLabel("Processing results...");
+        setProgress(95);
+        const r = report as any;
+        const scanResult: ScanResult = {
+          totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+          issueCount: r.issueCount || r.summary?.totalFindings || 0,
+          severityCounts: r.severityCounts || {
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0,
+            info: 0,
+          },
+          gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+          qualityScore: r.qualityScore ?? null,
+          projectPath: r.projectPath || unpacked.projectName,
+          scanScope: {
+            profile: r.scanScope?.profile || "standard",
+            resultsViewScope: r.scanScope?.resultsViewScope || "browser-local",
+            codeFilesAnalyzed:
+              r.scanScope?.codeFilesAnalyzed ||
+              r.scanScope?.ruleScopedFilesAnalyzed ||
+              r.summary?.codeFilesAnalyzed ||
+              r.filesAnalyzed ||
+              0,
+          },
+        };
+        setResult(scanResult);
+        setFullReport(report);
+        setScanState("complete");
+        setProgress(100);
+        appendLog(
+          `[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? "PASS" : "FAIL"}`,
+        );
+        persistScanResult(scanResult, report);
+        return;
+      }
+
       // GitHub URL: clone first, then scan the local clone path
       const githubCloudApi =
         isGithubUrl(scanPath) && shouldUseHostedCloudApiForGithub();
@@ -1939,23 +2250,111 @@ export function AnalyzeView() {
             "[SimpleBeacon] Using hosted API for GitHub clone (extension bridge cannot clone remotes).",
           );
         }
-        const cloneResp = await fetch(
-          apiUrl("/analyze/github-clone", { preferCloud: githubCloudApi }),
-          {
+        let cloneData: any;
+        const cloneUrl = apiUrl("/analyze/github-clone", {
+          preferCloud: githubCloudApi,
+        });
+        const cloneHeaders = {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        };
+        const cloneBody = JSON.stringify({ repoUrl: scanPath });
+        const fallbackJobId = await githubCloneJobId(scanPath);
+        const clonePost = await fetchJsonNoThrow(cloneUrl, {
+          method: "POST",
+          headers: cloneHeaders,
+          body: cloneBody,
+        });
+        if (clonePost.networkError) {
+          fetch(cloneUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify({ repoUrl: scanPath }),
-          },
-        );
-        if (!cloneResp.ok) {
-          const cloneErr = await cloneResp.json().catch(() => ({}));
-          throw new Error(
-            cloneErr.error || `GitHub clone failed (${cloneResp.status})`,
+            headers: cloneHeaders,
+            body: cloneBody,
+          }).catch(() => {});
+          if (!fallbackJobId) {
+            throw new Error(scanApiUnreachableMessage("clone"));
+          }
+          appendLog(
+            "[SimpleBeacon] Clone POST did not finish in the browser; polling server job...",
           );
+          cloneData = {
+            success: true,
+            pending: true,
+            jobId: fallbackJobId,
+          };
+        } else if (!clonePost.ok) {
+          const cloneErr = clonePost.data || {};
+          if (
+            clonePost.status === 401 ||
+            cloneErr.error === "UnauthorizedError"
+          ) {
+            throw new Error(
+              "Sign in required for GitHub scans. Use file upload or drag-drop for offline scanning without an account.",
+            );
+          }
+          const cloneMsg =
+            typeof cloneErr.error === "string"
+              ? cloneErr.error
+              : `GitHub clone failed (${clonePost.status})`;
+          if (clonePost.status === 400) {
+            throw new Error(
+              cloneMsg +
+                " For a local folder, use Select Folder so the scan stays on this machine.",
+            );
+          }
+          throw new Error(cloneMsg);
+        } else {
+          cloneData = clonePost.data;
         }
-        const cloneData = await cloneResp.json();
-        if (!cloneData.success)
+        if (
+          cloneData &&
+          !cloneData.projectPath &&
+          !cloneData.jobId &&
+          fallbackJobId
+        ) {
+          cloneData = {
+            success: true,
+            pending: true,
+            jobId: fallbackJobId,
+          };
+        }
+        if (cloneData.pending && cloneData.jobId) {
+          appendLog("[SimpleBeacon] Clone started on server — polling status...");
+          const deadline = Date.now() + 180000;
+          while (Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const st = await fetchJsonNoThrow(
+              apiUrl(
+                `/analyze/github-clone/status?jobId=${encodeURIComponent(cloneData.jobId)}`,
+                { preferCloud: githubCloudApi },
+              ),
+              { headers: authHeaders() },
+            );
+            if (st.networkError || st.status === 404 || st.data?.pending) {
+              setProgressLabel("Cloning GitHub repository...");
+              continue;
+            }
+            if (!st.ok && !st.data?.pending) {
+              throw new Error(
+                typeof st.data?.error === "string"
+                  ? st.data.error
+                  : "GitHub clone failed",
+              );
+            }
+            cloneData = st.data;
+            break;
+          }
+          if (cloneData.pending) {
+            throw new Error(
+              "GitHub clone is still running after 3 minutes. Use: npx simplebeacon scan --gate --offline",
+            );
+          }
+        }
+        if (!cloneData.success && !cloneData.projectPath)
           throw new Error(cloneData.error || "GitHub clone failed");
+        if (!cloneData.projectPath) {
+          throw new Error("GitHub clone did not return a project path");
+        }
         scanPath = cloneData.projectPath;
         appendLog(
           `[SimpleBeacon] Clone complete: ${scanPath} (method: ${cloneData.method || "git"})`,
@@ -1998,6 +2397,9 @@ export function AnalyzeView() {
             throw new Error(
               "Scan timed out after 120 seconds. The server may be unresponsive.",
             );
+          }
+          if (isBrowserNetworkError(fetchErr)) {
+            throw new Error(scanApiUnreachableMessage("scan"));
           }
           throw fetchErr;
         }
@@ -2055,7 +2457,23 @@ export function AnalyzeView() {
                 },
               );
               if (!pollResp.ok) {
+                if (isTransientPollHttpStatus(pollResp.status)) {
+                  if (pollAttempts === 1 || pollAttempts % 15 === 0) {
+                    appendLog(
+                      `[SimpleBeacon] Progress poll returned ${pollResp.status}; retrying...`,
+                    );
+                  }
+                  continue;
+                }
                 if (pollResp.status === 404) {
+                  if (pollAttempts < 12) {
+                    if (pollAttempts === 1 || pollAttempts % 6 === 0) {
+                      appendLog(
+                        `[SimpleBeacon] Scan job not visible yet (${pollResp.status}); retrying...`,
+                      );
+                    }
+                    continue;
+                  }
                   throw new Error(
                     "Scan job not found on server. It may have expired.",
                   );
@@ -2079,6 +2497,9 @@ export function AnalyzeView() {
                 );
               }
             } catch (pollErr: any) {
+              if (isBrowserNetworkError(pollErr)) {
+                continue;
+              }
               throw pollErr;
             }
           }
@@ -2121,10 +2542,18 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState("error");
-      const errMsg = err?.message || String(err || "Unknown error");
+      let errMsg = err?.message || String(err || "Unknown error");
+      if (isBrowserNetworkError(err)) {
+        errMsg = scanApiUnreachableMessage(
+          isGithubUrl(path) ? "clone" : "scan",
+        );
+      }
+      if (errMsg === "UnauthorizedError" || errMsg.includes("UnauthorizedError")) {
+        errMsg = "Sign in required for server-side scans. Use file upload or drag-drop for offline scanning without an account.";
+      }
       setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
-      console.error("[SimpleBeacon] Scan error:", err);
+      console.error("[SimpleBeacon] Scan error:", errMsg);
       toast.error(errMsg || "Scan failed");
       postBrowserError({
         source: "dashboard",
@@ -2150,6 +2579,7 @@ export function AnalyzeView() {
     postBrowserError,
     debouncedAppendLog,
     isAllowedFileError,
+    fullDirectoryScan,
   ]);
 
   const handleDrop = useCallback(
@@ -2543,13 +2973,15 @@ export function AnalyzeView() {
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
     if (bridgeBase) {
-      const ok = await checkLocalNetworkAccess(bridgeBase, 2000);
-      if (!ok) {
-        setLocalNetworkDenied(true);
-        toast.error(
-          "Local Network Access blocked — cannot open bridge folder picker",
-        );
-        return;
+      if (!isIdeEmbedSurface()) {
+        const ok = await checkLocalNetworkAccess(bridgeBase, 2000);
+        if (!ok) {
+          setLocalNetworkDenied(true);
+          toast.error(
+            "Local Network Access blocked — cannot open bridge folder picker",
+          );
+          return;
+        }
       }
       const bridgePath = await pickFolderViaExtensionBridge(
         bridgeBase,
@@ -2607,16 +3039,23 @@ export function AnalyzeView() {
     key: ScanMode;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
-  }[] = websiteMode
-    ? [
-        { key: "website", label: "Website URL", icon: Globe },
-        { key: "github", label: "GitHub URL", icon: Github },
-      ]
-    : [
-        { key: "local", label: "Local Path", icon: Folder },
-        { key: "server", label: "Server Path", icon: FolderSearch },
-        { key: "github", label: "GitHub URL", icon: Github },
-      ];
+  }[] =
+    websiteMode && !isIdeEmbedSurface()
+      ? [
+          { key: "website", label: "Website URL", icon: Globe },
+          { key: "github", label: "GitHub URL", icon: Github },
+        ]
+      : websiteMode
+        ? [
+            { key: "local", label: "Local Path", icon: Folder },
+            { key: "website", label: "Website URL", icon: Globe },
+            { key: "github", label: "GitHub URL", icon: Github },
+          ]
+        : [
+            { key: "local", label: "Local Path", icon: Folder },
+            { key: "server", label: "Server Path", icon: FolderSearch },
+            { key: "github", label: "GitHub URL", icon: Github },
+          ];
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -3167,7 +3606,7 @@ export function AnalyzeView() {
 
             <TabsContent value="github" className="space-y-3">
               <Input
-                placeholder="https://github.com/user/repo"
+                placeholder="https://github.com/user/repo or github.com/user/repo"
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleScan()}
@@ -3406,6 +3845,7 @@ function ScanResults({
           </CardContent>
         </Card>
       )}
+      <EvidenceStatePanel report={fullReport || result} />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -3459,32 +3899,41 @@ function ScanResults({
 
           <Separator className="my-4" />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+              Detector severity (unverified signals)
+            </p>
+            <p className="text-xs text-foreground-muted">
+              Severity chips are detector labels only. They do not mean verified
+              vulnerabilities — see Evidence state above.
+            </p>
+            <div className="flex flex-wrap gap-2 opacity-70">
             <SeverityChip
               label="Critical"
               count={result.severityCounts.critical}
-              variant="danger"
+              variant="outline"
             />
             <SeverityChip
               label="High"
               count={result.severityCounts.high}
-              variant="warning"
+              variant="outline"
             />
             <SeverityChip
               label="Medium"
               count={result.severityCounts.medium}
-              variant="info"
+              variant="outline"
             />
             <SeverityChip
               label="Low"
               count={result.severityCounts.low}
-              variant="secondary"
+              variant="outline"
             />
             <SeverityChip
               label="Info"
               count={result.severityCounts.info}
               variant="outline"
             />
+            </div>
           </div>
 
           <Separator className="my-4" />
@@ -3769,50 +4218,25 @@ function ScanResults({
                   if (!result) return;
                   const exportData = fullReport || result;
                   syncReportToVscodeSidebar(exportData, result.projectPath);
-                  const json = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([json], { type: "application/json" });
                   const filename = `simplebeacon-report-${Date.now()}.json`;
-                  const params = new URLSearchParams(window.location.search);
-                  const inIde =
-                    typeof window !== "undefined" &&
-                    (typeof (window as any).acquireVsCodeApi === "function" ||
-                      params.get("sb_parent_urlbar") ||
-                      params.get("sb_notify_base") ||
-                      params.get("sb_api_base"));
-                  if (inIde) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const base64 = String(reader.result || "").split(",")[1];
-                      const vscode = (window as any).acquireVsCodeApi?.();
-                      const msg = {
-                        command: "downloadFile",
-                        filename,
-                        mimeType: blob.type,
-                        base64,
-                      };
-                      if (vscode) {
-                        try {
-                          vscode.postMessage(msg);
-                        } catch {
-                          /* ignore */
-                        }
-                      } else if (window.parent && window.parent !== window) {
-                        try {
-                          window.parent.postMessage(msg, "*");
-                        } catch {
-                          /* ignore */
-                        }
-                      }
-                    };
-                    reader.readAsDataURL(blob);
+                  if (isIdeEmbedSurface()) {
+                    try {
+                      window.parent.postMessage(
+                        {
+                          command: "downloadFile",
+                          filename,
+                          fromWorkspaceReport: true,
+                        },
+                        "*",
+                      );
+                    } catch {
+                      /* ignore */
+                    }
+                    toast.success("Saving report to sidebar Downloads");
                     return;
                   }
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  const json = JSON.stringify(exportData, null, 2);
+                  downloadBrowserFile(filename, json, "application/json");
                 }}
               >
                 <Download className="h-4 w-4" /> JSON Report
@@ -3820,14 +4244,65 @@ function ScanResults({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   try {
-                    const raw = localStorage.getItem("sb_last_scan_full");
-                    if (!raw) {
+                    let storedReport: any = null;
+                    try {
+                      storedReport = await getLargeItem("sb_last_scan_report");
+                    } catch {
+                      /* ignore */
+                    }
+                    let lsReport: any = null;
+                    try {
+                      const raw = localStorage.getItem("sb_last_scan_full");
+                      if (raw) lsReport = JSON.parse(raw);
+                    } catch {
+                      /* ignore */
+                    }
+                    if (!fullReport && !storedReport && !lsReport && !result) {
                       toast.error("No scan report found — run a scan first");
                       return;
                     }
-                    const report = JSON.parse(raw);
+                    const report: any = {
+                      ...(lsReport || {}),
+                      ...(storedReport || {}),
+                      ...(fullReport || {}),
+                      qualityScore:
+                        result.qualityScore ??
+                        fullReport?.qualityScore ??
+                        lsReport?.qualityScore,
+                      issueCount:
+                        result.issueCount ??
+                        fullReport?.issueCount ??
+                        lsReport?.issueCount,
+                      totalFiles:
+                        result.totalFiles ||
+                        fullReport?.repositoryFilesTotal ||
+                        lsReport?.totalFiles,
+                      repositoryFilesTotal:
+                        result.totalFiles ||
+                        fullReport?.repositoryFilesTotal ||
+                        lsReport?.repositoryFilesTotal,
+                      severityCounts:
+                        result.severityCounts ||
+                        fullReport?.severityCounts ||
+                        lsReport?.severityCounts ||
+                        {},
+                      gate: result.gate || fullReport?.gate || lsReport?.gate || {},
+                      projectRoot:
+                        result.projectPath ||
+                        fullReport?.projectRoot ||
+                        lsReport?.projectRoot,
+                      generatedAt:
+                        fullReport?.generatedAt ||
+                        lsReport?.generatedAt ||
+                        new Date().toISOString(),
+                    };
+                    let issues = collectScanIssues(fullReport, 200);
+                    if (!issues.length)
+                      issues = collectScanIssues(storedReport, 200);
+                    if (!issues.length)
+                      issues = collectScanIssues(lsReport, 200);
                     let history: any[] = [];
                     try {
                       const histRaw = localStorage.getItem("sb_scan_history");
@@ -3842,8 +4317,6 @@ function ScanResults({
                       report.generatedAt || new Date().toISOString();
                     const gate = report.gate || {};
                     const sev = report.severityCounts || {};
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
                     const qualityScore =
                       report.qualityScore != null
                         ? report.qualityScore
@@ -3873,7 +4346,16 @@ function ScanResults({
                         return `<tr><td>${e(entry.date)}</td><td>${e(entry.gatePass === true ? "PASS" : "FAIL")}</td><td>${e(entry.qualityScore ?? "—")}</td><td>${e(entry.issueCount ?? "—")}</td><td>${e(s.critical || 0)}</td><td>${e(s.high || 0)}</td><td>${e(s.medium || 0)}</td><td>${e(s.low || 0)}</td></tr>`;
                       })
                       .join("");
-                    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleBeacon Audit — ${e(projectLabel)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;padding:40px;line-height:1.5}.header{border-bottom:2px solid #6366f1;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:1.5rem}.header .meta{font-size:0.8rem;color:#666;text-align:right}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}.summary-card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}.summary-card .label{font-size:0.7rem;color:#666;text-transform:uppercase;letter-spacing:0.05em}.summary-card .value{font-size:1.5rem;font-weight:700;margin-top:4px}.gate-pass{color:#16a34a}.gate-fail{color:#dc2626}.gate-review{color:#d97706}h2{font-size:1.1rem;margin:24px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f9fafb;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-weight:600}td{padding:6px 8px;border-bottom:1px solid #f3f4f6}.critical{background:#fef2f2;color:#dc2626;font-weight:600}.high{background:#fff7ed;color:#ea580c;font-weight:600}.medium{background:#fefce8;color:#ca8a04}.low{color:#6b7280}.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:0.7rem;color:#999}@media print{body{padding:20px}}</style></head><body><div class="header"><h1>SimpleBeacon Compliance Audit Report</h1><div class="meta"><div><strong>Project:</strong> ${e(projectLabel)}</div><div><strong>Generated:</strong> ${e(generatedAt)}</div><div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Quality Score</div><div class="value">${e(qualityScore)}</div></div><div class="summary-card"><div class="label">Total Issues</div><div class="value">${e(report.issueCount)}</div></div><div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${e(gate.blockingCount || 0)}</div></div><div class="summary-card"><div class="label">Files Scanned</div><div class="value">${e(report.totalFiles || report.repositoryFilesTotal || "—")}</div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${e(sev.critical || 0)}</div></div><div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${e(sev.high || 0)}</div></div><div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${e(sev.medium || 0)}</div></div><div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${e(sev.low || 0)}</div></div></div><h2>Detected Issues (${issues.length}${issues.length > 200 ? " — showing first 200" : ""})</h2><table><thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead><tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No issues detected</td></tr>'}</tbody></table>${trendRows ? `<h2>Vulnerability Trend (${history.length} scans)</h2><table><thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${trendRows}</tbody></table>` : ""}<div class="footer"><p>Generated by SimpleBeacon — Compliance Audit Report</p><p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`;
+                    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleBeacon Audit — ${e(projectLabel)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;padding:40px;line-height:1.5}.header{border-bottom:2px solid #6366f1;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:1.5rem}.header .meta{font-size:0.8rem;color:#666;text-align:right}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}.summary-card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}.summary-card .label{font-size:0.7rem;color:#666;text-transform:uppercase;letter-spacing:0.05em}.summary-card .value{font-size:1.5rem;font-weight:700;margin-top:4px}.gate-pass{color:#16a34a}.gate-fail{color:#dc2626}.gate-review{color:#d97706}h2{font-size:1.1rem;margin:24px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f9fafb;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-weight:600}td{padding:6px 8px;border-bottom:1px solid #f3f4f6}.critical{background:#fef2f2;color:#dc2626;font-weight:600}.high{background:#fff7ed;color:#ea580c;font-weight:600}.medium{background:#fefce8;color:#ca8a04}.low{color:#6b7280}.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:0.7rem;color:#999}@media print{body{padding:20px}.summary-grid{display:grid!important;grid-template-columns:1fr 1fr 1fr 1fr!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.summary-card{break-inside:avoid}}</style></head><body><div class="header"><h1>SimpleBeacon Compliance Audit Report</h1><div class="meta"><div><strong>Project:</strong> ${e(projectLabel)}</div><div><strong>Generated:</strong> ${e(generatedAt)}</div><div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Quality Score</div><div class="value">${e(qualityScore)}</div></div><div class="summary-card"><div class="label">Total Issues</div><div class="value">${e(report.issueCount)}</div></div><div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${e(gate.blockingCount || 0)}</div></div><div class="summary-card"><div class="label">Files Scanned</div><div class="value">${e(report.totalFiles || report.repositoryFilesTotal || "—")}</div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${e(sev.critical || 0)}</div></div><div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${e(sev.high || 0)}</div></div><div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${e(sev.medium || 0)}</div></div><div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${e(sev.low || 0)}</div></div></div><h2>Detected Issues (${issues.length}${issues.length > 200 ? " — showing first 200" : ""})</h2><table><thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead><tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No issues detected</td></tr>'}</tbody></table>${trendRows ? `<h2>Vulnerability Trend (${history.length} scans)</h2><table><thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${trendRows}</tbody></table>` : ""}<div class="footer"><p>Generated by SimpleBeacon — Compliance Audit Report</p><p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p></div></body></html>`;
+                    if (isIdeEmbedSurface()) {
+                      downloadBrowserFile(
+                        `simplebeacon-audit-${Date.now()}.html`,
+                        html,
+                        "text/html;charset=utf-8",
+                      );
+                      toast.success("Audit HTML downloaded — print from the saved file");
+                      return;
+                    }
                     const w = window.open("", "_blank");
                     if (!w) {
                       toast.error(

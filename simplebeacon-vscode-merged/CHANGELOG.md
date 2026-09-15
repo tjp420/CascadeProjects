@@ -1,5 +1,19 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.588] - 2026-09-15
+
+### Fixed
+
+- **IDE Downloads** — Analyze/export in the IDE iframe posts `downloadFile` to the extension, copies `.simplebeacon/report.json` (or the export blob) into `.simplebeacon/downloads/`, and lists the file in the SimpleBeacon sidebar. No save dialog (it never appeared over the webview).
+- **IDE clipboard** — Chatbot copy falls back from `navigator.clipboard` to `execCommand` then `vscode.env.clipboard` via `copyText` postMessage.
+
+## [3.0.584] - 2026-09-11
+
+### Fixed
+
+- **Audit false positives** — `evalDanger` no longer flags English plurals like `system(s)`; `prototypePollution` requires a real property write instead of prose `Object.prototype.`; product contact emails and remediation templates are filtered from `sensitiveData`.
+- **Welcome harness** — `deep-check-welcome.cjs` loads compiled modules via `Module._compile` / `vm.Script` instead of `new Function`.
+
 ## [3.0.580] - 2026-09-04
 
 ### Fixed

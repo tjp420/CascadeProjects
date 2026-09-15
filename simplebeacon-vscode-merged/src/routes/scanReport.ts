@@ -6,11 +6,19 @@ import { getSbConfig } from '../utils/vscode';
 import { listDirectories, ServerState } from '../serverState';
 import { enrichFindingsWithAlerts } from '../fixes/alertTemplates';
 
-export function countLocalDirectoryInventory(
+export async function countLocalDirectoryInventory(
   projectPath: string,
   maxFiles = 100000
-): { totalFiles: number; totalFolders: number; projectRoot: string } | null {
-  if (!projectPath || !fs.existsSync(projectPath)) {
+): Promise<{ totalFiles: number; totalFolders: number; projectRoot: string } | null> {
+  if (!projectPath) {
+    return null;
+  }
+  try {
+    const st = await fs.promises.stat(projectPath);
+    if (!st.isDirectory()) {
+      return null;
+    }
+  } catch {
     return null;
   }
   const skipDirs = new Set([
@@ -37,16 +45,17 @@ export function countLocalDirectoryInventory(
   let totalFiles = 0;
   let totalFolders = 0;
   const visited = new Set<string>();
-  function walk(dir: string) {
+  async function walk(dir: string): Promise<void> {
     if (totalFiles >= maxFiles) {
       return;
     }
     let entries: fs.Dirent[];
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
+      entries = await fs.promises.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
+    await new Promise<void>((resolve) => setImmediate(resolve));
     for (const entry of entries) {
       if (totalFiles >= maxFiles) {
         break;
@@ -63,7 +72,7 @@ export function countLocalDirectoryInventory(
           if (!visited.has(full)) {
             visited.add(full);
             totalFolders++;
-            walk(full);
+            await walk(full);
           }
         } else if (entry.isFile()) {
           totalFiles++;
@@ -73,7 +82,7 @@ export function countLocalDirectoryInventory(
       }
     }
   }
-  walk(projectPath);
+  await walk(projectPath);
   return { totalFiles, totalFolders, projectRoot: projectPath };
 }
 
@@ -81,12 +90,12 @@ export function countLocalDirectoryInventory(
  * Handle scan, report, status, config, workspace, and data routes.
  * @returns true if the request was handled.
  */
-export function handleScanReportRoutes(
+export async function handleScanReportRoutes(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   parsed: URL,
   serverState: ServerState
-): boolean {
+): Promise<boolean> {
   // Full report
   if (parsed.pathname === '/api/report') {
     const report = serverState.currentReport || {};
@@ -187,7 +196,7 @@ export function handleScanReportRoutes(
     const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
     const profile = parsed.searchParams.get('profile') || 'all';
     const fullDirectoryScan = parsed.searchParams.get('fullDirectoryScan') === 'true';
-    const inventory = projectPath ? countLocalDirectoryInventory(projectPath) : null;
+    const inventory = projectPath ? await countLocalDirectoryInventory(projectPath) : null;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (!inventory) {
       res.end(
@@ -218,7 +227,7 @@ export function handleScanReportRoutes(
   // Directory browser listing for the analyze page
   if (parsed.pathname === '/api/analyze/list-directories') {
     const dirPath = parsed.searchParams.get('path') || '';
-    const result = listDirectories(dirPath);
+    const result = await listDirectories(dirPath);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
     return true;

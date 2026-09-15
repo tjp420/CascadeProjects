@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as http from 'http';
 import { getDataServerPort, getTheme } from './dataServer';
 import { getAuthManager } from './auth/authContext';
@@ -8,8 +10,114 @@ import {
   refreshAuthState,
   setSidebarAuthState,
   addDownloadedFile,
+  isSidebarTrackedDownloadPath,
   updateSidebarReport,
 } from './sidebarBridge';
+
+function existingUserDownload(filename: string): string | undefined {
+  const dir = path.join(os.homedir(), 'Downloads');
+  const names = [filename, 'simplebeacon-report.json'].filter(Boolean);
+  for (const name of names) {
+    const candidate = path.join(dir, name);
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return undefined;
+}
+
+function uniqueDownloadDest(dir: string, filename: string): string {
+  const safe = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ext = path.extname(safe) || '.json';
+  let stem = path.basename(safe, ext);
+  stem = stem.replace(/^\d{13}-/, '').replace(/-\d{13}$/, '');
+  if (!stem) stem = 'simplebeacon-download';
+  return path.join(dir, `${stem}-${Date.now()}${ext}`);
+}
+
+async function resolveWorkspaceDownloadsDir(): Promise<string | undefined> {
+  const ws = vscode.workspace.workspaceFolders?.[0];
+  if (!ws) return undefined;
+  const dir = path.join(ws.uri.fsPath, '.simplebeacon', 'downloads');
+  await vscode.workspace.fs.createDirectory(vscode.Uri.file(dir));
+  return dir;
+}
+
+async function trackSavedDownload(destPath: string, replyWebview?: vscode.Webview): Promise<void> {
+  const savedName = path.basename(destPath);
+  addDownloadedFile(savedName, destPath);
+  try {
+    replyWebview?.postMessage({
+      command: 'downloadComplete',
+      filename: savedName,
+      filePath: destPath,
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Save a dashboard iframe download into `.simplebeacon/downloads` and list it in the sidebar.
+ * Does not use a save dialog — Cursor webviews often never surface one over the iframe.
+ */
+export async function saveIdeDownloadFile(
+  message: {
+    filename?: unknown;
+    base64?: unknown;
+    mimeType?: unknown;
+    fromWorkspaceReport?: unknown;
+  },
+  replyWebview?: vscode.Webview
+): Promise<void> {
+  const filename =
+    typeof message.filename === 'string' && message.filename
+      ? message.filename
+      : 'simplebeacon-download';
+  const dir = await resolveWorkspaceDownloadsDir();
+  if (!dir) {
+    vscode.window.showWarningMessage('Open a workspace folder to save IDE downloads.');
+    return;
+  }
+  const dest = uniqueDownloadDest(dir, filename);
+
+  if (message.fromWorkspaceReport === true) {
+    const ws = vscode.workspace.workspaceFolders?.[0];
+    if (!ws) return;
+    const src = path.join(ws.uri.fsPath, '.simplebeacon', 'report.json');
+    try {
+      await vscode.workspace.fs.stat(vscode.Uri.file(src));
+    } catch {
+      vscode.window.showWarningMessage('No .simplebeacon/report.json found. Run a scan first.');
+      return;
+    }
+    const dest = uniqueDownloadDest(dir, 'simplebeacon-report.json');
+    await vscode.workspace.fs.copy(vscode.Uri.file(src), vscode.Uri.file(dest), { overwrite: true });
+    await trackSavedDownload(dest, replyWebview);
+    return;
+  }
+
+  const base64 = typeof message.base64 === 'string' ? message.base64 : '';
+  if (!base64) {
+    const userOnly = existingUserDownload(filename);
+    if (userOnly) {
+      await trackSavedDownload(userOnly, replyWebview);
+    }
+    return;
+  }
+  await vscode.workspace.fs.writeFile(vscode.Uri.file(dest), Buffer.from(base64, 'base64'));
+  await trackSavedDownload(existingUserDownload(filename) || dest, replyWebview);
+}
+
+export async function copyIdeText(text: unknown): Promise<void> {
+  const value = typeof text === 'string' ? text : '';
+  if (!value) return;
+  await vscode.env.clipboard.writeText(value);
+}
 
 let _sidebarView: vscode.WebviewView | undefined;
 
@@ -566,10 +674,16 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path })
       ).catch(() => {});
     }
+    if (message.command === 'downloadFile') {
+      await saveIdeDownloadFile(message, panel.webview);
+    }
+    if (message.command === 'copyText') {
+      await copyIdeText(message.text);
+    }
     if (message.command === 'downloadComplete') {
       const filename = typeof message.filename === 'string' ? message.filename : '';
       const filePath = typeof message.filePath === 'string' ? message.filePath : '';
-      if (filename) {
+      if (filename && isSidebarTrackedDownloadPath(filePath)) {
         addDownloadedFile(filename, filePath);
       }
     }
@@ -603,13 +717,16 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
           });
           return;
         }
+        const timeoutMs = /pick-folder/i.test(parsed.pathname + parsed.search)
+          ? 300000
+          : 20000;
         const reqOpts: http.RequestOptions = {
           hostname: parsed.hostname,
           port: parsed.port || '80',
           path: parsed.pathname + parsed.search,
           method: message.init?.method || 'GET',
           headers: message.init?.headers || {},
-          timeout: 20000,
+          timeout: timeoutMs,
         };
         const req = http.request(reqOpts, (res: http.IncomingMessage) => {
           const chunks: Buffer[] = [];

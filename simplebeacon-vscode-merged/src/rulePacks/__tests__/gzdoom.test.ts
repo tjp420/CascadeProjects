@@ -43,82 +43,92 @@ describe('GZDoom Rule Pack', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    it('detects missing asset references', () => {
+    it('detects missing asset references', async () => {
       // Create a ZScript file that references a non-existent PK3
       const zsContent = 'class MyWeapon : Actor {\n  String assetRef = "textures.pk3";\n}';
       fs.writeFileSync(path.join(tmpDir, 'weapon.zs'), zsContent);
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const missingAssets = result.assetReferences.filter((a) => !a.exists);
       expect(missingAssets.length).toBeGreaterThan(0);
       expect(missingAssets[0].fileName).toBe('textures.pk3');
     });
 
-    it('finds existing asset references', () => {
+    it('finds existing asset references', async () => {
       // Create a PK3 file and a script that references it
       fs.writeFileSync(path.join(tmpDir, 'mymod.pk3'), 'dummy');
       const zsContent = 'String ref = "mymod.pk3";';
       fs.writeFileSync(path.join(tmpDir, 'main.zs'), zsContent);
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const found = result.assetReferences.filter((a) => a.exists);
       expect(found.length).toBeGreaterThan(0);
       expect(found[0].fileName).toBe('mymod.pk3');
     });
 
-    it('detects CVAR conflicts across files', () => {
+    it('detects CVAR conflicts across files', async () => {
       // Two config files setting the same CVAR to different values
       fs.writeFileSync(path.join(tmpDir, 'autoexec.cfg'), 'set r_drawvoxels 1\n');
       fs.writeFileSync(path.join(tmpDir, 'user.cfg'), 'set r_drawvoxels 0\n');
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const conflicts = result.cvarConflicts.filter((c) => c.valuesConflict);
       expect(conflicts.length).toBeGreaterThan(0);
       expect(conflicts[0].cvarName).toBe('r_drawvoxels');
     });
 
-    it('reports info for duplicate CVARs with same value', () => {
+    it('reports info for duplicate CVARs with same value', async () => {
       fs.writeFileSync(path.join(tmpDir, 'autoexec.cfg'), 'set r_skybox 1\n');
       fs.writeFileSync(path.join(tmpDir, 'user.cfg'), 'set r_skybox 1\n');
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const duplicates = result.cvarConflicts.filter((c) => !c.valuesConflict);
       expect(duplicates.length).toBeGreaterThan(0);
     });
 
-    it('returns empty results for non-existent directory', () => {
-      const result = scanGzdoomMod('/nonexistent/path');
+    it('returns empty results for non-existent directory', async () => {
+      const result = await scanGzdoomMod('/nonexistent/path');
       expect(result.assetReferences.length).toBe(0);
       expect(result.cvarConflicts.length).toBe(0);
       expect(result.issues.length).toBe(0);
     });
 
-    it('generates issues for missing assets', () => {
+    it('generates issues for missing assets', async () => {
       fs.writeFileSync(path.join(tmpDir, 'script.zs'), 'String ref = "missing.pk3";\n');
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const missingIssues = result.issues.filter((i) => i.type === 'GZ-ASSET-MISSING');
       expect(missingIssues.length).toBeGreaterThan(0);
       expect(missingIssues[0].severity).toBe('warning');
     });
 
-    it('generates issues for conflicting CVARs', () => {
+    it('generates issues for conflicting CVARs', async () => {
       fs.writeFileSync(path.join(tmpDir, 'a.cfg'), 'set vid_gamma 1.5\n');
       fs.writeFileSync(path.join(tmpDir, 'b.cfg'), 'set vid_gamma 2.0\n');
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       const conflictIssues = result.issues.filter((i) => i.type === 'GZ-CVAR-CONFLICT');
       expect(conflictIssues.length).toBeGreaterThan(0);
       expect(conflictIssues[0].severity).toBe('warning');
     });
 
-    it('skips node_modules and .git directories', () => {
+    it('does not parse binary wad/pk3 archives as text', async () => {
+      const wadBytes = Buffer.from([0x49, 0x57, 0x41, 0x44, 0x00, 0x01, 0xff, 0xfe]);
+      fs.writeFileSync(path.join(tmpDir, 'mod.wad'), wadBytes);
+      fs.writeFileSync(path.join(tmpDir, 'pack.pk3'), wadBytes);
+      const result = await scanGzdoomMod(tmpDir);
+      expect(result.issues.length).toBe(0);
+      expect(result.assetReferences.length).toBe(0);
+      expect(result.cvarConflicts.length).toBe(0);
+    });
+
+    it('skips node_modules and .git directories', async () => {
       fs.mkdirSync(path.join(tmpDir, 'node_modules'));
       fs.writeFileSync(path.join(tmpDir, 'node_modules', 'lib.zs'), 'String ref = "missing.pk3";\n');
       fs.mkdirSync(path.join(tmpDir, '.git'));
       fs.writeFileSync(path.join(tmpDir, '.git', 'config.zs'), 'String ref = "also-missing.pk3";\n');
 
-      const result = scanGzdoomMod(tmpDir);
+      const result = await scanGzdoomMod(tmpDir);
       expect(result.assetReferences.length).toBe(0);
     });
   });
