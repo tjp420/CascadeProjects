@@ -31,6 +31,7 @@ import {
   getDashboardUrlBarStyles,
   getDashboardUrlBarHtml,
   saveIdeDownloadFile,
+  copyIdeText,
 } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
@@ -189,6 +190,7 @@ interface SidebarMessage {
   base64?: string;
   mimeType?: string;
   filePath?: string;
+  fromWorkspaceReport?: boolean;
 }
 
 /**
@@ -1909,6 +1911,9 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'downloadFile':
             await saveIdeDownloadFile(message, this._view?.webview);
+            break;
+          case 'copyText':
+            await copyIdeText((message as { text?: unknown }).text);
             break;
           case 'downloadComplete': {
             const filename = typeof message.filename === 'string' ? message.filename : '';

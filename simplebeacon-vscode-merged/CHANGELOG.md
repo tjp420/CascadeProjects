@@ -1,5 +1,12 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.588] - 2026-09-15
+
+### Fixed
+
+- **IDE Downloads** — Analyze/export in the IDE iframe posts `downloadFile` to the extension, copies `.simplebeacon/report.json` (or the export blob) into `.simplebeacon/downloads/`, and lists the file in the SimpleBeacon sidebar. No save dialog (it never appeared over the webview).
+- **IDE clipboard** — Chatbot copy falls back from `navigator.clipboard` to `execCommand` then `vscode.env.clipboard` via `copyText` postMessage.
+
 ## [3.0.584] - 2026-09-11
 
 ### Fixed

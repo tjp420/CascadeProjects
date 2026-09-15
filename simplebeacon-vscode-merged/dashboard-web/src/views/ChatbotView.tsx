@@ -25,6 +25,7 @@ import {
   Square,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyTextToClipboard } from "@/lib/utils";
 import { getApiBase, apiUrl, authHeaders } from "@/config";
 import {
   checkLocalNetworkAccess,
@@ -1406,13 +1407,13 @@ export function ChatbotView() {
   }, []);
 
   const handleCopy = useCallback(async (index: number, content: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 1500);
-    } catch {
-      toast.error("Copy failed — browser blocked clipboard access");
+    const ok = await copyTextToClipboard(content);
+    if (!ok) {
+      toast.error("Copy failed — select the text and copy manually");
+      return;
     }
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 1500);
   }, []);
 
   // ─── Voice Response handlers ──────────────────────────────────────────────
@@ -1780,11 +1781,12 @@ export function ChatbotView() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(
+                onClick={async () => {
+                  const ok = await copyTextToClipboard(
                     "curl -L -o Modelfile https://simplebeacon.ai/models/Modelfile\nollama create unbreakable-oracle -f Modelfile\nollama run unbreakable-oracle",
                   );
-                  toast.success("Copied all 3 commands to clipboard");
+                  if (ok) toast.success("Copied all 3 commands to clipboard");
+                  else toast.error("Copy failed — select the text and copy manually");
                 }}
               >
                 <Copy className="h-3.5 w-3.5 mr-1" /> Copy all commands

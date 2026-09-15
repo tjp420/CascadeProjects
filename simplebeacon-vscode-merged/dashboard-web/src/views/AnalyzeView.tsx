@@ -4218,8 +4218,24 @@ function ScanResults({
                   if (!result) return;
                   const exportData = fullReport || result;
                   syncReportToVscodeSidebar(exportData, result.projectPath);
-                  const json = JSON.stringify(exportData, null, 2);
                   const filename = `simplebeacon-report-${Date.now()}.json`;
+                  if (isIdeEmbedSurface()) {
+                    try {
+                      window.parent.postMessage(
+                        {
+                          command: "downloadFile",
+                          filename,
+                          fromWorkspaceReport: true,
+                        },
+                        "*",
+                      );
+                    } catch {
+                      /* ignore */
+                    }
+                    toast.success("Saving report to sidebar Downloads");
+                    return;
+                  }
+                  const json = JSON.stringify(exportData, null, 2);
                   downloadBrowserFile(filename, json, "application/json");
                 }}
               >

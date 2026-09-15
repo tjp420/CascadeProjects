@@ -430,6 +430,7 @@
         ev.data.command === 'scanWorkspace' ||
         ev.data.command === 'downloadComplete' ||
         ev.data.command === 'downloadFile' ||
+        ev.data.command === 'copyText' ||
         ev.data.command === 'openFile' ||
         ev.data.command === 'openFileAtLine' ||
         ev.data.command === 'updateReport' ||

@@ -10,7 +10,7 @@ import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
 import { showDashboardInSidebar, isSidebarReady, openSidebarPreview, setSidebarAuthState, addDownloadedFile, isSidebarTrackedDownloadPath } from './sidebarBridge';
-import { postSidebarMessage, openTeamDashboardPanel, saveIdeDownloadFile } from './sidebarMessenger';
+import { postSidebarMessage, openTeamDashboardPanel, saveIdeDownloadFile, copyIdeText } from './sidebarMessenger';
 import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai/';
@@ -1774,6 +1774,9 @@ export class WelcomeDashboard {
           break;
         case 'downloadFile':
           await saveIdeDownloadFile(msg, this.panel.webview);
+          break;
+        case 'copyText':
+          await copyIdeText(msg.text);
           break;
         case 'downloadComplete': {
           const filename = typeof msg.filename === 'string' ? msg.filename : '';
