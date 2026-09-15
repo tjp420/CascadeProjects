@@ -386,9 +386,123 @@ export type AgentDetectionMode = 'off' | 'heuristic' | 'always';
 
 /**
  * Source file extensions that the interceptor validates on save.
- * Non-source files (images, binaries, configs outside scanPaths) are skipped.
+ * Align with CLI scannable JS/TS/JSON; unknown types skip (no catalog match).
  */
-const VALIDATED_EXTENSIONS = new Set(['.js', '.cjs', '.mjs', '.ts', '.tsx', '.json']);
+const VALIDATED_EXTENSIONS = new Set([
+  '.js',
+  '.cjs',
+  '.mjs',
+  '.mts',
+  '.cts',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.json',
+]);
+
+const SKIP_BASENAMES = new Set([
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  'composer.lock',
+  'bun.lock',
+  'bun.lockb',
+]);
+
+/** Skip full-file validateDiff above this size (minified dumps, pasted logs). */
+export const MAX_INTERCEPTOR_BYTES = 400 * 1024;
+
+export interface LocalGateSnapshot {
+  pass: boolean;
+  blockingCount: number;
+  source: 'gate' | 'scan_summary' | 'missing';
+}
+
+function posixRel(filePath: string, workspaceRoot: string): string {
+  return path.relative(workspaceRoot, filePath).replace(/\\/g, '/');
+}
+
+function loadIgnorePatterns(workspaceRoot: string): string[] {
+  const ignorePath = path.join(workspaceRoot, '.simplebeaconignore');
+  if (!fs.existsSync(ignorePath)) return [];
+  try {
+    return fs
+      .readFileSync(ignorePath, 'utf8')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#') && !line.startsWith('!'));
+  } catch {
+    return [];
+  }
+}
+
+function matchesIgnore(relPosix: string, patterns: string[]): boolean {
+  const base = path.posix.basename(relPosix);
+  for (const raw of patterns) {
+    const pat = raw.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (!pat) continue;
+    if (pat.includes('*')) {
+      const escaped = pat
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*/g, '::DS::')
+        .replace(/\*/g, '[^/]*')
+        .replace(/::DS::/g, '.*');
+      if (new RegExp(`(^|/)${escaped}(/|$)`).test(relPosix) || new RegExp(`${escaped}$`).test(base)) {
+        return true;
+      }
+      continue;
+    }
+    if (relPosix === pat || relPosix.endsWith(`/${pat}`) || relPosix.includes(`/${pat}/`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Read gate from existing `.simplebeacon/report.json`. Missing/unreadable → not a fail.
+ */
+export function readLocalGateSnapshot(workspaceRoot: string): LocalGateSnapshot {
+  const reportPath = path.join(workspaceRoot, '.simplebeacon', 'report.json');
+  if (!fs.existsSync(reportPath)) {
+    return { pass: true, blockingCount: 0, source: 'missing' };
+  }
+  try {
+    const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    const gate = report.gate;
+    if (gate && typeof gate.pass === 'boolean') {
+      const blockingCount = Number(gate.blockingCount) || 0;
+      return { pass: gate.pass !== false, blockingCount, source: 'gate' };
+    }
+    const summary = report.scan_summary || {};
+    const failed =
+      String(summary.status || '').toUpperCase() === 'FAILED' || summary.block_merge === true;
+    return {
+      pass: !failed,
+      blockingCount: failed ? Number(summary.high_severity_count) || 1 : 0,
+      source: 'scan_summary',
+    };
+  } catch {
+    return { pass: true, blockingCount: 0, source: 'missing' };
+  }
+}
+
+export function interceptorSkipReason(
+  filePath: string,
+  byteLength: number,
+  workspaceRoot: string,
+): string | null {
+  if (byteLength > MAX_INTERCEPTOR_BYTES) return 'oversized';
+  const base = path.basename(filePath).toLowerCase();
+  if (SKIP_BASENAMES.has(base)) return 'lockfile';
+  if (base.endsWith('.min.js') || base.endsWith('.min.cjs') || base.endsWith('.min.mjs')) {
+    return 'minified-bundle';
+  }
+  const rel = posixRel(filePath, workspaceRoot);
+  if (rel.startsWith('..')) return 'outside-root';
+  if (matchesIgnore(rel, loadIgnorePatterns(workspaceRoot))) return 'simplebeaconignore';
+  return null;
+}
 
 /**
  * Register the Context Interceptor — wires agent validation into VS Code save
@@ -435,9 +549,18 @@ export function registerContextInterceptor(
     const ext = path.extname(filePath).toLowerCase();
     if (!VALIDATED_EXTENSIONS.has(ext)) return;
 
+    const content = doc.getText();
+    const skipReason = interceptorSkipReason(filePath, Buffer.byteLength(content, 'utf8'), root);
+    if (skipReason) {
+      deps.outputChannel.appendLine(
+        `[Agent Guard] Skip ${path.basename(filePath)} (${skipReason}) — catalog cannot match / too large`,
+      );
+      diagnosticCollection.delete(doc.uri);
+      return;
+    }
+
     // Build a DiffFile covering all lines (conservative — scan full file on save)
     const lineCount = doc.lineCount;
-    const content = doc.getText();
     const diffFile: DiffFile = {
       filePath,
       status: 'modified',
@@ -494,6 +617,13 @@ export function registerContextInterceptor(
   // ─── 2. AI session end — coupling analysis ───
   deps.onAiSessionEnd((files) => {
     if (files.length === 0) return;
+
+    const gate = readLocalGateSnapshot(deps.workspaceRoot);
+    const gateLine =
+      gate.source === 'missing'
+        ? '[Agent Guard] No .simplebeacon/report.json yet — CLI --gate is the commit source of truth.'
+        : `[Agent Guard] Last scan gate: ${gate.pass ? 'PASS' : 'FAIL'} (blocking=${gate.blockingCount}, source=${gate.source}).`;
+    deps.outputChannel.appendLine(gateLine);
 
     const couplingSummary = buildCouplingSummary(files, deps.workspaceRoot);
     if (!couplingSummary) return;

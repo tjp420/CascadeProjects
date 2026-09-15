@@ -46,7 +46,7 @@ import {
   DebugReporter,
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
-import { registerContextInterceptor } from './agentIntegration/agentValidation';
+import { registerContextInterceptor, readLocalGateSnapshot } from './agentIntegration/agentValidation';
 import {
   startDataServer,
   stopDataServer,
@@ -656,18 +656,37 @@ async function withServerRetry<T>(action: () => Promise<T>, actionName = 'Open d
   return undefined;
 }
 
+function applyDiskGateToStatusBar(): boolean {
+  const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!root) return false;
+  const snap = readLocalGateSnapshot(root);
+  if (snap.source === 'missing') return false;
+  statusBarItem.text = snap.pass
+    ? '$(shield) SimpleBeacon: PASS'
+    : `$(shield) SimpleBeacon: FAIL (${snap.blockingCount} block)`;
+  statusBarItem.backgroundColor = snap.pass
+    ? new vscode.ThemeColor('statusBarItem.prominentBackground')
+    : new vscode.ThemeColor('statusBarItem.errorBackground');
+  statusBarItem.tooltip = snap.pass
+    ? 'Last scan gate PASS — click to open dashboard'
+    : `Last scan gate FAIL (${snap.blockingCount} blocking) from .simplebeacon/report.json — click dashboard`;
+  return true;
+}
+
 function updateStatusBar(report?: unknown) {
   if (!statusBarItem) return;
   statusBarItem.show();
   if (!report) {
-    statusBarItem.text = '$(shield) SimpleBeacon';
-    statusBarItem.backgroundColor = undefined;
-    statusBarItem.tooltip = 'No scan results — Click to scan workspace';
+    if (!applyDiskGateToStatusBar()) {
+      statusBarItem.text = '$(shield) SimpleBeacon';
+      statusBarItem.backgroundColor = undefined;
+      statusBarItem.tooltip = 'No scan results — Click to scan workspace';
+    }
     return;
   }
   const r = report as Record<string, unknown>;
   const gate = r.gate as { pass?: boolean; blockingCount?: number } | undefined;
-  if (gate) {
+  if (gate && typeof gate.pass === 'boolean') {
     const pass = gate.pass;
     const blockingCount = gate.blockingCount ?? 0;
     statusBarItem.text = pass
@@ -700,7 +719,7 @@ function updateStatusBar(report?: unknown) {
       tooltip += ' — Click to open dashboard';
     }
     statusBarItem.tooltip = tooltip;
-  } else {
+  } else if (!applyDiskGateToStatusBar()) {
     statusBarItem.text = '$(shield) SimpleBeacon';
     statusBarItem.backgroundColor = undefined;
     statusBarItem.tooltip = 'No scan results — Click to scan workspace';
@@ -1654,6 +1673,18 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.tooltip = 'Click to open SimpleBeacon dashboard';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+    updateStatusBar(currentReport);
+    const wf = vscode.workspace.workspaceFolders?.[0];
+    if (wf) {
+      const reportWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(wf, '.simplebeacon/report.json'),
+      );
+      const refreshBar = () => updateStatusBar(currentReport);
+      reportWatcher.onDidChange(refreshBar);
+      reportWatcher.onDidCreate(refreshBar);
+      reportWatcher.onDidDelete(() => updateStatusBar());
+      context.subscriptions.push(reportWatcher);
+    }
 
     // Ping server so website knows extension is active
     const apiUrl = getConfiguredApiUrl();
