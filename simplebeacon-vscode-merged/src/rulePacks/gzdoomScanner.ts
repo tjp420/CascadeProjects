@@ -46,7 +46,7 @@ export interface GzScanResult {
 const ASSET_REF_EXTENSIONS = ['.zs', '.zscript', '.bat', '.cfg', '.ini', '.mapinfo', '.txt'];
 const ASSET_FILE_EXTENSIONS = ['.wad', '.pk3', '.pk7', '.ipk3', '.p7z'];
 const CONFIG_EXTENSIONS = ['.cfg', '.ini', '.cvarinfo'];
-const LAUNCH_EXTENSIONS = ['.bat'];
+const SKIP_WALK_DIRS = new Set(['node_modules', '.git', '.vscode', 'dist', 'build']);
 
 // Regex to find asset references
 const ASSET_REF_REGEX = /["']([^"']*\.(?:wad|pk3|pk7|ipk3|p7z))["']/gi;
@@ -158,63 +158,73 @@ function scanCvarConflicts(
  * @param modRoot The root directory of the GZDoom mod
  * @returns GzScanResult with asset references, CVAR conflicts, and issues
  */
-export function scanGzdoomMod(modRoot: string): GzScanResult {
+export async function scanGzdoomMod(modRoot: string): Promise<GzScanResult> {
   const assetRefs: GzAssetReference[] = [];
   const issues: RealtimeIssue[] = [];
 
-  if (!fs.existsSync(modRoot)) {
+  try {
+    const rootStat = await fs.promises.stat(modRoot);
+    if (!rootStat.isDirectory()) {
+      return { assetReferences: [], cvarConflicts: [], issues: [] };
+    }
+  } catch {
     return { assetReferences: [], cvarConflicts: [], issues: [] };
   }
 
-  // Walk the mod tree and collect files
-  const allFiles: string[] = [];
   const configFiles: Array<{ file: string; content: string }> = [];
   const cvarinfoFiles: Array<{ file: string; content: string }> = [];
 
-  function walk(dir: string) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
+  async function walk(dir: string): Promise<void> {
+    let entries: fs.Dirent[];
+    try {
+      entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    await new Promise<void>((resolve) => setImmediate(resolve));
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        // Skip common non-mod directories
-        if (['node_modules', '.git', '.vscode', 'dist', 'build'].includes(entry.name)) continue;
-        walk(fullPath);
-      } else if (entry.isFile()) {
-        allFiles.push(fullPath);
-        const ext = path.extname(entry.name).toLowerCase();
+        if (SKIP_WALK_DIRS.has(entry.name)) continue;
+        await walk(fullPath);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      // Binary archives are existence-checked from text refs only — never parsed as text/JSON.
+      if (ASSET_FILE_EXTENSIONS.includes(ext)) continue;
 
-        if (ASSET_REF_EXTENSIONS.includes(ext)) {
-          try {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            const refs = scanFileForAssetRefs(fullPath, content, modRoot);
-            assetRefs.push(...refs);
-          } catch {
-            /* skip unreadable files */
-          }
+      if (ASSET_REF_EXTENSIONS.includes(ext)) {
+        try {
+          const content = await fs.promises.readFile(fullPath, 'utf8');
+          const refs = scanFileForAssetRefs(fullPath, content, modRoot);
+          assetRefs.push(...refs);
+        } catch {
+          /* skip unreadable files */
         }
+      }
 
-        if (CONFIG_EXTENSIONS.includes(ext)) {
-          try {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            configFiles.push({ file: fullPath, content });
-          } catch {
-            /* skip */
-          }
+      if (CONFIG_EXTENSIONS.includes(ext)) {
+        try {
+          const content = await fs.promises.readFile(fullPath, 'utf8');
+          configFiles.push({ file: fullPath, content });
+        } catch {
+          /* skip */
         }
+      }
 
-        if (ext === '.cvarinfo') {
-          try {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            cvarinfoFiles.push({ file: fullPath, content });
-          } catch {
-            /* skip */
-          }
+      if (ext === '.cvarinfo') {
+        try {
+          const content = await fs.promises.readFile(fullPath, 'utf8');
+          cvarinfoFiles.push({ file: fullPath, content });
+        } catch {
+          /* skip */
         }
       }
     }
   }
 
-  walk(modRoot);
+  await walk(modRoot);
 
   // Convert missing asset references to issues
   for (const ref of assetRefs) {

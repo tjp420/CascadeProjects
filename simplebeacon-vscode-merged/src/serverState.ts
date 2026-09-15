@@ -58,13 +58,13 @@ function parentDirPath(dirPath: string): string {
   return withSlash;
 }
 
-export function listDirectories(dirPath: string): {
+export async function listDirectories(dirPath: string): Promise<{
   success: boolean;
   current?: string;
   parent?: string;
   directories?: { name: string; path: string }[];
   error?: string;
-} {
+}> {
   try {
     const current = normalizeDirPath(dirPath);
     if (!current) {
@@ -78,7 +78,7 @@ export function listDirectories(dirPath: string): {
         };
       }
       const root = '/';
-      const entries = fs.readdirSync(root, { withFileTypes: true });
+      const entries = await fs.promises.readdir(root, { withFileTypes: true });
       return {
         success: true,
         current: root,
@@ -92,10 +92,16 @@ export function listDirectories(dirPath: string): {
       };
     }
     const resolved = path.resolve(current);
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+    let st: fs.Stats;
+    try {
+      st = await fs.promises.stat(resolved);
+    } catch {
       return { success: false, error: 'Not a directory' };
     }
-    const entries = fs.readdirSync(resolved, { withFileTypes: true });
+    if (!st.isDirectory()) {
+      return { success: false, error: 'Not a directory' };
+    }
+    const entries = await fs.promises.readdir(resolved, { withFileTypes: true });
     return {
       success: true,
       current: resolved,
