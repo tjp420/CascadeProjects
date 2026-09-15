@@ -30,6 +30,7 @@ import {
   rewriteIdePreviewUrl,
   getDashboardUrlBarStyles,
   getDashboardUrlBarHtml,
+  saveIdeDownloadFile,
 } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
@@ -184,6 +185,10 @@ interface SidebarMessage {
   report?: Record<string, unknown>;
   requestId?: string;
   init?: { method?: string; headers?: Record<string, string>; body?: string };
+  filename?: string;
+  base64?: string;
+  mimeType?: string;
+  filePath?: string;
 }
 
 /**
@@ -620,7 +625,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       `sb_notify_base=${encodeURIComponent(notifyBase)}`,
       `sb_api_base=${encodeURIComponent(notifyBase)}`,
       'force=1',
-      `_${Date.now()}`,
+      `_=${Date.now()}`,
     ];
     let authUrl = buildDashboardUrl(dashboardBase, route, extraParts.join('&'));
     authUrl = rewriteIdePreviewUrl(authUrl, localBase, websiteMode);
@@ -1902,6 +1907,17 @@ $('cancelBtn').addEventListener('click', () => {
               }
             }
             break;
+          case 'downloadFile':
+            await saveIdeDownloadFile(message, this._view?.webview);
+            break;
+          case 'downloadComplete': {
+            const filename = typeof message.filename === 'string' ? message.filename : '';
+            const filePath = typeof message.filePath === 'string' ? message.filePath : '';
+            if (filename && filePath && !filePath.startsWith('browser://')) {
+              this.addDownloadedFile(filename, filePath);
+            }
+            break;
+          }
           case 'openInSimpleBrowser':
             if (message.url) {
               try {
@@ -2294,13 +2310,16 @@ $('cancelBtn').addEventListener('click', () => {
                 });
                 break;
               }
-              const reqOpts: http.RequestOptions = {
+            const timeoutMs = /pick-folder/i.test(parsed.pathname + parsed.search)
+              ? 300000
+              : 20000;
+            const reqOpts: http.RequestOptions = {
                 hostname: parsed.hostname,
                 port: parsed.port || '80',
                 path: parsed.pathname + parsed.search,
                 method: bfMsg.init?.method || 'GET',
                 headers: bfMsg.init?.headers || {},
-                timeout: 20000,
+                timeout: timeoutMs,
               };
               const req = http.request(reqOpts, (res: http.IncomingMessage) => {
                 const chunks: Buffer[] = [];
@@ -6900,22 +6919,27 @@ body.tabs-open #browserTabBar{display:flex !important;}
       res.end('Not found');
     });
 
-    const tryListen = (port: number) => {
-      server.once('error', (err: any) => {
+    const tryListen = (startPort: number) => {
+      let pendingPort = startPort;
+      const onError = (err: any) => {
         if (err.code === 'EADDRINUSE' || err.code === 'EACCES') {
-          const nextPort = port + 1;
-          if (nextPort <= RELAY_PORT + 20) {
-            tryListen(nextPort);
+          pendingPort += 1;
+          if (pendingPort <= RELAY_PORT + 20) {
+            server.listen(pendingPort, '127.0.0.1');
           } else {
-            vscode.window.showErrorMessage(`Ports ${RELAY_PORT}-${nextPort} are all busy.`);
+            vscode.window.showErrorMessage(
+              `Ports ${RELAY_PORT}-${RELAY_PORT + 20} are all busy. Reload the window or stop leftover node processes on those ports.`,
+            );
           }
-        } else {
-          vscode.window.showErrorMessage(`Sidebar server error: ${err.message}`);
+          return;
         }
-      });
+        vscode.window.showErrorMessage(`Sidebar server error: ${err.message}`);
+      };
+      server.on('error', onError);
       server.once('listening', () => {
+        server.removeListener('error', onError);
         const addr = server.address();
-        const actualPort = addr ? (typeof addr === 'object' ? addr.port : addr) : port;
+        const actualPort = addr ? (typeof addr === 'object' ? addr.port : addr) : pendingPort;
         ModernSidebarProvider._relayPort = typeof actualPort === 'number' ? actualPort : Number(actualPort);
         ModernSidebarProvider._relayServer = server;
         // Poll relay server for commands queued by external browser previews
@@ -6954,7 +6978,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
         }
         showQuietMessage(`Sidebar server running at ${url}`);
       });
-      server.on('close', () => {
+      server.once('close', () => {
         ModernSidebarProvider._relayServer = undefined;
         ModernSidebarProvider._relayPort = undefined;
         if (ModernSidebarProvider._relayPollInterval) {
@@ -6963,9 +6987,28 @@ body.tabs-open #browserTabBar{display:flex !important;}
         }
         ModernSidebarProvider.logRelay('Relay server closed');
       });
-      server.listen(port, '127.0.0.1');
+      server.listen(startPort, '127.0.0.1');
     };
-    tryListen(RELAY_PORT);
+    let listenStarted = false;
+    const startListen = () => {
+      if (listenStarted) return;
+      listenStarted = true;
+      tryListen(RELAY_PORT);
+    };
+    const adoptReq = http.get(`http://127.0.0.1:${RELAY_PORT}/api/pending-commands`, (res) => {
+      res.resume();
+      if (res.statusCode === 200) {
+        ModernSidebarProvider._relayPort = RELAY_PORT;
+        ModernSidebarProvider.logRelay(`Reusing existing relay on ${RELAY_PORT}`);
+        return;
+      }
+      startListen();
+    });
+    adoptReq.on('error', () => startListen());
+    adoptReq.setTimeout(400, () => {
+      adoptReq.destroy();
+      startListen();
+    });
   }
 
   private static buildFallbackDashboardHtml(pathname: string, port: number = 54358): string {

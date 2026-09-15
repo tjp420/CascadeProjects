@@ -25,6 +25,7 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { getApiBase, apiUrl, authHeaders } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
@@ -208,15 +209,11 @@ export function ToolsView() {
   const downloadResult = (toolId: string) => {
     const result = toolResults[toolId];
     if (!result?.data) return;
-    const blob = new Blob([JSON.stringify(result.data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `simplebeacon-${toolId}-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      `simplebeacon-${toolId}-${Date.now()}.json`,
+      JSON.stringify(result.data, null, 2),
+      "application/json",
+    );
   };
 
   // Export arbitrary file from server archive by requesting a download endpoint
@@ -228,12 +225,7 @@ export function ToolsView() {
       );
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(filename, blob);
       toast.success("Export started");
     } catch (err: any) {
       toast.error("Export failed: " + (err?.message || "unknown"));

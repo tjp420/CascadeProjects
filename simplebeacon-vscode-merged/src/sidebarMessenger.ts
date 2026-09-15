@@ -8,8 +8,37 @@ import {
   refreshAuthState,
   setSidebarAuthState,
   addDownloadedFile,
+  isSidebarTrackedDownloadPath,
   updateSidebarReport,
 } from './sidebarBridge';
+
+/**
+ * Save a dashboard iframe download and list it in the SimpleBeacon sidebar.
+ */
+export async function saveIdeDownloadFile(
+  message: { filename?: unknown; base64?: unknown; mimeType?: unknown },
+  replyWebview?: vscode.Webview
+): Promise<void> {
+  const filename = typeof message.filename === 'string' ? message.filename : '';
+  const base64 = typeof message.base64 === 'string' ? message.base64 : '';
+  if (!filename || !base64) return;
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri: vscode.Uri.file(filename),
+  });
+  if (!uri) return;
+  await vscode.workspace.fs.writeFile(uri, Buffer.from(base64, 'base64'));
+  const savedName = path.basename(uri.fsPath);
+  addDownloadedFile(savedName, uri.fsPath);
+  try {
+    replyWebview?.postMessage({
+      command: 'downloadComplete',
+      filename: savedName,
+      filePath: uri.fsPath,
+    });
+  } catch {
+    /* ignore */
+  }
+}
 
 let _sidebarView: vscode.WebviewView | undefined;
 
@@ -566,10 +595,13 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path })
       ).catch(() => {});
     }
+    if (message.command === 'downloadFile') {
+      await saveIdeDownloadFile(message, panel.webview);
+    }
     if (message.command === 'downloadComplete') {
       const filename = typeof message.filename === 'string' ? message.filename : '';
       const filePath = typeof message.filePath === 'string' ? message.filePath : '';
-      if (filename) {
+      if (filename && isSidebarTrackedDownloadPath(filePath)) {
         addDownloadedFile(filename, filePath);
       }
     }
@@ -603,13 +635,16 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
           });
           return;
         }
+        const timeoutMs = /pick-folder/i.test(parsed.pathname + parsed.search)
+          ? 300000
+          : 20000;
         const reqOpts: http.RequestOptions = {
           hostname: parsed.hostname,
           port: parsed.port || '80',
           path: parsed.pathname + parsed.search,
           method: message.init?.method || 'GET',
           headers: message.init?.headers || {},
-          timeout: 20000,
+          timeout: timeoutMs,
         };
         const req = http.request(reqOpts, (res: http.IncomingMessage) => {
           const chunks: Buffer[] = [];

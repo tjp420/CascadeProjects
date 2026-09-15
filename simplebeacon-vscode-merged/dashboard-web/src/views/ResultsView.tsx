@@ -32,6 +32,17 @@ import { ResultsReferralBanner } from "@/components/ResultsReferralBanner";
 import { PostScanCliNudge } from "@/components/PostScanCliNudge";
 import { PostScanShareBanner } from "@/components/PostScanShareBanner";
 import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
+import {
+  splitIssuesByLane,
+  type IssueLane,
+} from "@/lib/issue-lanes";
+import { countIssuesBySeverity } from "@/lib/collect-scan-issues";
+import {
+  buildExecutiveBriefModel,
+  downloadBrowserFile,
+  renderExecutiveBriefMarkdown,
+} from "@/lib/executive-brief";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import { resolveReportIssues } from "@services/analyzeService.js";
 import { getLargeItem } from "@/utils/dbStorage";
 
@@ -155,6 +166,7 @@ function syncReportToVscodeSidebar(
 }
 
 export function ResultsView() {
+  const [issueLane, setIssueLane] = useState<IssueLane>("production");
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
@@ -266,6 +278,20 @@ export function ResultsView() {
     return resolveReportIssues(reportForIssues);
   }, [reportForIssues]);
 
+  const { production: productionIssues, testSuite: testSuiteIssues } =
+    useMemo(
+      () => splitIssuesByLane(reportForIssues, allIssues),
+      [reportForIssues, allIssues],
+    );
+
+  const laneIssues =
+    issueLane === "production" ? productionIssues : testSuiteIssues;
+
+  const laneSeverityCounts = useMemo(
+    () => countIssuesBySeverity(laneIssues),
+    [laneIssues],
+  );
+
   const findingsDetailLimited = Boolean(
     result &&
     result.issueCount > 0 &&
@@ -275,7 +301,8 @@ export function ResultsView() {
         fullReport.rawIssues?.length ||
         fullReport.detectedIssues?.length ||
         fullReport.findings?.length
-      )),
+      ) ||
+      (Number(result.issueCount) || 0) > allIssues.length),
   );
 
   const heatmapGrid = useMemo(() => {
@@ -285,7 +312,7 @@ export function ResultsView() {
       medium: { high: 0, medium: 0, low: 0 },
       low: { high: 0, medium: 0, low: 0 },
     };
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const sev = (i.severity || "low").toLowerCase();
       const impact =
         sev === "critical" || sev === "high"
@@ -298,12 +325,15 @@ export function ResultsView() {
       grid[impact][likelihood] += count;
     });
     return grid;
-  }, [allIssues]);
+  }, [productionIssues]);
 
   const filteredIssues = useMemo(() => {
-    let issues = allIssues;
+    let issues = laneIssues;
     if (filter !== "all") {
-      issues = issues.filter((i) => i.severity === filter);
+      const want = filter.toLowerCase();
+      issues = issues.filter(
+        (i) => String(i.severity || "").toLowerCase() === want,
+      );
     }
     if (selectedCell) {
       issues = issues.filter((i) => {
@@ -338,17 +368,17 @@ export function ResultsView() {
       (i) => !String(i.filePath || "").includes("node_modules"),
     );
     return issues;
-  }, [allIssues, filter, searchQuery, selectedCell, selectedFramework]);
+  }, [laneIssues, filter, searchQuery, selectedCell, selectedFramework]);
 
   // Count issues per regulatory framework (for chip badges)
   const frameworkCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const fw = getIssueFramework(i);
       if (fw) counts[fw] = (counts[fw] || 0) + (Number(i.count) || 1);
     });
     return counts;
-  }, [allIssues]);
+  }, [productionIssues]);
 
   // Frameworks that have at least one matching issue, sorted by count desc
   const activeFrameworks = useMemo(() => {
@@ -359,14 +389,14 @@ export function ResultsView() {
 
   const issueCategories = useMemo(() => {
     const catMap: Record<string, number> = {};
-    allIssues.forEach((i) => {
+    productionIssues.forEach((i) => {
       const cat = i.type || "other";
       catMap[cat] = (catMap[cat] || 0) + (Number(i.count) || 1);
     });
     return Object.entries(catMap)
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) => ({ type, count }));
-  }, [allIssues]);
+  }, [productionIssues]);
 
   if (!result) {
     return (
@@ -374,7 +404,8 @@ export function ResultsView() {
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Results</h1>
           <p className="text-foreground-muted">
-            Detailed scan findings and issue breakdown
+            Production-path code quality for engineering review — test fixtures
+            stay on Test Suite Health
           </p>
         </div>
         <Card>
@@ -396,8 +427,10 @@ export function ResultsView() {
   }
 
   const severities = ["critical", "high", "medium", "low", "info"] as const;
+  // Chip visibility: show if the loaded list OR the full scan summary has that band
   const activeSeverities = severities.filter(
-    (s) => result.severityCounts[s] > 0,
+    (s) =>
+      (laneSeverityCounts[s] || 0) > 0 || (result.severityCounts[s] || 0) > 0,
   );
   const currentScanGrade = resolveScanLetterGrade(
     result.qualityScore,
@@ -409,9 +442,12 @@ export function ResultsView() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Results</h1>
         <p className="text-foreground-muted">
-          Detailed scan findings and issue breakdown
+          Production-path code quality for engineering review — test fixtures
+          stay on Test Suite Health
         </p>
       </div>
+
+      <EvidenceStatePanel report={reportForIssues || fullReport || result} />
 
       {/* Overview Card */}
       <Card>
@@ -441,8 +477,11 @@ export function ResultsView() {
             />
             <MetricCard
               icon={AlertTriangle}
-              label="Issues Found"
-              value={result.issueCount}
+              label="Production issues"
+              value={productionIssues.reduce(
+                (sum, i) => sum + (Number(i.count) || 1),
+                0,
+              )}
             />
             <MetricCard
               icon={Shield}
@@ -460,26 +499,25 @@ export function ResultsView() {
 
           <Separator />
 
-          <div className="flex flex-wrap gap-2">
-            {severities.map((sev) => (
-              <Badge
-                key={sev}
-                variant={
-                  sev === "critical"
-                    ? "danger"
-                    : sev === "high"
-                      ? "warning"
-                      : sev === "medium"
-                        ? "info"
-                        : sev === "low"
-                          ? "secondary"
-                          : "outline"
-                }
-                className="capitalize gap-1.5"
-              >
-                {sev}: {result.severityCounts[sev]}
-              </Badge>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+              Detector severity (unverified signals)
+            </p>
+            <p className="text-xs text-foreground-muted">
+              Severity chips are detector labels only. They do not mean verified
+              vulnerabilities — see Evidence state above.
+            </p>
+            <div className="flex flex-wrap gap-2 opacity-70">
+              {severities.map((sev) => (
+                <Badge
+                  key={sev}
+                  variant="outline"
+                  className="capitalize gap-1.5 font-normal"
+                >
+                  {sev}: {result.severityCounts[sev]}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           {/* Storage Engine Badge Footer */}
@@ -681,19 +719,15 @@ export function ResultsView() {
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
             <Card>
               <CardHeader>
-                <CardTitle>Findings Breakdown</CardTitle>
+                <CardTitle>
+                  {issueLane === "production"
+                    ? "Production Risk"
+                    : "Test Suite Health"}
+                </CardTitle>
                 <CardDescription>
-                  {Math.max(
-                    result?.issueCount ?? 0,
-                    allIssues.reduce(
-                      (sum, i) => sum + (Number(i.count) || 1),
-                      0,
-                    ),
-                  ).toLocaleString()}{" "}
-                  total issue
-                  {Math.max(result?.issueCount ?? 0, allIssues.length) !== 1
-                    ? "s"
-                    : ""}
+                  {issueLane === "production"
+                    ? `${productionIssues.length.toLocaleString()} alerts in src/app/server (not tests)`
+                    : `${testSuiteIssues.length.toLocaleString()} alerts in test-suite paths`}{" "}
                   {findingsDetailLimited &&
                     " · detailed list limited — export JSON or use CLI for full paths"}
                   {filter !== "all" && ` · filtered by ${filter}`}
@@ -704,6 +738,28 @@ export function ResultsView() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <Button
+                    variant={issueLane === "production" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIssueLane("production")}
+                  >
+                    Production Risk
+                    <span className="ml-1.5 text-xs opacity-70">
+                      {productionIssues.length}
+                    </span>
+                  </Button>
+                  <Button
+                    variant={issueLane === "test" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIssueLane("test")}
+                  >
+                    Test Suite Health
+                    <span className="ml-1.5 text-xs opacity-70">
+                      {testSuiteIssues.length}
+                    </span>
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {["all", ...activeSeverities].map((sev) => (
                     <Button
@@ -717,10 +773,26 @@ export function ResultsView() {
                       {sev !== "all" && (
                         <span className="ml-1.5 text-xs opacity-70">
                           {
-                            result.severityCounts[
-                              sev as keyof typeof result.severityCounts
+                            laneSeverityCounts[
+                              sev as keyof typeof laneSeverityCounts
                             ]
                           }
+                          {findingsDetailLimited &&
+                            (result.severityCounts[
+                              sev as keyof typeof result.severityCounts
+                            ] || 0) >
+                              (laneSeverityCounts[
+                                sev as keyof typeof laneSeverityCounts
+                              ] || 0) && (
+                              <span className="opacity-60">
+                                /
+                                {
+                                  result.severityCounts[
+                                    sev as keyof typeof result.severityCounts
+                                  ]
+                                }
+                              </span>
+                            )}
                         </span>
                       )}
                     </Button>
@@ -739,7 +811,9 @@ export function ResultsView() {
 
                 <Separator />
 
-                {(result?.issueCount ?? 0) === 0 && allIssues.length === 0 ? (
+                {productionIssues.length === 0 &&
+                testSuiteIssues.length === 0 &&
+                (result?.issueCount ?? 0) === 0 ? (
                   <div className="flex items-center gap-3 py-8">
                     <CheckCircle2 className="h-8 w-8 text-success" />
                     <div>
@@ -772,10 +846,20 @@ export function ResultsView() {
                     <Search className="h-8 w-8 text-foreground-muted" />
                     <div>
                       <p className="text-sm font-medium">
-                        No issues match current filters
+                        {filter !== "all" &&
+                        (result.severityCounts[
+                          filter as keyof typeof result.severityCounts
+                        ] || 0) > 0 &&
+                        (laneSeverityCounts[
+                          filter as keyof typeof laneSeverityCounts
+                        ] || 0) === 0
+                          ? `${filter} findings exist in the scan total but are not in the loaded detail rows`
+                          : "No issues match current filters"}
                       </p>
                       <p className="text-xs text-foreground-muted">
-                        Try adjusting severity filter or search query
+                        {findingsDetailLimited
+                          ? "Browser storage keeps a severity-balanced sample. Export JSON or re-scan after this fix, or use the CLI for the full list."
+                          : "Try adjusting severity filter or search query"}
                       </p>
                     </div>
                   </div>
@@ -1379,52 +1463,55 @@ export function ResultsView() {
                   const exportData = fullReport || result;
                   syncReportToVscodeSidebar(exportData, result.projectPath);
                   const json = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([json], { type: "application/json" });
                   const filename = `simplebeacon-report-${Date.now()}.json`;
-                  const params = new URLSearchParams(window.location.search);
-                  const inIde =
-                    typeof window !== "undefined" &&
-                    (typeof (window as any).acquireVsCodeApi === "function" ||
-                      params.get("sb_parent_urlbar") ||
-                      params.get("sb_notify_base") ||
-                      params.get("sb_api_base"));
-                  if (inIde) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const base64 = String(reader.result || "").split(",")[1];
-                      const vscode = (window as any).acquireVsCodeApi?.();
-                      const msg = {
-                        command: "downloadFile",
-                        filename,
-                        mimeType: blob.type,
-                        base64,
-                      };
-                      if (vscode) {
-                        try {
-                          vscode.postMessage(msg);
-                        } catch {
-                          /* ignore */
-                        }
-                      } else if (window.parent && window.parent !== window) {
-                        try {
-                          window.parent.postMessage(msg, "*");
-                        } catch {
-                          /* ignore */
-                        }
-                      }
-                    };
-                    reader.readAsDataURL(blob);
-                    return;
-                  }
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  downloadBrowserFile(filename, json, "application/json");
                 }}
               >
                 <Download className="h-4 w-4" /> JSON Report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const model = buildExecutiveBriefModel(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.json`,
+                    `${JSON.stringify(model, null, 2)}\n`,
+                    "application/json",
+                  );
+                  toast.success(
+                    `Executive brief JSON (${model.findings.length} findings)`,
+                  );
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const md = renderExecutiveBriefMarkdown(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.md`,
+                    md,
+                    "text/markdown;charset=utf-8",
+                  );
+                  toast.success("Executive brief markdown downloaded");
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive MD
               </Button>
               <Button
                 variant="outline"

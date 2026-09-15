@@ -38,7 +38,9 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { useOrganizations, type OrgMember } from "@/hooks/useOrganizations";
+import { collectScanIssues } from "@/lib/collect-scan-issues";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -743,13 +745,11 @@ export function OrganizationView() {
                         .join(","),
                     );
                     const csv = rows.join("\n");
-                    const blob = new Blob([csv], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `simplebeacon-trend-${activeOrg.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    downloadBrowserFile(
+                      `simplebeacon-trend-${activeOrg.slug}-${new Date().toISOString().slice(0, 10)}.csv`,
+                      csv,
+                      "text/csv",
+                    );
                     toast.success("Trend CSV downloaded");
                   } catch (err: any) {
                     toast.error(err.message || "Failed to export trend CSV");
@@ -782,8 +782,7 @@ export function OrganizationView() {
                       report.generatedAt || new Date().toISOString();
                     const gate = report.gate || {};
                     const sev = report.severityCounts || {};
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
+                    const issues = collectScanIssues(report, 200);
                     const qualityScore =
                       report.qualityScore != null ? report.qualityScore : "N/A";
                     const gatePass =
@@ -841,8 +840,7 @@ export function OrganizationView() {
                       return;
                     }
                     const report = JSON.parse(raw);
-                    const issues =
-                      report.rawIssues || report.detectedIssues || [];
+                    const issues = collectScanIssues(report, 200);
                     if (!issues.length) {
                       toast.error("No issues in current scan report");
                       return;
@@ -875,13 +873,11 @@ export function OrganizationView() {
                       );
                     }
                     const csv = rows.join("\n");
-                    const blob = new Blob([csv], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `simplebeacon-issues-${activeOrg.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    downloadBrowserFile(
+                      `simplebeacon-issues-${activeOrg.slug}-${new Date().toISOString().slice(0, 10)}.csv`,
+                      csv,
+                      "text/csv",
+                    );
                     toast.success(`Exported ${issues.length} issue(s) as CSV`);
                   } catch (err: any) {
                     toast.error(err.message || "Failed to export issues CSV");

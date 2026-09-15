@@ -22,6 +22,7 @@ import {
   Key,
 } from "lucide-react";
 import { navigate } from "@/router/HashRouter";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { apiUrl, authHeaders, getApiBase, getAuthToken, clearAuthToken } from "@/config";
 
 interface UserData {
@@ -195,15 +196,11 @@ export function ProfileView() {
         assessment,
       };
 
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `simplebeacon-export-${host.replace(/[^a-zA-Z0-9]/g, "_")}-${timestamp}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(
+        `simplebeacon-export-${host.replace(/[^a-zA-Z0-9]/g, "_")}-${timestamp}.json`,
+        JSON.stringify(bundle, null, 2),
+        "application/json",
+      );
     } catch (e) {
       console.error("Export failed:", e);
     } finally {

@@ -24,6 +24,7 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 import { apiUrl, authHeaders } from "@/config";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -229,17 +230,11 @@ export function QuarantineLogBrowser() {
       entry,
     };
     try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `quarantine-${entry.id}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(
+        `quarantine-${entry.id}.json`,
+        JSON.stringify(payload, null, 2),
+        "application/json",
+      );
       toast.success(`Downloaded quarantine entry ${entry.id.slice(0, 8)}…`);
     } catch {
       toast.error("Failed to download entry");
@@ -256,17 +251,11 @@ export function QuarantineLogBrowser() {
       entries: data.entries,
     };
     try {
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `quarantine-bundle-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(
+        `quarantine-bundle-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+        JSON.stringify(payload, null, 2),
+        "application/json",
+      );
       toast.success(`Downloaded ${data.totalEntries} quarantine entries`);
     } catch {
       toast.error("Failed to download bundle");

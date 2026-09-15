@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { apiUrl, authHeaders } from "@/config";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 type GlobalStats = {
   totalOrgs: number;
@@ -957,12 +958,10 @@ export function UsageAnalyticsView() {
       });
       if (resp.ok) {
         const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadBrowserFile(
+          `audit-log-${new Date().toISOString().slice(0, 10)}.${format}`,
+          blob,
+        );
         toast.success(`Audit log exported as ${format.toUpperCase()}`);
       }
     } catch {
@@ -1078,14 +1077,10 @@ export function UsageAnalyticsView() {
         );
         if (!resp.ok) throw new Error("export_failed");
         const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `compliance-ledger-${new Date().toISOString().slice(0, 10)}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        downloadBrowserFile(
+          `compliance-ledger-${new Date().toISOString().slice(0, 10)}.${format}`,
+          blob,
+        );
         toast.success(`Compliance ledger exported as ${format.toUpperCase()}`);
       } catch {
         toast.error("Failed to export compliance ledger");
@@ -1156,14 +1151,10 @@ export function UsageAnalyticsView() {
         });
         if (!resp.ok) throw new Error("export_failed");
         const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `analytics-export-${new Date().toISOString().slice(0, 10)}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        downloadBrowserFile(
+          `analytics-export-${new Date().toISOString().slice(0, 10)}.${format}`,
+          blob,
+        );
         toast.success(`Exported as ${format.toUpperCase()}`);
       } catch {
         toast.error(`Failed to export ${format.toUpperCase()}`);

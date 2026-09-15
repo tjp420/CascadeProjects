@@ -37,6 +37,9 @@ import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
 import { getLargeItem } from "@/utils/dbStorage";
+import { collectScanIssues } from "@/lib/collect-scan-issues";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -246,7 +249,7 @@ function isSimplebeaconReport(data: any): boolean {
 
 /** Derive audit layers from a raw scan report (mirrors JS buildAuditFromReport). */
 function deriveAuditLayers(report: FullReport): AuditLayers {
-  const rawIssues = report.rawIssues || report.detectedIssues || [];
+  const rawIssues = collectScanIssues(report, 500) as any[];
   const gate = report.gate || { pass: true, blockingCount: 0, warningCount: 0 };
   const issueCount = report.issueCount || rawIssues.length;
 
@@ -673,15 +676,11 @@ function AssessmentSummary({ assessment }: { assessment: Assessment }) {
               variant="outline"
               size="sm"
               onClick={() => {
-                const blob = new Blob([JSON.stringify(assessment, null, 2)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+                downloadBrowserFile(
+                  `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`,
+                  JSON.stringify(assessment, null, 2),
+                  "application/json",
+                );
               }}
             >
               <Download className="h-4 w-4" /> Download assessment JSON
@@ -1585,15 +1584,11 @@ export function AuditView() {
 
   const exportJson = useCallback(() => {
     if (!activeReport) {
-      const blob = new Blob([JSON.stringify(activeResult, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `simplebeacon-audit-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBrowserFile(
+        `simplebeacon-audit-${Date.now()}.json`,
+        JSON.stringify(activeResult, null, 2),
+        "application/json",
+      );
       return;
     }
     if (isFreeTier) {
@@ -1602,15 +1597,11 @@ export function AuditView() {
       );
       return;
     }
-    const blob = new Blob([JSON.stringify(activeReport, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `simplebeacon-audit-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile(
+      `simplebeacon-audit-${Date.now()}.json`,
+      JSON.stringify(activeReport, null, 2),
+      "application/json",
+    );
   }, [activeReport, activeResult, isFreeTier]);
 
   // Execute a live air-gap benchmark via the VS Code extension data server
@@ -1716,6 +1707,8 @@ export function AuditView() {
           )}
         </p>
       </div>
+
+      <EvidenceStatePanel report={displayReport} />
 
       {/* Top metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

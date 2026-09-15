@@ -39,6 +39,7 @@ import {
   clearLicenseToken,
 } from "@/config";
 import { toast } from "sonner";
+import { downloadBrowserFile } from "@/lib/executive-brief";
 
 interface Seat {
   seatId: string;
@@ -392,13 +393,7 @@ export function LicenseManagerView() {
 
   const downloadLicenseToken = () => {
     if (!currentToken) return;
-    const blob = new Blob([currentToken], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "simplebeacon-license.jwt";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBrowserFile("simplebeacon-license.jwt", currentToken, "text/plain");
     toast.success("License token downloaded");
   };
 
