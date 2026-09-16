@@ -106,8 +106,14 @@ function formatGithubComment(report, gateResult = null, options = {}) {
     ? "✅ SimpleBeacon gate **passed** — safe to merge from a policy perspective."
     : "❌ SimpleBeacon gate **failed** — merge blocked until blocking findings are resolved.";
 
+  const badgeColor = pass ? "3fb950" : "f85149";
+  const badgeStatus = pass ? "PASS" : "FAIL";
+  const badgeUrl = `https://img.shields.io/badge/SimpleBeacon-${badgeStatus}-${badgeColor}`;
+
   const lines = [
     "## 🔦 SimpleBeacon — 48 analyzers + 25 scan engines",
+    "",
+    `[![SimpleBeacon gate](${badgeUrl})](https://simplebeacon.ai)`,
     "",
     headline,
     "",

@@ -363,7 +363,7 @@ export class CliReportUploadZone {
       this._handleError(
         new Error(
           "File does not appear to be a SimpleBeacon CLI report. " +
-            "Expected fields: type, reportVersion, gate, severityCounts, or rawIssues.",
+            "Run: npx simplebeacon scan --format json --output report.json",
         ),
       );
       return null;

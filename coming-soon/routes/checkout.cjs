@@ -126,6 +126,7 @@ function parseRawWebhookJson(rawBody) {
 
 // Shared session-token store (used by checkout.cjs and subscriptions-billing.cjs)
 const sessionTokenStore = require('./session-token-store.cjs');
+const { isStripeCheckoutSessionId } = require('../public/js-es2018/certificate-session.js');
 
 // Legacy in-memory map kept for backward compat — delegates to shared store
 const _legacyStore = new Map();
@@ -359,72 +360,15 @@ router.post('/api/create-checkout-session', async (req, res) => {
             return res.status(503).json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY.' });
         }
 
-        const { email, projectName, clientName, scans, total, product } = req.body;
-        if (!email || !projectName || !Array.isArray(scans) || scans.length === 0) {
-            return res.status(400).json({ error: 'Email, project name, and at least one scan are required.' });
-        }
-
-        // Validate email format
-        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!EMAIL_RE.test(String(email))) {
-            return res.status(400).json({ error: 'A valid email address is required.' });
-        }
-
-        // Sanitize string inputs: strip control characters, enforce length
-        function sanitize(str, maxLen) {
-            return String(str || '')
-                .replace(/[\x00-\x1F\x7F]/g, '')
-                .trim()
-                .slice(0, maxLen);
-        }
-        const cleanProjectName = sanitize(projectName, 200);
-        const cleanClientName = sanitize(clientName || email, 200);
-        const cleanEmail = sanitize(email, 254);
-
-        if (!cleanProjectName) {
-            return res.status(400).json({ error: 'Project name must not be empty.' });
-        }
-
-        const checkoutProduct = product || 'custom_plan';
-
-        const lineItems = [];
-        for (const scanId of scans) {
-            const opt = SCAN_OPTION_MAP[scanId];
-            if (!opt) continue;
-            lineItems.push({
-                price_data: {
-                    currency: 'usd',
-                    product_data: { name: opt.name, description: 'SimpleBeacon ' + opt.name },
-                    unit_amount: opt.price * 100
-                },
-                quantity: 1
-            });
-        }
-
-        if (lineItems.length === 0) {
-            return res.status(400).json({ error: 'No valid scans selected.' });
-        }
-
-        const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
-        const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
-        const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
-
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            customer_email: cleanEmail,
-            line_items: lineItems,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-            metadata: {
-                product: checkoutProduct,
-                email: cleanEmail,
-                projectName: cleanProjectName,
-                clientName: cleanClientName,
-                scans: scans.join(','),
-                total: String(total || ''),
-                ...referralMetadata
-            }
+        const preview = previewCreateCheckoutSession(req.body, {
+            publicUrl: PUBLIC_URL,
+            referralMetadata: buildReferralCheckoutMetadata(req, req.body)
         });
+        if (!preview.ok) {
+            return res.status(preview.status).json({ error: preview.error });
+        }
+
+        const session = await stripe.checkout.sessions.create(preview.stripeParams);
 
         res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (error) {
@@ -435,7 +379,11 @@ router.post('/api/create-checkout-session', async (req, res) => {
 });
 
 router.get('/api/session-token/:sessionId', async (req, res) => {
-    const entry = sessionTokenStore.get(req.params.sessionId);
+    const sessionId = req.params.sessionId;
+    if (!isStripeCheckoutSessionId(sessionId)) {
+        return res.status(400).json({ error: 'Invalid session ID.' });
+    }
+    const entry = sessionTokenStore.get(sessionId);
     if (!entry) {
         return res.status(404).json({ error: 'Session not found or expired.' });
     }
@@ -684,4 +632,111 @@ router.get('/api/receipt/:sessionId', async (req, res) => {
     }
 });
 
-module.exports = { router, setupCheckoutWebhook };
+function sanitizeScanHash(value) {
+    const hex = String(value || '')
+        .toLowerCase()
+        .replace(/[^a-f0-9]/g, '')
+        .slice(0, 64);
+    return hex.length >= 16 ? hex : '';
+}
+
+function resolveCheckoutCancelUrl(requested, publicUrl) {
+    const origin = String(publicUrl || '').replace(/\/+$/, '');
+    const fallback = origin + '/pricing.html?canceled=true';
+    if (!requested) return fallback;
+    try {
+        const base = new URL(origin);
+        const parsed = new URL(String(requested), origin);
+        if (parsed.origin !== base.origin) return fallback;
+        const path = parsed.pathname.replace(/\/+$/, '') || '/';
+        const allowed = {
+            '/roadmap': '/roadmap.html',
+            '/roadmap.html': '/roadmap.html',
+            '/pricing': '/pricing.html',
+            '/pricing.html': '/pricing.html'
+        };
+        const dest = allowed[path];
+        if (!dest) return fallback;
+        return origin + dest + '?canceled=true';
+    } catch {
+        return fallback;
+    }
+}
+
+function previewCreateCheckoutSession(body, options = {}) {
+    const publicUrl = options.publicUrl || PUBLIC_URL;
+    const referralMetadata = options.referralMetadata && typeof options.referralMetadata === 'object'
+        ? options.referralMetadata
+        : {};
+    const email = body && body.email;
+    const projectName = body && body.projectName;
+    const scans = body && body.scans;
+    if (!email || !projectName || !Array.isArray(scans) || scans.length === 0) {
+        return { ok: false, status: 400, error: 'Email, project name, and at least one scan are required.' };
+    }
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_RE.test(String(email))) {
+        return { ok: false, status: 400, error: 'A valid email address is required.' };
+    }
+    function sanitize(str, maxLen) {
+        return String(str || '')
+            .replace(/[\x00-\x1F\x7F]/g, '')
+            .trim()
+            .slice(0, maxLen);
+    }
+    const cleanProjectName = sanitize(projectName, 200);
+    const cleanClientName = sanitize((body && body.clientName) || email, 200);
+    const cleanEmail = sanitize(email, 254);
+    if (!cleanProjectName) {
+        return { ok: false, status: 400, error: 'Project name must not be empty.' };
+    }
+    const checkoutProduct = (body && body.product) || 'custom_plan';
+    const lineItems = [];
+    for (const scanId of scans) {
+        const opt = SCAN_OPTION_MAP[scanId];
+        if (!opt) continue;
+        lineItems.push({
+            price_data: {
+                currency: 'usd',
+                product_data: { name: opt.name, description: 'SimpleBeacon ' + opt.name },
+                unit_amount: opt.price * 100
+            },
+            quantity: 1
+        });
+    }
+    if (lineItems.length === 0) {
+        return { ok: false, status: 400, error: 'No valid scans selected.' };
+    }
+    const successUrl = `${publicUrl}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
+    const resolvedCancelUrl = resolveCheckoutCancelUrl(body && body.cancelUrl, publicUrl);
+    const cleanScanHash = sanitizeScanHash(body && body.scanHash);
+    const metadata = {
+        product: checkoutProduct,
+        email: cleanEmail,
+        projectName: cleanProjectName,
+        clientName: cleanClientName,
+        scans: scans.join(','),
+        total: String((body && body.total) || ''),
+        ...(cleanScanHash ? { scanHash: cleanScanHash } : {}),
+        ...referralMetadata
+    };
+    return {
+        ok: true,
+        stripeParams: {
+            mode: 'payment',
+            customer_email: cleanEmail,
+            line_items: lineItems,
+            success_url: successUrl,
+            cancel_url: resolvedCancelUrl,
+            metadata
+        }
+    };
+}
+
+module.exports = {
+    router,
+    setupCheckoutWebhook,
+    sanitizeScanHash,
+    resolveCheckoutCancelUrl,
+    previewCreateCheckoutSession
+};

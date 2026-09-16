@@ -543,6 +543,60 @@ body {
     border: 1px solid var(--border);
     border-radius: 10px;
 }
+.action-menu {
+    position: relative;
+}
+.action-menu > summary {
+    list-style: none;
+    cursor: pointer;
+}
+.action-menu > summary::-webkit-details-marker {
+    display: none;
+}
+.action-menu-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.cli-fill-hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 24px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.cli-fill-hint code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: var(--text-main);
+    background: var(--bg-input);
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+.input-secondary {
+    margin-bottom: 16px;
+}
+.input-secondary > summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 8px 0;
+}
 .btn {
     padding: 10px 20px;
     border-radius: 8px;
@@ -976,6 +1030,46 @@ body {
     flex-wrap: wrap;
     margin-top: 16px;
     margin-bottom: 24px;
+}
+.exec-offer {
+    margin: 0 0 24px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+}
+.exec-offer-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.exec-offer-body {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+.exec-offer-email {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+.exec-offer-error {
+    display: none;
+    font-size: 0.8rem;
+    color: #f87171;
+    margin: 0 0 10px;
+}
+.exec-offer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 .finding-chip {
     display: flex;

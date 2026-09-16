@@ -42,6 +42,7 @@ test("formatGithubComment includes structured finding rows", () => {
   );
 
   assert.match(body, /48 analyzers \+ 25 scan engines/);
+  assert.match(body, /img\.shields\.io\/badge\/SimpleBeacon-FAIL/);
   assert.match(body, /PR diff \(3 files\)/);
   assert.match(body, /src\/auth\.cjs/);
   assert.match(body, /<details/);

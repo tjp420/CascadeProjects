@@ -618,108 +618,94 @@
                 <h1>From Detection to Automated Janitor</h1>
                 <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan.</p>
             </div>
-            <div
-                style="
-                    background: var(--bg-card);
-                    border: 1px solid var(--border);
-                    border-radius: 12px;
-                    padding: 16px 20px;
-                    margin-bottom: 20px;
-                "
-            >
-                <label
-                    style="
-                        display: block;
-                        font-size: 0.75rem;
-                        color: var(--text-muted);
-                        margin-bottom: 8px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    "
-                    >&#128203; Load Report from URL or Path</label
-                >
-                <div style="display: flex; gap: 8px; align-items: center">
-                    <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space: nowrap">
-                        &#128194; Browse
-                    </button>
-                    <input
-                        type="text"
-                        id="reportUrlInput"
-                        placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json"
-                        style="
-                            flex: 1;
-                            padding: 10px 12px;
-                            border: 1px solid var(--border);
-                            border-radius: 8px;
-                            background: var(--bg-input);
-                            color: var(--text-main);
-                            font-family: inherit;
-                            font-size: 0.9rem;
-                            outline: none;
-                            transition:
-                                border-color 0.2s,
-                                box-shadow 0.2s;
-                        "
-                    />
-                    <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space: nowrap">
-                        &#9889; Analyze
-                    </button>
-                </div>
-            </div>
             <div class="dropzone" id="dropzone">
                 <div class="icon">&#128206;</div>
                 <h3>Drop scan report.json or .zip here</h3>
-                <p>Or click to browse</p>
+                <p>Or click to browse. Use Load sample if you do not have a report yet.</p>
                 <input type="file" id="fileInput" accept=".json,.zip" aria-label="Upload scan report JSON or ZIP" />
             </div>
-            <div
-                style="
-                    background: var(--bg-card);
-                    border: 1px solid var(--border);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 32px;
-                "
-            >
-                <label
-                    style="
-                        display: block;
-                        font-size: 0.75rem;
-                        color: var(--text-muted);
-                        margin-bottom: 6px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    "
-                    >&#128203; Or paste JSON directly</label
-                >
-                <textarea
-                    id="jsonPasteInput"
-                    placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}'
-                    style="
-                        width: 100%;
-                        min-height: 120px;
-                        padding: 12px;
-                        border: 1px solid var(--border);
-                        border-radius: 8px;
-                        background: var(--bg-input);
-                        color: var(--text);
-                        font-family: 'SF Mono', Monaco, monospace;
-                        font-size: 0.8rem;
-                        resize: vertical;
-                    "
-                ></textarea>
-                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top: 10px; width: 100%">
-                    Load JSON Report
-                </button>
+            <div class="cli-fill-hint">
+                <span>Generate a compatible file:</span>
+                <code>npx simplebeacon scan --format json --output report.json</code>
                 <button
-                    id="loadTestReportBtn"
+                    type="button"
                     class="btn btn-secondary"
-                    style="margin-top: 8px; width: 100%; font-size: 0.8rem"
+                    data-copy-cmd="npx simplebeacon scan --format json --output report.json"
                 >
-                    &#128200; Load Test Report
+                    Copy
                 </button>
-                <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 8px">Press Ctrl+Enter to submit</p>
+                <button type="button" id="loadTestReportBtn" class="btn btn-secondary">Load sample</button>
             </div>
+            <details class="input-secondary">
+                <summary>Load from URL or path</summary>
+                <div
+                    style="
+                        background: var(--bg-card);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        padding: 16px 20px;
+                        margin-bottom: 12px;
+                    "
+                >
+                    <div style="display: flex; gap: 8px; align-items: center">
+                        <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space: nowrap">
+                            Browse
+                        </button>
+                        <input
+                            type="text"
+                            id="reportUrlInput"
+                            placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json"
+                            style="
+                                flex: 1;
+                                padding: 10px 12px;
+                                border: 1px solid var(--border);
+                                border-radius: 8px;
+                                background: var(--bg-input);
+                                color: var(--text-main);
+                                font-family: inherit;
+                                font-size: 0.9rem;
+                                outline: none;
+                            "
+                        />
+                        <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space: nowrap">
+                            Analyze
+                        </button>
+                    </div>
+                </div>
+            </details>
+            <details class="input-secondary">
+                <summary>Paste raw JSON</summary>
+                <div
+                    style="
+                        background: var(--bg-card);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        padding: 20px;
+                        margin-bottom: 24px;
+                    "
+                >
+                    <textarea
+                        id="jsonPasteInput"
+                        placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}'
+                        style="
+                            width: 100%;
+                            min-height: 120px;
+                            padding: 12px;
+                            border: 1px solid var(--border);
+                            border-radius: 8px;
+                            background: var(--bg-input);
+                            color: var(--text);
+                            font-family: 'SF Mono', Monaco, monospace;
+                            font-size: 0.8rem;
+                            resize: vertical;
+                        "
+                    ></textarea>
+                    <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top: 10px; width: 100%">
+                        Load JSON Report
+                    </button>
+                    <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 8px">Press Ctrl+Enter to submit</p>
+                </div>
+            </details>
             <div id="app" style="display: none" role="main">
                 <div class="roadmap-section" role="region" aria-labelledby="dashboardTitle">
                     <div class="section-header">
@@ -732,19 +718,30 @@
                     <div class="scorecard-grid" id="scorecards"></div>
                 </div>
                 <div class="action-bar">
-                    <button class="btn btn-secondary" id="exportJsonBtn">&#128229; JSON</button>
-                    <button class="btn btn-secondary" id="copyReportBtn">&#128203; Markdown</button>
-                    <button class="btn btn-secondary" id="copySummaryBtn">&#128220; Copy Summary</button>
-                    <button class="btn btn-secondary" id="exportGitHubBtn">&#129302; GitHub Issues</button>
-                    <button class="btn btn-secondary" id="exportJiraBtn">&#128220; Jira CSV</button>
-                    <button class="btn btn-secondary" id="exportTrelloBtn">&#127183; Trello JSON</button>
-                    <button class="btn btn-secondary" id="shareUrlBtn">&#128279; Share</button>
-                    <button class="btn btn-secondary" id="exportCsvBtn">&#128202; CSV</button>
-                    <button class="btn btn-secondary" id="exportPdfBtn">&#128196; PDF</button>
-                    <button class="btn btn-primary" id="newScanBtn">&#128259; New Report</button>
+                    <details class="action-menu">
+                        <summary class="btn btn-secondary">Export</summary>
+                        <div class="action-menu-panel">
+                            <button class="btn btn-secondary" id="exportJsonBtn">JSON</button>
+                            <button class="btn btn-secondary" id="copyReportBtn">Markdown</button>
+                            <button class="btn btn-secondary" id="copySummaryBtn">Copy Summary</button>
+                            <button class="btn btn-secondary" id="exportCsvBtn">CSV</button>
+                            <button class="btn btn-secondary" id="exportPdfBtn">PDF</button>
+                        </div>
+                    </details>
+                    <details class="action-menu">
+                        <summary class="btn btn-secondary">Push to tracker</summary>
+                        <div class="action-menu-panel">
+                            <button class="btn btn-secondary" id="exportGitHubBtn">GitHub Issues</button>
+                            <button class="btn btn-secondary" id="exportJiraBtn">Jira CSV</button>
+                            <button class="btn btn-secondary" id="exportTrelloBtn">Trello JSON</button>
+                            <button class="btn btn-secondary" id="shareUrlBtn">Share</button>
+                        </div>
+                    </details>
+                    <button class="btn btn-primary" id="newScanBtn">New Report</button>
                 </div>
                 <div id="overallHealth"></div>
                 <div id="findingsBanner"></div>
+                <div id="executiveOffer" class="exec-offer" hidden></div>
                 <div class="roadmap-section" role="region" aria-labelledby="roadmapTitle">
                     <div
                         class="section-header"
@@ -1015,7 +1012,7 @@
                     New here? Switch to <strong>Create Account</strong> to register.
                 </p>
                 <p class="signin-footer">
-                    <a href="/demo">View read-only demo</a>
+                    <a href="/sample-report">View sample audit</a>
                     <span class="signin-footer-sep">&middot;</span>
                     <a href="/dashboard/about">About &amp; install</a>
                     <span class="signin-footer-sep">&middot;</span>
@@ -1291,6 +1288,21 @@
     <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>
   </p>
 </footer>
-  <script src="/js-es2018/referral-capture.js" defer></script>
+        <script>
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-copy-cmd]');
+                if (!btn) return;
+                var cmd = btn.getAttribute('data-copy-cmd');
+                if (!cmd || !navigator.clipboard) return;
+                navigator.clipboard.writeText(cmd).then(function () {
+                    var prev = btn.textContent;
+                    btn.textContent = 'Copied';
+                    setTimeout(function () {
+                        btn.textContent = prev;
+                    }, 1500);
+                });
+            });
+        </script>
+        <script src="/js-es2018/referral-capture.js" defer></script>
 </body>
 </html>
