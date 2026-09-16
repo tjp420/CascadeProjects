@@ -176,7 +176,7 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
   return selectIssuesForBrowserStorage(out, max);
 }
 
-const ACTION_CAP = 50;
+export const ACTION_CAP = 50;
 
 function hasCompletedScanSignal(scan: any): boolean {
   if (!scan || typeof scan !== "object") return false;

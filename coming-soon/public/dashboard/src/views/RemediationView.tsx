@@ -19,8 +19,15 @@ import {
 import { apiUrl, authHeaders } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
-import { buildRoadmapFromScan } from "@/lib/collect-scan-issues";
+import { ACTION_CAP, buildRoadmapFromScan } from "@/lib/collect-scan-issues";
 import { getLargeItem } from "@/utils/dbStorage";
+import { useAuth } from "@/hooks/useAuth";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
+import {
+  ROADMAP_PREVIEW_ROWS,
+  remainingLockedRows,
+} from "@/lib/executive-checkout";
 
 type Phase = {
   phase?: string;
@@ -121,6 +128,9 @@ function priorityColor(priority?: string): string {
 }
 
 export function RemediationView() {
+  const { user } = useAuth();
+  const { hasFeature } = useFeatureAccess();
+  const paidRoadmap = hasFeature("canExportCertificates");
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -337,6 +347,19 @@ export function RemediationView() {
   const recommendations = data.recommendations || [];
   const completionRate =
     summary.completionRate ?? data.progressMetrics?.completionRate ?? 0;
+  const previewActions = paidRoadmap
+    ? actionPlan
+    : actionPlan.slice(0, ROADMAP_PREVIEW_ROWS);
+  const lockedActions = paidRoadmap
+    ? []
+    : actionPlan.slice(ROADMAP_PREVIEW_ROWS);
+  const lockedCount = remainingLockedRows(
+    Math.min(
+      Math.max(actionPlan.length, Number(summary.totalFeatures) || 0),
+      ACTION_CAP,
+    ),
+    ROADMAP_PREVIEW_ROWS,
+  );
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
@@ -352,11 +375,13 @@ export function RemediationView() {
             </p>
           )}
         </div>
-        <div className="ml-4 flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={exportRoadmap}>
-            <Download className="h-4 w-4 mr-2" /> Export JSON
-          </Button>
-        </div>
+        {paidRoadmap ? (
+          <div className="ml-4 flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={exportRoadmap}>
+              <Download className="h-4 w-4 mr-2" /> Export JSON
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {/* Executive Summary */}
@@ -442,7 +467,7 @@ export function RemediationView() {
             <CardTitle className="text-lg">Action Plan</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {actionPlan.map((item, i) => (
+            {previewActions.map((item, i) => (
               <div
                 key={i}
                 className="flex items-start gap-3 rounded-lg border p-3"
@@ -474,12 +499,42 @@ export function RemediationView() {
                 </div>
               </div>
             ))}
+            {!paidRoadmap && lockedCount > 0 ? (
+              <div className="relative min-h-[220px] overflow-hidden rounded-lg">
+                <div className="pointer-events-none select-none blur-sm opacity-50 space-y-3">
+                  {(lockedActions.length > 0 ? lockedActions : actionPlan)
+                    .slice(0, 6)
+                    .map((item, i) => (
+                      <div
+                        key={`locked-${i}`}
+                        className="flex items-start gap-3 rounded-lg border p-3"
+                      >
+                        <div className="flex flex-col gap-1 flex-1">
+                          <span className="text-sm font-medium">
+                            {item.action || item.description || "Action item"}
+                          </span>
+                          {item.category && (
+                            <span className="text-xs text-foreground-muted">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <PremiumUnlockCallout
+                  remaining={lockedCount}
+                  projectName={data.projectName || data.sourceProjectPath}
+                  defaultEmail={String(user?.email || "")}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}
 
-      {/* Risks */}
-      {risks.length > 0 && (
+      {/* Risks — file-level detail stays behind paid clearance */}
+      {paidRoadmap && risks.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Risks</CardTitle>
@@ -593,7 +648,7 @@ export function RemediationView() {
       )}
 
       {/* Recommendations */}
-      {recommendations.length > 0 && (
+      {paidRoadmap && recommendations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Recommendations</CardTitle>
