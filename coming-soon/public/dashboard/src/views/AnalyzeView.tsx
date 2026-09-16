@@ -63,6 +63,7 @@ import {
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { discoverAndApplyExtensionBridge } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
+import { scanSizeBucket, trackGuestFunnelEvent } from "@/lib/guest-funnel-telemetry";
 import {
   requestNotificationPermission,
   showOSNotification,
@@ -653,6 +654,22 @@ export function AnalyzeView() {
       setIsRemoteBackend(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isTokenExpired()) return;
+    if (scanState === "scanning") {
+      void trackGuestFunnelEvent("guest_scan_started", {
+        scan_size_bucket: "unknown",
+        surface: "analyze",
+      });
+    }
+    if (scanState === "complete") {
+      void trackGuestFunnelEvent("guest_scan_completed", {
+        scan_size_bucket: scanSizeBucket(result?.totalFiles),
+        surface: "analyze",
+      });
+    }
+  }, [scanState, result?.totalFiles]);
 
   // Expose a dev/test-only storage helper on the window for E2E tests.
   useEffect(() => {

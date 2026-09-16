@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock } from "lucide-react";
@@ -7,6 +7,7 @@ import {
   EXECUTIVE_CLEARANCE_USD,
   startExecutiveCheckout,
 } from "@/lib/executive-checkout";
+import { trackGuestFunnelEvent } from "@/lib/guest-funnel-telemetry";
 
 type PremiumUnlockCalloutProps = {
   remaining: number;
@@ -22,6 +23,10 @@ export function PremiumUnlockCallout({
   const [email, setEmail] = useState(defaultEmail);
   const [busy, setBusy] = useState(false);
   const locked = Math.max(0, Number(remaining) || 0);
+
+  useEffect(() => {
+    void trackGuestFunnelEvent("upgrade_cta_viewed", { surface: "unlock" });
+  }, []);
   const label =
     locked > 0
       ? `Unlock the remaining ${locked} prioritized fixes and the Executive Risk Certificate ($${EXECUTIVE_CLEARANCE_USD}).`
@@ -30,6 +35,7 @@ export function PremiumUnlockCallout({
   const onCheckout = async () => {
     setBusy(true);
     try {
+      await trackGuestFunnelEvent("upgrade_cta_clicked", { surface: "unlock" });
       const result = await startExecutiveCheckout({
         email,
         projectName,
@@ -38,6 +44,7 @@ export function PremiumUnlockCallout({
         toast.error(result.error);
         return;
       }
+      await trackGuestFunnelEvent("checkout_opened", { surface: "unlock" });
       window.location.href = result.url;
     } finally {
       setBusy(false);
