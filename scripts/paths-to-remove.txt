@@ -1,0 +1,8 @@
+# Paths (one per line) to remove from history using --invert-paths --paths-from-file
+# Use repository-root relative paths. This removes file content from all commits.
+
+tmp-prepush-leak.js
+.env.production
+.outbound/
+
+# Add other generated payload files or directories to remove as needed
