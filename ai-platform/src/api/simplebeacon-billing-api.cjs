@@ -285,6 +285,30 @@ function setupSimplebeaconBillingWebhook(app) {
                 registered_at: new Date().toISOString(),
               });
 
+              // Store token so GET /api/session-token/:sessionId works after one-time checkout
+              // (subscription mode already writes this store below).
+              try {
+                const sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+                if (session.id) {
+                  sessionTokenStore.set(session.id, {
+                    token: licenseToken,
+                    email,
+                    projectName:
+                      session.metadata?.certProjectName ||
+                      session.metadata?.projectName ||
+                      "default-project",
+                    tier: licenseTier,
+                    product,
+                    billingInterval: "one-time",
+                  });
+                }
+              } catch (storeErr) {
+                logger.warn(
+                  "[Simplebeacon billing] Session token store failed:",
+                  storeErr.message,
+                );
+              }
+
               // Email upload instructions immediately after payment (rich HTML template)
               const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
               const sessionId = session.id || "sess_" + Date.now();
