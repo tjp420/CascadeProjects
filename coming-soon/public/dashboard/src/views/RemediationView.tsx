@@ -19,6 +19,8 @@ import {
 import { apiUrl, authHeaders } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
+import { buildRoadmapFromScan } from "@/lib/collect-scan-issues";
+import { getLargeItem } from "@/utils/dbStorage";
 
 type Phase = {
   phase?: string;
@@ -127,15 +129,40 @@ export function RemediationView() {
     setLoading(true);
     setError(null);
     try {
-      let projectPath = "CascadeProjects";
+      let scan: unknown = null;
       try {
         const stored = localStorage.getItem("sb_last_scan_full");
-        if (stored) {
-          const scan = JSON.parse(stored);
-          if (scan?.projectPath) projectPath = scan.projectPath;
-        }
+        if (stored) scan = JSON.parse(stored);
       } catch {
         /* ignore */
+      }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const fromIdb = await getLargeItem("sb_last_scan_report");
+          if (fromIdb) scan = fromIdb;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const report = localStorage.getItem("sb_last_scan_report");
+          if (report) scan = JSON.parse(report);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const localRoadmap = buildRoadmapFromScan(scan);
+      if (localRoadmap) {
+        setData(localRoadmap as RoadmapData);
+        setLoading(false);
+        return;
+      }
+
+      let projectPath = "CascadeProjects";
+      if (scan && typeof scan === "object" && (scan as any).projectPath) {
+        projectPath = String((scan as any).projectPath);
       }
 
       // On the hosted dashboard, don't auto-fire /analyze/flexible with a local
@@ -288,6 +315,11 @@ export function RemediationView() {
             <Map className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">
               No remediation roadmap available
+            </p>
+            <p className="text-xs text-foreground-muted max-w-md text-center">
+              Hosted Remediation uses the Analyze snapshot stored in this
+              browser. It cannot scan your local disk. Finish a local scan, then
+              open this page again.
             </p>
             <Button onClick={() => navigate("analyze")} className="mt-2">
               Start a Scan
