@@ -19,19 +19,13 @@
         "/dashboard/assets/*",
         "/dashboard/images/*",
         "/dashboard/fonts/*",
-        "/dashboard/assets/main-v30min.js",
-        "/dashboard/dist/assets/*",
-        "/dashboard/dist/*.css",
-        "/dashboard/dist/*.js",
+        "/dashboard/dist/*",
         "/app/css/*",
         "/app/js/*",
         "/app/js-es2018/*",
         "/app/assets/*",
         "/app/images/*",
         "/app/fonts/*",
-        "/app/assets/main-v30min.js",
-        "/app/dist/assets/*",
-        "/app/dist/*.css",
-        "/app/dist/*.js"
+        "/app/dist/*"
     ]
 }
