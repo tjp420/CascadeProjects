@@ -480,15 +480,22 @@ PR_BODY_TMP
 # Patch-fix scratch files
 *.patch-fix
 
-# Untracked build artifacts (Vite output)
-ai-platform/web/simplebeacon-dashboard/assets/
-coming-soon/public/app/assets/
-coming-soon/public/dashboard/assets/
-simplebeacon-vscode-merged/dashboard-web/assets/
-# Exception: dashboard built assets are deployed via Worker and must be committed
+# Untracked Vite output (ignore directory contents so exceptions can re-include)
+ai-platform/web/simplebeacon-dashboard/assets/*
+coming-soon/public/app/assets/*
+coming-soon/public/dashboard/assets/*
+simplebeacon-vscode-merged/dashboard-web/assets/*
+# Exception: dashboard built assets are deployed via Pages and must be committed
 !coming-soon/public/dashboard/assets/main.js
 !coming-soon/public/dashboard/assets/main.css
 !coming-soon/public/dashboard/assets/_headers
+!coming-soon/public/dashboard/assets/v2-*.js
+!coming-soon/public/app/assets/main.js
+!coming-soon/public/app/assets/main.css
+!coming-soon/public/app/assets/v2-*.js
+!ai-platform/web/simplebeacon-dashboard/assets/main.js
+!ai-platform/web/simplebeacon-dashboard/assets/main.css
+!ai-platform/web/simplebeacon-dashboard/assets/v2-*.js
 
 # Playwright reports
 **/playwright-report/
@@ -576,3 +583,5 @@ test-init/
 # Coming-soon app2 (experimental build)
 coming-soon/public/app2/
 node_modules_host/
+.env.production
+tmp-prepush-leak.js
