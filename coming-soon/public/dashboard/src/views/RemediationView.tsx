@@ -19,7 +19,7 @@ import {
 import { apiUrl, authHeaders } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
-import { ACTION_CAP, buildRoadmapFromScan } from "@/lib/collect-scan-issues";
+import { ACTION_CAP, buildRoadmapFromScan, SCAN_IN_PROGRESS_KEY, SCAN_UPDATED_EVENT, stripRoadmapArtifactRows } from "@/lib/collect-scan-issues";
 import { getLargeItem } from "@/utils/dbStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
@@ -134,11 +134,17 @@ export function RemediationView() {
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanInProgress, setScanInProgress] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
+      try {
+        setScanInProgress(localStorage.getItem(SCAN_IN_PROGRESS_KEY) === "1");
+      } catch {
+        setScanInProgress(false);
+      }
       let scan: unknown = null;
       try {
         const stored = localStorage.getItem("sb_last_scan_full");
@@ -162,10 +168,18 @@ export function RemediationView() {
           /* ignore */
         }
       }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const compact = localStorage.getItem("sb_last_scan");
+          if (compact) scan = JSON.parse(compact);
+        } catch {
+          /* ignore */
+        }
+      }
 
       const localRoadmap = buildRoadmapFromScan(scan);
       if (localRoadmap) {
-        setData(localRoadmap as RoadmapData);
+        setData(stripRoadmapArtifactRows(localRoadmap) as RoadmapData);
         setLoading(false);
         return;
       }
@@ -199,7 +213,7 @@ export function RemediationView() {
       const json = await resp.json();
       const roadmap =
         json.roadmap || json.report?._roadmapAnalysis || json.report || json;
-      setData(roadmap);
+      setData(stripRoadmapArtifactRows(roadmap) as RoadmapData);
     } catch (e: any) {
       setError(e?.message || "Failed to fetch remediation roadmap");
     } finally {
@@ -238,6 +252,25 @@ export function RemediationView() {
   // simplebeacon-ignore: framework-practices
   useEffect(() => {
     void fetchData();
+    const onUpdate = () => {
+      void fetchData({ silent: true });
+    };
+    window.addEventListener(SCAN_UPDATED_EVENT, onUpdate);
+    window.addEventListener("storage", onUpdate);
+    const timer = window.setInterval(() => {
+      try {
+        if (localStorage.getItem(SCAN_IN_PROGRESS_KEY) === "1") {
+          void fetchData({ silent: true });
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 2500);
+    return () => {
+      window.removeEventListener(SCAN_UPDATED_EVENT, onUpdate);
+      window.removeEventListener("storage", onUpdate);
+      window.clearInterval(timer);
+    };
   }, [fetchData]);
 
   const fmtDate = (s?: string) => {
@@ -324,15 +357,19 @@ export function RemediationView() {
           <CardContent className="flex flex-col items-center gap-3 py-8">
             <Map className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">
-              No remediation roadmap available
+              {scanInProgress
+                ? "Scan still running — the roadmap will appear when Analyze finishes storing the snapshot in this browser."
+                : "No remediation roadmap available"}
             </p>
             <p className="text-xs text-foreground-muted max-w-md text-center">
               Hosted Remediation uses the Analyze snapshot stored in this
-              browser. It cannot scan your local disk. Finish a local scan, then
-              open this page again.
+              browser. It cannot scan your local disk.
+              {scanInProgress
+                ? " Stay on this tab or return after the file count stops increasing."
+                : " Finish a local scan, then open this page again."}
             </p>
             <Button onClick={() => navigate("analyze")} className="mt-2">
-              Start a Scan
+              {scanInProgress ? "Back to Analyze" : "Start a Scan"}
             </Button>
           </CardContent>
         </Card>

@@ -21,6 +21,44 @@ function asArray(value: unknown): any[] {
   return Array.isArray(value) ? value : [];
 }
 
+function posixScanPath(filePath: unknown): string {
+  return String(filePath || "")
+    .replace(/\\/g, "/")
+    .replace(/^[a-z]:/i, "")
+    .toLowerCase();
+}
+
+/** Demo backups, `.outbound/` payloads, and `.analysis/` dumps — not shippable work. */
+export function isRoadmapArtifactPath(filePath: unknown): boolean {
+  const p = posixScanPath(filePath);
+  if (!p || p === "—" || p === "-") return false;
+  if (p.includes(".simplebeacon-backup")) return true;
+  if (/(^|\/)\.outbound(\/|$)/.test(p)) return true;
+  if (/(^|\/)\.analysis(\/|$)/.test(p)) return true;
+  if (
+    /(^|\/)demo\//.test(p) &&
+    (p.includes("report") || p.includes(".json"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function hasFindingList(root: any): boolean {
+  if (!root || typeof root !== "object") return false;
+  const lists = [
+    root.detectedIssues,
+    root.rawIssues,
+    root.findings,
+    root.issues,
+    root.qualityIssues,
+  ];
+  return lists.some(
+    (list) =>
+      Array.isArray(list) && list.length > 0 && typeof list[0] === "object",
+  );
+}
+
 function normalizeSeverity(value: unknown): string {
   const sev = String(value || "medium").toLowerCase().trim();
   if (
@@ -132,6 +170,12 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
   const push = (raw: any) => {
     const issue = normalizeIssue(raw);
     if (!issue) return false;
+    if (
+      isRoadmapArtifactPath(issue.filePath) ||
+      isRoadmapArtifactPath(issue.description)
+    ) {
+      return false;
+    }
     const key = `${issue.severity}|${issue.type}|${issue.filePath}|${issue.line}|${issue.description}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -177,10 +221,43 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
 }
 
 export const ACTION_CAP = 50;
+export const SCAN_UPDATED_EVENT = "sb:scan-updated";
+export const SCAN_IN_PROGRESS_KEY = "sb_scan_in_progress";
 
-function hasCompletedScanSignal(scan: any): boolean {
-  if (!scan || typeof scan !== "object") return false;
-  const counts = scan.severityCounts || {};
+export function notifyScanSnapshotUpdated(): void {
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(SCAN_UPDATED_EVENT));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function normalizeStoredScan(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const s = raw as Record<string, unknown>;
+  const gate = s.gate;
+  const normalizedGate =
+    gate === true || gate === false
+      ? { pass: gate }
+      : gate && typeof gate === "object"
+        ? gate
+        : undefined;
+  return {
+    ...s,
+    totalFiles: s.totalFiles ?? s.files ?? s.repositoryFilesTotal,
+    issueCount: s.issueCount ?? s.issues,
+    generatedAt: s.generatedAt ?? s.timestamp,
+    projectPath: s.projectPath ?? s.projectRoot,
+    ...(normalizedGate ? { gate: normalizedGate } : {}),
+  };
+}
+
+export function hasCompletedScanSignal(scan: unknown): boolean {
+  const root = normalizeStoredScan(scan) as any;
+  if (!root || typeof root !== "object") return false;
+  const counts = root.severityCounts || {};
   const countSum =
     Number(counts.critical || 0) +
     Number(counts.high || 0) +
@@ -188,13 +265,44 @@ function hasCompletedScanSignal(scan: any): boolean {
     Number(counts.low || 0) +
     Number(counts.info || 0);
   return (
-    Array.isArray(scan.detectedIssues) ||
-    Array.isArray(scan.rawIssues) ||
-    Array.isArray(scan.findings) ||
-    Number(scan.issueCount) > 0 ||
+    Array.isArray(root.detectedIssues) ||
+    Array.isArray(root.rawIssues) ||
+    Array.isArray(root.findings) ||
+    Number(root.issueCount) > 0 ||
     countSum > 0 ||
-    typeof scan.gate?.pass === "boolean"
+    typeof root.gate?.pass === "boolean" ||
+    Number(root.totalFiles) > 0
   );
+}
+
+export function stripRoadmapArtifactRows<T extends Record<string, unknown>>(
+  roadmap: T,
+): T {
+  if (!roadmap || typeof roadmap !== "object" || Array.isArray(roadmap)) {
+    return roadmap;
+  }
+  const keep = (item: unknown): boolean => {
+    if (!item || typeof item !== "object") return true;
+    const rec = item as Record<string, unknown>;
+    const blob = [
+      rec.filePath,
+      rec.file,
+      rec.category,
+      rec.description,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return !isRoadmapArtifactPath(blob);
+  };
+  const actionPlan = asArray(roadmap.actionPlan).filter(keep);
+  const risks = asArray(roadmap.risks).filter(keep);
+  const recommendations = asArray(roadmap.recommendations).filter(keep);
+  return {
+    ...roadmap,
+    actionPlan,
+    risks,
+    recommendations,
+  };
 }
 
 /**
@@ -202,19 +310,23 @@ function hasCompletedScanSignal(scan: any): boolean {
  * Hosted dashboards cannot POST a local filesystem path to /analyze/flexible.
  */
 export function buildRoadmapFromScan(scan: unknown): Record<string, unknown> | null {
-  if (!hasCompletedScanSignal(scan)) return null;
-  const root = scan as any;
+  const normalized = normalizeStoredScan(scan);
+  if (!hasCompletedScanSignal(normalized)) return null;
+  const root = normalized as any;
   const issues = collectScanIssues(root, 200);
   const fromIssues = countIssuesBySeverity(issues);
+  const listed = hasFindingList(root);
   const sc = root.severityCounts || {};
-  const counts = {
-    critical: Number(sc.critical) || fromIssues.critical,
-    high: Number(sc.high) || fromIssues.high,
-    medium: Number(sc.medium) || fromIssues.medium,
-    low: Number(sc.low) || fromIssues.low,
-    info: Number(sc.info) || fromIssues.info,
-  };
-  const issueCount = Number(root.issueCount) || issues.length;
+  const counts = listed
+    ? fromIssues
+    : {
+        critical: Number(sc.critical) || fromIssues.critical,
+        high: Number(sc.high) || fromIssues.high,
+        medium: Number(sc.medium) || fromIssues.medium,
+        low: Number(sc.low) || fromIssues.low,
+        info: Number(sc.info) || fromIssues.info,
+      };
+  const issueCount = listed ? issues.length : Number(root.issueCount) || issues.length;
   const blocking = counts.critical + counts.high;
   const gatePass = root.gate?.pass === true;
   const projectName = String(
@@ -275,7 +387,7 @@ export function buildRoadmapFromScan(scan: unknown): Record<string, unknown> | n
     items: [`${n} ${name.toLowerCase()} findings in this scan`],
   });
 
-  return {
+  return stripRoadmapArtifactRows({
     type: "scan-derived-roadmap",
     generatedAt: String(root.generatedAt || new Date().toISOString()),
     projectName,
@@ -309,5 +421,5 @@ export function buildRoadmapFromScan(scan: unknown): Record<string, unknown> | n
       totalFeatures: issueCount,
       completedFeatures: 0,
     },
-  };
+  });
 }

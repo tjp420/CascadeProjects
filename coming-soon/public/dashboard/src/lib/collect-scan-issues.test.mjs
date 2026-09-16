@@ -66,7 +66,74 @@ describe("buildRoadmapFromScan", () => {
     assert.equal(buildRoadmapFromScan({ projectPath: "CascadeProjects" }), null);
   });
 
-  it("builds action items from a stored Analyze snapshot", () => {
+  it("builds a roadmap from the compact sb_last_scan summary", () => {
+    const roadmap = buildRoadmapFromScan({
+      files: 23142,
+      issues: 12,
+      gate: false,
+    });
+    assert.ok(roadmap);
+    assert.equal(roadmap.executiveSummary.totalFeatures, 12);
+    assert.equal(roadmap.executiveSummary.projectHealth, "In Progress");
+  });
+
+  it("drops demo backups, outbound payloads, and analysis dumps from the roadmap", () => {
+    const roadmap = buildRoadmapFromScan({
+      projectPath: "C:\\Users\\user\\CascadeProjects",
+      issueCount: 39272,
+      gate: { pass: false },
+      severityCounts: { critical: 56, high: 150, medium: 39033, low: 33 },
+      detectedIssues: [
+        {
+          severity: "critical",
+          type: "hardcoded-secret",
+          description: "Credential echo in demo report",
+          file: "demo/demo-report.json",
+          line: 12,
+        },
+        {
+          severity: "high",
+          type: "token-leak",
+          description: "Backup copy of scan JSON",
+          file: "demo/demo-report.json.simplebeacon-backup.1",
+          line: 4,
+        },
+        {
+          severity: "high",
+          type: "sensitiveData",
+          description: "GitHub payload dump",
+          file: "CascadeProjects/.outbound/github_issues_payload.json",
+          line: 4,
+        },
+        {
+          severity: "high",
+          type: "euAiAct",
+          description: "Prioritized findings dump",
+          file: ".analysis/prioritized-findings.json",
+          line: 5,
+        },
+        {
+          severity: "critical",
+          type: "hardcoded-secret",
+          description: "Live env leak",
+          file: "coming-soon/server.cjs",
+          line: 40,
+        },
+      ],
+    });
+    assert.ok(roadmap);
+    assert.equal(roadmap.actionPlan.length, 1);
+    assert.equal(roadmap.actionPlan[0].category, "coming-soon/server.cjs");
+    assert.equal(roadmap.risks.length, 1);
+    assert.equal(roadmap.executiveSummary.totalFeatures, 1);
+    assert.equal(roadmap.executiveSummary.projectHealth, "Blocked");
+    assert.deepEqual(
+      roadmap.actionPlan.map((row) => row.category),
+      ["coming-soon/server.cjs"],
+    );
+  });
+
+  it("builds an empty production roadmap when every listed finding is an artifact", () => {
     const roadmap = buildRoadmapFromScan({
       projectPath: "C:\\Users\\user\\CascadeProjects",
       issueCount: 39272,
@@ -90,9 +157,9 @@ describe("buildRoadmapFromScan", () => {
       ],
     });
     assert.ok(roadmap);
-    assert.equal(roadmap.executiveSummary.projectHealth, "Blocked");
-    assert.equal(roadmap.executiveSummary.completionRate, 0);
-    assert.equal(roadmap.actionPlan.length, 2);
-    assert.equal(roadmap.risks.length, 2);
+    assert.equal(roadmap.executiveSummary.totalFeatures, 0);
+    assert.equal(roadmap.executiveSummary.projectHealth, "Healthy");
+    assert.equal(roadmap.actionPlan.length, 0);
+    assert.equal(roadmap.risks.length, 0);
   });
 });

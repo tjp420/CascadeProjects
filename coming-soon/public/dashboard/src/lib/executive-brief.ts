@@ -7,9 +7,19 @@
 import {
   buildExecutiveBriefModel as buildModel,
 } from "@sb/executive-brief-core";
+import { isRoadmapArtifactPath } from "./collect-scan-issues";
 
 export function buildExecutiveBriefModel(report: any, options: any = {}) {
-  return buildModel(report, options, {});
+  const model = buildModel(report, options, {});
+  const findings = Array.isArray(model.findings)
+    ? model.findings.filter(
+        (f: any) =>
+          !isRoadmapArtifactPath(
+            f?.filePath || f?.file || f?.path || f?.description,
+          ),
+      )
+    : [];
+  return { ...model, findings };
 }
 
 export function renderExecutiveBriefMarkdown(
@@ -41,7 +51,7 @@ export function renderExecutiveBriefMarkdown(
   }
   lines.push("");
   lines.push(
-    "Executive set excludes `decision=dismiss` when `report.signal` is present, and prefers production `lane` / non-test `fileClass`. Paths are POSIX-normalized; `projectPath` is preserved. No file contents are embedded.",
+    "Executive set excludes `decision=dismiss` when `report.signal` is present, prefers production `lane` / non-test `fileClass`, and drops demo backups, `.outbound/` payloads, and `.analysis/` dumps. Paths are POSIX-normalized; `projectPath` is preserved. No file contents are embedded.",
   );
   lines.push("");
   lines.push("## Findings");
