@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import CertificateModal from "@/components/CertificateModal";
 import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
 import {
   remainingLockedRows,
@@ -250,6 +251,7 @@ export function ResultsView() {
   const { user } = useAuth();
   const { hasFeature } = useFeatureAccess();
   const paidRoadmap = hasFeature("canExportCertificates");
+  const [showCertModal, setShowCertModal] = useState(false);
 
   useEffect(() => {
     void completeExecutiveCheckoutReturn();
@@ -684,6 +686,14 @@ export function ResultsView() {
         userEmail={user?.email}
         currentScanGrade={currentScanGrade}
       />
+
+      {paidRoadmap && (
+        <div className="mt-4">
+          <Button onClick={() => setShowCertModal(true)}>Generate / Download Certificate</Button>
+        </div>
+      )}
+
+      <CertificateModal isOpen={showCertModal} onClose={() => setShowCertModal(false)} sessionId={user?.id} />
 
       {/* Risk Heatmap Card */}
       <Card>
