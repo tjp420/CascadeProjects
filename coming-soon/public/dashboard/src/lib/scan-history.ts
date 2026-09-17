@@ -87,3 +87,34 @@ export async function getLocalScanHistory(): Promise<LocalScanHistoryRow[]> {
 }
 
 export const getHistory = getLocalScanHistory;
+
+/**
+ * Return the raw stored last-scan snapshot (unmapped) or null.
+ * Side-effect free read: attempts `getLargeItem` then localStorage fallbacks.
+ */
+export async function getRawLastScan(): Promise<unknown | null> {
+  try {
+    try {
+      const { getLargeItem } = await import("../utils/dbStorage.ts");
+      const large = await getLargeItem(LAST_SCAN_REPORT_KEY);
+      if (large) return large;
+    } catch {
+      // ignore and fallback to localStorage
+    }
+    const raw = parseLocalJson(LAST_SCAN_FULL_KEY) ?? parseLocalJson(LAST_SCAN_REPORT_KEY) ?? parseLocalJson(LAST_SCAN_SUMMARY_KEY);
+    return raw ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function humanizeTimestamp(ts: string | null): string {
+  if (!ts) return "time unknown";
+  try {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return ts;
+    return d.toLocaleString();
+  } catch {
+    return ts;
+  }
+}

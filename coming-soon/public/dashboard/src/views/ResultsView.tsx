@@ -42,8 +42,10 @@ import {
 import { countIssuesBySeverity, SCAN_UPDATED_EVENT } from "@/lib/collect-scan-issues";
 import {
   getLocalScanHistory,
+  getRawLastScan,
   type LocalScanHistoryRow,
 } from "@/lib/scan-history";
+import LastScanDetails from "@/components/LastScanDetails";
 import {
   buildExecutiveBriefModel,
   downloadBrowserFile,
@@ -172,7 +174,7 @@ function syncReportToVscodeSidebar(
   }
 }
 
-function LastScanHistoryRow({ row }: { row: LocalScanHistoryRow | null }) {
+function LastScanHistoryRow({ row, onViewDetails }: { row: LocalScanHistoryRow | null; onViewDetails?: () => void }) {
   if (!row) return null;
   const when = row.timestamp
     ? (() => {
@@ -213,6 +215,9 @@ function LastScanHistoryRow({ row }: { row: LocalScanHistoryRow | null }) {
           {blocking}
         </span>
       </CardContent>
+      <div className="p-3 border-t flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => onViewDetails?.()}>View details</Button>
+      </div>
     </Card>
   );
 }
@@ -235,6 +240,8 @@ export function ResultsView() {
   const [historyRow, setHistoryRow] = useState<LocalScanHistoryRow | null>(
     null,
   );
+  const [showDetails, setShowDetails] = useState(false);
+  const [rawSnapshot, setRawSnapshot] = useState<any>(null);
   const { user } = useAuth();
   const { hasFeature } = useFeatureAccess();
   const paidRoadmap = hasFeature("canExportCertificates");
@@ -270,6 +277,14 @@ export function ResultsView() {
       }
     };
     void loadHistory();
+    (async () => {
+      try {
+        const raw = await getRawLastScan();
+        if (!cancelled) setRawSnapshot(raw);
+      } catch {
+        if (!cancelled) setRawSnapshot(null);
+      }
+    })();
     window.addEventListener(SCAN_UPDATED_EVENT, loadHistory);
     window.addEventListener("storage", loadHistory);
     return () => {
@@ -525,7 +540,18 @@ export function ResultsView() {
         </p>
       </div>
 
-      <LastScanHistoryRow row={historyRow} />
+      <LastScanHistoryRow row={historyRow} onViewDetails={async () => {
+        try {
+          const raw = await getRawLastScan();
+          setRawSnapshot(raw);
+        } catch {
+          setRawSnapshot(null);
+        }
+        setShowDetails(true);
+      }} />
+      {showDetails && (
+        <LastScanDetails snapshot={rawSnapshot} onClose={() => setShowDetails(false)} />
+      )}
 
       <EvidenceStatePanel report={reportForIssues || fullReport || result} />
 
