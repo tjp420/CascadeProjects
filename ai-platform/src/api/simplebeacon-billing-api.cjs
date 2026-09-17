@@ -914,6 +914,20 @@ function setupSimplebeaconBillingRoutes(app) {
             await syncSubscriptionToDb(req.app?.locals?.db || null, record);
           }
         }
+
+        // Helper: try to read session token from the in-memory session token store (if present).
+        // This is a local convenience for dev/test flows and may return null in many environments.
+        module.exports.getSessionTokenFromStore = function (sessionId) {
+          try {
+            const sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+            if (sessionTokenStore && typeof sessionTokenStore.get === "function") {
+              return sessionTokenStore.get(sessionId) || null;
+            }
+            return null;
+          } catch (err) {
+            return null;
+          }
+        };
       }
 
       // Webhook race fallback: mint team token if payment succeeded but webhook hasn't yet

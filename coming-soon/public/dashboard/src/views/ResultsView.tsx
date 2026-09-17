@@ -30,7 +30,7 @@ import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
-import { remainingLockedRows } from "@/lib/executive-checkout";
+import { remainingLockedRows, createExecutiveSession } from "@/lib/executive-checkout";
 import { ResultsReferralBanner } from "@/components/ResultsReferralBanner";
 import { PostScanCliNudge } from "@/components/PostScanCliNudge";
 import { PostScanShareBanner } from "@/components/PostScanShareBanner";
@@ -43,6 +43,7 @@ import { countIssuesBySeverity, SCAN_UPDATED_EVENT } from "@/lib/collect-scan-is
 import {
   getLocalScanHistory,
   getRawLastScan,
+  mapSnapshotToHistoryRow,
   type LocalScanHistoryRow,
 } from "@/lib/scan-history";
 import LastScanDetails from "@/components/LastScanDetails";
@@ -264,6 +265,17 @@ export function ResultsView() {
     } catch {
       /* ignore */
     }
+    // If the URL contains an `exec_session` param, hydrate local executive session
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sid = params.get("exec_session");
+      if (sid) {
+        createExecutiveSession({ sessionId: sid });
+        try { toast.success("Executive access granted (local)"); } catch {}
+        // remove param so refresh doesn't re-run
+        try { window.history.replaceState({}, "", window.location.pathname); } catch {}
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -349,6 +361,12 @@ export function ResultsView() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (historyRow) return;
+    const fromLoaded = mapSnapshotToHistoryRow(fullReport || result);
+    if (fromLoaded) setHistoryRow(fromLoaded);
+  }, [result, fullReport, historyRow]);
 
   const reportForIssues = useMemo(() => {
     if (!result && !fullReport) return null;
@@ -490,6 +508,16 @@ export function ResultsView() {
       .map(([type, count]) => ({ type, count }));
   }, [productionIssues]);
 
+  const openLastScanDetails = async () => {
+    try {
+      const raw = await getRawLastScan();
+      setRawSnapshot(raw || fullReport || result);
+    } catch {
+      setRawSnapshot(fullReport || result);
+    }
+    setShowDetails(true);
+  };
+
   if (!result) {
     return (
       <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -500,7 +528,13 @@ export function ResultsView() {
             stay on Test Suite Health
           </p>
         </div>
-        <LastScanHistoryRow row={historyRow} />
+        <LastScanHistoryRow row={historyRow} onViewDetails={openLastScanDetails} />
+        {showDetails && (
+          <LastScanDetails
+            snapshot={rawSnapshot}
+            onClose={() => setShowDetails(false)}
+          />
+        )}
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <ClipboardList className="h-12 w-12 text-foreground-muted" />
@@ -540,15 +574,7 @@ export function ResultsView() {
         </p>
       </div>
 
-      <LastScanHistoryRow row={historyRow} onViewDetails={async () => {
-        try {
-          const raw = await getRawLastScan();
-          setRawSnapshot(raw);
-        } catch {
-          setRawSnapshot(null);
-        }
-        setShowDetails(true);
-      }} />
+      <LastScanHistoryRow row={historyRow} onViewDetails={openLastScanDetails} />
       {showDetails && (
         <LastScanDetails snapshot={rawSnapshot} onClose={() => setShowDetails(false)} />
       )}

@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
+import { getExecutiveSession } from "@/lib/executive-checkout";
 
 export type FeatureFlag =
   | "canMapEuAiAct"
@@ -157,7 +158,37 @@ function resolveCapabilities(
 
 export function useFeatureAccess() {
   const { user } = useAuth();
-  const capabilities = useMemo(() => resolveCapabilities(user), [user]);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const onChange = () => setTick((t) => t + 1);
+    try {
+      window.addEventListener("sb:exec-session-changed", onChange as EventListener);
+      window.addEventListener("storage", onChange as EventListener);
+    } catch {}
+    return () => {
+      try {
+        window.removeEventListener("sb:exec-session-changed", onChange as EventListener);
+        window.removeEventListener("storage", onChange as EventListener);
+      } catch {}
+    };
+  }, []);
+
+  const capabilities = useMemo(() => {
+    const base = resolveCapabilities(user);
+    // If an executive session token exists in localStorage, grant export capability dynamically
+    try {
+      const exec = getExecutiveSession();
+      if (exec && exec.canExportCertificates) {
+        // clone to avoid mutating shared constant
+        const clone = { ...base, canExportCertificates: true };
+        // set a special tier label when executive access active
+        clone.tier = exec.tier || "executive_clearance";
+        return clone;
+      }
+    } catch {}
+    return base;
+  }, [user, tick]);
 
   const hasFeature = useCallback(
     (feature: FeatureFlag) => Boolean(capabilities[feature]),

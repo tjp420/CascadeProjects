@@ -1,3 +1,66 @@
+const EXEC_SESSION_KEY = "sb_exec_session";
+
+export type ExecSession = {
+  sessionId: string;
+  tier?: string;
+  expiresAt?: string | null;
+  canExportCertificates?: boolean;
+  projectName?: string;
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export function createExecutiveSession(data: Partial<ExecSession> & { sessionId: string }) {
+  const payload: ExecSession = {
+    sessionId: data.sessionId,
+    tier: data.tier || "executive_clearance",
+    expiresAt: data.expiresAt ?? new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+    canExportCertificates: data.canExportCertificates ?? true,
+    projectName: data.projectName || null,
+  };
+  try {
+    localStorage.setItem(EXEC_SESSION_KEY, JSON.stringify(payload));
+    // notify other tabs/windows
+    try { window.dispatchEvent(new CustomEvent("sb:exec-session-changed", { detail: payload })); } catch {}
+    return payload;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function clearExecutiveSession() {
+  try {
+    localStorage.removeItem(EXEC_SESSION_KEY);
+    try { window.dispatchEvent(new CustomEvent("sb:exec-session-changed", { detail: null })); } catch {}
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getExecutiveSession(): ExecSession | null {
+  try {
+    const raw = localStorage.getItem(EXEC_SESSION_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj.sessionId) return null;
+    if (obj.expiresAt && new Date(obj.expiresAt).getTime() < Date.now()) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+export function isExecutiveAccessActive(): boolean {
+  return Boolean(getExecutiveSession()?.canExportCertificates);
+}
+
+export function remainingLockedRows(): number {
+  // For local flows, executive clearance unlocks all premium rows.
+  return isExecutiveAccessActive() ? 0 : 50;
+}
 export const ROADMAP_PREVIEW_ROWS = 3;
 export const EXECUTIVE_CLEARANCE_PRODUCT = "executive_clearance";
 export const EXECUTIVE_CLEARANCE_USD = 499;
