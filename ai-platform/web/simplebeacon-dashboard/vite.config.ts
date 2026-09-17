@@ -24,6 +24,11 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "assets",
       sourcemap: false,
+      commonjsOptions: {
+        include: [/node_modules/, /executive-brief-core/],
+        transformMixedEsModules: true,
+        defaultIsModuleExports: true,
+      },
       rollupOptions: {
         input: "src/main.tsx",
         output: {

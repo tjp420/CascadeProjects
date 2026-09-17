@@ -534,6 +534,7 @@
             })();
         </script>
         <script src="/js-es2018/token-entry-guard.js"></script>
+        <script src="/js-es2018/certificate-session.js"></script>
         <script>
             (function () {
                 var TOKEN_KEYS = [
@@ -1482,6 +1483,9 @@
 
             function applyTokenFromEmail(token) {
                 if (!token || !licenseInput) return false;
+                if (window.CertificateSession && !window.CertificateSession.isHydratableLicenseToken(token)) {
+                    return false;
+                }
                 if (window.TokenEntryGuard) {
                     window.TokenEntryGuard.registerFreshToken(token);
                     const applied = window.TokenEntryGuard.applyTokenToInput(licenseInput, token, { allowFresh: true });
@@ -1619,49 +1623,48 @@
 
             // Auto-detect from URL session_id or token
             const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session_id');
+            const rawSessionId = urlParams.get('session_id');
             const urlToken = urlParams.get('token');
+            const sessionHelpers = window.CertificateSession || {};
+            function appendCheckoutNote(text) {
+                const subtitle = document.getElementById('pageSubtitle');
+                if (!subtitle) return;
+                subtitle.appendChild(document.createElement('br'));
+                const note = document.createElement('em');
+                note.style.color = 'var(--accent)';
+                note.textContent = text;
+                subtitle.appendChild(note);
+            }
             if (urlToken) {
                 applyTokenFromEmail(urlToken);
             }
+            const sessionId =
+                sessionHelpers.isStripeCheckoutSessionId && sessionHelpers.isStripeCheckoutSessionId(rawSessionId)
+                    ? rawSessionId
+                    : '';
+            if (rawSessionId && !sessionId) {
+                appendCheckoutNote('That checkout link is not a valid Stripe session. Check your email for the license token.');
+            }
             if (sessionId) {
                 (async () => {
-                    try {
-                        const res = await fetch(API_BASE + '/api/session-token/' + encodeURIComponent(sessionId));
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data.success && data.token) {
-                                applyTokenFromEmail(data.token);
-                                document.getElementById('pageSubtitle').innerHTML +=
-                                    '<br><em style="color:var(--accent);">Token auto-filled from your payment session.</em>';
-                            } else {
-                                document.getElementById('pageSubtitle').innerHTML +=
-                                    '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
-                            }
-                        } else {
-                            document.getElementById('pageSubtitle').innerHTML +=
-                                '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
-                        }
-                        // Add receipt download button
-                        var receiptBtn = document.createElement('a');
-                        receiptBtn.href = API_BASE + '/api/receipt/' + encodeURIComponent(sessionId);
-                        receiptBtn.innerHTML = '&#128196; Download Corporate Expense Receipt (PDF)';
-                        receiptBtn.style.cssText =
-                            'display:inline-block;margin-top:12px;padding:10px 20px;background:#22c55e;color:#0a0e18;font-weight:600;font-size:0.85rem;text-decoration:none;border-radius:10px;transition:all 0.2s;';
-                        receiptBtn.onmouseover = function () {
-                            this.style.transform = 'translateY(-1px)';
-                        };
-                        receiptBtn.onmouseout = function () {
-                            this.style.transform = '';
-                        };
-                        var subtitle = document.getElementById('pageSubtitle');
-                        if (subtitle) {
-                            subtitle.appendChild(document.createElement('br'));
-                            subtitle.appendChild(receiptBtn);
-                        }
-                    } catch (e) {
-                        document.getElementById('pageSubtitle').innerHTML +=
-                            '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
+                    appendCheckoutNote('Confirming payment session…');
+                    const result = sessionHelpers.fetchSessionToken
+                        ? await sessionHelpers.fetchSessionToken(API_BASE, sessionId)
+                        : { ok: false, reason: 'no_helper' };
+                    if (result.ok && applyTokenFromEmail(result.token)) {
+                        appendCheckoutNote('Token auto-filled from your payment session.');
+                    } else {
+                        appendCheckoutNote('Payment confirmed. Check your email for the license token if the field is empty.');
+                    }
+                    const receiptBtn = document.createElement('a');
+                    receiptBtn.href = API_BASE + '/api/receipt/' + encodeURIComponent(sessionId);
+                    receiptBtn.textContent = 'Download corporate expense receipt (PDF)';
+                    receiptBtn.style.cssText =
+                        'display:inline-block;margin-top:12px;padding:10px 20px;background:#22c55e;color:#0a0e18;font-weight:600;font-size:0.85rem;text-decoration:none;border-radius:10px;transition:all 0.2s;';
+                    const subtitle = document.getElementById('pageSubtitle');
+                    if (subtitle) {
+                        subtitle.appendChild(document.createElement('br'));
+                        subtitle.appendChild(receiptBtn);
                     }
                 })();
             }

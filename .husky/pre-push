@@ -1,4 +1,27 @@
 #!/usr/bin/env sh
+.
+"$(dirname "$0")/_/husky.sh"
+
+# Run the cross-platform pre-push secret guard.
+# POSIX shell wrapper preferred; on Windows fallback to PowerShell wrapper.
+if command -v sh >/dev/null 2>&1; then
+  sh scripts/pre-push-secret-guard.sh
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    echo "pre-push secret guard blocked the push (exit code $rc)"
+    exit $rc
+  fi
+else
+  pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/pre-push-secret-guard.ps1
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    echo "pre-push secret guard (PowerShell) blocked the push (exit code $rc)"
+    exit $rc
+  fi
+fi
+
+exit 0
+#!/usr/bin/env sh
 
 echo "Running pre-push: secret scan + staged checks + tests"
 

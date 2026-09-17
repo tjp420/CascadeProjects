@@ -14,6 +14,8 @@ const {
   ERROR_TYPE_CODES,
   SEVERITY_BANDS,
 } = require("../../lib/anonymized-export");
+const { readCodeMapHint } = require("../../lib/scannable-path");
+const { verifyAgentRequest } = require("../../lib/workspace-verification");
 
 function createUtilityHandlers({
   withGuard,
@@ -22,6 +24,17 @@ function createUtilityHandlers({
   formatMarkdownResult,
 }) {
   return {
+    simplebeacon_workspace_context: withGuard((args) => {
+      const input = args && typeof args === "object" ? args : {};
+      const root = resolveProjectRoot(input.workspaceRoot || input.projectRoot);
+      const payload = verifyAgentRequest({
+        ...input,
+        projectRoot: root,
+        workspaceRoot: root,
+      });
+      return formatToolResult(payload);
+    }),
+
     explain_finding: withGuard((args) => {
       if (!args || typeof args !== "object")
         throw new Error("arguments must be an object");
@@ -32,9 +45,12 @@ function createUtilityHandlers({
       ) {
         throw new Error("Missing required argument: patternId");
       }
-      return formatToolResult(
-        explainFinding(args.patternId, { type: args.type }),
-      );
+      const explained = explainFinding(args.patternId, { type: args.type });
+      const codeMap = readCodeMapHint(resolveProjectRoot(args.projectRoot));
+      if (codeMap) {
+        explained.codeMap = codeMap;
+      }
+      return formatToolResult(explained);
     }),
 
     init_project: withGuard((args) => {

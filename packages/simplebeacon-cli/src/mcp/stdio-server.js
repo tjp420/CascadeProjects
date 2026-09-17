@@ -4,13 +4,20 @@
  */
 
 const readline = require("readline");
-const { TOOL_DEFINITIONS, createMcpToolHandlers } = require("./tools");
+const {
+  listToolDefinitions,
+  resolveMcpToolProfile,
+  createMcpToolHandlers,
+} = require("./tools");
 
 const PROTOCOL_VERSION = "2024-11-05";
 const SERVER_INFO = { name: "simplebeacon", version: "1.3.0" };
 
 function createMcpStdioServer(options = {}) {
   const handlers = createMcpToolHandlers(options);
+  const listedTools = listToolDefinitions(options);
+  const listedNames = new Set(listedTools.map((t) => t.name));
+  const toolProfile = resolveMcpToolProfile(options);
   let initialized = false;
   const activeRequests = new Map(); // requestId -> { cancelled, startTime }
   const logger = {
@@ -40,7 +47,7 @@ function createMcpStdioServer(options = {}) {
 
   function toolListResult() {
     return {
-      tools: TOOL_DEFINITIONS.map((tool) => ({
+      tools: listedTools.map((tool) => ({
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema,
@@ -128,6 +135,25 @@ function createMcpStdioServer(options = {}) {
           id,
           result: {
             content: [{ type: "text", text: `Unknown tool: ${name}` }],
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      if (!listedNames.has(name)) {
+        send({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  error: `Tool ${name} is not in the default Cursor MCP set (profile=${toolProfile}). Run CLI: npx simplebeacon scan --gate --offline. Or start MCP with --full-tools / SIMPLEBEACON_MCP_PROFILE=full.`,
+                }),
+              },
+            ],
             isError: true,
           },
         });
@@ -255,7 +281,7 @@ function createMcpStdioServer(options = {}) {
     logger.log("Server ready. Protocol:", PROTOCOL_VERSION);
   }
 
-  return { start, toolListResult, handlers };
+  return { start, toolListResult, handlers, toolProfile };
 }
 
 module.exports = {

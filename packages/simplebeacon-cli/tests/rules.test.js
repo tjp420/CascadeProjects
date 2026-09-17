@@ -240,6 +240,7 @@ test("formatGithubComment includes gate and severities", () => {
   );
   assert.match(body, /SimpleBeacon/);
   assert.match(body, /PASS/);
+  assert.match(body, /img\.shields\.io\/badge\/SimpleBeacon-PASS/);
 });
 
 test("evaluateGate fails on configured severities", () => {

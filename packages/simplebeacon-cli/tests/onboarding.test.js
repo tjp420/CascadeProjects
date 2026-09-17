@@ -33,6 +33,11 @@ test("installDeveloperStack writes mcp, rule, and ci workflow", () => {
     ),
   );
   assert.ok(
+    fs.existsSync(
+      path.join(tmp, ".cursor", "rules", "simplebeacon-scannable-types.mdc"),
+    ),
+  );
+  assert.ok(
     fs.existsSync(path.join(tmp, ".github", "workflows", "simplebeacon.yml")),
   );
 });

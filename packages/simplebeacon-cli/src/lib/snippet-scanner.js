@@ -21,6 +21,49 @@ const { loadSimplebeaconConfig } = require("../config");
 const { evaluateGate } = require("../gate");
 const { isPathWithinRoot, resolveCliProjectRoot } = require("./path-utils");
 const { sanitizeFilePath } = require("./input-sanitizer");
+const {
+  evaluateScannablePath,
+  skippedScanResult,
+  bufferLooksBinary,
+} = require("./scannable-path");
+const {
+  MAX_MCP_SCAN_BYTES,
+  MCP_FILE_SCAN_CACHE_TTL_MS,
+  MCP_FILE_SCAN_CACHE_MAX,
+} = require("./constants");
+const crypto = require("crypto");
+
+const fileScanCache = new Map();
+
+function resetFileScanCache() {
+  fileScanCache.clear();
+}
+
+function contentHash(bufOrStr) {
+  return crypto.createHash("sha256").update(bufOrStr).digest("hex");
+}
+
+function readCachedScan(absPath, hash) {
+  const key = `${absPath}|${hash}`;
+  const entry = fileScanCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.at > MCP_FILE_SCAN_CACHE_TTL_MS) {
+    fileScanCache.delete(key);
+    return null;
+  }
+  return { ...entry.result, cached: true, reason: "unchanged-hash" };
+}
+
+function writeCachedScan(absPath, hash, result) {
+  if (fileScanCache.size >= MCP_FILE_SCAN_CACHE_MAX) {
+    const first = fileScanCache.keys().next().value;
+    fileScanCache.delete(first);
+  }
+  fileScanCache.set(`${absPath}|${hash}`, {
+    at: Date.now(),
+    result,
+  });
+}
 
 function fileExtension(filePath) {
   const ext = path.extname(String(filePath || "")).toLowerCase();
@@ -54,19 +97,35 @@ function loadProjectConfig(projectRoot) {
 }
 
 function scanSnippetContent(content, options = {}) {
+  const filePath = String(options.filePath || "snippet.txt").replace(
+    /\\/g,
+    "/",
+  );
+  const skipGate = evaluateScannablePath(filePath);
+  if (!skipGate.scannable) {
+    return skippedScanResult(filePath);
+  }
+
   if (typeof content !== "string" || !content.length) {
     return {
-      filePath: options.filePath || "snippet.txt",
+      filePath,
       findingCount: 0,
       blockingCount: 0,
       findings: [],
     };
   }
 
-  const filePath = String(options.filePath || "snippet.txt").replace(
-    /\\/g,
-    "/",
-  );
+  const byteSize = Buffer.byteLength(content, "utf8");
+  if (byteSize > MAX_MCP_SCAN_BYTES) {
+    return skippedScanResult(filePath, {
+      reason: "oversized",
+      byteSize,
+    });
+  }
+
+  const hash = contentHash(content);
+  const cached = readCachedScan(`snippet:${filePath}`, hash);
+  if (cached) return cached;
   const ext = fileExtension(filePath);
   const projectRoot = options.projectRoot
     ? path.resolve(options.projectRoot)
@@ -119,12 +178,14 @@ function scanSnippetContent(content, options = {}) {
     (f) => f.severity === "high" || f.severity === "critical",
   ).length;
 
-  return {
+  const result = {
     filePath,
     findingCount: findings.length,
     blockingCount,
     findings,
   };
+  writeCachedScan(`snippet:${filePath}`, hash, result);
+  return result;
 }
 
 function scanFileOnDisk(projectRoot, relativeOrAbsolutePath, options = {}) {
@@ -151,14 +212,42 @@ function scanFileOnDisk(projectRoot, relativeOrAbsolutePath, options = {}) {
     throw new Error("Path is not a file");
   }
 
-  const content = fs.readFileSync(absolutePath, "utf8");
   const relativePath = path.relative(root, absolutePath).replace(/\\/g, "/");
+  const skipGate = evaluateScannablePath(relativePath);
+  if (!skipGate.scannable) {
+    return skippedScanResult(relativePath);
+  }
 
-  return scanSnippetContent(content, {
+  if (stat.size > MAX_MCP_SCAN_BYTES) {
+    return skippedScanResult(relativePath, {
+      reason: "oversized",
+      byteSize: stat.size,
+    });
+  }
+
+  const head = Buffer.alloc(Math.min(512, stat.size));
+  const fd = fs.openSync(absolutePath, "r");
+  try {
+    fs.readSync(fd, head, 0, head.length, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+  if (bufferLooksBinary(head)) {
+    return skippedScanResult(relativePath, { reason: "binary" });
+  }
+
+  const content = fs.readFileSync(absolutePath, "utf8");
+  const hash = contentHash(content);
+  const cached = readCachedScan(absolutePath, hash);
+  if (cached) return cached;
+
+  const result = scanSnippetContent(content, {
     ...options,
     projectRoot: root,
     filePath: relativePath,
   });
+  writeCachedScan(absolutePath, hash, result);
+  return result;
 }
 
 function readGateStatus(projectRoot, options = {}) {
@@ -206,4 +295,5 @@ module.exports = {
   scanFileOnDisk,
   readGateStatus,
   normalizeFinding,
+  resetFileScanCache,
 };

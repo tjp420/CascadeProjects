@@ -4,8 +4,9 @@
       "command": "npx",
       "args": ["--yes", "-p", "simplebeacon", "simplebeacon-mcp", "--offline"],
       "env": {
-        "SIMPLEBEACON_PROJECT_ROOT": "${workspaceFolder}",
-        "SIMPLEBEACON_OFFLINE": "1"
+      "SIMPLEBEACON_PROJECT_ROOT": "${workspaceFolder}",
+      "SIMPLEBEACON_OFFLINE": "1",
+      "SIMPLEBEACON_MCP_PROFILE": "slim"
       }
     }
   }

@@ -1,0 +1,560 @@
+{
+  "exportedAt": "2026-09-15T09:01:09.500Z",
+  "totalFiles": 852,
+  "issueCount": 118,
+  "severityCounts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 117,
+    "low": 0,
+    "info": 0
+  },
+  "gate": {
+    "pass": false,
+    "blockingCount": 1,
+    "warningCount": 117,
+    "score": 0,
+    "incompleteDrop": false
+  },
+  "qualityScore": 0,
+  "projectPath": "unbreakable-oracle-final",
+  "scanScope": {
+    "profile": "standard",
+    "resultsViewScope": "browser-local",
+    "codeFilesAnalyzed": 287
+  },
+  "generatedAt": "2026-09-15T08:55:29.586Z",
+  "projectRoot": "unbreakable-oracle-final",
+  "rawIssues": [
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/BETA_TESTING_GUIDE.md",
+      "line": 69,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "1 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/UnbreakableOracleGUI.deps.json",
+      "line": 20,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/UnbreakableOracleInstaller.deps.json",
+      "line": 21,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "1 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows-cli-fix/UnbreakableOracleGUI.deps.json",
+      "line": 20,
+      "count": 1
+    },
+    {
+      "severity": "high",
+      "type": "euAiAct",
+      "description": "1 euAiAct finding(s) detected",
+      "filePath": "unbreakable-oracle-final/BUSINESS_PLAN.md",
+      "line": 238,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "dotnetDebug",
+      "description": "5 dotnetDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/cli-installer/Program.cs",
+      "line": 16,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/CSHARP_INSTALL.md",
+      "line": 21,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/DEPLOYMENT_STATUS.md",
+      "line": 72,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "2 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/oracle-bot-minimal.js",
+      "line": 96,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "4 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/oracle-bot.js",
+      "line": 139,
+      "count": 4
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/README.md",
+      "line": 27,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/extract_personality.py",
+      "line": 26,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/INSTALL.md",
+      "line": 9,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/install.py",
+      "line": 37,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/INSTALLATION_GUIDE.md",
+      "line": 12,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/install_simple.py",
+      "line": 101,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/marketing/launch_content.md",
+      "line": 9,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/UnbreakableOracleGUI.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/UnbreakableOracleInstaller.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "configDrift",
+      "description": "2 configDrift finding(s) detected",
+      "filePath": "unbreakable-oracle-final/OllamaCli.cs",
+      "line": 11,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "5 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle-map-chat.cjs",
+      "line": 101,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "configDrift",
+      "description": "1 configDrift finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle-map-chat.cjs",
+      "line": 63,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle_system_prompt.md",
+      "line": 84,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/PACKAGE_SUMMARY.md",
+      "line": 28,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "dotnetDebug",
+      "description": "5 dotnetDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/Program.cs",
+      "line": 14,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/QUICK_START.md",
+      "line": 12,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/sales_materials/viral_reddit_posts.md",
+      "line": 8,
+      "count": 5
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/BETA_TESTING_GUIDE.md",
+      "line": 69,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "1 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/UnbreakableOracleGUI.deps.json",
+      "line": 20,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/UnbreakableOracleInstaller.deps.json",
+      "line": 21,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "1 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/bin/Release/net6.0-windows-cli-fix/UnbreakableOracleGUI.deps.json",
+      "line": 20,
+      "count": 1
+    },
+    {
+      "severity": "high",
+      "type": "euAiAct",
+      "description": "1 euAiAct finding(s) detected",
+      "filePath": "unbreakable-oracle-final/BUSINESS_PLAN.md",
+      "line": 238,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "dotnetDebug",
+      "description": "5 dotnetDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/cli-installer/Program.cs",
+      "line": 16,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/CSHARP_INSTALL.md",
+      "line": 21,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/DEPLOYMENT_STATUS.md",
+      "line": 72,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "2 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/oracle-bot-minimal.js",
+      "line": 96,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "4 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/oracle-bot.js",
+      "line": 139,
+      "count": 4
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/discord_bot/README.md",
+      "line": 27,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/extract_personality.py",
+      "line": 26,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/INSTALL.md",
+      "line": 9,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/install.py",
+      "line": 37,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/INSTALLATION_GUIDE.md",
+      "line": 12,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "pythonDebug",
+      "description": "5 pythonDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/install_simple.py",
+      "line": 101,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/marketing/launch_content.md",
+      "line": 9,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/UnbreakableOracleGUI.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/UnbreakableOracleInstaller.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleGUI.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "2 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.AssemblyInfo.cs",
+      "line": 15,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "hardcodedIp",
+      "description": "5 hardcodedIp finding(s) detected",
+      "filePath": "unbreakable-oracle-final/obj/Release/net6.0-windows/win-x64/UnbreakableOracleInstaller.deps.json",
+      "line": 23,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "configDrift",
+      "description": "2 configDrift finding(s) detected",
+      "filePath": "unbreakable-oracle-final/OllamaCli.cs",
+      "line": 11,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "debugArtifacts",
+      "description": "5 debugArtifacts finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle-map-chat.cjs",
+      "line": 101,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "configDrift",
+      "description": "1 configDrift finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle-map-chat.cjs",
+      "line": 63,
+      "count": 1
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "2 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/oracle_system_prompt.md",
+      "line": 84,
+      "count": 2
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/PACKAGE_SUMMARY.md",
+      "line": 28,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "dotnetDebug",
+      "description": "5 dotnetDebug finding(s) detected",
+      "filePath": "unbreakable-oracle-final/Program.cs",
+      "line": 14,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/QUICK_START.md",
+      "line": 12,
+      "count": 5
+    },
+    {
+      "severity": "medium",
+      "type": "llmSlop",
+      "description": "5 llmSlop finding(s) detected",
+      "filePath": "unbreakable-oracle-final/sales_materials/viral_reddit_posts.md",
+      "line": 8,
+      "count": 5
+    }
+  ]
+}

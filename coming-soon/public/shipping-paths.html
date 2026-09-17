@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>SimpleBeacon — Scoped shipping-path scans</title>
+        <meta
+            name="description"
+            content="Run a SimpleBeacon gate on production paths only. Use scanPaths, productionPaths, and ignore — not a full-tree browser dump."
+        />
+        <link rel="canonical" href="https://simplebeacon.ai/shipping-paths.html" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            body {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 40px 24px;
+                color: #f3f4f6;
+                background: #0b1120;
+                font-family: Inter, sans-serif;
+                line-height: 1.7;
+            }
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 8px;
+            }
+            h2 {
+                font-size: 1.2rem;
+                margin-top: 32px;
+                margin-bottom: 12px;
+                color: #60a5fa;
+            }
+            p,
+            li {
+                color: #9ca3af;
+            }
+            ul {
+                padding-left: 20px;
+            }
+            li {
+                margin-bottom: 8px;
+            }
+            pre {
+                overflow-x: auto;
+                background: #0b0f19;
+                border: 1px solid #1e293b;
+                border-radius: 10px;
+                padding: 16px;
+                font-size: 13px;
+                line-height: 1.5;
+                color: #e5e7eb;
+            }
+            code {
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size: 0.9em;
+            }
+            a {
+                color: #60a5fa;
+            }
+            .note {
+                border-left: 3px solid #06b6d4;
+                padding: 8px 0 8px 14px;
+                margin: 20px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <nav
+            class="sb-site-nav"
+            style="
+                background: #0b0f19;
+                border-bottom: 1px solid #1e293b;
+                padding: 14px 24px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                box-sizing: border-box;
+            "
+        >
+            <a href="/" style="color: #f3f4f6; text-decoration: none; font-weight: 700">SimpleBeacon</a>
+            <a href="/roadmap" style="color: #9ca3af; text-decoration: none; font-size: 0.9rem">Roadmap</a>
+        </nav>
+
+        <h1>Scoped shipping-path scans</h1>
+        <p>
+            A browser full-tree scan of a large repo can emit tens of thousands of findings, including credential
+            echoes inside demo reports and <code>*.simplebeacon-backup.*</code> snapshots. That inventory is not the
+            shipping gate. Do not drop a 15&nbsp;MB+ JSON file on Roadmap (the dropzone rejects it). Do not treat a
+            FAIL full-tree report as PASS.
+        </p>
+        <p class="note">
+            The CLI does not accept <code>--production-paths</code> or <code>--ignore-paths</code>. Scope is
+            <code>scanPaths</code>, <code>productionPaths</code>, and <code>ignore</code> in a config file, plus
+            optional <code>--exclude</code> on the command line. Fail-on is <code>--fail-on critical,high</code> or
+            <code>gate.failOn</code> in config — not an <code>include</code> / <code>exclude</code> pair at the JSON
+            root.
+        </p>
+
+        <h2>1. Config file</h2>
+        <p>
+            Example profile used for this monorepo (no <code>fullDirectoryScan</code>). Paths are repository-relative.
+            There is no repo-root <code>src/</code> here; CLI source is <code>packages/simplebeacon-cli/src</code>.
+            Catalog file <code>scanner-patterns.js</code> is ignored so the gate does not fail on its own rule text.
+        </p>
+        <pre><code>{
+  "profile": "eu-ai-act",
+  "fullDirectoryScan": false,
+  "scanPaths": [
+    "coming-soon/routes",
+    "coming-soon/public/js-es2018",
+    "packages/simplebeacon-cli/src"
+  ],
+  "productionPaths": [
+    "coming-soon/routes",
+    "coming-soon/public/js-es2018",
+    "packages/simplebeacon-cli/src"
+  ],
+  "ignore": [
+    "demo/**",
+    "**/demo/**",
+    "**/*simplebeacon-backup*",
+    "**/assets/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.min.js",
+    "coming-soon/public/js-es2018/dashboard/scanner-patterns.js",
+    "**/js-es2018/dashboard/scanner-patterns.js"
+  ]
+}</code></pre>
+        <p>Save as <code>.simplebeacon/config-shipping-paths.json</code> at the repository root.</p>
+
+        <h2>2. Command</h2>
+        <pre><code>npx simplebeacon scan \
+  --config .simplebeacon/config-shipping-paths.json \
+  --gate \
+  --offline \
+  --format json \
+  --output .simplebeacon/production-report.json \
+  --exclude demo,assets,dist,node_modules,simplebeacon-backup \
+  --fail-on critical,high</code></pre>
+        <p>
+            Read <code>gate.pass</code> and <code>issueCount</code> on that output file. Medium and low findings do not
+            fail this fail-on policy.
+        </p>
+
+        <h2>3. Roadmap ingest</h2>
+        <ul>
+            <li>Use the scoped JSON (typically well under 15&nbsp;MB), not a full-tree browser export.</li>
+            <li>Gate chips and scorecards follow the dropped file. The UI does not overlay production-report.json.</li>
+            <li>If the issue list is long, Roadmap shows at most 250 rows and keeps the file’s real gate status.</li>
+        </ul>
+
+        <p><a href="/security.html">Security &amp; trust</a> · <a href="/roadmap">Roadmap</a></p>
+
+        <footer
+            style="
+                background: #0b0f19;
+                border-top: 1px solid #1e293b;
+                padding: 32px 24px;
+                text-align: center;
+                color: #9ca3af;
+                font-size: 0.85rem;
+            "
+        >
+            <p style="margin: 0 0 12px; color: #f3f4f6">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+            <p style="margin: 0">
+                <a href="/sample-report" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Sample report</a>
+                ·
+                <a href="/pricing" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Pricing</a>
+                ·
+                <a href="/privacy" style="color: #9ca3af; text-decoration: none; margin: 0 6px">Privacy</a>
+            </p>
+        </footer>
+    </body>
+</html>

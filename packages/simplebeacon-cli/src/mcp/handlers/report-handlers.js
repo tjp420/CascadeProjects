@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { readFile, writeFile, mkdir, stat } = fs.promises;
 const { readGateStatus } = require("../../lib/snippet-scanner");
+const { slimScanFindings } = require("../../lib/scannable-path");
 
 function createReportHandlers({
   withGuard,
@@ -18,9 +19,25 @@ function createReportHandlers({
     gate_status: withGuard(({ projectRoot, reportPath, limit }) => {
       const result = readGateStatus(resolveProjectRoot(projectRoot), {
         reportPath,
-        limit: limit ? Number(limit) : 12,
+        limit: limit ? Number(limit) : 8,
       });
-      return formatToolResult(result);
+      const findings = slimScanFindings(result.topBlocking || []);
+      return formatToolResult({
+        ok: Boolean(result.ok),
+        skipped: false,
+        cached: false,
+        reason: result.error || null,
+        gatePass: result.ok ? result.gatePass : null,
+        blockingCount: result.blockingCount ?? 0,
+        warningCount: result.warningCount ?? 0,
+        findings,
+        reportPath: result.reportPath || null,
+        next: !result.ok
+          ? "stop"
+          : result.gatePass
+            ? "done"
+            : "fix_then_gate_status",
+      });
     }),
 
     suggest_fixes: withGuard(async ({ projectRoot, reportPath, maxFixes }) => {

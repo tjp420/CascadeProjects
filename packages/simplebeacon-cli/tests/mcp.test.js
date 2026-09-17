@@ -52,14 +52,59 @@ test("MCP tool handlers return JSON content blocks", () => {
   assert.ok(Array.isArray(parsed.findings));
 });
 
-test("MCP stdio server exposes fourteen tools", () => {
-  const server = createMcpStdioServer({ offline: true });
-  const list = server.toolListResult();
-  assert.equal(list.tools.length, 14);
-  assert.ok(list.tools.some((t) => t.name === "gate_status"));
-  assert.ok(list.tools.some((t) => t.name === "scan_project"));
-  assert.ok(list.tools.some((t) => t.name === "get_action_plan"));
-  assert.ok(list.tools.some((t) => t.name === "scan_deployment_readiness"));
+test("explain_finding appends codeMap hint when codemap.json exists", () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const handlers = createMcpToolHandlers({ offline: true });
+  const withoutMap = JSON.parse(
+    handlers.explain_finding({ patternId: "SB-FICTION-001" }).content[0].text,
+  );
+  assert.equal(withoutMap.found, true);
+  assert.equal(withoutMap.codeMap, undefined);
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sb-mcp-map-"));
+  try {
+    fs.mkdirSync(path.join(root, ".simplebeacon"));
+    fs.writeFileSync(
+      path.join(root, ".simplebeacon", "codemap.json"),
+      JSON.stringify({
+        files: ["src/a.ts", "src/b.ts", "src/c.ts"],
+        entryPoints: ["src/index.ts"],
+      }),
+    );
+    const withMap = JSON.parse(
+      handlers.explain_finding({
+        patternId: "SB-FICTION-001",
+        projectRoot: root,
+      }).content[0].text,
+    );
+    assert.equal(withMap.codeMap.fileCount, 3);
+    assert.deepEqual(withMap.codeMap.entryPoints, ["src/index.ts"]);
+    assert.equal(withMap.codeMap.files, undefined);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP stdio server exposes slim tools by default and fifteen when full", () => {
+  const slim = createMcpStdioServer({ offline: true, toolProfile: "slim" });
+  assert.equal(slim.toolListResult().tools.length, 5);
+  assert.ok(slim.toolListResult().tools.some((t) => t.name === "gate_status"));
+  assert.ok(
+    slim
+      .toolListResult()
+      .tools.some((t) => t.name === "simplebeacon_workspace_context"),
+  );
+  assert.ok(!slim.toolListResult().tools.some((t) => t.name === "scan_project"));
+  assert.ok(!slim.toolListResult().tools.some((t) => t.name === "suggest_fixes"));
+  const full = createMcpStdioServer({ offline: true, fullTools: true });
+  assert.equal(full.toolListResult().tools.length, 15);
+  assert.ok(full.toolListResult().tools.some((t) => t.name === "scan_project"));
+  assert.ok(full.toolListResult().tools.some((t) => t.name === "get_action_plan"));
+  assert.ok(
+    full.toolListResult().tools.some((t) => t.name === "scan_deployment_readiness"),
+  );
 });
 
 test("readGateStatus handles missing report gracefully", () => {

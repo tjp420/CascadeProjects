@@ -106,10 +106,10 @@ export function DashboardView() {
                 Free — 10 scans/mo
               </span>
               <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground-muted">
-                Pro — $9/mo
+                Developer — $49/mo
               </span>
               <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground-muted">
-                Compliance Suite — $399/mo
+                Team Pro — $149/mo
               </span>
               <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground-muted">
                 Enterprise Air-Gapped — Custom

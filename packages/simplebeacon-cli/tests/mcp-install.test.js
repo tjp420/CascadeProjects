@@ -36,4 +36,5 @@ test("installCursorMcpConfig writes .cursor/mcp.json", () => {
   assert.ok(fs.existsSync(result.configPath));
   const parsed = JSON.parse(fs.readFileSync(result.configPath, "utf8"));
   assert.ok(parsed.mcpServers.simplebeacon);
+  assert.equal(parsed.mcpServers.simplebeacon.env.SIMPLEBEACON_MCP_PROFILE, "slim");
 });

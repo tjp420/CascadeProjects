@@ -1,5 +1,13 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.589] - 2026-09-16
+
+### Added
+
+- **Agent workspace context** — VS Code Agent can invoke `#simplebeacon` / `simplebeacon_workspace_context` for verified file, import, and symbol JSON. Extension Host logs whether `vscode.lm.registerTool` registered the tool.
+
+## [3.0.588] - 2026-09-15
+
 ## [3.0.588] - 2026-09-15
 
 ### Fixed

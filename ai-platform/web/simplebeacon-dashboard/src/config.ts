@@ -35,12 +35,13 @@ function isHostedMarketingDashboard(): boolean {
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
-    // Browser must call /api on this origin. A Render URL here is a CORS
-    // NetworkError in Firefox (no Access-Control-Allow-Origin on the API).
-    if (isHostedMarketingDashboard()) {
-      return window.location.origin;
-    }
     const params = new URLSearchParams(window.location.search);
+    const ideBridge =
+      params.get("sb_website_mode") === "1" ||
+      params.has("sb_notify_base") ||
+      /simplebeacon\.simplebeacon-vscode\/relay\/auth/i.test(
+        params.get("redirect_uri") || "",
+      );
     const explicit = params.get("sb_api_base");
     if (explicit && !isForeignPagesPreviewBase(explicit)) {
       const trimmed = explicit.replace(/\/+$/, "");
@@ -59,7 +60,10 @@ export function getApiBase(): string {
       } catch {
         loopback = false;
       }
-      if (!(hostedHttps && loopback)) return base;
+      if (ideBridge || !(hostedHttps && loopback)) return base;
+    }
+    if (isHostedMarketingDashboard() && !ideBridge) {
+      return window.location.origin;
     }
     // Prefer an already-detected local API host (populated by background probe)
     // Window variable kept for compatibility with legacy bundles.

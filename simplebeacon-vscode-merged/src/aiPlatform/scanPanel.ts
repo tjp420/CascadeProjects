@@ -170,7 +170,7 @@ export class ScanPanel {
       const payload = {
         projectPath: targetPath,
         mode: options.mode || 'full',
-        fullDirectoryScan: options.fullDirectory !== false,
+        fullDirectoryScan: options.fullDirectory === true,
         analysisType: (options.mode || 'full') === 'full' ? 'complete' : options.mode || 'simplebeacon',
         ...(options.aiProvider ? { aiProvider: options.aiProvider } : {}),
         ...(tier ? { tier } : {}),

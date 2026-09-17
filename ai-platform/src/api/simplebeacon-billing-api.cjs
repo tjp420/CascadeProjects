@@ -285,6 +285,30 @@ function setupSimplebeaconBillingWebhook(app) {
                 registered_at: new Date().toISOString(),
               });
 
+              // Store token so GET /api/session-token/:sessionId works after one-time checkout
+              // (subscription mode already writes this store below).
+              try {
+                const sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+                if (session.id) {
+                  sessionTokenStore.set(session.id, {
+                    token: licenseToken,
+                    email,
+                    projectName:
+                      session.metadata?.certProjectName ||
+                      session.metadata?.projectName ||
+                      "default-project",
+                    tier: licenseTier,
+                    product,
+                    billingInterval: "one-time",
+                  });
+                }
+              } catch (storeErr) {
+                logger.warn(
+                  "[Simplebeacon billing] Session token store failed:",
+                  storeErr.message,
+                );
+              }
+
               // Email upload instructions immediately after payment (rich HTML template)
               const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
               const sessionId = session.id || "sess_" + Date.now();
@@ -890,6 +914,20 @@ function setupSimplebeaconBillingRoutes(app) {
             await syncSubscriptionToDb(req.app?.locals?.db || null, record);
           }
         }
+
+        // Helper: try to read session token from the in-memory session token store (if present).
+        // This is a local convenience for dev/test flows and may return null in many environments.
+        module.exports.getSessionTokenFromStore = function (sessionId) {
+          try {
+            const sessionTokenStore = require("../../../coming-soon/routes/session-token-store.cjs");
+            if (sessionTokenStore && typeof sessionTokenStore.get === "function") {
+              return sessionTokenStore.get(sessionId) || null;
+            }
+            return null;
+          } catch (err) {
+            return null;
+          }
+        };
       }
 
       // Webhook race fallback: mint team token if payment succeeded but webhook hasn't yet
@@ -947,6 +985,11 @@ function setupSimplebeaconBillingRoutes(app) {
         licenseToken,
         token: licenseToken,
         tier: record?.licenseTier || record?.tier || null,
+        canExportCertificates:
+          session.payment_status === "paid" &&
+          (session.metadata?.product === "executive_clearance" ||
+            record?.licenseTier === "executive" ||
+            record?.product === "executive_clearance"),
         certProfile: {
           clientName: record?.certClientName || null,
           projectName: record?.certProjectName || null,

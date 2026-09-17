@@ -2,19 +2,18 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-    <script data-sb-beacon-neutralize="1">(function(){function isBeacon(el){if(!el||el.tagName!=='SCRIPT')return false;var src=el.src||el.getAttribute('src')||'';var cf=el.getAttribute('data-cf-beacon');return src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1||(cf&&cf.length>0)}function neutralize(el){if(!isBeacon(el))return;try{el.removeAttribute('integrity')}catch(e){}try{el.removeAttribute('crossorigin')}catch(e){}try{el.type='text/plain'}catch(e){}try{el.removeAttribute('src')}catch(e){}}var origCreate=document.createElement.bind(document);document.createElement=function(tag){var el=origCreate(tag);if(typeof tag==='string'&&tag.toLowerCase()==='script'){var origSet=el.setAttribute.bind(el);el.setAttribute=function(name,value){var beacon=(typeof value==='string'&&value.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1)||(typeof el.src==='string'&&el.src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1);if(beacon&&(name==='integrity'||name==='crossorigin'))return;if(name==='src'&&typeof value==='string'&&value.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1){try{el.removeAttribute('integrity')}catch(e){}try{el.removeAttribute('crossorigin')}catch(e){}}return origSet(name,value)}}return el};if(window.MutationObserver){var mo=new MutationObserver(function(records){records.forEach(function(record){if(record.type==='attributes'&&record.target)neutralize(record.target);Array.prototype.forEach.call(record.addedNodes||[],function(node){if(node.nodeType===1){if(node.tagName==='SCRIPT')neutralize(node);if(node.querySelectorAll)Array.prototype.forEach.call(node.querySelectorAll('script'),neutralize)}})})});mo.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['src','integrity','crossorigin']})}function sweep(){Array.prototype.forEach.call(document.querySelectorAll('script'),neutralize)}sweep();document.addEventListener('DOMContentLoaded',sweep)})();</script>
-    <title>SimpleBeacon — Local scan. No repo upload. Production noise filter.</title>
-    <meta name="description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps, then add a CI gate when the team is ready.">
+    <title>SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It</title>
+    <meta name="description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <link rel="canonical" href="https://simplebeacon.ai/">
     <meta name="robots" content="index, follow">
-    <meta property="og:title" content="SimpleBeacon — Local scan. No repo upload. Production noise filter.">
-    <meta property="og:description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps, then add a CI gate when the team is ready.">
+    <meta property="og:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
+    <meta property="og:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SimpleBeacon — Local scan. No repo upload. Production noise filter.">
-    <meta name="twitter:description" content="Run SimpleBeacon locally with npx. No GitHub connect, no source upload. Mute test-suite noise and catch production architecture gaps, then add a CI gate when the team is ready.">
+    <meta name="twitter:title" content="SimpleBeacon — Turn AI Code Debt Into Audit Evidence Before Regulators Find It">
+    <meta name="twitter:description" content="SimpleBeacon: browser-local AI artifact scanner for text and code. Catch AI hallucinations, placeholder text, credential leaks, and compliance gaps before they become liability. 100% private, 100% local.">
 
     
     
@@ -255,6 +254,21 @@
                 line-height: 1.7;
                 color: #c9d1d9;
                 min-height: 240px;
+            }
+
+            .terminal.terminal-compact {
+                margin: 24px auto 12px;
+            }
+
+            .terminal.terminal-compact .terminal-body {
+                min-height: 0;
+            }
+
+            .try-local-note {
+                font-size: 14px;
+                color: var(--text-muted);
+                margin: 0 auto 8px;
+                max-width: 640px;
             }
 
             .terminal-body .prompt {
@@ -1351,69 +1365,9 @@
             .hero-lead {
                 font-size: 20px;
                 line-height: 1.5;
-                max-width: 720px;
+                max-width: 680px;
                 margin: 0 auto 28px;
                 color: #d1d5db;
-            }
-            .hero-cmd {
-                max-width: 640px;
-                margin: 0 auto 28px;
-                text-align: left;
-                position: relative;
-            }
-            .hero-cmd pre {
-                padding-right: 88px;
-            }
-            .hero-copy-btn {
-                position: absolute;
-                top: 40px;
-                right: 12px;
-                padding: 6px 12px;
-                font-size: 13px;
-                font-weight: 600;
-                border-radius: 6px;
-                border: 1px solid var(--border);
-                background: var(--bg-elevated);
-                color: var(--text-main);
-                cursor: pointer;
-            }
-            .hero-trust {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 16px;
-                list-style: none;
-                text-align: left;
-                margin: 0 auto 8px;
-                max-width: 840px;
-            }
-            .hero-trust li {
-                background: var(--bg-card);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 16px 18px;
-            }
-            .hero-trust strong {
-                display: block;
-                color: var(--text-main);
-                font-size: 14px;
-                margin-bottom: 6px;
-            }
-            .hero-trust span {
-                color: var(--text-muted);
-                font-size: 14px;
-                line-height: 1.5;
-            }
-            @media (max-width: 720px) {
-                .hero-trust {
-                    grid-template-columns: 1fr;
-                }
-                .hero-cmd pre {
-                    padding-right: 18px;
-                }
-                .hero-copy-btn {
-                    position: static;
-                    margin: 10px 16px 14px;
-                }
             }
             .cta-row {
                 display: flex;
@@ -1421,6 +1375,39 @@
                 justify-content: center;
                 gap: 12px;
                 margin-bottom: 8px;
+            }
+            .audience-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-top: 28px;
+                text-align: left;
+            }
+            @media (min-width: 720px) {
+                .audience-grid {
+                    grid-template-columns: 1fr 1fr;
+                }
+            }
+            .audience-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 20px;
+            }
+            .audience-card h3 {
+                margin-bottom: 8px;
+            }
+            .audience-card p {
+                margin-bottom: 16px;
+                font-size: 14px;
+            }
+            .price-row {
+                font-size: 14px;
+                color: var(--text-muted);
+                margin: 0 0 8px;
+            }
+            .price-row strong {
+                color: var(--text-main);
             }
             .section-tight { padding-top: 8px; padding-bottom: 48px; }
             .code-panel.dominant {
@@ -1558,6 +1545,51 @@
                 font-size: 18px;
                 font-weight: 600;
                 margin-bottom: 0;
+            }
+            .custody-lead {
+                text-align: left;
+                color: var(--text-muted);
+                font-size: 16px;
+                line-height: 1.6;
+                margin: 0 0 20px;
+            }
+            .custody-split {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin: 20px 0 8px;
+                text-align: left;
+            }
+            @media (min-width: 720px) {
+                .custody-split {
+                    grid-template-columns: 1fr 1fr;
+                }
+            }
+            .custody-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px 18px;
+            }
+            .custody-card h3 {
+                font-size: 15px;
+                margin-bottom: 8px;
+            }
+            .custody-card ul {
+                margin: 0;
+                padding-left: 18px;
+                color: var(--text-muted);
+                font-size: 14px;
+                line-height: 1.55;
+            }
+            .inspect-line {
+                text-align: left;
+                font-size: 14px;
+                color: var(--text-muted);
+                margin-top: 16px;
+            }
+            .inspect-line a {
+                color: var(--accent);
             }
         </style>
     </head>
@@ -2253,38 +2285,13 @@
             }, 3000);
         </script>
 
-        <!-- HERO: CLI FIRST, NO UPLOAD -->
+        <!-- HERO + PAYMENT EXAMPLE -->
         <section class="hero hero-compact">
             <div class="hero-card">
-                <span class="badge">Local CLI first. Source never uploaded.</span>
-                <h1>Mute test-suite noise. Catch production architecture gaps.</h1>
+                <h1>Turn AI Code Debt Into Audit Evidence Before Regulators Find It.</h1>
                 <p class="hero-lead">
-                    Skeptical buyers will not connect GitHub to a site they do not know. Run the engine on your laptop, offline. Production-path issues stay on the main board. Test, mock, and fixture findings are parked so you are not drowning in another alert pile.
+                    Find AI-generated production gaps that tests miss, then keep a verification trail of what was found and fixed. No GitHub OAuth. Source stays on your machine.
                 </p>
-                <div class="code-panel hero-cmd">
-                    <div class="code-panel-label">No account. Works offline.</div>
-                    <pre><code id="hero-scan-cmd">npx simplebeacon scan --gate --offline</code></pre>
-                    <button type="button" class="hero-copy-btn" id="copy-scan-cmd">Copy</button>
-                </div>
-                <ul class="hero-trust">
-                    <li>
-                        <strong>Source stays local</strong>
-                        <span>The scanner runs on your machine. We do not need your repository or a GitHub OAuth grant to prove value.</span>
-                    </li>
-                    <li>
-                        <strong>Noise is filtered</strong>
-                        <span>Test-suite findings move off the production board so managers see architecture gaps, not fixture clutter.</span>
-                    </li>
-                    <li>
-                        <strong>Lives in your workflow</strong>
-                        <span>Start in the terminal. Add the VS Code extension. Paid teams automate the same gate on every pull request.</span>
-                    </li>
-                </ul>
-                <div class="cta-row" style="margin-top: 28px">
-                    <a href="/community" class="btn btn-primary">Install locally</a>
-                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-ghost">VS Code extension</a>
-                    <a href="/pricing" class="btn btn-ghost">Team CI gate</a>
-                </div>
             </div>
         </section>
 
@@ -2308,6 +2315,26 @@
                         Tests tell you whether code works. SimpleBeacon checks whether it works against the reality you
                         intended.
                     </p>
+                </div>
+                <p class="try-local-note" style="margin-top: 32px">
+                    Try it locally. No account. Paid CI gates come later, after you have seen a finding on your own repo.
+                </p>
+                <div class="terminal terminal-compact" aria-label="Local scan command">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">terminal</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div><span class="prompt">$</span> <span class="cmd">npx simplebeacon scan</span></div>
+                        <div class="output">Runs on your machine. Does not upload the repo.</div>
+                    </div>
+                </div>
+                <div class="cta-row">
+                    <button type="button" class="btn btn-primary" data-copy-cmd="npx simplebeacon scan">Copy command</button>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-ghost">Install the VS Code extension</a>
+                    <a href="/sample-report" class="btn btn-ghost">View sample audit</a>
                 </div>
             </div>
         </section>
@@ -2381,17 +2408,44 @@ const conversionRate = '75%';</code></pre>
         </section>
 
         <!-- HOW IT WORKS -->
-        <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18)">
+        <section class="section" id="how-it-works" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18)">
             <div class="container narrow">
                 <h2>How it works</h2>
                 <ol class="works-flow">
-                    <li>Run the CLI on your laptop</li>
-                    <li>See production gaps, not fixture noise</li>
-                    <li>Fix the issue in your editor</li>
+                    <li>AI writes code</li>
+                    <li>SimpleBeacon scans locally</li>
+                    <li>Reality gap detected</li>
+                    <li>Developer fixes it</li>
                     <li>Commit</li>
-                    <li>Optional: paid CI gate on every PR</li>
                 </ol>
-                <p class="privacy-line">Local and offline first. Source stays in your environment. Accounts are for team automation, not for trying the product.</p>
+                <p class="custody-lead">
+                    SimpleBeacon is zero-custody: source code, file bytes, and full finding lists stay on the machine that ran the scan. The cloud only sees account details you submit (email, product, scan list) and an optional hex scan fingerprint of counts plus project name—not the repo and not the finding list. Engineers can evaluate the CLI locally, then hand a verification report or this boundary to a manager. It is a verification trail, not a legal conformity certificate.
+                </p>
+                <div class="custody-split">
+                    <div class="custody-card">
+                        <h3>Stays local</h3>
+                        <ul>
+                            <li>Source and file bytes</li>
+                            <li>Scanner engine and <code>report.json</code></li>
+                            <li>Full finding lists and snippets</li>
+                        </ul>
+                    </div>
+                    <div class="custody-card">
+                        <h3>May touch Stripe or the API</h3>
+                        <ul>
+                            <li>Email and product for checkout</li>
+                            <li>Selected scans (for example executive clearance)</li>
+                            <li>Optional <code>scanHash</code> (hex, at least 16 characters)</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="inspect-line">
+                    Inspect the CLI on
+                    <a href="https://github.com/tjp420/simplebeacon">GitHub</a>.
+                    Paste a local JSON report on <a href="/roadmap">Roadmap</a> without uploading it.
+                    Scoped CLI gate:
+                    <a href="/shipping-paths.html">shipping-path scan</a>.
+                </p>
             </div>
         </section>
 
@@ -2399,25 +2453,60 @@ const conversionRate = '75%';</code></pre>
         <section class="section">
             <div class="container narrow">
                 <h2>When you need a paper trail</h2>
-                <p class="section-subtitle" style="margin-bottom: 0">
+                <p class="section-subtitle">
                     If you need evidence of how you control AI-generated software, SimpleBeacon produces an audit trail
-                    of what it found, what was fixed, and when it was fixed. That’s a verification report—not a
-                    compliance certificate.
+                    of what it found, what was fixed, and when it was fixed. That’s a verification report—not a legal
+                    conformity certificate.
                 </p>
+                <div class="audience-grid">
+                    <div class="audience-card">
+                        <h3>Developers</h3>
+                        <p>Scan locally, fix the finding, paste a gate badge on the pull request. No OAuth to try it.</p>
+                        <div class="cta-row" style="justify-content: flex-start">
+                            <button type="button" class="btn btn-primary" data-copy-cmd="npx simplebeacon scan">Copy command</button>
+                        </div>
+                    </div>
+                    <div class="audience-card">
+                        <h3>CISO / compliance</h3>
+                        <p>
+                            After a local scan, buy an Executive Risk Certificate pack for a risk committee, or start an
+                            EU AI Act sprint. Same engine. Paid step is the signed pack and CI enforcement—not the first scan.
+                        </p>
+                        <p class="price-row"><strong>$499</strong> Executive Risk Certificate</p>
+                        <p class="price-row"><strong>$2,499</strong> EU AI Act Readiness Sprint</p>
+                        <p class="price-row"><strong>$50,000+</strong> annual enterprise contracts</p>
+                        <div class="cta-row" style="justify-content: flex-start">
+                            <a href="/pricing" class="btn btn-primary">See pricing</a>
+                            <a href="/contact" class="btn btn-ghost">Talk to us</a>
+                            <a href="/blog/case-study-ai-slop-1-25m" class="btn btn-ghost">AI slop case study</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
         <!-- FINAL CTA -->
         <section class="section" id="cta" style="padding-bottom: 80px">
             <div class="container narrow" style="text-align: center">
-                <h2>Try it before you create an account</h2>
+                <h2>See it on your repo</h2>
                 <p class="section-subtitle">
-                    <code>npx simplebeacon scan --gate --offline</code>
-                    No upload. Add the GitHub Action only after the local scan earns trust.
+                    Scan locally. No upload required. Automating the same gate on pull requests is the paid team step.
                 </p>
+                <div class="terminal terminal-compact" aria-label="Local scan command">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">terminal</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div><span class="prompt">$</span> <span class="cmd">npx simplebeacon scan</span></div>
+                    </div>
+                </div>
                 <div class="cta-row">
-                    <a href="/community" class="btn btn-primary">Install locally</a>
-                    <a href="/pricing" class="btn btn-ghost">Automate on pull requests</a>
+                    <button type="button" class="btn btn-primary" data-copy-cmd="npx simplebeacon scan">Copy command</button>
+                    <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.simplebeacon-vscode" class="btn btn-ghost">Install the VS Code extension</a>
+                    <a href="/dashboard/#/analyze" class="btn btn-ghost">Browser scan</a>
                 </div>
             </div>
         </section>
@@ -2426,30 +2515,28 @@ const conversionRate = '75%';</code></pre>
         <footer class="footer">
             <p>&copy; 2026 SimpleBeacon. All rights reserved.</p>
             <p class="footer-links">
-                <a href="/sample-report">Sample report</a> · <a href="/pricing">Pricing</a> ·
+                <a href="/sample-report">Sample report</a> · <a href="/shipping-paths.html">Shipping-path scan</a> ·
+                <a href="/pricing">Pricing</a> ·
                 <a href="/contact">Contact</a> · <a href="/terms">Terms</a> ·
                 <a href="/privacy">Privacy</a>
             </p>
         </footer>
 
-        <script src="/js-es2018/referral-capture.js" defer></script>
         <script>
-            (function () {
-                var btn = document.getElementById('copy-scan-cmd');
-                var el = document.getElementById('hero-scan-cmd');
-                if (!btn || !el) return;
-                btn.addEventListener('click', function () {
-                    var cmd = el.textContent || '';
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(cmd).then(function () {
-                            btn.textContent = 'Copied';
-                            setTimeout(function () {
-                                btn.textContent = 'Copy';
-                            }, 1600);
-                        });
-                    }
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-copy-cmd]');
+                if (!btn) return;
+                var cmd = btn.getAttribute('data-copy-cmd');
+                if (!cmd || !navigator.clipboard) return;
+                navigator.clipboard.writeText(cmd).then(function () {
+                    var prev = btn.textContent;
+                    btn.textContent = 'Copied';
+                    setTimeout(function () {
+                        btn.textContent = prev;
+                    }, 1500);
                 });
-            })();
+            });
         </script>
+        <script src="/js-es2018/referral-capture.js" defer></script>
     </body>
 </html>

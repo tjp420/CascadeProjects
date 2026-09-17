@@ -107,9 +107,15 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Views that remain visible when signed out (only signin/register).
-// All other views require authentication — aligns with App.tsx route guard.
-const PUBLIC_VIEWS = new Set(["signin", "register"]);
+// Guest funnel: analyze, results, remediation stay visible without a session.
+const PUBLIC_VIEWS = new Set([
+  "signin",
+  "register",
+  "analyze",
+  "results",
+  "remediation",
+  "roadmap",
+]);
 
 export function Sidebar({
   currentView,

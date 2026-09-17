@@ -1,0 +1,27 @@
+---
+description: Simplebeacon MCP — which files to scan; skip Doom assets and binaries
+alwaysApply: true
+---
+
+# Scannable types
+
+Call `scan_file` only for:
+
+- JS/TS: `.js` `.jsx` `.ts` `.tsx` `.mjs` `.cjs` `.mts` `.cts`
+- Python: `.py` `.pyw`
+- Env: `.env` and `.env.*`
+- YAML/CI: `.yml` `.yaml` (except lockfiles)
+- JSON config: `.json` except `package-lock.json` and other lockfiles
+
+**Skip** (catalog cannot match; scanning copies bytes for an empty result):
+
+- GZDoom: ZScript, DECORATE, MODELDEF, TEXTURES, meshes, textures, WAD/PK3
+- Binaries, images, audio, fonts, wasm, lockfiles, minified bundles
+- Unknown extensions — skip unless listed above
+
+Constraints when writing scannable code (do not dump `list_rulesets`):
+
+- No live secrets or sample keys in production paths
+- No fiction KPIs (including unmeasured token-savings percentages)
+- No mock/fixture paths in production code
+- No LLM placeholders (`YOUR_API_KEY_HERE`, `TODO_REPLACE`)

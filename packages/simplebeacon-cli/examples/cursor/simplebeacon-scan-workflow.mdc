@@ -1,38 +1,18 @@
 ---
-description: Simplebeacon MCP scan workflow — snippet, file, and gate checks (local-only)
+description: Simplebeacon MCP — scan once, gate at PR (Payload Avoidance)
 alwaysApply: true
 ---
 
-# Simplebeacon scan workflow
+# Simplebeacon (Payload Avoidance)
 
-When the **simplebeacon** MCP server is available, follow this three-phase loop. All scans are local; do not upload source.
+Local only. Does not compress Cursor context. Do not invent token-savings %.
 
-## 1. While coding (before accepting generated edits)
+1. Unscannable path (see scannable-types) → no MCP.
+2. File on disk → `scan_file` once. Never `scan_snippet` for the same patch.
+3. Paste not on disk → `scan_snippet` only.
+4. `next` is `fix_then_rescan_once` → fix `file`/`line`/`rule`/`fix`, then `scan_file` once more. Stop. Max two scans per path.
+5. `next` is `do_not_rescan` or `done` → do not rescan.
+6. Before PR → `gate_status` **or** CLI `--gate`, not both unless the report is stale.
+7. Do not call `scan_project`, `list_rulesets`, analyzers, briefing, or tools that are not on this MCP unless the user asked.
 
-Call **`scan_snippet`** with:
-- `content` — the proposed code block
-- `filePath` — target path (e.g. `src/api/handler.ts`)
-
-If `blockingCount > 0` or high-severity findings appear, fix fiction KPIs, mock/sample paths, credentials, or LLM placeholders before applying the edit. Use **`explain_finding`** with the returned `pattern` id when the fix is unclear.
-
-## 2. After editing a file (on save / end of edit)
-
-Call **`scan_file`** with:
-- `filePath` — path relative to project root
-
-Surface any new findings to the user. Tune allowlists in `.simplebeacon/config.json` only for confirmed false positives.
-
-## 3. Before PR / merge
-
-Run the authoritative full-repo gate (terminal or CI):
-
-```bash
-npx simplebeacon scan --gate --offline --format json --output .simplebeacon/report.json
-npx simplebeacon gate status
-```
-
-Then call MCP **`gate_status`** to summarize blocking issues for the user.
-
-**MCP snippet/file tools = fast feedback.** **CLI `--gate` = source of truth** for cross-file consistency and CI.
-
-Never brag about raw finding counts; focus on gate-blocking issues.
+Findings are `{file,line,rule,severity,fix}`. Do not paste `report.json`. If `.simplebeacon/agent-brief.md` exists, read gate + blockers only.

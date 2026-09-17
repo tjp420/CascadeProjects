@@ -181,7 +181,9 @@ Real-time snippet and file checks during development — **no upload**:
 node bin/simplebeacon-mcp.js --offline
 ```
 
-Tools: `scan_snippet`, `scan_file`, `gate_status`, `explain_finding`. See [docs/MCP.md](docs/MCP.md) and `examples/mcp/cursor.mcp.json`.
+Default Cursor tools: `scan_file`, `scan_snippet`, `gate_status`, `explain_finding`, `simplebeacon_workspace_context`. See [docs/MCP.md](docs/MCP.md) and `examples/mcp/cursor.mcp.json`.
+
+SimpleBeacon does **not** compress Cursor’s context or strip files. Tokens drop only when the agent skips MCP on unscannable types and does not dump full scans or `report.json` into the chat. Details: [docs/MCP.md](docs/MCP.md#tokens--what-simplebeacon-does-and-does-not-do).
 
 ### Scan flags
 

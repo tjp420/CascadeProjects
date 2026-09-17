@@ -19,6 +19,15 @@ import {
 import { apiUrl, authHeaders } from "@/config";
 import { getExtensionBridgeOrigin } from "@services/localAgentService.js";
 import { navigate } from "@/router/HashRouter";
+import { ACTION_CAP, buildRoadmapFromScan, SCAN_IN_PROGRESS_KEY, SCAN_UPDATED_EVENT, stripRoadmapArtifactRows } from "@/lib/collect-scan-issues";
+import { getLargeItem } from "@/utils/dbStorage";
+import { useAuth } from "@/hooks/useAuth";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
+import {
+  ROADMAP_PREVIEW_ROWS,
+  remainingLockedRows,
+} from "@/lib/executive-checkout";
 
 type Phase = {
   phase?: string;
@@ -119,23 +128,65 @@ function priorityColor(priority?: string): string {
 }
 
 export function RemediationView() {
+  const { user } = useAuth();
+  const { hasFeature } = useFeatureAccess();
+  const paidRoadmap = hasFeature("canExportCertificates");
   const [data, setData] = useState<RoadmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanInProgress, setScanInProgress] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
-      let projectPath = "CascadeProjects";
+      try {
+        setScanInProgress(localStorage.getItem(SCAN_IN_PROGRESS_KEY) === "1");
+      } catch {
+        setScanInProgress(false);
+      }
+      let scan: unknown = null;
       try {
         const stored = localStorage.getItem("sb_last_scan_full");
-        if (stored) {
-          const scan = JSON.parse(stored);
-          if (scan?.projectPath) projectPath = scan.projectPath;
-        }
+        if (stored) scan = JSON.parse(stored);
       } catch {
         /* ignore */
+      }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const fromIdb = await getLargeItem("sb_last_scan_report");
+          if (fromIdb) scan = fromIdb;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const report = localStorage.getItem("sb_last_scan_report");
+          if (report) scan = JSON.parse(report);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!buildRoadmapFromScan(scan)) {
+        try {
+          const compact = localStorage.getItem("sb_last_scan");
+          if (compact) scan = JSON.parse(compact);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const localRoadmap = buildRoadmapFromScan(scan);
+      if (localRoadmap) {
+        setData(stripRoadmapArtifactRows(localRoadmap) as RoadmapData);
+        setLoading(false);
+        return;
+      }
+
+      let projectPath = "CascadeProjects";
+      if (scan && typeof scan === "object" && (scan as any).projectPath) {
+        projectPath = String((scan as any).projectPath);
       }
 
       // On the hosted dashboard, don't auto-fire /analyze/flexible with a local
@@ -162,7 +213,7 @@ export function RemediationView() {
       const json = await resp.json();
       const roadmap =
         json.roadmap || json.report?._roadmapAnalysis || json.report || json;
-      setData(roadmap);
+      setData(stripRoadmapArtifactRows(roadmap) as RoadmapData);
     } catch (e: any) {
       setError(e?.message || "Failed to fetch remediation roadmap");
     } finally {
@@ -201,6 +252,25 @@ export function RemediationView() {
   // simplebeacon-ignore: framework-practices
   useEffect(() => {
     void fetchData();
+    const onUpdate = () => {
+      void fetchData({ silent: true });
+    };
+    window.addEventListener(SCAN_UPDATED_EVENT, onUpdate);
+    window.addEventListener("storage", onUpdate);
+    const timer = window.setInterval(() => {
+      try {
+        if (localStorage.getItem(SCAN_IN_PROGRESS_KEY) === "1") {
+          void fetchData({ silent: true });
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 2500);
+    return () => {
+      window.removeEventListener(SCAN_UPDATED_EVENT, onUpdate);
+      window.removeEventListener("storage", onUpdate);
+      window.clearInterval(timer);
+    };
   }, [fetchData]);
 
   const fmtDate = (s?: string) => {
@@ -287,10 +357,19 @@ export function RemediationView() {
           <CardContent className="flex flex-col items-center gap-3 py-8">
             <Map className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">
-              No remediation roadmap available
+              {scanInProgress
+                ? "Scan still running — the roadmap will appear when Analyze finishes storing the snapshot in this browser."
+                : "No remediation roadmap available"}
+            </p>
+            <p className="text-xs text-foreground-muted max-w-md text-center">
+              Hosted Remediation uses the Analyze snapshot stored in this
+              browser. It cannot scan your local disk.
+              {scanInProgress
+                ? " Stay on this tab or return after the file count stops increasing."
+                : " Finish a local scan, then open this page again."}
             </p>
             <Button onClick={() => navigate("analyze")} className="mt-2">
-              Start a Scan
+              {scanInProgress ? "Back to Analyze" : "Start a Scan"}
             </Button>
           </CardContent>
         </Card>
@@ -305,6 +384,19 @@ export function RemediationView() {
   const recommendations = data.recommendations || [];
   const completionRate =
     summary.completionRate ?? data.progressMetrics?.completionRate ?? 0;
+  const previewActions = paidRoadmap
+    ? actionPlan
+    : actionPlan.slice(0, ROADMAP_PREVIEW_ROWS);
+  const lockedActions = paidRoadmap
+    ? []
+    : actionPlan.slice(ROADMAP_PREVIEW_ROWS);
+  const lockedCount = remainingLockedRows(
+    Math.min(
+      Math.max(actionPlan.length, Number(summary.totalFeatures) || 0),
+      ACTION_CAP,
+    ),
+    ROADMAP_PREVIEW_ROWS,
+  );
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
@@ -320,11 +412,13 @@ export function RemediationView() {
             </p>
           )}
         </div>
-        <div className="ml-4 flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={exportRoadmap}>
-            <Download className="h-4 w-4 mr-2" /> Export JSON
-          </Button>
-        </div>
+        {paidRoadmap ? (
+          <div className="ml-4 flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={exportRoadmap}>
+              <Download className="h-4 w-4 mr-2" /> Export JSON
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {/* Executive Summary */}
@@ -410,7 +504,7 @@ export function RemediationView() {
             <CardTitle className="text-lg">Action Plan</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {actionPlan.map((item, i) => (
+            {previewActions.map((item, i) => (
               <div
                 key={i}
                 className="flex items-start gap-3 rounded-lg border p-3"
@@ -442,12 +536,42 @@ export function RemediationView() {
                 </div>
               </div>
             ))}
+            {!paidRoadmap && lockedCount > 0 ? (
+              <div className="relative min-h-[220px] overflow-hidden rounded-lg">
+                <div className="pointer-events-none select-none blur-sm opacity-50 space-y-3">
+                  {(lockedActions.length > 0 ? lockedActions : actionPlan)
+                    .slice(0, 6)
+                    .map((item, i) => (
+                      <div
+                        key={`locked-${i}`}
+                        className="flex items-start gap-3 rounded-lg border p-3"
+                      >
+                        <div className="flex flex-col gap-1 flex-1">
+                          <span className="text-sm font-medium">
+                            {item.action || item.description || "Action item"}
+                          </span>
+                          {item.category && (
+                            <span className="text-xs text-foreground-muted">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <PremiumUnlockCallout
+                  remaining={lockedCount}
+                  projectName={data.projectName || data.sourceProjectPath}
+                  defaultEmail={String(user?.email || "")}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}
 
-      {/* Risks */}
-      {risks.length > 0 && (
+      {/* Risks — file-level detail stays behind paid clearance */}
+      {paidRoadmap && risks.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Risks</CardTitle>
@@ -561,7 +685,7 @@ export function RemediationView() {
       )}
 
       {/* Recommendations */}
-      {recommendations.length > 0 && (
+      {paidRoadmap && recommendations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Recommendations</CardTitle>

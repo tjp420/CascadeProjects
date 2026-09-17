@@ -115,6 +115,9 @@ Before submitting:
 - [ ] No new hardcoded secrets or tokens
 - [ ] New rules include suppression support
 - [ ] Documentation updated if needed
+- [ ] No unmeasured token-savings percentages (“X% saved”, “slashed token burn”) in docs, PRs, or feature copy
+
+Token efficiency is a byproduct of skipping unnecessary MCP calls. Describe withheld payloads, not compression.
 
 ---
 

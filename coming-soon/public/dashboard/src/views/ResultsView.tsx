@@ -28,6 +28,14 @@ import {
 import { toast } from "sonner";
 import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import CertificateModal from "@/components/CertificateModal";
+import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
+import {
+  remainingLockedRows,
+  completeExecutiveCheckoutReturn,
+  downloadExecutiveCertificateSvg,
+} from "@/lib/executive-checkout";
 import { ResultsReferralBanner } from "@/components/ResultsReferralBanner";
 import { PostScanCliNudge } from "@/components/PostScanCliNudge";
 import { PostScanShareBanner } from "@/components/PostScanShareBanner";
@@ -36,6 +44,20 @@ import {
   splitIssuesByLane,
   type IssueLane,
 } from "@/lib/issue-lanes";
+import { countIssuesBySeverity, SCAN_UPDATED_EVENT } from "@/lib/collect-scan-issues";
+import {
+  getLocalScanHistory,
+  getRawLastScan,
+  mapSnapshotToHistoryRow,
+  type LocalScanHistoryRow,
+} from "@/lib/scan-history";
+import LastScanDetails from "@/components/LastScanDetails";
+import {
+  buildExecutiveBriefModel,
+  downloadBrowserFile,
+  renderExecutiveBriefMarkdown,
+} from "@/lib/executive-brief";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 import { resolveReportIssues } from "@services/analyzeService.js";
 import { getLargeItem } from "@/utils/dbStorage";
 
@@ -158,6 +180,54 @@ function syncReportToVscodeSidebar(
   }
 }
 
+function LastScanHistoryRow({ row, onViewDetails }: { row: LocalScanHistoryRow | null; onViewDetails?: () => void }) {
+  if (!row) return null;
+  const when = row.timestamp
+    ? (() => {
+        try {
+          return new Date(row.timestamp).toLocaleString();
+        } catch {
+          return row.timestamp;
+        }
+      })()
+    : "time unknown";
+  const findings =
+    row.issueCount == null ? "—" : row.issueCount.toLocaleString();
+  const blocking =
+    row.blockingCount == null ? "—" : String(row.blockingCount);
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Last local scan</CardTitle>
+        <CardDescription>
+          Snapshot from this browser — not a scan archive
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span>
+          <span className="text-foreground-muted">Project </span>
+          {row.projectName}
+        </span>
+        <span>
+          <span className="text-foreground-muted">When </span>
+          {when}
+        </span>
+        <span>
+          <span className="text-foreground-muted">Findings </span>
+          {findings}
+        </span>
+        <span>
+          <span className="text-foreground-muted">Blocking </span>
+          {blocking}
+        </span>
+      </CardContent>
+      <div className="p-3 border-t flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => onViewDetails?.()}>View details</Button>
+      </div>
+    </Card>
+  );
+}
+
 export function ResultsView() {
   const [issueLane, setIssueLane] = useState<IssueLane>("production");
   const [filter, setFilter] = useState<string>("all");
@@ -173,7 +243,19 @@ export function ResultsView() {
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
+  const [historyRow, setHistoryRow] = useState<LocalScanHistoryRow | null>(
+    null,
+  );
+  const [showDetails, setShowDetails] = useState(false);
+  const [rawSnapshot, setRawSnapshot] = useState<any>(null);
   const { user } = useAuth();
+  const { hasFeature } = useFeatureAccess();
+  const paidRoadmap = hasFeature("canExportCertificates");
+  const [showCertModal, setShowCertModal] = useState(false);
+
+  useEffect(() => {
+    void completeExecutiveCheckoutReturn();
+  }, []);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
@@ -193,6 +275,34 @@ export function ResultsView() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHistory = async () => {
+      try {
+        const rows = await getLocalScanHistory();
+        if (!cancelled) setHistoryRow(rows[0] || null);
+      } catch {
+        if (!cancelled) setHistoryRow(null);
+      }
+    };
+    void loadHistory();
+    (async () => {
+      try {
+        const raw = await getRawLastScan();
+        if (!cancelled) setRawSnapshot(raw);
+      } catch {
+        if (!cancelled) setRawSnapshot(null);
+      }
+    })();
+    window.addEventListener(SCAN_UPDATED_EVENT, loadHistory);
+    window.addEventListener("storage", loadHistory);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SCAN_UPDATED_EVENT, loadHistory);
+      window.removeEventListener("storage", loadHistory);
+    };
   }, []);
 
   // If localStorage doesn't contain the full report (quota or missing), fall back to IndexedDB.
@@ -251,6 +361,12 @@ export function ResultsView() {
     };
   }, []);
 
+  useEffect(() => {
+    if (historyRow) return;
+    const fromLoaded = mapSnapshotToHistoryRow(fullReport || result);
+    if (fromLoaded) setHistoryRow(fromLoaded);
+  }, [result, fullReport, historyRow]);
+
   const reportForIssues = useMemo(() => {
     if (!result && !fullReport) return null;
     return {
@@ -280,6 +396,11 @@ export function ResultsView() {
   const laneIssues =
     issueLane === "production" ? productionIssues : testSuiteIssues;
 
+  const laneSeverityCounts = useMemo(
+    () => countIssuesBySeverity(laneIssues),
+    [laneIssues],
+  );
+
   const findingsDetailLimited = Boolean(
     result &&
     result.issueCount > 0 &&
@@ -289,7 +410,8 @@ export function ResultsView() {
         fullReport.rawIssues?.length ||
         fullReport.detectedIssues?.length ||
         fullReport.findings?.length
-      )),
+      ) ||
+      (Number(result.issueCount) || 0) > allIssues.length),
   );
 
   const heatmapGrid = useMemo(() => {
@@ -317,7 +439,10 @@ export function ResultsView() {
   const filteredIssues = useMemo(() => {
     let issues = laneIssues;
     if (filter !== "all") {
-      issues = issues.filter((i) => i.severity === filter);
+      const want = filter.toLowerCase();
+      issues = issues.filter(
+        (i) => String(i.severity || "").toLowerCase() === want,
+      );
     }
     if (selectedCell) {
       issues = issues.filter((i) => {
@@ -382,6 +507,16 @@ export function ResultsView() {
       .map(([type, count]) => ({ type, count }));
   }, [productionIssues]);
 
+  const openLastScanDetails = async () => {
+    try {
+      const raw = await getRawLastScan();
+      setRawSnapshot(raw || fullReport || result);
+    } catch {
+      setRawSnapshot(fullReport || result);
+    }
+    setShowDetails(true);
+  };
+
   if (!result) {
     return (
       <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -392,6 +527,13 @@ export function ResultsView() {
             stay on Test Suite Health
           </p>
         </div>
+        <LastScanHistoryRow row={historyRow} onViewDetails={openLastScanDetails} />
+        {showDetails && (
+          <LastScanDetails
+            snapshot={rawSnapshot}
+            onClose={() => setShowDetails(false)}
+          />
+        )}
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <ClipboardList className="h-12 w-12 text-foreground-muted" />
@@ -411,8 +553,10 @@ export function ResultsView() {
   }
 
   const severities = ["critical", "high", "medium", "low", "info"] as const;
+  // Chip visibility: show if the loaded list OR the full scan summary has that band
   const activeSeverities = severities.filter(
-    (s) => result.severityCounts[s] > 0,
+    (s) =>
+      (laneSeverityCounts[s] || 0) > 0 || (result.severityCounts[s] || 0) > 0,
   );
   const currentScanGrade = resolveScanLetterGrade(
     result.qualityScore,
@@ -428,6 +572,13 @@ export function ResultsView() {
           stay on Test Suite Health
         </p>
       </div>
+
+      <LastScanHistoryRow row={historyRow} onViewDetails={openLastScanDetails} />
+      {showDetails && (
+        <LastScanDetails snapshot={rawSnapshot} onClose={() => setShowDetails(false)} />
+      )}
+
+      <EvidenceStatePanel report={reportForIssues || fullReport || result} />
 
       {/* Overview Card */}
       <Card>
@@ -479,26 +630,25 @@ export function ResultsView() {
 
           <Separator />
 
-          <div className="flex flex-wrap gap-2">
-            {severities.map((sev) => (
-              <Badge
-                key={sev}
-                variant={
-                  sev === "critical"
-                    ? "danger"
-                    : sev === "high"
-                      ? "warning"
-                      : sev === "medium"
-                        ? "info"
-                        : sev === "low"
-                          ? "secondary"
-                          : "outline"
-                }
-                className="capitalize gap-1.5"
-              >
-                {sev}: {result.severityCounts[sev]}
-              </Badge>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+              Detector severity (unverified signals)
+            </p>
+            <p className="text-xs text-foreground-muted">
+              Severity chips are detector labels only. They do not mean verified
+              vulnerabilities — see Evidence state above.
+            </p>
+            <div className="flex flex-wrap gap-2 opacity-70">
+              {severities.map((sev) => (
+                <Badge
+                  key={sev}
+                  variant="outline"
+                  className="capitalize gap-1.5 font-normal"
+                >
+                  {sev}: {result.severityCounts[sev]}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           {/* Storage Engine Badge Footer */}
@@ -536,6 +686,16 @@ export function ResultsView() {
         userEmail={user?.email}
         currentScanGrade={currentScanGrade}
       />
+
+      {(paidRoadmap || (typeof localStorage !== 'undefined' && (() => {
+        try { return localStorage.getItem('sb_force_show_cert_button') === '1'; } catch { return false; }
+      })())) && (
+        <div className="mt-4">
+          <Button onClick={() => setShowCertModal(true)}>Generate / Download Certificate</Button>
+        </div>
+      )}
+
+      <CertificateModal isOpen={showCertModal} onClose={() => setShowCertModal(false)} sessionId={user?.id} />
 
       {/* Risk Heatmap Card */}
       <Card>
@@ -708,7 +868,7 @@ export function ResultsView() {
                 <CardDescription>
                   {issueLane === "production"
                     ? `${productionIssues.length.toLocaleString()} alerts in src/app/server (not tests)`
-                    : `${testSuiteIssues.length.toLocaleString()} alerts in test/mock/fixture paths`}{" "}
+                    : `${testSuiteIssues.length.toLocaleString()} alerts in test-suite paths`}{" "}
                   {findingsDetailLimited &&
                     " · detailed list limited — export JSON or use CLI for full paths"}
                   {filter !== "all" && ` · filtered by ${filter}`}
@@ -754,10 +914,26 @@ export function ResultsView() {
                       {sev !== "all" && (
                         <span className="ml-1.5 text-xs opacity-70">
                           {
-                            result.severityCounts[
-                              sev as keyof typeof result.severityCounts
+                            laneSeverityCounts[
+                              sev as keyof typeof laneSeverityCounts
                             ]
                           }
+                          {findingsDetailLimited &&
+                            (result.severityCounts[
+                              sev as keyof typeof result.severityCounts
+                            ] || 0) >
+                              (laneSeverityCounts[
+                                sev as keyof typeof laneSeverityCounts
+                              ] || 0) && (
+                              <span className="opacity-60">
+                                /
+                                {
+                                  result.severityCounts[
+                                    sev as keyof typeof result.severityCounts
+                                  ]
+                                }
+                              </span>
+                            )}
                         </span>
                       )}
                     </Button>
@@ -811,10 +987,20 @@ export function ResultsView() {
                     <Search className="h-8 w-8 text-foreground-muted" />
                     <div>
                       <p className="text-sm font-medium">
-                        No issues match current filters
+                        {filter !== "all" &&
+                        (result.severityCounts[
+                          filter as keyof typeof result.severityCounts
+                        ] || 0) > 0 &&
+                        (laneSeverityCounts[
+                          filter as keyof typeof laneSeverityCounts
+                        ] || 0) === 0
+                          ? `${filter} findings exist in the scan total but are not in the loaded detail rows`
+                          : "No issues match current filters"}
                       </p>
                       <p className="text-xs text-foreground-muted">
-                        Try adjusting severity filter or search query
+                        {findingsDetailLimited
+                          ? "Browser storage keeps a severity-balanced sample. Export JSON or re-scan after this fix, or use the CLI for the full list."
+                          : "Try adjusting severity filter or search query"}
                       </p>
                     </div>
                   </div>
@@ -852,7 +1038,10 @@ export function ResultsView() {
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredIssues.slice(0, 500).map((issue, idx) => {
+                            {(paidRoadmap
+                              ? filteredIssues.slice(0, 500)
+                              : filteredIssues.slice(0, 3)
+                            ).map((issue, idx) => {
                               const fw = getIssueFramework(issue);
                               return (
                                 <tr
@@ -912,6 +1101,32 @@ export function ResultsView() {
                           </tbody>
                         </table>
                       </div>
+                      {!paidRoadmap &&
+                      remainingLockedRows(
+                        Math.min(filteredIssues.length, 50),
+                        3,
+                      ) > 0 ? (
+                        <div className="relative min-h-[180px]">
+                          <div className="pointer-events-none select-none blur-sm opacity-40 p-3 space-y-2">
+                            {filteredIssues.slice(3, 8).map((issue, idx) => (
+                              <div
+                                key={`locked-row-${idx}`}
+                                className="h-8 rounded bg-muted text-xs px-2 flex items-center"
+                              >
+                                {issue.type || "finding"}
+                              </div>
+                            ))}
+                          </div>
+                          <PremiumUnlockCallout
+                            remaining={remainingLockedRows(
+                              Math.min(filteredIssues.length, 50),
+                              3,
+                            )}
+                            projectName={result?.projectPath}
+                            defaultEmail={String(user?.email || "")}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </>
                 )}
@@ -1418,52 +1633,55 @@ export function ResultsView() {
                   const exportData = fullReport || result;
                   syncReportToVscodeSidebar(exportData, result.projectPath);
                   const json = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([json], { type: "application/json" });
                   const filename = `simplebeacon-report-${Date.now()}.json`;
-                  const params = new URLSearchParams(window.location.search);
-                  const inIde =
-                    typeof window !== "undefined" &&
-                    (typeof (window as any).acquireVsCodeApi === "function" ||
-                      params.get("sb_parent_urlbar") ||
-                      params.get("sb_notify_base") ||
-                      params.get("sb_api_base"));
-                  if (inIde) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const base64 = String(reader.result || "").split(",")[1];
-                      const vscode = (window as any).acquireVsCodeApi?.();
-                      const msg = {
-                        command: "downloadFile",
-                        filename,
-                        mimeType: blob.type,
-                        base64,
-                      };
-                      if (vscode) {
-                        try {
-                          vscode.postMessage(msg);
-                        } catch {
-                          /* ignore */
-                        }
-                      } else if (window.parent && window.parent !== window) {
-                        try {
-                          window.parent.postMessage(msg, "*");
-                        } catch {
-                          /* ignore */
-                        }
-                      }
-                    };
-                    reader.readAsDataURL(blob);
-                    return;
-                  }
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = filename;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  downloadBrowserFile(filename, json, "application/json");
                 }}
               >
                 <Download className="h-4 w-4" /> JSON Report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const model = buildExecutiveBriefModel(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.json`,
+                    `${JSON.stringify(model, null, 2)}\n`,
+                    "application/json",
+                  );
+                  toast.success(
+                    `Executive brief JSON (${model.findings.length} findings)`,
+                  );
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!result && !fullReport) return;
+                  const exportData = fullReport || result;
+                  const md = renderExecutiveBriefMarkdown(exportData, {
+                    client:
+                      result?.projectPath?.split(/[\\/]/).filter(Boolean).pop() ||
+                      "project",
+                  });
+                  downloadBrowserFile(
+                    `simplebeacon-executive-${Date.now()}.md`,
+                    md,
+                    "text/markdown;charset=utf-8",
+                  );
+                  toast.success("Executive brief markdown downloaded");
+                }}
+              >
+                <Download className="h-4 w-4" /> Executive MD
               </Button>
               <Button
                 variant="outline"
@@ -1479,6 +1697,20 @@ export function ResultsView() {
               >
                 <Download className="h-4 w-4" /> Remediation Roadmap
               </Button>
+              {paidRoadmap && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    downloadExecutiveCertificateSvg({
+                      projectName: result?.projectPath || historyRow?.projectName,
+                      email: user?.email,
+                    });
+                    toast.success("Executive certificate SVG downloaded");
+                  }}
+                >
+                  <Download className="h-4 w-4" /> Download Executive Certificate
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

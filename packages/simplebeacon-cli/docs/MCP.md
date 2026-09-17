@@ -4,12 +4,21 @@ Local **Model Context Protocol** integration for Cursor, Claude Desktop, and oth
 
 ## Tools
 
-| Tool              | Purpose                                                                        |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `scan_snippet`    | Scan pasted/generated code for fiction KPIs, mock paths, credentials, LLM slop |
-| `scan_file`       | Scan one file within the project root                                          |
-| `gate_status`     | Read `.simplebeacon/report.json` gate pass/fail + top blocking issues          |
-| `explain_finding` | Deterministic rule metadata for a pattern ID (not LLM inference)               |
+Default Cursor profile (**slim**) lists five tools so unused schemas are not paid every turn:
+
+| Tool              | Purpose                                              |
+| ----------------- | ---------------------------------------------------- |
+| `scan_file`       | One saved scannable file                             |
+| `scan_snippet`    | Unpublished paste only                               |
+| `gate_status`     | Latest report gate + findings                        |
+| `explain_finding` | Rule metadata for a pattern id                       |
+| `simplebeacon_workspace_context` | Workspace preflight: files, symbols, imports, blockers |
+
+`suggest_fixes` and `get_action_plan` are **full** profile only (`--full-tools` / `SIMPLEBEACON_MCP_PROFILE=full`).
+
+Full catalog (`scan_project`, marketing, analyzers, compliance, init, `list_rulesets`, deployment) stays available with `--full-tools` or `SIMPLEBEACON_MCP_PROFILE=full`. Do not use `scan_project` mid-edit.
+
+Skip Doom/ZScript/MODELDEF/meshes/textures — empty catalog, full payload cost.
 
 ## Quick start (Cursor)
 
@@ -59,17 +68,36 @@ Do **not** run `simplebeacon:mcp` manually unless debugging — let Cursor launc
 
 ## Workflow during development
 
-Three phases — **local only**, no source upload:
+Local only, no source upload:
 
-| Phase               | When                                | Action                                                                                               |
-| ------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **1. While coding** | Before accepting AI-generated edits | MCP **`scan_snippet`** (`content` + virtual `filePath`)                                              |
-| **2. On save**      | After editing a file                | MCP **`scan_file`** (relative path)                                                                  |
-| **3. Before PR**    | Pre-merge / CI                      | `npm run simplebeacon:pre-pr` or `scan --gate --offline` + **`gate status`** / MCP **`gate_status`** |
+| When | Action |
+| ---- | ------ |
+| **Saved scannable file** | MCP **`scan_file` once**. Not `scan_snippet`. |
+| **Unpublished paste** | MCP **`scan_snippet` only**. |
+| **Doom / meshes / textures / unknown types** | Do not call SimpleBeacon. |
+| **Before PR** | `npx simplebeacon scan --gate --offline` then MCP **`gate_status`**. |
 
-Cursor: enable MCP via [`.cursor/mcp.json`](../../.cursor/mcp.json) (project root). Agent behavior: [`.cursor/rules/simplebeacon-scan-workflow.mdc`](../../.cursor/rules/simplebeacon-scan-workflow.mdc).
+Cursor: enable MCP via [`.cursor/mcp.json`](../../.cursor/mcp.json). Agent rules: [`.cursor/rules/simplebeacon-scan-workflow.mdc`](../../.cursor/rules/simplebeacon-scan-workflow.mdc) and [`.cursor/rules/simplebeacon-scannable-types.mdc`](../../.cursor/rules/simplebeacon-scannable-types.mdc).
 
-MCP gives **fast feedback on snippets**; the CLI **`--gate`** remains the **source of truth** for cross-file consistency and CI.
+CLI **`--gate`** remains the **source of truth** for CI.
+
+## Tokens — Payload Avoidance
+
+SimpleBeacon does not alter Cursor’s native context, strip imports, or compress LLM payloads. The editor still sends its usual context.
+
+Efficiency is **Payload Avoidance**: fewer MCP round-trips that would copy source or reports into the transcript. It is not a compression engine and not a session-start “PDA” briefing tool (those schemas are billed every turn).
+
+1. **Unscannable paths** — do not call MCP on binaries, images, lockfiles, minified bundles, unknown extensions, or GZDoom/ZScript/MODELDEF/meshes/textures. The catalog cannot match; the tool result is still billed.
+2. **Single pass** — after a file is on disk, `scan_file` once. Do not also call `scan_snippet` for the same patch. The MCP server does not block the second call; the agent must not make it.
+3. **High-volume tools** — `scan_project`, `list_rulesets`, analyzer suite, and pasting `.simplebeacon/report.json` only when the user asks, or at commit/PR (`gate_status` / CLI `--gate`). Not mid-edit.
+
+Forcing a full project scan or dumping a raw report into the chat uses **more** tokens than coding without SimpleBeacon.
+
+Do not publish “X% saved” until you have traces from a real editor session. MCP invocation counts are a proxy, not Cursor’s billed tokens.
+
+MCP tool results are compact JSON (no pretty-print), findings omit match snippets, `scan_file` skips binaries/minified/oversized files before a full read, and an in-process content-hash cache returns the prior finding list when the file bytes have not changed (5 minute TTL). That shrinks **tool-result** size. It does not shrink Cursor’s native context.
+
+SimpleBeacon is a local safety and gate scanner. Any token savings are a side effect of this workflow, not a compression product.
 
 ## Environment
 

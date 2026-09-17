@@ -395,19 +395,19 @@ export class AuthService {
     } else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
       notifyAuthState(true, tier, token, isAdmin);
     }
-    // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
-    if (typeof window !== "undefined" && window.parent === window) {
+    // If opened from VS Code or Cursor "Sign In" (redirect_uri=cursor:// or vscode:// …/relay/auth).
+    if (typeof window !== "undefined") {
       try {
         const redirectUri = new URLSearchParams(window.location.search).get(
           "redirect_uri",
         );
         if (
           redirectUri &&
-          redirectUri.startsWith(
-            "vscode://simplebeacon.simplebeacon-vscode/relay/auth",
+          /^(vscode|cursor|vscode-insiders|windsurf):\/\/simplebeacon\.simplebeacon-vscode\/relay\/auth/i.test(
+            redirectUri,
           )
         ) {
-          const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
+          const finalUri = `${redirectUri}${redirectUri.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
           window.location.href = finalUri;
         }
       } catch (e) {
@@ -720,10 +720,7 @@ export class AuthService {
     try {
       const res = await fetch(`${apiBase()}/api/auth/refresh`, {
         method: "POST",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
+        headers: { ...this.getAuthHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ longLived: false }),
       });
       const body = await readJsonResponseBody(res, {});
@@ -763,16 +760,13 @@ export class AuthService {
     const refreshAt = expSeconds * 1000 - 2 * 60 * 1000; // 2 minutes before expiry
     const delay = refreshAt - Date.now();
     if (delay <= 0) return; // Already expired or about to — let isAuthenticated handle it
-    this._refreshTimer = setTimeout(
-      async () => {
-        try {
-          await this.refreshToken(false);
-        } catch {
-          // Refresh failed — the next isAuthenticated() call will handle it
-        }
-      },
-      Math.min(delay, 13 * 60 * 1000),
-    ); // Cap at 13 minutes for 15-min tokens
+    this._refreshTimer = setTimeout(async () => {
+      try {
+        await this.refreshToken(false);
+      } catch {
+        // Refresh failed — the next isAuthenticated() call will handle it
+      }
+    }, Math.min(delay, 13 * 60 * 1000)); // Cap at 13 minutes for 15-min tokens
   }
   _decodeJwtPayload(token) {
     try {

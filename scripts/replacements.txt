@@ -1,4 +1,14 @@
+# git-filter-repo replace-text file
+# Format: <from>==> <to>
+# Use exact tokens or regex-like substrings. Keep replacements minimal.
+
+# Example: replace a literal Stripe secret with a placeholder
+sk_live_1234567890abcdef12345678==> SK_REDACTED_REPLACED_BY_ADMIN
+
+# Add other known literal tokens here (one per line)
 # SimpleBeacon Git History Token Redaction Mapping Profile
+# Used by scripts/rewrite-scan-artifact-history.ps1 (--replace-text).
+# Review every line before -Execute. Do not paste live production secrets into git.
 # Format: text_to_replace==>replacement_text
 
 # Example AWS keys (replace with your real patterns as needed)

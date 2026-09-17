@@ -22,10 +22,26 @@ export function isForeignPagesPreviewBase(value: string): boolean {
   }
 }
 
+function isHostedMarketingDashboard(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname || "";
+  return (
+    host === "simplebeacon.ai" ||
+    host === "www.simplebeacon.ai" ||
+    host.endsWith(".simplebeacon.pages.dev")
+  );
+}
+
 export function getApiBase(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
+    const ideBridge =
+      params.get("sb_website_mode") === "1" ||
+      params.has("sb_notify_base") ||
+      /simplebeacon\.simplebeacon-vscode\/relay\/auth/i.test(
+        params.get("redirect_uri") || "",
+      );
     const explicit = params.get("sb_api_base");
     if (explicit && !isForeignPagesPreviewBase(explicit)) {
       const trimmed = explicit.replace(/\/+$/, "");
@@ -44,7 +60,10 @@ export function getApiBase(): string {
       } catch {
         loopback = false;
       }
-      if (!(hostedHttps && loopback)) return base;
+      if (ideBridge || !(hostedHttps && loopback)) return base;
+    }
+    if (isHostedMarketingDashboard() && !ideBridge) {
+      return window.location.origin;
     }
     // Prefer an already-detected local API host (populated by background probe)
     // Window variable kept for compatibility with legacy bundles.
@@ -326,6 +345,30 @@ export function getHostedCloudApiBase(): string {
     return window.location.origin;
   }
   return "";
+}
+
+/** Same 16-char id as Render `flexible-analyze-api.cjs` github-clone cacheKey. */
+export async function githubCloneJobId(repoUrl: string): Promise<string | null> {
+  try {
+    const parsed = new URL(String(repoUrl || "").trim());
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    if (parsed.protocol !== "https:" || host !== "github.com") return null;
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    const owner = parts[0] || "";
+    const repo = String(parts[1] || "").replace(/\.git$/i, "");
+    if (!/^[-.\w]+$/.test(owner) || !/^[-.\w]+$/.test(repo)) return null;
+    const cloneUrl = `https://github.com/${owner}/${repo}.git`;
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(cloneUrl),
+    );
+    return [...new Uint8Array(digest)]
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 16);
+  } catch {
+    return null;
+  }
 }
 
 function isLoopbackHttpBase(value: string): boolean {

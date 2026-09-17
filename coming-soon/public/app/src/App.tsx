@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { getCurrentRoute, navigate } from "./router/HashRouter";
 import { AppShell } from "./layout/AppShell";
 import { ToastProvider } from "./components/ToastProvider";
@@ -44,20 +44,14 @@ import { FineTuningCurationView } from "./views/FineTuningCurationView";
 import { WebhookEventsView } from "./views/WebhookEventsView";
 import { OpsReportView } from "./views/OpsReportView";
 import { LicenseManagerView } from "./views/LicenseManagerView";
-
-// Lazy-loaded views — code-split to keep initial bundle small
-const TeamMetricsView = lazy(() =>
-  import("./views/TeamMetricsView").then((m) => ({
-    default: m.TeamMetricsView,
-  })),
-);
-const TelemetryView = lazy(() =>
-  import("./views/TelemetryView").then((m) => ({ default: m.TelemetryView })),
-);
+import { TeamMetricsView } from "./views/TeamMetricsView";
+import { TelemetryView } from "./views/TelemetryView";
 
 const PUBLIC_VIEWS = new Set([
   "signin",
   "register",
+  "analyze",
+  "results",
 ]);
 const AUTH_REQUIRED_VIEWS = new Set(["organization", "workspace"]);
 const WRITE_HEAVY_VIEWS = new Set([

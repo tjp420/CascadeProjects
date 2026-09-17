@@ -17,27 +17,24 @@
             'Healthcare-adjacent. PHI minimization, access logging, no patient identifiers in fixtures, encrypt data at rest/in transit.'
     };
     var UNIVERSAL_RULES = [
-        'Read agent-supercharge.md, agent-brief.md, and ai-context.md before editing.',
+        'Read agent-brief.md and ai-context.md before editing.',
         'For cleanup: read file-reduction-ai-notes.md and cleanup-ai-notes.json when present.',
         'Extend existing files — do not create parallel modules unless the scan report requires it.',
         'Never commit secrets, mock production paths, or hardcoded KPIs.',
         'Match the repo module system (require/import), naming (kebab-case files), and error-handling style.',
         'Fix gate-blocking (critical/high) findings before refactors or new features.',
-        'When SimpleBeacon MCP is available: supercharge_agent at session start, scan_snippet before apply, scan_file after save, handoff_check before done.'
+        'When SimpleBeacon MCP is available: scan_file once after saving scannable files; skip Doom assets; gate_status before PR. Do not call supercharge_agent or handoff_check.'
     ];
     var MCP_RULE_SNIPPET =
         '---\n' +
-        'description: SimpleBeacon Agent Supercharge — any coding agent plugin (local-only)\n' +
+        'description: Simplebeacon MCP — scan scannable files once, gate at PR (local-only)\n' +
         'alwaysApply: true\n' +
         '---\n\n' +
-        '# SimpleBeacon Agent Supercharge\n\n' +
-        'Start every session with **`supercharge_agent`** — mission, gate, code suggestions, plugin status.\n\n' +
-        '1. **`supercharge_agent`** — one-call mission briefing\n' +
-        '2. **`scan_snippet`** before applying edits\n' +
-        '3. **`code_suggestions`** for before/after fix hints\n' +
-        '4. **`handoff_check`** before claiming done\n\n' +
-        'Wire plugins: **`install_agent_plugin`** or `npx simplebeacon init --starter --hosts all`\n' +
-        'Read `.simplebeacon/agent-supercharge.md` when present. Do not upload source.\n';
+        '# Simplebeacon scan workflow\n\n' +
+        'Local only. Skip Doom/ZScript/MODELDEF/meshes/textures.\n' +
+        'Saved scannable file: scan_file once. Unpublished paste: scan_snippet only.\n' +
+        'Before PR: gate_status or npx simplebeacon scan --gate --offline.\n' +
+        'Never call supercharge_agent, handoff_check, or code_suggestions.\n';
     function pickIssues(report) {
         if (!report || typeof report !== 'object') return [];
         var raw = report.detectedIssues || report.rawIssues || report.findings || report.issues || [];
@@ -157,7 +154,6 @@
         return false;
     }
     function formatAgentBrief(report, projectRoot) {
-        var paid = isPaidUser();
         var data = report && typeof report === 'object' ? report : {};
         var gate = data.gate || {};
         var pass = gate.pass === true;
@@ -169,27 +165,7 @@
             var sev = String(i.severity || i.sev || '').toLowerCase();
             return sev === 'critical' || sev === 'high' || i.blocking === true;
         });
-        if (!paid) {
-            var teaser = (blocking.length ? blocking : issues).slice(0, 1);
-            var freeLines = [
-                '# SimpleBeacon agent brief (free preview)',
-                '',
-                '- **Gate:** ' + (pass ? 'PASS' : 'FAIL'),
-                '- **Issues detected:** ' + issues.length,
-                '',
-                'Free tier = **2/10** agent help. Upgrade for propose_fix, verify_fix, scan_staged, and full pattern IDs.',
-                '- https://simplebeacon.ai/pricing',
-                ''
-            ];
-            if (teaser.length) {
-                freeLines.push(
-                    '- Sample: [' + (teaser[0].severity || 'high') + '] issue (details redacted on free tier)'
-                );
-                freeLines.push('');
-            }
-            return freeLines.join('\n');
-        }
-        var top = (blocking.length ? blocking : issues).slice(0, 12);
+        var top = (blocking.length ? blocking : issues).slice(0, 5);
         var lines = [
             '# SimpleBeacon agent brief',
             '',
@@ -198,9 +174,8 @@
             '- **Quality score:** ' + score,
             '- **Issues:** ' + issues.length,
             '- **Blocking / high:** ' + blocking.length,
-            '- **Updated:** ' + new Date().toISOString(),
             '',
-            'Start with MCP `supercharge_agent`. Loop: `scan_snippet`, `code_suggestions`, `handoff_check`. Paid: scan_file, propose_fix, verify_fix.',
+            'Scan saved JS/TS/Python/env/YAML/JSON with `scan_file` once. Skip Doom assets. Before PR: `gate_status` or `npx simplebeacon scan --gate --offline`. Do not call `supercharge_agent` or `handoff_check`.',
             ''
         ];
         var pc = (data.aiContext && data.aiContext.projectContext) || {};
@@ -214,7 +189,7 @@
             lines.push('');
         }
         if (top.length > 0) {
-            lines.push('## Top findings');
+            lines.push('## Top blockers');
             lines.push('');
             top.forEach(function (issue) {
                 var sev = issue.severity || issue.sev || 'low';
@@ -233,28 +208,10 @@
         return lines.join('\n');
     }
     function buildSuperchargeBrief(report) {
-        var brief = formatAgentBrief(report);
-        var gate = (report && report.gate) || {};
-        var blocking = gate.blockingCount != null ? gate.blockingCount : 0;
-        var mission = gate.pass
-            ? 'Gate passed — run handoff_check before claiming done'
-            : blocking > 0
-              ? 'Fix ' + blocking + ' gate blocker(s)'
-              : 'Run scan_project with gate:true';
-        return [
-            '# SimpleBeacon Agent Supercharge',
-            '',
-            '> Mission: **' + mission + '**',
-            '',
-            '1. MCP: **`supercharge_agent`** with writeDisk:true',
-            '2. CLI: **`npx simplebeacon supercharge --write-disk`**',
-            '3. **`scan_snippet`** before accepting generated code',
-            '4. **`handoff_check`** before claiming done',
-            '',
-            '---',
-            '',
-            brief
-        ].join('\n');
+        return (
+            formatAgentBrief(report) +
+            '\n\nDo not call `supercharge_agent`. Use `scan_file` on scannable files and `gate_status` before PR.\n'
+        );
     }
     function buildAiContextMarkdown(report, notes, domainProfile) {
         var domain = getDomainProfile(domainProfile);
@@ -446,7 +403,7 @@
         return buildUniversalPrompt(report, domainProfile);
     }
     var ASSISTANT_HINTS = {
-        cursor: 'Paste into **Cursor Agent** (Cmd/Ctrl+L). Start with `supercharge_agent` MCP. @-mention .simplebeacon/*.md as you edit.',
+        cursor: 'Paste into **Cursor Agent**. Use `scan_file` on saved scannable files and `gate_status` before PR. @-mention .simplebeacon/agent-brief.md.',
         claude: 'Paste at the start of a **Claude** chat or Project. Attach `.simplebeacon/report.json` from the Context Pack if you need full detail.',
         copilot: 'Paste into **GitHub Copilot Chat** or save to `.github/copilot-instructions.md` in your repo.',
         windsurf: 'Paste into **Windsurf Cascade** or add to `.windsurf/rules`. MCP: `npx simplebeacon-mcp --offline`.',

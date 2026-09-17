@@ -46,7 +46,18 @@ Then:
 1. Open the project in **Cursor**
 2. **Settings → MCP** → enable **simplebeacon**
 3. **Reload window**
-4. Ask the agent to use `scan_snippet` before accepting AI-generated edits
+4. Ask the agent to `scan_file` once after saving JS/TS/Python/config — not on Doom assets, and not `scan_snippet` for files already on disk.
+
+SimpleBeacon does not compress Cursor’s native context. Tokens drop only when those MCP calls are skipped (and when you do not paste `report.json` into the chat). See [MCP.md](./MCP.md#tokens--payload-avoidance).
+
+**When to leave MCP on**
+
+| Work | MCP |
+| ---- | --- |
+| JS/TS, Python, env, YAML, JSON | On. Slim tools: `scan_file`, `scan_snippet`, `gate_status`, `explain_finding`. After a schema change, refresh the SimpleBeacon MCP entry (or reload the window). |
+| GZDoom / ZScript / meshes / textures / binaries | **Off.** The catalog cannot match; the four-tool schema is still billed every turn while the server is enabled. |
+
+Cursor rules still apply when MCP is off. That is editor context, not SimpleBeacon.
 
 Verify:
 
